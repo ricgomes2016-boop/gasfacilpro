@@ -6524,6 +6524,7 @@ export type Database = {
         Row: {
           ativo: boolean | null
           bairro: string | null
+          bairros_atendidos: string | null
           cep: string | null
           chave_pix: string | null
           cidade: string | null
@@ -6544,6 +6545,7 @@ export type Database = {
         Insert: {
           ativo?: boolean | null
           bairro?: string | null
+          bairros_atendidos?: string | null
           cep?: string | null
           chave_pix?: string | null
           cidade?: string | null
@@ -6564,6 +6566,7 @@ export type Database = {
         Update: {
           ativo?: boolean | null
           bairro?: string | null
+          bairros_atendidos?: string | null
           cep?: string | null
           chave_pix?: string | null
           cidade?: string | null
