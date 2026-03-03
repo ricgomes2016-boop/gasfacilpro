@@ -4015,6 +4015,50 @@ export type Database = {
           },
         ]
       }
+      integracoes_whatsapp: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          id: string
+          instance_id: string
+          nome_bot: string | null
+          security_token: string | null
+          token: string
+          unidade_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          id?: string
+          instance_id: string
+          nome_bot?: string | null
+          security_token?: string | null
+          token: string
+          unidade_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          id?: string
+          instance_id?: string
+          nome_bot?: string | null
+          security_token?: string | null
+          token?: string
+          unidade_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integracoes_whatsapp_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: true
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       licitacao_documentos: {
         Row: {
           created_at: string

@@ -15,26 +15,18 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-
-    const ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID");
-    const ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
-      throw new Error("Z-API credentials not configured");
-    }
 
     const body = await req.json();
     console.log("Z-API webhook received:", JSON.stringify(body).substring(0, 500));
 
-    // Skip messages sent by the bot itself (prevents infinite loop)
+    // Skip messages sent by the bot itself
     if (body.fromMe === true) {
       return new Response(JSON.stringify({ ok: true, skipped: "fromMe" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Z-API sends different event types
     const isMessage = body.type === "ReceivedCallback" || body.isNewMsg === true;
     if (!isMessage) {
       return new Response(JSON.stringify({ ok: true, skipped: true }), {
@@ -47,19 +39,90 @@ serve(async (req) => {
     const senderName = body.senderName || body.chatName || "";
     const isGroup = body.isGroup === true;
 
-    // Skip group messages
     if (isGroup || !phone || !messageText) {
       return new Response(JSON.stringify({ ok: true, skipped: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Normalize phone: extract digits, last 10-11
+    // Resolve credentials: try per-unit DB config first, then fall back to env secrets
+    const url = new URL(req.url);
+    const queryUnidadeId = url.searchParams.get("unidade_id");
+    // Z-API may include instanceId in payload
+    const payloadInstanceId = body.instanceId || body.instance_id || null;
+
+    let ZAPI_INSTANCE_ID: string | null = null;
+    let ZAPI_TOKEN: string | null = null;
+    let ZAPI_SECURITY_TOKEN: string | null = null;
+    let resolvedUnidadeId: string | null = null;
+
+    // Strategy 1: lookup by unidade_id query param
+    if (queryUnidadeId) {
+      const { data: config } = await supabase
+        .from("integracoes_whatsapp")
+        .select("*")
+        .eq("unidade_id", queryUnidadeId)
+        .eq("ativo", true)
+        .maybeSingle();
+
+      if (config) {
+        ZAPI_INSTANCE_ID = config.instance_id;
+        ZAPI_TOKEN = config.token;
+        ZAPI_SECURITY_TOKEN = config.security_token;
+        resolvedUnidadeId = config.unidade_id;
+      }
+    }
+
+    // Strategy 2: lookup by instanceId from payload
+    if (!ZAPI_INSTANCE_ID && payloadInstanceId) {
+      const { data: config } = await supabase
+        .from("integracoes_whatsapp")
+        .select("*")
+        .eq("instance_id", payloadInstanceId)
+        .eq("ativo", true)
+        .maybeSingle();
+
+      if (config) {
+        ZAPI_INSTANCE_ID = config.instance_id;
+        ZAPI_TOKEN = config.token;
+        ZAPI_SECURITY_TOKEN = config.security_token;
+        resolvedUnidadeId = config.unidade_id;
+      }
+    }
+
+    // Strategy 3: try matching any active config (single-unit setups)
+    if (!ZAPI_INSTANCE_ID) {
+      const { data: configs } = await supabase
+        .from("integracoes_whatsapp")
+        .select("*")
+        .eq("ativo", true)
+        .limit(1);
+
+      if (configs && configs.length > 0) {
+        ZAPI_INSTANCE_ID = configs[0].instance_id;
+        ZAPI_TOKEN = configs[0].token;
+        ZAPI_SECURITY_TOKEN = configs[0].security_token;
+        resolvedUnidadeId = configs[0].unidade_id;
+      }
+    }
+
+    // Strategy 4: fall back to env secrets (legacy)
+    if (!ZAPI_INSTANCE_ID) {
+      ZAPI_INSTANCE_ID = Deno.env.get("ZAPI_INSTANCE_ID") || null;
+      ZAPI_TOKEN = Deno.env.get("ZAPI_TOKEN") || null;
+      ZAPI_SECURITY_TOKEN = Deno.env.get("ZAPI_SECURITY_TOKEN") || null;
+    }
+
+    if (!ZAPI_INSTANCE_ID || !ZAPI_TOKEN) {
+      throw new Error("Z-API credentials not configured");
+    }
+
+    // Normalize phone
     const digits = phone.replace(/\D/g, "");
     const normalized = digits.slice(-11);
     const searchPatterns = [normalized, normalized.slice(-10)];
 
-    // Find client by phone
+    // Find client
     let clienteId: string | null = null;
     let clienteNome: string | null = null;
     let clienteEndereco: string | null = null;
@@ -78,7 +141,7 @@ serve(async (req) => {
         .join(", ");
     }
 
-    // Get recent orders for context
+    // Recent orders
     let recentOrders = "";
     if (clienteId) {
       const { data: pedidos } = await supabase
@@ -95,8 +158,8 @@ serve(async (req) => {
       }
     }
 
-    // Get available products
-    const { data: produtos } = await supabase
+    // Products (filter by unidade if resolved)
+    let prodQuery = supabase
       .from("produtos")
       .select("nome, preco, estoque")
       .eq("ativo", true)
@@ -104,12 +167,18 @@ serve(async (req) => {
       .order("nome")
       .limit(15);
 
+    if (resolvedUnidadeId) {
+      prodQuery = prodQuery.or(`unidade_id.eq.${resolvedUnidadeId},unidade_id.is.null`);
+    }
+
+    const { data: produtos } = await prodQuery;
+
     const productList = produtos
       ? produtos.map((p: any) => `- ${p.nome}: R$${Number(p.preco).toFixed(2)}`).join("\n")
       : "Produtos indisponíveis no momento.";
 
-    // Build AI prompt
-    const systemPrompt = `Você é a Bia, atendente da Forte Gás pelo WhatsApp. Seja simpática e profissional, com tom amigável mas sem exageros.
+    // AI prompt
+    const systemPrompt = `Você é a Bia, atendente da empresa pelo WhatsApp. Seja simpática e profissional, com tom amigável mas sem exageros.
 
 ESTILO:
 - Fale de forma educada e natural. Evite gírias como "blz", "tô", "vc". Use português correto e acessível.
@@ -145,14 +214,11 @@ FLUXO DO PEDIDO:
 
 NEGOCIAÇÃO DE PREÇO:
 - Se o cliente reclamar do preço, pedir desconto ou dizer que está caro, diga que vai verificar com o gerente.
-- Na mensagem seguinte (ou na mesma, se fizer sentido), retorne dizendo: "Consegui por R$115,00 para você!"
-- Use esse valor de R$115,00 como preço final no pedido quando houver negociação.
-- Aplique essa negociação APENAS para o Gás P13. Para outros produtos, diga que infelizmente o preço já é o melhor possível.`;
+- Na mensagem seguinte, retorne dizendo: "Consegui um desconto especial para você!"
+- Aplique desconto APENAS para o Gás P13. Para outros produtos, diga que infelizmente o preço já é o melhor possível.`;
 
-    // Generate a deterministic UUID from the phone number
     const conversationUUID = await generateUUIDFromString(`whatsapp_${normalized}`);
 
-    // Get conversation history from DB
     const { data: historyRows } = await supabase
       .from("ai_mensagens")
       .select("role, content, created_at")
@@ -164,14 +230,12 @@ NEGOCIAÇÃO DE PREÇO:
       ? historyRows.map((m: any) => ({ role: m.role, content: m.content }))
       : [];
 
-    // Save user message
     await supabase.from("ai_mensagens").insert({
       conversa_id: conversationUUID,
       role: "user",
       content: messageText,
     });
 
-    // Ensure conversation record exists
     await supabase.from("ai_conversas").upsert(
       {
         id: conversationUUID,
@@ -182,7 +246,6 @@ NEGOCIAÇÃO DE PREÇO:
       { onConflict: "id" }
     );
 
-    // Call AI
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -209,7 +272,7 @@ NEGOCIAÇÃO DE PREÇO:
           ? "Desculpe, estamos com muitas mensagens no momento. Tente novamente em instantes! 😊"
           : "Desculpe, tive um problema técnico. Tente novamente ou ligue para nós! 📞";
 
-      await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, phone, fallback);
+      await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_SECURITY_TOKEN, phone, fallback);
       return new Response(JSON.stringify({ ok: true, fallback: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -218,7 +281,6 @@ NEGOCIAÇÃO DE PREÇO:
     const aiResult = await aiResponse.json();
     let reply = aiResult.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem.";
 
-    // Save assistant message
     await supabase.from("ai_mensagens").insert({
       conversa_id: conversationUUID,
       role: "assistant",
@@ -230,24 +292,23 @@ NEGOCIAÇÃO DE PREÇO:
     if (orderMatch) {
       const orderData = parseOrderData(orderMatch[1]);
       if (orderData) {
-        await createOrder(supabase, orderData, clienteId, clienteNome, senderName, normalized);
-        // Remove the tag from the reply sent to customer
+        await createOrder(supabase, orderData, clienteId, clienteNome, senderName, normalized, resolvedUnidadeId);
         reply = reply.replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/, "").trim();
         reply += "\n\n✅ Pedido registrado com sucesso! Você receberá atualizações sobre a entrega.";
       }
     }
 
-    // Also register as incoming call/message for CallerID popup
+    // Register as incoming call/message for CallerID popup
     await supabase.from("chamadas_recebidas").insert({
       telefone: phone,
       cliente_id: clienteId,
       cliente_nome: clienteNome || senderName,
       tipo: "whatsapp",
       status: "recebida",
+      unidade_id: resolvedUnidadeId,
     });
 
-    // Send reply via Z-API
-    await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, phone, reply);
+    await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_SECURITY_TOKEN, phone, reply);
 
     return new Response(JSON.stringify({ ok: true, reply: reply.substring(0, 100) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -261,13 +322,12 @@ NEGOCIAÇÃO DE PREÇO:
   }
 });
 
-async function sendWhatsAppMessage(instanceId: string, token: string, phone: string, message: string) {
+async function sendWhatsAppMessage(instanceId: string, token: string, securityToken: string | null, phone: string, message: string) {
   try {
-    const ZAPI_SECURITY_TOKEN = Deno.env.get("ZAPI_SECURITY_TOKEN") || "";
     const url = `https://api.z-api.io/instances/${instanceId}/token/${token}/send-text`;
     const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (ZAPI_SECURITY_TOKEN) {
-      headers["Client-Token"] = ZAPI_SECURITY_TOKEN;
+    if (securityToken) {
+      headers["Client-Token"] = securityToken;
     }
     const resp = await fetch(url, {
       method: "POST",
@@ -300,16 +360,18 @@ async function createOrder(
   clienteId: string | null,
   clienteNome: string | null,
   senderName: string,
-  phone: string
+  phone: string,
+  unidadeId: string | null
 ) {
   try {
-    // Find matching product
-    const { data: produtos } = await supabase
+    let prodQuery = supabase
       .from("produtos")
       .select("id, nome, preco")
       .eq("ativo", true)
       .ilike("nome", `%${orderData.produto}%`)
       .limit(1);
+
+    const { data: produtos } = await prodQuery;
 
     const produto = produtos?.[0];
     if (!produto) {
@@ -343,6 +405,7 @@ async function createOrder(
         canal_venda: "whatsapp",
         endereco_entrega: orderData.endereco || "",
         observacoes: `Pedido via WhatsApp - ${clienteNome || senderName} (${phone})`,
+        unidade_id: unidadeId,
       })
       .select()
       .single();
@@ -352,7 +415,6 @@ async function createOrder(
       return;
     }
 
-    // Add order items
     await supabase.from("pedido_itens").insert({
       pedido_id: pedido.id,
       produto_id: produto.id,
@@ -361,7 +423,7 @@ async function createOrder(
       produto_nome: produto.nome,
     });
 
-    console.log("Order created:", pedido.id);
+    console.log("Order created:", pedido.id, "unidade:", unidadeId);
   } catch (e) {
     console.error("Create order error:", e);
   }
@@ -372,7 +434,6 @@ async function generateUUIDFromString(input: string): Promise<string> {
   const data = encoder.encode(input);
   const hash = await crypto.subtle.digest("SHA-256", data);
   const bytes = new Uint8Array(hash);
-  // Format as UUID v4-like
   const hex = Array.from(bytes.slice(0, 16))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
