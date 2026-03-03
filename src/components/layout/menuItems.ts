@@ -84,6 +84,8 @@ import {
   RefreshCw,
   Clipboard,
   Sparkles,
+  Mail,
+  Download,
   type LucideIcon,
 } from "lucide-react";
 
@@ -204,6 +206,8 @@ export const menuItems: MenuItem[] = [
       { icon: BarChart, label: "Balanço Patrimonial", path: "/financeiro/balanco" },
       { icon: Ticket, label: "Vale Gás", path: "/financeiro/vale-gas" },
       { icon: CalendarClock, label: "Fechamento Mensal", path: "/financeiro/fechamento" },
+      { icon: Mail, label: "E-mail Transacional", path: "/financeiro/email-transacional" },
+      { icon: Download, label: "Exportação Contábil", path: "/financeiro/exportacao-contabil" },
     ],
   },
   {

@@ -154,14 +154,15 @@ const integracoes: Integracao[] = [
   {
     id: "email_smtp",
     nome: "E-mail Transacional",
-    descricao: "Envio de notas fiscais, boletos e campanhas por e-mail automaticamente",
+    descricao: "Envio de boletos, notas fiscais e lembretes por e-mail (modo simulação — configure SMTP para envio real)",
     icon: Mail,
-    status: "em_breve",
+    status: "conectado",
     categoria: "comunicacao",
     beneficios: [
       "Envio de NF-e e boletos por e-mail",
-      "Templates personalizáveis",
-      "Relatórios de abertura e cliques",
+      "Templates personalizáveis por tipo",
+      "Histórico completo de envios",
+      "Automações configuráveis",
     ],
   },
   {
@@ -180,14 +181,15 @@ const integracoes: Integracao[] = [
   {
     id: "contabilidade",
     nome: "Exportação Contábil",
-    descricao: "Exportação automática de movimentações para sistemas contábeis (Domínio, Alterdata, Fortes)",
+    descricao: "Exportação de lançamentos financeiros em XLSX para Domínio, Alterdata, Fortes e SPED EFD",
     icon: BarChart3,
-    status: "em_breve",
+    status: "conectado",
     categoria: "produtividade",
     beneficios: [
-      "Plano de contas integrado",
-      "Exportação SPED compatível",
-      "Integração com contador online",
+      "CSV e XLSX para importação direta",
+      "Formatos Domínio, Alterdata e Fortes",
+      "Layout SPED EFD simplificado",
+      "Exportação por período e unidade",
     ],
   },
   {
