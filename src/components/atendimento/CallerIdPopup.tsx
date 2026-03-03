@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Phone, MessageSquare, X, ShoppingCart, User, Clock, RotateCcw, Copy } from "lucide-react";
+import { Phone, MessageSquare, X, ShoppingCart, User, Clock, RotateCcw, Copy, Truck, Eye } from "lucide-react";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +18,7 @@ interface ChamadaRecebida {
   tipo: string;
   status: string;
   created_at: string;
+  pedido_gerado_id: string | null;
 }
 
 interface UltimoPedidoInfo {
@@ -115,17 +116,17 @@ export function CallerIdPopup() {
 
   if (!chamada) return null;
 
-  const handleNovaVenda = async () => {
-    await supabase
-      .from("chamadas_recebidas")
-      .update({ status: "atendida" })
-      .eq("id", chamada.id);
-
-    if (chamada.cliente_id) {
-      navigate(`/vendas/nova?cliente=${chamada.cliente_id}`);
+  const handleVerPedido = () => {
+    if (chamada.pedido_gerado_id) {
+      navigate(`/vendas/pedidos`);
     } else {
-      navigate(`/vendas/nova?telefone=${encodeURIComponent(chamada.telefone)}`);
+      navigate(`/vendas/pedidos`);
     }
+    setChamada(null);
+  };
+
+  const handleRepassarEntregador = () => {
+    navigate(`/vendas/pedidos`);
     setChamada(null);
   };
 
@@ -270,20 +271,13 @@ export function CallerIdPopup() {
           </div>
 
           <div className="flex gap-2 mt-4">
-            {ultimoPedido && ultimoPedido.itens.length > 0 && (
-              <Button
-                size="sm"
-                className="flex-1 gap-1.5"
-                onClick={handleRepetirPedido}
-                disabled={repetindo}
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                {repetindo ? "Repetindo..." : "Repetir Pedido"}
-              </Button>
-            )}
-            <Button size="sm" variant="outline" className="flex-1 gap-1.5" onClick={handleNovaVenda}>
-              <ShoppingCart className="h-3.5 w-3.5" />
-              Nova Venda
+            <Button size="sm" className="flex-1 gap-1.5" onClick={handleRepassarEntregador}>
+              <Truck className="h-3.5 w-3.5" />
+              Repassar Entregador
+            </Button>
+            <Button size="sm" variant="outline" className="flex-1 gap-1.5" onClick={handleVerPedido}>
+              <Eye className="h-3.5 w-3.5" />
+              Ver Pedido
             </Button>
             {chamada.cliente_id && (
               <Button size="sm" variant="ghost" className="gap-1.5" onClick={handleVerPerfil}>
