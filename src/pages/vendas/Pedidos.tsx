@@ -473,6 +473,41 @@ export default function Pedidos() {
           <Button onClick={() => navigate("/vendas/nova")}>Nova Venda</Button>
         </div>
 
+        {/* Alert for old pending orders */}
+        {(() => {
+          const now = new Date();
+          const pedidosAntigos = pedidos.filter((p) => {
+            if (p.status !== "pendente" && p.status !== "em_rota") return false;
+            const dataStr = p.data; // "dd/mm/yyyy HH:mm" format
+            const parts = dataStr.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+            if (!parts) return false;
+            const createdAt = new Date(+parts[3], +parts[2]-1, +parts[1], +parts[4], +parts[5]);
+            const diffHours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+            return diffHours > 24;
+          });
+          if (pedidosAntigos.length === 0) return null;
+          return (
+            <Card className="border-destructive/30 bg-destructive/5">
+              <CardContent className="pt-4 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                    <Clock className="h-5 w-5 text-destructive" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm text-destructive">⚠️ {pedidosAntigos.length} pedido(s) pendente(s) há mais de 24h</p>
+                    <p className="text-xs text-muted-foreground">
+                      Verifique se já foram entregues e atualize o status para evitar inconsistências no acerto financeiro.
+                    </p>
+                  </div>
+                  <Button size="sm" variant="outline" className="shrink-0 text-xs border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => setFiltroStatus("pendente")}>
+                    Ver pendentes
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {/* AI suggestion for pending orders */}
         {pedidosPendentes.length > 0 && (
           <Card className="border-primary/20 bg-primary/5">
@@ -566,6 +601,7 @@ export default function Pedidos() {
                     <SelectItem value="pendente">Pendente</SelectItem>
                     <SelectItem value="em_rota">Em Rota</SelectItem>
                     <SelectItem value="entregue">Entregue</SelectItem>
+                    <SelectItem value="finalizado">Finalizado</SelectItem>
                     <SelectItem value="cancelado">Cancelado</SelectItem>
                   </SelectContent>
                 </Select>
