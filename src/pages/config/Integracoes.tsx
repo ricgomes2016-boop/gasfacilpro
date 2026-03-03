@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useUnidade } from "@/contexts/UnidadeContext";
 
 interface Integracao {
   id: string;
@@ -43,20 +45,15 @@ const integracoes: Integracao[] = [
   {
     id: "whatsapp_zapi",
     nome: "WhatsApp (Z-API)",
-    descricao: "Envio automático de comprovantes, status de entrega e atendimento ao cliente via WhatsApp",
+    descricao: "Envio automático de comprovantes, status de entrega e atendimento ao cliente via WhatsApp — configurável por unidade",
     icon: MessageSquare,
     status: "conectado",
     categoria: "comunicacao",
     beneficios: [
+      "Um número por unidade/filial",
       "Notificação automática de pedidos",
       "Envio de comprovantes PIX/boleto",
-      "Chatbot de atendimento",
-      "Disparo de campanhas",
-    ],
-    configFields: [
-      { key: "ZAPI_INSTANCE_ID", label: "Instance ID", type: "text", placeholder: "Sua Instance ID" },
-      { key: "ZAPI_TOKEN", label: "Token", type: "password", placeholder: "Token da Z-API" },
-      { key: "ZAPI_SECURITY_TOKEN", label: "Security Token", type: "password", placeholder: "Token de segurança" },
+      "Chatbot de atendimento (Bia)",
     ],
     helpUrl: "https://developer.z-api.io/",
   },
@@ -232,6 +229,82 @@ export default function Integracoes() {
   const [saving, setSaving] = useState(false);
   const [tabAtiva, setTabAtiva] = useState("todas");
 
+  // WhatsApp per-unit config
+  const { unidades, unidadeAtual } = useUnidade();
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  const [whatsappConfigs, setWhatsappConfigs] = useState<any[]>([]);
+  const [wpUnidadeId, setWpUnidadeId] = useState("");
+  const [wpInstanceId, setWpInstanceId] = useState("");
+  const [wpToken, setWpToken] = useState("");
+  const [wpSecurityToken, setWpSecurityToken] = useState("");
+  const [wpSaving, setWpSaving] = useState(false);
+  const [wpEditId, setWpEditId] = useState<string | null>(null);
+
+  const loadWhatsappConfigs = async () => {
+    const { data } = await supabase
+      .from("integracoes_whatsapp")
+      .select("*, unidades(nome)")
+      .order("created_at");
+    setWhatsappConfigs(data || []);
+  };
+
+  useEffect(() => { loadWhatsappConfigs(); }, []);
+
+  const handleSaveWhatsapp = async () => {
+    if (!wpUnidadeId || !wpInstanceId || !wpToken) {
+      toast.error("Preencha Unidade, Instance ID e Token.");
+      return;
+    }
+    setWpSaving(true);
+    try {
+      const payload = {
+        unidade_id: wpUnidadeId,
+        instance_id: wpInstanceId,
+        token: wpToken,
+        security_token: wpSecurityToken || null,
+        ativo: true,
+      };
+      if (wpEditId) {
+        const { error } = await supabase.from("integracoes_whatsapp").update(payload).eq("id", wpEditId);
+        if (error) throw error;
+        toast.success("Configuração atualizada!");
+      } else {
+        const { error } = await supabase.from("integracoes_whatsapp").insert(payload);
+        if (error) throw error;
+        toast.success("WhatsApp vinculado à unidade!");
+      }
+      await loadWhatsappConfigs();
+      resetWhatsappForm();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao salvar");
+    } finally {
+      setWpSaving(false);
+    }
+  };
+
+  const resetWhatsappForm = () => {
+    setWpUnidadeId("");
+    setWpInstanceId("");
+    setWpToken("");
+    setWpSecurityToken("");
+    setWpEditId(null);
+  };
+
+  const editWhatsappConfig = (config: any) => {
+    setWpEditId(config.id);
+    setWpUnidadeId(config.unidade_id);
+    setWpInstanceId(config.instance_id);
+    setWpToken(config.token);
+    setWpSecurityToken(config.security_token || "");
+    setWhatsappDialogOpen(true);
+  };
+
+  const deleteWhatsappConfig = async (id: string) => {
+    await supabase.from("integracoes_whatsapp").delete().eq("id", id);
+    toast.success("Configuração removida.");
+    loadWhatsappConfigs();
+  };
+
   const conectadas = integracoes.filter((i) => i.status === "conectado").length;
   const disponiveis = integracoes.filter((i) => i.status === "disponivel").length;
   const emBreve = integracoes.filter((i) => i.status === "em_breve").length;
@@ -247,6 +320,12 @@ export default function Integracoes() {
   const filteredCategorias = [...new Set(filteredIntegracoes.map(i => i.categoria))];
 
   const handleOpenConfig = (integracao: Integracao) => {
+    // WhatsApp uses per-unit dialog
+    if (integracao.id === "whatsapp_zapi") {
+      resetWhatsappForm();
+      setWhatsappDialogOpen(true);
+      return;
+    }
     setSelectedIntegracao(integracao);
     if (integracao.configFields && integracao.configFields.length > 0) {
       setConfigOpen(true);
@@ -523,6 +602,95 @@ export default function Integracoes() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDetailOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog WhatsApp por Unidade */}
+      <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              WhatsApp por Unidade
+            </DialogTitle>
+            <DialogDescription>
+              Cada unidade pode ter seu próprio número de WhatsApp (Z-API).
+              Configure o Webhook no painel Z-API apontando para:
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Existing configs */}
+          {whatsappConfigs.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Configurações ativas:</p>
+              {whatsappConfigs.map((cfg) => (
+                <div key={cfg.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm">{(cfg as any).unidades?.nome || "Unidade"}</p>
+                    <p className="text-xs text-muted-foreground truncate">Instance: {cfg.instance_id}</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Badge variant={cfg.ativo ? "default" : "secondary"} className="text-[10px]">
+                      {cfg.ativo ? "Ativo" : "Inativo"}
+                    </Badge>
+                    <Button variant="ghost" size="sm" onClick={() => editWhatsappConfig(cfg)}>
+                      <Settings className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteWhatsappConfig(cfg.id)}>
+                      <span className="text-xs">✕</span>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              <Separator />
+            </div>
+          )}
+
+          {/* Form */}
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Unidade</Label>
+              <Select value={wpUnidadeId} onValueChange={setWpUnidadeId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a unidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {unidades.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Instance ID</Label>
+              <Input value={wpInstanceId} onChange={(e) => setWpInstanceId(e.target.value)} placeholder="Sua Instance ID da Z-API" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Token</Label>
+              <Input type="password" value={wpToken} onChange={(e) => setWpToken(e.target.value)} placeholder="Token da Z-API" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Security Token (opcional)</Label>
+              <Input type="password" value={wpSecurityToken} onChange={(e) => setWpSecurityToken(e.target.value)} placeholder="Token de segurança" />
+            </div>
+
+            <div className="p-3 rounded-lg bg-muted/50 space-y-1">
+              <p className="text-xs font-medium">URL do Webhook (cole no painel Z-API):</p>
+              <code className="text-[11px] break-all text-primary">
+                {`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/zapi-webhook?unidade_id=${wpUnidadeId || "<selecione>"}`}
+              </code>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setWhatsappDialogOpen(false); resetWhatsappForm(); }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveWhatsapp} disabled={wpSaving}>
+              {wpSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {wpEditId ? "Atualizar" : "Vincular WhatsApp"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
