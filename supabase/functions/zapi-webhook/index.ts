@@ -117,6 +117,8 @@ serve(async (req) => {
     }
 
     // Check business hours
+    let isOffHours = false;
+    let horarioInfo = "";
     if (resolvedUnidadeId) {
       const { data: unidadeConfig } = await supabase
         .from("unidades")
@@ -125,21 +127,17 @@ serve(async (req) => {
         .maybeSingle();
 
       if (unidadeConfig?.horario_abertura && unidadeConfig?.horario_fechamento) {
-        // Use Brasilia timezone (UTC-3)
         const now = new Date();
         const brasiliaOffset = -3 * 60;
         const localTime = new Date(now.getTime() + (brasiliaOffset + now.getTimezoneOffset()) * 60000);
-        const currentTime = `${String(localTime.getHours()).padStart(2, '0')}:${String(localTime.getMinutes()).padStart(2, '0')}`;
+        const currentTime = String(localTime.getHours()).padStart(2, '0') + ":" + String(localTime.getMinutes()).padStart(2, '0');
 
         const abertura = unidadeConfig.horario_abertura;
         const fechamento = unidadeConfig.horario_fechamento;
+        horarioInfo = "das " + abertura + " às " + fechamento;
 
         if (currentTime < abertura || currentTime >= fechamento) {
-          const offHoursMsg = "Olá! No momento estamos fora do horário de atendimento. ⏰\n\nNosso horário de funcionamento é das " + abertura + " às " + fechamento + ".\n\nEnvie sua mensagem e responderemos assim que abrirmos! 😊";
-          await sendWhatsAppMessage(ZAPI_INSTANCE_ID!, ZAPI_TOKEN!, ZAPI_SECURITY_TOKEN, phone, offHoursMsg);
-          return new Response(JSON.stringify({ ok: true, offHours: true }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          isOffHours = true;
         }
       }
     }
@@ -246,7 +244,15 @@ NEGOCIAÇÃO DE PREÇO (DUAS ETAPAS OBRIGATÓRIAS):
 - ETAPA 2: Na PRÓXIMA mensagem do cliente (qualquer que seja), aí sim retorne dizendo que conseguiu um desconto especial. Aplique desconto APENAS para o Gás P13. Para outros produtos, diga que infelizmente o preço já é o melhor possível.
 - REGRA: NUNCA diga "vou verificar" e "consegui o desconto" na MESMA mensagem. São obrigatoriamente mensagens separadas.
 - IMPORTANTE: Se houve desconto, inclua o campo "desconto" no bloco [PEDIDO_CONFIRMADO] com o valor TOTAL do desconto em reais.
-
+${isOffHours ? `
+FORA DO HORÁRIO DE ATENDIMENTO:
+- Estamos FORA do horário de atendimento (funcionamos ${horarioInfo}).
+- Na sua PRIMEIRA mensagem, pergunte se o cliente deseja AGENDAR o pedido para quando abrirmos.
+- Se o cliente quiser agendar, colete os dados normalmente (produto, quantidade, endereço, pagamento).
+- Ao finalizar, use o mesmo bloco [PEDIDO_CONFIRMADO] mas adicione o campo "agendado: sim".
+- Informe que o pedido será entregue assim que o expediente iniciar.
+- Se o cliente NÃO quiser agendar, apenas agradeça e diga o horário de funcionamento.
+` : ''}
 FORMATO DO PEDIDO CONFIRMADO (exemplo com desconto):
 [PEDIDO_CONFIRMADO]
 nome: Nome do Cliente
@@ -332,9 +338,14 @@ desconto: 5.00
     if (orderMatch) {
       const orderData = parseOrderData(orderMatch[1]);
       if (orderData) {
-        await createOrder(supabase, orderData, clienteId, clienteNome, senderName, normalized, resolvedUnidadeId);
+        const isAgendado = isOffHours || orderData.agendado === "sim";
+        await createOrder(supabase, orderData, clienteId, clienteNome, senderName, normalized, resolvedUnidadeId, isAgendado);
         reply = reply.replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/, "").trim();
-        reply += "\n\n✅ Pedido registrado com sucesso! Você receberá atualizações sobre a entrega.";
+        if (isAgendado) {
+          reply += "\n\n📋 Pedido agendado com sucesso! Será entregue assim que abrirmos. Fique tranquilo!";
+        } else {
+          reply += "\n\n✅ Pedido registrado com sucesso! Você receberá atualizações sobre a entrega.";
+        }
       }
     }
 
@@ -403,7 +414,8 @@ async function createOrder(
   clienteNome: string | null,
   senderName: string,
   phone: string,
-  unidadeId: string | null
+  unidadeId: string | null,
+  isAgendado: boolean = false
 ) {
   try {
     let produto: any = null;
@@ -459,10 +471,10 @@ async function createOrder(
         cliente_id: clienteId,
         valor_total: valorTotal,
         forma_pagamento: formaPagamento,
-        status: "pendente",
+        status: isAgendado ? "agendado" : "pendente",
         canal_venda: "whatsapp",
         endereco_entrega: orderData.endereco || "",
-        observacoes: `Pedido via WhatsApp - ${orderData.nome || clienteNome || senderName} (${phone})${desconto > 0 ? ` | Desconto: R$${desconto.toFixed(2)}` : ''}`,
+        observacoes: `Pedido via WhatsApp${isAgendado ? ' (AGENDADO)' : ''} - ${orderData.nome || clienteNome || senderName} (${phone})${desconto > 0 ? ` | Desconto: R$${desconto.toFixed(2)}` : ''}`,
         unidade_id: unidadeId,
       })
       .select()
