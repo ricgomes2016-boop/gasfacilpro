@@ -2884,6 +2884,65 @@ export type Database = {
           },
         ]
       }
+      email_log: {
+        Row: {
+          assunto: string
+          corpo: string | null
+          created_at: string
+          destinatario_email: string
+          destinatario_nome: string | null
+          empresa_id: string | null
+          erro: string | null
+          id: string
+          provedor: string | null
+          referencia_id: string | null
+          referencia_tipo: string | null
+          status: string
+          tipo: string
+          user_id: string
+        }
+        Insert: {
+          assunto: string
+          corpo?: string | null
+          created_at?: string
+          destinatario_email: string
+          destinatario_nome?: string | null
+          empresa_id?: string | null
+          erro?: string | null
+          id?: string
+          provedor?: string | null
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+          status?: string
+          tipo?: string
+          user_id: string
+        }
+        Update: {
+          assunto?: string
+          corpo?: string | null
+          created_at?: string
+          destinatario_email?: string
+          destinatario_nome?: string | null
+          empresa_id?: string | null
+          erro?: string | null
+          id?: string
+          provedor?: string | null
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+          status?: string
+          tipo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_log_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
           ativo: boolean
