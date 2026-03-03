@@ -54,9 +54,16 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
           const endereco = pedido.endereco_entrega || 
             (cliente ? [cliente.endereco, cliente.bairro, cliente.cidade].filter(Boolean).join(", ") : "Endereço não informado");
 
+          // Extract client name from observacoes for WhatsApp orders without cliente_id
+          let clienteNome = cliente?.nome || "Cliente não identificado";
+          if (!cliente && pedido.observacoes) {
+            const match = pedido.observacoes.match(/Pedido via WhatsApp\s*-\s*(.+?)\s*\(/);
+            if (match) clienteNome = match[1].trim();
+          }
+
           return {
             id: pedido.id,
-            cliente: cliente?.nome || "Cliente não identificado",
+            cliente: clienteNome,
             cliente_id: pedido.cliente_id,
             endereco,
             produtos: produtosStr,
