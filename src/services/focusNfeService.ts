@@ -56,6 +56,23 @@ export interface NotaFiscal {
   unidade_id: string | null;
   created_at: string;
   updated_at: string;
+  // Transport extended
+  modalidade_frete: string | null;
+  transportadora_nome: string | null;
+  transportadora_cnpj: string | null;
+  transportadora_ie: string | null;
+  transportadora_endereco: string | null;
+  transportadora_cidade_uf: string | null;
+  peso_liquido: number | null;
+  quantidade_volumes: number | null;
+  especie_volumes: string | null;
+  marca_volumes: string | null;
+  numeracao_volumes: string | null;
+  uf_placa: string | null;
+  info_complementares: string | null;
+  info_fisco: string | null;
+  xml_importado: boolean;
+  xml_conteudo: string | null;
 }
 
 export interface NotaFiscalItem {

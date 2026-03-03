@@ -11,9 +11,97 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Send, Search, FileText, XCircle, Edit } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Plus, Trash2, Send, Search, FileText, XCircle, Truck, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { listarNotas, criarNota, transmitirParaSefaz, cancelarNaSefaz, enviarCartaCorrecao, type NotaFiscal } from "@/services/focusNfeService";
+
+const UF_LIST = [
+  "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
+  "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"
+];
+
+const MODALIDADE_FRETE = [
+  { value: "0", label: "0 - Contratação do Frete por conta do Remetente (CIF)" },
+  { value: "1", label: "1 - Contratação do Frete por conta do Destinatário (FOB)" },
+  { value: "2", label: "2 - Contratação do Frete por conta de Terceiros" },
+  { value: "3", label: "3 - Transporte Próprio por conta do Remetente" },
+  { value: "4", label: "4 - Transporte Próprio por conta do Destinatário" },
+  { value: "9", label: "9 - Sem Ocorrência de Transporte" },
+];
+
+const CFOP_COMUNS = [
+  { value: "5102", label: "5102 - Venda mercadoria dentro do estado" },
+  { value: "5405", label: "5405 - Venda mercadoria ST dentro do estado" },
+  { value: "6102", label: "6102 - Venda mercadoria fora do estado" },
+  { value: "6108", label: "6108 - Venda mercadoria fora estado não contribuinte" },
+  { value: "5949", label: "5949 - Outra saída não especificada" },
+  { value: "6949", label: "6949 - Outra saída não especificada (interestadual)" },
+];
+
+interface NFeFormData {
+  destinatario_cpf_cnpj: string;
+  destinatario_nome: string;
+  destinatario_endereco: string;
+  destinatario_cidade_uf: string;
+  destinatario_ie: string;
+  destinatario_cep: string;
+  destinatario_telefone: string;
+  natureza_operacao: string;
+  forma_pagamento: string;
+  observacoes: string;
+  // Transporte
+  modalidade_frete: string;
+  transportadora_nome: string;
+  transportadora_cnpj: string;
+  transportadora_ie: string;
+  transportadora_endereco: string;
+  transportadora_cidade_uf: string;
+  placa: string;
+  uf_placa: string;
+  rntrc: string;
+  peso_bruto: string;
+  peso_liquido: string;
+  quantidade_volumes: string;
+  especie_volumes: string;
+  marca_volumes: string;
+  numeracao_volumes: string;
+  valor_frete: string;
+  // Info adicionais
+  info_complementares: string;
+  info_fisco: string;
+}
+
+const initialForm: NFeFormData = {
+  destinatario_cpf_cnpj: "",
+  destinatario_nome: "",
+  destinatario_endereco: "",
+  destinatario_cidade_uf: "",
+  destinatario_ie: "",
+  destinatario_cep: "",
+  destinatario_telefone: "",
+  natureza_operacao: "Venda de mercadoria",
+  forma_pagamento: "vista",
+  observacoes: "",
+  modalidade_frete: "9",
+  transportadora_nome: "",
+  transportadora_cnpj: "",
+  transportadora_ie: "",
+  transportadora_endereco: "",
+  transportadora_cidade_uf: "",
+  placa: "",
+  uf_placa: "",
+  rntrc: "",
+  peso_bruto: "",
+  peso_liquido: "",
+  quantidade_volumes: "",
+  especie_volumes: "",
+  marca_volumes: "",
+  numeracao_volumes: "",
+  valor_frete: "",
+  info_complementares: "",
+  info_fisco: "",
+};
 
 export default function EmitirNFe() {
   const { toast } = useToast();
@@ -21,6 +109,7 @@ export default function EmitirNFe() {
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todas");
+  const [form, setForm] = useState<NFeFormData>(initialForm);
 
   const carregarNotas = async () => {
     try {
@@ -32,6 +121,10 @@ export default function EmitirNFe() {
 
   useEffect(() => { carregarNotas(); }, [busca, filtroStatus]);
 
+  const updateForm = (field: keyof NFeFormData, value: string) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+  };
+
   const statusColor = (s: string) => {
     if (s === "autorizada") return "default" as const;
     if (s === "cancelada") return "destructive" as const;
@@ -39,16 +132,32 @@ export default function EmitirNFe() {
   };
 
   const handleEmitir = async () => {
+    if (!form.destinatario_nome.trim()) {
+      toast({ title: "Preencha o destinatário", variant: "destructive" });
+      return;
+    }
     try {
       const nota = await criarNota({
         tipo: "nfe",
         status: "rascunho",
-        destinatario_nome: "Novo destinatário",
-        natureza_operacao: "Venda de mercadoria",
+        destinatario_nome: form.destinatario_nome,
+        destinatario_cpf_cnpj: form.destinatario_cpf_cnpj,
+        destinatario_endereco: form.destinatario_endereco,
+        destinatario_cidade_uf: form.destinatario_cidade_uf,
+        destinatario_ie: form.destinatario_ie,
+        natureza_operacao: form.natureza_operacao,
+        forma_pagamento: form.forma_pagamento,
+        observacoes: form.observacoes,
         valor_total: 0,
+        valor_frete: parseFloat(form.valor_frete) || 0,
+        peso_bruto: parseFloat(form.peso_bruto) || 0,
+        placa: form.placa,
+        rntrc: form.rntrc,
+        motorista_nome: form.transportadora_nome,
       });
       const result = await transmitirParaSefaz(nota.id);
       toast({ title: "NF-e enviada", description: result.message });
+      setForm(initialForm);
       carregarNotas();
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
@@ -64,6 +173,8 @@ export default function EmitirNFe() {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     }
   };
+
+  const showTransport = form.modalidade_frete !== "9";
 
   return (
     <MainLayout>
@@ -139,19 +250,21 @@ export default function EmitirNFe() {
 
           <TabsContent value="emitir">
             <div className="grid gap-6">
+              {/* Destinatário */}
               <Card>
                 <CardHeader><CardTitle className="text-lg">Dados do Destinatário</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div><Label>CNPJ / CPF</Label><Input placeholder="00.000.000/0000-00" /></div>
-                  <div className="md:col-span-2"><Label>Razão Social</Label><Input placeholder="Nome do destinatário" /></div>
-                  <div className="md:col-span-2"><Label>Endereço</Label><Input placeholder="Endereço completo" /></div>
-                  <div><Label>Cidade / UF</Label><Input placeholder="São Paulo / SP" /></div>
-                  <div><Label>Inscrição Estadual</Label><Input placeholder="000.000.000.000" /></div>
-                  <div><Label>CEP</Label><Input placeholder="00000-000" /></div>
-                  <div><Label>Telefone</Label><Input placeholder="(00) 0000-0000" /></div>
+                  <div><Label>CNPJ / CPF *</Label><Input placeholder="00.000.000/0000-00" value={form.destinatario_cpf_cnpj} onChange={e => updateForm("destinatario_cpf_cnpj", e.target.value)} /></div>
+                  <div className="md:col-span-2"><Label>Razão Social *</Label><Input placeholder="Nome do destinatário" value={form.destinatario_nome} onChange={e => updateForm("destinatario_nome", e.target.value)} /></div>
+                  <div className="md:col-span-2"><Label>Endereço</Label><Input placeholder="Rua, número, complemento, bairro" value={form.destinatario_endereco} onChange={e => updateForm("destinatario_endereco", e.target.value)} /></div>
+                  <div><Label>Cidade / UF</Label><Input placeholder="São Paulo / SP" value={form.destinatario_cidade_uf} onChange={e => updateForm("destinatario_cidade_uf", e.target.value)} /></div>
+                  <div><Label>Inscrição Estadual</Label><Input placeholder="Isento ou número" value={form.destinatario_ie} onChange={e => updateForm("destinatario_ie", e.target.value)} /></div>
+                  <div><Label>CEP</Label><Input placeholder="00000-000" value={form.destinatario_cep} onChange={e => updateForm("destinatario_cep", e.target.value)} /></div>
+                  <div><Label>Telefone</Label><Input placeholder="(00) 0000-0000" value={form.destinatario_telefone} onChange={e => updateForm("destinatario_telefone", e.target.value)} /></div>
                 </CardContent>
               </Card>
 
+              {/* Produtos */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle className="text-lg">Produtos / Serviços</CardTitle>
@@ -177,29 +290,135 @@ export default function EmitirNFe() {
                       </TableRow>
                     </TableBody>
                   </Table>
+                  <div className="mt-3 p-3 bg-muted/50 rounded-lg">
+                    <p className="text-xs text-muted-foreground">
+                      <strong>CFOPs comuns:</strong> {CFOP_COMUNS.map(c => c.label).join(" | ")}
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
 
+              {/* Transporte */}
               <Card>
-                <CardHeader><CardTitle className="text-lg">Informações Complementares</CardTitle></CardHeader>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Truck className="h-5 w-5" />
+                    Transporte
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Modalidade do Frete *</Label>
+                      <Select value={form.modalidade_frete} onValueChange={v => updateForm("modalidade_frete", v)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {MODALIDADE_FRETE.map(m => (
+                            <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Valor do Frete</Label>
+                      <Input type="number" step="0.01" placeholder="0,00" value={form.valor_frete} onChange={e => updateForm("valor_frete", e.target.value)} />
+                    </div>
+                  </div>
+
+                  {showTransport && (
+                    <Accordion type="single" collapsible defaultValue="transportadora">
+                      <AccordionItem value="transportadora">
+                        <AccordionTrigger className="text-sm font-medium">Dados da Transportadora</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                            <div className="md:col-span-2"><Label>Razão Social</Label><Input placeholder="Transportadora" value={form.transportadora_nome} onChange={e => updateForm("transportadora_nome", e.target.value)} /></div>
+                            <div><Label>CNPJ</Label><Input placeholder="00.000.000/0000-00" value={form.transportadora_cnpj} onChange={e => updateForm("transportadora_cnpj", e.target.value)} /></div>
+                            <div><Label>Inscrição Estadual</Label><Input placeholder="IE da transportadora" value={form.transportadora_ie} onChange={e => updateForm("transportadora_ie", e.target.value)} /></div>
+                            <div><Label>Endereço</Label><Input placeholder="Endereço" value={form.transportadora_endereco} onChange={e => updateForm("transportadora_endereco", e.target.value)} /></div>
+                            <div><Label>Cidade / UF</Label><Input placeholder="Cidade / UF" value={form.transportadora_cidade_uf} onChange={e => updateForm("transportadora_cidade_uf", e.target.value)} /></div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                      <AccordionItem value="veiculo">
+                        <AccordionTrigger className="text-sm font-medium">Veículo</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                            <div><Label>Placa</Label><Input placeholder="ABC-1234" value={form.placa} onChange={e => updateForm("placa", e.target.value)} /></div>
+                            <div>
+                              <Label>UF da Placa</Label>
+                              <Select value={form.uf_placa} onValueChange={v => updateForm("uf_placa", v)}>
+                                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                <SelectContent>{UF_LIST.map(uf => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
+                              </Select>
+                            </div>
+                            <div><Label>RNTRC (ANTT)</Label><Input placeholder="Registro ANTT" value={form.rntrc} onChange={e => updateForm("rntrc", e.target.value)} /></div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                      <AccordionItem value="volumes">
+                        <AccordionTrigger className="text-sm font-medium">Volumes Transportados</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+                            <div><Label>Quantidade</Label><Input type="number" placeholder="0" value={form.quantidade_volumes} onChange={e => updateForm("quantidade_volumes", e.target.value)} /></div>
+                            <div><Label>Espécie</Label><Input placeholder="Ex: Caixa, Botijão" value={form.especie_volumes} onChange={e => updateForm("especie_volumes", e.target.value)} /></div>
+                            <div><Label>Marca</Label><Input placeholder="Marca dos volumes" value={form.marca_volumes} onChange={e => updateForm("marca_volumes", e.target.value)} /></div>
+                            <div><Label>Numeração</Label><Input placeholder="Numeração" value={form.numeracao_volumes} onChange={e => updateForm("numeracao_volumes", e.target.value)} /></div>
+                            <div><Label>Peso Bruto (kg)</Label><Input type="number" step="0.001" placeholder="0,000" value={form.peso_bruto} onChange={e => updateForm("peso_bruto", e.target.value)} /></div>
+                            <div><Label>Peso Líquido (kg)</Label><Input type="number" step="0.001" placeholder="0,000" value={form.peso_liquido} onChange={e => updateForm("peso_liquido", e.target.value)} /></div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Informações Complementares */}
+              <Card>
+                <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Info className="h-5 w-5" />Informações Complementares</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div><Label>Natureza da Operação</Label><Input defaultValue="Venda de mercadoria" /></div>
+                  <div><Label>Natureza da Operação *</Label><Input value={form.natureza_operacao} onChange={e => updateForm("natureza_operacao", e.target.value)} /></div>
                   <div>
                     <Label>Forma de Pagamento</Label>
-                    <Select defaultValue="vista">
+                    <Select value={form.forma_pagamento} onValueChange={v => updateForm("forma_pagamento", v)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="vista">À Vista</SelectItem>
                         <SelectItem value="prazo">A Prazo</SelectItem>
                         <SelectItem value="outros">Outros</SelectItem>
+                        <SelectItem value="sem_pagamento">Sem Pagamento</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="md:col-span-2"><Label>Observações</Label><Textarea placeholder="Informações adicionais da nota fiscal..." /></div>
+                  <div className="md:col-span-2">
+                    <Label>Informações Complementares de Interesse do Contribuinte</Label>
+                    <Textarea 
+                      placeholder="Ex: Venda realizada conforme convênio ICMS XX/XXXX. Produto sujeito a substituição tributária..." 
+                      className="min-h-[80px]"
+                      value={form.info_complementares} 
+                      onChange={e => updateForm("info_complementares", e.target.value)} 
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Campo impresso no DANFE. Use para informar dados de benefícios fiscais, base legal de ST, etc.</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>Informações Adicionais de Interesse do Fisco</Label>
+                    <Textarea 
+                      placeholder="Informações de interesse exclusivo do fisco..." 
+                      className="min-h-[60px]"
+                      value={form.info_fisco} 
+                      onChange={e => updateForm("info_fisco", e.target.value)} 
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Campo exclusivo para informações exigidas pela legislação fiscal.</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>Observações Internas</Label>
+                    <Textarea placeholder="Observações internas (não aparece na nota)..." value={form.observacoes} onChange={e => updateForm("observacoes", e.target.value)} />
+                  </div>
                 </CardContent>
               </Card>
 
               <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setForm(initialForm)}>Limpar</Button>
                 <Button variant="outline">Salvar Rascunho</Button>
                 <Button onClick={handleEmitir}><Send className="h-4 w-4 mr-2" />Transmitir para SEFAZ</Button>
               </div>

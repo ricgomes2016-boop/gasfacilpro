@@ -4381,23 +4381,31 @@ export type Database = {
           destinatario_ie: string | null
           destinatario_nome: string | null
           destinatario_telefone: string | null
+          especie_volumes: string | null
           focus_id: string | null
           focus_ref: string | null
           forma_pagamento: string | null
           id: string
+          info_complementares: string | null
+          info_fisco: string | null
+          marca_volumes: string | null
           modal: string | null
+          modalidade_frete: string | null
           motivo_cancelamento: string | null
           motivo_rejeicao: string | null
           motorista_cpf: string | null
           motorista_nome: string | null
           natureza_operacao: string | null
+          numeracao_volumes: string | null
           numero: string | null
           observacoes: string | null
           peso_bruto: number | null
+          peso_liquido: number | null
           placa: string | null
           protocolo: string | null
           protocolo_cancelamento: string | null
           protocolo_carta_correcao: string | null
+          quantidade_volumes: number | null
           remetente_cpf_cnpj: string | null
           remetente_endereco: string | null
           remetente_nome: string | null
@@ -4405,8 +4413,14 @@ export type Database = {
           serie: string | null
           status: string
           tipo: string
+          transportadora_cidade_uf: string | null
+          transportadora_cnpj: string | null
+          transportadora_endereco: string | null
+          transportadora_ie: string | null
+          transportadora_nome: string | null
           uf_carregamento: string | null
           uf_descarregamento: string | null
+          uf_placa: string | null
           unidade_id: string | null
           updated_at: string
           valor_desconto: number | null
@@ -4414,6 +4428,8 @@ export type Database = {
           valor_icms: number | null
           valor_mercadoria: number | null
           valor_total: number
+          xml_conteudo: string | null
+          xml_importado: boolean | null
           xml_url: string | null
         }
         Insert: {
@@ -4431,23 +4447,31 @@ export type Database = {
           destinatario_ie?: string | null
           destinatario_nome?: string | null
           destinatario_telefone?: string | null
+          especie_volumes?: string | null
           focus_id?: string | null
           focus_ref?: string | null
           forma_pagamento?: string | null
           id?: string
+          info_complementares?: string | null
+          info_fisco?: string | null
+          marca_volumes?: string | null
           modal?: string | null
+          modalidade_frete?: string | null
           motivo_cancelamento?: string | null
           motivo_rejeicao?: string | null
           motorista_cpf?: string | null
           motorista_nome?: string | null
           natureza_operacao?: string | null
+          numeracao_volumes?: string | null
           numero?: string | null
           observacoes?: string | null
           peso_bruto?: number | null
+          peso_liquido?: number | null
           placa?: string | null
           protocolo?: string | null
           protocolo_cancelamento?: string | null
           protocolo_carta_correcao?: string | null
+          quantidade_volumes?: number | null
           remetente_cpf_cnpj?: string | null
           remetente_endereco?: string | null
           remetente_nome?: string | null
@@ -4455,8 +4479,14 @@ export type Database = {
           serie?: string | null
           status?: string
           tipo?: string
+          transportadora_cidade_uf?: string | null
+          transportadora_cnpj?: string | null
+          transportadora_endereco?: string | null
+          transportadora_ie?: string | null
+          transportadora_nome?: string | null
           uf_carregamento?: string | null
           uf_descarregamento?: string | null
+          uf_placa?: string | null
           unidade_id?: string | null
           updated_at?: string
           valor_desconto?: number | null
@@ -4464,6 +4494,8 @@ export type Database = {
           valor_icms?: number | null
           valor_mercadoria?: number | null
           valor_total?: number
+          xml_conteudo?: string | null
+          xml_importado?: boolean | null
           xml_url?: string | null
         }
         Update: {
@@ -4481,23 +4513,31 @@ export type Database = {
           destinatario_ie?: string | null
           destinatario_nome?: string | null
           destinatario_telefone?: string | null
+          especie_volumes?: string | null
           focus_id?: string | null
           focus_ref?: string | null
           forma_pagamento?: string | null
           id?: string
+          info_complementares?: string | null
+          info_fisco?: string | null
+          marca_volumes?: string | null
           modal?: string | null
+          modalidade_frete?: string | null
           motivo_cancelamento?: string | null
           motivo_rejeicao?: string | null
           motorista_cpf?: string | null
           motorista_nome?: string | null
           natureza_operacao?: string | null
+          numeracao_volumes?: string | null
           numero?: string | null
           observacoes?: string | null
           peso_bruto?: number | null
+          peso_liquido?: number | null
           placa?: string | null
           protocolo?: string | null
           protocolo_cancelamento?: string | null
           protocolo_carta_correcao?: string | null
+          quantidade_volumes?: number | null
           remetente_cpf_cnpj?: string | null
           remetente_endereco?: string | null
           remetente_nome?: string | null
@@ -4505,8 +4545,14 @@ export type Database = {
           serie?: string | null
           status?: string
           tipo?: string
+          transportadora_cidade_uf?: string | null
+          transportadora_cnpj?: string | null
+          transportadora_endereco?: string | null
+          transportadora_ie?: string | null
+          transportadora_nome?: string | null
           uf_carregamento?: string | null
           uf_descarregamento?: string | null
+          uf_placa?: string | null
           unidade_id?: string | null
           updated_at?: string
           valor_desconto?: number | null
@@ -4514,6 +4560,8 @@ export type Database = {
           valor_icms?: number | null
           valor_mercadoria?: number | null
           valor_total?: number
+          xml_conteudo?: string | null
+          xml_importado?: boolean | null
           xml_url?: string | null
         }
         Relationships: [
