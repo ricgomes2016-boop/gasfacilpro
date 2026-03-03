@@ -416,15 +416,18 @@ async function createOrder(
       return;
     }
 
-    await supabase.from("pedido_itens").insert({
+    const { error: itemError } = await supabase.from("pedido_itens").insert({
       pedido_id: pedido.id,
       produto_id: produto.id,
       quantidade,
       preco_unitario: produto.preco,
-      produto_nome: produto.nome,
     });
 
-    console.log("Order created:", pedido.id, "unidade:", unidadeId);
+    if (itemError) {
+      console.error("Order item insert error:", itemError);
+    }
+
+    console.log("Order created:", pedido.id, "unidade:", unidadeId, "produto:", produto.nome);
   } catch (e) {
     console.error("Create order error:", e);
   }
