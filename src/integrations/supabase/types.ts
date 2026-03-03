@@ -6534,6 +6534,8 @@ export type Database = {
           empresa_id: string | null
           endereco: string | null
           estado: string | null
+          horario_abertura: string | null
+          horario_fechamento: string | null
           id: string
           latitude: number | null
           longitude: number | null
@@ -6555,6 +6557,8 @@ export type Database = {
           empresa_id?: string | null
           endereco?: string | null
           estado?: string | null
+          horario_abertura?: string | null
+          horario_fechamento?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
@@ -6576,6 +6580,8 @@ export type Database = {
           empresa_id?: string | null
           endereco?: string | null
           estado?: string | null
+          horario_abertura?: string | null
+          horario_fechamento?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
