@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Phone, MessageSquare, X, ShoppingCart, User, Clock, RotateCcw, Copy } from "lucide-react";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,7 @@ export function CallerIdPopup() {
   const [ultimoPedido, setUltimoPedido] = useState<UltimoPedidoInfo | null>(null);
   const [repetindo, setRepetindo] = useState(false);
   const navigate = useNavigate();
+  const { unidadeAtual } = useUnidade();
 
   const handleNovaChamada = useCallback(async (nova: ChamadaRecebida) => {
     setChamada(nova);
@@ -67,7 +69,7 @@ export function CallerIdPopup() {
       }
     }
 
-    setTimeout(() => setChamada(null), 30000);
+    // Popup permanece visível até o usuário clicar para dispensar
   }, []);
 
   useEffect(() => {
@@ -140,6 +142,7 @@ export function CallerIdPopup() {
           forma_pagamento: ultimoPedido.forma_pagamento,
           canal_venda: "telefone",
           status: "pendente",
+          unidade_id: unidadeAtual?.id || null,
           observacoes: `Repetição do pedido anterior`,
         })
         .select("id")
