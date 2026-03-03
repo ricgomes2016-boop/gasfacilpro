@@ -200,9 +200,11 @@ REGRA FUNDAMENTAL - NUNCA PEÇA INFORMAÇÕES JÁ FORNECIDAS:
 
 FLUXO DO PEDIDO:
 1. Para fechar um pedido, você precisa de: produto, quantidade, endereço e forma de pagamento.
-2. Peça APENAS os dados que ainda faltam. Se o cliente já informou 3 de 4 dados, peça só o que falta.
-3. Quando tiver TODOS os dados (mesmo que coletados em mensagens diferentes), finalize com:
+2. Se o cliente NÃO é cadastrado, precisa também do nome completo.
+3. Peça APENAS os dados que ainda faltam. Se o cliente já informou 3 de 4 dados, peça só o que falta.
+4. Quando tiver TODOS os dados (mesmo que coletados em mensagens diferentes), finalize com:
    [PEDIDO_CONFIRMADO]
+   nome: Nome Completo do Cliente
    produto: Nome do Produto
    quantidade: X
    endereco: Endereço completo
@@ -424,7 +426,7 @@ async function createOrder(
         status: "pendente",
         canal_venda: "whatsapp",
         endereco_entrega: orderData.endereco || "",
-        observacoes: `Pedido via WhatsApp - ${clienteNome || senderName} (${phone})`,
+        observacoes: `Pedido via WhatsApp - ${orderData.nome || clienteNome || senderName} (${phone})`,
         unidade_id: unidadeId,
       })
       .select()
