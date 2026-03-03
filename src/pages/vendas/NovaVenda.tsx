@@ -141,6 +141,8 @@ export default function NovaVenda() {
   const [agendarOpen, setAgendarOpen] = useState(false);
   const [dataAgendamento, setDataAgendamento] = useState("");
   const [horaAgendamento, setHoraAgendamento] = useState("08:00");
+  const [printDialogOpen, setPrintDialogOpen] = useState(false);
+  const [pendingReceiptData, setPendingReceiptData] = useState<any>(null);
   const recognitionRef = useRef<any>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -711,7 +713,7 @@ export default function NovaVenda() {
         quantidade: item.quantidade,
       })), unidadeAtual?.id);
 
-      // Receipt
+      // Prepare receipt data for optional printing
       let empresaConfig: EmpresaConfig | undefined;
       try {
         const { data: configData } = await supabase
@@ -724,7 +726,7 @@ export default function NovaVenda() {
         console.warn("Não foi possível carregar configurações da empresa");
       }
 
-      generateReceiptPdf({
+      const receiptData = {
         pedidoId: pedido.id,
         data: new Date(),
         cliente: { nome: customer.nome, telefone: customer.telefone, endereco: enderecoCompleto },
@@ -734,7 +736,7 @@ export default function NovaVenda() {
         canalVenda,
         observacoes: customer.observacao,
         empresa: empresaConfig,
-      });
+      };
 
       // #5 - Rotear pagamentos para caixa/contas a receber/cheques
       // Se tem entregador, o roteamento financeiro acontece APENAS no acerto diário
@@ -762,10 +764,12 @@ export default function NovaVenda() {
 
       toast({
         title: "Venda finalizada!",
-        description: `Pedido #${pedido.id.slice(0, 6)} criado com sucesso. Comprovante gerado.`,
+        description: `Pedido #${pedido.id.slice(0, 6)} criado com sucesso.`,
       });
 
-      navigate("/vendas/pedidos");
+      // Show print confirmation dialog
+      setPendingReceiptData(receiptData);
+      setPrintDialogOpen(true);
     } catch (error: any) {
       console.error("Erro ao salvar venda:", error);
       toast({ title: "Erro ao salvar", description: error.message || "Ocorreu um erro ao finalizar a venda.", variant: "destructive" });
@@ -1022,6 +1026,41 @@ export default function NovaVenda() {
                 {isLoading ? "Agendando..." : "Confirmar Agendamento"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Print confirmation dialog */}
+      <Dialog open={printDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setPrintDialogOpen(false);
+          setPendingReceiptData(null);
+          navigate("/vendas/pedidos");
+        }
+      }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Imprimir comprovante?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Deseja imprimir o comprovante desta venda?</p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => {
+              setPrintDialogOpen(false);
+              setPendingReceiptData(null);
+              navigate("/vendas/pedidos");
+            }}>
+              Não
+            </Button>
+            <Button onClick={() => {
+              if (pendingReceiptData) {
+                generateReceiptPdf(pendingReceiptData);
+              }
+              setPrintDialogOpen(false);
+              setPendingReceiptData(null);
+              navigate("/vendas/pedidos");
+            }}>
+              Sim, Imprimir
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
