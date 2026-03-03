@@ -299,15 +299,17 @@ NEGOCIAÇÃO DE PREÇO:
       }
     }
 
-    // Register as incoming call/message for CallerID popup
-    await supabase.from("chamadas_recebidas").insert({
-      telefone: phone,
-      cliente_id: clienteId,
-      cliente_nome: clienteNome || senderName,
-      tipo: "whatsapp",
-      status: "recebida",
-      unidade_id: resolvedUnidadeId,
-    });
+    // Only register CallerID popup when an order is actually confirmed
+    if (orderMatch) {
+      await supabase.from("chamadas_recebidas").insert({
+        telefone: phone,
+        cliente_id: clienteId,
+        cliente_nome: clienteNome || senderName,
+        tipo: "whatsapp",
+        status: "recebida",
+        unidade_id: resolvedUnidadeId,
+      });
+    }
 
     await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_SECURITY_TOKEN, phone, reply);
 
@@ -365,16 +367,33 @@ async function createOrder(
   unidadeId: string | null
 ) {
   try {
-    let prodQuery = supabase
+    // Try flexible product search
+    let produto: any = null;
+
+    const { data: produtos } = await supabase
       .from("produtos")
       .select("id, nome, preco")
       .eq("ativo", true)
       .ilike("nome", `%${orderData.produto}%`)
       .limit(1);
 
-    const { data: produtos } = await prodQuery;
+    produto = produtos?.[0];
 
-    const produto = produtos?.[0];
+    // Fallback: extract key terms like "P13", "13kg", "P20", "20L"
+    if (!produto) {
+      const keyMatch = orderData.produto.match(/(P\s*13|P\s*20|P\s*45|20\s*L|13|20|45)/i);
+      if (keyMatch) {
+        const num = keyMatch[1].replace(/\D/g, "");
+        const { data: fallback } = await supabase
+          .from("produtos")
+          .select("id, nome, preco")
+          .eq("ativo", true)
+          .or(`nome.ilike.%P${num}%,nome.ilike.%${num}kg%,nome.ilike.%${num}L%`)
+          .limit(1);
+        produto = fallback?.[0];
+      }
+    }
+
     if (!produto) {
       console.error("Product not found:", orderData.produto);
       return;
