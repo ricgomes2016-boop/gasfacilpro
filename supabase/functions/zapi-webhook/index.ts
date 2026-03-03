@@ -218,7 +218,18 @@ FLUXO DO PEDIDO:
 NEGOCIAÇÃO DE PREÇO:
 - Se o cliente reclamar do preço, pedir desconto ou dizer que está caro, diga que vai verificar com o gerente.
 - Na mensagem seguinte, retorne dizendo: "Consegui um desconto especial para você!"
-- Aplique desconto APENAS para o Gás P13. Para outros produtos, diga que infelizmente o preço já é o melhor possível.`;
+- Aplique desconto APENAS para o Gás P13. Para outros produtos, diga que infelizmente o preço já é o melhor possível.
+- IMPORTANTE: Se houve desconto, inclua o campo "desconto" no bloco [PEDIDO_CONFIRMADO] com o valor TOTAL do desconto em reais.
+
+FORMATO DO PEDIDO CONFIRMADO (exemplo com desconto):
+[PEDIDO_CONFIRMADO]
+nome: Nome do Cliente
+produto: Gás P13
+quantidade: 1
+endereco: Rua X, 123
+pagamento: pix
+desconto: 5.00
+[/PEDIDO_CONFIRMADO]`;
 
     const conversationUUID = await generateUUIDFromString(`whatsapp_${normalized}`);
 
@@ -402,7 +413,8 @@ async function createOrder(
     }
 
     const quantidade = parseInt(orderData.quantidade) || 1;
-    const valorTotal = produto.preco * quantidade;
+    const desconto = parseFloat(orderData.desconto) || 0;
+    const valorTotal = (produto.preco * quantidade) - desconto;
 
     const paymentMap: Record<string, string> = {
       dinheiro: "dinheiro",
@@ -426,7 +438,7 @@ async function createOrder(
         status: "pendente",
         canal_venda: "whatsapp",
         endereco_entrega: orderData.endereco || "",
-        observacoes: `Pedido via WhatsApp - ${orderData.nome || clienteNome || senderName} (${phone})`,
+        observacoes: `Pedido via WhatsApp - ${orderData.nome || clienteNome || senderName} (${phone})${desconto > 0 ? ` | Desconto: R$${desconto.toFixed(2)}` : ''}`,
         unidade_id: unidadeId,
       })
       .select()
