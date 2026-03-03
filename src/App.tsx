@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { DeliveryNotificationProvider } from "@/contexts/DeliveryNotificationContext";
 import { ClienteProvider } from "@/contexts/ClienteContext";
 import { ValeGasProvider } from "@/contexts/ValeGasContext";
@@ -261,8 +261,8 @@ const App = () => (
                 <ErrorBoundary>
                 <Suspense fallback={<PageLoader />}>
                 <Routes>
-                  {/* Landing Page - Pública */}
-                  <Route path="/" element={<LandingPage />} />
+                  {/* Rota raiz redireciona para dashboard */}
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
                   {/* Auth - Pública */}
                   <Route path="/auth" element={<Auth />} />
