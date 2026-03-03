@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { parseLocalDate } from "@/lib/utils";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import { Progress } from "@/components/ui/progress";
 
 export default function GerarXML() {
   const { toast } = useToast();
+  const { unidadeAtual } = useUnidade();
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [tipoFiltro, setTipoFiltro] = useState("todos");
   const [notas, setNotas] = useState<NotaFiscal[]>([]);
@@ -127,8 +129,8 @@ export default function GerarXML() {
         valor_frete: parseFloat(vFrete) || 0,
         natureza_operacao: natOp,
         data_emissao: dataEmissao,
-        xml_importado: true as any,
-        xml_conteudo: xmlString as any,
+        xml_importado: true,
+        xml_conteudo: xmlString,
       };
     } catch (err) {
       console.error("Erro ao parsear XML:", err);
@@ -153,7 +155,7 @@ export default function GerarXML() {
         const parsed = parseXmlFile(text);
 
         if (parsed) {
-          await criarNota(parsed);
+          await criarNota({ ...parsed, unidade_id: unidadeAtual?.id || null });
           success++;
         } else {
           errors++;
