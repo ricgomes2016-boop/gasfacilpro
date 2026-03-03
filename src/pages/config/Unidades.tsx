@@ -65,6 +65,7 @@ export default function UnidadesConfig() {
           estado: editingUnidade.estado,
           cep: editingUnidade.cep,
           chave_pix: (editingUnidade as any).chave_pix || null,
+          bairros_atendidos: (editingUnidade as any).bairros_atendidos || null,
         })
         .eq("id", editingUnidade.id);
 
@@ -222,6 +223,18 @@ export default function UnidadesConfig() {
                     placeholder="CPF, CNPJ, email, telefone ou chave aleatória"
                   />
                   <p className="text-xs text-muted-foreground">Será usada para gerar QR Code de pagamento PIX</p>
+                </div>
+                <div className="grid gap-2">
+                  <Label className="flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4" />
+                    Bairros Atendidos (Bia IA)
+                  </Label>
+                  <Input
+                    value={(editingUnidade as any).bairros_atendidos || ""}
+                    onChange={(e) => updateField("bairros_atendidos" as any, e.target.value)}
+                    placeholder="Centro, Jardim América, Vila Nova (separados por vírgula)"
+                  />
+                  <p className="text-xs text-muted-foreground">A Bia usará esses bairros para direcionar pedidos automaticamente para esta unidade</p>
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <Button variant="outline" onClick={() => setEditingUnidade(null)}>Cancelar</Button>

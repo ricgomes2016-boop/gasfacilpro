@@ -1,0 +1,1 @@
+ALTER TABLE public.unidades ADD COLUMN IF NOT EXISTS bairros_atendidos text;

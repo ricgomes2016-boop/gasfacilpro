@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Phone, MessageSquare, X, ShoppingCart, User, Clock, RotateCcw, Copy, Truck, Eye } from "lucide-react";
+import { Phone, MessageSquare, X, User, Clock, Truck, Eye } from "lucide-react";
+import { RepassarEntregadorDialog } from "./RepassarEntregadorDialog";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,7 +36,7 @@ interface UltimoPedidoInfo {
 export function CallerIdPopup() {
   const [chamada, setChamada] = useState<ChamadaRecebida | null>(null);
   const [ultimoPedido, setUltimoPedido] = useState<UltimoPedidoInfo | null>(null);
-  const [repetindo, setRepetindo] = useState(false);
+  const [showRepassar, setShowRepassar] = useState(false);
   const navigate = useNavigate();
   const { unidadeAtual } = useUnidade();
 
@@ -126,57 +127,9 @@ export function CallerIdPopup() {
   };
 
   const handleRepassarEntregador = () => {
-    navigate(`/vendas/pedidos`);
-    setChamada(null);
+    setShowRepassar(true);
   };
 
-  const handleRepetirPedido = async () => {
-    if (!ultimoPedido || !chamada.cliente_id) return;
-    setRepetindo(true);
-    try {
-      const { data: pedido, error } = await supabase
-        .from("pedidos")
-        .insert({
-          cliente_id: chamada.cliente_id,
-          endereco_entrega: ultimoPedido.endereco_entrega,
-          valor_total: ultimoPedido.valor_total,
-          forma_pagamento: ultimoPedido.forma_pagamento,
-          canal_venda: "telefone",
-          status: "pendente",
-          unidade_id: unidadeAtual?.id || null,
-          observacoes: `Repetição do pedido anterior`,
-        })
-        .select("id")
-        .single();
-
-      if (error) throw error;
-
-      if (ultimoPedido.itens.length > 0) {
-        await supabase.from("pedido_itens").insert(
-          ultimoPedido.itens.map((i) => ({
-            pedido_id: pedido.id,
-            produto_id: i.produto_id,
-            quantidade: i.quantidade,
-            preco_unitario: i.preco_unitario,
-          }))
-        );
-      }
-
-      await supabase
-        .from("chamadas_recebidas")
-        .update({ status: "atendida", pedido_gerado_id: pedido.id })
-        .eq("id", chamada.id);
-
-      toast.success("Pedido repetido com sucesso!");
-      setChamada(null);
-      navigate("/vendas/pedidos");
-    } catch (err) {
-      console.error("Erro ao repetir pedido:", err);
-      toast.error("Erro ao repetir pedido");
-    } finally {
-      setRepetindo(false);
-    }
-  };
 
   const handleVerPerfil = () => {
     if (chamada.cliente_id) {
@@ -287,6 +240,12 @@ export function CallerIdPopup() {
           </div>
         </CardContent>
       </Card>
+      <RepassarEntregadorDialog
+        open={showRepassar}
+        onOpenChange={setShowRepassar}
+        pedidoId={chamada.pedido_gerado_id}
+        onSuccess={() => setChamada(null)}
+      />
     </div>
   );
 }
