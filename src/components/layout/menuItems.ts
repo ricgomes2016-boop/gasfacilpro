@@ -1,5 +1,6 @@
 import {
   Building2,
+  QrCode,
   LayoutDashboard,
   ShoppingCart,
   Gavel,
@@ -147,6 +148,8 @@ export const menuItems: MenuItem[] = [
       { icon: Clipboard, label: "Relatório Gerencial", path: "/operacional/gerencial" },
       { icon: Trophy, label: "Gamificação Entregadores", path: "/operacional/gamificacao-entregadores" },
       { icon: Gavel, label: "Licitações Públicas", path: "/operacional/licitacoes" },
+      { icon: CheckSquare, label: "Workflow Aprovações", path: "/operacional/aprovacoes" },
+      { icon: Timer, label: "SLA de Entregas", path: "/operacional/sla" },
     ],
   },
   {
@@ -162,6 +165,7 @@ export const menuItems: MenuItem[] = [
       { icon: MessageSquare, label: "CRM Avançado", path: "/clientes/crm" },
       { icon: Gift, label: "Programa de Indicação", path: "/clientes/indicacao" },
       { icon: Trophy, label: "Ranking dos Clientes", path: "/clientes/ranking" },
+      { icon: ShieldAlert, label: "Gestão de Crédito", path: "/clientes/credito" },
     ],
   },
   {
@@ -177,6 +181,7 @@ export const menuItems: MenuItem[] = [
       { icon: ArrowUpDown, label: "Transferência entre Filiais", path: "/estoque/transferencia" },
       { icon: TrendingUp, label: "MCMM Inteligente", path: "/estoque/mcmm" },
       { icon: ClipboardList, label: "Histórico Movimentações", path: "/estoque/historico" },
+      { icon: QrCode, label: "Lotes & Rastreabilidade", path: "/estoque/lotes" },
     ],
   },
   {
@@ -198,6 +203,7 @@ export const menuItems: MenuItem[] = [
       { icon: HandCoins, label: "Venda Antecipada", path: "/financeiro/venda-antecipada" },
       { icon: BarChart, label: "Balanço Patrimonial", path: "/financeiro/balanco" },
       { icon: Ticket, label: "Vale Gás", path: "/financeiro/vale-gas" },
+      { icon: CalendarClock, label: "Fechamento Mensal", path: "/financeiro/fechamento" },
     ],
   },
   {

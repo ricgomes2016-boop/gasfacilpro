@@ -207,6 +207,13 @@ const EntregadorTreinamento = lazy(() => import("./pages/entregador/EntregadorTr
 // Licitações
 const Licitacoes = lazy(() => import("./pages/operacional/Licitacoes"));
 
+// SAP Modules
+const WorkflowAprovacoes = lazy(() => import("./pages/operacional/WorkflowAprovacoes"));
+const GestaoCredito = lazy(() => import("./pages/clientes/GestaoCredito"));
+const LotesRastreabilidade = lazy(() => import("./pages/estoque/LotesRastreabilidade"));
+const SlaEntregas = lazy(() => import("./pages/operacional/SlaEntregas"));
+const FechamentoMensal = lazy(() => import("./pages/financeiro/FechamentoMensal"));
+
 // Clientes
 const ProgramaIndicacao = lazy(() => import("./pages/clientes/ProgramaIndicacao"));
 
@@ -689,6 +696,33 @@ const App = () => (
                   <Route path="/financeiro/balanco" element={
                     <ProtectedRoute allowedRoles={["admin", "gestor", "financeiro"]}>
                       <BalancoPatrimonial />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/financeiro/fechamento" element={
+                    <ProtectedRoute allowedRoles={["admin", "gestor", "financeiro"]}>
+                      <FechamentoMensal />
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* SAP Modules */}
+                  <Route path="/operacional/aprovacoes" element={
+                    <ProtectedRoute allowedRoles={["admin", "gestor"]}>
+                      <WorkflowAprovacoes />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/clientes/credito" element={
+                    <ProtectedRoute allowedRoles={["admin", "gestor", "financeiro"]}>
+                      <GestaoCredito />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/estoque/lotes" element={
+                    <ProtectedRoute allowedRoles={["admin", "gestor", "operacional"]}>
+                      <LotesRastreabilidade />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/operacional/sla" element={
+                    <ProtectedRoute allowedRoles={["admin", "gestor", "operacional"]}>
+                      <SlaEntregas />
                     </ProtectedRoute>
                   } />
                   
