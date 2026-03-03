@@ -19,7 +19,6 @@ serve(async (req) => {
 
     const body = await req.json();
     console.log("Z-API webhook received:", JSON.stringify(body).substring(0, 500));
-    console.log("Webhook v2 - multi-unidade support");
 
     // Skip messages sent by the bot itself
     if (body.fromMe === true) {
@@ -49,14 +48,12 @@ serve(async (req) => {
     // Resolve credentials: try per-unit DB config first, then fall back to env secrets
     const url = new URL(req.url);
     const queryUnidadeId = url.searchParams.get("unidade_id");
-    // Z-API may include instanceId in payload
     const payloadInstanceId = body.instanceId || body.instance_id || null;
 
     let ZAPI_INSTANCE_ID: string | null = null;
     let ZAPI_TOKEN: string | null = null;
     let ZAPI_SECURITY_TOKEN: string | null = null;
     let resolvedUnidadeId: string | null = null;
-    let isCentralized = false;
 
     // Strategy 1: lookup by unidade_id query param
     if (queryUnidadeId) {
@@ -105,11 +102,6 @@ serve(async (req) => {
         ZAPI_TOKEN = configs[0].token;
         ZAPI_SECURITY_TOKEN = configs[0].security_token;
         resolvedUnidadeId = configs[0].unidade_id;
-
-        // Centralized mode: if there are multiple active configs, try to route by customer address
-        if (!queryUnidadeId) {
-          isCentralized = true;
-        }
       }
     }
 
@@ -146,31 +138,6 @@ serve(async (req) => {
       clienteEndereco = [clientes[0].endereco, clientes[0].numero, clientes[0].bairro]
         .filter(Boolean)
         .join(", ");
-    }
-
-    // Centralized routing: resolve unit by customer's bairro/address
-    let availableUnits: { id: string; nome: string; bairros_atendidos: string | null }[] = [];
-    if (isCentralized) {
-      const { data: units } = await supabase
-        .from("unidades")
-        .select("id, nome, bairros_atendidos")
-        .eq("ativo", true);
-
-      availableUnits = units || [];
-
-      // Try to auto-match by customer bairro
-      if (!resolvedUnidadeId && clientes?.[0]?.bairro && availableUnits.length > 0) {
-        const bairroCliente = clientes[0].bairro.toLowerCase().trim();
-        for (const unit of availableUnits) {
-          if (unit.bairros_atendidos) {
-            const bairros = unit.bairros_atendidos.split(",").map((b: string) => b.trim().toLowerCase());
-            if (bairros.some((b: string) => bairroCliente.includes(b) || b.includes(bairroCliente))) {
-              resolvedUnidadeId = unit.id;
-              break;
-            }
-          }
-        }
-      }
     }
 
     // Recent orders
@@ -223,14 +190,6 @@ ${productList}
 ${clienteNome ? `CLIENTE CADASTRADO: ${clienteNome}` : "CLIENTE NÃO CADASTRADO NO SISTEMA"}
 ${clienteEndereco ? `ENDEREÇO NO CADASTRO: ${clienteEndereco}` : ""}
 ${recentOrders ? `ÚLTIMOS PEDIDOS:\n${recentOrders}` : ""}
-${isCentralized && availableUnits.length > 1 && !resolvedUnidadeId ? `
-ROTEAMENTO DE UNIDADE:
-Temos várias filiais. Quando o cliente informar o endereço/bairro, identifique qual filial atende a região.
-FILIAIS DISPONÍVEIS:
-${availableUnits.map((u: any) => `- ${u.nome}${u.bairros_atendidos ? ` (bairros: ${u.bairros_atendidos})` : ''}`).join('\n')}
-Se não conseguir identificar a filial pelo bairro, pergunte: "Qual região ou bairro você está?"
-Inclua o campo "filial" no bloco [PEDIDO_CONFIRMADO] com o nome EXATO da filial escolhida.
-` : ""}
 
 REGRA FUNDAMENTAL - NUNCA PEÇA INFORMAÇÕES JÁ FORNECIDAS:
 - Se o cliente já informou nome, endereço, produto ou pagamento NESTA CONVERSA, use essas informações. NÃO peça novamente.
@@ -345,15 +304,7 @@ desconto: 5.00
     if (orderMatch) {
       const orderData = parseOrderData(orderMatch[1]);
       if (orderData) {
-        // Resolve unit from AI-selected filial name
-        let orderUnidadeId = resolvedUnidadeId;
-        if (isCentralized && orderData.filial && availableUnits.length > 0) {
-          const matched = availableUnits.find((u: any) => 
-            u.nome.toLowerCase().trim() === orderData.filial.toLowerCase().trim()
-          );
-          if (matched) orderUnidadeId = matched.id;
-        }
-        await createOrder(supabase, orderData, clienteId, clienteNome, senderName, normalized, orderUnidadeId);
+        await createOrder(supabase, orderData, clienteId, clienteNome, senderName, normalized, resolvedUnidadeId);
         reply = reply.replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/, "").trim();
         reply += "\n\n✅ Pedido registrado com sucesso! Você receberá atualizações sobre a entrega.";
       }
@@ -427,7 +378,6 @@ async function createOrder(
   unidadeId: string | null
 ) {
   try {
-    // Try flexible product search
     let produto: any = null;
 
     const { data: produtos } = await supabase
@@ -439,7 +389,6 @@ async function createOrder(
 
     produto = produtos?.[0];
 
-    // Fallback: extract key terms like "P13", "13kg", "P20", "20L"
     if (!produto) {
       const keyMatch = orderData.produto.match(/(P\s*13|P\s*20|P\s*45|20\s*L|13|20|45)/i);
       if (keyMatch) {
