@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Building, MapPin, Phone, Mail, Edit, Loader2, Store, Smartphone } from "lucide-react";
+import { Building, MapPin, Phone, Mail, Edit, Loader2, Store, Smartphone, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Unidade } from "@/contexts/UnidadeContext";
@@ -66,6 +66,8 @@ export default function UnidadesConfig() {
           cep: editingUnidade.cep,
           chave_pix: (editingUnidade as any).chave_pix || null,
           bairros_atendidos: (editingUnidade as any).bairros_atendidos || null,
+          horario_abertura: (editingUnidade as any).horario_abertura || '07:00',
+          horario_fechamento: (editingUnidade as any).horario_fechamento || '18:00',
         })
         .eq("id", editingUnidade.id);
 
@@ -223,6 +225,31 @@ export default function UnidadesConfig() {
                     placeholder="CPF, CNPJ, email, telefone ou chave aleatória"
                   />
                   <p className="text-xs text-muted-foreground">Será usada para gerar QR Code de pagamento PIX</p>
+                </div>
+                <div className="grid gap-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Clock className="h-4 w-4" />
+                    Horário de Atendimento (Bia IA)
+                  </Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-1">
+                      <span className="text-xs text-muted-foreground">Abertura</span>
+                      <Input
+                        type="time"
+                        value={(editingUnidade as any).horario_abertura || "07:00"}
+                        onChange={(e) => updateField("horario_abertura" as any, e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <span className="text-xs text-muted-foreground">Fechamento</span>
+                      <Input
+                        type="time"
+                        value={(editingUnidade as any).horario_fechamento || "18:00"}
+                        onChange={(e) => updateField("horario_fechamento" as any, e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Fora desse horário, a Bia avisará o cliente que está fora do expediente</p>
                 </div>
                 <div className="grid gap-2">
                   <Label className="flex items-center gap-1.5">

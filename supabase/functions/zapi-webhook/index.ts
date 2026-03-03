@@ -116,6 +116,34 @@ serve(async (req) => {
       throw new Error("Z-API credentials not configured");
     }
 
+    // Check business hours
+    if (resolvedUnidadeId) {
+      const { data: unidadeConfig } = await supabase
+        .from("unidades")
+        .select("horario_abertura, horario_fechamento, nome")
+        .eq("id", resolvedUnidadeId)
+        .maybeSingle();
+
+      if (unidadeConfig?.horario_abertura && unidadeConfig?.horario_fechamento) {
+        // Use Brasilia timezone (UTC-3)
+        const now = new Date();
+        const brasiliaOffset = -3 * 60;
+        const localTime = new Date(now.getTime() + (brasiliaOffset + now.getTimezoneOffset()) * 60000);
+        const currentTime = `${String(localTime.getHours()).padStart(2, '0')}:${String(localTime.getMinutes()).padStart(2, '0')}`;
+
+        const abertura = unidadeConfig.horario_abertura;
+        const fechamento = unidadeConfig.horario_fechamento;
+
+        if (currentTime < abertura || currentTime >= fechamento) {
+          const offHoursMsg = "Olá! No momento estamos fora do horário de atendimento. ⏰\n\nNosso horário de funcionamento é das " + abertura + " às " + fechamento + ".\n\nEnvie sua mensagem e responderemos assim que abrirmos! 😊";
+          await sendWhatsAppMessage(ZAPI_INSTANCE_ID!, ZAPI_TOKEN!, ZAPI_SECURITY_TOKEN, phone, offHoursMsg);
+          return new Response(JSON.stringify({ ok: true, offHours: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+    }
+
     // Normalize phone
     const digits = phone.replace(/\D/g, "");
     const normalized = digits.slice(-11);
