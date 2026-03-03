@@ -19,6 +19,7 @@ serve(async (req) => {
 
     const body = await req.json();
     console.log("Z-API webhook received:", JSON.stringify(body).substring(0, 500));
+    console.log("Webhook v2 - multi-unidade support");
 
     // Skip messages sent by the bot itself
     if (body.fromMe === true) {
