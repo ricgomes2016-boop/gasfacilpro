@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Users, Plus, Search, Edit, Trash2, Phone, MapPin, FileText, Loader2, Camera, Check, X, Filter, Download, ImageIcon, ChevronDown, Navigation, FileUp, Merge } from "lucide-react";
+import { Users, Plus, Search, Edit, Trash2, Phone, MapPin, FileText, Loader2, Camera, Check, X, Filter, Download, ImageIcon, ChevronDown, Navigation, FileUp, Merge, Building2, SearchCheck } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +47,7 @@ import { geocodeAddress, type GeocodingResult } from "@/lib/geocoding";
 import { MapPickerDialog } from "@/components/ui/map-picker-dialog";
 import { useRegrasCadastro } from "@/hooks/useRegrasCadastro";
 import { MesclarClientesDialog } from "@/components/clientes/MesclarClientesDialog";
+import { ClienteUnidadesDialog } from "@/components/clientes/ClienteUnidadesDialog";
 
 interface Cliente {
   id: string;
@@ -139,6 +140,13 @@ export default function CadastroClientesCad() {
   // Mesclar clientes
   const [isMesclarOpen, setIsMesclarOpen] = useState(false);
 
+  // Unidades dialog
+  const [unidadesDialogOpen, setUnidadesDialogOpen] = useState(false);
+  const [unidadesClienteId, setUnidadesClienteId] = useState("");
+  const [unidadesClienteNome, setUnidadesClienteNome] = useState("");
+
+  // CPF/CNPJ lookup
+  const [isLookingUpCpfCnpj, setIsLookingUpCpfCnpj] = useState(false);
 
   const [stats, setStats] = useState({
     total: 0,
@@ -202,6 +210,41 @@ export default function CadastroClientesCad() {
       }
     } catch (error) {
       console.error("Erro ao buscar CEP:", error);
+    }
+  };
+
+  // Auto-lookup CPF/CNPJ from BrasilAPI
+  const buscarCpfCnpj = async (rawValue: string) => {
+    const numbers = rawValue.replace(/\D/g, "");
+    if (numbers.length !== 14) return; // Only CNPJ for now (CPF requires auth)
+
+    setIsLookingUpCpfCnpj(true);
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${numbers}`);
+      if (!res.ok) {
+        if (res.status === 404) {
+          toast({ title: "CNPJ não encontrado", description: "Verifique o número informado.", variant: "destructive" });
+        }
+        return;
+      }
+      const data = await res.json();
+      setFormData((prev) => ({
+        ...prev,
+        nome: prev.nome || data.razao_social || data.nome_fantasia || "",
+        endereco: prev.endereco || data.logradouro || "",
+        numero: prev.numero || data.numero || "",
+        bairro: prev.bairro || data.bairro || "",
+        cidade: prev.cidade || data.municipio || "",
+        cep: prev.cep || data.cep?.replace(/(\d{5})(\d{3})/, "$1-$2") || "",
+        email: prev.email || data.email || "",
+        telefone: prev.telefone || data.ddd_telefone_1?.replace(/^(\d{2})(\d+)/, "($1) $2") || "",
+        tipo: prev.tipo === "residencial" ? "comercial" : prev.tipo,
+      }));
+      toast({ title: "Dados encontrados!", description: `Razão social: ${data.razao_social || data.nome_fantasia}` });
+    } catch (error) {
+      console.error("Erro ao buscar CNPJ:", error);
+    } finally {
+      setIsLookingUpCpfCnpj(false);
     }
   };
 
@@ -1106,6 +1149,19 @@ export default function CadastroClientesCad() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                title="Unidades"
+                                onClick={() => {
+                                  setUnidadesClienteId(cliente.id);
+                                  setUnidadesClienteNome(cliente.nome);
+                                  setUnidadesDialogOpen(true);
+                                }}
+                              >
+                                <Building2 className="h-4 w-4" />
+                              </Button>
                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditModal(cliente)}>
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -1155,10 +1211,28 @@ export default function CadastroClientesCad() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>CPF/CNPJ</Label>
-                <CpfCnpjInput
-                  value={formData.cpf}
-                  onChange={(value) => handleChange("cpf", value)}
-                />
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <CpfCnpjInput
+                      value={formData.cpf}
+                      onChange={(value) => handleChange("cpf", value)}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0 mt-0"
+                    disabled={isLookingUpCpfCnpj || formData.cpf.replace(/\D/g, "").length !== 14}
+                    onClick={() => buscarCpfCnpj(formData.cpf)}
+                    title="Buscar dados na Receita Federal (CNPJ)"
+                  >
+                    {isLookingUpCpfCnpj ? <Loader2 className="h-4 w-4 animate-spin" /> : <SearchCheck className="h-4 w-4" />}
+                  </Button>
+                </div>
+                {formData.cpf.replace(/\D/g, "").length === 14 && (
+                  <p className="text-[10px] text-muted-foreground mt-1">Clique em 🔍 para buscar dados na Receita</p>
+                )}
               </div>
               <div>
                 <Label>Telefone *</Label>
@@ -1426,6 +1500,15 @@ export default function CadastroClientesCad() {
         open={isMesclarOpen}
         onOpenChange={setIsMesclarOpen}
         onMerged={fetchClientes}
+      />
+
+      {/* Cliente Unidades Dialog */}
+      <ClienteUnidadesDialog
+        open={unidadesDialogOpen}
+        onOpenChange={setUnidadesDialogOpen}
+        clienteId={unidadesClienteId}
+        clienteNome={unidadesClienteNome}
+        onSaved={fetchClientes}
       />
     </MainLayout>
   );
