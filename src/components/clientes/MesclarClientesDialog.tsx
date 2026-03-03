@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Merge, AlertTriangle, ChevronRight, User, MapPin, Phone, Mail } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Merge, AlertTriangle, ChevronRight, MapPin, Phone, Mail, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -33,6 +33,7 @@ interface Cliente {
 interface DuplicateGroup {
   key: string;
   label: string;
+  icon: "address" | "name";
   clientes: Cliente[];
 }
 
@@ -56,14 +57,20 @@ function buildAddressKey(c: Cliente): string {
   return parts.join("|");
 }
 
+function buildNameKey(c: Cliente): string {
+  return normalizeStr(c.nome);
+}
+
 export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
   const [step, setStep] = useState<"detect" | "merge">("detect");
   const [loading, setLoading] = useState(false);
   const [merging, setMerging] = useState(false);
-  const [groups, setGroups] = useState<DuplicateGroup[]>([]);
+  const [addressGroups, setAddressGroups] = useState<DuplicateGroup[]>([]);
+  const [nameGroups, setNameGroups] = useState<DuplicateGroup[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<DuplicateGroup | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [masterId, setMasterId] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>("nome");
 
   useEffect(() => {
     if (open) {
@@ -71,6 +78,7 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
       setSelectedGroup(null);
       setSelectedIds(new Set());
       setMasterId("");
+      setActiveTab("nome");
       detectDuplicates();
     }
   }, [open]);
@@ -87,26 +95,45 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
       if (error) throw error;
 
       // Group by normalized address
-      const map = new Map<string, Cliente[]>();
+      const addrMap = new Map<string, Cliente[]>();
+      const nameMap = new Map<string, Cliente[]>();
+
       for (const c of data || []) {
-        const key = buildAddressKey(c);
-        if (!key || key === "|||") continue; // skip clients with no address
-        if (!map.has(key)) map.set(key, []);
-        map.get(key)!.push(c);
+        // Address grouping
+        const addrKey = buildAddressKey(c);
+        if (addrKey && addrKey !== "|||") {
+          if (!addrMap.has(addrKey)) addrMap.set(addrKey, []);
+          addrMap.get(addrKey)!.push(c);
+        }
+
+        // Name grouping
+        const nameKey = buildNameKey(c);
+        if (nameKey) {
+          if (!nameMap.has(nameKey)) nameMap.set(nameKey, []);
+          nameMap.get(nameKey)!.push(c);
+        }
       }
 
-      const dupGroups: DuplicateGroup[] = [];
-      map.forEach((clientes, key) => {
+      const addrGroups: DuplicateGroup[] = [];
+      addrMap.forEach((clientes, key) => {
         if (clientes.length > 1) {
           const sample = clientes[0];
           const label = [sample.endereco, sample.numero, sample.bairro, sample.cidade]
             .filter(Boolean)
             .join(", ");
-          dupGroups.push({ key, label, clientes });
+          addrGroups.push({ key, label, icon: "address", clientes });
         }
       });
 
-      setGroups(dupGroups);
+      const nGroups: DuplicateGroup[] = [];
+      nameMap.forEach((clientes, key) => {
+        if (clientes.length > 1) {
+          nGroups.push({ key, label: clientes[0].nome, icon: "name", clientes });
+        }
+      });
+
+      setAddressGroups(addrGroups);
+      setNameGroups(nGroups);
     } catch (err: any) {
       toast.error("Erro ao buscar duplicatas: " + err.message);
     } finally {
@@ -116,9 +143,7 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
 
   const openGroup = (group: DuplicateGroup) => {
     setSelectedGroup(group);
-    // Pre-select all
     setSelectedIds(new Set(group.clientes.map(c => c.id)));
-    // Master = oldest (first created)
     setMasterId(group.clientes[0].id);
     setStep("merge");
   };
@@ -127,7 +152,7 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
-        if (next.size <= 2) return prev; // must keep at least 2 to merge
+        if (next.size <= 2) return prev;
         next.delete(id);
         if (masterId === id) setMasterId([...next][0]);
       } else {
@@ -144,7 +169,6 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
 
     setMerging(true);
     try {
-      // Reassign pedidos from duplicates to master
       for (const dupId of toMerge) {
         await supabase
           .from("pedidos")
@@ -152,7 +176,6 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
           .eq("cliente_id", dupId);
       }
 
-      // Soft-delete the duplicates
       const { error } = await supabase
         .from("clientes")
         .update({ ativo: false })
@@ -163,7 +186,6 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
       toast.success(`${toMerge.length} cliente(s) mesclado(s) com sucesso!`);
       onMerged();
 
-      // Re-detect
       await detectDuplicates();
       setStep("detect");
       setSelectedGroup(null);
@@ -174,9 +196,67 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
     }
   };
 
-  const selectedGroupClients = selectedGroup
-    ? selectedGroup.clientes.filter(c => selectedIds.has(c.id))
-    : [];
+  const currentGroups = activeTab === "nome" ? nameGroups : addressGroups;
+
+  const renderGroupList = (groups: DuplicateGroup[]) => {
+    if (groups.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+          {activeTab === "nome" ? <User className="h-10 w-10 opacity-30" /> : <MapPin className="h-10 w-10 opacity-30" />}
+          <p className="text-sm font-medium">Nenhuma duplicata encontrada!</p>
+          <p className="text-xs">
+            {activeTab === "nome" ? "Todos os clientes possuem nomes únicos." : "Todos os clientes possuem endereços únicos."}
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <div className="flex items-center gap-2">
+          <Badge variant="destructive" className="text-xs">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            {groups.length} grupo{groups.length !== 1 ? "s" : ""} com {activeTab === "nome" ? "nome" : "endereço"} repetido
+          </Badge>
+        </div>
+        <ScrollArea className="flex-1 max-h-[45vh]">
+          <div className="space-y-2 pr-2">
+            {groups.map((group) => (
+              <button
+                key={group.key}
+                onClick={() => openGroup(group)}
+                className="w-full text-left border rounded-lg p-3 hover:bg-muted/60 transition-colors group"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      {group.icon === "name" ? (
+                        <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      ) : (
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      )}
+                      <span className="text-sm font-medium truncate">{group.label || "Não informado"}</span>
+                      <Badge variant="secondary" className="text-xs shrink-0">
+                        {group.clientes.length} clientes
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-1 ml-5">
+                      {group.clientes.map(c => (
+                        <span key={c.id} className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                          {group.icon === "name" ? (c.bairro || c.telefone || c.cpf || c.id.slice(0, 8)) : c.nome}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0 mt-0.5" />
+                </div>
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
+      </>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -184,11 +264,11 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Merge className="h-5 w-5 text-primary" />
-            Mesclar Clientes com Endereço Repetido
+            Mesclar Clientes Duplicados
           </DialogTitle>
           <DialogDescription>
             {step === "detect"
-              ? "Clientes com o mesmo endereço cadastrado foram agrupados abaixo."
+              ? "Identifique e mescle clientes duplicados por nome ou endereço."
               : `Escolha qual registro manter como principal e quais serão mesclados.`}
           </DialogDescription>
         </DialogHeader>
@@ -200,52 +280,31 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
               <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
                 Buscando duplicatas...
               </div>
-            ) : groups.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
-                <MapPin className="h-10 w-10 opacity-30" />
-                <p className="text-sm font-medium">Nenhum endereço repetido encontrado!</p>
-                <p className="text-xs">Todos os clientes possuem endereços únicos.</p>
-              </div>
             ) : (
-              <>
-                <div className="flex items-center gap-2">
-                  <Badge variant="destructive" className="text-xs">
-                    <AlertTriangle className="h-3 w-3 mr-1" />
-                    {groups.length} grupo{groups.length !== 1 ? "s" : ""} com endereço repetido
-                  </Badge>
-                </div>
-                <ScrollArea className="flex-1 max-h-[50vh]">
-                  <div className="space-y-2 pr-2">
-                    {groups.map((group) => (
-                      <button
-                        key={group.key}
-                        onClick={() => openGroup(group)}
-                        className="w-full text-left border rounded-lg p-3 hover:bg-muted/60 transition-colors group"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                              <span className="text-sm font-medium truncate">{group.label || "Endereço não informado"}</span>
-                              <Badge variant="secondary" className="text-xs shrink-0">
-                                {group.clientes.length} clientes
-                              </Badge>
-                            </div>
-                            <div className="flex flex-wrap gap-1 ml-5">
-                              {group.clientes.map(c => (
-                                <span key={c.id} className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                                  {c.nome}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0 mt-0.5" />
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="nome" className="gap-1.5">
+                    <User className="h-3.5 w-3.5" />
+                    Por Nome
+                    {nameGroups.length > 0 && (
+                      <Badge variant="destructive" className="text-[10px] h-4 px-1 ml-1">{nameGroups.length}</Badge>
+                    )}
+                  </TabsTrigger>
+                  <TabsTrigger value="endereco" className="gap-1.5">
+                    <MapPin className="h-3.5 w-3.5" />
+                    Por Endereço
+                    {addressGroups.length > 0 && (
+                      <Badge variant="destructive" className="text-[10px] h-4 px-1 ml-1">{addressGroups.length}</Badge>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="nome" className="flex-1 flex flex-col gap-3 mt-3">
+                  {renderGroupList(nameGroups)}
+                </TabsContent>
+                <TabsContent value="endereco" className="flex-1 flex flex-col gap-3 mt-3">
+                  {renderGroupList(addressGroups)}
+                </TabsContent>
+              </Tabs>
             )}
           </div>
         )}
@@ -254,7 +313,7 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
         {step === "merge" && selectedGroup && (
           <div className="flex-1 min-h-0 flex flex-col gap-4">
             <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5 shrink-0" />
+              {selectedGroup.icon === "name" ? <User className="h-3.5 w-3.5 shrink-0" /> : <MapPin className="h-3.5 w-3.5 shrink-0" />}
               <span className="font-medium">{selectedGroup.label}</span>
             </div>
 
@@ -300,11 +359,15 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
                                   <Mail className="h-3 w-3" />{c.email}
                                 </span>
                               )}
+                              {c.endereco && (
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />{[c.endereco, c.numero, c.bairro].filter(Boolean).join(", ")}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
 
-                        {/* Choose master */}
                         {isSelected && (
                           <div className="mt-2 ml-7">
                             <button
