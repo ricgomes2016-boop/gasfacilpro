@@ -35,13 +35,14 @@ export default function AsaasConfig() {
     if (!empresa?.id) return;
     const { data } = await supabase
       .from("configuracoes_empresa")
-      .select("asaas_api_key, asaas_sandbox")
+      .select("*")
       .eq("empresa_id", empresa.id)
       .single();
 
-    if (data?.asaas_api_key) {
-      setApiKey(data.asaas_api_key);
-      setSandbox(data.asaas_sandbox ?? true);
+    const row = data as any;
+    if (row?.asaas_api_key) {
+      setApiKey(row.asaas_api_key);
+      setSandbox(row.asaas_sandbox ?? true);
       setConnected(true);
     }
   };
@@ -61,7 +62,7 @@ export default function AsaasConfig() {
           empresa_id: empresa.id,
           asaas_api_key: apiKey.trim(),
           asaas_sandbox: sandbox,
-        }, { onConflict: "empresa_id" });
+        } as any, { onConflict: "empresa_id" });
 
       if (error) throw error;
       setConnected(true);
@@ -99,7 +100,7 @@ export default function AsaasConfig() {
     try {
       const { error } = await supabase
         .from("configuracoes_empresa")
-        .update({ asaas_api_key: null, asaas_sandbox: true })
+        .update({ asaas_api_key: null, asaas_sandbox: true } as any)
         .eq("empresa_id", empresa.id);
 
       if (error) throw error;

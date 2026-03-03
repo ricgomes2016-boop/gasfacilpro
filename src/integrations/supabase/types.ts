@@ -2123,6 +2123,8 @@ export type Database = {
       }
       configuracoes_empresa: {
         Row: {
+          asaas_api_key: string | null
+          asaas_sandbox: boolean | null
           cnpj: string | null
           created_at: string
           empresa_id: string | null
@@ -2135,6 +2137,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          asaas_api_key?: string | null
+          asaas_sandbox?: boolean | null
           cnpj?: string | null
           created_at?: string
           empresa_id?: string | null
@@ -2147,6 +2151,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          asaas_api_key?: string | null
+          asaas_sandbox?: boolean | null
           cnpj?: string | null
           created_at?: string
           empresa_id?: string | null
