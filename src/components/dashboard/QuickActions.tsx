@@ -67,7 +67,7 @@ const actions: QuickAction[] = [
   {
     label: "Financeiro",
     icon: DollarSign,
-    path: "/financeiro/dashboard",
+    path: "/financeiro",
     bg: "bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-indigo-500/25",
     ring: "ring-indigo-400/40",
   },
@@ -81,14 +81,14 @@ const actions: QuickAction[] = [
   {
     label: "Relatórios",
     icon: BarChart3,
-    path: "/vendas/relatorios",
+    path: "/vendas/relatorio",
     bg: "bg-gradient-to-br from-cyan-500 to-cyan-600 text-white shadow-cyan-500/25",
     ring: "ring-cyan-400/40",
   },
   {
     label: "Notas Fiscais",
     icon: FileText,
-    path: "/fiscal/dashboard",
+    path: "/fiscal",
     bg: "bg-gradient-to-br from-fuchsia-500 to-fuchsia-600 text-white shadow-fuchsia-500/25",
     ring: "ring-fuchsia-400/40",
   },
