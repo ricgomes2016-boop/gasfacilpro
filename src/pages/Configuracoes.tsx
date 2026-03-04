@@ -14,6 +14,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 interface EmpresaConfig {
   id: string;
@@ -51,6 +52,7 @@ export default function Configuracoes() {
   const { toast } = useToast();
   const { signOut } = useAuth();
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
   const queryClient = useQueryClient();
   const [empresaConfig, setEmpresaConfig] = useState<EmpresaConfig>({
     id: "",
@@ -218,6 +220,15 @@ export default function Configuracoes() {
           .update({ regras_cadastro: regras } as any)
           .eq("id", empresaConfig.id);
         if (error) throw error;
+      } else {
+        // Create config record if it doesn't exist yet
+        const { data, error } = await supabase
+          .from("configuracoes_empresa")
+          .insert({ nome_empresa: empresaConfig.nome_empresa || "Minha Empresa", regras_cadastro: regras, empresa_id: empresa?.id } as any)
+          .select("id")
+          .single();
+        if (error) throw error;
+        if (data) setEmpresaConfig((prev) => ({ ...prev, id: data.id }));
       }
       queryClient.invalidateQueries({ queryKey: ["regras_cadastro"] });
       toast({ title: "Regras salvas!", description: "As regras de cadastro foram atualizadas." });
