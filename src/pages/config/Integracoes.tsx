@@ -237,6 +237,10 @@ export default function Integracoes() {
   const [wpInstanceId, setWpInstanceId] = useState("");
   const [wpToken, setWpToken] = useState("");
   const [wpSecurityToken, setWpSecurityToken] = useState("");
+  const [wpDescontoEtapa1, setWpDescontoEtapa1] = useState("5");
+  const [wpDescontoEtapa2, setWpDescontoEtapa2] = useState("10");
+  const [wpPrecoMinimoP13, setWpPrecoMinimoP13] = useState("");
+  const [wpPrecoMinimoP20, setWpPrecoMinimoP20] = useState("");
   const [wpSaving, setWpSaving] = useState(false);
   const [wpEditId, setWpEditId] = useState<string | null>(null);
 
@@ -262,6 +266,10 @@ export default function Integracoes() {
         instance_id: wpInstanceId,
         token: wpToken,
         security_token: wpSecurityToken || null,
+        desconto_etapa1: parseFloat(wpDescontoEtapa1) || 5,
+        desconto_etapa2: parseFloat(wpDescontoEtapa2) || 10,
+        preco_minimo_p13: wpPrecoMinimoP13 ? parseFloat(wpPrecoMinimoP13) : null,
+        preco_minimo_p20: wpPrecoMinimoP20 ? parseFloat(wpPrecoMinimoP20) : null,
         ativo: true,
       };
       if (wpEditId) {
@@ -287,6 +295,10 @@ export default function Integracoes() {
     setWpInstanceId("");
     setWpToken("");
     setWpSecurityToken("");
+    setWpDescontoEtapa1("5");
+    setWpDescontoEtapa2("10");
+    setWpPrecoMinimoP13("");
+    setWpPrecoMinimoP20("");
     setWpEditId(null);
   };
 
@@ -296,6 +308,10 @@ export default function Integracoes() {
     setWpInstanceId(config.instance_id);
     setWpToken(config.token);
     setWpSecurityToken(config.security_token || "");
+    setWpDescontoEtapa1(String(config.desconto_etapa1 ?? 5));
+    setWpDescontoEtapa2(String(config.desconto_etapa2 ?? 10));
+    setWpPrecoMinimoP13(config.preco_minimo_p13 ? String(config.preco_minimo_p13) : "");
+    setWpPrecoMinimoP20(config.preco_minimo_p20 ? String(config.preco_minimo_p20) : "");
     setWhatsappDialogOpen(true);
   };
 
@@ -673,6 +689,35 @@ export default function Integracoes() {
             <div className="space-y-1.5">
               <Label>Security Token (opcional)</Label>
               <Input type="password" value={wpSecurityToken} onChange={(e) => setWpSecurityToken(e.target.value)} placeholder="Token de segurança" />
+            </div>
+
+            <Separator />
+            <p className="text-sm font-medium">Limites de desconto da Bia</p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>1º desconto (R$)</Label>
+                <Input type="number" step="0.01" value={wpDescontoEtapa1} onChange={(e) => setWpDescontoEtapa1(e.target.value)} placeholder="5.00" />
+                <p className="text-[10px] text-muted-foreground">Desconto inicial por unidade</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>2º desconto (R$)</Label>
+                <Input type="number" step="0.01" value={wpDescontoEtapa2} onChange={(e) => setWpDescontoEtapa2(e.target.value)} placeholder="10.00" />
+                <p className="text-[10px] text-muted-foreground">Se pedir mais desconto</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Preço mín. P13 (R$)</Label>
+                <Input type="number" step="0.01" value={wpPrecoMinimoP13} onChange={(e) => setWpPrecoMinimoP13(e.target.value)} placeholder="Ex: 115.00" />
+                <p className="text-[10px] text-muted-foreground">Preço piso do Gás P13</p>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Preço mín. P20 (R$)</Label>
+                <Input type="number" step="0.01" value={wpPrecoMinimoP20} onChange={(e) => setWpPrecoMinimoP20(e.target.value)} placeholder="Ex: 200.00" />
+                <p className="text-[10px] text-muted-foreground">Preço piso do Gás P20</p>
+              </div>
             </div>
 
             <div className="p-3 rounded-lg bg-muted/50 space-y-1">

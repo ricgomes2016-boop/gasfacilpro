@@ -55,6 +55,11 @@ serve(async (req) => {
     let ZAPI_SECURITY_TOKEN: string | null = null;
     let resolvedUnidadeId: string | null = null;
 
+    let descontoEtapa1 = 5;
+    let descontoEtapa2 = 10;
+    let precoMinimoP13: number | null = null;
+    let precoMinimoP20: number | null = null;
+
     // Strategy 1: lookup by unidade_id query param
     if (queryUnidadeId) {
       const { data: config } = await supabase
@@ -69,6 +74,10 @@ serve(async (req) => {
         ZAPI_TOKEN = config.token;
         ZAPI_SECURITY_TOKEN = config.security_token;
         resolvedUnidadeId = config.unidade_id;
+        descontoEtapa1 = config.desconto_etapa1 ?? 5;
+        descontoEtapa2 = config.desconto_etapa2 ?? 10;
+        precoMinimoP13 = config.preco_minimo_p13 ?? null;
+        precoMinimoP20 = config.preco_minimo_p20 ?? null;
       }
     }
 
@@ -86,6 +95,10 @@ serve(async (req) => {
         ZAPI_TOKEN = config.token;
         ZAPI_SECURITY_TOKEN = config.security_token;
         resolvedUnidadeId = config.unidade_id;
+        descontoEtapa1 = config.desconto_etapa1 ?? 5;
+        descontoEtapa2 = config.desconto_etapa2 ?? 10;
+        precoMinimoP13 = config.preco_minimo_p13 ?? null;
+        precoMinimoP20 = config.preco_minimo_p20 ?? null;
       }
     }
 
@@ -102,6 +115,10 @@ serve(async (req) => {
         ZAPI_TOKEN = configs[0].token;
         ZAPI_SECURITY_TOKEN = configs[0].security_token;
         resolvedUnidadeId = configs[0].unidade_id;
+        descontoEtapa1 = configs[0].desconto_etapa1 ?? 5;
+        descontoEtapa2 = configs[0].desconto_etapa2 ?? 10;
+        precoMinimoP13 = configs[0].preco_minimo_p13 ?? null;
+        precoMinimoP20 = configs[0].preco_minimo_p20 ?? null;
       }
     }
 
@@ -239,16 +256,21 @@ FLUXO DO PEDIDO:
 6. NÃO invente preços. Use APENAS os produtos listados.
 7. Se não entender a mensagem, peça para repetir educadamente.
 
-NEGOCIAÇÃO DE PREÇO (DUAS ETAPAS OBRIGATÓRIAS):
+NEGOCIAÇÃO DE PREÇO (TRÊS ETAPAS OBRIGATÓRIAS):
 - ETAPA 1: Quando o cliente reclamar do preço, pedir desconto ou dizer que está caro, responda APENAS que vai verificar com o gerente. NÃO dê o desconto ainda. NÃO continue a conversa. Encerre a mensagem após dizer que vai verificar. Exemplo: "Vou verificar com o gerente se consigo um desconto para você! Um momento."
-- ETAPA 2: Na PRÓXIMA mensagem do cliente (qualquer que seja), aí sim retorne dizendo que conseguiu um desconto especial:
-  * Gás P13: desconto de R$ 5,00 por unidade.
-  * Gás P20: desconto de R$ 5,00 por unidade.
+- ETAPA 2: Na PRÓXIMA mensagem do cliente (qualquer que seja), retorne dizendo que conseguiu um desconto especial:
+  * Gás P13: desconto de R$ ${descontoEtapa1.toFixed(2)} por unidade.
+  * Gás P20: desconto de R$ ${descontoEtapa1.toFixed(2)} por unidade.
   * Outros produtos (P45, Água 20L, etc.): diga que infelizmente o preço já é o melhor possível, NÃO aplique desconto.
+- ETAPA 3: Se o cliente pedir MAIS desconto após a etapa 2, diga novamente que vai tentar com o gerente. Na PRÓXIMA mensagem dele, retorne dizendo que conseguiu chegar ao valor mínimo:
+  * Gás P13: desconto TOTAL de R$ ${descontoEtapa2.toFixed(2)} por unidade${precoMinimoP13 ? ` (preço final: R$ ${precoMinimoP13.toFixed(2)})` : ''}.
+  * Gás P20: desconto TOTAL de R$ ${descontoEtapa2.toFixed(2)} por unidade${precoMinimoP20 ? ` (preço final: R$ ${precoMinimoP20.toFixed(2)})` : ''}.
+  * Deixe claro que esse é o MENOR preço possível e não tem como baixar mais.
 - REGRA: NUNCA diga "vou verificar" e "consegui o desconto" na MESMA mensagem. São obrigatoriamente mensagens separadas.
-- Ao informar o desconto, SEMPRE diga o preço original, o desconto e o PREÇO FINAL. Exemplo: "Consegui um desconto de R$ 5,00! O Gás P13 sai de R$ XX,XX por R$ YY,YY."
+- Ao informar o desconto, SEMPRE diga o preço original, o desconto e o PREÇO FINAL. Exemplo: "Consegui um desconto de R$ ${descontoEtapa1.toFixed(2)}! O Gás P13 sai de R$ XX,XX por R$ YY,YY."
+- Se o cliente pedir desconto pela TERCEIRA vez (após etapa 3), diga educadamente que já está no menor preço possível e não há mais margem.
 - IMPORTANTE: Se houve desconto, inclua o campo "desconto" no bloco [PEDIDO_CONFIRMADO] com o valor TOTAL do desconto em reais (quantidade × desconto unitário).
-- IMPORTANTE: O campo "desconto" no pedido deve ser o valor TOTAL em reais (ex: 2 unidades × R$5 = desconto: 10.00).
+- IMPORTANTE: O campo "desconto" no pedido deve ser o valor TOTAL em reais (ex: 2 unidades × R$${descontoEtapa2.toFixed(2)} = desconto: ${(2 * descontoEtapa2).toFixed(2)}).
 ${isOffHours ? `
 FORA DO HORÁRIO DE ATENDIMENTO:
 - Estamos FORA do horário de atendimento (funcionamos ${horarioInfo}).
@@ -265,7 +287,7 @@ produto: Gás P13
 quantidade: 2
 endereco: Rua X, 123
 pagamento: pix
-desconto: 10.00
+desconto: ${(2 * descontoEtapa2).toFixed(2)}
 [/PEDIDO_CONFIRMADO]
 
 FORMATO SEM DESCONTO:

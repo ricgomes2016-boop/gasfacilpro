@@ -4019,9 +4019,13 @@ export type Database = {
         Row: {
           ativo: boolean | null
           created_at: string | null
+          desconto_etapa1: number | null
+          desconto_etapa2: number | null
           id: string
           instance_id: string
           nome_bot: string | null
+          preco_minimo_p13: number | null
+          preco_minimo_p20: number | null
           security_token: string | null
           token: string
           unidade_id: string
@@ -4030,9 +4034,13 @@ export type Database = {
         Insert: {
           ativo?: boolean | null
           created_at?: string | null
+          desconto_etapa1?: number | null
+          desconto_etapa2?: number | null
           id?: string
           instance_id: string
           nome_bot?: string | null
+          preco_minimo_p13?: number | null
+          preco_minimo_p20?: number | null
           security_token?: string | null
           token: string
           unidade_id: string
@@ -4041,9 +4049,13 @@ export type Database = {
         Update: {
           ativo?: boolean | null
           created_at?: string | null
+          desconto_etapa1?: number | null
+          desconto_etapa2?: number | null
           id?: string
           instance_id?: string
           nome_bot?: string | null
+          preco_minimo_p13?: number | null
+          preco_minimo_p20?: number | null
           security_token?: string | null
           token?: string
           unidade_id?: string
