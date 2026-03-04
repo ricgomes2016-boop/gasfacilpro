@@ -1,4 +1,4 @@
-import { User, LogOut, Settings, UserCircle } from "lucide-react";
+import { User, LogOut, Settings, UserCircle, Moon, Sun } from "lucide-react";
 import { CommandPalette } from "./CommandPalette";
 import { NotificationCenter } from "./NotificationCenter";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { MobileNav } from "./MobileNav";
 import { UnidadeSelector } from "./UnidadeSelector";
+import { useTheme } from "@/hooks/useTheme";
 
 interface HeaderProps {
   title: string;
@@ -27,6 +28,7 @@ export function Header({ title, subtitle }: HeaderProps) {
   const { user, profile, roles, signOut } = useAuth();
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
+  const { resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -72,6 +74,17 @@ export function Header({ title, subtitle }: HeaderProps) {
 
         {/* Notifications */}
         <NotificationCenter />
+
+        {/* Theme Toggle */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9"
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          title={resolvedTheme === "dark" ? "Modo claro" : "Modo escuro"}
+        >
+          {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </Button>
 
         {/* User Menu */}
         <DropdownMenu>

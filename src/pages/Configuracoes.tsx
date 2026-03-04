@@ -8,13 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Building, CreditCard, Bell, Shield, Printer, Users, Loader2, ClipboardList, Save } from "lucide-react";
+import { Building, CreditCard, Bell, Shield, Printer, Users, Loader2, ClipboardList, Save, Moon, Sun, Monitor } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { useTheme } from "@/hooks/useTheme";
 
 interface EmpresaConfig {
   id: string;
@@ -46,6 +47,33 @@ interface UserProfile {
   full_name: string;
   email: string;
   roles: string[];
+}
+
+function ThemeSelector() {
+  const { theme, setTheme } = useTheme();
+  const options = [
+    { value: "light" as const, label: "Claro", icon: Sun },
+    { value: "dark" as const, label: "Escuro", icon: Moon },
+    { value: "system" as const, label: "Sistema", icon: Monitor },
+  ];
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          onClick={() => setTheme(opt.value)}
+          className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
+            theme === opt.value
+              ? "border-primary bg-primary/5 text-primary"
+              : "border-border hover:border-muted-foreground/30 text-muted-foreground"
+          }`}
+        >
+          <opt.icon className="h-5 w-5" />
+          <span className="text-xs font-medium">{opt.label}</span>
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export default function Configuracoes() {
@@ -491,6 +519,20 @@ export default function Configuracoes() {
                   </Button>
                 </>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Aparência */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Sun className="h-5 w-5 text-primary" />
+                <CardTitle>Aparência</CardTitle>
+              </div>
+              <CardDescription>Personalize o visual do sistema</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ThemeSelector />
             </CardContent>
           </Card>
 
