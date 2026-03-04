@@ -292,7 +292,7 @@ export default function Configuracoes() {
   return (
     <MainLayout>
       <Header title="Configurações" subtitle="Gerencie as configurações do sistema" />
-      <div className="p-6">
+      <div className="p-3 sm:p-4 md:p-6">
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Dados da Empresa */}
           <Card>
