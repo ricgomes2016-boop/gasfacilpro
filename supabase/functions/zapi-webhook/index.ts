@@ -333,6 +333,22 @@ pagamento: dinheiro
       ? historyRows.map((m: any) => ({ role: m.role, content: m.content }))
       : [];
 
+    const normalizedUserMsg = messageText.trim().toLowerCase();
+    const looksLikeNewOrderIntent = /(quero|preciso|novo pedido|pedido|gás|gas|botij|p13|p20|p45|água|agua|comprar|entrega)/i.test(messageText);
+    const isPostOrderFollowUp = /(obrigad|valeu|ok|não|nao|sim|certo|perfeito|show|blz|beleza|não preciso|nao preciso|sem troco|troco)/i.test(normalizedUserMsg);
+
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const { data: recentWhatsappOrders } = await supabase
+      .from("pedidos")
+      .select("id, created_at")
+      .eq("canal_venda", "whatsapp")
+      .gte("created_at", twoHoursAgo)
+      .ilike("observacoes", `%(${normalized})%`)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const hasRecentWhatsappOrder = !!(recentWhatsappOrders && recentWhatsappOrders.length > 0);
+
     // Detect negotiation state from ALL assistant messages
     let negotiationHint = "";
     if (history.length > 0) {
@@ -393,6 +409,23 @@ pagamento: dinheiro
       },
       { onConflict: "id" }
     );
+
+    if (hasRecentWhatsappOrder && !looksLikeNewOrderIntent && isPostOrderFollowUp) {
+      const alreadyConfirmedReply = "Perfeito! Seu pedido já está confirmado ✅\nA entrega segue em andamento (prazo de 30 a 60 minutos).";
+
+      await supabase.from("ai_mensagens").insert({
+        conversa_id: conversationUUID,
+        role: "assistant",
+        content: alreadyConfirmedReply,
+        metadata: { source: "zapi-webhook", post_order_followup: true },
+      });
+
+      await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_SECURITY_TOKEN, phone, alreadyConfirmedReply);
+
+      return new Response(JSON.stringify({ ok: true, skipped: "post_order_followup" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -459,10 +492,37 @@ pagamento: dinheiro
           reply += "\n\nSeu pedido já foi registrado anteriormente! Aguarde a entrega. 😊";
         } else {
           const isAgendado = isOffHours || orderData.agendado === "sim";
-          await createOrder(supabase, orderData, clienteId, clienteNome, senderName, normalized, resolvedUnidadeId, isAgendado);
+
+          const { data: recentAssistantMsgs } = await supabase
+            .from("ai_mensagens")
+            .select("content")
+            .eq("conversa_id", conversationUUID)
+            .eq("role", "assistant")
+            .order("created_at", { ascending: false })
+            .limit(30);
+
+          const fallbackDiscountPerUnit = extractLatestNegotiatedDiscountPerUnit([
+            reply,
+            ...((recentAssistantMsgs || []).map((m: any) => m.content)),
+          ]);
+
+          await createOrder(
+            supabase,
+            orderData,
+            clienteId,
+            clienteNome,
+            senderName,
+            normalized,
+            resolvedUnidadeId,
+            isAgendado,
+            fallbackDiscountPerUnit
+          );
           reply = reply.replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/, "").trim();
 
-          const desconto = parseFloat(orderData.desconto) || 0;
+          const descontoInformado = parseFloat(String(orderData.desconto ?? "").replace(",", ".")) || 0;
+          const desconto = descontoInformado > 0
+            ? descontoInformado
+            : (fallbackDiscountPerUnit > 0 ? fallbackDiscountPerUnit * (parseInt(orderData.quantidade) || 1) : 0);
           const descontoMsg = desconto > 0 ? ` (com desconto de R$ ${desconto.toFixed(2)})` : "";
 
           if (isAgendado) {
@@ -649,6 +709,20 @@ function parseOrderData(raw: string): Record<string, string> | null {
   return data.produto && data.quantidade ? data : null;
 }
 
+function extractLatestNegotiatedDiscountPerUnit(messages: string[]): number {
+  for (const raw of messages) {
+    const content = (raw || "").toLowerCase();
+
+    const totalMatch = content.match(/desconto\s+(?:total\s+de|especial\s+de|de)\s*r\$\s*([\d.,]+)/i);
+    if (totalMatch?.[1]) {
+      const value = parseFloat(totalMatch[1].replace(".", "").replace(",", "."));
+      if (Number.isFinite(value) && value > 0) return value;
+    }
+  }
+
+  return 0;
+}
+
 async function createOrder(
   supabase: any,
   orderData: Record<string, string>,
@@ -657,7 +731,8 @@ async function createOrder(
   senderName: string,
   phone: string,
   unidadeId: string | null,
-  isAgendado: boolean = false
+  isAgendado: boolean = false,
+  fallbackDiscountPerUnit: number = 0
 ) {
   try {
     let produto: any = null;
@@ -691,8 +766,11 @@ async function createOrder(
     }
 
     const quantidade = parseInt(orderData.quantidade) || 1;
-    const desconto = parseFloat(orderData.desconto) || 0;
-    const valorTotal = (produto.preco * quantidade) - desconto;
+    const descontoInformado = parseFloat(String(orderData.desconto ?? "").replace(",", ".")) || 0;
+    const descontoCalculado = descontoInformado > 0
+      ? descontoInformado
+      : (fallbackDiscountPerUnit > 0 ? fallbackDiscountPerUnit * quantidade : 0);
+    const valorTotal = Math.max(0, (produto.preco * quantidade) - descontoCalculado);
 
     const paymentMap: Record<string, string> = {
       dinheiro: "dinheiro",
@@ -716,7 +794,7 @@ async function createOrder(
         status: isAgendado ? "agendado" : "pendente",
         canal_venda: "whatsapp",
         endereco_entrega: orderData.endereco || "",
-        observacoes: `Pedido via WhatsApp${isAgendado ? ' (AGENDADO)' : ''} - ${orderData.nome || clienteNome || senderName} (${phone})${desconto > 0 ? ` | Desconto: R$${desconto.toFixed(2)}` : ''}`,
+        observacoes: `Pedido via WhatsApp${isAgendado ? ' (AGENDADO)' : ''} - ${orderData.nome || clienteNome || senderName} (${phone})${descontoCalculado > 0 ? ` | Desconto: R$${descontoCalculado.toFixed(2)}` : ''}`,
         unidade_id: unidadeId,
       })
       .select()

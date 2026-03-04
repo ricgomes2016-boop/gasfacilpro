@@ -838,14 +838,33 @@ export default function CadastroClientesCad() {
   };
 
   // Filter clients
+  const normalizeDigits = (value?: string | null) => (value || "").replace(/\D/g, "");
+
   const filteredClientes = clientes.filter((cliente) => {
-    const term = searchTerm.toLowerCase();
-    const matchesSearch = !term || 
+    const term = searchTerm.toLowerCase().trim();
+    const termDigits = normalizeDigits(searchTerm);
+
+    const textMatch = !term || 
       cliente.nome.toLowerCase().includes(term) ||
       cliente.telefone?.toLowerCase().includes(term) ||
       cliente.endereco?.toLowerCase().includes(term) ||
       cliente.bairro?.toLowerCase().includes(term) ||
       cliente.cpf?.includes(term);
+
+    const telefoneDigits = normalizeDigits(cliente.telefone);
+    const cpfDigits = normalizeDigits(cliente.cpf);
+    const digitCandidates = Array.from(new Set([
+      termDigits,
+      termDigits.slice(-11),
+      termDigits.slice(-10),
+      termDigits.slice(-9),
+    ].filter((v) => v.length >= 8)));
+
+    const digitsMatch = digitCandidates.length > 0 && digitCandidates.some((candidate) =>
+      telefoneDigits.includes(candidate) || cpfDigits.includes(candidate)
+    );
+
+    const matchesSearch = textMatch || digitsMatch;
 
     const matchesTipo = filterTipo === "todos" || cliente.tipo === filterTipo;
     
