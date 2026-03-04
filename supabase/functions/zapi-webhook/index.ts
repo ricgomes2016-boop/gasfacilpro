@@ -241,9 +241,14 @@ FLUXO DO PEDIDO:
 
 NEGOCIAÇÃO DE PREÇO (DUAS ETAPAS OBRIGATÓRIAS):
 - ETAPA 1: Quando o cliente reclamar do preço, pedir desconto ou dizer que está caro, responda APENAS que vai verificar com o gerente. NÃO dê o desconto ainda. NÃO continue a conversa. Encerre a mensagem após dizer que vai verificar. Exemplo: "Vou verificar com o gerente se consigo um desconto para você! Um momento."
-- ETAPA 2: Na PRÓXIMA mensagem do cliente (qualquer que seja), aí sim retorne dizendo que conseguiu um desconto especial. Aplique desconto APENAS para o Gás P13. Para outros produtos, diga que infelizmente o preço já é o melhor possível.
+- ETAPA 2: Na PRÓXIMA mensagem do cliente (qualquer que seja), aí sim retorne dizendo que conseguiu um desconto especial:
+  * Gás P13: desconto de R$ 5,00 por unidade.
+  * Gás P20: desconto de R$ 5,00 por unidade.
+  * Outros produtos (P45, Água 20L, etc.): diga que infelizmente o preço já é o melhor possível, NÃO aplique desconto.
 - REGRA: NUNCA diga "vou verificar" e "consegui o desconto" na MESMA mensagem. São obrigatoriamente mensagens separadas.
-- IMPORTANTE: Se houve desconto, inclua o campo "desconto" no bloco [PEDIDO_CONFIRMADO] com o valor TOTAL do desconto em reais.
+- Ao informar o desconto, SEMPRE diga o preço original, o desconto e o PREÇO FINAL. Exemplo: "Consegui um desconto de R$ 5,00! O Gás P13 sai de R$ XX,XX por R$ YY,YY."
+- IMPORTANTE: Se houve desconto, inclua o campo "desconto" no bloco [PEDIDO_CONFIRMADO] com o valor TOTAL do desconto em reais (quantidade × desconto unitário).
+- IMPORTANTE: O campo "desconto" no pedido deve ser o valor TOTAL em reais (ex: 2 unidades × R$5 = desconto: 10.00).
 ${isOffHours ? `
 FORA DO HORÁRIO DE ATENDIMENTO:
 - Estamos FORA do horário de atendimento (funcionamos ${horarioInfo}).
@@ -257,10 +262,19 @@ FORMATO DO PEDIDO CONFIRMADO (exemplo com desconto):
 [PEDIDO_CONFIRMADO]
 nome: Nome do Cliente
 produto: Gás P13
-quantidade: 1
+quantidade: 2
 endereco: Rua X, 123
 pagamento: pix
-desconto: 5.00
+desconto: 10.00
+[/PEDIDO_CONFIRMADO]
+
+FORMATO SEM DESCONTO:
+[PEDIDO_CONFIRMADO]
+nome: Nome do Cliente
+produto: Água 20L
+quantidade: 3
+endereco: Rua X, 123
+pagamento: dinheiro
 [/PEDIDO_CONFIRMADO]`;
 
     const conversationUUID = await generateUUIDFromString(`whatsapp_${normalized}`);
@@ -341,10 +355,14 @@ desconto: 5.00
         const isAgendado = isOffHours || orderData.agendado === "sim";
         await createOrder(supabase, orderData, clienteId, clienteNome, senderName, normalized, resolvedUnidadeId, isAgendado);
         reply = reply.replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/, "").trim();
+
+        const desconto = parseFloat(orderData.desconto) || 0;
+        const descontoMsg = desconto > 0 ? ` (com desconto de R$ ${desconto.toFixed(2)})` : "";
+
         if (isAgendado) {
-          reply += "\n\n📋 Pedido agendado com sucesso! Será entregue assim que abrirmos. Fique tranquilo!";
+          reply += `\n\n📋 Pedido agendado com sucesso${descontoMsg}! Será entregue assim que abrirmos. Fique tranquilo!`;
         } else {
-          reply += "\n\n✅ Pedido registrado com sucesso! Você receberá atualizações sobre a entrega.";
+          reply += `\n\n✅ Pedido registrado com sucesso${descontoMsg}! Você receberá atualizações sobre a entrega.`;
         }
       }
     }
