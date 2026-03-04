@@ -149,7 +149,7 @@ export default function PontoEletronico() {
   return (
     <MainLayout>
       <Header title="Ponto Eletrônico" subtitle="Registro de entrada e saída dos funcionários" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <Input
             type="date"

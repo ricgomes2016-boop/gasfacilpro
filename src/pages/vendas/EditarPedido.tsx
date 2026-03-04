@@ -334,7 +334,7 @@ export default function EditarPedido() {
     return (
       <MainLayout>
         <Header title="Editar Pedido" subtitle="Carregando..." />
-        <div className="p-6 space-y-6">
+        <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
           <Skeleton className="h-10 w-64" />
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-6">
@@ -352,7 +352,7 @@ export default function EditarPedido() {
     return (
       <MainLayout>
         <Header title="Pedido não encontrado" />
-        <div className="p-6"><p className="text-muted-foreground">Pedido não encontrado.</p></div>
+        <div className="p-3 sm:p-4 md:p-6"><p className="text-muted-foreground">Pedido não encontrado.</p></div>
       </MainLayout>
     );
   }
@@ -361,7 +361,7 @@ export default function EditarPedido() {
     <>
       <MainLayout>
         <Header title="Editar Pedido" subtitle={`#${pedido.id.slice(0, 6)} • ${pedido.cliente_nome}`} />
-        <div className="p-6 space-y-6">
+        <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="icon" onClick={() => navigate("/vendas/pedidos")}>
               <ArrowLeft className="h-5 w-5" />

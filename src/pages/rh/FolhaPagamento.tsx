@@ -343,7 +343,7 @@ export default function FolhaPagamento() {
   return (
     <MainLayout>
       <Header title="Folha de Pagamento" subtitle="Gestão de salários, comissões e descontos" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Month selector + actions */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2">

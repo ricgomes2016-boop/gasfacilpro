@@ -32,7 +32,7 @@ export default function Premiacao() {
   return (
     <MainLayout>
       <Header title="Premiações" subtitle="Incentivos e reconhecimento da equipe" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
           <Button className="gap-2"><Gift className="h-4 w-4" />Nova Premiação</Button>
         </div>

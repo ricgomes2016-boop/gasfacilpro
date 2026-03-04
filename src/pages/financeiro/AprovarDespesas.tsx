@@ -56,7 +56,7 @@ export default function AprovarDespesas() {
   return (
     <MainLayout>
       <Header title="Aprovar Despesas" subtitle="Analise e aprove solicitações de despesas" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

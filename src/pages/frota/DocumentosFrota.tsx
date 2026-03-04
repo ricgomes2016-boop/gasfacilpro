@@ -104,7 +104,7 @@ export default function DocumentosFrota() {
   return (
     <MainLayout>
       <Header title="Documentos da Frota" subtitle="Controle de CRLV, Seguro e CNH" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>

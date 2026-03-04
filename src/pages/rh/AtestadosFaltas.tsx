@@ -103,7 +103,7 @@ export default function AtestadosFaltas() {
   return (
     <MainLayout>
       <Header title="Atestados e Faltas" subtitle="Controle de ausências dos funcionários" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex justify-end">
           <Button className="gap-2" onClick={() => setShowNovo(true)}>
             <Plus className="h-4 w-4" />Novo Registro

@@ -90,7 +90,7 @@ export default function Notificacoes() {
   return (
     <MainLayout>
       <Header title="Notificações e Alertas" subtitle="Configure os gatilhos automáticos do sistema" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Resumo dos canais */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card>

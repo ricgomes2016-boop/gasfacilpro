@@ -68,7 +68,7 @@ export default function AnaliseConcorrencia() {
   return (
     <MainLayout>
       <Header title="Análise de Concorrência" subtitle="Monitore preços e posicionamento" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Registrar Preço</Button></DialogTrigger>

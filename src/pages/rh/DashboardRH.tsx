@@ -87,7 +87,7 @@ export default function DashboardRH() {
   return (
     <MainLayout>
       <Header title="Dashboard RH" subtitle="Visão geral de recursos humanos" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28" />)}

@@ -367,7 +367,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
   }), [lotesAtivos]);
 
   const content = (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-center justify-end">
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setPreviewVales([]); }}>
             <DialogTrigger asChild>

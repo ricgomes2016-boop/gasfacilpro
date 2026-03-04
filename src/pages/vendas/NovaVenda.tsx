@@ -874,7 +874,7 @@ export default function NovaVenda() {
                 value={aiCommand}
                 onChange={(e) => setAiCommand(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && !aiLoading && handleAiCommand()}
-                className="bg-background flex-1 min-w-[200px]"
+                className="bg-background flex-1 min-w-0"
                 disabled={aiLoading || isListening}
               />
               <div className="flex items-center gap-1">

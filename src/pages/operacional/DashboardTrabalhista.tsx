@@ -74,7 +74,7 @@ export default function DashboardTrabalhista() {
   return (
     <MainLayout>
       <Header title="Dashboard Trabalhista" subtitle="Controle de jornadas e horas extras" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
           <Button><FileText className="h-4 w-4 mr-2" />Gerar Relatório</Button>
         </div>

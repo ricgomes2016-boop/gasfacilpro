@@ -156,7 +156,7 @@ export default function ContratosRecorrentes() {
   return (
     <MainLayout>
       <Header title="Contratos Recorrentes" subtitle="Assinaturas e entregas programadas" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
