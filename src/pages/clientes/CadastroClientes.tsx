@@ -1104,111 +1104,120 @@ export default function CadastroClientesCad() {
                 <p>Nenhum cliente encontrado</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table className="min-w-[600px]">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead className="hidden sm:table-cell">Telefone</TableHead>
-                      <TableHead>Endereço</TableHead>
-                      <TableHead className="w-16">Nº</TableHead>
-                      <TableHead className="hidden md:table-cell">Bairro</TableHead>
-                      <TableHead className="hidden lg:table-cell">Tipo</TableHead>
-                      <TableHead className="hidden sm:table-cell">Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredClientes.map((cliente) => {
-                      const num = cliente.numero || "";
-                      const rua = cliente.endereco || "";
-                      return (
-                        <TableRow key={cliente.id}>
-                          <TableCell className="font-medium">
-                            <div>
-                              <p className="font-medium">{cliente.nome}</p>
-                              <p className="text-xs text-muted-foreground sm:hidden flex items-center gap-1">
-                                <Phone className="h-3 w-3" />{cliente.telefone || "-"}
-                              </p>
-                              <div className="flex flex-wrap gap-1 mt-0.5 sm:hidden">
-                                <Badge variant={cliente.ativo ? "default" : "destructive"} className="text-[10px] h-4">
-                                  {cliente.ativo ? "Ativo" : "Inativo"}
-                                </Badge>
-                                {cliente.tipo && <Badge variant="outline" className="text-[10px] h-4">{cliente.tipo}</Badge>}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell">
-                            <div className="flex items-center gap-1.5">
-                              <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                              <span className="text-sm">{cliente.telefone || "-"}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1.5 max-w-[180px]">
-                              <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                              <div className="min-w-0">
-                                <span className="text-sm truncate block">{rua || "-"}</span>
-                                {cliente.bairro && (
-                                  <span className="text-xs text-muted-foreground md:hidden block truncate">{cliente.bairro}</span>
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm font-mono">{num || "-"}</TableCell>
-                          <TableCell className="hidden md:table-cell">
-                            {cliente.bairro ? (
-                              <Badge variant="secondary">{cliente.bairro}</Badge>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="hidden lg:table-cell">
-                            <Badge variant="outline">{cliente.tipo || "N/E"}</Badge>
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell">
-                            <Badge variant={cliente.ativo ? "default" : "destructive"}>
+              <>
+                {/* Mobile Cards */}
+                <div className="space-y-3 md:hidden">
+                  {filteredClientes.map((cliente) => (
+                    <div key={cliente.id} className="rounded-lg border bg-card p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-sm truncate">{cliente.nome}</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            <Badge variant={cliente.ativo ? "default" : "destructive"} className="text-[10px] h-5">
                               {cliente.ativo ? "Ativo" : "Inativo"}
                             </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                title="Unidades"
-                                onClick={() => {
-                                  setUnidadesClienteId(cliente.id);
-                                  setUnidadesClienteNome(cliente.nome);
-                                  setUnidadesDialogOpen(true);
-                                }}
-                              >
-                                <Building2 className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditModal(cliente)}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleToggleStatus(cliente)}
-                              >
-                                {cliente.ativo ? (
-                                  <X className="h-4 w-4 text-destructive" />
-                                ) : (
-                                  <Check className="h-4 w-4 text-success" />
-                                )}
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                            {cliente.tipo && <Badge variant="outline" className="text-[10px] h-5">{cliente.tipo}</Badge>}
+                            {cliente.bairro && <Badge variant="secondary" className="text-[10px] h-5">{cliente.bairro}</Badge>}
+                          </div>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Unidades" onClick={() => { setUnidadesClienteId(cliente.id); setUnidadesClienteNome(cliente.nome); setUnidadesDialogOpen(true); }}>
+                            <Building2 className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditModal(cliente)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleToggleStatus(cliente)}>
+                            {cliente.ativo ? <X className="h-4 w-4 text-destructive" /> : <Check className="h-4 w-4 text-success" />}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 gap-1.5 text-sm text-muted-foreground">
+                        {cliente.telefone && (
+                          <div className="flex items-center gap-2">
+                            <Phone className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{cliente.telefone}</span>
+                          </div>
+                        )}
+                        {(cliente.endereco || cliente.bairro) && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">
+                              {[cliente.endereco, cliente.numero, cliente.bairro].filter(Boolean).join(", ")}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Telefone</TableHead>
+                        <TableHead>Endereço</TableHead>
+                        <TableHead className="w-16">Nº</TableHead>
+                        <TableHead>Bairro</TableHead>
+                        <TableHead className="hidden lg:table-cell">Tipo</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredClientes.map((cliente) => {
+                        const num = cliente.numero || "";
+                        const rua = cliente.endereco || "";
+                        return (
+                          <TableRow key={cliente.id}>
+                            <TableCell className="font-medium">{cliente.nome}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1.5">
+                                <Phone className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span className="text-sm">{cliente.telefone || "-"}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1.5 max-w-[180px]">
+                                <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span className="text-sm truncate">{rua || "-"}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm font-mono">{num || "-"}</TableCell>
+                            <TableCell>
+                              {cliente.bairro ? <Badge variant="secondary">{cliente.bairro}</Badge> : <span className="text-sm text-muted-foreground">-</span>}
+                            </TableCell>
+                            <TableCell className="hidden lg:table-cell">
+                              <Badge variant="outline">{cliente.tipo || "N/E"}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={cliente.ativo ? "default" : "destructive"}>
+                                {cliente.ativo ? "Ativo" : "Inativo"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Unidades" onClick={() => { setUnidadesClienteId(cliente.id); setUnidadesClienteNome(cliente.nome); setUnidadesDialogOpen(true); }}>
+                                  <Building2 className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditModal(cliente)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleToggleStatus(cliente)}>
+                                  {cliente.ativo ? <X className="h-4 w-4 text-destructive" /> : <Check className="h-4 w-4 text-success" />}
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
