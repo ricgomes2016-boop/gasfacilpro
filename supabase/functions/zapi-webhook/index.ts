@@ -259,18 +259,18 @@ FLUXO DO PEDIDO:
 NEGOCIAÇÃO DE PREÇO (TRÊS ETAPAS OBRIGATÓRIAS):
 - ETAPA 1: Quando o cliente reclamar do preço, pedir desconto ou dizer que está caro, responda APENAS que vai verificar com o gerente. NÃO dê o desconto ainda. NÃO continue a conversa. Encerre a mensagem após dizer que vai verificar. Exemplo: "Vou verificar com o gerente se consigo um desconto para você! Um momento."
 - ETAPA 2: Na PRÓXIMA mensagem do cliente (qualquer que seja), retorne dizendo que conseguiu um desconto especial:
-  * Gás P13: desconto de R$ ${descontoEtapa1.toFixed(2)} por unidade.
+  * Gás P13: desconto de R$ ${descontoEtapa1.toFixed(2)} por unidade. Preço final: R$ ${(precoMinimoP13 ? (precoMinimoP13 + descontoEtapa2 - descontoEtapa1) : 0).toFixed(2) !== '0.00' ? (precoMinimoP13 ? (precoMinimoP13 + descontoEtapa2 - descontoEtapa1) : 0).toFixed(2) : 'preço_original - ' + descontoEtapa1.toFixed(2)}.
   * Gás P20: desconto de R$ ${descontoEtapa1.toFixed(2)} por unidade.
   * Outros produtos (P45, Água 20L, etc.): diga que infelizmente o preço já é o melhor possível, NÃO aplique desconto.
 - ETAPA 3: Se o cliente pedir MAIS desconto após a etapa 2, diga novamente que vai tentar com o gerente. Na PRÓXIMA mensagem dele, retorne dizendo que conseguiu chegar ao valor mínimo:
-  * Gás P13: desconto TOTAL de R$ ${descontoEtapa2.toFixed(2)} por unidade${precoMinimoP13 ? ` (preço final: R$ ${precoMinimoP13.toFixed(2)})` : ''}.
-  * Gás P20: desconto TOTAL de R$ ${descontoEtapa2.toFixed(2)} por unidade${precoMinimoP20 ? ` (preço final: R$ ${precoMinimoP20.toFixed(2)})` : ''}.
+  * Gás P13: o desconto TOTAL agora é R$ ${descontoEtapa2.toFixed(2)} por unidade (NÃO some com o anterior, o total SUBSTITUI)${precoMinimoP13 ? `. Preço final: R$ ${precoMinimoP13.toFixed(2)}` : ''}.
+  * Gás P20: o desconto TOTAL agora é R$ ${descontoEtapa2.toFixed(2)} por unidade (NÃO some com o anterior, o total SUBSTITUI)${precoMinimoP20 ? `. Preço final: R$ ${precoMinimoP20.toFixed(2)}` : ''}.
   * Deixe claro que esse é o MENOR preço possível e não tem como baixar mais.
 - REGRA: NUNCA diga "vou verificar" e "consegui o desconto" na MESMA mensagem. São obrigatoriamente mensagens separadas.
 - Ao informar o desconto, SEMPRE diga o preço original, o desconto e o PREÇO FINAL. Exemplo: "Consegui um desconto de R$ ${descontoEtapa1.toFixed(2)}! O Gás P13 sai de R$ XX,XX por R$ YY,YY."
 - Se o cliente pedir desconto pela TERCEIRA vez (após etapa 3), diga educadamente que já está no menor preço possível e não há mais margem.
-- IMPORTANTE: Se houve desconto, inclua o campo "desconto" no bloco [PEDIDO_CONFIRMADO] com o valor TOTAL do desconto em reais (quantidade × desconto unitário).
-- IMPORTANTE: O campo "desconto" no pedido deve ser o valor TOTAL em reais (ex: 2 unidades × R$${descontoEtapa2.toFixed(2)} = desconto: ${(2 * descontoEtapa2).toFixed(2)}).
+- CÁLCULO DO DESCONTO NO PEDIDO: o campo "desconto" no bloco [PEDIDO_CONFIRMADO] deve conter o desconto TOTAL em reais. Se o cliente recebeu desconto de etapa 2 (R$ ${descontoEtapa1.toFixed(2)}/un), use: quantidade × ${descontoEtapa1.toFixed(2)}. Se recebeu desconto de etapa 3 (R$ ${descontoEtapa2.toFixed(2)}/un), use: quantidade × ${descontoEtapa2.toFixed(2)}. NUNCA some os dois.
+- REGRA ANTI-DUPLICAÇÃO: Inclua o bloco [PEDIDO_CONFIRMADO] em APENAS UMA mensagem por conversa. Se já incluiu o bloco antes, NÃO inclua novamente. Se o cliente já teve pedido confirmado, diga que o pedido já foi registrado.
 ${isOffHours ? `
 FORA DO HORÁRIO DE ATENDIMENTO:
 - Estamos FORA do horário de atendimento (funcionamos ${horarioInfo}).
@@ -280,14 +280,14 @@ FORA DO HORÁRIO DE ATENDIMENTO:
 - Informe que o pedido será entregue assim que o expediente iniciar.
 - Se o cliente NÃO quiser agendar, apenas agradeça e diga o horário de funcionamento.
 ` : ''}
-FORMATO DO PEDIDO CONFIRMADO (exemplo com desconto):
+FORMATO DO PEDIDO CONFIRMADO (exemplo com desconto etapa 3 para 1 unidade):
 [PEDIDO_CONFIRMADO]
 nome: Nome do Cliente
 produto: Gás P13
-quantidade: 2
+quantidade: 1
 endereco: Rua X, 123
 pagamento: pix
-desconto: ${(2 * descontoEtapa2).toFixed(2)}
+desconto: ${descontoEtapa2.toFixed(2)}
 [/PEDIDO_CONFIRMADO]
 
 FORMATO SEM DESCONTO:
@@ -374,17 +374,33 @@ pagamento: dinheiro
     if (orderMatch) {
       const orderData = parseOrderData(orderMatch[1]);
       if (orderData) {
-        const isAgendado = isOffHours || orderData.agendado === "sim";
-        await createOrder(supabase, orderData, clienteId, clienteNome, senderName, normalized, resolvedUnidadeId, isAgendado);
-        reply = reply.replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/, "").trim();
+        // Dedup: check if an order was already created for this phone in the last 2 minutes
+        const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+        const { data: recentOrders2 } = await supabase
+          .from("pedidos")
+          .select("id")
+          .eq("canal_venda", "whatsapp")
+          .gte("created_at", twoMinAgo)
+          .ilike("observacoes", `%${normalized}%`)
+          .limit(1);
 
-        const desconto = parseFloat(orderData.desconto) || 0;
-        const descontoMsg = desconto > 0 ? ` (com desconto de R$ ${desconto.toFixed(2)})` : "";
-
-        if (isAgendado) {
-          reply += `\n\n📋 Pedido agendado com sucesso${descontoMsg}! Será entregue assim que abrirmos. Fique tranquilo!`;
+        if (recentOrders2 && recentOrders2.length > 0) {
+          console.log("Duplicate order prevented for phone:", normalized);
+          reply = reply.replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/, "").trim();
+          reply += "\n\nSeu pedido já foi registrado anteriormente! Aguarde a entrega. 😊";
         } else {
-          reply += `\n\n✅ Pedido registrado com sucesso${descontoMsg}! Você receberá atualizações sobre a entrega.`;
+          const isAgendado = isOffHours || orderData.agendado === "sim";
+          await createOrder(supabase, orderData, clienteId, clienteNome, senderName, normalized, resolvedUnidadeId, isAgendado);
+          reply = reply.replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/, "").trim();
+
+          const desconto = parseFloat(orderData.desconto) || 0;
+          const descontoMsg = desconto > 0 ? ` (com desconto de R$ ${desconto.toFixed(2)})` : "";
+
+          if (isAgendado) {
+            reply += `\n\n📋 Pedido agendado com sucesso${descontoMsg}! Será entregue assim que abrirmos. Fique tranquilo!`;
+          } else {
+            reply += `\n\n✅ Pedido registrado com sucesso${descontoMsg}! Você receberá atualizações sobre a entrega.`;
+          }
         }
       }
     }
