@@ -102,15 +102,15 @@ serve(async (req) => {
       }
     }
 
-    // Strategy 3: try matching any active config (single-unit setups)
+    // Strategy 3: fallback only for true single-unit setups
     if (!ZAPI_INSTANCE_ID) {
       const { data: configs } = await supabase
         .from("integracoes_whatsapp")
         .select("*")
         .eq("ativo", true)
-        .limit(1);
+        .limit(2);
 
-      if (configs && configs.length > 0) {
+      if (configs && configs.length === 1) {
         ZAPI_INSTANCE_ID = configs[0].instance_id;
         ZAPI_TOKEN = configs[0].token;
         ZAPI_SECURITY_TOKEN = configs[0].security_token;
@@ -119,6 +119,8 @@ serve(async (req) => {
         descontoEtapa2 = configs[0].desconto_etapa2 ?? 10;
         precoMinimoP13 = configs[0].preco_minimo_p13 ?? null;
         precoMinimoP20 = configs[0].preco_minimo_p20 ?? null;
+      } else if (configs && configs.length > 1) {
+        console.warn("Multiple active WhatsApp integrations found; skipping generic fallback. Resolve by instance_id/unidade_id.");
       }
     }
 
@@ -450,74 +452,80 @@ pagamento: dinheiro
 
     await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_SECURITY_TOKEN, phone, reply);
 
-    // Auto follow-up: if Bia said she'll check with the manager, automatically send discount after delay
+    // Auto follow-up: if Bia said she'll check with the manager, automatically send deterministic discount after delay
     const replyLower = reply.toLowerCase();
-    const mentionedManager = replyLower.includes("verificar com o gerente") || replyLower.includes("falar com o gerente") || replyLower.includes("consultar o gerente") || replyLower.includes("um momento");
-    const alreadyHasDiscount = replyLower.includes("consegui") && (replyLower.includes("desconto") || replyLower.includes("r$"));
-    
+    const mentionedManager =
+      replyLower.includes("verificar com o gerente") ||
+      replyLower.includes("falar com o gerente") ||
+      replyLower.includes("consultar o gerente") ||
+      replyLower.includes("um momento");
+    const alreadyHasDiscount = replyLower.includes("desconto") && replyLower.includes("r$");
+
     if (mentionedManager && !alreadyHasDiscount && descontoEtapa1 > 0) {
       console.log("Auto follow-up: Bia mentioned manager, scheduling discount response in 5s");
-      
-      // Wait 5 seconds to simulate "checking with manager"
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      
-      // Determine which stage we're at
-      const previousAssistantMsgs = history.filter((m: any) => m.role === "assistant");
-      const anyPreviousDiscount = previousAssistantMsgs.some((m: any) => {
-        const c = m.content.toLowerCase();
-        return (c.includes("consegui") || c.includes("desconto")) && c.includes("r$");
-      });
-      
-      let followUpPrompt: string;
-      if (anyPreviousDiscount) {
-        // Stage 3: final discount
-        followUpPrompt = `Você acabou de dizer ao cliente que ia verificar com o gerente NOVAMENTE. Agora retorne dizendo que conseguiu o desconto FINAL. O desconto total é de R$ ${descontoEtapa2.toFixed(2)} por unidade${precoMinimoP13 ? ` (preço final P13: R$ ${precoMinimoP13.toFixed(2)})` : ''}${precoMinimoP20 ? ` (preço final P20: R$ ${precoMinimoP20.toFixed(2)})` : ''}. Diga que é o menor preço possível e pergunte se deseja confirmar o pedido.`;
-      } else {
-        // Stage 2: first discount
-        followUpPrompt = `Você acabou de dizer ao cliente que ia verificar com o gerente sobre o desconto. Agora retorne dizendo que CONSEGUIU um desconto de R$ ${descontoEtapa1.toFixed(2)} por unidade. Informe o novo preço e pergunte se o cliente deseja confirmar. Seja simpática e comemorativa!`;
-      }
 
-      const followUpResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt + "\n\nINSTRUÇÃO CRÍTICA: " + followUpPrompt },
-            ...history,
-            { role: "user", content: messageText },
-            { role: "assistant", content: reply },
-          ],
-        }),
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+
+      const formatBRL = (value: number) => `R$ ${value.toFixed(2).replace('.', ',')}`;
+      const assistantRecent = history.filter((m: any) => m.role === "assistant").slice(-8);
+      const hadRecentDiscount = assistantRecent.some((m: any) => {
+        const c = (m.content || "").toLowerCase();
+        return c.includes("desconto") && c.includes("r$");
       });
 
-      if (followUpResponse.ok) {
-        const followUpResult = await followUpResponse.json();
-        let followUpReply = followUpResult.choices?.[0]?.message?.content || "";
-        
-        if (followUpReply) {
-          // Save to conversation history
-          await supabase.from("ai_mensagens").insert({
-            conversa_id: conversationUUID,
-            role: "assistant",
-            content: followUpReply,
-          });
-          
-          // Handle order confirmation in follow-up
-          const followUpOrderMatch = followUpReply.match(/\[PEDIDO_CONFIRMADO\]([\s\S]*?)\[\/PEDIDO_CONFIRMADO\]/);
-          if (followUpOrderMatch) {
-            followUpReply = followUpReply.replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/, "").trim();
-          }
-          
-          await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_SECURITY_TOKEN, phone, followUpReply);
-          console.log("Auto follow-up sent successfully");
+      const p13 = produtos?.find((p: any) => /p\s*13|13\s*kg|glp\s*13/i.test((p.nome || "").toLowerCase()));
+      const p20 = produtos?.find((p: any) => /p\s*20|20\s*kg/i.test((p.nome || "").toLowerCase()));
+      const p13Base = p13 ? Number(p13.preco) : null;
+      const p20Base = p20 ? Number(p20.preco) : null;
+
+      let followUpReply = "";
+
+      if (hadRecentDiscount) {
+        const p13Final = precoMinimoP13 ?? (p13Base !== null ? Math.max(0, p13Base - descontoEtapa2) : null);
+        const p20Final = precoMinimoP20 ?? (p20Base !== null ? Math.max(0, p20Base - descontoEtapa2) : null);
+
+        const lines: string[] = [
+          "Consegui falar com o gerente novamente ✅",
+          `Fechamos no valor mínimo: desconto total de ${formatBRL(descontoEtapa2)} por unidade.`,
+        ];
+
+        if (p13Base !== null && p13Final !== null) {
+          lines.push(`• P13: de ${formatBRL(p13Base)} por ${formatBRL(p13Final)}.`);
         }
+        if (p20Base !== null && p20Final !== null) {
+          lines.push(`• P20: de ${formatBRL(p20Base)} por ${formatBRL(p20Final)}.`);
+        }
+
+        lines.push("Esse é o menor preço que consigo hoje. Posso confirmar seu pedido?");
+        followUpReply = lines.join("\n");
       } else {
-        console.error("Auto follow-up AI error:", followUpResponse.status);
+        const p13Step2 = p13Base !== null ? Math.max(0, p13Base - descontoEtapa1) : null;
+        const p20Step2 = p20Base !== null ? Math.max(0, p20Base - descontoEtapa1) : null;
+
+        const lines: string[] = [
+          "Consegui um desconto com o gerente ✅",
+          `Desconto especial de ${formatBRL(descontoEtapa1)} por unidade.`,
+        ];
+
+        if (p13Base !== null && p13Step2 !== null) {
+          lines.push(`• P13: de ${formatBRL(p13Base)} por ${formatBRL(p13Step2)}.`);
+        }
+        if (p20Base !== null && p20Step2 !== null) {
+          lines.push(`• P20: de ${formatBRL(p20Base)} por ${formatBRL(p20Step2)}.`);
+        }
+
+        lines.push("Se quiser, eu já confirmo seu pedido agora.");
+        followUpReply = lines.join("\n");
       }
+
+      await supabase.from("ai_mensagens").insert({
+        conversa_id: conversationUUID,
+        role: "assistant",
+        content: followUpReply,
+      });
+
+      await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_SECURITY_TOKEN, phone, followUpReply);
+      console.log("Auto follow-up sent successfully");
     }
 
     return new Response(JSON.stringify({ ok: true, reply: reply.substring(0, 100) }), {
