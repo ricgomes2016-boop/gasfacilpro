@@ -314,30 +314,41 @@ pagamento: dinheiro
       ? historyRows.map((m: any) => ({ role: m.role, content: m.content }))
       : [];
 
-    // Detect negotiation state from last assistant message
+    // Detect negotiation state from ALL assistant messages
     let negotiationHint = "";
     if (history.length > 0) {
-      const lastAssistantMsgs = history.filter((m: any) => m.role === "assistant");
-      if (lastAssistantMsgs.length > 0) {
-        const lastMsg = lastAssistantMsgs[lastAssistantMsgs.length - 1].content.toLowerCase();
-        const mentionsManager = lastMsg.includes("verificar com o gerente") || lastMsg.includes("falar com o gerente") || lastMsg.includes("consultar o gerente");
-        const alreadyGaveDiscount = lastAssistantMsgs.some((m: any) => m.content.toLowerCase().includes("consegui") && (m.content.toLowerCase().includes("desconto") || m.content.toLowerCase().includes("r$")));
+      const allAssistantMsgs = history.filter((m: any) => m.role === "assistant");
+      
+      if (allAssistantMsgs.length > 0) {
+        const lastAssistantMsg = allAssistantMsgs[allAssistantMsgs.length - 1].content.toLowerCase();
         
-        if (mentionsManager && !alreadyGaveDiscount) {
-          // Stage 2: must return with first discount
-          negotiationHint = `\n\nATENÇÃO URGENTE: Na sua ÚLTIMA mensagem você disse ao cliente que ia verificar com o gerente. Agora você DEVE retornar dizendo que CONSEGUIU um desconto. NÃO diga que vai verificar novamente. Informe o desconto de R$ ${descontoEtapa1.toFixed(2)} por unidade para P13/P20. Diga o preço original, o desconto e o preço final.`;
-        } else if (alreadyGaveDiscount && mentionsManager) {
-          // Stage 3: must return with final discount
-          negotiationHint = `\n\nATENÇÃO URGENTE: Você já deu um primeiro desconto E na última mensagem disse que ia tentar novamente com o gerente. Agora você DEVE retornar com o desconto FINAL de R$ ${descontoEtapa2.toFixed(2)} por unidade (preço mínimo). NÃO diga que vai verificar novamente. Diga que esse é o menor preço possível.`;
-        }
+        // Check if last message mentioned manager (pending follow-up)
+        const lastMentionsManager = lastAssistantMsg.includes("verificar com o gerente") || 
+          lastAssistantMsg.includes("falar com o gerente") || 
+          lastAssistantMsg.includes("consultar o gerente") ||
+          (lastAssistantMsg.includes("um momento") && !lastAssistantMsg.includes("desconto"));
         
-        // Also check if second-to-last had discount and last mentions manager again
-        if (!negotiationHint && lastAssistantMsgs.length >= 2) {
-          const prevMsg = lastAssistantMsgs[lastAssistantMsgs.length - 2].content.toLowerCase();
-          const prevGaveDiscount = (prevMsg.includes("consegui") || prevMsg.includes("desconto")) && prevMsg.includes("r$");
-          if (prevGaveDiscount && mentionsManager) {
-            negotiationHint = `\n\nATENÇÃO URGENTE: Você já deu o primeiro desconto antes e na última mensagem disse que ia tentar de novo com o gerente. Agora retorne com o desconto FINAL TOTAL de R$ ${descontoEtapa2.toFixed(2)} por unidade${precoMinimoP13 ? ` (preço final P13: R$ ${precoMinimoP13.toFixed(2)})` : ''}. Esse é o menor preço possível.`;
-          }
+        // Count how many times a discount was actually given
+        const discountMessages = allAssistantMsgs.filter((m: any) => {
+          const c = m.content.toLowerCase();
+          return (c.includes("consegui") || c.includes("desconto especial") || c.includes("desconto total")) && 
+                 c.includes("r$") && c.includes("desconto");
+        });
+        const discountCount = discountMessages.length;
+        
+        // Check if client is asking for a specific price
+        const userMsg = messageText.toLowerCase();
+        const askingSpecificPrice = /(?:faz|quero|pode|fech[aeo]|consegu[ei]|por|aceito)\s*(?:por\s*)?r?\$?\s*\d+/i.test(userMsg) ||
+          /^\s*\d{2,3}\s*(?:reais)?\s*$/i.test(userMsg);
+        
+        if (lastMentionsManager && discountCount === 0) {
+          negotiationHint = `\n\nATENÇÃO URGENTE: Na sua ÚLTIMA mensagem você disse ao cliente que ia verificar com o gerente. Agora você DEVE retornar dizendo que CONSEGUIU um desconto de R$ ${descontoEtapa1.toFixed(2)} por unidade para P13/P20. Diga o preço original, o desconto e o preço final. NÃO diga que vai verificar novamente.`;
+        } else if (lastMentionsManager && discountCount >= 1) {
+          negotiationHint = `\n\nATENÇÃO URGENTE: Você já deu um primeiro desconto antes E na última mensagem disse que ia tentar novamente com o gerente. Agora você DEVE retornar com o desconto FINAL TOTAL de R$ ${descontoEtapa2.toFixed(2)} por unidade${precoMinimoP13 ? ` (preço final P13: R$ ${precoMinimoP13.toFixed(2)})` : ''}${precoMinimoP20 ? ` (preço final P20: R$ ${precoMinimoP20.toFixed(2)})` : ''}. Esse é o menor preço possível. NÃO diga que vai verificar novamente.`;
+        } else if (discountCount === 1 && askingSpecificPrice) {
+          negotiationHint = `\n\nATENÇÃO: O cliente já recebeu o primeiro desconto de R$ ${descontoEtapa1.toFixed(2)} mas está pedindo um preço ainda menor. Diga que vai verificar com o gerente se consegue chegar nesse valor. Diga APENAS que vai verificar. NÃO dê desconto nesta mensagem.`;
+        } else if (discountCount >= 2) {
+          negotiationHint = `\n\nATENÇÃO: Você já ofereceu o desconto máximo possível (R$ ${descontoEtapa2.toFixed(2)} por unidade). Se o cliente pedir mais desconto, diga educadamente que esse é o menor preço possível. NÃO ofereça mais desconto.`;
         }
       }
     }
@@ -458,7 +469,7 @@ pagamento: dinheiro
       replyLower.includes("verificar com o gerente") ||
       replyLower.includes("falar com o gerente") ||
       replyLower.includes("consultar o gerente") ||
-      replyLower.includes("um momento");
+      (replyLower.includes("um momento") && !replyLower.includes("desconto"));
     const alreadyHasDiscount = replyLower.includes("desconto") && replyLower.includes("r$");
 
     if (mentionedManager && !alreadyHasDiscount && descontoEtapa1 > 0) {
@@ -466,66 +477,87 @@ pagamento: dinheiro
 
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
-      const formatBRL = (value: number) => `R$ ${value.toFixed(2).replace('.', ',')}`;
-      const assistantRecent = history.filter((m: any) => m.role === "assistant").slice(-8);
-      const hadRecentDiscount = assistantRecent.some((m: any) => {
-        const c = (m.content || "").toLowerCase();
-        return c.includes("desconto") && c.includes("r$");
-      });
+      // Race condition guard: check if a newer user message arrived while we waited
+      const { data: newerMsgs } = await supabase
+        .from("ai_mensagens")
+        .select("id")
+        .eq("conversa_id", conversationUUID)
+        .eq("role", "user")
+        .gt("created_at", new Date(Date.now() - 4000).toISOString())
+        .limit(1);
 
-      const p13 = produtos?.find((p: any) => /p\s*13|13\s*kg|glp\s*13/i.test((p.nome || "").toLowerCase()));
-      const p20 = produtos?.find((p: any) => /p\s*20|20\s*kg/i.test((p.nome || "").toLowerCase()));
-      const p13Base = p13 ? Number(p13.preco) : null;
-      const p20Base = p20 ? Number(p20.preco) : null;
-
-      let followUpReply = "";
-
-      if (hadRecentDiscount) {
-        const p13Final = precoMinimoP13 ?? (p13Base !== null ? Math.max(0, p13Base - descontoEtapa2) : null);
-        const p20Final = precoMinimoP20 ?? (p20Base !== null ? Math.max(0, p20Base - descontoEtapa2) : null);
-
-        const lines: string[] = [
-          "Consegui falar com o gerente novamente ✅",
-          `Fechamos no valor mínimo: desconto total de ${formatBRL(descontoEtapa2)} por unidade.`,
-        ];
-
-        if (p13Base !== null && p13Final !== null) {
-          lines.push(`• P13: de ${formatBRL(p13Base)} por ${formatBRL(p13Final)}.`);
-        }
-        if (p20Base !== null && p20Final !== null) {
-          lines.push(`• P20: de ${formatBRL(p20Base)} por ${formatBRL(p20Final)}.`);
-        }
-
-        lines.push("Esse é o menor preço que consigo hoje. Posso confirmar seu pedido?");
-        followUpReply = lines.join("\n");
+      if (newerMsgs && newerMsgs.length > 0) {
+        console.log("Auto follow-up cancelled: newer user message detected (handled by its own webhook)");
       } else {
-        const p13Step2 = p13Base !== null ? Math.max(0, p13Base - descontoEtapa1) : null;
-        const p20Step2 = p20Base !== null ? Math.max(0, p20Base - descontoEtapa1) : null;
+        const formatBRL = (value: number) => `R$ ${value.toFixed(2).replace('.', ',')}`;
+        
+        // Re-read history to get accurate discount count
+        const { data: freshHistory } = await supabase
+          .from("ai_mensagens")
+          .select("role, content")
+          .eq("conversa_id", conversationUUID)
+          .eq("role", "assistant")
+          .order("created_at", { ascending: true });
 
-        const lines: string[] = [
-          "Consegui um desconto com o gerente ✅",
-          `Desconto especial de ${formatBRL(descontoEtapa1)} por unidade.`,
-        ];
+        const freshAssistant = freshHistory || [];
+        const discountGivenCount = freshAssistant.filter((m: any) => {
+          const c = m.content.toLowerCase();
+          return (c.includes("consegui") || c.includes("desconto especial") || c.includes("desconto total")) && 
+                 c.includes("r$") && c.includes("desconto");
+        }).length;
 
-        if (p13Base !== null && p13Step2 !== null) {
-          lines.push(`• P13: de ${formatBRL(p13Base)} por ${formatBRL(p13Step2)}.`);
+        const p13 = produtos?.find((p: any) => /p\s*13|13\s*kg|glp\s*13/i.test((p.nome || "").toLowerCase()));
+        const p20 = produtos?.find((p: any) => /p\s*20|20\s*kg/i.test((p.nome || "").toLowerCase()));
+        const p13Base = p13 ? Number(p13.preco) : null;
+        const p20Base = p20 ? Number(p20.preco) : null;
+
+        let followUpReply = "";
+
+        if (discountGivenCount >= 1) {
+          // Stage 3: final floor
+          const p13Final = precoMinimoP13 ?? (p13Base !== null ? Math.max(0, p13Base - descontoEtapa2) : null);
+          const p20Final = precoMinimoP20 ?? (p20Base !== null ? Math.max(0, p20Base - descontoEtapa2) : null);
+
+          const lines: string[] = [
+            "Consegui falar com o gerente novamente ✅",
+            `Fechamos no valor mínimo: desconto total de ${formatBRL(descontoEtapa2)} por unidade.`,
+          ];
+          if (p13Base !== null && p13Final !== null) {
+            lines.push(`• P13: de ${formatBRL(p13Base)} por ${formatBRL(p13Final)}.`);
+          }
+          if (p20Base !== null && p20Final !== null) {
+            lines.push(`• P20: de ${formatBRL(p20Base)} por ${formatBRL(p20Final)}.`);
+          }
+          lines.push("Esse é o menor preço que consigo hoje. Posso confirmar seu pedido?");
+          followUpReply = lines.join("\n");
+        } else {
+          // Stage 2: first discount
+          const p13Step2 = p13Base !== null ? Math.max(0, p13Base - descontoEtapa1) : null;
+          const p20Step2 = p20Base !== null ? Math.max(0, p20Base - descontoEtapa1) : null;
+
+          const lines: string[] = [
+            "Consegui um desconto com o gerente ✅",
+            `Desconto especial de ${formatBRL(descontoEtapa1)} por unidade.`,
+          ];
+          if (p13Base !== null && p13Step2 !== null) {
+            lines.push(`• P13: de ${formatBRL(p13Base)} por ${formatBRL(p13Step2)}.`);
+          }
+          if (p20Base !== null && p20Step2 !== null) {
+            lines.push(`• P20: de ${formatBRL(p20Base)} por ${formatBRL(p20Step2)}.`);
+          }
+          lines.push("Se quiser, eu já confirmo seu pedido agora.");
+          followUpReply = lines.join("\n");
         }
-        if (p20Base !== null && p20Step2 !== null) {
-          lines.push(`• P20: de ${formatBRL(p20Base)} por ${formatBRL(p20Step2)}.`);
-        }
 
-        lines.push("Se quiser, eu já confirmo seu pedido agora.");
-        followUpReply = lines.join("\n");
+        await supabase.from("ai_mensagens").insert({
+          conversa_id: conversationUUID,
+          role: "assistant",
+          content: followUpReply,
+        });
+
+        await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_SECURITY_TOKEN, phone, followUpReply);
+        console.log("Auto follow-up sent, discount count was:", discountGivenCount);
       }
-
-      await supabase.from("ai_mensagens").insert({
-        conversa_id: conversationUUID,
-        role: "assistant",
-        content: followUpReply,
-      });
-
-      await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_SECURITY_TOKEN, phone, followUpReply);
-      console.log("Auto follow-up sent successfully");
     }
 
     return new Response(JSON.stringify({ ok: true, reply: reply.substring(0, 100) }), {
