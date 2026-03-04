@@ -312,6 +312,34 @@ pagamento: dinheiro
       ? historyRows.map((m: any) => ({ role: m.role, content: m.content }))
       : [];
 
+    // Detect negotiation state from last assistant message
+    let negotiationHint = "";
+    if (history.length > 0) {
+      const lastAssistantMsgs = history.filter((m: any) => m.role === "assistant");
+      if (lastAssistantMsgs.length > 0) {
+        const lastMsg = lastAssistantMsgs[lastAssistantMsgs.length - 1].content.toLowerCase();
+        const mentionsManager = lastMsg.includes("verificar com o gerente") || lastMsg.includes("falar com o gerente") || lastMsg.includes("consultar o gerente");
+        const alreadyGaveDiscount = lastAssistantMsgs.some((m: any) => m.content.toLowerCase().includes("consegui") && (m.content.toLowerCase().includes("desconto") || m.content.toLowerCase().includes("r$")));
+        
+        if (mentionsManager && !alreadyGaveDiscount) {
+          // Stage 2: must return with first discount
+          negotiationHint = `\n\nATENÇÃO URGENTE: Na sua ÚLTIMA mensagem você disse ao cliente que ia verificar com o gerente. Agora você DEVE retornar dizendo que CONSEGUIU um desconto. NÃO diga que vai verificar novamente. Informe o desconto de R$ ${descontoEtapa1.toFixed(2)} por unidade para P13/P20. Diga o preço original, o desconto e o preço final.`;
+        } else if (alreadyGaveDiscount && mentionsManager) {
+          // Stage 3: must return with final discount
+          negotiationHint = `\n\nATENÇÃO URGENTE: Você já deu um primeiro desconto E na última mensagem disse que ia tentar novamente com o gerente. Agora você DEVE retornar com o desconto FINAL de R$ ${descontoEtapa2.toFixed(2)} por unidade (preço mínimo). NÃO diga que vai verificar novamente. Diga que esse é o menor preço possível.`;
+        }
+        
+        // Also check if second-to-last had discount and last mentions manager again
+        if (!negotiationHint && lastAssistantMsgs.length >= 2) {
+          const prevMsg = lastAssistantMsgs[lastAssistantMsgs.length - 2].content.toLowerCase();
+          const prevGaveDiscount = (prevMsg.includes("consegui") || prevMsg.includes("desconto")) && prevMsg.includes("r$");
+          if (prevGaveDiscount && mentionsManager) {
+            negotiationHint = `\n\nATENÇÃO URGENTE: Você já deu o primeiro desconto antes e na última mensagem disse que ia tentar de novo com o gerente. Agora retorne com o desconto FINAL TOTAL de R$ ${descontoEtapa2.toFixed(2)} por unidade${precoMinimoP13 ? ` (preço final P13: R$ ${precoMinimoP13.toFixed(2)})` : ''}. Esse é o menor preço possível.`;
+          }
+        }
+      }
+    }
+
     await supabase.from("ai_mensagens").insert({
       conversa_id: conversationUUID,
       role: "user",
@@ -330,6 +358,9 @@ pagamento: dinheiro
 
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
+    const finalSystemPrompt = systemPrompt + negotiationHint;
+    console.log("Negotiation hint:", negotiationHint || "none");
+
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -339,7 +370,7 @@ pagamento: dinheiro
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: systemPrompt },
+          { role: "system", content: finalSystemPrompt },
           ...history,
           { role: "user", content: messageText },
         ],
