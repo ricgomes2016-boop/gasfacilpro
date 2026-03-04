@@ -880,9 +880,9 @@ export default function CadastroClientesCad() {
   return (
     <MainLayout>
       <Header title="Cadastro de Clientes" subtitle="Gerencie os clientes da revenda" />
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex gap-2">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
             <input
               ref={photoInputRef}
               type="file"
@@ -986,10 +986,10 @@ export default function CadastroClientesCad() {
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <CardTitle>Lista de Clientes</CardTitle>
-                <div className="flex gap-2">
-                  <div className="relative w-64">
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                  <div className="relative w-full sm:w-64">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       placeholder="Buscar cliente..."
