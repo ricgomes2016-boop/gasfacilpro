@@ -174,6 +174,11 @@ export function useClientes() {
       return false;
     }
 
+    if (!editId && !empresa?.id) {
+      toast.error("Empresa não identificada. Faça login novamente.");
+      return false;
+    }
+
     try {
       const payload: any = {
         nome: form.nome,
@@ -190,8 +195,8 @@ export function useClientes() {
         longitude: form.longitude,
       };
 
-      if (!editId && empresa?.id) {
-        payload.empresa_id = empresa.id;
+      if (!editId) {
+        payload.empresa_id = empresa!.id;
       }
 
       if (editId) {
