@@ -293,7 +293,7 @@ export default function Combustivel() {
   return (
     <MainLayout>
       <Header title="Controle de Combustível" subtitle="Gerencie abastecimentos da frota" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Actions */}
         <div className="flex flex-wrap items-center gap-3">
           <Button className="gap-2" onClick={() => setShowForm(true)}>

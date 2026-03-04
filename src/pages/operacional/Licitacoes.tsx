@@ -327,7 +327,7 @@ export default function Licitacoes() {
   return (
     <MainLayout>
       <Header title="Licitações Públicas" subtitle="Gerencie processos licitatórios e contratos com órgãos públicos" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Header actions */}
         <div className="flex justify-end">
           <Button onClick={openNew} className="gap-2">

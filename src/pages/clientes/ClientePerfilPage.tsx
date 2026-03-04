@@ -146,7 +146,7 @@ export default function ClientePerfilPage() {
     return (
       <MainLayout>
         <Header title="Cliente não encontrado" />
-        <div className="p-6">
+        <div className="p-3 sm:p-4 md:p-6">
           <Button variant="outline" onClick={() => navigate("/clientes/cadastro")}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
           </Button>
@@ -167,7 +167,7 @@ export default function ClientePerfilPage() {
   return (
     <MainLayout>
       <Header title="Perfil do Cliente" subtitle={cliente.nome} />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Top bar */}
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={() => navigate("/clientes/cadastro")}>

@@ -153,7 +153,7 @@ export default function MultasFrota() {
   return (
     <MainLayout>
       <Header title="Multas da Frota" subtitle="Registro e controle de infrações" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex flex-wrap items-center gap-3">
           <Button className="gap-2" onClick={() => { resetForm(); setEditId(null); setShowForm(true); }}>
             <Plus className="h-4 w-4" />Nova Multa

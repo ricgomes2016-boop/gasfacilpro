@@ -135,7 +135,7 @@ export default function MinhaEmpresa() {
   return (
     <MainLayout>
       <Header title="Minha Empresa" subtitle="Gerencie os dados da sua distribuidora" />
-      <div className="p-6 space-y-6 max-w-5xl">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6 max-w-5xl">
         {/* Plan & Usage */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>

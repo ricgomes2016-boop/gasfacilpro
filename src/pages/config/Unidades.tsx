@@ -91,7 +91,7 @@ export default function UnidadesConfig() {
   return (
     <MainLayout>
       <Header title="Gestão de Unidades" subtitle="Visualize e edite os dados de cada loja" />
-      <div className="p-6">
+      <div className="p-3 sm:p-4 md:p-6">
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

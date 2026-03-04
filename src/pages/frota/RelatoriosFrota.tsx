@@ -175,7 +175,7 @@ export default function RelatoriosFrota() {
   return (
     <MainLayout>
       <Header title="Relatórios de Frota" subtitle="Análises de custo e consumo por veículo" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex gap-2">
             <Select value={periodo} onValueChange={setPeriodo}>

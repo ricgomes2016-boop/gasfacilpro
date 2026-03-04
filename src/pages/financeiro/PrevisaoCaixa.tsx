@@ -131,7 +131,7 @@ export default function PrevisaoCaixa({ embedded }: { embedded?: boolean } = {})
   const alertas = projecoes.filter((p) => p.saldo < 0).length;
 
   const content = (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
 
 
 

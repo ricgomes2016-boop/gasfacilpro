@@ -80,7 +80,7 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
   const parceiroInfo = parceiroSelecionado ? parceiros.find(p => p.id === parceiroSelecionado) : null;
 
   const content = (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-center justify-end">
           <Dialog open={novoAcertoDialog} onOpenChange={setNovoAcertoDialog}>
             <DialogTrigger asChild><Button className="gap-2"><Plus className="h-4 w-4" /> Gerar Acerto</Button></DialogTrigger>

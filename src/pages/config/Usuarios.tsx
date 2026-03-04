@@ -260,7 +260,7 @@ export default function Usuarios() {
   return (
     <MainLayout>
       <Header title="Cadastro de Usuários" subtitle="Gerencie os usuários e permissões do sistema" />
-      <div className="p-6">
+      <div className="p-3 sm:p-4 md:p-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">

@@ -352,7 +352,7 @@ export default function Conciliacao({ embedded, contas = [] }: { embedded?: bool
   }, [pedidos, linkedPedidoIds, pedidoSearch]);
 
   const content = (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <input type="file" ref={ofxInputRef} accept=".ofx" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileImport(f, "ofx"); e.target.value = ""; }}
         />

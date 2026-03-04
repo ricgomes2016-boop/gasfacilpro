@@ -136,7 +136,7 @@ export default function DashboardExecutivo() {
   return (
     <MainLayout>
       <Header title="Dashboard Executivo" subtitle="Visão geral do negócio" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />

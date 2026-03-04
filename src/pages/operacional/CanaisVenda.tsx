@@ -143,7 +143,7 @@ export default function CanaisVenda() {
   return (
     <MainLayout>
       <Header title="Canais de Venda" subtitle="Gerencie os canais de venda do sistema" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
           <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o) closeDialog(); else setDialogOpen(true); }}>
             <DialogTrigger asChild>

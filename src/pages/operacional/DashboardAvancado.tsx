@@ -100,7 +100,7 @@ export default function DashboardAvancado() {
   return (
     <MainLayout>
       <Header title="Dashboard Avançado" subtitle="Análises detalhadas e métricas avançadas" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
 
         <Tabs defaultValue="financeiro" className="space-y-6">
           <TabsList>

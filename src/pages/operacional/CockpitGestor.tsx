@@ -106,7 +106,7 @@ export default function CockpitGestor() {
   return (
     <MainLayout>
       <Header title="Cockpit do Gestor" subtitle="Resumo do dia" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Saudação */}
         <div className="flex items-center gap-3">
           <Sun className="h-8 w-8 text-chart-4" />

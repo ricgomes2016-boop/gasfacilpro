@@ -228,7 +228,7 @@ export default function Clientes() {
   return (
     <MainLayout>
       <Header title="Clientes" subtitle="Gerencie seus clientes" />
-      <div className="p-6">
+      <div className="p-3 sm:p-4 md:p-6">
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

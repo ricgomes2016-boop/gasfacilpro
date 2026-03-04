@@ -396,7 +396,7 @@ export default function ValeGasRelatorio({ embedded }: { embedded?: boolean } = 
   };
 
   const content = (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Cabeçalho */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-4">
           <DropdownMenu>

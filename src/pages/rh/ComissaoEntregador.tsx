@@ -231,7 +231,7 @@ export default function ComissaoEntregador() {
   return (
     <MainLayout>
       <Header title="Comissão do Entregador" subtitle="Relatório de comissões por produto e canal" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Filtros */}
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex-1 min-w-[180px] max-w-[250px]">

@@ -133,7 +133,7 @@ export default function GamificacaoEntregadores() {
   return (
     <MainLayout>
       <Header title="Gamificação de Entregadores" subtitle="Ranking, pontos, conquistas e níveis" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
 
         {/* KPIs */}
         <div className="grid gap-4 md:grid-cols-3">

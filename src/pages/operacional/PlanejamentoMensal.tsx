@@ -121,7 +121,7 @@ export default function PlanejamentoMensal({ embedded = false }: { embedded?: bo
   return (
     <MainLayout>
       <Header title="Planejamento Financeiro" subtitle="Planejamento mensal de receitas e despesas" />
-      <div className="p-6">{content}</div>
+      <div className="p-3 sm:p-4 md:p-6">{content}</div>
     </MainLayout>
   );
 }

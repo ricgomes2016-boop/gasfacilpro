@@ -346,7 +346,7 @@ export default function GestaoRotas() {
   return (
     <MainLayout>
       <Header title="Gestão de Rotas" subtitle="Rotas de entrega e carregamentos atacado" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <Tabs defaultValue="carregamentos">
           <TabsList>
             <TabsTrigger value="carregamentos">

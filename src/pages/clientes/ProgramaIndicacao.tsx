@@ -116,7 +116,7 @@ export default function ProgramaIndicacao() {
   return (
     <MainLayout>
       <Header title="Programa de Indicação" subtitle="Rastreamento de indicações, recompensas e ranking" />
-      <div className="p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
 
         {/* KPIs */}
         <div className="grid gap-4 md:grid-cols-4">
