@@ -234,6 +234,7 @@ const ParceiroQRCode = lazy(() => import("./pages/parceiro/ParceiroQRCode"));
 
 // Página Pública
 const ComprarValeGas = lazy(() => import("./pages/publico/ComprarValeGas"));
+const Instalar = lazy(() => import("./pages/Instalar"));
 
 // App Cliente
 const ClienteHome = lazy(() => import("./pages/cliente/ClienteHome"));
@@ -275,6 +276,7 @@ const App = () => (
 
                   {/* Auth - Pública */}
                   <Route path="/auth" element={<Auth />} />
+                  <Route path="/instalar" element={<Instalar />} />
                   <Route path="/onboarding" element={
                     <ProtectedRoute allowedRoles={["admin"]}>
                       <OnboardingEmpresa />
