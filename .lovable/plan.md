@@ -1,113 +1,80 @@
 
-# Plano: Customização dos Dados da Empresa no Comprovante PDF
 
-## Resumo
-Implementar um sistema para que os dados da empresa (nome, CNPJ, telefone, endereço e mensagem do cupom) possam ser configurados pela tela de Configurações e usados automaticamente no cabeçalho do comprovante PDF gerado após cada venda.
+# Audit Completo Mobile + Sugestoes de Melhoria
 
-## O Que Será Feito
+## Problemas Identificados
 
-### 1. Criar Tabela de Configurações da Empresa
-Uma nova tabela no banco de dados para armazenar as informações da empresa de forma centralizada.
-
-**Campos:**
-- `id` - Identificador único
-- `nome_empresa` - Nome que aparece no cupom (ex: "GásPro Revenda")
-- `cnpj` - CNPJ formatado
-- `telefone` - Telefone de contato
-- `endereco` - Endereço completo
-- `mensagem_cupom` - Mensagem de rodapé (ex: "Obrigado pela preferência!")
-- `created_at` / `updated_at` - Timestamps
-
-### 2. Atualizar Tela de Configurações
-Conectar o card "Dados da Empresa" ao banco de dados:
-- Carregar dados salvos ao abrir a página
-- Salvar alterações no banco ao clicar em "Salvar Alterações"
-- Feedback visual de sucesso/erro
-
-### 3. Integrar com Serviço de PDF
-Modificar o `receiptPdfService.ts` para:
-- Receber os dados da empresa como parâmetro
-- Usar nome, CNPJ, telefone, endereço e mensagem personalizados
-- Manter valores padrão caso não haja configuração
-
-### 4. Atualizar Fluxo de Venda
-Na tela `NovaVenda.tsx`:
-- Buscar configurações da empresa antes de gerar o PDF
-- Passar os dados para a função `generateReceiptPdf`
-
----
-
-## Detalhes Técnicos
-
-### Migração SQL
-```sql
-CREATE TABLE configuracoes_empresa (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  nome_empresa text NOT NULL DEFAULT 'Distribuidora Gás',
-  cnpj text,
-  telefone text,
-  endereco text,
-  mensagem_cupom text DEFAULT 'Obrigado pela preferência!',
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-
--- Políticas de acesso (apenas admin/gestor podem editar)
-ALTER TABLE configuracoes_empresa ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Authenticated users can view configuracoes" 
-  ON configuracoes_empresa FOR SELECT TO authenticated USING (true);
-
-CREATE POLICY "Admin/Gestor can manage configuracoes" 
-  ON configuracoes_empresa FOR ALL TO authenticated 
-  USING (has_role(auth.uid(), 'admin') OR has_role(auth.uid(), 'gestor'));
-
--- Inserir configuração padrão
-INSERT INTO configuracoes_empresa (nome_empresa, cnpj, telefone, endereco, mensagem_cupom)
-VALUES ('GásPro Revenda', '12.345.678/0001-90', '(11) 3333-4444', 'Av. Principal, 100 - Centro', 'Obrigado pela preferência!');
-```
-
-### Arquivos Modificados
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/services/receiptPdfService.ts` | Adicionar interface `EmpresaConfig` e usar dados dinâmicos no cabeçalho e rodapé |
-| `src/pages/Configuracoes.tsx` | Integrar com banco de dados para carregar/salvar configurações |
-| `src/pages/vendas/NovaVenda.tsx` | Buscar configurações da empresa antes de gerar PDF |
-
-### Interface do Serviço de PDF (Atualizada)
-```typescript
-interface EmpresaConfig {
-  nome_empresa: string;
-  cnpj?: string;
-  telefone?: string;
-  endereco?: string;
-  mensagem_cupom?: string;
-}
-
-interface ReceiptData {
-  // ... campos existentes
-  empresa: EmpresaConfig;
+### 1. `App.css` com estilos conflitantes (CRITICO)
+O arquivo `src/App.css` contém regras do template Vite original que **limitam a largura e adicionam padding** ao `#root`:
+```css
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
 }
 ```
+Embora este arquivo **nao esteja importado** em `main.tsx` (apenas `index.css` esta), ele pode causar confusao. Se algum import futuro o incluir, quebrara todo o layout. **Acao: remover o arquivo ou limpar seu conteudo.**
 
-### Exemplo de Uso no PDF
-```text
-┌────────────────────────────┐
-│    GÁSPRO REVENDA          │  ← nome_empresa
-│  CNPJ: 12.345.678/0001-90  │  ← cnpj
-│  Tel: (11) 3333-4444       │  ← telefone
-│  Av. Principal, 100        │  ← endereco
-├────────────────────────────┤
-│  PEDIDO #ABC123...         │
-│  ...                       │
-├────────────────────────────┤
-│  Obrigado pela preferência!│  ← mensagem_cupom
-│  Volte sempre!             │
-└────────────────────────────┘
-```
+### 2. Cadastro de Clientes - Layout nao responsivo (CRITICO)
+Em `CadastroClientes.tsx` (linha 883):
+- `p-6` fixo sem reducao mobile (deveria ser `p-3 sm:p-6`)
+- Botoes de acao no topo (Importar, Mesclar, Novo Cliente) sem `flex-wrap`, transbordando em telas pequenas
+- Barra de busca com `w-64` fixo (linha 992) que nao se adapta ao mobile
+- A area de filtros e botoes no CardHeader nao empilha verticalmente
 
-## Resultado Esperado
-- Administradores podem alterar os dados da empresa na tela de Configurações
-- Todos os comprovantes gerados usarão automaticamente os dados atualizados
-- Se não houver configuração, valores padrão serão utilizados
+### 3. Configuracoes - Conteudo cortado no mobile
+Em `Configuracoes.tsx` (linha 297):
+- `grid md:grid-cols-2` funciona, mas `p-6` fixo sem responsividade
+- Switches de "Regras de Cadastro" ficam apertados em telas < 360px
+
+### 4. Pedidos - Tabela com scroll horizontal parcial
+Em `Pedidos.tsx`:
+- Ja tem `overflow-x-auto` e `hidden md:table-cell`, o que e bom
+- Porem o padding `p-0 md:p-6` pode cortar conteudo no edge das celulas
+- Filtros superiores (Select de status, busca) podem transbordar
+
+### 5. Nova Venda - Campo AI muito largo
+Em `NovaVenda.tsx` (linha 877):
+- `min-w-[200px]` no input AI pode causar overflow em telas muito estreitas
+
+### 6. MobileBottomBar sobrepondo conteudo
+- O `MainLayout` aplica `pb-14` ao `main`, mas algumas paginas internas adicionam seus proprios paddings sem considerar a barra inferior, podendo causar sobreposicao de botoes de acao (como "Salvar Regras" em Configuracoes)
+
+### 7. Sidebar hidden no mobile - OK, usa MobileNav
+- A Sidebar usa `hidden md:flex`, e o `MobileNav` (hamburger) aparece no Header. Isso esta correto.
+
+## Plano de Implementacao
+
+### Tarefa 1: Limpar App.css
+- Remover todo conteudo do `src/App.css` ou deletar o arquivo (nao esta importado, mas e lixo)
+
+### Tarefa 2: Responsividade da pagina CadastroClientes
+- Mudar `p-6` para `p-3 sm:p-6`
+- Adicionar `flex-wrap` nos botoes de acao superiores
+- Mudar busca de `w-64` fixo para `w-full sm:w-64`
+- Empilhar busca e filtro verticalmente no mobile
+- Reorganizar header do card para mobile-first
+
+### Tarefa 3: Responsividade da pagina Configuracoes
+- Mudar `p-6` para `p-3 sm:p-6`
+- Garantir que switches tenham espaco suficiente em telas estreitas
+
+### Tarefa 4: Ajustes gerais de padding em paginas com MainLayout
+- Revisar todas as paginas que usam `p-6` fixo e trocar por `p-3 sm:p-4 md:p-6`
+- Paginas afetadas: CadastroClientes, Configuracoes, e potencialmente Estoque, Entregas, CaixaDia, Produtos, etc.
+
+### Tarefa 5: Melhoria no form "Novo Cliente" (dialog)
+- O dialog ja usa `max-w-2xl max-h-[95vh] overflow-y-auto` e grids responsivos `grid-cols-1 sm:grid-cols-2` - esta bom
+- Pequeno ajuste: o label "Telefone *" deveria respeitar `regras.telefone_obrigatorio` para mostrar ou nao o asterisco
+
+### Tarefa 6: Ajustes no MobileBottomBar
+- Garantir que paginas com botoes de acao no rodape (ex: "Salvar") tenham `pb-20` em vez de `pb-14`
+
+## Sugestoes de Melhoria
+
+1. **CadastroClientes mobile-first**: Em telas pequenas, trocar a tabela por cards empilhaveis (cada cliente como um card com acoes), similar ao que ja e feito no app do entregador
+2. **Busca global no mobile**: O CommandPalette (Cmd+K) nao e acessivel no mobile - adicionar um botao de busca visivel no header mobile
+3. **Dark mode toggle**: O sistema ja suporta tema dark (CSS variables definidas), mas nao ha toggle visivel para o usuario
+4. **PWA install prompt**: O sistema tem LandingPage mencionando que e PWA, mas nao ha configuracao de service worker nem manifest adequado para instalacao
+
