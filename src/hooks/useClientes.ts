@@ -103,9 +103,29 @@ export function useClientes() {
         .order("nome", { ascending: true });
 
       if (busca) {
-        query = query.or(
-          `nome.ilike.%${busca}%,telefone.ilike.%${busca}%,bairro.ilike.%${busca}%,endereco.ilike.%${busca}%`
-        );
+        const buscaTexto = busca.trim();
+        const buscaDigits = buscaTexto.replace(/\D/g, "");
+        const phoneCandidates = Array.from(new Set([
+          buscaDigits,
+          buscaDigits.slice(-11),
+          buscaDigits.slice(-10),
+          buscaDigits.slice(-9),
+        ].filter((v) => v.length >= 8)));
+
+        const textFilters = [
+          `nome.ilike.%${buscaTexto}%`,
+          `telefone.ilike.%${buscaTexto}%`,
+          `bairro.ilike.%${buscaTexto}%`,
+          `endereco.ilike.%${buscaTexto}%`,
+          `cpf.ilike.%${buscaTexto}%`,
+        ];
+
+        const digitFilters = phoneCandidates.flatMap((candidate) => [
+          `telefone.ilike.%${candidate}%`,
+          `cpf.ilike.%${candidate}%`,
+        ]);
+
+        query = query.or([...textFilters, ...digitFilters].join(","));
       }
 
       if (filtroBairro && filtroBairro !== "todos") {
