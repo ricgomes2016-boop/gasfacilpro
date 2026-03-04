@@ -302,6 +302,25 @@ pagamento: dinheiro
 [/PEDIDO_CONFIRMADO]`;
 
     const conversationUUID = await generateUUIDFromString(`whatsapp_${normalized}`);
+    const incomingMessageKey = body.messageId
+      ? String(body.messageId)
+      : `${normalized}_${String(body.momment || "")}_${messageText.trim().toLowerCase()}`;
+
+    // Idempotency guard: skip duplicated inbound webhook events
+    const { data: duplicatedEvent } = await supabase
+      .from("ai_mensagens")
+      .select("id")
+      .eq("conversa_id", conversationUUID)
+      .eq("role", "user")
+      .contains("metadata", { message_id: incomingMessageKey })
+      .limit(1);
+
+    if (duplicatedEvent && duplicatedEvent.length > 0) {
+      console.log("Duplicate inbound event skipped:", incomingMessageKey);
+      return new Response(JSON.stringify({ ok: true, skipped: "duplicate_event" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { data: historyRows } = await supabase
       .from("ai_mensagens")
@@ -357,6 +376,12 @@ pagamento: dinheiro
       conversa_id: conversationUUID,
       role: "user",
       content: messageText,
+      metadata: {
+        source: "zapi-webhook",
+        message_id: incomingMessageKey,
+        raw_message_id: body.messageId ?? null,
+        moment: body.momment ?? null,
+      },
     });
 
     await supabase.from("ai_conversas").upsert(
@@ -490,6 +515,22 @@ pagamento: dinheiro
         console.log("Auto follow-up cancelled: newer user message detected (handled by its own webhook)");
       } else {
         const formatBRL = (value: number) => `R$ ${value.toFixed(2).replace('.', ',')}`;
+
+        // Extra idempotency for delayed follow-up
+        const { data: existingFollowUp } = await supabase
+          .from("ai_mensagens")
+          .select("id")
+          .eq("conversa_id", conversationUUID)
+          .eq("role", "assistant")
+          .contains("metadata", { auto_followup_for: incomingMessageKey })
+          .limit(1);
+
+        if (existingFollowUp && existingFollowUp.length > 0) {
+          console.log("Auto follow-up skipped: already sent for", incomingMessageKey);
+          return new Response(JSON.stringify({ ok: true, skipped: "duplicate_followup" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         
         // Re-read history to get accurate discount count
         const { data: freshHistory } = await supabase
@@ -553,6 +594,10 @@ pagamento: dinheiro
           conversa_id: conversationUUID,
           role: "assistant",
           content: followUpReply,
+          metadata: {
+            source: "zapi-webhook",
+            auto_followup_for: incomingMessageKey,
+          },
         });
 
         await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_SECURITY_TOKEN, phone, followUpReply);
