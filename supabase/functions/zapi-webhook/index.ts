@@ -450,6 +450,76 @@ pagamento: dinheiro
 
     await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_SECURITY_TOKEN, phone, reply);
 
+    // Auto follow-up: if Bia said she'll check with the manager, automatically send discount after delay
+    const replyLower = reply.toLowerCase();
+    const mentionedManager = replyLower.includes("verificar com o gerente") || replyLower.includes("falar com o gerente") || replyLower.includes("consultar o gerente") || replyLower.includes("um momento");
+    const alreadyHasDiscount = replyLower.includes("consegui") && (replyLower.includes("desconto") || replyLower.includes("r$"));
+    
+    if (mentionedManager && !alreadyHasDiscount && descontoEtapa1 > 0) {
+      console.log("Auto follow-up: Bia mentioned manager, scheduling discount response in 5s");
+      
+      // Wait 5 seconds to simulate "checking with manager"
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      // Determine which stage we're at
+      const previousAssistantMsgs = history.filter((m: any) => m.role === "assistant");
+      const anyPreviousDiscount = previousAssistantMsgs.some((m: any) => {
+        const c = m.content.toLowerCase();
+        return (c.includes("consegui") || c.includes("desconto")) && c.includes("r$");
+      });
+      
+      let followUpPrompt: string;
+      if (anyPreviousDiscount) {
+        // Stage 3: final discount
+        followUpPrompt = `Você acabou de dizer ao cliente que ia verificar com o gerente NOVAMENTE. Agora retorne dizendo que conseguiu o desconto FINAL. O desconto total é de R$ ${descontoEtapa2.toFixed(2)} por unidade${precoMinimoP13 ? ` (preço final P13: R$ ${precoMinimoP13.toFixed(2)})` : ''}${precoMinimoP20 ? ` (preço final P20: R$ ${precoMinimoP20.toFixed(2)})` : ''}. Diga que é o menor preço possível e pergunte se deseja confirmar o pedido.`;
+      } else {
+        // Stage 2: first discount
+        followUpPrompt = `Você acabou de dizer ao cliente que ia verificar com o gerente sobre o desconto. Agora retorne dizendo que CONSEGUIU um desconto de R$ ${descontoEtapa1.toFixed(2)} por unidade. Informe o novo preço e pergunte se o cliente deseja confirmar. Seja simpática e comemorativa!`;
+      }
+
+      const followUpResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt + "\n\nINSTRUÇÃO CRÍTICA: " + followUpPrompt },
+            ...history,
+            { role: "user", content: messageText },
+            { role: "assistant", content: reply },
+          ],
+        }),
+      });
+
+      if (followUpResponse.ok) {
+        const followUpResult = await followUpResponse.json();
+        let followUpReply = followUpResult.choices?.[0]?.message?.content || "";
+        
+        if (followUpReply) {
+          // Save to conversation history
+          await supabase.from("ai_mensagens").insert({
+            conversa_id: conversationUUID,
+            role: "assistant",
+            content: followUpReply,
+          });
+          
+          // Handle order confirmation in follow-up
+          const followUpOrderMatch = followUpReply.match(/\[PEDIDO_CONFIRMADO\]([\s\S]*?)\[\/PEDIDO_CONFIRMADO\]/);
+          if (followUpOrderMatch) {
+            followUpReply = followUpReply.replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/, "").trim();
+          }
+          
+          await sendWhatsAppMessage(ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_SECURITY_TOKEN, phone, followUpReply);
+          console.log("Auto follow-up sent successfully");
+        }
+      } else {
+        console.error("Auto follow-up AI error:", followUpResponse.status);
+      }
+    }
+
     return new Response(JSON.stringify({ ok: true, reply: reply.substring(0, 100) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
