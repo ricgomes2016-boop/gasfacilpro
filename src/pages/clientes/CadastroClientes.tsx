@@ -523,12 +523,30 @@ export default function CadastroClientesCad() {
           description: `${formData.nome} foi atualizado com sucesso.`,
         });
       } else {
-        // Create
-        const { error } = await supabase
+        // Create — must include empresa_id for RLS tenant isolation
+        if (!empresa?.id) {
+          toast({
+            title: "Erro",
+            description: "Empresa não identificada. Faça login novamente.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const { data: newCliente, error } = await supabase
           .from("clientes")
-          .insert({ ...clienteData, ativo: true } as any);
+          .insert({ ...clienteData, ativo: true, empresa_id: empresa.id } as any)
+          .select("id")
+          .single();
 
         if (error) throw error;
+
+        // Associate with current unidade
+        if (newCliente && unidadeAtual?.id) {
+          await supabase
+            .from("cliente_unidades")
+            .insert({ cliente_id: newCliente.id, unidade_id: unidadeAtual.id });
+        }
 
         toast({
           title: "Cliente cadastrado!",
@@ -778,8 +796,14 @@ export default function CadastroClientesCad() {
       }
 
       if (inserts.length > 0) {
-        const { error: insertError } = await supabase.from("clientes").insert(inserts);
+        const { data: insertedData, error: insertError } = await supabase.from("clientes").insert(inserts).select("id");
         if (insertError) throw insertError;
+
+        // Associate bulk-imported clients with current unidade
+        if (insertedData && unidadeAtual?.id) {
+          const cuInserts = insertedData.map((c: any) => ({ cliente_id: c.id, unidade_id: unidadeAtual.id }));
+          await supabase.from("cliente_unidades").insert(cuInserts);
+        }
       }
 
       let message = `${inserts.length} cliente(s) cadastrado(s) com sucesso.`;
