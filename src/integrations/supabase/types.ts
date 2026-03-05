@@ -1983,6 +1983,7 @@ export type Database = {
           id: string
           preco: number
           produto: string
+          tipo_preco: string
           unidade_id: string | null
           updated_at: string
         }
@@ -1996,6 +1997,7 @@ export type Database = {
           id?: string
           preco: number
           produto: string
+          tipo_preco?: string
           unidade_id?: string | null
           updated_at?: string
         }
@@ -2009,6 +2011,7 @@ export type Database = {
           id?: string
           preco?: number
           produto?: string
+          tipo_preco?: string
           unidade_id?: string | null
           updated_at?: string
         }

@@ -1,0 +1,1 @@
+ALTER TABLE public.concorrente_precos ADD COLUMN tipo_preco text NOT NULL DEFAULT 'unico';
