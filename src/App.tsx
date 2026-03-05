@@ -15,6 +15,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageLoader } from "@/components/ui/page-loader";
 import { renderRoutes } from "@/routes/helpers";
+import { SubdomainGuard } from "@/components/routing/SubdomainGuard";
 
 // Route configurations
 import { adminRoutes } from "@/routes/adminRoutes";
@@ -62,6 +63,7 @@ const App = () => (
                     <CallerIdPopup />
                     <ErrorBoundary>
                       <Suspense fallback={<PageLoader />}>
+                        <SubdomainGuard>
                         <Routes>
                           {/* Root redirect */}
                           <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -111,6 +113,7 @@ const App = () => (
                           {/* 404 */}
                           <Route path="*" element={<NotFound />} />
                         </Routes>
+                        </SubdomainGuard>
                       </Suspense>
                     </ErrorBoundary>
                   </ValeGasProvider>
