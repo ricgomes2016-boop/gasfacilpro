@@ -7445,6 +7445,15 @@ export type Database = {
         Returns: boolean
       }
       execute_readonly_query: { Args: { query_text: string }; Returns: Json }
+      get_empresa_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          id: string
+          logo_url: string
+          nome: string
+          slug: string
+        }[]
+      }
       get_user_empresa_id: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
