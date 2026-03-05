@@ -11,57 +11,120 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, TrendingUp, TrendingDown, Minus, BarChart3, Eye, Trash2, MapPin } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Minus, BarChart3, Trash2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { ConcorrentesMap } from "@/components/concorrencia/ConcorrentesMap";
-
-interface RegistroPreco {
-  id: string;
-  concorrente: string;
-  produto: string;
-  preco: number;
-  data: string;
-  fonte: string;
-}
+import { supabase } from "@/integrations/supabase/client";
+import { useEmpresa } from "@/contexts/EmpresaContext";
+import { useUnidade } from "@/contexts/UnidadeContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function AnaliseConcorrencia() {
-  const [registros, setRegistros] = useState<RegistroPreco[]>([]);
+  const { empresa } = useEmpresa();
+  const { unidadeAtual } = useUnidade();
+  const queryClient = useQueryClient();
+  const empresaId = empresa?.id;
+  const unidadeId = unidadeAtual?.id;
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [novoConcorrente, setNovoConcorrente] = useState("");
   const [novoProduto, setNovoProduto] = useState("");
   const [novoPreco, setNovoPreco] = useState("");
   const [novaFonte, setNovaFonte] = useState("Visita");
 
-  // Preços base dos produtos (idealmente viriam do banco)
-  const nossosPrecos: Record<string, number> = {
-    "P13 Cheio": 108,
-    "P45 Cheio": 340,
-    "P20 Cheio": 220,
-  };
+  // Fetch price records from DB filtered by unidade
+  const { data: registros = [] } = useQuery({
+    queryKey: ["concorrente_precos", empresaId, unidadeId],
+    queryFn: async () => {
+      let query = supabase
+        .from("concorrente_precos")
+        .select("*")
+        .order("data", { ascending: false });
 
-  const addRegistro = () => {
-    if (!novoConcorrente || !novoProduto || !novoPreco) { toast.error("Preencha todos os campos"); return; }
-    setRegistros(prev => [...prev, {
-      id: Date.now().toString(), concorrente: novoConcorrente, produto: novoProduto,
-      preco: parseFloat(novoPreco), data: getBrasiliaDateString(), fonte: novaFonte,
-    }]);
-    setDialogOpen(false);
-    setNovoConcorrente(""); setNovoProduto(""); setNovoPreco("");
-    toast.success("Preço registrado!");
-  };
+      if (unidadeId) {
+        query = query.eq("unidade_id", unidadeId);
+      }
 
-  const removeRegistro = (id: string) => {
-    setRegistros(prev => prev.filter(r => r.id !== id));
-    toast.success("Registro removido");
-  };
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!empresaId,
+  });
+
+  // Fetch products from DB to get our prices per unidade
+  const { data: produtos = [] } = useQuery({
+    queryKey: ["produtos_precos", empresaId, unidadeId],
+    queryFn: async () => {
+      let query = supabase
+        .from("produtos")
+        .select("nome, preco_venda")
+        .eq("ativo", true);
+
+      if (unidadeId) {
+        query = query.eq("unidade_id", unidadeId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!empresaId,
+  });
+
+  // Build nossosPrecos from actual product data
+  const nossosPrecos: Record<string, number> = {};
+  produtos.forEach((p: any) => {
+    if (p.nome && p.preco_venda) {
+      nossosPrecos[p.nome] = Number(p.preco_venda);
+    }
+  });
+
+  const addMutation = useMutation({
+    mutationFn: async () => {
+      if (!novoConcorrente || !novoProduto || !novoPreco) {
+        throw new Error("Preencha todos os campos");
+      }
+      const { error } = await supabase.from("concorrente_precos").insert({
+        empresa_id: empresaId,
+        unidade_id: unidadeId || null,
+        concorrente_nome: novoConcorrente,
+        produto: novoProduto,
+        preco: parseFloat(novoPreco),
+        fonte: novaFonte,
+        data: getBrasiliaDateString(),
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["concorrente_precos"] });
+      setDialogOpen(false);
+      setNovoConcorrente("");
+      setNovoProduto("");
+      setNovoPreco("");
+      toast.success("Preço registrado!");
+    },
+    onError: (err: any) => toast.error(err.message || "Erro ao salvar"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("concorrente_precos").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["concorrente_precos"] });
+      toast.success("Registro removido");
+    },
+  });
 
   // Análise por produto
-  const produtosUnicos = [...new Set(registros.map(r => r.produto))];
+  const produtosUnicos = [...new Set(registros.map((r: any) => r.produto))];
   const analise = produtosUnicos.map(produto => {
-    const registrosProduto = registros.filter(r => r.produto === produto);
-    const precoMedio = registrosProduto.reduce((s, r) => s + r.preco, 0) / registrosProduto.length;
-    const menorPreco = Math.min(...registrosProduto.map(r => r.preco));
-    const maiorPreco = Math.max(...registrosProduto.map(r => r.preco));
+    const registrosProduto = registros.filter((r: any) => r.produto === produto);
+    const precoMedio = registrosProduto.reduce((s: number, r: any) => s + Number(r.preco), 0) / registrosProduto.length;
+    const menorPreco = Math.min(...registrosProduto.map((r: any) => Number(r.preco)));
+    const maiorPreco = Math.max(...registrosProduto.map((r: any) => Number(r.preco)));
     const nossoPreco = nossosPrecos[produto] || 0;
     const posicao = nossoPreco < precoMedio ? "abaixo" : nossoPreco > precoMedio ? "acima" : "na_media";
     return { produto, precoMedio, menorPreco, maiorPreco, nossoPreco, posicao, concorrentes: registrosProduto.length };
@@ -88,10 +151,18 @@ export default function AnaliseConcorrencia() {
                       <Select value={novoProduto} onValueChange={setNovoProduto}>
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="P13 Cheio">P13 Cheio</SelectItem>
-                          <SelectItem value="P45 Cheio">P45 Cheio</SelectItem>
-                          <SelectItem value="P20 Cheio">P20 Cheio</SelectItem>
-                          <SelectItem value="Água Mineral">Água Mineral</SelectItem>
+                          {produtos.length > 0 ? (
+                            produtos.map((p: any) => (
+                              <SelectItem key={p.nome} value={p.nome}>{p.nome}</SelectItem>
+                            ))
+                          ) : (
+                            <>
+                              <SelectItem value="P13 Cheio">P13 Cheio</SelectItem>
+                              <SelectItem value="P45 Cheio">P45 Cheio</SelectItem>
+                              <SelectItem value="P20 Cheio">P20 Cheio</SelectItem>
+                              <SelectItem value="Água Mineral">Água Mineral</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -108,7 +179,9 @@ export default function AnaliseConcorrencia() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button onClick={addRegistro} className="w-full">Salvar</Button>
+                    <Button onClick={() => addMutation.mutate()} className="w-full" disabled={addMutation.isPending}>
+                      {addMutation.isPending ? "Salvando..." : "Salvar"}
+                    </Button>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -158,15 +231,15 @@ export default function AnaliseConcorrencia() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {registros.sort((a, b) => b.data.localeCompare(a.data)).map(r => {
+                      {registros.map((r: any) => {
                         const nosso = nossosPrecos[r.produto] || 0;
-                        const diff = nosso > 0 ? ((r.preco - nosso) / nosso * 100) : 0;
+                        const diff = nosso > 0 ? ((Number(r.preco) - nosso) / nosso * 100) : 0;
                         return (
                           <TableRow key={r.id}>
                             <TableCell>{parseLocalDate(r.data).toLocaleDateString("pt-BR")}</TableCell>
-                            <TableCell className="font-medium">{r.concorrente}</TableCell>
+                            <TableCell className="font-medium">{r.concorrente_nome}</TableCell>
                             <TableCell>{r.produto}</TableCell>
-                            <TableCell>R$ {r.preco.toFixed(2)}</TableCell>
+                            <TableCell>R$ {Number(r.preco).toFixed(2)}</TableCell>
                             <TableCell><Badge variant="outline">{r.fonte}</Badge></TableCell>
                             <TableCell>
                               <span className={diff > 0 ? "text-chart-3" : diff < 0 ? "text-destructive" : "text-muted-foreground"}>
@@ -174,11 +247,20 @@ export default function AnaliseConcorrencia() {
                               </span>
                             </TableCell>
                             <TableCell>
-                              <Button variant="ghost" size="icon" onClick={() => removeRegistro(r.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(r.id)} disabled={deleteMutation.isPending}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         );
                       })}
+                      {registros.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                            Nenhum registro de preço para esta unidade
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>

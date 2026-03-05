@@ -1972,6 +1972,70 @@ export type Database = {
           },
         ]
       }
+      concorrente_precos: {
+        Row: {
+          concorrente_id: string | null
+          concorrente_nome: string
+          created_at: string
+          data: string
+          empresa_id: string
+          fonte: string
+          id: string
+          preco: number
+          produto: string
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          concorrente_id?: string | null
+          concorrente_nome: string
+          created_at?: string
+          data?: string
+          empresa_id: string
+          fonte?: string
+          id?: string
+          preco: number
+          produto: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          concorrente_id?: string | null
+          concorrente_nome?: string
+          created_at?: string
+          data?: string
+          empresa_id?: string
+          fonte?: string
+          id?: string
+          preco?: number
+          produto?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concorrente_precos_concorrente_id_fkey"
+            columns: ["concorrente_id"]
+            isOneToOne: false
+            referencedRelation: "concorrentes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concorrente_precos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concorrente_precos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       concorrentes: {
         Row: {
           created_at: string
