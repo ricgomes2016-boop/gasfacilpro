@@ -19,6 +19,7 @@ const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
   cliente: "cliente",
   entregador: "entregador",
   entregadores: "entregador",
+  entregado: "entregador",
   portal: "parceiro",
   parceiro: "parceiro",
   app: "erp",
@@ -37,7 +38,7 @@ const BASE_DOMAINS = [
  * Returns null for development environments or unrecognized subdomains.
  */
 export function detectSubdomainApp(): SubdomainApp {
-  const hostname = window.location.hostname;
+  const hostname = window.location.hostname.toLowerCase();
 
   // Development: localhost or IP — no subdomain routing
   if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.startsWith("192.168")) {
@@ -51,15 +52,23 @@ export function detectSubdomainApp(): SubdomainApp {
 
   // Check against known base domains
   for (const baseDomain of BASE_DOMAINS) {
-    if (hostname.endsWith(baseDomain)) {
-      const sub = hostname.replace(`.${baseDomain}`, "").split(".").pop();
-      
-      // Root domain (no subdomain) → landing page
-      if (!sub || sub === hostname || sub === "www") {
+    // Root domain and www => landing
+    if (hostname === baseDomain || hostname === `www.${baseDomain}`) {
+      return "landing";
+    }
+
+    if (hostname.endsWith(`.${baseDomain}`)) {
+      // Everything before ".baseDomain"
+      const prefix = hostname.slice(0, -(baseDomain.length + 1));
+
+      if (!prefix || prefix === "www") {
         return "landing";
       }
 
-      return SUBDOMAIN_MAP[sub] || null;
+      // IMPORTANT: use first label, not last.
+      // Ex: entregador.painel.gasfacilpro.com.br -> "entregador"
+      const firstLabel = prefix.split(".")[0];
+      return SUBDOMAIN_MAP[firstLabel] || null;
     }
   }
 
