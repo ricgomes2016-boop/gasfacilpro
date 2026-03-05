@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { parseLocalDate, getBrasiliaDateString } from "@/lib/utils";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
@@ -11,9 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, TrendingUp, TrendingDown, Minus, BarChart3, Trash2, MapPin } from "lucide-react";
+import { Plus, BarChart3, Trash2, MapPin, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { ConcorrentesMap } from "@/components/concorrencia/ConcorrentesMap";
+import { IndiceCompetitividade } from "@/components/concorrencia/IndiceCompetitividade";
+import { AlertasPreco } from "@/components/concorrencia/AlertasPreco";
+import { GraficoEvolucaoPrecos } from "@/components/concorrencia/GraficoEvolucaoPrecos";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -33,7 +36,7 @@ export default function AnaliseConcorrencia() {
   const [novaFonte, setNovaFonte] = useState("Visita");
   const [novoTipoPreco, setNovoTipoPreco] = useState("unico");
 
-  // Fetch price records from DB filtered by unidade
+  // Fetch price records
   const { data: registros = [] } = useQuery({
     queryKey: ["concorrente_precos", empresaId, unidadeId],
     queryFn: async () => {
@@ -41,11 +44,7 @@ export default function AnaliseConcorrencia() {
         .from("concorrente_precos")
         .select("*")
         .order("data", { ascending: false });
-
-      if (unidadeId) {
-        query = query.eq("unidade_id", unidadeId);
-      }
-
+      if (unidadeId) query = query.eq("unidade_id", unidadeId);
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
@@ -53,19 +52,15 @@ export default function AnaliseConcorrencia() {
     enabled: !!empresaId,
   });
 
-  // Fetch products from DB to get our prices per unidade
+  // Fetch products with portaria/telefone prices
   const { data: produtos = [] } = useQuery({
     queryKey: ["produtos_precos", empresaId, unidadeId],
     queryFn: async () => {
       let query = supabase
         .from("produtos")
-        .select("nome, preco_venda")
+        .select("nome, preco_venda, preco_portaria, preco_telefone")
         .eq("ativo", true);
-
-      if (unidadeId) {
-        query = query.eq("unidade_id", unidadeId);
-      }
-
+      if (unidadeId) query = query.eq("unidade_id", unidadeId);
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
@@ -73,19 +68,88 @@ export default function AnaliseConcorrencia() {
     enabled: !!empresaId,
   });
 
-  // Build nossosPrecos from actual product data
-  const nossosPrecos: Record<string, number> = {};
-  produtos.forEach((p: any) => {
-    if (p.nome && p.preco_venda) {
-      nossosPrecos[p.nome] = Number(p.preco_venda);
-    }
-  });
+  // Build pricing map: { produto: { portaria, telefone, unico } }
+  const nossosPrecos = useMemo(() => {
+    const map: Record<string, { portaria: number; telefone: number; unico: number }> = {};
+    produtos.forEach((p: any) => {
+      if (p.nome) {
+        map[p.nome] = {
+          portaria: Number(p.preco_portaria) || Number(p.preco_venda) || 0,
+          telefone: Number(p.preco_telefone) || Number(p.preco_venda) || 0,
+          unico: Number(p.preco_venda) || 0,
+        };
+      }
+    });
+    return map;
+  }, [produtos]);
+
+  // Analyse per product
+  const analise = useMemo(() => {
+    const produtosUnicos = [...new Set(registros.map((r: any) => r.produto))];
+    return produtosUnicos.map(produto => {
+      const regs = registros.filter((r: any) => r.produto === produto);
+      const regPortaria = regs.filter((r: any) => r.tipo_preco === "portaria");
+      const regTelefone = regs.filter((r: any) => r.tipo_preco === "telefone");
+      const allPrecos = regs.map((r: any) => Number(r.preco));
+      const menorPreco = Math.min(...allPrecos);
+      const maiorPreco = Math.max(...allPrecos);
+      
+      const nosso = nossosPrecos[produto] || { portaria: 0, telefone: 0, unico: 0 };
+      const mediaPortaria = regPortaria.length > 0 
+        ? regPortaria.reduce((s: number, r: any) => s + Number(r.preco), 0) / regPortaria.length : 0;
+      const mediaTelefone = regTelefone.length > 0
+        ? regTelefone.reduce((s: number, r: any) => s + Number(r.preco), 0) / regTelefone.length : 0;
+
+      // Score: 100 = cheapest, 0 = most expensive. Based on position relative to range
+      const calcScore = (nossoP: number, media: number) => {
+        if (nossoP <= 0 || media <= 0) return 50;
+        const diff = ((media - nossoP) / media) * 100;
+        return Math.max(0, Math.min(100, 50 + diff * 2));
+      };
+
+      return {
+        produto,
+        nossoPrecoPortaria: nosso.portaria,
+        nossoPrecoTelefone: nosso.telefone,
+        mediaPortaria,
+        mediaTelefone,
+        menorPreco,
+        maiorPreco,
+        concorrentes: regs.length,
+        scorePortaria: calcScore(nosso.portaria, mediaPortaria),
+        scoreTelefone: calcScore(nosso.telefone, mediaTelefone),
+      };
+    });
+  }, [registros, nossosPrecos]);
+
+  // Price alerts: competitors cheaper than us
+  const alertas = useMemo(() => {
+    const result: { produto: string; concorrente: string; precoConcorrente: number; nossoPreco: number; tipo: string; diff: number }[] = [];
+    registros.forEach((r: any) => {
+      const nosso = nossosPrecos[r.produto];
+      if (!nosso) return;
+      const tipo = r.tipo_preco || "unico";
+      const nossoPreco = tipo === "portaria" ? nosso.portaria : tipo === "telefone" ? nosso.telefone : nosso.unico;
+      if (nossoPreco > 0 && Number(r.preco) < nossoPreco) {
+        const diff = ((nossoPreco - Number(r.preco)) / nossoPreco) * 100;
+        if (diff >= 3) {
+          result.push({
+            produto: r.produto,
+            concorrente: r.concorrente_nome,
+            precoConcorrente: Number(r.preco),
+            nossoPreco,
+            tipo,
+            diff,
+          });
+        }
+      }
+    });
+    return result.sort((a, b) => b.diff - a.diff);
+  }, [registros, nossosPrecos]);
 
   const addMutation = useMutation({
     mutationFn: async () => {
-      if (!novoConcorrente || !novoProduto || !novoPreco) {
-        throw new Error("Preencha todos os campos");
-      }
+      if (!novoConcorrente || !novoProduto || !novoPreco) throw new Error("Preencha todos os campos");
       const { error } = await supabase.from("concorrente_precos").insert({
         empresa_id: empresaId,
         unidade_id: unidadeId || null,
@@ -121,18 +185,6 @@ export default function AnaliseConcorrencia() {
     },
   });
 
-  // Análise por produto
-  const produtosUnicos = [...new Set(registros.map((r: any) => r.produto))];
-  const analise = produtosUnicos.map(produto => {
-    const registrosProduto = registros.filter((r: any) => r.produto === produto);
-    const precoMedio = registrosProduto.reduce((s: number, r: any) => s + Number(r.preco), 0) / registrosProduto.length;
-    const menorPreco = Math.min(...registrosProduto.map((r: any) => Number(r.preco)));
-    const maiorPreco = Math.max(...registrosProduto.map((r: any) => Number(r.preco)));
-    const nossoPreco = nossosPrecos[produto] || 0;
-    const posicao = nossoPreco < precoMedio ? "abaixo" : nossoPreco > precoMedio ? "acima" : "na_media";
-    return { produto, precoMedio, menorPreco, maiorPreco, nossoPreco, posicao, concorrentes: registrosProduto.length };
-  });
-
   return (
     <MainLayout>
       <Header title="Análise de Concorrência" subtitle="Monitore preços e posicionamento" />
@@ -143,6 +195,7 @@ export default function AnaliseConcorrencia() {
               <TabsList>
                 <TabsTrigger value="mapa" className="gap-1.5"><MapPin className="h-4 w-4" />Mapa</TabsTrigger>
                 <TabsTrigger value="precos" className="gap-1.5"><BarChart3 className="h-4 w-4" />Preços</TabsTrigger>
+                <TabsTrigger value="evolucao" className="gap-1.5"><TrendingUp className="h-4 w-4" />Evolução</TabsTrigger>
               </TabsList>
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-2" />Registrar Preço</Button></DialogTrigger>
@@ -205,27 +258,11 @@ export default function AnaliseConcorrencia() {
             </TabsContent>
 
             <TabsContent value="precos" className="space-y-4">
-              {/* Posicionamento */}
-              <div className="grid gap-4 md:grid-cols-3">
-                {analise.map(a => (
-                  <Card key={a.produto}>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-semibold">{a.produto}</h3>
-                        <Badge variant={a.posicao === "abaixo" ? "default" : a.posicao === "acima" ? "destructive" : "secondary"}>
-                          {a.posicao === "abaixo" ? <><TrendingDown className="h-3 w-3 mr-1" />Competitivo</> : a.posicao === "acima" ? <><TrendingUp className="h-3 w-3 mr-1" />Acima</> : <><Minus className="h-3 w-3 mr-1" />Na média</>}
-                        </Badge>
-                      </div>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between"><span className="text-muted-foreground">Nosso preço</span><span className="font-bold text-primary">R$ {a.nossoPreco.toFixed(2)}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Média concorrência</span><span>R$ {a.precoMedio.toFixed(2)}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Menor / Maior</span><span>R$ {a.menorPreco.toFixed(2)} - R$ {a.maiorPreco.toFixed(2)}</span></div>
-                        <div className="flex justify-between"><span className="text-muted-foreground">Registros</span><span>{a.concorrentes}</span></div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              {/* Alertas */}
+              <AlertasPreco alertas={alertas} />
+
+              {/* Índice de competitividade */}
+              <IndiceCompetitividade analise={analise} />
 
               {/* Histórico */}
               <Card>
@@ -246,16 +283,18 @@ export default function AnaliseConcorrencia() {
                     </TableHeader>
                     <TableBody>
                       {registros.map((r: any) => {
-                        const nosso = nossosPrecos[r.produto] || 0;
-                        const diff = nosso > 0 ? ((Number(r.preco) - nosso) / nosso * 100) : 0;
+                        const nosso = nossosPrecos[r.produto];
+                        const tipo = r.tipo_preco || "unico";
+                        const nossoPreco = nosso ? (tipo === "portaria" ? nosso.portaria : tipo === "telefone" ? nosso.telefone : nosso.unico) : 0;
+                        const diff = nossoPreco > 0 ? ((Number(r.preco) - nossoPreco) / nossoPreco * 100) : 0;
                         return (
                           <TableRow key={r.id}>
                             <TableCell>{parseLocalDate(r.data).toLocaleDateString("pt-BR")}</TableCell>
                             <TableCell className="font-medium">{r.concorrente_nome}</TableCell>
                             <TableCell>{r.produto}</TableCell>
                             <TableCell>
-                              <Badge variant="outline" className={r.tipo_preco === 'portaria' ? 'border-blue-500 text-blue-600' : r.tipo_preco === 'telefone' ? 'border-orange-500 text-orange-600' : ''}>
-                                {r.tipo_preco === 'portaria' ? 'Portaria' : r.tipo_preco === 'telefone' ? 'Telefone' : 'Único'}
+                              <Badge variant="outline" className={tipo === 'portaria' ? 'border-blue-500 text-blue-600' : tipo === 'telefone' ? 'border-orange-500 text-orange-600' : ''}>
+                                {tipo === 'portaria' ? 'Portaria' : tipo === 'telefone' ? 'Telefone' : 'Único'}
                               </Badge>
                             </TableCell>
                             <TableCell>R$ {Number(r.preco).toFixed(2)}</TableCell>
@@ -284,6 +323,10 @@ export default function AnaliseConcorrencia() {
                   </Table>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="evolucao" className="space-y-4">
+              <GraficoEvolucaoPrecos registros={registros} nossosPrecos={nossosPrecos} />
             </TabsContent>
           </Tabs>
         </div>
