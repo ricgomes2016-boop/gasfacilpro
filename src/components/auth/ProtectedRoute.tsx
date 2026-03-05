@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Navigate, useLocation, Link } from "react-router-dom";
 import { useAuth, AppRole } from "@/contexts/AuthContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { detectSubdomainApp, getSubdomainDefaultRoute } from "@/lib/subdomain";
 import { Loader2 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -39,8 +40,13 @@ export function ProtectedRoute({
   if (requireAuth && !user) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
-  // Redirect to onboarding if admin has no empresa (skip for super_admin)
+  // Redirect to onboarding if admin has no empresa (skip for super_admin and painel subdomain)
+  const subdomainApp = detectSubdomainApp();
   if (user && needsOnboarding && roles.includes("admin") && !roles.includes("super_admin") && location.pathname !== "/onboarding") {
+    // On painel subdomain, don't redirect to onboarding — it's for super_admins only
+    if (subdomainApp === "painel") {
+      return <Navigate to="/auth" replace />;
+    }
     return <Navigate to="/onboarding" replace />;
   }
 
@@ -79,6 +85,11 @@ export function ProtectedRoute({
       if (roles.includes("entregador")) return <Navigate to="/entregador" replace />;
       if (roles.includes("parceiro")) return <Navigate to="/parceiro" replace />;
       if (roles.includes("contador")) return <Navigate to="/financeiro/contador" replace />;
+
+      // On restricted subdomains, redirect to auth instead of showing access denied with broken links
+      if (subdomainApp && subdomainApp !== "landing") {
+        return <Navigate to="/auth" replace />;
+      }
 
       return (
         <MainLayout>
