@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.pagamento-confirmar]
 verify_jwt = false
+
+[functions.recompra-whatsapp-dispatch]
+verify_jwt = false

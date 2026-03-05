@@ -6049,6 +6049,48 @@ export type Database = {
           },
         ]
       }
+      recompra_dispatches: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          id: string
+          mensagem: string
+          telefone: string | null
+          unidade_id: string | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          id?: string
+          mensagem: string
+          telefone?: string | null
+          unidade_id?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          mensagem?: string
+          telefone?: string | null
+          unidade_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recompra_dispatches_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recompra_dispatches_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rota_historico: {
         Row: {
           id: string
