@@ -47,6 +47,8 @@ interface Produto {
   categoria: string | null;
   preco: number;
   preco_custo?: number | null;
+  preco_portaria?: number | null;
+  preco_telefone?: number | null;
   estoque: number | null;
   ativo: boolean | null;
   codigo_barras: string | null;
@@ -60,6 +62,8 @@ interface ProdutoForm {
   categoria: string;
   preco: string;
   preco_custo: string;
+  preco_portaria: string;
+  preco_telefone: string;
   estoque: string;
   estoque_vazio: string;
   codigo_barras: string;
@@ -73,6 +77,8 @@ const initialForm: ProdutoForm = {
   categoria: "",
   preco: "",
   preco_custo: "",
+  preco_portaria: "",
+  preco_telefone: "",
   estoque: "",
   estoque_vazio: "0",
   codigo_barras: "",
@@ -177,6 +183,8 @@ export default function Produtos() {
           categoria,
           preco: parseFloat(dados.preco.replace(",", ".")) || 0,
           preco_custo: dados.preco_custo ? parseFloat(dados.preco_custo.replace(",", ".")) : null,
+          preco_portaria: dados.preco_portaria ? parseFloat(dados.preco_portaria.replace(",", ".")) : null,
+          preco_telefone: dados.preco_telefone ? parseFloat(dados.preco_telefone.replace(",", ".")) : null,
           estoque: parseInt(dados.estoque) || 0,
           codigo_barras: dados.codigo_barras || null,
           descricao: dados.descricao || null,
@@ -246,6 +254,8 @@ export default function Produtos() {
           categoria: dados.categoria || null,
           preco: parseFloat(dados.preco.replace(",", ".")) || 0,
           preco_custo: dados.preco_custo ? parseFloat(dados.preco_custo.replace(",", ".")) : null,
+          preco_portaria: dados.preco_portaria ? parseFloat(dados.preco_portaria.replace(",", ".")) : null,
+          preco_telefone: dados.preco_telefone ? parseFloat(dados.preco_telefone.replace(",", ".")) : null,
           estoque: parseInt(dados.estoque) || 0,
           codigo_barras: dados.codigo_barras || null,
           descricao: dados.descricao || null,
@@ -318,6 +328,8 @@ export default function Produtos() {
       categoria: produto.categoria || "",
       preco: produto.preco.toString().replace(".", ","),
       preco_custo: (produto.preco_custo ?? "").toString().replace(".", ","),
+      preco_portaria: (produto.preco_portaria ?? "").toString().replace(".", ","),
+      preco_telefone: (produto.preco_telefone ?? "").toString().replace(".", ","),
       estoque: (produto.estoque || 0).toString(),
       estoque_vazio: "0",
       codigo_barras: produto.codigo_barras || "",
@@ -500,6 +512,22 @@ export default function Produtos() {
                     placeholder="0,00"
                     value={form.preco}
                     onChange={(e) => setForm({ ...form, preco: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Preço Portaria (R$)</Label>
+                  <Input
+                    placeholder="0,00"
+                    value={form.preco_portaria}
+                    onChange={(e) => setForm({ ...form, preco_portaria: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Preço Telefone/Entrega (R$)</Label>
+                  <Input
+                    placeholder="0,00"
+                    value={form.preco_telefone}
+                    onChange={(e) => setForm({ ...form, preco_telefone: e.target.value })}
                   />
                 </div>
                 {!(form.categoria === "gas" || form.categoria === "agua") && (
