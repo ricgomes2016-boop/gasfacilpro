@@ -53,8 +53,12 @@ export function detectSubdomainApp(): SubdomainApp {
 
   // Check against known base domains
   for (const baseDomain of BASE_DOMAINS) {
-    // Root domain and www => landing
+    // Root domain and www
     if (hostname === baseDomain || hostname === `www.${baseDomain}`) {
+      // painel.gasfacilpro.com.br (root) => ERP dashboard
+      if (baseDomain === "painel.gasfacilpro.com.br") {
+        return "erp";
+      }
       return "landing";
     }
 
