@@ -1972,6 +1972,69 @@ export type Database = {
           },
         ]
       }
+      concorrentes: {
+        Row: {
+          created_at: string
+          empresa_id: string | null
+          endereco: string | null
+          id: string
+          latitude: number
+          longitude: number
+          nivel_ameaca: string
+          nome: string
+          observacoes: string | null
+          produtos_precos: Json | null
+          telefone: string | null
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id?: string | null
+          endereco?: string | null
+          id?: string
+          latitude: number
+          longitude: number
+          nivel_ameaca?: string
+          nome: string
+          observacoes?: string | null
+          produtos_precos?: Json | null
+          telefone?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string | null
+          endereco?: string | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          nivel_ameaca?: string
+          nome?: string
+          observacoes?: string | null
+          produtos_precos?: Json | null
+          telefone?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concorrentes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concorrentes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conferencia_cartao: {
         Row: {
           autorizacao: string | null
