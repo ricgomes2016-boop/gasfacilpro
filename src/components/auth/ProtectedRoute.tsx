@@ -77,6 +77,15 @@ export function ProtectedRoute({
 
   // If specific roles are required
   if (allowedRoles && allowedRoles.length > 0) {
+    // Wait for roles to load before denying access — prevents redirect loops
+    if (user && roles.length === 0) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+    }
+
     const hasAccess = allowedRoles.some((role) => roles.includes(role));
     
     if (!hasAccess) {
