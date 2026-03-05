@@ -29,6 +29,7 @@ const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
 
 // Known base domains for the SaaS
 const BASE_DOMAINS = [
+  "painel.gasfacilpro.com.br",
   "gasfacilpro.com.br",
   "gasfacil-entregas.lovable.app",
 ];
