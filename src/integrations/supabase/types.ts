@@ -7470,6 +7470,10 @@ export type Database = {
         Args: { _unidade_id: string; _user_id: string }
         Returns: boolean
       }
+      user_in_same_empresa: {
+        Args: { _target_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
