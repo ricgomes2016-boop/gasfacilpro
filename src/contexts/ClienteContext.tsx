@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSearchParams } from "react-router-dom";
 
 interface Product {
   id: string;
@@ -49,6 +51,13 @@ export interface LojaOption {
   bairro: string | null;
 }
 
+export interface EmpresaInfo {
+  id: string;
+  nome: string;
+  slug: string;
+  logo_url: string | null;
+}
+
 interface ClienteContextType {
   cart: CartItem[];
   addToCart: (product: Product, quantity?: number) => void;
@@ -77,11 +86,18 @@ interface ClienteContextType {
   lojaSelecionadaId: string | null;
   setLojaSelecionadaId: (id: string) => void;
   lojasLoading: boolean;
+
+  // Empresa do cliente
+  empresaInfo: EmpresaInfo | null;
+  empresaSlug: string | null;
 }
 
 const ClienteContext = createContext<ClienteContextType | undefined>(undefined);
 
 export function ClienteProvider({ children }: { children: ReactNode }) {
+  const { user, profile } = useAuth();
+  const [searchParams] = useSearchParams();
+  
   const [cart, setCart] = useState<CartItem[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [walletTransactions, setWalletTransactions] = useState<WalletTransaction[]>([]);
@@ -93,6 +109,10 @@ export function ClienteProvider({ children }: { children: ReactNode }) {
   
   const [purchases, setPurchases] = useState<Purchase[]>([]);
 
+  // Empresa
+  const [empresaInfo, setEmpresaInfo] = useState<EmpresaInfo | null>(null);
+  const [empresaSlug, setEmpresaSlug] = useState<string | null>(null);
+
   // Loja
   const [lojas, setLojas] = useState<LojaOption[]>([]);
   const [lojaSelecionadaId, setLojaSelecionadaIdState] = useState<string | null>(
@@ -100,13 +120,59 @@ export function ClienteProvider({ children }: { children: ReactNode }) {
   );
   const [lojasLoading, setLojasLoading] = useState(true);
 
+  // Resolve empresa: from URL param, localStorage, or user profile
+  useEffect(() => {
+    const resolveEmpresa = async () => {
+      // Priority 1: URL param ?empresa=slug
+      const slugFromUrl = searchParams.get("empresa");
+      // Priority 2: localStorage
+      const savedSlug = localStorage.getItem("cliente_empresa_slug");
+      // Priority 3: user profile empresa_id
+      
+      const slug = slugFromUrl || savedSlug;
+      
+      if (slug) {
+        setEmpresaSlug(slug);
+        localStorage.setItem("cliente_empresa_slug", slug);
+        
+        const { data } = await supabase.rpc("get_empresa_by_slug", { _slug: slug });
+        if (data && data.length > 0) {
+          setEmpresaInfo(data[0] as EmpresaInfo);
+        }
+      } else if (user && (profile as any)?.empresa_id) {
+        // Resolve from profile empresa_id
+        const { data } = await supabase
+          .from("empresas")
+          .select("id, nome, slug, logo_url")
+          .eq("id", (profile as any).empresa_id)
+          .single();
+        if (data) {
+          setEmpresaInfo(data as EmpresaInfo);
+          setEmpresaSlug(data.slug);
+          localStorage.setItem("cliente_empresa_slug", data.slug);
+        }
+      }
+    };
+    resolveEmpresa();
+  }, [searchParams, user, profile]);
+
+  // Fetch lojas filtered by empresa
   useEffect(() => {
     const fetchLojas = async () => {
-      const { data } = await supabase
+      setLojasLoading(true);
+      
+      let query = supabase
         .from("unidades")
         .select("id, nome, cidade, bairro")
         .eq("ativo", true)
         .order("nome");
+      
+      // Filter by empresa if known
+      if (empresaInfo?.id) {
+        query = query.eq("empresa_id", empresaInfo.id);
+      }
+      
+      const { data } = await query;
       if (data && data.length > 0) {
         setLojas(data);
         // Auto-select if only one or if saved is valid
@@ -117,11 +183,17 @@ export function ClienteProvider({ children }: { children: ReactNode }) {
           setLojaSelecionadaIdState(data[0].id);
           localStorage.setItem("cliente_loja_id", data[0].id);
         }
+      } else {
+        setLojas([]);
       }
       setLojasLoading(false);
     };
-    fetchLojas();
-  }, []);
+    
+    // Only fetch when empresa is resolved (or if no empresa context at all)
+    if (empresaInfo || (!searchParams.get("empresa") && !localStorage.getItem("cliente_empresa_slug"))) {
+      fetchLojas();
+    }
+  }, [empresaInfo, searchParams]);
 
   const setLojaSelecionadaId = (id: string) => {
     setLojaSelecionadaIdState(id);
@@ -221,6 +293,8 @@ export function ClienteProvider({ children }: { children: ReactNode }) {
       lojaSelecionadaId,
       setLojaSelecionadaId,
       lojasLoading,
+      empresaInfo,
+      empresaSlug,
     }}>
       {children}
     </ClienteContext.Provider>

@@ -55,11 +55,13 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
   const location = useLocation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { cartItemsCount: ctxCount } = useCliente();
+  const { cartItemsCount: ctxCount, empresaInfo } = useCliente();
   const cartItemsCount = cartItemsCountProp ?? ctxCount;
   const isCarrinhoPage = location.pathname === "/cliente/carrinho";
   const isCheckoutPage = location.pathname === "/cliente/checkout";
   const isHomeOrCategoria = location.pathname === "/cliente";
+
+  const empresaNome = empresaInfo?.nome || "Gás Fácil";
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -68,8 +70,12 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <img src={logoImg} alt="Nacional Gás" className="h-7 w-7 object-contain" />
-              <span className="font-bold text-lg">Gás Fácil</span>
+              {empresaInfo?.logo_url ? (
+                <img src={empresaInfo.logo_url} alt={empresaNome} className="h-7 w-7 object-contain rounded" />
+              ) : (
+                <img src={logoImg} alt={empresaNome} className="h-7 w-7 object-contain" />
+              )}
+              <span className="font-bold text-lg">{empresaNome}</span>
             </div>
             <LojaSelector />
           </div>
@@ -84,8 +90,12 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
               <div className="bg-primary text-primary-foreground p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <img src={logoImg} alt="Nacional Gás" className="h-7 w-7 object-contain" />
-                    <span className="font-bold text-lg">Gás Fácil</span>
+                    {empresaInfo?.logo_url ? (
+                      <img src={empresaInfo.logo_url} alt={empresaNome} className="h-7 w-7 object-contain rounded" />
+                    ) : (
+                      <img src={logoImg} alt={empresaNome} className="h-7 w-7 object-contain" />
+                    )}
+                    <span className="font-bold text-lg">{empresaNome}</span>
                   </div>
                   <Button 
                     variant="ghost" 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,16 +13,26 @@ import {
   Lock, 
   MapPin,
   ArrowRight,
-  ArrowLeft
+  ArrowLeft,
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCliente } from "@/contexts/ClienteContext";
 
 export default function ClienteCadastro() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { signUp } = useAuth();
+  const { empresaInfo, empresaSlug } = useCliente();
+  
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [referralCode, setReferralCode] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
+
+  // Get empresa slug from URL, context, or localStorage
+  const slug = searchParams.get("empresa") || empresaSlug || localStorage.getItem("cliente_empresa_slug") || undefined;
 
   const [formData, setFormData] = useState({
     name: "",
@@ -109,11 +119,21 @@ export default function ClienteCadastro() {
 
     setIsSubmitting(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const { error } = await signUp(formData.email, formData.password, formData.name, slug);
     
-    toast.success("Cadastro realizado com sucesso!");
-    navigate("/cliente");
+    if (error) {
+      if (error.message.includes("already registered")) {
+        toast.error("Este email já está cadastrado. Faça login.");
+      } else {
+        toast.error(error.message);
+      }
+      setIsSubmitting(false);
+      return;
+    }
+
+    toast.success("Cadastro realizado! Verifique seu email para confirmar a conta.");
+    navigate("/auth" + (slug ? `?empresa=${slug}` : ""));
+    setIsSubmitting(false);
   };
 
   const searchCep = async (cep: string) => {
@@ -140,13 +160,19 @@ export default function ClienteCadastro() {
     }
   };
 
+  const empresaNome = empresaInfo?.nome || "GásExpress";
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="bg-primary text-primary-foreground p-4">
         <div className="flex items-center gap-2">
-          <Flame className="h-6 w-6" />
-          <span className="font-bold text-lg">GásExpress</span>
+          {empresaInfo?.logo_url ? (
+            <img src={empresaInfo.logo_url} alt={empresaNome} className="h-6 w-6 object-contain rounded" />
+          ) : (
+            <Flame className="h-6 w-6" />
+          )}
+          <span className="font-bold text-lg">{empresaNome}</span>
         </div>
       </header>
 
@@ -376,7 +402,12 @@ export default function ClienteCadastro() {
                   className="flex-1"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Cadastrando..." : "Finalizar Cadastro"}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Cadastrando...
+                    </>
+                  ) : "Finalizar Cadastro"}
                 </Button>
               )}
             </div>
@@ -386,7 +417,10 @@ export default function ClienteCadastro() {
         {/* Login Link */}
         <p className="text-center mt-6 text-sm text-muted-foreground">
           Já tem conta?{" "}
-          <a href="#" className="text-primary font-medium">
+          <a 
+            href={`/auth${slug ? `?empresa=${slug}` : ""}`} 
+            className="text-primary font-medium"
+          >
             Fazer login
           </a>
         </p>

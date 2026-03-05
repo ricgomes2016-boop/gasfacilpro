@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,8 @@ const signupSchema = z.object({
 
 export default function Auth() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const empresaSlug = searchParams.get("empresa") || localStorage.getItem("cliente_empresa_slug") || undefined;
   const { user, signIn, signUp, loading, roles, loading: authLoading } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -107,7 +109,7 @@ export default function Auth() {
     }
 
     setIsLoading(true);
-    const { error } = await signUp(signupEmail, signupPassword, signupName);
+    const { error } = await signUp(signupEmail, signupPassword, signupName, empresaSlug);
     if (error) {
       if (error.message.includes("already registered")) {
         setErrors({ general: "Este email já está cadastrado" });
