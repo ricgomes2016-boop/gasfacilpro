@@ -16,6 +16,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageLoader } from "@/components/ui/page-loader";
 import { renderRoutes } from "@/routes/helpers";
 import { SubdomainGuard } from "@/components/routing/SubdomainGuard";
+import { detectSubdomainApp, getSubdomainDefaultRoute } from "@/lib/subdomain";
 
 // Route configurations
 import { adminRoutes } from "@/routes/adminRoutes";
@@ -40,6 +41,7 @@ import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 
 // Lazy load one-off pages
+const LandingPage = lazy(() => import("./pages/LandingPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OnboardingEmpresa = lazy(() => import("./pages/onboarding/OnboardingEmpresa"));
 const OnboardingSetup = lazy(() => import("./pages/onboarding/OnboardingSetup"));
@@ -47,6 +49,21 @@ const ComprarValeGas = lazy(() => import("./pages/publico/ComprarValeGas"));
 const Instalar = lazy(() => import("./pages/Instalar"));
 
 const queryClient = new QueryClient();
+
+/**
+ * Subdomain-aware root redirect.
+ * Landing page for root domain, app-specific default for subdomains.
+ */
+function RootRedirect() {
+  const app = detectSubdomainApp();
+  if (app === "landing" || app === null) {
+    // Dev or root domain — show landing or redirect to dashboard
+    if (app === "landing") return <LandingPage />;
+    return <Navigate to="/dashboard" replace />;
+  }
+  const defaultRoute = getSubdomainDefaultRoute(app);
+  return <Navigate to={defaultRoute} replace />;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -65,8 +82,8 @@ const App = () => (
                       <Suspense fallback={<PageLoader />}>
                         <SubdomainGuard>
                         <Routes>
-                          {/* Root redirect */}
-                          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                          {/* Root redirect — subdomain-aware */}
+                          <Route path="/" element={<RootRedirect />} />
 
                           {/* Public routes */}
                           <Route path="/auth" element={<Auth />} />
