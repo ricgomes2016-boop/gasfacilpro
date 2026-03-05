@@ -5975,6 +5975,8 @@ export type Database = {
           nome: string
           preco: number
           preco_custo: number | null
+          preco_portaria: number | null
+          preco_telefone: number | null
           tipo_botijao: string | null
           unidade_id: string | null
           updated_at: string
@@ -5992,6 +5994,8 @@ export type Database = {
           nome: string
           preco: number
           preco_custo?: number | null
+          preco_portaria?: number | null
+          preco_telefone?: number | null
           tipo_botijao?: string | null
           unidade_id?: string | null
           updated_at?: string
@@ -6009,6 +6013,8 @@ export type Database = {
           nome?: string
           preco?: number
           preco_custo?: number | null
+          preco_portaria?: number | null
+          preco_telefone?: number | null
           tipo_botijao?: string | null
           unidade_id?: string | null
           updated_at?: string
