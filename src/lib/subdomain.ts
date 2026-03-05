@@ -29,7 +29,6 @@ const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
 
 // Known base domains for the SaaS
 const BASE_DOMAINS = [
-  "painel.gasfacilpro.com.br",
   "gasfacilpro.com.br",
   "gasfacil-entregas.lovable.app",
 ];
@@ -53,12 +52,7 @@ export function detectSubdomainApp(): SubdomainApp {
 
   // Check against known base domains
   for (const baseDomain of BASE_DOMAINS) {
-    // Root domain and www
     if (hostname === baseDomain || hostname === `www.${baseDomain}`) {
-      // painel.gasfacilpro.com.br (root) => ERP dashboard
-      if (baseDomain === "painel.gasfacilpro.com.br") {
-        return "erp";
-      }
       return "landing";
     }
 
