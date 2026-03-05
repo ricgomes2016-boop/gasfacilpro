@@ -31,6 +31,7 @@ export default function AnaliseConcorrencia() {
   const [novoProduto, setNovoProduto] = useState("");
   const [novoPreco, setNovoPreco] = useState("");
   const [novaFonte, setNovaFonte] = useState("Visita");
+  const [novoTipoPreco, setNovoTipoPreco] = useState("unico");
 
   // Fetch price records from DB filtered by unidade
   const { data: registros = [] } = useQuery({
@@ -92,6 +93,7 @@ export default function AnaliseConcorrencia() {
         produto: novoProduto,
         preco: parseFloat(novoPreco),
         fonte: novaFonte,
+        tipo_preco: novoTipoPreco,
         data: getBrasiliaDateString(),
       } as any);
       if (error) throw error;
@@ -102,6 +104,7 @@ export default function AnaliseConcorrencia() {
       setNovoConcorrente("");
       setNovoProduto("");
       setNovoPreco("");
+      setNovoTipoPreco("unico");
       toast.success("Preço registrado!");
     },
     onError: (err: any) => toast.error(err.message || "Erro ao salvar"),
@@ -166,6 +169,16 @@ export default function AnaliseConcorrencia() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div><Label>Tipo de Preço</Label>
+                      <Select value={novoTipoPreco} onValueChange={setNovoTipoPreco}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unico">Preço Único</SelectItem>
+                          <SelectItem value="portaria">Portaria (retira)</SelectItem>
+                          <SelectItem value="telefone">Telefone (entrega)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <div><Label>Preço (R$)</Label><Input type="number" value={novoPreco} onChange={e => setNovoPreco(e.target.value)} placeholder="0,00" /></div>
                     <div><Label>Fonte</Label>
                       <Select value={novaFonte} onValueChange={setNovaFonte}>
@@ -224,6 +237,7 @@ export default function AnaliseConcorrencia() {
                         <TableHead>Data</TableHead>
                         <TableHead>Concorrente</TableHead>
                         <TableHead>Produto</TableHead>
+                        <TableHead>Tipo</TableHead>
                         <TableHead>Preço</TableHead>
                         <TableHead>Fonte</TableHead>
                         <TableHead>vs Nosso</TableHead>
@@ -239,6 +253,11 @@ export default function AnaliseConcorrencia() {
                             <TableCell>{parseLocalDate(r.data).toLocaleDateString("pt-BR")}</TableCell>
                             <TableCell className="font-medium">{r.concorrente_nome}</TableCell>
                             <TableCell>{r.produto}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={r.tipo_preco === 'portaria' ? 'border-blue-500 text-blue-600' : r.tipo_preco === 'telefone' ? 'border-orange-500 text-orange-600' : ''}>
+                                {r.tipo_preco === 'portaria' ? 'Portaria' : r.tipo_preco === 'telefone' ? 'Telefone' : 'Único'}
+                              </Badge>
+                            </TableCell>
                             <TableCell>R$ {Number(r.preco).toFixed(2)}</TableCell>
                             <TableCell><Badge variant="outline">{r.fonte}</Badge></TableCell>
                             <TableCell>
@@ -256,7 +275,7 @@ export default function AnaliseConcorrencia() {
                       })}
                       {registros.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                          <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                             Nenhum registro de preço para esta unidade
                           </TableCell>
                         </TableRow>
