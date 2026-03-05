@@ -182,10 +182,10 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
 
   // Check subscription when user and empresa are ready
   useEffect(() => {
-    if (user && !authLoading) {
+    if (user && !authLoading && isStaff) {
       checkSubscription();
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, roles]);
 
   // Auto-refresh subscription every 60 seconds
   useEffect(() => {
