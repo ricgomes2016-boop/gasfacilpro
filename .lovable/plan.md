@@ -1,34 +1,18 @@
 
 
-## Analysis
+## Problem
 
-The current `subdomain.ts` already has the correct configuration with both base domains:
+The `check-subscription` edge function returns 500 with "Auth session missing!" because `checkSubscription()` is called as soon as `user` exists, but the auth session token may not be fully ready yet. Also, it runs for ALL users (including clients, drivers) who don't need subscription checks.
 
-```text
-BASE_DOMAINS = [
-  "painel.gasfacilpro.com.br",   ← nested subdomain base
-  "gasfacilpro.com.br",          ← root base domain
-  "gasfacil-entregas.lovable.app"
-]
-```
+## Plan
 
-This means the routing currently works as follows:
+1. **`src/contexts/EmpresaContext.tsx`** — Guard the `checkSubscription` call:
+   - Only call it when `user` exists AND `roles` are loaded (not empty)
+   - Only call it for staff/admin users who actually need subscription info
+   - Add `roles` to the dependency array of the useEffect that triggers the check
+   - This prevents the 500 error for unauthenticated sessions and unnecessary calls for non-staff users
 
-| URL | Detected App | Route |
-|-----|-------------|-------|
-| `gasfacilpro.com.br` | landing | `/` |
-| `entregador.painel.gasfacilpro.com.br` | entregador | `/entregador/dashboard` |
-| `clientes.painel.gasfacilpro.com.br` | cliente | `/cliente` |
-| `painel.painel.gasfacilpro.com.br` | painel (admin) | `/admin` |
-| `app.painel.gasfacilpro.com.br` | erp | `/dashboard` |
-| `portal.painel.gasfacilpro.com.br` | parceiro | `/parceiro/dashboard` |
-| `painel.gasfacilpro.com.br` (root) | **landing** | `/` |
+### Changes
 
-**One question:** `painel.gasfacilpro.com.br` (without prefix) currently shows the **landing page**. Should it instead show the **ERP dashboard** (`/dashboard`)? If so, a small change is needed to map the root of that base domain to "erp" instead of "landing".
-
-### Plan
-
-1. **Update `detectSubdomainApp()`** in `src/lib/subdomain.ts` — when hostname exactly matches `painel.gasfacilpro.com.br`, return `"erp"` instead of `"landing"`, so the main app domain serves the ERP dashboard.
-2. **Update comments** to reflect the correct subdomain structure under `painel.gasfacilpro.com.br`.
-3. **No other files need changes** — `SubdomainGuard`, `Auth.tsx`, and `ProtectedRoute` already handle all app types correctly.
+In the useEffect at line 184-188, change the condition from `if (user && !authLoading)` to `if (user && !authLoading && isStaff)`, and add `roles` to deps so `isStaff` is evaluated correctly.
 
