@@ -218,7 +218,7 @@ export function ConcorrentesMap() {
         </p>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="h-[450px] rounded-b-lg overflow-hidden relative">
+        <div className="h-[450px] rounded-b-lg overflow-hidden relative z-0">
           <MapContainer
             center={[unidadeLat, unidadeLng]}
             zoom={14}
