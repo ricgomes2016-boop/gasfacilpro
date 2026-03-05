@@ -193,3 +193,12 @@
     }
   }
 }
+
+/* Leaflet map z-index containment */
+.leaflet-container {
+  z-index: 0 !important;
+}
+.leaflet-pane,
+.leaflet-control {
+  z-index: auto;
+}

@@ -73,7 +73,7 @@ export default function AnaliseConcorrencia() {
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
           <Tabs defaultValue="mapa" className="w-full">
-            <div className="flex items-center justify-between mb-4 relative z-10">
+            <div className="flex items-center justify-between mb-4 relative z-20">
               <TabsList>
                 <TabsTrigger value="mapa" className="gap-1.5"><MapPin className="h-4 w-4" />Mapa</TabsTrigger>
                 <TabsTrigger value="precos" className="gap-1.5"><BarChart3 className="h-4 w-4" />Preços</TabsTrigger>

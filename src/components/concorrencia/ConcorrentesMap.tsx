@@ -87,13 +87,19 @@ export function ConcorrentesMap() {
   const unidadeLat = unidadeAtual?.latitude || -23.31;
   const unidadeLng = unidadeAtual?.longitude || -51.16;
 
+  const unidadeId = unidadeAtual?.id;
+
   const { data: concorrentes = [], isLoading } = useQuery({
-    queryKey: ["concorrentes", empresaId],
+    queryKey: ["concorrentes", empresaId, unidadeId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("concorrentes")
         .select("*")
         .order("nome");
+      if (unidadeId) {
+        query = query.eq("unidade_id", unidadeId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as Concorrente[];
     },
@@ -218,7 +224,7 @@ export function ConcorrentesMap() {
         </p>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="h-[450px] rounded-b-lg overflow-hidden relative z-0">
+        <div className="h-[450px] rounded-b-lg overflow-hidden relative" style={{ zIndex: 0 }}>
           <MapContainer
             center={[unidadeLat, unidadeLng]}
             zoom={14}
