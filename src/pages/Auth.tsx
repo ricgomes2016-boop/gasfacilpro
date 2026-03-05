@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { detectSubdomainApp, getSubdomainDefaultRoute } from "@/lib/subdomain";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,15 +44,33 @@ export default function Auth() {
 
   useEffect(() => {
     if (!user || loading) return;
-    // Wait until roles are loaded (trigger creates role async, so give it a moment)
+    
+    const subdomainApp = detectSubdomainApp();
+    
+    // If on a specific subdomain, redirect to its default route after login
+    if (subdomainApp && subdomainApp !== "landing") {
+      const defaultRoute = getSubdomainDefaultRoute(subdomainApp);
+      // Wait for roles if needed, but redirect to subdomain default
+      if (roles.length === 0) {
+        const timer = setTimeout(() => {
+          navigate(defaultRoute);
+        }, 2000);
+        return () => clearTimeout(timer);
+      }
+      navigate(defaultRoute);
+      return;
+    }
+    
+    // Standard redirect logic (no subdomain / dev mode)
     if (roles.length === 0) {
       const timer = setTimeout(() => {
-        // If still no roles after delay, default to cliente
         navigate("/cliente");
       }, 2000);
       return () => clearTimeout(timer);
     }
-    if (roles.includes("cliente") && !roles.includes("admin") && !roles.includes("gestor")) {
+    if (roles.includes("super_admin")) {
+      navigate("/admin");
+    } else if (roles.includes("cliente") && !roles.includes("admin") && !roles.includes("gestor")) {
       navigate("/cliente");
     } else if (roles.includes("parceiro") && !roles.includes("admin") && !roles.includes("gestor")) {
       navigate("/parceiro");
