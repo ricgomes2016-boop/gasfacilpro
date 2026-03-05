@@ -60,7 +60,7 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
   const isStaff = roles.some(r => ["admin", "gestor", "financeiro", "operacional"].includes(r));
 
   const checkSubscription = useCallback(async () => {
-    if (!user) {
+    if (!user || !isStaff || roles.length === 0) {
       setSubscription(defaultSubscription);
       return;
     }
@@ -109,7 +109,7 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
     } finally {
       setSubscriptionLoading(false);
     }
-  }, [user, empresa]);
+  }, [user, isStaff, roles.length, empresa]);
 
   const fetchEmpresa = async () => {
     if (!user) {
@@ -185,14 +185,14 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
     if (user && !authLoading && isStaff) {
       checkSubscription();
     }
-  }, [user, authLoading, roles]);
+  }, [user, authLoading, isStaff, checkSubscription]);
 
-  // Auto-refresh subscription every 60 seconds
+  // Auto-refresh subscription every 60 seconds (staff only)
   useEffect(() => {
-    if (!user) return;
+    if (!user || !isStaff) return;
     const interval = setInterval(checkSubscription, 60000);
     return () => clearInterval(interval);
-  }, [user, checkSubscription]);
+  }, [user, isStaff, checkSubscription]);
 
   return (
     <EmpresaContext.Provider
