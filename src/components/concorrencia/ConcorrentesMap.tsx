@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Plus, Search, Trash2, Target, Store } from "lucide-react";
+import { MapPin, Plus, Search, Trash2, Target, Store, GripVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -86,8 +86,42 @@ export function ConcorrentesMap() {
   // Unidade location for center
   const unidadeLat = unidadeAtual?.latitude || -23.31;
   const unidadeLng = unidadeAtual?.longitude || -51.16;
-
   const unidadeId = unidadeAtual?.id;
+  const unidadeCidade = unidadeAtual?.cidade;
+
+  // Query sibling units (same city, same empresa)
+  const { data: siblingUnidades = [] } = useQuery({
+    queryKey: ["sibling-unidades", empresaId, unidadeCidade, unidadeId],
+    queryFn: async () => {
+      if (!unidadeCidade) return [];
+      const { data, error } = await supabase
+        .from("unidades")
+        .select("id, nome, latitude, longitude, tipo, cidade")
+        .eq("empresa_id", empresaId!)
+        .eq("cidade", unidadeCidade)
+        .eq("ativo", true)
+        .neq("id", unidadeId!);
+      if (error) throw error;
+      return (data || []).filter((u) => u.latitude && u.longitude);
+    },
+    enabled: !!empresaId && !!unidadeCidade && !!unidadeId,
+  });
+
+  // Mutation to update unit coordinates
+  const updateUnitCoords = useMutation({
+    mutationFn: async ({ id, lat, lng }: { id: string; lat: number; lng: number }) => {
+      const { error } = await supabase
+        .from("unidades")
+        .update({ latitude: lat, longitude: lng })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sibling-unidades"] });
+      toast.success("Localização da unidade atualizada!");
+    },
+    onError: () => toast.error("Erro ao atualizar localização"),
+  });
 
   const { data: concorrentes = [], isLoading } = useQuery({
     queryKey: ["concorrentes", empresaId, unidadeId],
@@ -237,15 +271,58 @@ export function ConcorrentesMap() {
             />
             <ClickHandler onMapClick={handleMapClick} />
 
-            {/* Our unit */}
-            <Marker position={[unidadeLat, unidadeLng]} icon={createIcon("#3b82f6", true)}>
+            {/* Our unit - draggable */}
+            <Marker
+              position={[unidadeLat, unidadeLng]}
+              icon={createIcon("#3b82f6", true)}
+              draggable={true}
+              eventHandlers={{
+                dragend: (e) => {
+                  const marker = e.target;
+                  const pos = marker.getLatLng();
+                  if (unidadeId) {
+                    updateUnitCoords.mutate({ id: unidadeId, lat: pos.lat, lng: pos.lng });
+                  }
+                },
+              }}
+            >
               <Popup>
                 <div className="text-center">
                   <strong className="text-sm">{unidadeAtual?.nome || "Nossa Unidade"}</strong>
-                  <p className="text-xs text-gray-500 mt-1">📍 Sua localização</p>
+                  <p className="text-xs text-muted-foreground mt-1">📍 Sua localização</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
+                    <GripVertical className="h-3 w-3" /> Arraste para corrigir
+                  </p>
                 </div>
               </Popup>
             </Marker>
+
+            {/* Sibling units in same city */}
+            {siblingUnidades.map((u) => (
+              <Marker
+                key={u.id}
+                position={[u.latitude!, u.longitude!]}
+                icon={createIcon("#6366f1", true)}
+                draggable={true}
+                eventHandlers={{
+                  dragend: (e) => {
+                    const marker = e.target;
+                    const pos = marker.getLatLng();
+                    updateUnitCoords.mutate({ id: u.id, lat: pos.lat, lng: pos.lng });
+                  },
+                }}
+              >
+                <Popup>
+                  <div className="text-center">
+                    <strong className="text-sm">{u.nome}</strong>
+                    <Badge variant="outline" className="text-[10px] mt-1 block">{u.tipo}</Badge>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
+                      <GripVertical className="h-3 w-3" /> Arraste para corrigir
+                    </p>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
 
             {/* Radius circle */}
             <Circle
@@ -305,8 +382,14 @@ export function ConcorrentesMap() {
           <div className="absolute bottom-3 left-3 bg-background/90 backdrop-blur-sm rounded-lg p-2 z-[1000] text-xs space-y-1 border">
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-blue-500 border border-white" />
-              <span>Sua unidade</span>
+              <span>Sua unidade (arraste)</span>
             </div>
+            {siblingUnidades.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full border border-white" style={{ background: "#6366f1" }} />
+                <span>Outras unidades</span>
+              </div>
+            )}
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full border border-white" style={{ background: ameacaCores.alto }} />
               <span>Ameaça alta</span>
