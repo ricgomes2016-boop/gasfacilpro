@@ -76,7 +76,7 @@ export function detectSubdomainApp(): SubdomainApp {
 export function getSubdomainDefaultRoute(app: SubdomainApp): string {
   switch (app) {
     case "cliente": return "/cliente";
-    case "entregador": return "/entregador/dashboard";
+    case "entregador": return "/entregador";
     case "parceiro": return "/parceiro/dashboard";
     case "painel": return "/admin";
     case "landing": return "/";

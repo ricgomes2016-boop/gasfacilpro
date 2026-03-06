@@ -19,7 +19,7 @@ export default function AuthEntregador() {
 
   useEffect(() => {
     if (!user || loading) return;
-    navigate("/entregador/dashboard");
+    navigate("/entregador");
   }, [user, loading, navigate]);
 
   if (loading) {
