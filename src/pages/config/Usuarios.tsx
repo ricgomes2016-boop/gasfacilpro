@@ -57,6 +57,9 @@ const roleLabels: Record<AppRole, string> = {
   contador: "Contador",
 };
 
+// System roles available in Usuários — entregador/cliente/parceiro are managed elsewhere
+const systemRoles: AppRole[] = ["admin", "gestor", "financeiro", "operacional", "contador"];
+
 export default function Usuarios() {
   const { checkUserLimit } = usePlanLimits();
   const [users, setUsers] = useState<UserWithRoles[]>([]);

@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Plus, Search, Edit, Trash2, Phone, Briefcase, Truck,
-  LinkIcon, UserCheck, CreditCard,
+  LinkIcon, CreditCard, Mail, Lock, Loader2, UserCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -55,18 +55,13 @@ interface TerminalOption {
   numero_serie: string | null;
 }
 
-interface UserOption {
-  user_id: string;
-  full_name: string;
-  email: string;
-}
-
 const emptyForm = {
   nome: "", cpf: "", telefone: "", email: "",
   cargo: "", setor: "", data_admissao: "", salario: "", endereco: "",
   is_entregador: false,
   cnh: "",
-  user_id: "",
+  login_email: "",
+  login_password: "",
   terminal_id: "",
 };
 
@@ -74,12 +69,12 @@ export default function Funcionarios() {
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [entregadores, setEntregadores] = useState<Entregador[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"todos" | "entregadores" | "internos">("todos");
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
-  const [users, setUsers] = useState<UserOption[]>([]);
   const [terminais, setTerminais] = useState<TerminalOption[]>([]);
   const { unidadeAtual } = useUnidade();
 
@@ -114,22 +109,6 @@ export default function Funcionarios() {
     setEntregadores(data || []);
   };
 
-  const fetchUsers = async () => {
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("user_id")
-      .eq("role", "entregador");
-
-    if (!roles?.length) return;
-
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("user_id, full_name, email")
-      .in("user_id", roles.map(r => r.user_id));
-
-    setUsers(profiles || []);
-  };
-
   const fetchTerminais = async () => {
     const { data } = await (supabase.from("terminais_cartao" as any).select("id, nome, numero_serie") as any);
     setTerminais((data || []) as TerminalOption[]);
@@ -138,7 +117,6 @@ export default function Funcionarios() {
   useEffect(() => {
     fetchFuncionarios();
     fetchEntregadores();
-    fetchUsers();
     fetchTerminais();
   }, [unidadeAtual?.id]);
 
@@ -148,69 +126,124 @@ export default function Funcionarios() {
   const handleSave = async () => {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
 
-    const payload: any = {
-      nome: form.nome,
-      cpf: form.cpf || null,
-      telefone: form.telefone || null,
-      email: form.email || null,
-      cargo: form.is_entregador ? "Entregador" : (form.cargo || null),
-      setor: form.setor || null,
-      data_admissao: form.data_admissao || null,
-      salario: form.salario ? parseFloat(form.salario) : 0,
-      endereco: form.endereco || null,
-    };
-    if (!editId && unidadeAtual?.id) {
-      payload.unidade_id = unidadeAtual.id;
+    // Validate entregador login fields for new entregadores without existing user
+    const existingEntregador = editId ? getEntregadorForFuncionario(editId) : null;
+    const needsNewUser = form.is_entregador && !existingEntregador?.user_id;
+
+    if (needsNewUser) {
+      if (!form.login_email) {
+        toast.error("Email de acesso é obrigatório para entregadores");
+        return;
+      }
+      if (!form.login_password || form.login_password.length < 6) {
+        toast.error("Senha deve ter no mínimo 6 caracteres");
+        return;
+      }
     }
 
-    let funcionarioId = editId;
+    setSaving(true);
 
-    if (editId) {
-      const { error } = await supabase.from("funcionarios").update(payload).eq("id", editId);
-      if (error) { toast.error("Erro ao atualizar: " + error.message); return; }
-    } else {
-      const { data, error } = await supabase.from("funcionarios").insert(payload).select("id").single();
-      if (error) { toast.error("Erro ao salvar: " + error.message); return; }
-      funcionarioId = data.id;
-    }
-
-    // Sync entregador record
-    if (form.is_entregador && funcionarioId) {
-      const existing = entregadores.find(e => e.funcionario_id === funcionarioId);
-      const entregadorPayload: any = {
+    try {
+      const payload: any = {
         nome: form.nome,
         cpf: form.cpf || null,
-        cnh: form.cnh || null,
         telefone: form.telefone || null,
         email: form.email || null,
-        user_id: form.user_id || null,
-        terminal_id: form.terminal_id || null,
-        funcionario_id: funcionarioId,
-        ativo: true,
+        cargo: form.is_entregador ? "Entregador" : (form.cargo || null),
+        setor: form.setor || null,
+        data_admissao: form.data_admissao || null,
+        salario: form.salario ? parseFloat(form.salario) : 0,
+        endereco: form.endereco || null,
       };
-      if (unidadeAtual?.id) {
-        entregadorPayload.unidade_id = unidadeAtual.id;
+      if (!editId && unidadeAtual?.id) {
+        payload.unidade_id = unidadeAtual.id;
       }
 
-      if (existing) {
-        await supabase.from("entregadores").update(entregadorPayload).eq("id", existing.id);
+      let funcionarioId = editId;
+
+      if (editId) {
+        const { error } = await supabase.from("funcionarios").update(payload).eq("id", editId);
+        if (error) { toast.error("Erro ao atualizar: " + error.message); setSaving(false); return; }
       } else {
-        await supabase.from("entregadores").insert(entregadorPayload);
+        const { data, error } = await supabase.from("funcionarios").insert(payload).select("id").single();
+        if (error) { toast.error("Erro ao salvar: " + error.message); setSaving(false); return; }
+        funcionarioId = data.id;
       }
-    } else if (!form.is_entregador && funcionarioId) {
-      // Remove entregador link if unchecked
-      const existing = entregadores.find(e => e.funcionario_id === funcionarioId);
-      if (existing) {
-        await supabase.from("entregadores").update({ ativo: false }).eq("id", existing.id);
-      }
-    }
 
-    toast.success(editId ? "Funcionário atualizado!" : "Funcionário cadastrado!");
-    setOpen(false);
-    setForm(emptyForm);
-    setEditId(null);
-    fetchFuncionarios();
-    fetchEntregadores();
+      // Sync entregador record
+      if (form.is_entregador && funcionarioId) {
+        let userId = existingEntregador?.user_id || null;
+
+        // Create auth user if needed
+        if (needsNewUser) {
+          const { data: createData, error: createError } = await supabase.functions.invoke("manage-users", {
+            body: {
+              action: "create",
+              email: form.login_email,
+              password: form.login_password,
+              full_name: form.nome,
+              phone: form.telefone || undefined,
+              role: "entregador",
+              unidade_ids: unidadeAtual?.id ? [unidadeAtual.id] : [],
+            },
+          });
+
+          if (createError) {
+            toast.error("Erro ao criar acesso: " + createError.message);
+            setSaving(false);
+            return;
+          }
+          if (createData?.error) {
+            toast.error("Erro ao criar acesso: " + createData.error);
+            setSaving(false);
+            return;
+          }
+
+          userId = createData.user_id;
+        }
+
+        const existing = entregadores.find(e => e.funcionario_id === funcionarioId);
+        const entregadorPayload: any = {
+          nome: form.nome,
+          cpf: form.cpf || null,
+          cnh: form.cnh || null,
+          telefone: form.telefone || null,
+          email: form.login_email || form.email || null,
+          user_id: userId,
+          terminal_id: form.terminal_id || null,
+          funcionario_id: funcionarioId,
+          ativo: true,
+        };
+        if (unidadeAtual?.id) {
+          entregadorPayload.unidade_id = unidadeAtual.id;
+        }
+
+        if (existing) {
+          await supabase.from("entregadores").update(entregadorPayload).eq("id", existing.id);
+        } else {
+          await supabase.from("entregadores").insert(entregadorPayload);
+        }
+      } else if (!form.is_entregador && funcionarioId) {
+        const existing = entregadores.find(e => e.funcionario_id === funcionarioId);
+        if (existing) {
+          await supabase.from("entregadores").update({ ativo: false }).eq("id", existing.id);
+        }
+      }
+
+      toast.success(editId ? "Funcionário atualizado!" : "Funcionário cadastrado!");
+      if (needsNewUser) {
+        toast.success("Acesso ao app do entregador criado automaticamente!");
+      }
+      setOpen(false);
+      setForm(emptyForm);
+      setEditId(null);
+      fetchFuncionarios();
+      fetchEntregadores();
+    } catch (err: any) {
+      toast.error("Erro: " + err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEdit = (f: Funcionario) => {
@@ -227,7 +260,8 @@ export default function Funcionarios() {
       endereco: "",
       is_entregador: !!entregador,
       cnh: entregador?.cnh || "",
-      user_id: entregador?.user_id || "",
+      login_email: "",
+      login_password: "",
       terminal_id: entregador?.terminal_id || "",
     });
     setEditId(f.id);
@@ -235,9 +269,7 @@ export default function Funcionarios() {
   };
 
   const handleDelete = async (id: string) => {
-    // Deactivate funcionario
     await supabase.from("funcionarios").update({ ativo: false }).eq("id", id);
-    // Deactivate linked entregador
     const linked = entregadores.find(e => e.funcionario_id === id);
     if (linked) {
       await supabase.from("entregadores").update({ ativo: false }).eq("id", linked.id);
@@ -247,7 +279,6 @@ export default function Funcionarios() {
     fetchEntregadores();
   };
 
-  // Filter logic
   const entregadorFuncIds = new Set(entregadores.map(e => e.funcionario_id).filter(Boolean));
 
   const filtered = funcionarios.filter(f => {
@@ -260,12 +291,6 @@ export default function Funcionarios() {
 
   const totalSalarios = funcionarios.reduce((s, f) => s + (f.salario || 0), 0);
   const totalEntregadores = entregadores.length;
-
-  // IDs de usuários já vinculados
-  const linkedUserIds = entregadores
-    .filter(e => e.user_id && e.funcionario_id !== editId)
-    .map(e => e.user_id);
-  const availableUsers = users.filter(u => !linkedUserIds.includes(u.user_id));
 
   return (
     <MainLayout>
@@ -295,7 +320,7 @@ export default function Funcionarios() {
                   <Input value={form.telefone} onChange={e => setForm({...form, telefone: e.target.value})} placeholder="(00) 00000-0000" />
                 </div>
                 <div className="space-y-2">
-                  <Label>E-mail</Label>
+                  <Label>E-mail Pessoal</Label>
                   <Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} type="email" />
                 </div>
                 <div className="space-y-2">
@@ -337,7 +362,7 @@ export default function Funcionarios() {
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Marque para habilitar campos de entregador (CNH, vinculação de usuário e maquininha).
+                    Marque para habilitar campos de entregador. O acesso ao app será criado automaticamente.
                   </p>
 
                   {form.is_entregador && (
@@ -347,28 +372,53 @@ export default function Funcionarios() {
                         <Input value={form.cnh} onChange={e => setForm({...form, cnh: e.target.value})} placeholder="Número da CNH" />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label className="flex items-center gap-1">
-                          <LinkIcon className="h-3.5 w-3.5" />
-                          Vincular ao Usuário do Sistema
-                        </Label>
-                        <Select value={form.user_id} onValueChange={(v) => setForm({...form, user_id: v === "none" ? "" : v})}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um usuário (opcional)" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Nenhum</SelectItem>
-                            {availableUsers.map(u => (
-                              <SelectItem key={u.user_id} value={u.user_id}>
-                                {u.full_name} ({u.email})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          Vincule a um usuário com perfil "entregador" para acesso ao app.
-                        </p>
-                      </div>
+                      {/* Login credentials - only show if no user linked yet */}
+                      {(() => {
+                        const existingEntregador = editId ? getEntregadorForFuncionario(editId) : null;
+                        const hasUser = !!existingEntregador?.user_id;
+
+                        if (hasUser) {
+                          return (
+                            <div className="flex items-center gap-2 p-3 rounded-md bg-primary/5 border border-primary/20">
+                              <UserCheck className="h-4 w-4 text-primary" />
+                              <span className="text-sm text-primary">Acesso ao app já configurado</span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="space-y-3 p-3 rounded-md bg-accent/30 border border-accent/50">
+                            <p className="text-sm font-medium flex items-center gap-2">
+                              <Mail className="h-4 w-4" />
+                              Credenciais de Acesso ao App
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              O entregador usará essas credenciais para acessar o app de entregas.
+                            </p>
+                            <div className="space-y-2">
+                              <Label>Email de Login *</Label>
+                              <Input
+                                value={form.login_email}
+                                onChange={e => setForm({...form, login_email: e.target.value})}
+                                type="email"
+                                placeholder="entregador@empresa.com"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="flex items-center gap-1">
+                                <Lock className="h-3.5 w-3.5" />
+                                Senha *
+                              </Label>
+                              <Input
+                                value={form.login_password}
+                                onChange={e => setForm({...form, login_password: e.target.value})}
+                                type="password"
+                                placeholder="Mínimo 6 caracteres"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       <div className="space-y-2">
                         <Label className="flex items-center gap-1">
@@ -395,7 +445,10 @@ export default function Funcionarios() {
               </div>
               <div className="flex justify-end gap-2 mt-4">
                 <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button onClick={handleSave}>{editId ? "Atualizar" : "Salvar"}</Button>
+                <Button onClick={handleSave} disabled={saving}>
+                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {editId ? "Atualizar" : "Salvar"}
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -462,14 +515,13 @@ export default function Funcionarios() {
                     <TableHead className="hidden lg:table-cell">Admissão</TableHead>
                     <TableHead className="hidden lg:table-cell">Salário</TableHead>
                     <TableHead>Tipo</TableHead>
-                    <TableHead className="hidden lg:table-cell">Vinculado</TableHead>
+                    <TableHead className="hidden lg:table-cell">Acesso App</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.map(f => {
                     const entregador = getEntregadorForFuncionario(f.id);
-                    const linkedUser = entregador?.user_id ? users.find(u => u.user_id === entregador.user_id) : null;
                     return (
                       <TableRow key={f.id}>
                         <TableCell className="font-medium">{f.nome}</TableCell>
@@ -494,13 +546,13 @@ export default function Funcionarios() {
                           )}
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
-                          {linkedUser ? (
-                            <Badge variant="outline" className="gap-1 text-xs">
-                              <LinkIcon className="h-3 w-3" />
-                              {linkedUser.email}
+                          {entregador?.user_id ? (
+                            <Badge variant="outline" className="gap-1 text-xs text-primary">
+                              <UserCheck className="h-3 w-3" />
+                              Configurado
                             </Badge>
                           ) : entregador ? (
-                            <span className="text-muted-foreground text-xs">Não vinculado</span>
+                            <span className="text-muted-foreground text-xs">Sem acesso</span>
                           ) : (
                             <span className="text-muted-foreground text-xs">—</span>
                           )}
