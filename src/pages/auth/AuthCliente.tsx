@@ -327,6 +327,11 @@ export default function AuthCliente() {
               <TabsTrigger value="signup">Criar Conta</TabsTrigger>
             </TabsList>
 
+            {roleError && (
+              <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+                Esta conta não é de cliente. Se você é administrador, acesse pelo sistema ERP.
+              </div>
+            )}
             {form.errors.general && (
               <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
                 {form.errors.general}
