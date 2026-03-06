@@ -34,7 +34,7 @@ export default function AplicativoCliente() {
       const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
       const clientesRes: any = await supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa!.id);
-      const pedidosRes: any = await supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("empresa_id", empresa!.id).gte("created_at", firstOfMonth);
+      const pedidosRes: any = await (supabase.from("pedidos").select("id", { count: "exact", head: true }) as any).eq("empresa_id", empresa!.id).gte("created_at", firstOfMonth);
       const avaliacoesRes: any = await supabase.from("avaliacoes_entrega").select("nota_entregador").not("nota_entregador", "is", null).limit(500);
 
       const notas = avaliacoesRes.data ?? [];
