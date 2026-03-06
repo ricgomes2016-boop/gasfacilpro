@@ -50,7 +50,7 @@ const testimonials = [
 
 const faqs = [
   { q: "Preciso instalar algum aplicativo?", a: "Não! O Gás Fácil é um sistema 100% web (PWA). Funciona direto no navegador do celular ou computador, sem precisar baixar nada na loja de apps." },
-  { q: "Posso testar antes de assinar?", a: "Sim! Oferecemos 14 dias grátis em qualquer plano, sem compromisso e sem precisar de cartão de crédito." },
+  { q: "Posso testar antes de assinar?", a: "Sim! Entre em contato conosco para conhecer nossos planos e condições especiais." },
   { q: "Funciona para múltiplas filiais?", a: "Sim! O sistema suporta múltiplas unidades com dados consolidados, permissões individuais e transferência de estoque entre filiais." },
   { q: "Como funciona o app do entregador?", a: "O entregador acessa pelo celular, recebe os pedidos em tempo real, tem rota otimizada por GPS e faz o acerto financeiro direto no app." },
   { q: "Vocês emitem nota fiscal?", a: "Sim! No plano Enterprise, você emite NF-e, NFC-e, CT-e e MDF-e diretamente pelo sistema, com integração automática." },
@@ -81,7 +81,7 @@ export default function LandingPage() {
             </a>
             <a href={`${APP_URL}/auth`} className="hidden sm:block">
               <Button size="sm" className="gap-1.5">
-                Começar grátis <ArrowRight className="h-3.5 w-3.5" />
+                Começar agora <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </a>
           </div>
@@ -93,7 +93,7 @@ export default function LandingPage() {
         <div className="absolute inset-0 bg-[var(--gradient-primary)] opacity-[0.04]" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-20 md:py-32 text-center relative">
           <Badge variant="secondary" className="mb-6 text-sm px-4 py-1.5">
-            <Zap className="h-3.5 w-3.5 mr-1.5" /> 14 dias grátis — sem cartão
+            <Zap className="h-3.5 w-3.5 mr-1.5" /> Sistema completo para revendas de gás
           </Badge>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight max-w-4xl mx-auto">
             O ERP completo para sua{" "}
@@ -107,7 +107,7 @@ export default function LandingPage() {
             <a href={`${APP_URL}/auth`}>
               <Button size="lg" className="text-base px-8 h-12 gap-2 shadow-lg">
                 <Flame className="h-5 w-5" />
-                Começar agora — é grátis
+                Começar agora
               </Button>
             </a>
             <a href="#funcionalidades">
@@ -150,7 +150,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold">Planos para cada tamanho</h2>
-            <p className="mt-4 text-muted-foreground text-lg">Comece grátis, escale quando precisar</p>
+            <p className="mt-4 text-muted-foreground text-lg">Escolha o plano ideal para o seu negócio</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {plans.map((plan) => (
@@ -188,7 +188,7 @@ export default function LandingPage() {
                       className="w-full"
                       variant={plan.highlight ? "default" : "outline"}
                     >
-                      Começar grátis
+                      Assinar agora
                     </Button>
                   </a>
                 </CardContent>
@@ -272,7 +272,7 @@ export default function LandingPage() {
           <a href={`${APP_URL}/auth`}>
             <Button size="lg" className="text-base px-10 h-12 gap-2 shadow-lg">
               <Flame className="h-5 w-5" />
-              Criar conta grátis
+              Criar conta
             </Button>
           </a>
           <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-muted-foreground">
