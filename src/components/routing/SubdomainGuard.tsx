@@ -1,6 +1,13 @@
 import { ReactNode, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { detectSubdomainApp, getSubdomainDefaultRoute, isRouteAllowedForSubdomain, SubdomainApp } from "@/lib/subdomain";
+import {
+  detectSubdomainApp,
+  getCanonicalHostnameForApp,
+  getSubdomainDefaultRoute,
+  inferAppFromPath,
+  isRouteAllowedForSubdomain,
+  SubdomainApp,
+} from "@/lib/subdomain";
 
 interface SubdomainGuardProps {
   children: ReactNode;
@@ -8,6 +15,7 @@ interface SubdomainGuardProps {
 
 /**
  * Wraps the app routes and enforces subdomain-based access control.
+ * - Redirects to canonical domain when route belongs to another app
  * - Redirects to the correct default route on first load if on root "/"
  * - Blocks navigation to routes not allowed for the current subdomain
  */
@@ -19,17 +27,23 @@ export function SubdomainGuard({ children }: SubdomainGuardProps) {
   useEffect(() => {
     if (!subdomainApp) return; // Dev mode — no restrictions
 
+    const hostname = window.location.hostname.toLowerCase();
+    const { pathname, search, hash } = location;
+
     // www.gasfacilpro.com.br → redirect to app.gasfacilpro.com.br
-    if (subdomainApp === "landing") {
-      const hostname = window.location.hostname.toLowerCase();
-      if (hostname.startsWith("www.")) {
-        const appUrl = hostname.replace(/^www\./, "app.");
-        window.location.href = `${window.location.protocol}//${appUrl}${window.location.pathname}${window.location.search}`;
-        return;
-      }
+    if (subdomainApp === "landing" && hostname.startsWith("www.")) {
+      const appHost = getCanonicalHostnameForApp("erp", hostname);
+      window.location.href = `${window.location.protocol}//${appHost}${pathname}${search}${hash}`;
+      return;
     }
 
-    const { pathname } = location;
+    // Cross-subdomain canonical redirect based on route family
+    const routeApp = inferAppFromPath(pathname);
+    if (routeApp && routeApp !== subdomainApp) {
+      const targetHost = getCanonicalHostnameForApp(routeApp, hostname);
+      window.location.href = `${window.location.protocol}//${targetHost}${pathname}${search}${hash}`;
+      return;
+    }
 
     // Root "/" → redirect to subdomain default
     if (pathname === "/" || pathname === "") {
@@ -43,7 +57,7 @@ export function SubdomainGuard({ children }: SubdomainGuardProps) {
       const defaultRoute = getSubdomainDefaultRoute(subdomainApp);
       navigate(defaultRoute, { replace: true });
     }
-  }, [location.pathname, subdomainApp, navigate]);
+  }, [location, subdomainApp, navigate]);
 
   return <>{children}</>;
 }

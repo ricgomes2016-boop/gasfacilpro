@@ -71,6 +71,89 @@ export function detectSubdomainApp(): SubdomainApp {
 }
 
 /**
+ * Returns the matched configured base domain for a given hostname.
+ */
+export function getMatchedBaseDomain(hostname: string = window.location.hostname.toLowerCase()): string | null {
+  const normalized = hostname.toLowerCase();
+
+  for (const baseDomain of BASE_DOMAINS) {
+    if (
+      normalized === baseDomain ||
+      normalized === `www.${baseDomain}` ||
+      normalized.endsWith(`.${baseDomain}`)
+    ) {
+      return baseDomain;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Returns the canonical hostname for each app context using the current base domain.
+ */
+export function getCanonicalHostnameForApp(
+  app: Exclude<SubdomainApp, null>,
+  currentHostname: string = window.location.hostname.toLowerCase()
+): string {
+  const baseDomain = getMatchedBaseDomain(currentHostname) ?? BASE_DOMAINS[0];
+
+  switch (app) {
+    case "erp":
+      return `app.${baseDomain}`;
+    case "painel":
+      return `painel.${baseDomain}`;
+    case "cliente":
+      return `clientes.${baseDomain}`;
+    case "entregador":
+      return `entregador.${baseDomain}`;
+    case "parceiro":
+      return `portal.${baseDomain}`;
+    case "landing":
+      return baseDomain;
+    default:
+      return `app.${baseDomain}`;
+  }
+}
+
+/**
+ * Infers which app a route belongs to based on pathname.
+ */
+export function inferAppFromPath(pathname: string): Exclude<SubdomainApp, null> | null {
+  if (!pathname) return null;
+
+  if (pathname.startsWith("/admin")) return "painel";
+  if (pathname.startsWith("/cliente")) return "cliente";
+  if (pathname.startsWith("/entregador")) return "entregador";
+  if (pathname.startsWith("/parceiro")) return "parceiro";
+
+  const erpPrefixes = [
+    "/dashboard",
+    "/vendas",
+    "/caixa",
+    "/estoque",
+    "/cadastros",
+    "/clientes",
+    "/financeiro",
+    "/fiscal",
+    "/frota",
+    "/rh",
+    "/config",
+    "/operacional",
+    "/atendimento",
+    "/onboarding",
+    "/entregas",
+    "/assistente",
+  ];
+
+  if (erpPrefixes.some((prefix) => pathname.startsWith(prefix))) {
+    return "erp";
+  }
+
+  return null;
+}
+
+/**
  * Returns the default route path for a given subdomain app.
  */
 export function getSubdomainDefaultRoute(app: SubdomainApp): string {
