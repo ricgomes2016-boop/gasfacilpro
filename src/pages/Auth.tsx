@@ -27,7 +27,7 @@ export default function Auth() {
     case "parceiro":
       return <AuthParceiro />;
     default:
-      // Dev/preview or unrecognized — show full auth with signup (original behavior)
-      return <AuthCliente />;
+      // Dev/preview — show ERP login (full system access for development)
+      return <AuthErp />;
   }
 }

@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Flame, Loader2, Eye, EyeOff, ShoppingBag, AlertTriangle } from "lucide-react";
+import { detectSubdomainApp } from "@/lib/subdomain";
 
 interface EmpresaInfo {
   id: string;
@@ -183,6 +184,7 @@ export default function AuthCliente() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, loading } = useAuth();
+  const isSubdomain = detectSubdomainApp() === "cliente";
 
   // Resolve empresa slug: URL param > localStorage
   const urlSlug = searchParams.get("empresa");
@@ -190,7 +192,7 @@ export default function AuthCliente() {
     urlSlug || localStorage.getItem("cliente_empresa_slug") || undefined
   );
   const [empresa, setEmpresa] = useState<EmpresaInfo | null>(null);
-  const [empresaLoading, setEmpresaLoading] = useState(true);
+  const [empresaLoading, setEmpresaLoading] = useState(!!empresaSlug);
   const [empresaError, setEmpresaError] = useState(false);
 
   const form = useAuthForm(empresaSlug);
@@ -208,7 +210,8 @@ export default function AuthCliente() {
     async function fetchEmpresa() {
       if (!empresaSlug) {
         setEmpresaLoading(false);
-        setEmpresaError(true);
+        // Only show error on real subdomain without slug
+        if (isSubdomain) setEmpresaError(true);
         return;
       }
 
@@ -250,8 +253,8 @@ export default function AuthCliente() {
     );
   }
 
-  // No empresa slug or invalid slug — show error
-  if (empresaError && !empresa) {
+  // No empresa slug or invalid slug — show error (only on real subdomain)
+  if (isSubdomain && empresaError && !empresa) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-white to-amber-50 dark:from-background dark:via-background dark:to-muted/20 p-4">
         <Card className="w-full max-w-md border-orange-200/50 dark:border-primary/20">
