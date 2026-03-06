@@ -60,6 +60,11 @@ export default function AuthErp() {
         </CardHeader>
 
         <CardContent>
+          {roleError && (
+            <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+              Esta conta não possui acesso ao sistema de gestão. Use o portal correto para o seu perfil.
+            </div>
+          )}
           {form.errors.general && (
             <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
               {form.errors.general}

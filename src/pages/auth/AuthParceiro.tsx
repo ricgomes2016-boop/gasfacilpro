@@ -54,6 +54,11 @@ export default function AuthParceiro() {
         </CardHeader>
 
         <CardContent>
+          {roleError && (
+            <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+              Esta conta não é de parceiro. Use o portal correto para o seu perfil.
+            </div>
+          )}
           {form.errors.general && (
             <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
               {form.errors.general}

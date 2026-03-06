@@ -56,6 +56,11 @@ export default function AuthPainel() {
         </CardHeader>
 
         <CardContent>
+          {roleError && (
+            <div className="p-3 mb-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+              Esta conta não possui acesso ao painel Super Admin.
+            </div>
+          )}
           {form.errors.general && (
             <div className="p-3 mb-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
               {form.errors.general}
