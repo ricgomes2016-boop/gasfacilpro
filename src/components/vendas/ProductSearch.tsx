@@ -53,6 +53,9 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const normalize = (s: string) =>
+    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
   const searchProdutos = async (term: string) => {
     if (term.length < 2) {
       setSearchResults([]);
@@ -65,9 +68,8 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
         .from("produtos")
         .select("id, nome, preco, estoque")
         .eq("ativo", true)
-        .or("tipo_botijao.is.null,tipo_botijao.neq.vazio") // Não mostrar botijões vazios
-        .ilike("nome", `%${term}%`)
-        .limit(8);
+        .or("tipo_botijao.is.null,tipo_botijao.neq.vazio")
+        .limit(50);
 
       if (unidadeId) {
         query = query.eq("unidade_id", unidadeId);
@@ -76,8 +78,12 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
       const { data, error } = await query;
 
       if (!error && data) {
-        setSearchResults(data);
-        setShowResults(data.length > 0);
+        const normalizedTerm = normalize(term);
+        const filtered = data
+          .filter((p) => normalize(p.nome).includes(normalizedTerm))
+          .slice(0, 8);
+        setSearchResults(filtered);
+        setShowResults(filtered.length > 0);
       }
     } catch (error) {
       console.error("Erro ao buscar produtos:", error);
