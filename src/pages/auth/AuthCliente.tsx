@@ -183,7 +183,7 @@ function SignupForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
 export default function AuthCliente() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, loading } = useAuth();
+  const { user, roles, loading, signOut } = useAuth();
   const isSubdomain = detectSubdomainApp() === "cliente";
 
   // Resolve empresa slug: URL param > localStorage
@@ -240,10 +240,21 @@ export default function AuthCliente() {
     document.title = `${nome} — Área do Cliente`;
   }, [empresa]);
 
+  const [roleError, setRoleError] = useState(false);
+
   useEffect(() => {
     if (!user || loading) return;
+    // Wait for roles to load
+    if (roles.length === 0) return;
+    
+    if (!roles.includes("cliente")) {
+      // Wrong role for this portal — sign out and show error
+      signOut();
+      setRoleError(true);
+      return;
+    }
     navigate("/cliente");
-  }, [user, loading, navigate]);
+  }, [user, loading, roles, navigate, signOut]);
 
   if (loading || empresaLoading) {
     return (
@@ -316,6 +327,11 @@ export default function AuthCliente() {
               <TabsTrigger value="signup">Criar Conta</TabsTrigger>
             </TabsList>
 
+            {roleError && (
+              <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+                Esta conta não é de cliente. Se você é administrador, acesse pelo sistema ERP.
+              </div>
+            )}
             {form.errors.general && (
               <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
                 {form.errors.general}

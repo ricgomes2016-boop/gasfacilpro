@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, AppRole } from "@/contexts/AuthContext";
 import { useAuthForm } from "@/hooks/useAuthForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,10 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Flame, Loader2, Eye, EyeOff, BarChart3 } from "lucide-react";
 
+const ERP_ROLES: AppRole[] = ["admin", "gestor", "financeiro", "operacional"];
+
 export default function AuthErp() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, roles, loading, signOut } = useAuth();
   const form = useAuthForm();
+  const [roleError, setRoleError] = useState(false);
 
   useEffect(() => {
     document.title = "GásFácil Pro — Sistema de Gestão";
@@ -19,8 +22,16 @@ export default function AuthErp() {
 
   useEffect(() => {
     if (!user || loading) return;
+    if (roles.length === 0) return;
+    
+    const hasAccess = ERP_ROLES.some(r => roles.includes(r));
+    if (!hasAccess) {
+      signOut();
+      setRoleError(true);
+      return;
+    }
     navigate("/dashboard");
-  }, [user, loading, navigate]);
+  }, [user, loading, roles, navigate, signOut]);
 
   if (loading) {
     return (
@@ -49,6 +60,11 @@ export default function AuthErp() {
         </CardHeader>
 
         <CardContent>
+          {roleError && (
+            <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+              Esta conta não possui acesso ao sistema de gestão. Use o portal correto para o seu perfil.
+            </div>
+          )}
           {form.errors.general && (
             <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
               {form.errors.general}

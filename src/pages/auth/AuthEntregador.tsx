@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAuthForm } from "@/hooks/useAuthForm";
@@ -10,8 +10,9 @@ import { Truck, Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function AuthEntregador() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, roles, loading, signOut } = useAuth();
   const form = useAuthForm();
+  const [roleError, setRoleError] = useState(false);
 
   useEffect(() => {
     document.title = "GásFácil Pro — Portal do Entregador";
@@ -19,8 +20,15 @@ export default function AuthEntregador() {
 
   useEffect(() => {
     if (!user || loading) return;
+    if (roles.length === 0) return;
+
+    if (!roles.includes("entregador")) {
+      signOut();
+      setRoleError(true);
+      return;
+    }
     navigate("/entregador");
-  }, [user, loading, navigate]);
+  }, [user, loading, roles, navigate, signOut]);
 
   if (loading) {
     return (
@@ -46,6 +54,11 @@ export default function AuthEntregador() {
         </CardHeader>
 
         <CardContent>
+          {roleError && (
+            <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+              Esta conta não é de entregador. Use o portal correto para o seu perfil.
+            </div>
+          )}
           {form.errors.general && (
             <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
               {form.errors.general}
