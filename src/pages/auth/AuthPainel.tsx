@@ -14,7 +14,7 @@ export default function AuthPainel() {
   const form = useAuthForm();
 
   useEffect(() => {
-    document.title = "GásFácil Pro — Painel Super Admin";
+    document.title = "GásFácil Pro — Painel Super Admin v2";
   }, []);
 
   useEffect(() => {
