@@ -183,7 +183,7 @@ function SignupForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
 export default function AuthCliente() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, loading } = useAuth();
+  const { user, roles, loading, signOut } = useAuth();
   const isSubdomain = detectSubdomainApp() === "cliente";
 
   // Resolve empresa slug: URL param > localStorage
