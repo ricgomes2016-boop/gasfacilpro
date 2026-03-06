@@ -142,15 +142,17 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
 
         const { data, error } = await query;
         if (!error && data) {
+          const normalize = (s: string) =>
+            s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
           const filtered = data.filter(cliente => {
-            const searchable = [
+            const searchable = normalize([
               cliente.nome || "",
               cliente.endereco || "",
               cliente.bairro || "",
               cliente.cidade || "",
               cliente.numero || "",
-            ].join(" ").toLowerCase();
-            return terms.every(t => searchable.includes(t.toLowerCase()));
+            ].join(" "));
+            return terms.every(t => searchable.includes(normalize(t)));
           }).slice(0, 8);
 
           setSearchResults(filtered);
