@@ -64,10 +64,12 @@ export function detectSubdomainApp(): SubdomainApp {
         return "landing";
       }
 
-      // IMPORTANT: use first label, not last.
-      // Ex: entregador.painel.gasfacilpro.com.br -> "entregador"
-      const firstLabel = prefix.split(".")[0];
-      return SUBDOMAIN_MAP[firstLabel] || null;
+      // Busca o primeiro label reconhecido no prefixo (ignora "www" e labels extras)
+      // Ex: www.painel.gasfacilpro.com.br -> "painel"
+      // Ex: app.admin.gasfacilpro.com.br -> "app"
+      const labels = prefix.split(".").filter(Boolean);
+      const matched = labels.find((label) => label !== "www" && SUBDOMAIN_MAP[label]);
+      return matched ? SUBDOMAIN_MAP[matched] : null;
     }
   }
 
