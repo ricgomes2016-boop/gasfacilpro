@@ -12,6 +12,7 @@ const MarketingIA = lazy(() => import("@/pages/clientes/MarketingIA"));
 const GestaoCredito = lazy(() => import("@/pages/clientes/GestaoCredito"));
 const ContratosRecorrentes = lazy(() => import("@/pages/clientes/ContratosRecorrentes"));
 const ProgramaIndicacao = lazy(() => import("@/pages/clientes/ProgramaIndicacao"));
+const AplicativoCliente = lazy(() => import("@/pages/clientes/AplicativoCliente"));
 
 export const clientesRoutes: RouteConfig[] = [
   { path: "/clientes/cadastro", component: CadastroClientes, roles: ["admin", "gestor", "operacional"] },
@@ -25,4 +26,5 @@ export const clientesRoutes: RouteConfig[] = [
   { path: "/clientes/credito", component: GestaoCredito, roles: ["admin", "gestor", "financeiro"] },
   { path: "/clientes/contratos", component: ContratosRecorrentes, roles: ["admin", "gestor", "operacional"] },
   { path: "/clientes/indicacao", component: ProgramaIndicacao, roles: ["admin", "gestor", "operacional"] },
+  { path: "/clientes/aplicativo", component: AplicativoCliente, roles: ["admin", "gestor"] },
 ];
