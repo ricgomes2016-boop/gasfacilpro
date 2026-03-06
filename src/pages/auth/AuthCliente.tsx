@@ -240,7 +240,6 @@ export default function AuthCliente() {
     document.title = `${nome} — Área do Cliente`;
   }, [empresa]);
 
-  const { roles, signOut } = useAuth();
   const [roleError, setRoleError] = useState(false);
 
   useEffect(() => {
