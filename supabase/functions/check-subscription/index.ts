@@ -29,14 +29,58 @@ serve(async (req) => {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
+    const authHeader = req.headers.get("Authorization") ?? req.headers.get("authorization");
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length).trim()
+      : "";
 
-    const token = authHeader.replace("Bearer ", "");
+    if (!token) {
+      logStep("No auth token provided, returning unsubscribed");
+      return new Response(JSON.stringify({
+        subscribed: false,
+        product_id: null,
+        subscription_end: null,
+        unit_quantity: 0,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
+    if (userError) {
+      const message = userError.message || "Authentication failed";
+      // Avoid hard-failing transient auth races on client startup
+      if (message.includes("Auth session missing") || message.includes("invalid JWT")) {
+        logStep("Auth token invalid/missing session, returning unsubscribed", { message });
+        return new Response(JSON.stringify({
+          subscribed: false,
+          product_id: null,
+          subscription_end: null,
+          unit_quantity: 0,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+
+      throw new Error(`Authentication error: ${message}`);
+    }
+
     const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
+    if (!user?.email) {
+      logStep("Authenticated user has no email, returning unsubscribed");
+      return new Response(JSON.stringify({
+        subscribed: false,
+        product_id: null,
+        subscription_end: null,
+        unit_quantity: 0,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     logStep("User authenticated", { email: user.email });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
