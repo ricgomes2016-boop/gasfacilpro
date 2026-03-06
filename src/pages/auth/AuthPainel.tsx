@@ -19,7 +19,10 @@ export default function AuthPainel() {
 
   useEffect(() => {
     if (!user || loading) return;
-    navigate("/admin");
+    // Only redirect if we're still on the auth page
+    if (window.location.pathname === "/auth") {
+      navigate("/admin");
+    }
   }, [user, loading, navigate]);
 
   if (loading) {

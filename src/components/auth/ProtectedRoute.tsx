@@ -43,11 +43,13 @@ export function ProtectedRoute({
   // Redirect to onboarding if admin has no empresa (skip for super_admin and painel subdomain)
   const subdomainApp = detectSubdomainApp();
   if (user && needsOnboarding && roles.includes("admin") && !roles.includes("super_admin") && location.pathname !== "/onboarding") {
-    // On painel subdomain, don't redirect to onboarding — it's for super_admins only
+    // On painel subdomain, skip onboarding — it's for SaaS super_admins only, not tenant admins
     if (subdomainApp === "painel") {
-      return <Navigate to="/auth" replace />;
+      // Don't redirect — let the admin use the system normally
+      // The onboarding flow is only enforced on the main app or dev environments
+    } else {
+      return <Navigate to="/onboarding" replace />;
     }
-    return <Navigate to="/onboarding" replace />;
   }
 
   // Redirect non-staff users to their proper app
