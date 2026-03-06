@@ -19,6 +19,16 @@ export function SubdomainGuard({ children }: SubdomainGuardProps) {
   useEffect(() => {
     if (!subdomainApp) return; // Dev mode — no restrictions
 
+    // www.gasfacilpro.com.br → redirect to app.gasfacilpro.com.br
+    if (subdomainApp === "landing") {
+      const hostname = window.location.hostname.toLowerCase();
+      if (hostname.startsWith("www.")) {
+        const appUrl = hostname.replace(/^www\./, "app.");
+        window.location.href = `${window.location.protocol}//${appUrl}${window.location.pathname}${window.location.search}`;
+        return;
+      }
+    }
+
     const { pathname } = location;
 
     // Root "/" → redirect to subdomain default

@@ -10,14 +10,14 @@
  * Em ambiente de desenvolvimento (localhost, preview), usa rotas normais.
  */
 
-export type SubdomainApp = "cliente" | "entregador" | "parceiro" | "painel" | "landing" | null;
+export type SubdomainApp = "cliente" | "entregador" | "parceiro" | "erp" | "painel" | "landing" | null;
 
 const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
   clientes: "cliente",
   cliente: "cliente",
   entregador: "entregador",
   entregadores: "entregador",
-  app: "painel",
+  app: "erp",
   painel: "painel",
   admin: "painel",
   portal: "parceiro",
@@ -78,6 +78,7 @@ export function getSubdomainDefaultRoute(app: SubdomainApp): string {
     case "cliente": return "/cliente";
     case "entregador": return "/entregador";
     case "parceiro": return "/parceiro";
+    case "erp": return "/dashboard";
     case "painel": return "/admin";
     case "landing": return "/";
     default: return "/dashboard";
@@ -97,14 +98,17 @@ export function isRouteAllowedForSubdomain(app: SubdomainApp, pathname: string):
       return pathname.startsWith("/entregador") || pathname === "/auth";
     case "parceiro":
       return pathname.startsWith("/parceiro") || pathname === "/auth";
+    case "erp":
+      // app.gasfacilpro.com.br — full ERP access (same as old "painel" but for staff, not super_admin)
+      return pathname === "/auth" || pathname.startsWith("/dashboard") || pathname.startsWith("/vendas")
+        || pathname.startsWith("/caixa") || pathname.startsWith("/estoque") || pathname.startsWith("/cadastros")
+        || pathname.startsWith("/clientes") || pathname.startsWith("/financeiro") || pathname.startsWith("/fiscal")
+        || pathname.startsWith("/frota") || pathname.startsWith("/rh") || pathname.startsWith("/config")
+        || pathname.startsWith("/operacional") || pathname.startsWith("/atendimento") || pathname.startsWith("/onboarding")
+        || pathname.startsWith("/entregas") || pathname.startsWith("/assistente");
     case "painel":
-      // app.gasfacilpro.com.br — full admin + ERP access
-      return pathname === "/auth" || pathname.startsWith("/admin") || pathname.startsWith("/dashboard")
-        || pathname.startsWith("/vendas") || pathname.startsWith("/caixa") || pathname.startsWith("/estoque")
-        || pathname.startsWith("/cadastros") || pathname.startsWith("/clientes") || pathname.startsWith("/financeiro")
-        || pathname.startsWith("/fiscal") || pathname.startsWith("/frota") || pathname.startsWith("/rh")
-        || pathname.startsWith("/config") || pathname.startsWith("/operacional") || pathname.startsWith("/atendimento")
-        || pathname.startsWith("/onboarding") || pathname.startsWith("/entregas") || pathname.startsWith("/assistente");
+      // painel.gasfacilpro.com.br — SaaS super admin only
+      return pathname === "/auth" || pathname.startsWith("/admin");
     case "landing":
       return true;
     default:
