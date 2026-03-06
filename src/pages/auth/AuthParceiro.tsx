@@ -10,8 +10,12 @@ import { Handshake, Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function AuthParceiro() {
   const navigate = useNavigate();
-  const { user, roles, loading } = useAuth();
+  const { user, loading } = useAuth();
   const form = useAuthForm();
+
+  useEffect(() => {
+    document.title = "GásFácil Pro — Portal do Parceiro";
+  }, []);
 
   useEffect(() => {
     if (!user || loading) return;
@@ -35,7 +39,7 @@ export default function AuthParceiro() {
               <Handshake className="h-10 w-10 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Portal do Parceiro</CardTitle>
+          <CardTitle className="text-2xl font-bold">GásFácil Pro — Parceiro</CardTitle>
           <CardDescription>
             Gerencie seus vales gás e acompanhe vendas
           </CardDescription>
@@ -50,11 +54,11 @@ export default function AuthParceiro() {
 
           <form onSubmit={form.handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="login-email">Email</Label>
+              <Label htmlFor="parceiro-email">Email</Label>
               <Input
-                id="login-email"
+                id="parceiro-email"
                 type="email"
-                placeholder="parceiro@email.com"
+                placeholder="parceiro@empresa.com"
                 value={form.loginEmail}
                 onChange={(e) => form.setLoginEmail(e.target.value)}
                 disabled={form.isLoading}
@@ -63,10 +67,10 @@ export default function AuthParceiro() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="login-password">Senha</Label>
+              <Label htmlFor="parceiro-password">Senha</Label>
               <div className="relative">
                 <Input
-                  id="login-password"
+                  id="parceiro-password"
                   type={form.showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={form.loginPassword}
@@ -90,7 +94,7 @@ export default function AuthParceiro() {
               {form.isLoading ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</>
               ) : (
-                "Acessar Portal"
+                "Acessar Portal do Parceiro"
               )}
             </Button>
           </form>

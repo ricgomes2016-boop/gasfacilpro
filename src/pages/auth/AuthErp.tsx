@@ -10,17 +10,17 @@ import { Flame, Loader2, Eye, EyeOff, BarChart3 } from "lucide-react";
 
 export default function AuthErp() {
   const navigate = useNavigate();
-  const { user, roles, loading } = useAuth();
+  const { user, loading } = useAuth();
   const form = useAuthForm();
 
   useEffect(() => {
+    document.title = "GásFácil Pro — Sistema de Gestão";
+  }, []);
+
+  useEffect(() => {
     if (!user || loading) return;
-    if (roles.length === 0) {
-      const t = setTimeout(() => navigate("/dashboard"), 2000);
-      return () => clearTimeout(t);
-    }
     navigate("/dashboard");
-  }, [user, roles, loading, navigate]);
+  }, [user, loading, navigate]);
 
   if (loading) {
     return (
@@ -34,17 +34,17 @@ export default function AuthErp() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/10 to-primary/5 p-4">
       <Card className="w-full max-w-md border-primary/20">
         <CardHeader className="text-center space-y-4">
-          <div className="flex justify-center gap-2">
+          <div className="flex justify-center">
             <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center">
               <Flame className="h-8 w-8 text-primary" />
             </div>
           </div>
           <div className="flex items-center justify-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
-            <CardTitle className="text-2xl font-bold">Painel de Gestão</CardTitle>
+            <CardTitle className="text-2xl font-bold">GásFácil Pro — ERP</CardTitle>
           </div>
           <CardDescription>
-            Acesse o sistema de gestão da sua distribuidora
+            Sistema de gestão da distribuidora
           </CardDescription>
         </CardHeader>
 
@@ -57,11 +57,11 @@ export default function AuthErp() {
 
           <form onSubmit={form.handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="login-email">Email</Label>
+              <Label htmlFor="erp-email">Email</Label>
               <Input
-                id="login-email"
+                id="erp-email"
                 type="email"
-                placeholder="seu@email.com"
+                placeholder="operador@distribuidora.com"
                 value={form.loginEmail}
                 onChange={(e) => form.setLoginEmail(e.target.value)}
                 disabled={form.isLoading}
@@ -70,10 +70,10 @@ export default function AuthErp() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="login-password">Senha</Label>
+              <Label htmlFor="erp-password">Senha</Label>
               <div className="relative">
                 <Input
-                  id="login-password"
+                  id="erp-password"
                   type={form.showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={form.loginPassword}

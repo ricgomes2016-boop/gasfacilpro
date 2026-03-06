@@ -10,8 +10,12 @@ import { Truck, Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function AuthEntregador() {
   const navigate = useNavigate();
-  const { user, roles, loading } = useAuth();
+  const { user, loading } = useAuth();
   const form = useAuthForm();
+
+  useEffect(() => {
+    document.title = "GásFácil Pro — Portal do Entregador";
+  }, []);
 
   useEffect(() => {
     if (!user || loading) return;
@@ -35,7 +39,7 @@ export default function AuthEntregador() {
               <Truck className="h-10 w-10 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Portal do Entregador</CardTitle>
+          <CardTitle className="text-2xl font-bold">GásFácil Pro — Entregador</CardTitle>
           <CardDescription>
             Acesse suas entregas, rotas e financeiro
           </CardDescription>
@@ -50,11 +54,11 @@ export default function AuthEntregador() {
 
           <form onSubmit={form.handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="login-email">Email</Label>
+              <Label htmlFor="entregador-email">Email</Label>
               <Input
-                id="login-email"
+                id="entregador-email"
                 type="email"
-                placeholder="seu@email.com"
+                placeholder="entregador@distribuidora.com"
                 value={form.loginEmail}
                 onChange={(e) => form.setLoginEmail(e.target.value)}
                 disabled={form.isLoading}
@@ -63,10 +67,10 @@ export default function AuthEntregador() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="login-password">Senha</Label>
+              <Label htmlFor="entregador-password">Senha</Label>
               <div className="relative">
                 <Input
-                  id="login-password"
+                  id="entregador-password"
                   type={form.showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={form.loginPassword}
@@ -90,7 +94,7 @@ export default function AuthEntregador() {
               {form.isLoading ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</>
               ) : (
-                "Acessar Entregas"
+                "Acessar Minhas Entregas"
               )}
             </Button>
           </form>

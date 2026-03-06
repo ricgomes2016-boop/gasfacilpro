@@ -10,17 +10,17 @@ import { Shield, Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function AuthPainel() {
   const navigate = useNavigate();
-  const { user, roles, loading } = useAuth();
+  const { user, loading } = useAuth();
   const form = useAuthForm();
 
   useEffect(() => {
+    document.title = "GásFácil Pro — Painel Super Admin";
+  }, []);
+
+  useEffect(() => {
     if (!user || loading) return;
-    if (roles.length === 0) {
-      const t = setTimeout(() => navigate("/admin"), 2000);
-      return () => clearTimeout(t);
-    }
     navigate("/admin");
-  }, [user, roles, loading, navigate]);
+  }, [user, loading, navigate]);
 
   if (loading) {
     return (
@@ -39,9 +39,9 @@ export default function AuthPainel() {
               <Shield className="h-8 w-8 text-amber-400" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-white">Painel Administrativo</CardTitle>
+          <CardTitle className="text-2xl font-bold text-white">GásFácil Pro — Super Admin</CardTitle>
           <CardDescription className="text-slate-400">
-            Acesso restrito — Super Admin GásFácil Pro
+            Painel administrativo SaaS — acesso restrito
           </CardDescription>
         </CardHeader>
 
@@ -54,9 +54,9 @@ export default function AuthPainel() {
 
           <form onSubmit={form.handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="login-email" className="text-slate-300">Email</Label>
+              <Label htmlFor="admin-email" className="text-slate-300">Email</Label>
               <Input
-                id="login-email"
+                id="admin-email"
                 type="email"
                 placeholder="admin@gasfacilpro.com.br"
                 value={form.loginEmail}
@@ -68,10 +68,10 @@ export default function AuthPainel() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="login-password" className="text-slate-300">Senha</Label>
+              <Label htmlFor="admin-password" className="text-slate-300">Senha</Label>
               <div className="relative">
                 <Input
-                  id="login-password"
+                  id="admin-password"
                   type={form.showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={form.loginPassword}
@@ -96,7 +96,7 @@ export default function AuthPainel() {
               {form.isLoading ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verificando...</>
               ) : (
-                "Acessar Painel"
+                "Acessar Painel Admin"
               )}
             </Button>
           </form>
