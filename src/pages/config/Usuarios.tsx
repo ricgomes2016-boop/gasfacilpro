@@ -327,9 +327,9 @@ export default function Usuarios() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(roleLabels).map(([key, label]) => (
+                        {systemRoles.map((key) => (
                           <SelectItem key={key} value={key}>
-                            {label}
+                            {roleLabels[key]}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -475,9 +475,9 @@ export default function Usuarios() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(roleLabels).map(([key, label]) => (
+                  {systemRoles.map((key) => (
                     <SelectItem key={key} value={key}>
-                      {label}
+                      {roleLabels[key]}
                     </SelectItem>
                   ))}
                 </SelectContent>
