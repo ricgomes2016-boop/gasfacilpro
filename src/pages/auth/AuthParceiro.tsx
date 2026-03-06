@@ -10,8 +10,9 @@ import { Handshake, Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function AuthParceiro() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, roles, loading, signOut } = useAuth();
   const form = useAuthForm();
+  const [roleError, setRoleError] = useState(false);
 
   useEffect(() => {
     document.title = "GásFácil Pro — Portal do Parceiro";
@@ -19,8 +20,15 @@ export default function AuthParceiro() {
 
   useEffect(() => {
     if (!user || loading) return;
+    if (roles.length === 0) return;
+
+    if (!roles.includes("parceiro")) {
+      signOut();
+      setRoleError(true);
+      return;
+    }
     navigate("/parceiro/dashboard");
-  }, [user, loading, navigate]);
+  }, [user, loading, roles, navigate, signOut]);
 
   if (loading) {
     return (

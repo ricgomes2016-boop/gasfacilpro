@@ -240,10 +240,22 @@ export default function AuthCliente() {
     document.title = `${nome} — Área do Cliente`;
   }, [empresa]);
 
+  const { roles, signOut } = useAuth();
+  const [roleError, setRoleError] = useState(false);
+
   useEffect(() => {
     if (!user || loading) return;
+    // Wait for roles to load
+    if (roles.length === 0) return;
+    
+    if (!roles.includes("cliente")) {
+      // Wrong role for this portal — sign out and show error
+      signOut();
+      setRoleError(true);
+      return;
+    }
     navigate("/cliente");
-  }, [user, loading, navigate]);
+  }, [user, loading, roles, navigate, signOut]);
 
   if (loading || empresaLoading) {
     return (

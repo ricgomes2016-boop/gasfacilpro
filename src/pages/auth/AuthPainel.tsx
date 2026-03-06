@@ -10,8 +10,9 @@ import { Shield, Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function AuthPainel() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, roles, loading, signOut } = useAuth();
   const form = useAuthForm();
+  const [roleError, setRoleError] = useState(false);
 
   useEffect(() => {
     document.title = "GásFácil Pro — Painel Super Admin v2";
@@ -19,11 +20,17 @@ export default function AuthPainel() {
 
   useEffect(() => {
     if (!user || loading) return;
-    // Only redirect if we're still on the auth page
+    if (roles.length === 0) return;
+
+    if (!roles.includes("super_admin")) {
+      signOut();
+      setRoleError(true);
+      return;
+    }
     if (window.location.pathname === "/auth") {
       navigate("/admin");
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, roles, navigate, signOut]);
 
   if (loading) {
     return (

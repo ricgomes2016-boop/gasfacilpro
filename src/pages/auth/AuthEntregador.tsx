@@ -10,8 +10,9 @@ import { Truck, Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function AuthEntregador() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, roles, loading, signOut } = useAuth();
   const form = useAuthForm();
+  const [roleError, setRoleError] = useState(false);
 
   useEffect(() => {
     document.title = "GásFácil Pro — Portal do Entregador";
@@ -19,8 +20,15 @@ export default function AuthEntregador() {
 
   useEffect(() => {
     if (!user || loading) return;
+    if (roles.length === 0) return;
+
+    if (!roles.includes("entregador")) {
+      signOut();
+      setRoleError(true);
+      return;
+    }
     navigate("/entregador");
-  }, [user, loading, navigate]);
+  }, [user, loading, roles, navigate, signOut]);
 
   if (loading) {
     return (
