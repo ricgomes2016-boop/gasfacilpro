@@ -57,6 +57,9 @@ const roleLabels: Record<AppRole, string> = {
   contador: "Contador",
 };
 
+// System roles available in Usuários — entregador/cliente/parceiro are managed elsewhere
+const systemRoles: AppRole[] = ["admin", "gestor", "financeiro", "operacional", "contador"];
+
 export default function Usuarios() {
   const { checkUserLimit } = usePlanLimits();
   const [users, setUsers] = useState<UserWithRoles[]>([]);
@@ -259,7 +262,7 @@ export default function Usuarios() {
 
   return (
     <MainLayout>
-      <Header title="Cadastro de Usuários" subtitle="Gerencie os usuários e permissões do sistema" />
+      <Header title="Usuários do Sistema" subtitle="Gerencie acessos administrativos (gestores, financeiro, operacional)" />
       <div className="p-3 sm:p-4 md:p-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
@@ -324,9 +327,9 @@ export default function Usuarios() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(roleLabels).map(([key, label]) => (
+                        {systemRoles.map((key) => (
                           <SelectItem key={key} value={key}>
-                            {label}
+                            {roleLabels[key]}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -472,9 +475,9 @@ export default function Usuarios() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(roleLabels).map(([key, label]) => (
+                  {systemRoles.map((key) => (
                     <SelectItem key={key} value={key}>
-                      {label}
+                      {roleLabels[key]}
                     </SelectItem>
                   ))}
                 </SelectContent>
