@@ -232,7 +232,6 @@ export const menuItems: MenuItem[] = [
     submenu: [
       { icon: BarChart2, label: "Dashboard RH", path: "/rh/dashboard" },
       { icon: UserCog, label: "Funcionários", path: "/cadastros/funcionarios" },
-      { icon: Truck, label: "Entregadores", path: "/cadastros/entregadores" },
       { icon: Banknote, label: "Folha de Pagamento", path: "/rh/folha" },
       { icon: Fingerprint, label: "Ponto Eletrônico", path: "/rh/ponto" },
       { icon: CreditCardIcon, label: "Vale Funcionário", path: "/rh/vale" },
