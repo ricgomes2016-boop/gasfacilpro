@@ -142,7 +142,7 @@ export const menuItems: MenuItem[] = [
       { icon: Map, label: "Mapa Operacional", path: "/operacional/centro" },
       { icon: Bell, label: "Alertas Inteligentes", path: "/operacional/alertas" },
       { icon: Route, label: "Rotas de Entrega", path: "/operacional/rotas" },
-      { icon: CalendarDays, label: "Escalas de Entregadores", path: "/operacional/escalas" },
+      { icon: CalendarDays, label: "Escalas de Entregadores", path: "/rh/horarios" },
       { icon: FileSpreadsheet, label: "Análise de Resultados", path: "/operacional/analise-resultados" },
       { icon: CalendarRange, label: "Planejamento", path: "/operacional/planejamento" },
       { icon: Target, label: "Metas e Desafios", path: "/operacional/metas" },
