@@ -128,6 +128,8 @@ const App = () => (
                           {renderRoutes(atendimentoRoutes)}
 
                           {/* Legacy redirects */}
+                          <Route path="/admin/dashboard" element={<Navigate to="/admin" replace />} />
+                          <Route path="/cliente/dashboard" element={<Navigate to="/cliente" replace />} />
                           <Route path="/entregador/dashboard" element={<Navigate to="/entregador" replace />} />
                           <Route path="/parceiro/dashboard" element={<Navigate to="/parceiro" replace />} />
 
