@@ -168,6 +168,7 @@ export const menuItems: MenuItem[] = [
       { icon: Gift, label: "Programa de Indicação", path: "/clientes/indicacao" },
       { icon: Trophy, label: "Ranking dos Clientes", path: "/clientes/ranking" },
       { icon: ShieldAlert, label: "Gestão de Crédito", path: "/clientes/credito" },
+      { icon: Smartphone, label: "Aplicativo do Cliente", path: "/clientes/aplicativo" },
     ],
   },
   {
