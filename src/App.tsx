@@ -127,6 +127,10 @@ const App = () => (
                           {renderRoutes(parceiroRoutes)}
                           {renderRoutes(atendimentoRoutes)}
 
+                          {/* Legacy redirects */}
+                          <Route path="/entregador/dashboard" element={<Navigate to="/entregador" replace />} />
+                          <Route path="/parceiro/dashboard" element={<Navigate to="/parceiro" replace />} />
+
                           {/* 404 */}
                           <Route path="*" element={<NotFound />} />
                         </Routes>
