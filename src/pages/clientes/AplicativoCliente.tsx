@@ -34,9 +34,9 @@ export default function AplicativoCliente() {
       const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
       const [clientesRes, pedidosRes, avaliacoesRes] = await Promise.all([
-        supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa!.id),
-        supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("empresa_id", empresa!.id).gte("created_at", firstOfMonth),
-        supabase.from("avaliacoes_entrega").select("nota_entregador").not("nota_entregador", "is", null).limit(500),
+        supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa!.id) as any,
+        supabase.from("pedidos").select("id", { count: "exact", head: true }).eq("empresa_id", empresa!.id).gte("created_at", firstOfMonth) as any,
+        supabase.from("avaliacoes_entrega").select("nota_entregador").not("nota_entregador", "is", null).limit(500) as any,
       ]);
 
       const notas = avaliacoesRes.data ?? [];
