@@ -16,6 +16,7 @@ export interface Parceiro {
   endereco: string | null;
   tipo: TipoParceiro;
   ativo: boolean;
+  user_id: string | null;
   created_at: string;
 }
 
