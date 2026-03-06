@@ -262,7 +262,7 @@ export default function Usuarios() {
 
   return (
     <MainLayout>
-      <Header title="Cadastro de Usuários" subtitle="Gerencie os usuários e permissões do sistema" />
+      <Header title="Usuários do Sistema" subtitle="Gerencie acessos administrativos (gestores, financeiro, operacional)" />
       <div className="p-3 sm:p-4 md:p-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
