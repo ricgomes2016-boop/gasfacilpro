@@ -30,12 +30,7 @@ export function SubdomainGuard({ children }: SubdomainGuardProps) {
     const hostname = window.location.hostname.toLowerCase();
     const { pathname, search, hash } = location;
 
-    // www.gasfacilpro.com.br → redirect to app.gasfacilpro.com.br
-    if (subdomainApp === "landing" && hostname.startsWith("www.")) {
-      const appHost = getCanonicalHostnameForApp("erp", hostname);
-      window.location.href = `${window.location.protocol}//${appHost}${pathname}${search}${hash}`;
-      return;
-    }
+    // www.gasfacilpro.com.br → show landing page (same as root domain)
 
     // Cross-subdomain canonical redirect based on route family
     const routeApp = inferAppFromPath(pathname);
