@@ -2,29 +2,26 @@
  * Subdomain-based routing for GasFácil Pro SaaS
  * 
  * Subdomínios:
- * - clientes.gasfacilpro.com.br  → App do Cliente (/cliente)
+ * - cliente.gasfacilpro.com.br    → App do Cliente (/cliente)
  * - entregador.gasfacilpro.com.br → App do Entregador (/entregador)
- * - portal.gasfacilpro.com.br    → Portal do Parceiro (/parceiro)
- * - app.gasfacilpro.com.br       → Sistema ERP principal (/dashboard)
- * - painel.gasfacilpro.com.br    → Painel Admin SaaS (/admin)
- * - api.gasfacilpro.com.br       → API (handled by backend)
+ * - app.gasfacilpro.com.br        → Painel Admin / ERP (/admin)
+ * - parceiro.gasfacilpro.com.br   → Portal do Parceiro (/parceiro)
  * 
  * Em ambiente de desenvolvimento (localhost, preview), usa rotas normais.
  */
 
-export type SubdomainApp = "cliente" | "entregador" | "parceiro" | "erp" | "painel" | "landing" | null;
+export type SubdomainApp = "cliente" | "entregador" | "parceiro" | "painel" | "landing" | null;
 
 const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
   clientes: "cliente",
   cliente: "cliente",
   entregador: "entregador",
   entregadores: "entregador",
-  entregado: "entregador",
-  portal: "parceiro",
-  parceiro: "parceiro",
-  app: "erp",
+  app: "painel",
   painel: "painel",
   admin: "painel",
+  portal: "parceiro",
+  parceiro: "parceiro",
 };
 
 // Known base domains for the SaaS
@@ -57,16 +54,12 @@ export function detectSubdomainApp(): SubdomainApp {
     }
 
     if (hostname.endsWith(`.${baseDomain}`)) {
-      // Everything before ".baseDomain"
       const prefix = hostname.slice(0, -(baseDomain.length + 1));
 
       if (!prefix || prefix === "www") {
         return "landing";
       }
 
-      // Busca o primeiro label reconhecido no prefixo (ignora "www" e labels extras)
-      // Ex: www.painel.gasfacilpro.com.br -> "painel"
-      // Ex: app.admin.gasfacilpro.com.br -> "app"
       const labels = prefix.split(".").filter(Boolean);
       const matched = labels.find((label) => label !== "www" && SUBDOMAIN_MAP[label]);
       return matched ? SUBDOMAIN_MAP[matched] : null;
@@ -84,7 +77,6 @@ export function getSubdomainDefaultRoute(app: SubdomainApp): string {
     case "cliente": return "/cliente";
     case "entregador": return "/entregador/dashboard";
     case "parceiro": return "/parceiro/dashboard";
-    case "erp": return "/dashboard";
     case "painel": return "/admin";
     case "landing": return "/";
     default: return "/dashboard";
@@ -93,10 +85,9 @@ export function getSubdomainDefaultRoute(app: SubdomainApp): string {
 
 /**
  * Checks if a given route path is allowed for the detected subdomain app.
- * This prevents users on clientes.gasfacilpro.com.br from accessing /admin routes, etc.
  */
 export function isRouteAllowedForSubdomain(app: SubdomainApp, pathname: string): boolean {
-  if (!app) return true; // No subdomain restriction in dev
+  if (!app) return true;
 
   switch (app) {
     case "cliente":
@@ -105,10 +96,14 @@ export function isRouteAllowedForSubdomain(app: SubdomainApp, pathname: string):
       return pathname.startsWith("/entregador") || pathname === "/auth";
     case "parceiro":
       return pathname.startsWith("/parceiro") || pathname === "/auth";
-    case "erp":
-      return !pathname.startsWith("/admin") || pathname === "/auth";
     case "painel":
-      return pathname.startsWith("/admin") || pathname === "/auth";
+      // app.gasfacilpro.com.br — full admin + ERP access
+      return pathname === "/auth" || pathname.startsWith("/admin") || pathname.startsWith("/dashboard")
+        || pathname.startsWith("/vendas") || pathname.startsWith("/caixa") || pathname.startsWith("/estoque")
+        || pathname.startsWith("/cadastros") || pathname.startsWith("/clientes") || pathname.startsWith("/financeiro")
+        || pathname.startsWith("/fiscal") || pathname.startsWith("/frota") || pathname.startsWith("/rh")
+        || pathname.startsWith("/config") || pathname.startsWith("/operacional") || pathname.startsWith("/atendimento")
+        || pathname.startsWith("/onboarding") || pathname.startsWith("/entregas") || pathname.startsWith("/assistente");
     case "landing":
       return true;
     default:
