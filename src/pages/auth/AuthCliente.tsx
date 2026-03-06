@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAuthForm } from "@/hooks/useAuthForm";
+import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Flame, Loader2, Eye, EyeOff, ShoppingBag } from "lucide-react";
+import { Flame, Loader2, Eye, EyeOff, ShoppingBag, AlertTriangle } from "lucide-react";
+
+interface EmpresaInfo {
+  id: string;
+  nome: string;
+  slug: string;
+  logo_url: string | null;
+}
 
 function LoginForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -174,23 +182,100 @@ function SignupForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
 export default function AuthCliente() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const empresaSlug = searchParams.get("empresa") || localStorage.getItem("cliente_empresa_slug") || undefined;
   const { user, loading } = useAuth();
+
+  // Resolve empresa slug: URL param > localStorage
+  const urlSlug = searchParams.get("empresa");
+  const [empresaSlug, setEmpresaSlug] = useState<string | undefined>(
+    urlSlug || localStorage.getItem("cliente_empresa_slug") || undefined
+  );
+  const [empresa, setEmpresa] = useState<EmpresaInfo | null>(null);
+  const [empresaLoading, setEmpresaLoading] = useState(true);
+  const [empresaError, setEmpresaError] = useState(false);
+
   const form = useAuthForm(empresaSlug);
 
+  // Persist slug from URL to localStorage
   useEffect(() => {
-    document.title = "GásFácil Pro — Área do Cliente";
-  }, []);
+    if (urlSlug) {
+      localStorage.setItem("cliente_empresa_slug", urlSlug);
+      setEmpresaSlug(urlSlug);
+    }
+  }, [urlSlug]);
+
+  // Fetch empresa info by slug
+  useEffect(() => {
+    async function fetchEmpresa() {
+      if (!empresaSlug) {
+        setEmpresaLoading(false);
+        setEmpresaError(true);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.rpc("get_empresa_by_slug", { _slug: empresaSlug });
+        if (error || !data || (Array.isArray(data) && data.length === 0)) {
+          setEmpresaError(true);
+          localStorage.removeItem("cliente_empresa_slug");
+        } else {
+          const empresaData = Array.isArray(data) ? data[0] : data;
+          setEmpresa(empresaData as EmpresaInfo);
+          setEmpresaError(false);
+        }
+      } catch {
+        setEmpresaError(true);
+      } finally {
+        setEmpresaLoading(false);
+      }
+    }
+
+    fetchEmpresa();
+  }, [empresaSlug]);
+
+  useEffect(() => {
+    const nome = empresa?.nome || "GásFácil Pro";
+    document.title = `${nome} — Área do Cliente`;
+  }, [empresa]);
 
   useEffect(() => {
     if (!user || loading) return;
     navigate("/cliente");
   }, [user, loading, navigate]);
 
-  if (loading) {
+  if (loading || empresaLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // No empresa slug or invalid slug — show error
+  if (empresaError && !empresa) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-white to-amber-50 dark:from-background dark:via-background dark:to-muted/20 p-4">
+        <Card className="w-full max-w-md border-orange-200/50 dark:border-primary/20">
+          <CardHeader className="text-center space-y-4">
+            <div className="flex justify-center">
+              <div className="h-16 w-16 rounded-2xl bg-muted flex items-center justify-center">
+                <AlertTriangle className="h-8 w-8 text-muted-foreground" />
+              </div>
+            </div>
+            <CardTitle className="text-xl font-bold">Acesso Indisponível</CardTitle>
+            <CardDescription className="text-base">
+              Para acessar o aplicativo do cliente, utilize o link fornecido pela sua distribuidora de gás.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-sm text-muted-foreground mb-4">
+              Exemplo: <code className="bg-muted px-2 py-1 rounded text-xs">clientes.gasfacilpro.com.br?empresa=nome-da-empresa</code>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Se você é um administrador, acesse pelo{" "}
+              <a href="https://app.gasfacilpro.com.br" className="text-primary underline">sistema ERP</a>.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -200,13 +285,21 @@ export default function AuthCliente() {
       <Card className="w-full max-w-md border-orange-200/50 dark:border-primary/20">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg">
-              <Flame className="h-10 w-10 text-white" />
-            </div>
+            {empresa?.logo_url ? (
+              <img
+                src={empresa.logo_url}
+                alt={empresa.nome}
+                className="h-16 w-16 rounded-2xl object-cover shadow-lg"
+              />
+            ) : (
+              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg">
+                <Flame className="h-10 w-10 text-white" />
+              </div>
+            )}
           </div>
           <div className="flex items-center justify-center gap-2">
             <ShoppingBag className="h-4 w-4 text-orange-500" />
-            <CardTitle className="text-2xl font-bold">GásFácil Pro — Cliente</CardTitle>
+            <CardTitle className="text-2xl font-bold">{empresa?.nome || "GásFácil Pro"}</CardTitle>
           </div>
           <CardDescription>
             Peça seu gás com rapidez e acompanhe suas entregas
