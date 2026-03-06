@@ -16,8 +16,6 @@ export default function Auth() {
   const app = detectSubdomainApp();
 
   switch (app) {
-    case "erp":
-      return <AuthErp />;
     case "painel":
       return <AuthPainel />;
     case "cliente":
