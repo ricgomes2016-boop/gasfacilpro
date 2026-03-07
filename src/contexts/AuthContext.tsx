@@ -20,7 +20,7 @@ interface AuthContextType {
   profile: Profile | null;
   roles: AppRole[];
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string, empresaSlug?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string, empresaSlug?: string, phone?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   hasRole: (role: AppRole) => boolean;
