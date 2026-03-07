@@ -60,6 +60,7 @@ interface Escala {
 }
 
 export default function GestaoEscalas() {
+  const { unidadeAtual } = useUnidade();
   const [escalas, setEscalas] = useState<Escala[]>([]);
   const [entregadores, setEntregadores] = useState<Entregador[]>([]);
   const [rotasDefinidas, setRotasDefinidas] = useState<RotaDefinida[]>([]);
