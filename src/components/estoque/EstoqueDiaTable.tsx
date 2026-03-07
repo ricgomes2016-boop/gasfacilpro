@@ -135,9 +135,13 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
     Object.entries(grupoMap)
       .sort(([a], [b]) => a.localeCompare(b))
       .forEach(([, grupo]) => {
+        const estoqueCombinado = (grupo.cheio?.estoque || 0) + (grupo.vazio?.estoque || 0);
+
         if (grupo.cheio) {
           const mov = movimentacoes[grupo.cheio.id] || emptyMov;
-          resultado.push(calcularLinha(grupo.cheio, mov, "cheio"));
+          const linha = calcularLinha(grupo.cheio, mov, "cheio");
+          linha.estoqueAtual = estoqueCombinado;
+          resultado.push(linha);
         }
         if (grupo.vazio) {
           const parCheioId = grupo.cheio?.id;
@@ -148,7 +152,9 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
             entradas_manuais: movCheio.entradas_manuais, saidas_manuais: movCheio.saidas_manuais,
             avarias: movVazio.avarias,
           };
-          resultado.push(calcularLinha(grupo.vazio, movCombinado, "vazio"));
+          const linha = calcularLinha(grupo.vazio, movCombinado, "vazio");
+          linha.estoqueAtual = estoqueCombinado;
+          resultado.push(linha);
         }
         if (grupo.unico && !grupo.cheio && !grupo.vazio) {
           const mov = movimentacoes[grupo.unico.id] || emptyMov;
