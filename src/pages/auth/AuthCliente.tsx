@@ -147,6 +147,7 @@ export default function AuthCliente() {
   const isSubdomain = detectSubdomainApp() === "cliente";
 
   const urlSlug = searchParams.get("empresa");
+  const urlUnidade = searchParams.get("unidade");
   const [showSignup, setShowSignup] = useState(false);
   const [empresaSlug, setEmpresaSlug] = useState<string | undefined>(
     urlSlug || localStorage.getItem("cliente_empresa_slug") || undefined
@@ -154,6 +155,7 @@ export default function AuthCliente() {
   const [empresa, setEmpresa] = useState<EmpresaInfo | null>(null);
   const [empresaLoading, setEmpresaLoading] = useState(!!empresaSlug);
   const [empresaError, setEmpresaError] = useState(false);
+  const [unidadeNome, setUnidadeNome] = useState<string | null>(null);
 
   const form = useAuthForm(empresaSlug);
 
@@ -163,6 +165,19 @@ export default function AuthCliente() {
       setEmpresaSlug(urlSlug);
     }
   }, [urlSlug]);
+
+  // Fetch unit name when unidade param is present
+  useEffect(() => {
+    if (!urlUnidade) return;
+    supabase
+      .from("unidades")
+      .select("nome")
+      .eq("id", urlUnidade)
+      .single()
+      .then(({ data }) => {
+        if (data?.nome) setUnidadeNome(data.nome);
+      });
+  }, [urlUnidade]);
 
   useEffect(() => {
     async function fetchEmpresa() {
@@ -192,10 +207,11 @@ export default function AuthCliente() {
     fetchEmpresa();
   }, [empresaSlug]);
 
+  const displayName = unidadeNome || empresa?.nome || "GásFácil Pro";
+
   useEffect(() => {
-    const nome = empresa?.nome || "GásFácil Pro";
-    document.title = `${nome} — Área do Cliente`;
-  }, [empresa]);
+    document.title = `${displayName} — Área do Cliente`;
+  }, [displayName]);
 
   const [roleError, setRoleError] = useState(false);
 
@@ -267,7 +283,7 @@ export default function AuthCliente() {
           </div>
           <div className="flex items-center justify-center gap-2">
             <ShoppingBag className="h-4 w-4 text-orange-500" />
-            <CardTitle className="text-2xl font-bold">{empresa?.nome || "GásFácil Pro"}</CardTitle>
+            <CardTitle className="text-2xl font-bold">{displayName}</CardTitle>
           </div>
           <CardDescription>
             Peça seu gás com rapidez e acompanhe suas entregas
