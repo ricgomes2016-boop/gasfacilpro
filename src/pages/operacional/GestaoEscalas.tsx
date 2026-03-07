@@ -31,6 +31,7 @@ import {
 import { Calendar, Plus, Pencil, Trash2, Loader2, Clock, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { format, startOfWeek, addDays } from "date-fns";
 import { getBrasiliaDate } from "@/lib/utils";
 import { ptBR } from "date-fns/locale";
@@ -59,6 +60,7 @@ interface Escala {
 }
 
 export default function GestaoEscalas() {
+  const { unidadeAtual } = useUnidade();
   const [escalas, setEscalas] = useState<Escala[]>([]);
   const [entregadores, setEntregadores] = useState<Entregador[]>([]);
   const [rotasDefinidas, setRotasDefinidas] = useState<RotaDefinida[]>([]);
@@ -99,8 +101,8 @@ export default function GestaoEscalas() {
         .lte("data", format(fimSemana, "yyyy-MM-dd"))
         .order("data")
         .order("turno_inicio"),
-      supabase.from("entregadores").select("id, nome").eq("ativo", true).order("nome"),
-      supabase.from("rotas_definidas").select("id, nome").eq("ativo", true).order("nome"),
+      (() => { let q = supabase.from("entregadores").select("id, nome").eq("ativo", true).order("nome"); if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id); return q; })(),
+      (() => { let q = supabase.from("rotas_definidas").select("id, nome").eq("ativo", true).order("nome"); if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id); return q; })(),
     ]);
 
     if (escalasRes.data) setEscalas(escalasRes.data as unknown as Escala[]);

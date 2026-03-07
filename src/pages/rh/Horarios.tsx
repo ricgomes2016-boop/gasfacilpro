@@ -45,6 +45,7 @@ interface Escala {
 
 function EscalasTab() {
   const { toast } = useToast();
+  const { unidadeAtual } = useUnidade();
   const [escalas, setEscalas] = useState<Escala[]>([]);
   const [entregadores, setEntregadores] = useState<{ id: string; nome: string }[]>([]);
   const [rotasDefinidas, setRotasDefinidas] = useState<{ id: string; nome: string }[]>([]);
@@ -81,8 +82,8 @@ function EscalasTab() {
         .lte("data", format(fimSemana, "yyyy-MM-dd"))
         .order("data")
         .order("turno_inicio"),
-      supabase.from("entregadores").select("id, nome").eq("ativo", true).order("nome"),
-      supabase.from("rotas_definidas").select("id, nome").eq("ativo", true).order("nome"),
+      (() => { let q = supabase.from("entregadores").select("id, nome").eq("ativo", true).order("nome"); if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id); return q; })(),
+      (() => { let q = supabase.from("rotas_definidas").select("id, nome").eq("ativo", true).order("nome"); if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id); return q; })(),
     ]);
 
     if (escalasRes.data) setEscalas(escalasRes.data as unknown as Escala[]);

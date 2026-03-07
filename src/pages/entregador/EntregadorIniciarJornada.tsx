@@ -99,7 +99,7 @@ export default function EntregadorIniciarJornada() {
       // Get entregador with terminal info
       const { data: entregador } = await supabase
         .from("entregadores")
-        .select("id, terminal_id, terminal_ativo_id")
+        .select("id, terminal_id, terminal_ativo_id, unidade_id")
         .eq("user_id", user!.id)
         .maybeSingle();
 
@@ -151,11 +151,15 @@ export default function EntregadorIniciarJornada() {
       }
 
       // Fetch vehicles, routes, products in parallel
-      const [veiculosRes, rotasRes, produtosRes] = await Promise.all([
-        supabase.from("veiculos").select("id, placa, modelo, marca, km_atual").eq("ativo", true),
-        supabase.from("rotas_definidas").select("id, nome, bairros, distancia_km, tempo_estimado").eq("ativo", true),
-        supabase.from("produtos").select("id, nome, estoque, categoria").eq("ativo", true).order("nome"),
-      ]);
+      let vQ = supabase.from("veiculos").select("id, placa, modelo, marca, km_atual").eq("ativo", true);
+      let rQ = supabase.from("rotas_definidas").select("id, nome, bairros, distancia_km, tempo_estimado").eq("ativo", true);
+      let pQ = supabase.from("produtos").select("id, nome, estoque, categoria").eq("ativo", true).order("nome");
+      if (entregador?.unidade_id) {
+        vQ = vQ.eq("unidade_id", entregador.unidade_id);
+        rQ = rQ.eq("unidade_id", entregador.unidade_id);
+        pQ = pQ.eq("unidade_id", entregador.unidade_id);
+      }
+      const [veiculosRes, rotasRes, produtosRes] = await Promise.all([vQ, rQ, pQ]);
 
       if (veiculosRes.data) setVeiculos(veiculosRes.data);
       if (rotasRes.data) setRotasDefinidas(rotasRes.data as unknown as RotaDefinida[]);

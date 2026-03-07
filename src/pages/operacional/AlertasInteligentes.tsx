@@ -69,7 +69,9 @@ export default function AlertasInteligentes() {
       }
 
       // Entregadores sem rota
-      const { data: entregs } = await supabase.from("entregadores").select("nome, status").eq("ativo", true);
+      let entQ = supabase.from("entregadores").select("nome, status").eq("ativo", true);
+      if (unidadeAtual?.id) entQ = entQ.eq("unidade_id", unidadeAtual.id);
+      const { data: entregs } = await entQ;
       const disponiveisOciosos = entregs?.filter(e => e.status === "disponivel") || [];
       let pedPend = supabase.from("pedidos").select("id", { count: "exact" }).eq("status", "pendente");
       if (unidadeAtual?.id) pedPend = pedPend.eq("unidade_id", unidadeAtual.id);

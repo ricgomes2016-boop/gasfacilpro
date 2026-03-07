@@ -23,7 +23,9 @@ export default function DashboardTrabalhista() {
     setLoading(true);
     try {
       // Funcionários ativos
-      const { data: funcs } = await supabase.from("funcionarios").select("id, nome, cargo").eq("ativo", true);
+      let funcQ = supabase.from("funcionarios").select("id, nome, cargo").eq("ativo", true);
+      if (unidadeAtual?.id) funcQ = funcQ.eq("unidade_id", unidadeAtual.id);
+      const { data: funcs } = await funcQ;
       setTotalFuncionarios(funcs?.length || 0);
 
       // Banco de horas para cada funcionário
