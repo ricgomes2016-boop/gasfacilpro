@@ -491,14 +491,14 @@ export default function ContasReceber() {
           <div className="ml-auto flex gap-2">
             {canBulkReceber && (
               <Button size="sm" variant="default" className="gap-1.5" onClick={() => {
-                // Open receber for first selected (batch could be extended)
                 if (selectedContas.length === 1) {
                   openReceberDialog(selectedContas[0]);
                 } else {
-                  toast.info("Selecione uma conta por vez para liquidar, ou use ações individuais.");
+                  setBulkFormaPagamento("");
+                  setBulkDialogOpen(true);
                 }
               }}>
-                <DollarSign className="h-4 w-4" />Liquidar
+                <DollarSign className="h-4 w-4" />Liquidar ({selectedContas.length})
               </Button>
             )}
             <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
