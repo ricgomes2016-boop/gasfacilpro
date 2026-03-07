@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
@@ -17,11 +18,14 @@ import { QRCodeSVG } from "qrcode.react";
 
 export default function AplicativoCliente() {
   const { empresa, loading } = useEmpresa();
+  const { unidadeAtual } = useUnidade();
   const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState({ totalClientes: 0, pedidosMes: 0, avaliacaoMedia: 0, clientesAtivos: 0 });
 
   const baseUrl = "https://clientes.gasfacilpro.com.br";
-  const appLink = empresa?.slug ? `${baseUrl}?empresa=${empresa.slug}` : baseUrl;
+  const appLink = empresa?.slug
+    ? `${baseUrl}?empresa=${empresa.slug}${unidadeAtual ? `&unidade=${unidadeAtual.id}` : ""}`
+    : baseUrl;
 
   useEffect(() => {
     document.title = "GásFácil Pro — Aplicativo do Cliente";
