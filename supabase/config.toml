@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.recompra-whatsapp-dispatch]
 verify_jwt = false
+
+[functions.uazapi-webhook]
+verify_jwt = false

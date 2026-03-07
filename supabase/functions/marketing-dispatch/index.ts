@@ -30,19 +30,20 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action, content, phone, imageUrl, webhookUrl, unidadeId } = body;
 
-    // === WhatsApp via Z-API ===
+    // === WhatsApp via Z-API or UaZapi ===
     if (action === "whatsapp") {
       if (!phone || !content) throw new Error("Telefone e conteúdo são obrigatórios");
 
-      // Get Z-API credentials
+      // Get WhatsApp credentials
       let instanceId: string | null = null;
       let zapToken: string | null = null;
       let securityToken: string | null = null;
+      let provedor = "zapi";
 
       if (unidadeId) {
         const { data: config } = await supabase
           .from("integracoes_whatsapp")
-          .select("instance_id, token, security_token")
+          .select("instance_id, token, security_token, provedor")
           .eq("unidade_id", unidadeId)
           .eq("ativo", true)
           .maybeSingle();
@@ -51,13 +52,14 @@ Deno.serve(async (req) => {
           instanceId = config.instance_id;
           zapToken = config.token;
           securityToken = config.security_token;
+          provedor = config.provedor || "zapi";
         }
       }
 
       if (!instanceId) {
         const { data: configs } = await supabase
           .from("integracoes_whatsapp")
-          .select("instance_id, token, security_token")
+          .select("instance_id, token, security_token, provedor")
           .eq("ativo", true)
           .limit(1);
 
@@ -65,6 +67,7 @@ Deno.serve(async (req) => {
           instanceId = configs[0].instance_id;
           zapToken = configs[0].token;
           securityToken = configs[0].security_token;
+          provedor = configs[0].provedor || "zapi";
         }
       }
 
@@ -72,36 +75,69 @@ Deno.serve(async (req) => {
         instanceId = Deno.env.get("ZAPI_INSTANCE_ID") || null;
         zapToken = Deno.env.get("ZAPI_TOKEN") || null;
         securityToken = Deno.env.get("ZAPI_SECURITY_TOKEN") || null;
+        provedor = "zapi";
       }
 
-      if (!instanceId || !zapToken) throw new Error("Credenciais Z-API não configuradas");
+      if (!instanceId || !zapToken) throw new Error("Credenciais WhatsApp não configuradas");
 
-      const url = `https://api.z-api.io/instances/${instanceId}/token/${zapToken}/send-text`;
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (securityToken) headers["Client-Token"] = securityToken;
+      const cleanPhone = phone.replace(/\D/g, "");
 
-      const resp = await fetch(url, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ phone: phone.replace(/\D/g, ""), message: content }),
-      });
+      if (provedor === "uazapi") {
+        // UaZapi API
+        const url = `https://api.uazapi.com/${instanceId}/send-text`;
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${zapToken}`,
+          },
+          body: JSON.stringify({ to: cleanPhone, text: content }),
+        });
 
-      if (!resp.ok) {
-        const errText = await resp.text();
-        throw new Error(`Erro Z-API: ${resp.status} - ${errText}`);
-      }
+        if (!resp.ok) {
+          const errText = await resp.text();
+          throw new Error(`Erro UaZapi: ${resp.status} - ${errText}`);
+        }
 
-      // Send image if provided
-      if (imageUrl) {
-        const imgUrl = `https://api.z-api.io/instances/${instanceId}/token/${zapToken}/send-image`;
-        await fetch(imgUrl, {
+        if (imageUrl) {
+          const imgUrl = `https://api.uazapi.com/${instanceId}/send-image`;
+          await fetch(imgUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${zapToken}`,
+            },
+            body: JSON.stringify({ to: cleanPhone, image: imageUrl }),
+          });
+        }
+      } else {
+        // Z-API
+        const url = `https://api.z-api.io/instances/${instanceId}/token/${zapToken}/send-text`;
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (securityToken) headers["Client-Token"] = securityToken;
+
+        const resp = await fetch(url, {
           method: "POST",
           headers,
-          body: JSON.stringify({ phone: phone.replace(/\D/g, ""), image: imageUrl }),
+          body: JSON.stringify({ phone: cleanPhone, message: content }),
         });
+
+        if (!resp.ok) {
+          const errText = await resp.text();
+          throw new Error(`Erro Z-API: ${resp.status} - ${errText}`);
+        }
+
+        if (imageUrl) {
+          const imgUrl = `https://api.z-api.io/instances/${instanceId}/token/${zapToken}/send-image`;
+          await fetch(imgUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ phone: cleanPhone, image: imageUrl }),
+          });
+        }
       }
 
-      return new Response(JSON.stringify({ ok: true, channel: "whatsapp" }), {
+      return new Response(JSON.stringify({ ok: true, channel: "whatsapp", provedor }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
