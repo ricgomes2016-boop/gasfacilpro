@@ -283,7 +283,7 @@ export default function AuthCliente() {
           </div>
           <div className="flex items-center justify-center gap-2">
             <ShoppingBag className="h-4 w-4 text-orange-500" />
-            <CardTitle className="text-2xl font-bold">{empresa?.nome || "GásFácil Pro"}</CardTitle>
+            <CardTitle className="text-2xl font-bold">{displayName}</CardTitle>
           </div>
           <CardDescription>
             Peça seu gás com rapidez e acompanhe suas entregas
