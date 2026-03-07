@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 
 export default function AplicativoCliente() {
-  const { empresa } = useEmpresa();
+  const { empresa, loading } = useEmpresa();
   const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState({ totalClientes: 0, pedidosMes: 0, avaliacaoMedia: 0, clientesAtivos: 0 });
 
