@@ -76,7 +76,7 @@ function LoginForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
           <Input
             id="cliente-login-email"
             type="email"
-            placeholder="seu@email.com"
+            placeholder="Digite seu e-mail"
             value={form.loginEmail}
             onChange={(e) => form.setLoginEmail(e.target.value)}
             disabled={form.isLoading}
@@ -104,7 +104,7 @@ function LoginForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
           <Input
             id="cliente-login-password"
             type={form.showPassword ? "text" : "password"}
-            placeholder="••••••••"
+            placeholder="Coloque sua senha"
             value={form.loginPassword}
             onChange={(e) => form.setLoginPassword(e.target.value)}
             disabled={form.isLoading}
@@ -188,7 +188,7 @@ function SignupForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
           <Input
             id="cliente-signup-email"
             type="email"
-            placeholder="seu@email.com"
+            placeholder="Digite seu e-mail"
             value={form.signupEmail}
             onChange={(e) => form.setSignupEmail(e.target.value)}
             disabled={form.isLoading}
@@ -216,7 +216,7 @@ function SignupForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
           <Input
             id="cliente-signup-password"
             type={form.showSignupPassword ? "text" : "password"}
-            placeholder="Mínimo 6 caracteres"
+            placeholder="Coloque sua senha"
             value={form.signupPassword}
             onChange={(e) => form.setSignupPassword(e.target.value)}
             disabled={form.isLoading}

@@ -71,7 +71,7 @@ export default function AuthParceiro() {
               <Input
                 id="parceiro-email"
                 type="email"
-                placeholder="parceiro@empresa.com"
+                placeholder="Digite seu e-mail"
                 value={form.loginEmail}
                 onChange={(e) => form.setLoginEmail(e.target.value)}
                 disabled={form.isLoading}
@@ -85,7 +85,7 @@ export default function AuthParceiro() {
                 <Input
                   id="parceiro-password"
                   type={form.showPassword ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder="Coloque sua senha"
                   value={form.loginPassword}
                   onChange={(e) => form.setLoginPassword(e.target.value)}
                   disabled={form.isLoading}
