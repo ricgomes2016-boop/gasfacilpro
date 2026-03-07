@@ -51,7 +51,7 @@ serve(async (req) => {
     if (userError) {
       const message = userError.message || "Authentication failed";
       // Avoid hard-failing transient auth races on client startup
-      if (message.includes("Auth session missing") || message.includes("invalid JWT")) {
+      if (message.includes("Auth session missing") || message.includes("invalid JWT") || message.includes("missing sub claim")) {
         logStep("Auth token invalid/missing session, returning unsubscribed", { message });
         return new Response(JSON.stringify({
           subscribed: false,
