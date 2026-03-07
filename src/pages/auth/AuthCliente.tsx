@@ -207,10 +207,11 @@ export default function AuthCliente() {
     fetchEmpresa();
   }, [empresaSlug]);
 
+  const displayName = unidadeNome || empresa?.nome || "GásFácil Pro";
+
   useEffect(() => {
-    const nome = empresa?.nome || "GásFácil Pro";
-    document.title = `${nome} — Área do Cliente`;
-  }, [empresa]);
+    document.title = `${displayName} — Área do Cliente`;
+  }, [displayName]);
 
   const [roleError, setRoleError] = useState(false);
 
