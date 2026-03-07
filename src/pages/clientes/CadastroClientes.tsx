@@ -158,14 +158,48 @@ export default function CadastroClientesCad() {
 
   useEffect(() => {
     fetchClientes();
-  }, []);
+  }, [empresa?.id, unidadeAtual?.id]);
 
   const fetchClientes = async () => {
+    if (!empresa?.id) {
+      setClientes([]);
+      setStats({ total: 0, ativos: 0, residenciais: 0, comerciais: 0 });
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const { data, error } = await supabase
+      // If unidade is selected, filter by cliente_unidades
+      let clienteIds: string[] | null = null;
+      if (unidadeAtual?.id) {
+        const { data: cuData, error: cuError } = await supabase
+          .from("cliente_unidades")
+          .select("cliente_id")
+          .eq("unidade_id", unidadeAtual.id);
+
+        if (cuError) throw cuError;
+
+        clienteIds = (cuData || []).map((cu: any) => cu.cliente_id);
+
+        if (clienteIds.length === 0) {
+          setClientes([]);
+          setStats({ total: 0, ativos: 0, residenciais: 0, comerciais: 0 });
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      let query = supabase
         .from("clientes")
         .select("*")
+        .eq("empresa_id", empresa.id)
         .order("created_at", { ascending: false });
+
+      if (clienteIds) {
+        query = query.in("id", clienteIds);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -173,7 +207,6 @@ export default function CadastroClientesCad() {
       const clientEmails = (data || []).filter(c => c.email).map(c => c.email!);
       const appEmailSet = new Set<string>();
       if (clientEmails.length > 0) {
-        // Query in batches to avoid URL length limits
         const batchSize = 50;
         for (let i = 0; i < clientEmails.length; i += batchSize) {
           const batch = clientEmails.slice(i, i + batchSize);
@@ -398,9 +431,15 @@ export default function CadastroClientesCad() {
 
     try {
       const cpfClean = cpf.replace(/\D/g, "");
-      const { data: allClientes, error: fetchError } = await supabase
+      let dupQuery = supabase
         .from("clientes")
         .select("id, cpf");
+      
+      if (empresa?.id) {
+        dupQuery = dupQuery.eq("empresa_id", empresa.id);
+      }
+
+      const { data: allClientes, error: fetchError } = await dupQuery;
 
       if (fetchError) throw fetchError;
 
