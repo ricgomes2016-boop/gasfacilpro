@@ -1,16 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAuthForm, LoginMethod } from "@/hooks/useAuthForm";
+import { useAuthForm } from "@/hooks/useAuthForm";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { Flame, Loader2, Eye, EyeOff, ShoppingBag, AlertTriangle, Phone, Mail } from "lucide-react";
+import { Flame, Loader2, Eye, EyeOff, ShoppingBag, AlertTriangle, Phone } from "lucide-react";
 import { detectSubdomainApp } from "@/lib/subdomain";
 
 interface EmpresaInfo {
