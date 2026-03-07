@@ -10,7 +10,7 @@
  * Em ambiente de desenvolvimento (localhost, preview), usa rotas normais.
  */
 
-export type SubdomainApp = "cliente" | "entregador" | "parceiro" | "erp" | "painel" | "landing" | null;
+export type SubdomainApp = "cliente" | "entregador" | "parceiro" | "erp" | "painel" | "api" | "landing" | null;
 
 const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
   clientes: "cliente",
@@ -20,6 +20,7 @@ const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
   app: "erp",
   painel: "painel",
   admin: "painel",
+  api: "api",
   portal: "parceiro",
   parceiro: "parceiro",
 };
@@ -109,6 +110,8 @@ export function getCanonicalHostnameForApp(
       return `entregador.${baseDomain}`;
     case "parceiro":
       return `portal.${baseDomain}`;
+    case "api":
+      return `api.${baseDomain}`;
     case "landing":
       return baseDomain;
     default:
@@ -173,6 +176,7 @@ export function getSubdomainDefaultRoute(app: SubdomainApp): string {
     case "parceiro": return "/parceiro";
     case "erp": return "/dashboard";
     case "painel": return "/admin";
+    case "api": return "/auth";
     case "landing": return "/";
     default: return "/dashboard";
   }
@@ -200,8 +204,9 @@ export function isRouteAllowedForSubdomain(app: SubdomainApp, pathname: string):
         || matchesRouteSegment(pathname, "/operacional") || matchesRouteSegment(pathname, "/atendimento") || matchesRouteSegment(pathname, "/onboarding")
         || matchesRouteSegment(pathname, "/entregas") || matchesRouteSegment(pathname, "/assistente");
     case "painel":
-      // painel.gasfacilpro.com.br — SaaS super admin only
       return pathname === "/auth" || pathname.startsWith("/admin");
+    case "api":
+      return pathname === "/auth" || matchesRouteSegment(pathname, "/config/integracoes");
     case "landing":
       return true;
     default:
