@@ -47,6 +47,7 @@ const OnboardingEmpresa = lazy(() => import("./pages/onboarding/OnboardingEmpres
 const OnboardingSetup = lazy(() => import("./pages/onboarding/OnboardingSetup"));
 const ComprarValeGas = lazy(() => import("./pages/publico/ComprarValeGas"));
 const Instalar = lazy(() => import("./pages/Instalar"));
+const Suporte = lazy(() => import("./pages/Suporte"));
 
 const queryClient = new QueryClient();
 
@@ -88,6 +89,7 @@ const App = () => (
                           {/* Public routes */}
                           <Route path="/auth" element={<Auth />} />
                           <Route path="/instalar" element={<Instalar />} />
+                          <Route path="/suporte" element={<Suporte />} />
                           <Route path="/vale-gas/comprar/:parceiroId" element={<ComprarValeGas />} />
 
                           {/* Onboarding */}
