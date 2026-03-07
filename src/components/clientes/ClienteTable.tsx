@@ -3,7 +3,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Phone, MapPin, Edit, Trash2, Eye, Building2 } from "lucide-react";
+import { Phone, MapPin, Edit, Trash2, Eye, Building2, Smartphone } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ClienteDB, ClienteForm } from "@/hooks/useClientes";
 import {
@@ -61,13 +61,14 @@ export function ClienteTable({ clientes, loading, onEdit, onDelete, onManageUnid
             <TableHead>Bairro</TableHead>
             <TableHead>Última Compra</TableHead>
             <TableHead className="text-center">Pedidos</TableHead>
+            <TableHead className="text-center">App</TableHead>
             <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {clientes.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                 Nenhum cliente encontrado.
               </TableCell>
             </TableRow>
@@ -113,6 +114,21 @@ export function ClienteTable({ clientes, loading, onEdit, onDelete, onManageUnid
                 <TableCell className="text-sm">{formatUltimaCompra(cliente.ultimo_pedido)}</TableCell>
                 <TableCell className="text-center">
                   <Badge variant="outline">{cliente.total_pedidos || 0}</Badge>
+                </TableCell>
+                <TableCell className="text-center">
+                  {cliente.cadastro_app ? (
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Badge variant="secondary" className="gap-1 text-xs">
+                          <Smartphone className="h-3 w-3" />
+                          Sim
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>Cadastrado pelo aplicativo</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">-</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
