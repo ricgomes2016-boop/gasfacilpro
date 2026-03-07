@@ -32,11 +32,19 @@ export default function RelatorioGerencial() {
       const inicio = format(startOfMonth(getBrasiliaDate()), "yyyy-MM-dd");
       const fim = format(endOfMonth(getBrasiliaDate()), "yyyy-MM-dd");
 
+      let pedQ = supabase.from("pedidos").select("id, valor_total, status, created_at, forma_pagamento").gte("created_at", inicio).lte("created_at", fim + "T23:59:59");
+      if (unidadeAtual?.id) pedQ = pedQ.eq("unidade_id", unidadeAtual.id);
+
+      let despQ = supabase.from("contas_pagar").select("id, valor, categoria, status, vencimento").gte("vencimento", inicio).lte("vencimento", fim);
+      if (unidadeAtual?.id) despQ = despQ.eq("unidade_id", unidadeAtual.id);
+
+      let prodQ = supabase.from("produtos").select("id, nome, preco_venda, preco_custo, estoque_atual");
+      if (unidadeAtual?.id) prodQ = prodQ.eq("unidade_id", unidadeAtual.id);
+
+      let cliQ = supabase.from("clientes").select("id, nome, created_at");
+
       const [vendasRes, despesasRes, produtosRes, clientesRes] = await Promise.all([
-        supabase.from("pedidos").select("id, valor_total, status, created_at, forma_pagamento").gte("created_at", inicio).lte("created_at", fim + "T23:59:59"),
-        supabase.from("contas_pagar").select("id, valor, categoria, status, vencimento").gte("vencimento", inicio).lte("vencimento", fim),
-        supabase.from("produtos").select("id, nome, preco_venda, preco_custo, estoque_atual"),
-        supabase.from("clientes").select("id, nome, created_at"),
+        pedQ, despQ, prodQ, cliQ,
       ]);
 
       setVendas(vendasRes.data || []);

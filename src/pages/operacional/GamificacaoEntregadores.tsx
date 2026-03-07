@@ -45,9 +45,15 @@ export default function GamificacaoEntregadores() {
       try {
         const mesInicio = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
+        let entQ = supabase.from("entregadores").select("id, nome").eq("ativo", true);
+        if (unidadeAtual?.id) entQ = entQ.eq("unidade_id", unidadeAtual.id);
+
+        let pedQ = supabase.from("pedidos").select("entregador_id").eq("status", "entregue").gte("created_at", mesInicio);
+        if (unidadeAtual?.id) pedQ = pedQ.eq("unidade_id", unidadeAtual.id);
+
         const [{ data: entregadores }, { data: pedidosMes }, { data: allConquistas }] = await Promise.all([
-          supabase.from("entregadores").select("id, nome").eq("ativo", true),
-          supabase.from("pedidos").select("entregador_id").eq("status", "entregue").gte("created_at", mesInicio),
+          entQ,
+          pedQ,
           supabase.from("conquistas").select("*").order("meta_valor"),
         ]);
 

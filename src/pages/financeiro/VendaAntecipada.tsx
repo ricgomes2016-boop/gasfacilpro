@@ -50,10 +50,13 @@ export default function VendaAntecipada() {
   });
 
   const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes-search-va", clienteSearch],
+    queryKey: ["clientes-search-va", clienteSearch, unidadeAtual?.id],
     queryFn: async () => {
-      if (!clienteSearch || clienteSearch.length < 2) return [];
-      const { data } = await supabase.from("clientes").select("id, nome, telefone").ilike("nome", `%${clienteSearch}%`).limit(5);
+      if (!clienteSearch || clienteSearch.length < 2 || !unidadeAtual?.id) return [];
+      const { data: cuData } = await supabase.from("cliente_unidades").select("cliente_id").eq("unidade_id", unidadeAtual.id);
+      const ids = (cuData || []).map((cu: any) => cu.cliente_id);
+      if (ids.length === 0) return [];
+      const { data } = await supabase.from("clientes").select("id, nome, telefone").eq("ativo", true).in("id", ids).ilike("nome", `%${clienteSearch}%`).limit(5);
       return data || [];
     },
     enabled: clienteSearch.length >= 2,

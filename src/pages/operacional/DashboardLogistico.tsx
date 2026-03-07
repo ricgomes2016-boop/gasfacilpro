@@ -36,7 +36,9 @@ export default function DashboardLogistico() {
       setTaxaSucesso((entregues / total) * 100);
 
       // Entregadores com status
-      const { data: entregs } = await supabase.from("entregadores").select("id, nome, status").eq("ativo", true);
+      let entQ = supabase.from("entregadores").select("id, nome, status").eq("ativo", true);
+      if (unidadeAtual?.id) entQ = entQ.eq("unidade_id", unidadeAtual.id);
+      const { data: entregs } = await entQ;
       const emRotaCount = entregs?.filter(e => e.status === "em_rota").length || 0;
       setEmRota(emRotaCount);
 

@@ -199,9 +199,13 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
   });
 
   const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes-vale"],
+    queryKey: ["clientes-vale", unidadeAtual?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("clientes").select("id, nome").eq("ativo", true).order("nome");
+      if (!unidadeAtual?.id) return [];
+      const { data: cuData } = await supabase.from("cliente_unidades").select("cliente_id").eq("unidade_id", unidadeAtual.id);
+      const ids = (cuData || []).map((cu: any) => cu.cliente_id);
+      if (ids.length === 0) return [];
+      const { data } = await supabase.from("clientes").select("id, nome").eq("ativo", true).in("id", ids).order("nome");
       return data || [];
     },
   });
