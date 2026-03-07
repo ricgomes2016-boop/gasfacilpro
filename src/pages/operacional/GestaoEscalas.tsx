@@ -31,6 +31,7 @@ import {
 import { Calendar, Plus, Pencil, Trash2, Loader2, Clock, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { format, startOfWeek, addDays } from "date-fns";
 import { getBrasiliaDate } from "@/lib/utils";
 import { ptBR } from "date-fns/locale";
