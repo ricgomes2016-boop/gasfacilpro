@@ -147,6 +147,7 @@ export default function AuthCliente() {
   const isSubdomain = detectSubdomainApp() === "cliente";
 
   const urlSlug = searchParams.get("empresa");
+  const urlUnidade = searchParams.get("unidade");
   const [showSignup, setShowSignup] = useState(false);
   const [empresaSlug, setEmpresaSlug] = useState<string | undefined>(
     urlSlug || localStorage.getItem("cliente_empresa_slug") || undefined
@@ -154,6 +155,7 @@ export default function AuthCliente() {
   const [empresa, setEmpresa] = useState<EmpresaInfo | null>(null);
   const [empresaLoading, setEmpresaLoading] = useState(!!empresaSlug);
   const [empresaError, setEmpresaError] = useState(false);
+  const [unidadeNome, setUnidadeNome] = useState<string | null>(null);
 
   const form = useAuthForm(empresaSlug);
 
@@ -163,6 +165,19 @@ export default function AuthCliente() {
       setEmpresaSlug(urlSlug);
     }
   }, [urlSlug]);
+
+  // Fetch unit name when unidade param is present
+  useEffect(() => {
+    if (!urlUnidade) return;
+    supabase
+      .from("unidades")
+      .select("nome")
+      .eq("id", urlUnidade)
+      .single()
+      .then(({ data }) => {
+        if (data?.nome) setUnidadeNome(data.nome);
+      });
+  }, [urlUnidade]);
 
   useEffect(() => {
     async function fetchEmpresa() {
