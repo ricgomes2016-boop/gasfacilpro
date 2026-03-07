@@ -89,6 +89,7 @@ const App = () => (
                           {/* Public routes */}
                           <Route path="/auth" element={<Auth />} />
                           <Route path="/instalar" element={<Instalar />} />
+                          <Route path="/suporte" element={<Suporte />} />
                           <Route path="/vale-gas/comprar/:parceiroId" element={<ComprarValeGas />} />
 
                           {/* Onboarding */}
