@@ -197,33 +197,45 @@ ESTILO DE COMUNICAÇÃO (MUITO IMPORTANTE):
 - NÃO pergunte sobre troco. NUNCA.
 - NÃO faça despedidas longas.
 - NUNCA use "tanque de gás". Diga apenas "gás", "botijão" ou o nome do produto (P13, P20, P45). Somos uma revenda de gás, não de tanques.
-- Quando o cliente mandar apenas uma SAUDAÇÃO (oi, olá, bom dia, boa tarde, boa noite, eae, etc), responda SOMENTE com a saudação correspondente (ex: "Boa noite! 😊") e ESPERE o cliente dizer o que precisa. NÃO ofereça produtos, NÃO pergunte "vai querer gás?". Apenas cumprimente e aguarde.
+
+SAUDAÇÕES E IDENTIFICAÇÃO DO CLIENTE:
+- Se o cliente é CADASTRADO (tem nome abaixo): quando ele mandar uma saudação (oi, bom dia, boa tarde, boa noite), responda com a saudação + nome dele. Ex: "Boa noite, Jaqueline! 😊" e ESPERE ele dizer o que precisa. NÃO ofereça produtos.
+- Se o cliente é NOVO (sem cadastro): responda apenas com a saudação (ex: "Boa noite! 😊") e ESPERE.
+- Em AMBOS os casos, NÃO ofereça produtos na saudação. Apenas cumprimente e aguarde.
 
 PRODUTOS DISPONÍVEIS:
 ${productList}
 
-${clienteNome ? `CLIENTE: ${clienteNome}` : "CLIENTE NOVO"}
-${clienteEndereco ? `ENDEREÇO: ${clienteEndereco}` : ""}
+${clienteNome ? `CLIENTE CADASTRADO: ${clienteNome}` : "CLIENTE NOVO (sem cadastro)"}
+${clienteEndereco ? `ENDEREÇO CADASTRADO: ${clienteEndereco}` : "SEM ENDEREÇO CADASTRADO"}
 ${recentOrders ? `ÚLTIMOS PEDIDOS:\n${recentOrders}` : ""}
 
-REGRAS:
-- Se o cliente já tem cadastro com endereço, confirme rapidamente.
-- Para clientes recorrentes, seja ainda mais direta.
+REGRAS PARA CLIENTE CADASTRADO COM ENDEREÇO:
+- Quando o cliente pedir um produto (ex: "quero um gás"), CONFIRME o endereço cadastrado: "Perfeito! Entrego na ${clienteEndereco || '[endereço]'}?" e peça só a forma de pagamento.
+- Se ele confirmar o endereço, pergunte APENAS a forma de pagamento.
+- Se ele disser outro endereço, use o novo.
 
-FLUXO DO PEDIDO:
+REGRAS PARA CLIENTE NOVO (SEM CADASTRO):
+- Quando pedir um produto, pergunte nome e endereço: "Sim, perfeito! Qual seu nome e endereço?"
+- Depois que informar, pergunte a forma de pagamento.
+
+FLUXO DO PEDIDO (seja rápida):
 1. Precisa de: produto, quantidade, endereço e pagamento.
 2. Cliente novo: pedir nome também.
-3. Peça SÓ o que falta.
-4. Quando tiver tudo, finalize com:
+3. Peça SÓ o que falta. Se falta só pagamento, pergunte só isso.
+4. Quando tiver TUDO, finalize com:
    [PEDIDO_CONFIRMADO]
    nome: Nome
    produto: Produto
    quantidade: X
    endereco: Endereço
    pagamento: forma
+   telefone: ${normalized}
    [/PEDIDO_CONFIRMADO]
 5. Prazo: 30 a 60 minutos.
-6. NÃO invente preços.
+6. NÃO invente preços. Use APENAS os listados.
+7. Se o cliente não especificar o tipo de gás, assuma P13 (o mais comum).
+8. Se o cliente não especificar quantidade, assuma 1.
 
 NEGOCIAÇÃO DE PREÇO (TRÊS ETAPAS):
 - ETAPA 1: Cliente reclama do preço → "Deixa eu ver com o gerente, um momento!"
@@ -483,6 +495,61 @@ async function createOrder(
   fallbackDiscountPerUnit: number = 0
 ) {
   try {
+    // Auto-register new client if not found
+    if (!clienteId && (orderData.nome || senderName)) {
+      const nomeCliente = orderData.nome || senderName;
+      const normalizedPhone = phone.replace(/\D/g, "").slice(-11);
+
+      let empresaId: string | null = null;
+      if (unidadeId) {
+        const { data: unidade } = await supabase
+          .from("unidades")
+          .select("empresa_id")
+          .eq("id", unidadeId)
+          .maybeSingle();
+        empresaId = unidade?.empresa_id || null;
+      }
+
+      const clienteInsert: Record<string, any> = {
+        nome: nomeCliente,
+        telefone: normalizedPhone,
+        endereco: orderData.endereco || null,
+      };
+      if (empresaId) clienteInsert.empresa_id = empresaId;
+
+      const { data: novoCliente, error: clienteError } = await supabase
+        .from("clientes")
+        .insert(clienteInsert)
+        .select("id")
+        .single();
+
+      if (!clienteError && novoCliente) {
+        clienteId = novoCliente.id;
+        console.log("Auto-registered new client:", nomeCliente, normalizedPhone);
+
+        if (unidadeId) {
+          await supabase.from("cliente_unidades").insert({
+            cliente_id: clienteId,
+            unidade_id: unidadeId,
+          }).maybeSingle();
+        }
+      } else {
+        console.error("Auto-register client error:", clienteError);
+      }
+    }
+
+    // Update existing client address if empty
+    if (clienteId && orderData.endereco) {
+      const { data: existingCliente } = await supabase
+        .from("clientes")
+        .select("endereco")
+        .eq("id", clienteId)
+        .maybeSingle();
+      if (existingCliente && !existingCliente.endereco) {
+        await supabase.from("clientes").update({ endereco: orderData.endereco }).eq("id", clienteId);
+      }
+    }
+
     let produto: any = null;
     const { data: produtos } = await supabase
       .from("produtos")
@@ -545,7 +612,7 @@ async function createOrder(
       preco_unitario: produto.preco,
     });
 
-    console.log("UaZapi order created:", pedido.id, "unidade:", unidadeId);
+    console.log("UaZapi order created:", pedido.id, "unidade:", unidadeId, "cliente:", clienteId);
   } catch (e) {
     console.error("Create order error:", e);
   }
