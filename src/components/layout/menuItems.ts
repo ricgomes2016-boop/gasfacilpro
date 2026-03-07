@@ -93,7 +93,6 @@ export interface SubMenuItem {
   icon: LucideIcon;
   label: string;
   path: string;
-  external?: boolean;
 }
 
 export interface MenuItem {
@@ -276,7 +275,7 @@ export const menuItems: MenuItem[] = [
       { icon: FileSpreadsheet, label: "Categorias de Despesas", path: "/config/categorias-despesa" },
       { icon: FileText, label: "Documentos da Empresa", path: "/config/documentos" },
       { icon: Bell, label: "Notificações e Alertas", path: "/config/notificacoes" },
-      
+      { icon: Plug, label: "Integrações", path: "/config/integracoes" },
       { icon: Star, label: "Personalização Visual", path: "/config/personalizacao" },
     ],
   },

@@ -137,7 +137,7 @@ export function MobileNav() {
                             <div className="ml-5 space-y-0.5 border-l-2 border-sidebar-border/40 pl-3 py-1">
                               {item.submenu?.map((sub, subIdx) => {
                                 const SubIcon = sub.icon;
-                                const subActive = !sub.external && isActive(sub.path);
+                                const subActive = isActive(sub.path);
                                 return (
                                   <motion.div
                                     key={sub.path}
@@ -145,35 +145,22 @@ export function MobileNav() {
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: subIdx * 0.02, duration: 0.15 }}
                                   >
-                                    {sub.external ? (
-                                      <a
-                                        href={sub.path}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        onClick={() => setOpen(false)}
-                                        className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200 text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
-                                      >
-                                        <SubIcon className="h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2] group-hover:scale-110 group-hover:text-primary" />
-                                        <span>{sub.label}</span>
-                                      </a>
-                                    ) : (
-                                      <Link
-                                        to={sub.path}
-                                        onClick={() => setOpen(false)}
-                                        className={cn(
-                                          "group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
-                                          subActive
-                                            ? "bg-primary text-primary-foreground shadow-sm"
-                                            : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
-                                        )}
-                                      >
-                                        <SubIcon className={cn(
-                                          "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
-                                          !subActive && "group-hover:scale-110 group-hover:text-primary"
-                                        )} />
-                                        <span>{sub.label}</span>
-                                      </Link>
-                                    )}
+                                    <Link
+                                      to={sub.path}
+                                      onClick={() => setOpen(false)}
+                                      className={cn(
+                                        "group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
+                                        subActive
+                                          ? "bg-primary text-primary-foreground shadow-sm"
+                                          : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                                      )}
+                                    >
+                                      <SubIcon className={cn(
+                                        "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
+                                        !subActive && "group-hover:scale-110 group-hover:text-primary"
+                                      )} />
+                                      <span>{sub.label}</span>
+                                    </Link>
                                   </motion.div>
                                 );
                               })}

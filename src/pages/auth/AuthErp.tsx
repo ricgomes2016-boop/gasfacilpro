@@ -82,7 +82,7 @@ export default function AuthErp() {
               <Input
                 id="erp-email"
                 type="email"
-                placeholder="Digite seu e-mail"
+                placeholder="operador@distribuidora.com"
                 value={form.loginEmail}
                 onChange={(e) => form.setLoginEmail(e.target.value)}
                 disabled={form.isLoading}
@@ -96,7 +96,7 @@ export default function AuthErp() {
                 <Input
                   id="erp-password"
                   type={form.showPassword ? "text" : "password"}
-                  placeholder="Coloque sua senha"
+                  placeholder="••••••••"
                   value={form.loginPassword}
                   onChange={(e) => form.setLoginPassword(e.target.value)}
                   disabled={form.isLoading}
