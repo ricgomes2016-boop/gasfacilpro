@@ -4156,6 +4156,7 @@ export type Database = {
           nome_bot: string | null
           preco_minimo_p13: number | null
           preco_minimo_p20: number | null
+          provedor: string
           security_token: string | null
           token: string
           unidade_id: string
@@ -4171,6 +4172,7 @@ export type Database = {
           nome_bot?: string | null
           preco_minimo_p13?: number | null
           preco_minimo_p20?: number | null
+          provedor?: string
           security_token?: string | null
           token: string
           unidade_id: string
@@ -4186,6 +4188,7 @@ export type Database = {
           nome_bot?: string | null
           preco_minimo_p13?: number | null
           preco_minimo_p20?: number | null
+          provedor?: string
           security_token?: string | null
           token?: string
           unidade_id?: string
