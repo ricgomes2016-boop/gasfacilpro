@@ -233,6 +233,7 @@ export default function Integracoes() {
 
   // WhatsApp per-unit config
   const { unidades, unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [whatsappConfigs, setWhatsappConfigs] = useState<any[]>([]);
   const [wpUnidadeId, setWpUnidadeId] = useState("");
