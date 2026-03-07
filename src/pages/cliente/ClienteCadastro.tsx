@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCliente } from "@/contexts/ClienteContext";
+import { phoneToEmail, isValidPhone } from "@/lib/phoneAuth";
 
 export default function ClienteCadastro() {
   const navigate = useNavigate();
@@ -65,12 +66,12 @@ export default function ClienteCadastro() {
   };
 
   const validateStep1 = () => {
-    if (!formData.name || !formData.email || !formData.phone) {
-      toast.error("Preencha todos os campos obrigatórios");
+    if (!formData.name || !formData.phone) {
+      toast.error("Preencha nome e telefone");
       return false;
     }
-    if (!formData.email.includes("@")) {
-      toast.error("E-mail inválido");
+    if (!isValidPhone(formData.phone)) {
+      toast.error("Telefone inválido");
       return false;
     }
     return true;
@@ -119,11 +120,15 @@ export default function ClienteCadastro() {
 
     setIsSubmitting(true);
     
-    const { error } = await signUp(formData.email, formData.password, formData.name, slug);
+    // Use phone-based email if no real email provided
+    const authEmail = formData.email || phoneToEmail(formData.phone);
+    const phoneValue = formData.phone;
+    
+    const { error } = await signUp(authEmail, formData.password, formData.name, slug, phoneValue);
     
     if (error) {
       if (error.message.includes("already registered")) {
-        toast.error("Este email já está cadastrado. Faça login.");
+        toast.error("Este telefone já está cadastrado. Faça login.");
       } else {
         toast.error(error.message);
       }
@@ -131,7 +136,7 @@ export default function ClienteCadastro() {
       return;
     }
 
-    toast.success("Cadastro realizado! Verifique seu email para confirmar a conta.");
+    toast.success("Cadastro realizado com sucesso!");
     navigate("/auth" + (slug ? `?empresa=${slug}` : ""));
     setIsSubmitting(false);
   };
