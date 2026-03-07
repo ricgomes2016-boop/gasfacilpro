@@ -92,6 +92,11 @@ export default function ContasReceber() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { unidadeAtual } = useUnidade();
 
+  // Bulk liquidation states
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkFormaPagamento, setBulkFormaPagamento] = useState("");
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+
   // Import states
   const [importItems, setImportItems] = useState<Array<{
     cliente: string; descricao: string; valor: number; vencimento: string; forma_pagamento: string; observacoes: string;
