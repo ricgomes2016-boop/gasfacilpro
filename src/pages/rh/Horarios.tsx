@@ -45,6 +45,7 @@ interface Escala {
 
 function EscalasTab() {
   const { toast } = useToast();
+  const { unidadeAtual } = useUnidade();
   const [escalas, setEscalas] = useState<Escala[]>([]);
   const [entregadores, setEntregadores] = useState<{ id: string; nome: string }[]>([]);
   const [rotasDefinidas, setRotasDefinidas] = useState<{ id: string; nome: string }[]>([]);
