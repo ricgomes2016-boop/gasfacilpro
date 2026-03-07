@@ -4145,6 +4145,44 @@ export type Database = {
           },
         ]
       }
+      integracoes_config: {
+        Row: {
+          ativo: boolean
+          config: Json
+          created_at: string
+          id: string
+          integracao_id: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          config?: Json
+          created_at?: string
+          id?: string
+          integracao_id: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          config?: Json
+          created_at?: string
+          id?: string
+          integracao_id?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integracoes_config_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integracoes_whatsapp: {
         Row: {
           ativo: boolean | null
