@@ -7,10 +7,11 @@ const AuthPainel = lazy(() => import("./auth/AuthPainel"));
 const AuthCliente = lazy(() => import("./auth/AuthCliente"));
 const AuthEntregador = lazy(() => import("./auth/AuthEntregador"));
 const AuthParceiro = lazy(() => import("./auth/AuthParceiro"));
+const AuthApi = lazy(() => import("./auth/AuthApi"));
 
 /**
  * Smart Auth router — renders the appropriate login page based on subdomain.
- * Falls back to AuthCliente (with signup) in dev/preview environments.
+ * Falls back to AuthErp in dev/preview environments.
  */
 export default function Auth() {
   const app = detectSubdomainApp();
@@ -26,6 +27,8 @@ export default function Auth() {
       return <AuthEntregador />;
     case "parceiro":
       return <AuthParceiro />;
+    case "api":
+      return <AuthApi />;
     default:
       // Dev/preview — show ERP login (full system access for development)
       return <AuthErp />;
