@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
