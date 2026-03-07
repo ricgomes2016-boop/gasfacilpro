@@ -36,21 +36,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check admin or super_admin role
+    // Check allowed management roles
     const { data: roleData } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", caller.id)
-      .in("role", ["admin", "super_admin"]);
+      .in("role", ["admin", "super_admin", "gestor"]);
 
     if (!roleData || roleData.length === 0) {
-      return new Response(JSON.stringify({ error: "Acesso restrito a administradores" }), {
+      return new Response(JSON.stringify({ error: "Acesso restrito a administradores e gestores" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const isSuperAdmin = roleData.some((r: any) => r.role === "super_admin");
+    const isGestor = roleData.some((r: any) => r.role === "gestor");
 
     const { action, ...params } = await req.json();
 
@@ -101,6 +102,14 @@ Deno.serve(async (req) => {
       if (!email || !password || !full_name || !role) {
         return new Response(JSON.stringify({ error: "Campos obrigatórios: email, password, full_name, role" }), {
           status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Gestor can only create entregador users
+      if (isGestor && role !== "entregador") {
+        return new Response(JSON.stringify({ error: "Gestor só pode criar usuários com perfil entregador" }), {
+          status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -306,7 +315,7 @@ Deno.serve(async (req) => {
     });
   } catch (error: any) {
     console.error("Manage users error:", error);
-    return new Response(JSON.stringify({ error: "Erro ao gerenciar usuário. Tente novamente." }), {
+    return new Response(JSON.stringify({ error: error?.message || "Erro ao gerenciar usuário. Tente novamente." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
