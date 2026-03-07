@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Users, Plus, Search, Edit, Trash2, Phone, MapPin, FileText, Loader2, Camera, Check, X, Filter, Download, ImageIcon, ChevronDown, Navigation, FileUp, Merge, Building2, SearchCheck } from "lucide-react";
+import { Users, Plus, Search, Edit, Trash2, Phone, MapPin, FileText, Loader2, Camera, Check, X, Filter, Download, ImageIcon, ChevronDown, Navigation, FileUp, Merge, Building2, SearchCheck, Smartphone } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,6 +65,7 @@ interface Cliente {
   longitude: number | null;
   ativo: boolean | null;
   created_at: string;
+  cadastro_app?: boolean;
 }
 
 interface FormData {
@@ -168,13 +169,36 @@ export default function CadastroClientesCad() {
 
       if (error) throw error;
 
-      setClientes(data || []);
+      // Check which clients have app accounts by matching emails with profiles
+      const clientEmails = (data || []).filter(c => c.email).map(c => c.email!);
+      const appEmailSet = new Set<string>();
+      if (clientEmails.length > 0) {
+        // Query in batches to avoid URL length limits
+        const batchSize = 50;
+        for (let i = 0; i < clientEmails.length; i += batchSize) {
+          const batch = clientEmails.slice(i, i + batchSize);
+          const { data: profilesData } = await supabase
+            .from("profiles")
+            .select("email")
+            .in("email", batch);
+          profilesData?.forEach(p => {
+            if (p.email) appEmailSet.add(p.email.toLowerCase());
+          });
+        }
+      }
+
+      const enriched = (data || []).map(c => ({
+        ...c,
+        cadastro_app: !!(c.email && appEmailSet.has(c.email.toLowerCase())),
+      }));
+
+      setClientes(enriched);
       
       // Calculate stats
-      const total = data?.length || 0;
-      const ativos = data?.filter(c => c.ativo).length || 0;
-      const residenciais = data?.filter(c => c.tipo === "residencial").length || 0;
-      const comerciais = data?.filter(c => c.tipo === "comercial").length || 0;
+      const total = enriched.length;
+      const ativos = enriched.filter(c => c.ativo).length;
+      const residenciais = enriched.filter(c => c.tipo === "residencial").length;
+      const comerciais = enriched.filter(c => c.tipo === "comercial").length;
       
       setStats({ total, ativos, residenciais, comerciais });
     } catch (error) {
@@ -1182,6 +1206,7 @@ export default function CadastroClientesCad() {
                         <TableHead className="w-16">Nº</TableHead>
                         <TableHead>Bairro</TableHead>
                         <TableHead className="hidden lg:table-cell">Tipo</TableHead>
+                        <TableHead className="text-center">App</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -1211,6 +1236,16 @@ export default function CadastroClientesCad() {
                             </TableCell>
                             <TableCell className="hidden lg:table-cell">
                               <Badge variant="outline">{cliente.tipo || "N/E"}</Badge>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {cliente.cadastro_app ? (
+                                <Badge variant="secondary" className="gap-1 text-xs">
+                                  <Smartphone className="h-3 w-3" />
+                                  Sim
+                                </Badge>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">-</span>
+                              )}
                             </TableCell>
                             <TableCell>
                               <Badge variant={cliente.ativo ? "default" : "destructive"}>
