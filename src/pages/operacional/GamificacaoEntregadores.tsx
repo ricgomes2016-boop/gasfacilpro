@@ -35,6 +35,7 @@ const NIVEIS = [
 const getNivel = (pontos: number) => NIVEIS.find(n => pontos >= n.min && pontos <= n.max) || NIVEIS[0];
 
 export default function GamificacaoEntregadores() {
+  const { unidadeAtual } = useUnidade();
   const [loading, setLoading] = useState(true);
   const [ranking, setRanking] = useState<EntregadorRanking[]>([]);
   const [stats, setStats] = useState({ totalEntregadores: 0, entregasMes: 0, mediaPontos: 0 });
