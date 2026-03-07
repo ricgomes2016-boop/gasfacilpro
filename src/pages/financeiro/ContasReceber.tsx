@@ -29,8 +29,9 @@ import {
 import {
   Wallet, Search, Plus, AlertCircle, CheckCircle2, Clock, MoreHorizontal,
   Pencil, Trash2, DollarSign, Download, MapPin, User, Filter, X,
-  CreditCard, Banknote, FileText, Handshake, Flame, Receipt,
+  CreditCard, Banknote, FileText, Handshake, Flame, Receipt, CheckSquare,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { ConferenciaCartao } from "@/components/financeiro/ConferenciaCartao";
 import { toast } from "sonner";
