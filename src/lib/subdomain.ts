@@ -178,6 +178,7 @@ export function getSubdomainDefaultRoute(app: SubdomainApp): string {
     case "parceiro": return "/parceiro";
     case "erp": return "/dashboard";
     case "painel": return "/admin";
+    case "api": return "/integracoes";
     case "landing": return "/";
     default: return "/dashboard";
   }
@@ -197,15 +198,16 @@ export function isRouteAllowedForSubdomain(app: SubdomainApp, pathname: string):
     case "parceiro":
       return matchesRouteSegment(pathname, "/parceiro") || pathname === "/auth";
     case "erp":
-      // app.gasfacilpro.com.br — full ERP access (same as old "painel" but for staff, not super_admin)
       return pathname === "/auth" || matchesRouteSegment(pathname, "/dashboard") || matchesRouteSegment(pathname, "/vendas")
         || matchesRouteSegment(pathname, "/caixa") || matchesRouteSegment(pathname, "/estoque") || matchesRouteSegment(pathname, "/cadastros")
         || matchesRouteSegment(pathname, "/clientes") || matchesRouteSegment(pathname, "/financeiro") || matchesRouteSegment(pathname, "/fiscal")
         || matchesRouteSegment(pathname, "/frota") || matchesRouteSegment(pathname, "/rh") || matchesRouteSegment(pathname, "/config")
         || matchesRouteSegment(pathname, "/operacional") || matchesRouteSegment(pathname, "/atendimento") || matchesRouteSegment(pathname, "/onboarding")
         || matchesRouteSegment(pathname, "/entregas") || matchesRouteSegment(pathname, "/assistente") || matchesRouteSegment(pathname, "/integracoes");
+    case "api":
+      // api.gasfacilpro.com.br — Hub de Integrações
+      return pathname === "/auth" || matchesRouteSegment(pathname, "/integracoes");
     case "painel":
-      // painel.gasfacilpro.com.br — SaaS super admin only
       return pathname === "/auth" || pathname.startsWith("/admin");
     case "landing":
       return true;
