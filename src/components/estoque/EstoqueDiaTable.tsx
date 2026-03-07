@@ -251,7 +251,7 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                   <TableHead className="font-semibold text-center">Vendas</TableHead>
                   <TableHead className="font-semibold text-center">Avarias</TableHead>
                   <TableHead className="font-semibold text-center">Total</TableHead>
-                  <TableHead className="font-semibold text-center">Est. Atual</TableHead>
+                  <TableHead className="font-semibold text-center">Total Vasilhame</TableHead>
                   <TableHead className="font-semibold text-center w-[60px]">Ação</TableHead>
                 </TableRow>
               </TableHeader>
@@ -266,6 +266,9 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                   linhas.map((linha, idx) => {
                     const isCheio = linha.tipoEstoque === "Cheio";
                     const isVazio = linha.tipoEstoque === "Vazio";
+                    const nextLinha = linhas[idx + 1];
+                    const hasPairBelow = isCheio && nextLinha?.tipoEstoque === "Vazio" && nextLinha?.nome === linha.nome;
+                    const isPairedVazio = isVazio && idx > 0 && linhas[idx - 1]?.tipoEstoque === "Cheio" && linhas[idx - 1]?.nome === linha.nome;
 
                     const groupBg = isCheio
                       ? "bg-orange-50/60 dark:bg-orange-950/10"
@@ -329,7 +332,14 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                           {linha.avarias > 0 ? `-${linha.avarias}` : "0"}
                         </TableCell>
                         <TableCell className="text-center font-bold text-lg">{linha.total}</TableCell>
-                        <TableCell className="text-center font-bold text-lg border-l">{linha.estoqueAtual}</TableCell>
+                        {!isPairedVazio && (
+                          <TableCell
+                            className="text-center font-bold text-lg border-l"
+                            rowSpan={hasPairBelow ? 2 : 1}
+                          >
+                            {linha.estoqueAtual}
+                          </TableCell>
+                        )}
                         <TableCell className="text-center">
                           <Button
                             variant="ghost"
