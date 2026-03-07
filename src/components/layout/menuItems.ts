@@ -276,7 +276,7 @@ export const menuItems: MenuItem[] = [
       { icon: FileSpreadsheet, label: "Categorias de Despesas", path: "/config/categorias-despesa" },
       { icon: FileText, label: "Documentos da Empresa", path: "/config/documentos" },
       { icon: Bell, label: "Notificações e Alertas", path: "/config/notificacoes" },
-      { icon: Plug, label: "Integrações", path: "https://api.gasfacilpro.com.br", external: true },
+      
       { icon: Star, label: "Personalização Visual", path: "/config/personalizacao" },
     ],
   },
