@@ -19,36 +19,8 @@ interface EmpresaInfo {
   logo_url: string | null;
 }
 
-function MethodToggle({ method, onChange }: { method: LoginMethod; onChange: (m: LoginMethod) => void }) {
-  return (
-    <div className="flex gap-1 p-1 bg-muted rounded-lg mb-4">
-      <button
-        type="button"
-        onClick={() => onChange("phone")}
-        className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-sm font-medium transition-all ${
-          method === "phone"
-            ? "bg-background text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground"
-        }`}
-      >
-        <Phone className="h-3.5 w-3.5" />
-        Celular
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange("email")}
-        className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-sm font-medium transition-all ${
-          method === "email"
-            ? "bg-background text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground"
-        }`}
-      >
-        <Mail className="h-3.5 w-3.5" />
-        Email
-      </button>
-    </div>
-  );
-}
+
+
 
 function SimpleLoginForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
   return (
