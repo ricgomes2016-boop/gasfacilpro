@@ -11,6 +11,7 @@ import {
   Loader2, Zap, TrendingUp, CheckCircle, Award, BarChart3
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useUnidade } from "@/contexts/UnidadeContext";
 
 interface EntregadorRanking {
   id: string;
