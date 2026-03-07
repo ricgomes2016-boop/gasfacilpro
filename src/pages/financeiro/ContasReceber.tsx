@@ -317,14 +317,15 @@ export default function ContasReceber() {
 
   const hoje = getBrasiliaDateString();
 
-  // Filtragem base (nome, data, status)
+  // Filtragem base (nome, data, status) — por padrão mostra apenas pendentes/vencidas
   const baseFiltered = contas.filter(c => {
     const matchNome = !filtroNome || c.cliente.toLowerCase().includes(filtroNome.toLowerCase());
     const matchDataIni = !dataInicial || c.vencimento >= dataInicial;
     const matchDataFim = !dataFinal || c.vencimento <= dataFinal;
     const vencida = c.status === "pendente" && c.vencimento < hoje;
     const statusAtual = c.status === "recebida" ? "recebida" : vencida ? "vencida" : "pendente";
-    const matchStatus = filtroStatus === "todos" || statusAtual === filtroStatus;
+    const matchStatus = filtroStatus === "todos" || statusAtual === filtroStatus
+      || (filtroStatus === "pendente" && statusAtual === "vencida"); // pendente inclui vencidas
     return matchNome && matchDataIni && matchDataFim && matchStatus;
   });
 
