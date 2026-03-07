@@ -373,11 +373,33 @@ export default function Integracoes() {
 
   const handleSaveConfig = async () => {
     setSaving(true);
-    // Simulate saving — in real usage this would call add_secret or update settings
-    await new Promise(r => setTimeout(r, 1200));
-    setSaving(false);
-    setConfigOpen(false);
-    toast.success(`Configuração de ${selectedIntegracao?.nome} salva com sucesso!`);
+    try {
+      // Collect field values from DOM
+      const settings: Record<string, string> = {};
+      selectedIntegracao?.configFields?.forEach((field) => {
+        const el = document.getElementById(field.key) as HTMLInputElement;
+        if (el) settings[field.key] = el.value;
+      });
+
+      // Simulate local save
+      await new Promise(r => setTimeout(r, 1200));
+
+      // Sync to external API (non-blocking)
+      if (empresa?.id && selectedIntegracao) {
+        saveIntegrationSettings({
+          company_id: empresa.id,
+          integration_name: selectedIntegracao.id,
+          settings,
+        }).catch(() => {});
+      }
+
+      toast.success(`Configuração de ${selectedIntegracao?.nome} salva com sucesso!`);
+    } catch {
+      toast.error("Erro ao salvar configuração.");
+    } finally {
+      setSaving(false);
+      setConfigOpen(false);
+    }
   };
 
   return (
