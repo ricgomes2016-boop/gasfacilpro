@@ -220,19 +220,6 @@ export default function ClienteCadastro() {
                 
                 <div>
                   <Label className="flex items-center gap-1">
-                    <Mail className="h-3 w-3" />
-                    E-mail *
-                  </Label>
-                  <Input
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={formData.email}
-                    onChange={(e) => updateFormData("email", e.target.value)}
-                  />
-                </div>
-                
-                <div>
-                  <Label className="flex items-center gap-1">
                     <Phone className="h-3 w-3" />
                     Telefone (WhatsApp) *
                   </Label>
@@ -241,6 +228,22 @@ export default function ClienteCadastro() {
                     value={formData.phone}
                     onChange={(e) => updateFormData("phone", e.target.value)}
                   />
+                </div>
+
+                <div>
+                  <Label className="flex items-center gap-1">
+                    <Mail className="h-3 w-3" />
+                    E-mail (opcional)
+                  </Label>
+                  <Input
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={formData.email}
+                    onChange={(e) => updateFormData("email", e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Se não informar, seu login será pelo celular
+                  </p>
                 </div>
                 
                 <div>
