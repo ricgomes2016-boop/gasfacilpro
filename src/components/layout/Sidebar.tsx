@@ -217,6 +217,20 @@ export function Sidebar() {
                         <div className="flex flex-col gap-0.5 mt-1 border-t border-border pt-1">
                           {item.submenu?.map((subItem) => {
                             const SubIcon = subItem.icon;
+                            if (subItem.external) {
+                              return (
+                                <a
+                                  key={subItem.path}
+                                  href={subItem.path}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-md hover:bg-accent transition-colors"
+                                >
+                                  <SubIcon className="h-3 w-3 flex-shrink-0" />
+                                  <span>{subItem.label}</span>
+                                </a>
+                              );
+                            }
                             return (
                               <Link
                                 key={subItem.path}
@@ -300,7 +314,7 @@ export function Sidebar() {
                         <div className="ml-5 mt-0.5 space-y-0.5 border-l-2 border-sidebar-border/40 pl-3 py-1 max-h-[400px] overflow-y-auto scrollbar-thin">
                           {item.submenu?.map((subItem, subIdx) => {
                             const SubIcon = subItem.icon;
-                            const subActive = isActive(subItem.path);
+                            const subActive = !subItem.external && isActive(subItem.path);
                             return (
                               <motion.div
                                 key={subItem.path}
@@ -308,21 +322,33 @@ export function Sidebar() {
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: subIdx * 0.02, duration: 0.15 }}
                               >
-                                <Link
-                                  to={subItem.path}
-                                  className={cn(
-                                    "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
-                                    subActive
-                                      ? "bg-primary text-primary-foreground shadow-sm"
-                                      : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
-                                  )}
-                                >
-                                  <SubIcon className={cn(
-                                    "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
-                                    !subActive && "group-hover:scale-110 group-hover:text-primary"
-                                  )} />
-                                  <span className="truncate">{subItem.label}</span>
-                                </Link>
+                                {subItem.external ? (
+                                  <a
+                                    href={subItem.path}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200 text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                                  >
+                                    <SubIcon className="h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2] group-hover:scale-110 group-hover:text-primary" />
+                                    <span className="truncate">{subItem.label}</span>
+                                  </a>
+                                ) : (
+                                  <Link
+                                    to={subItem.path}
+                                    className={cn(
+                                      "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
+                                      subActive
+                                        ? "bg-primary text-primary-foreground shadow-sm"
+                                        : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                                    )}
+                                  >
+                                    <SubIcon className={cn(
+                                      "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
+                                      !subActive && "group-hover:scale-110 group-hover:text-primary"
+                                    )} />
+                                    <span className="truncate">{subItem.label}</span>
+                                  </Link>
+                                )}
                               </motion.div>
                             );
                           })}
