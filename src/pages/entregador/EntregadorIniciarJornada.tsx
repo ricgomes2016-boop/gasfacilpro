@@ -99,7 +99,7 @@ export default function EntregadorIniciarJornada() {
       // Get entregador with terminal info
       const { data: entregador } = await supabase
         .from("entregadores")
-        .select("id, terminal_id, terminal_ativo_id")
+        .select("id, terminal_id, terminal_ativo_id, unidade_id")
         .eq("user_id", user!.id)
         .maybeSingle();
 
