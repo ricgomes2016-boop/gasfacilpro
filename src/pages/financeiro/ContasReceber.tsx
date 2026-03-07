@@ -304,6 +304,67 @@ export default function ContasReceber() {
     return data?.id || null;
   };
 
+  // Bulk liquidation handler
+  const handleBulkReceber = async () => {
+    if (!bulkFormaPagamento || selectedContas.length === 0) {
+      toast.error("Selecione a forma de pagamento"); return;
+    }
+    setBulkProcessing(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const formaLower = bulkFormaPagamento.toLowerCase();
+      const contaId = formaLower !== "dinheiro" ? await getContaPrincipal() : null;
+      let successCount = 0;
+
+      for (const conta of selectedContas) {
+        if (conta.status === "recebida") continue;
+        const valor = Number(conta.valor);
+        const ref = conta.pedido_id?.slice(0, 8) || conta.id.slice(0, 8);
+
+        // Route payment
+        if (formaLower === "dinheiro") {
+          await supabase.from("movimentacoes_caixa").insert({
+            tipo: "entrada",
+            descricao: `Pgto Lote #${ref} - Dinheiro`,
+            valor,
+            categoria: "Recebimento Fiado",
+            status: "aprovada",
+            pedido_id: conta.pedido_id || null,
+            unidade_id: unidadeAtual?.id || null,
+          });
+        } else if (contaId) {
+          await criarMovimentacaoBancaria({
+            contaBancariaId: contaId,
+            valor,
+            descricao: `Pgto Lote #${ref} - ${bulkFormaPagamento}`,
+            categoria: "recebimento_fiado",
+            unidadeId: unidadeAtual?.id,
+            userId: user?.id,
+            pedidoId: conta.pedido_id || undefined,
+          });
+        }
+
+        // Mark as received
+        const { error } = await supabase.from("contas_receber").update({
+          status: "recebida",
+          forma_pagamento: bulkFormaPagamento,
+        }).eq("id", conta.id);
+
+        if (!error) successCount++;
+      }
+
+      toast.success(`${successCount} conta(s) liquidada(s) com sucesso!`);
+      setBulkDialogOpen(false);
+      setBulkFormaPagamento("");
+      setSelectedIds(new Set());
+      fetchContas();
+    } catch (err: any) {
+      toast.error("Erro ao liquidar em lote: " + (err.message || "erro"));
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
   const addFormaPagamento = () => {
     setReceberForm(prev => ({
       ...prev, formasPagamento: [...prev.formasPagamento, { forma: "", valor: "" }],
