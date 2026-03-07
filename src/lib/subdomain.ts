@@ -117,16 +117,25 @@ export function getCanonicalHostnameForApp(
 }
 
 /**
+ * Checks whether pathname matches a route segment exactly ("/foo" or "/foo/...").
+ */
+function matchesRouteSegment(pathname: string, segment: string): boolean {
+  return pathname === segment || pathname.startsWith(`${segment}/`);
+}
+
+/**
  * Infers which app a route belongs to based on pathname.
  */
 export function inferAppFromPath(pathname: string): Exclude<SubdomainApp, null> | null {
   if (!pathname) return null;
 
-  if (pathname.startsWith("/admin")) return "painel";
-  if (pathname.startsWith("/clientes")) return "erp";
-  if (pathname.startsWith("/cliente")) return "cliente";
-  if (pathname.startsWith("/entregador")) return "entregador";
-  if (pathname.startsWith("/parceiro")) return "parceiro";
+  // IMPORTANT: exact segment matching prevents collisions like
+  // /clientes being interpreted as /cliente.
+  if (matchesRouteSegment(pathname, "/admin")) return "painel";
+  if (matchesRouteSegment(pathname, "/clientes")) return "erp";
+  if (matchesRouteSegment(pathname, "/cliente")) return "cliente";
+  if (matchesRouteSegment(pathname, "/entregador")) return "entregador";
+  if (matchesRouteSegment(pathname, "/parceiro")) return "parceiro";
 
   const erpPrefixes = [
     "/dashboard",
@@ -147,7 +156,7 @@ export function inferAppFromPath(pathname: string): Exclude<SubdomainApp, null> 
     "/assistente",
   ];
 
-  if (erpPrefixes.some((prefix) => pathname.startsWith(prefix))) {
+  if (erpPrefixes.some((prefix) => matchesRouteSegment(pathname, prefix))) {
     return "erp";
   }
 
