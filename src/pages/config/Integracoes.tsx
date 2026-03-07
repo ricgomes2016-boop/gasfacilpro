@@ -257,6 +257,15 @@ export default function Integracoes() {
 
   useEffect(() => { loadWhatsappConfigs(); }, []);
 
+  // Load external API settings (parallel, non-blocking)
+  const [externalSettings, setExternalSettings] = useState<Record<string, unknown> | null>(null);
+  useEffect(() => {
+    if (!empresa?.id) return;
+    getIntegrationSettings(empresa.id).then((data) => {
+      if (data) setExternalSettings(data);
+    });
+  }, [empresa?.id]);
+
   const handleSaveWhatsapp = async () => {
     if (!wpUnidadeId || !wpInstanceId || !wpToken) {
       toast.error("Preencha Unidade, Instance ID e Token.");
