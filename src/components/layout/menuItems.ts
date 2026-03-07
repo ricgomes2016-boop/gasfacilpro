@@ -263,11 +263,6 @@ export const menuItems: MenuItem[] = [
     ],
   },
   {
-    icon: Plug,
-    label: "Integrações / Hub",
-    path: "/integracoes",
-  },
-  {
     icon: Settings,
     label: "Configurações",
     submenu: [
