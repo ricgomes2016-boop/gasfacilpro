@@ -86,9 +86,10 @@ export default function ContasReceber() {
   const [receberConta, setReceberConta] = useState<ContaReceber | null>(null);
   const [dataInicial, setDataInicial] = useState("");
   const [dataFinal, setDataFinal] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [filtroStatus, setFiltroStatus] = useState("pendente");
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState("todos");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { unidadeAtual } = useUnidade();
 
   // Import states
