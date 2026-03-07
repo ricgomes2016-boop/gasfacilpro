@@ -123,6 +123,7 @@ export function inferAppFromPath(pathname: string): Exclude<SubdomainApp, null> 
   if (!pathname) return null;
 
   if (pathname.startsWith("/admin")) return "painel";
+  if (pathname.startsWith("/clientes")) return "erp";
   if (pathname.startsWith("/cliente")) return "cliente";
   if (pathname.startsWith("/entregador")) return "entregador";
   if (pathname.startsWith("/parceiro")) return "parceiro";
