@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 
 export default function AplicativoCliente() {
-  const { empresa } = useEmpresa();
+  const { empresa, loading } = useEmpresa();
   const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState({ totalClientes: 0, pedidosMes: 0, avaliacaoMedia: 0, clientesAtivos: 0 });
 
@@ -28,19 +28,21 @@ export default function AplicativoCliente() {
   }, []);
 
   useEffect(() => {
-    if (!empresa?.id) return;
+    if (!empresa?.id || loading) return;
 
     async function fetchStats() {
       const now = new Date();
       const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
-      const clientesRes: any = await supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa!.id);
-      const pedidosRes: any = await (supabase.from("pedidos").select("id", { count: "exact", head: true }) as any).eq("empresa_id", empresa!.id).gte("created_at", firstOfMonth);
-      const avaliacoesRes: any = await supabase.from("avaliacoes_entrega").select("nota_entregador").not("nota_entregador", "is", null).limit(500);
+      const [clientesRes, pedidosRes, avaliacoesRes]: any[] = await Promise.all([
+        supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa!.id),
+        (supabase.from("pedidos").select("id", { count: "exact", head: true }) as any).eq("empresa_id", empresa!.id).gte("created_at", firstOfMonth),
+        supabase.from("avaliacoes_entrega").select("nota_entregador, pedido_id").not("nota_entregador", "is", null).limit(500),
+      ]);
 
       const notas = avaliacoesRes.data ?? [];
       const media = notas.length > 0
-        ? notas.reduce((sum, a) => sum + (a.nota_entregador ?? 0), 0) / notas.length
+        ? notas.reduce((sum: number, a: any) => sum + (a.nota_entregador ?? 0), 0) / notas.length
         : 0;
 
       setStats({
@@ -52,7 +54,7 @@ export default function AplicativoCliente() {
     }
 
     fetchStats();
-  }, [empresa?.id]);
+  }, [empresa?.id, loading]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(appLink);
