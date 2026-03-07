@@ -111,6 +111,8 @@ export function getCanonicalHostnameForApp(
       return `entregador.${baseDomain}`;
     case "parceiro":
       return `portal.${baseDomain}`;
+    case "api":
+      return `api.${baseDomain}`;
     case "landing":
       return baseDomain;
     default:
@@ -138,6 +140,7 @@ export function inferAppFromPath(pathname: string): Exclude<SubdomainApp, null> 
   if (matchesRouteSegment(pathname, "/cliente")) return "cliente";
   if (matchesRouteSegment(pathname, "/entregador")) return "entregador";
   if (matchesRouteSegment(pathname, "/parceiro")) return "parceiro";
+  if (matchesRouteSegment(pathname, "/integracoes")) return "api";
 
   const erpPrefixes = [
     "/dashboard",
@@ -156,7 +159,6 @@ export function inferAppFromPath(pathname: string): Exclude<SubdomainApp, null> 
     "/onboarding",
     "/entregas",
     "/assistente",
-    "/integracoes",
   ];
 
   if (erpPrefixes.some((prefix) => matchesRouteSegment(pathname, prefix))) {
