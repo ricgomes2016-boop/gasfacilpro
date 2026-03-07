@@ -92,6 +92,11 @@ export default function ContasReceber() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { unidadeAtual } = useUnidade();
 
+  // Bulk liquidation states
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkFormaPagamento, setBulkFormaPagamento] = useState("");
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+
   // Import states
   const [importItems, setImportItems] = useState<Array<{
     cliente: string; descricao: string; valor: number; vencimento: string; forma_pagamento: string; observacoes: string;
@@ -299,6 +304,67 @@ export default function ContasReceber() {
     return data?.id || null;
   };
 
+  // Bulk liquidation handler
+  const handleBulkReceber = async () => {
+    if (!bulkFormaPagamento || selectedContas.length === 0) {
+      toast.error("Selecione a forma de pagamento"); return;
+    }
+    setBulkProcessing(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const formaLower = bulkFormaPagamento.toLowerCase();
+      const contaId = formaLower !== "dinheiro" ? await getContaPrincipal() : null;
+      let successCount = 0;
+
+      for (const conta of selectedContas) {
+        if (conta.status === "recebida") continue;
+        const valor = Number(conta.valor);
+        const ref = conta.pedido_id?.slice(0, 8) || conta.id.slice(0, 8);
+
+        // Route payment
+        if (formaLower === "dinheiro") {
+          await supabase.from("movimentacoes_caixa").insert({
+            tipo: "entrada",
+            descricao: `Pgto Lote #${ref} - Dinheiro`,
+            valor,
+            categoria: "Recebimento Fiado",
+            status: "aprovada",
+            pedido_id: conta.pedido_id || null,
+            unidade_id: unidadeAtual?.id || null,
+          });
+        } else if (contaId) {
+          await criarMovimentacaoBancaria({
+            contaBancariaId: contaId,
+            valor,
+            descricao: `Pgto Lote #${ref} - ${bulkFormaPagamento}`,
+            categoria: "recebimento_fiado",
+            unidadeId: unidadeAtual?.id,
+            userId: user?.id,
+            pedidoId: conta.pedido_id || undefined,
+          });
+        }
+
+        // Mark as received
+        const { error } = await supabase.from("contas_receber").update({
+          status: "recebida",
+          forma_pagamento: bulkFormaPagamento,
+        }).eq("id", conta.id);
+
+        if (!error) successCount++;
+      }
+
+      toast.success(`${successCount} conta(s) liquidada(s) com sucesso!`);
+      setBulkDialogOpen(false);
+      setBulkFormaPagamento("");
+      setSelectedIds(new Set());
+      fetchContas();
+    } catch (err: any) {
+      toast.error("Erro ao liquidar em lote: " + (err.message || "erro"));
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
   const addFormaPagamento = () => {
     setReceberForm(prev => ({
       ...prev, formasPagamento: [...prev.formasPagamento, { forma: "", valor: "" }],
@@ -425,14 +491,14 @@ export default function ContasReceber() {
           <div className="ml-auto flex gap-2">
             {canBulkReceber && (
               <Button size="sm" variant="default" className="gap-1.5" onClick={() => {
-                // Open receber for first selected (batch could be extended)
                 if (selectedContas.length === 1) {
                   openReceberDialog(selectedContas[0]);
                 } else {
-                  toast.info("Selecione uma conta por vez para liquidar, ou use ações individuais.");
+                  setBulkFormaPagamento("");
+                  setBulkDialogOpen(true);
                 }
               }}>
-                <DollarSign className="h-4 w-4" />Liquidar
+                <DollarSign className="h-4 w-4" />Liquidar ({selectedContas.length})
               </Button>
             )}
             <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
@@ -768,6 +834,48 @@ export default function ContasReceber() {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Liquidation Dialog */}
+        <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader><DialogTitle>Liquidar em Lote</DialogTitle></DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+                <p className="text-sm font-medium">{selectedContas.length} conta(s) selecionada(s)</p>
+                <div className="max-h-40 overflow-y-auto space-y-1">
+                  {selectedContas.map(c => (
+                    <div key={c.id} className="flex justify-between text-xs">
+                      <span className="truncate mr-2">{c.cliente} — {c.descricao}</span>
+                      <span className="font-medium whitespace-nowrap">R$ {Number(c.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t pt-2 flex justify-between">
+                  <span className="text-sm font-medium">Total</span>
+                  <span className="text-lg font-bold">R$ {selectedTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+              <div>
+                <Label>Forma de Pagamento (aplicada a todas)</Label>
+                <Select value={bulkFormaPagamento} onValueChange={setBulkFormaPagamento}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {FORMAS_PAGAMENTO.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                Todas as contas serão marcadas como recebidas e o valor será creditado automaticamente no destino correto (Dinheiro → Caixa, outros → Conta Bancária).
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setBulkDialogOpen(false)}>Cancelar</Button>
+                <Button onClick={handleBulkReceber} disabled={bulkProcessing || !bulkFormaPagamento}>
+                  {bulkProcessing ? "Processando..." : `Liquidar ${selectedContas.length} conta(s)`}
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
 
