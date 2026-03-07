@@ -186,19 +186,19 @@ export function isRouteAllowedForSubdomain(app: SubdomainApp, pathname: string):
 
   switch (app) {
     case "cliente":
-      return pathname.startsWith("/cliente") || pathname === "/auth" || pathname.startsWith("/vale-gas");
+      return matchesRouteSegment(pathname, "/cliente") || pathname === "/auth" || matchesRouteSegment(pathname, "/vale-gas");
     case "entregador":
-      return pathname.startsWith("/entregador") || pathname === "/auth";
+      return matchesRouteSegment(pathname, "/entregador") || pathname === "/auth";
     case "parceiro":
-      return pathname.startsWith("/parceiro") || pathname === "/auth";
+      return matchesRouteSegment(pathname, "/parceiro") || pathname === "/auth";
     case "erp":
       // app.gasfacilpro.com.br — full ERP access (same as old "painel" but for staff, not super_admin)
-      return pathname === "/auth" || pathname.startsWith("/dashboard") || pathname.startsWith("/vendas")
-        || pathname.startsWith("/caixa") || pathname.startsWith("/estoque") || pathname.startsWith("/cadastros")
-        || pathname.startsWith("/clientes") || pathname.startsWith("/financeiro") || pathname.startsWith("/fiscal")
-        || pathname.startsWith("/frota") || pathname.startsWith("/rh") || pathname.startsWith("/config")
-        || pathname.startsWith("/operacional") || pathname.startsWith("/atendimento") || pathname.startsWith("/onboarding")
-        || pathname.startsWith("/entregas") || pathname.startsWith("/assistente");
+      return pathname === "/auth" || matchesRouteSegment(pathname, "/dashboard") || matchesRouteSegment(pathname, "/vendas")
+        || matchesRouteSegment(pathname, "/caixa") || matchesRouteSegment(pathname, "/estoque") || matchesRouteSegment(pathname, "/cadastros")
+        || matchesRouteSegment(pathname, "/clientes") || matchesRouteSegment(pathname, "/financeiro") || matchesRouteSegment(pathname, "/fiscal")
+        || matchesRouteSegment(pathname, "/frota") || matchesRouteSegment(pathname, "/rh") || matchesRouteSegment(pathname, "/config")
+        || matchesRouteSegment(pathname, "/operacional") || matchesRouteSegment(pathname, "/atendimento") || matchesRouteSegment(pathname, "/onboarding")
+        || matchesRouteSegment(pathname, "/entregas") || matchesRouteSegment(pathname, "/assistente");
     case "painel":
       // painel.gasfacilpro.com.br — SaaS super admin only
       return pathname === "/auth" || pathname.startsWith("/admin");
