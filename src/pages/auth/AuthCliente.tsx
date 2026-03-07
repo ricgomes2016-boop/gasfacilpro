@@ -76,8 +76,6 @@ function SimpleLoginForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
 function SignupForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
   return (
     <form onSubmit={form.handleSignup} className="space-y-4">
-      <MethodToggle method={form.loginMethod} onChange={form.setLoginMethod} />
-
       <div className="space-y-2">
         <Label htmlFor="cliente-signup-name">Nome completo</Label>
         <Input
@@ -91,33 +89,18 @@ function SignupForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
         {form.errors.fullName && <p className="text-sm text-destructive">{form.errors.fullName}</p>}
       </div>
 
-      {form.loginMethod === "email" ? (
-        <div className="space-y-2">
-          <Label htmlFor="cliente-signup-email">Email</Label>
-          <Input
-            id="cliente-signup-email"
-            type="email"
-            placeholder="seu@email.com"
-            value={form.signupEmail}
-            onChange={(e) => form.setSignupEmail(e.target.value)}
-            disabled={form.isLoading}
-          />
-          {form.errors.email && <p className="text-sm text-destructive">{form.errors.email}</p>}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <Label htmlFor="cliente-signup-phone">Celular (WhatsApp)</Label>
-          <Input
-            id="cliente-signup-phone"
-            type="tel"
-            placeholder="(11) 99999-9999"
-            value={form.signupPhone}
-            onChange={(e) => form.setSignupPhone(e.target.value)}
-            disabled={form.isLoading}
-          />
-          {form.errors.phone && <p className="text-sm text-destructive">{form.errors.phone}</p>}
-        </div>
-      )}
+      <div className="space-y-2">
+        <Label htmlFor="cliente-signup-phone">Celular (WhatsApp)</Label>
+        <Input
+          id="cliente-signup-phone"
+          type="tel"
+          placeholder="(11) 99999-9999"
+          value={form.signupPhone}
+          onChange={(e) => form.setSignupPhone(e.target.value)}
+          disabled={form.isLoading}
+        />
+        {form.errors.phone && <p className="text-sm text-destructive">{form.errors.phone}</p>}
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="cliente-signup-password">Senha</Label>
