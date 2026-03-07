@@ -169,9 +169,13 @@ export default function EntregadorNovaVenda() {
       produtosQuery = produtosQuery.eq("unidade_id", unidadeId);
     }
 
+    // Filter clientes by empresa
+    let clientesQuery = supabase.from("clientes").select("id, nome, telefone, endereco, bairro, cep, cidade").eq("ativo", true).order("nome").limit(500);
+    if (empresa?.id) clientesQuery = clientesQuery.eq("empresa_id", empresa.id);
+
     const [produtosRes, clientesRes] = await Promise.all([
       produtosQuery,
-      supabase.from("clientes").select("id, nome, telefone, endereco, bairro, cep, cidade").eq("ativo", true).order("nome").limit(500),
+      clientesQuery,
     ]);
 
     if (produtosRes.data) setProdutos(produtosRes.data);

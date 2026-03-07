@@ -20,7 +20,9 @@ export default function TrabalhistaContent() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: funcs } = await supabase.from("funcionarios").select("id, nome, cargo").eq("ativo", true);
+      let funcQ = supabase.from("funcionarios").select("id, nome, cargo").eq("ativo", true);
+      if (unidadeAtual?.id) funcQ = funcQ.eq("unidade_id", unidadeAtual.id);
+      const { data: funcs } = await funcQ;
       setTotalFuncionarios(funcs?.length || 0);
 
       let bhQuery = supabase.from("banco_horas").select("funcionario_id, saldo_positivo, saldo_negativo");
