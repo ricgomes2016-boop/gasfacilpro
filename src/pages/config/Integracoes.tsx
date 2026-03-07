@@ -21,8 +21,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
-import { useEmpresa } from "@/contexts/EmpresaContext";
-import { saveIntegrationSettings, getIntegrationSettings } from "@/services/integrationsApi";
 
 interface Integracao {
   id: string;
@@ -233,7 +231,6 @@ export default function Integracoes() {
 
   // WhatsApp per-unit config
   const { unidades, unidadeAtual } = useUnidade();
-  const { empresa } = useEmpresa();
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [whatsappConfigs, setWhatsappConfigs] = useState<any[]>([]);
   const [wpUnidadeId, setWpUnidadeId] = useState("");
@@ -256,15 +253,6 @@ export default function Integracoes() {
   };
 
   useEffect(() => { loadWhatsappConfigs(); }, []);
-
-  // Load external API settings (parallel, non-blocking)
-  const [externalSettings, setExternalSettings] = useState<Record<string, unknown> | null>(null);
-  useEffect(() => {
-    if (!empresa?.id) return;
-    getIntegrationSettings(empresa.id).then((data) => {
-      if (data) setExternalSettings(data);
-    });
-  }, [empresa?.id]);
 
   const handleSaveWhatsapp = async () => {
     if (!wpUnidadeId || !wpInstanceId || !wpToken) {
@@ -295,15 +283,6 @@ export default function Integracoes() {
       }
       await loadWhatsappConfigs();
       resetWhatsappForm();
-
-      // Sync to external API (non-blocking)
-      if (empresa?.id) {
-        saveIntegrationSettings({
-          company_id: empresa.id,
-          integration_name: "whatsapp_zapi",
-          settings: { ...payload, unidade_id: wpUnidadeId },
-        }).catch(() => {});
-      }
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar");
     } finally {
@@ -373,33 +352,11 @@ export default function Integracoes() {
 
   const handleSaveConfig = async () => {
     setSaving(true);
-    try {
-      // Collect field values from DOM
-      const settings: Record<string, string> = {};
-      selectedIntegracao?.configFields?.forEach((field) => {
-        const el = document.getElementById(field.key) as HTMLInputElement;
-        if (el) settings[field.key] = el.value;
-      });
-
-      // Simulate local save
-      await new Promise(r => setTimeout(r, 1200));
-
-      // Sync to external API (non-blocking)
-      if (empresa?.id && selectedIntegracao) {
-        saveIntegrationSettings({
-          company_id: empresa.id,
-          integration_name: selectedIntegracao.id,
-          settings,
-        }).catch(() => {});
-      }
-
-      toast.success(`Configuração de ${selectedIntegracao?.nome} salva com sucesso!`);
-    } catch {
-      toast.error("Erro ao salvar configuração.");
-    } finally {
-      setSaving(false);
-      setConfigOpen(false);
-    }
+    // Simulate saving — in real usage this would call add_secret or update settings
+    await new Promise(r => setTimeout(r, 1200));
+    setSaving(false);
+    setConfigOpen(false);
+    toast.success(`Configuração de ${selectedIntegracao?.nome} salva com sucesso!`);
   };
 
   return (
