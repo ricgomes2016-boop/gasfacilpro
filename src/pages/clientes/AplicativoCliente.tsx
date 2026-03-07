@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { supabase } from "@/integrations/supabase/client";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,6 +84,7 @@ export default function AplicativoCliente() {
 
   return (
     <MainLayout>
+      <Header title="Aplicativo do Cliente" />
       <div className="space-y-6 p-4 md:p-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
