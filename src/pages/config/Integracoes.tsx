@@ -16,11 +16,18 @@ import {
 import {
   Plug, MessageSquare, CreditCard, FileText, Truck, Globe, Webhook,
   ArrowUpRight, CheckCircle2, Settings, Zap, BarChart3, ScanBarcode,
-  Phone, Mail, Receipt, Shield, Loader2, ExternalLink, AlertTriangle,
+  Phone, Mail, Receipt, Shield, Loader2, ExternalLink, AlertTriangle, Building2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
+
+interface ConfigField {
+  key: string;
+  label: string;
+  type: "text" | "password" | "url";
+  placeholder: string;
+}
 
 interface Integracao {
   id: string;
@@ -32,13 +39,8 @@ interface Integracao {
   configFields?: ConfigField[];
   helpUrl?: string;
   beneficios?: string[];
-}
-
-interface ConfigField {
-  key: string;
-  label: string;
-  type: "text" | "password" | "url";
-  placeholder: string;
+  /** Whether this integration uses the legacy integracoes_whatsapp table */
+  isWhatsapp?: boolean;
 }
 
 const integracoes: Integracao[] = [
@@ -49,6 +51,7 @@ const integracoes: Integracao[] = [
     icon: MessageSquare,
     status: "conectado",
     categoria: "comunicacao",
+    isWhatsapp: true,
     beneficios: [
       "Um número por unidade/filial",
       "Escolha entre Z-API ou UaZapi",
@@ -64,6 +67,9 @@ const integracoes: Integracao[] = [
     icon: ScanBarcode,
     status: "conectado",
     categoria: "pagamento",
+    configFields: [
+      { key: "habilitado", label: "Leitura de boletos habilitada", type: "text", placeholder: "sim" },
+    ],
     beneficios: [
       "Leitura automática por câmera ou PDF",
       "Extração de código de barras e linha digitável",
@@ -78,6 +84,10 @@ const integracoes: Integracao[] = [
     icon: CreditCard,
     status: "conectado",
     categoria: "pagamento",
+    configFields: [
+      { key: "chave_pix", label: "Chave PIX", type: "text", placeholder: "CPF, CNPJ, e-mail ou telefone" },
+      { key: "nome_beneficiario", label: "Nome do beneficiário", type: "text", placeholder: "Nome que aparece no PIX" },
+    ],
     beneficios: [
       "QR Code dinâmico por venda",
       "Conciliação automática de recebimentos",
@@ -91,6 +101,10 @@ const integracoes: Integracao[] = [
     icon: CreditCard,
     status: "conectado",
     categoria: "pagamento",
+    configFields: [
+      { key: "terminal_serial", label: "Serial do Terminal", type: "text", placeholder: "Número de série da maquininha" },
+      { key: "pagbank_token", label: "Token PagBank", type: "password", placeholder: "Token de integração" },
+    ],
     beneficios: [
       "Débito, crédito e PIX via terminal",
       "Cálculo automático de taxas",
@@ -123,6 +137,9 @@ const integracoes: Integracao[] = [
     icon: Globe,
     status: "conectado",
     categoria: "logistica",
+    configFields: [
+      { key: "google_maps_api_key", label: "API Key Google Maps", type: "password", placeholder: "Chave da API Google Maps" },
+    ],
     beneficios: [
       "Geocodificação automática de clientes",
       "Otimização de rotas de entrega",
@@ -155,6 +172,12 @@ const integracoes: Integracao[] = [
     icon: Mail,
     status: "conectado",
     categoria: "comunicacao",
+    configFields: [
+      { key: "smtp_host", label: "Servidor SMTP", type: "text", placeholder: "smtp.gmail.com" },
+      { key: "smtp_port", label: "Porta", type: "text", placeholder: "587" },
+      { key: "smtp_user", label: "Usuário", type: "text", placeholder: "email@empresa.com" },
+      { key: "smtp_password", label: "Senha", type: "password", placeholder: "Senha do e-mail" },
+    ],
     beneficios: [
       "Envio de NF-e e boletos por e-mail",
       "Templates personalizáveis por tipo",
@@ -182,6 +205,10 @@ const integracoes: Integracao[] = [
     icon: BarChart3,
     status: "conectado",
     categoria: "produtividade",
+    configFields: [
+      { key: "sistema_contabil", label: "Sistema Contábil", type: "text", placeholder: "Domínio, Alterdata, Fortes..." },
+      { key: "codigo_empresa", label: "Código da Empresa", type: "text", placeholder: "Código no sistema contábil" },
+    ],
     beneficios: [
       "CSV e XLSX para importação direta",
       "Formatos Domínio, Alterdata e Fortes",
@@ -225,12 +252,18 @@ const categoriasLabel: Record<string, { label: string; icon: React.ElementType }
 export default function Integracoes() {
   const [selectedIntegracao, setSelectedIntegracao] = useState<Integracao | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [tabAtiva, setTabAtiva] = useState("todas");
 
-  // WhatsApp per-unit config
-  const { unidades, unidadeAtual } = useUnidade();
+  const { unidades } = useUnidade();
+
+  // Generic per-unit configs from integracoes_config
+  const [genericConfigs, setGenericConfigs] = useState<any[]>([]);
+  const [configUnidadeId, setConfigUnidadeId] = useState("");
+  const [configValues, setConfigValues] = useState<Record<string, string>>({});
+  const [configEditId, setConfigEditId] = useState<string | null>(null);
+
+  // WhatsApp per-unit config (legacy table)
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [whatsappConfigs, setWhatsappConfigs] = useState<any[]>([]);
   const [wpProvedor, setWpProvedor] = useState<"zapi" | "uazapi">("zapi");
@@ -253,8 +286,20 @@ export default function Integracoes() {
     setWhatsappConfigs(data || []);
   };
 
-  useEffect(() => { loadWhatsappConfigs(); }, []);
+  const loadGenericConfigs = async () => {
+    const { data } = await supabase
+      .from("integracoes_config")
+      .select("*, unidades(nome)")
+      .order("created_at");
+    setGenericConfigs(data || []);
+  };
 
+  useEffect(() => {
+    loadWhatsappConfigs();
+    loadGenericConfigs();
+  }, []);
+
+  // --- WhatsApp handlers (legacy) ---
   const handleSaveWhatsapp = async () => {
     if (!wpUnidadeId || !wpInstanceId || !wpToken) {
       toast.error("Preencha Unidade, Instance ID e Token.");
@@ -325,11 +370,70 @@ export default function Integracoes() {
     loadWhatsappConfigs();
   };
 
+  // --- Generic integration handlers ---
+  const handleSaveGenericConfig = async () => {
+    if (!configUnidadeId || !selectedIntegracao) {
+      toast.error("Selecione a unidade.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        unidade_id: configUnidadeId,
+        integracao_id: selectedIntegracao.id,
+        config: configValues,
+        ativo: true,
+      };
+      if (configEditId) {
+        const { error } = await supabase.from("integracoes_config").update({
+          config: configValues,
+          ativo: true,
+        }).eq("id", configEditId);
+        if (error) throw error;
+        toast.success("Configuração atualizada!");
+      } else {
+        const { error } = await supabase.from("integracoes_config").upsert(payload, {
+          onConflict: "unidade_id,integracao_id",
+        });
+        if (error) throw error;
+        toast.success(`${selectedIntegracao.nome} vinculado à unidade!`);
+      }
+      await loadGenericConfigs();
+      setConfigOpen(false);
+      resetGenericForm();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao salvar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetGenericForm = () => {
+    setConfigUnidadeId("");
+    setConfigValues({});
+    setConfigEditId(null);
+  };
+
+  const editGenericConfig = (config: any, integracao: Integracao) => {
+    setSelectedIntegracao(integracao);
+    setConfigEditId(config.id);
+    setConfigUnidadeId(config.unidade_id);
+    setConfigValues(config.config || {});
+    setConfigOpen(true);
+  };
+
+  const deleteGenericConfig = async (id: string) => {
+    await supabase.from("integracoes_config").delete().eq("id", id);
+    toast.success("Configuração removida.");
+    loadGenericConfigs();
+  };
+
+  const getConfigsForIntegracao = (integracaoId: string) =>
+    genericConfigs.filter((c) => c.integracao_id === integracaoId);
+
   const conectadas = integracoes.filter((i) => i.status === "conectado").length;
   const disponiveis = integracoes.filter((i) => i.status === "disponivel").length;
   const emBreve = integracoes.filter((i) => i.status === "em_breve").length;
-
-  const categorias = [...new Set(integracoes.map((i) => i.categoria))];
 
   const filteredIntegracoes = tabAtiva === "todas"
     ? integracoes
@@ -340,32 +444,20 @@ export default function Integracoes() {
   const filteredCategorias = [...new Set(filteredIntegracoes.map(i => i.categoria))];
 
   const handleOpenConfig = (integracao: Integracao) => {
-    // WhatsApp uses per-unit dialog
-    if (integracao.id === "whatsapp_zapi") {
+    if (integracao.isWhatsapp) {
       resetWhatsappForm();
       setWhatsappDialogOpen(true);
       return;
     }
+    if (integracao.status === "em_breve") return;
     setSelectedIntegracao(integracao);
-    if (integracao.configFields && integracao.configFields.length > 0) {
-      setConfigOpen(true);
-    } else {
-      setDetailOpen(true);
-    }
-  };
-
-  const handleSaveConfig = async () => {
-    setSaving(true);
-    // Simulate saving — in real usage this would call add_secret or update settings
-    await new Promise(r => setTimeout(r, 1200));
-    setSaving(false);
-    setConfigOpen(false);
-    toast.success(`Configuração de ${selectedIntegracao?.nome} salva com sucesso!`);
+    resetGenericForm();
+    setConfigOpen(true);
   };
 
   return (
     <MainLayout>
-      <Header title="Integrações" subtitle="Conecte serviços externos e amplie o poder do seu sistema" />
+      <Header title="Integrações" subtitle="Conecte serviços externos por unidade e amplie o poder do seu sistema" />
       <div className="p-4 md:p-6 space-y-6">
         {/* KPI Cards */}
         <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
@@ -423,7 +515,6 @@ export default function Integracoes() {
           </Card>
         </div>
 
-        {/* Tabs de filtro */}
         <Tabs value={tabAtiva} onValueChange={setTabAtiva}>
           <TabsList>
             <TabsTrigger value="todas">Todas ({integracoes.length})</TabsTrigger>
@@ -432,7 +523,6 @@ export default function Integracoes() {
           </TabsList>
         </Tabs>
 
-        {/* Por categoria */}
         {filteredCategorias.map((cat) => {
           const items = filteredIntegracoes.filter((i) => i.categoria === cat);
           if (items.length === 0) return null;
@@ -451,6 +541,11 @@ export default function Integracoes() {
                 {items.map((integracao, idx) => {
                   const Icon = integracao.icon;
                   const status = statusConfig[integracao.status];
+                  // Count per-unit configs
+                  const unitConfigs = integracao.isWhatsapp
+                    ? whatsappConfigs
+                    : getConfigsForIntegracao(integracao.id);
+
                   return (
                     <div key={integracao.id}>
                       {idx > 0 && <Separator className="my-4" />}
@@ -466,6 +561,12 @@ export default function Integracoes() {
                                 <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
                                 {status.label}
                               </Badge>
+                              {unitConfigs.length > 0 && (
+                                <Badge variant="outline" className="gap-1 text-[10px]">
+                                  <Building2 className="h-3 w-3" />
+                                  {unitConfigs.length} unidade{unitConfigs.length > 1 ? "s" : ""}
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
                               {integracao.descricao}
@@ -487,23 +588,13 @@ export default function Integracoes() {
                           </div>
                         </div>
                         <div className="pl-11 sm:pl-0 flex items-center gap-2">
-                          {integracao.status === "conectado" ? (
-                            <>
-                              <Switch checked disabled />
-                              <Button variant="ghost" size="sm" className="gap-1" onClick={() => handleOpenConfig(integracao)}>
-                                <Settings className="h-3.5 w-3.5" />
-                                Detalhes
-                              </Button>
-                            </>
-                          ) : integracao.status === "disponivel" ? (
+                          {integracao.status === "em_breve" ? (
+                            <Badge variant="outline" className="text-muted-foreground">Em breve</Badge>
+                          ) : (
                             <Button variant="outline" size="sm" className="gap-1" onClick={() => handleOpenConfig(integracao)}>
-                              <Plug className="h-3.5 w-3.5" />
+                              <Settings className="h-3.5 w-3.5" />
                               Configurar
                             </Button>
-                          ) : (
-                            <Badge variant="outline" className="text-muted-foreground">
-                              Em breve
-                            </Badge>
                           )}
                         </div>
                       </div>
@@ -547,81 +638,102 @@ export default function Integracoes() {
         </Card>
       </div>
 
-      {/* Dialog de configuração */}
-      <Dialog open={configOpen} onOpenChange={setConfigOpen}>
-        <DialogContent className="max-w-md">
+      {/* Dialog genérico por Unidade */}
+      <Dialog open={configOpen} onOpenChange={(open) => { setConfigOpen(open); if (!open) resetGenericForm(); }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedIntegracao && <selectedIntegracao.icon className="h-5 w-5" />}
-              Configurar {selectedIntegracao?.nome}
+              {selectedIntegracao?.nome} — por Unidade
             </DialogTitle>
             <DialogDescription>
-              Preencha as credenciais para ativar esta integração.
+              Configure esta integração individualmente para cada unidade/filial.
               {selectedIntegracao?.helpUrl && (
-                <a
-                  href={selectedIntegracao.helpUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-primary mt-1 hover:underline"
-                >
+                <a href={selectedIntegracao.helpUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary mt-1 hover:underline">
                   <ExternalLink className="h-3 w-3" /> Documentação do serviço
                 </a>
               )}
             </DialogDescription>
           </DialogHeader>
+
+          {/* Existing configs for this integration */}
+          {selectedIntegracao && getConfigsForIntegracao(selectedIntegracao.id).length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Configurações ativas:</p>
+              {getConfigsForIntegracao(selectedIntegracao.id).map((cfg) => (
+                <div key={cfg.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm">{cfg.unidades?.nome || "Unidade"}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {Object.entries(cfg.config || {}).filter(([, v]) => v).map(([k]) => k).join(", ") || "Configurado"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Badge variant={cfg.ativo ? "default" : "secondary"} className="text-[10px]">
+                      {cfg.ativo ? "Ativo" : "Inativo"}
+                    </Badge>
+                    <Button variant="ghost" size="sm" onClick={() => editGenericConfig(cfg, selectedIntegracao)}>
+                      <Settings className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteGenericConfig(cfg.id)}>
+                      <span className="text-xs">✕</span>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              <Separator />
+            </div>
+          )}
+
+          {/* Form */}
           <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Unidade</Label>
+              <Select value={configUnidadeId} onValueChange={setConfigUnidadeId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a unidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {unidades.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {selectedIntegracao?.configFields?.map((field) => (
               <div key={field.key} className="space-y-1.5">
-                <Label htmlFor={field.key}>{field.label}</Label>
+                <Label htmlFor={`cfg-${field.key}`}>{field.label}</Label>
                 <Input
-                  id={field.key}
+                  id={`cfg-${field.key}`}
                   type={field.type === "password" ? "password" : "text"}
                   placeholder={field.placeholder}
+                  value={configValues[field.key] || ""}
+                  onChange={(e) => setConfigValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
                 />
               </div>
             ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfigOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveConfig} disabled={saving}>
-              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {saving ? "Salvando..." : "Salvar e ativar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
-      {/* Dialog de detalhes */}
-      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {selectedIntegracao && <selectedIntegracao.icon className="h-5 w-5" />}
-              {selectedIntegracao?.nome}
-            </DialogTitle>
-            <DialogDescription>{selectedIntegracao?.descricao}</DialogDescription>
-          </DialogHeader>
-          <div className="py-2">
-            <div className="flex items-center gap-2 mb-4">
-              <Badge variant="default" className="gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                Conectado e funcionando
-              </Badge>
-            </div>
+            {/* Benefits */}
             {selectedIntegracao?.beneficios && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Recursos ativos:</p>
+              <div className="p-3 rounded-lg bg-muted/50 space-y-1.5">
+                <p className="text-xs font-medium">Recursos:</p>
                 {selectedIntegracao.beneficios.map((b, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                  <div key={i} className="flex items-center gap-2 text-xs">
+                    <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
                     <span>{b}</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDetailOpen(false)}>Fechar</Button>
+            <Button variant="outline" onClick={() => { setConfigOpen(false); resetGenericForm(); }}>Cancelar</Button>
+            <Button onClick={handleSaveGenericConfig} disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {configEditId ? "Atualizar" : "Vincular à Unidade"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -640,7 +752,6 @@ export default function Integracoes() {
             </DialogDescription>
           </DialogHeader>
 
-          {/* Existing configs */}
           {whatsappConfigs.length > 0 && (
             <div className="space-y-2">
               <p className="text-sm font-medium">Configurações ativas:</p>
@@ -670,14 +781,11 @@ export default function Integracoes() {
             </div>
           )}
 
-          {/* Form */}
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label>Provedor WhatsApp</Label>
               <Select value={wpProvedor} onValueChange={(v) => setWpProvedor(v as "zapi" | "uazapi")}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="zapi">Z-API</SelectItem>
                   <SelectItem value="uazapi">UaZapi</SelectItem>
@@ -687,9 +795,7 @@ export default function Integracoes() {
             <div className="space-y-1.5">
               <Label>Unidade</Label>
               <Select value={wpUnidadeId} onValueChange={setWpUnidadeId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a unidade" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione a unidade" /></SelectTrigger>
                 <SelectContent>
                   {unidades.map((u) => (
                     <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
@@ -711,36 +817,28 @@ export default function Integracoes() {
                 <Input type="password" value={wpSecurityToken} onChange={(e) => setWpSecurityToken(e.target.value)} placeholder="Token de segurança" />
               </div>
             )}
-
             <Separator />
             <p className="text-sm font-medium">Limites de desconto da Bia</p>
-
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>1º desconto (R$)</Label>
                 <Input type="number" step="0.01" value={wpDescontoEtapa1} onChange={(e) => setWpDescontoEtapa1(e.target.value)} placeholder="5.00" />
-                <p className="text-[10px] text-muted-foreground">Desconto inicial por unidade</p>
               </div>
               <div className="space-y-1.5">
                 <Label>2º desconto (R$)</Label>
                 <Input type="number" step="0.01" value={wpDescontoEtapa2} onChange={(e) => setWpDescontoEtapa2(e.target.value)} placeholder="10.00" />
-                <p className="text-[10px] text-muted-foreground">Se pedir mais desconto</p>
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Preço mín. P13 (R$)</Label>
                 <Input type="number" step="0.01" value={wpPrecoMinimoP13} onChange={(e) => setWpPrecoMinimoP13(e.target.value)} placeholder="Ex: 115.00" />
-                <p className="text-[10px] text-muted-foreground">Preço piso do Gás P13</p>
               </div>
               <div className="space-y-1.5">
                 <Label>Preço mín. P20 (R$)</Label>
                 <Input type="number" step="0.01" value={wpPrecoMinimoP20} onChange={(e) => setWpPrecoMinimoP20(e.target.value)} placeholder="Ex: 200.00" />
-                <p className="text-[10px] text-muted-foreground">Preço piso do Gás P20</p>
               </div>
             </div>
-
             <div className="p-3 rounded-lg bg-muted/50 space-y-1">
               <p className="text-xs font-medium">URL do Webhook (cole no painel {wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}):</p>
               <code className="text-[11px] break-all text-primary">
@@ -750,9 +848,7 @@ export default function Integracoes() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setWhatsappDialogOpen(false); resetWhatsappForm(); }}>
-              Cancelar
-            </Button>
+            <Button variant="outline" onClick={() => { setWhatsappDialogOpen(false); resetWhatsappForm(); }}>Cancelar</Button>
             <Button onClick={handleSaveWhatsapp} disabled={wpSaving}>
               {wpSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {wpEditId ? "Atualizar" : "Vincular WhatsApp"}
