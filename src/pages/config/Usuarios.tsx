@@ -108,7 +108,12 @@ export default function Usuarios() {
         body: { action: "list" },
       });
       if (error) throw error;
-      setUsers(data.users || []);
+      // Filter to only show system/admin roles — entregador, cliente, parceiro are managed elsewhere
+      const allUsers = (data.users || []) as UserWithRoles[];
+      const filteredUsers = allUsers.filter((u) =>
+        u.roles.some((r) => systemRoles.includes(r))
+      );
+      setUsers(filteredUsers);
     } catch (err: any) {
       toast.error("Erro ao carregar usuários: " + err.message);
     } finally {
