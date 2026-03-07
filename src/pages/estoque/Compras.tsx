@@ -114,7 +114,9 @@ export default function Compras() {
   };
 
   const fetchFornecedores = async () => {
-    const { data } = await supabase.from("fornecedores").select("id, razao_social, cnpj").eq("ativo", true).order("razao_social");
+    let q = supabase.from("fornecedores").select("id, razao_social, cnpj").eq("ativo", true).order("razao_social");
+    if (empresa?.id) q = q.eq("empresa_id", empresa.id);
+    const { data } = await q;
     setFornecedores(data || []);
   };
 

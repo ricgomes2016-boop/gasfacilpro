@@ -99,8 +99,8 @@ export default function GestaoEscalas() {
         .lte("data", format(fimSemana, "yyyy-MM-dd"))
         .order("data")
         .order("turno_inicio"),
-      supabase.from("entregadores").select("id, nome").eq("ativo", true).order("nome"),
-      supabase.from("rotas_definidas").select("id, nome").eq("ativo", true).order("nome"),
+      (() => { let q = supabase.from("entregadores").select("id, nome").eq("ativo", true).order("nome"); if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id); return q; })(),
+      (() => { let q = supabase.from("rotas_definidas").select("id, nome").eq("ativo", true).order("nome"); if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id); return q; })(),
     ]);
 
     if (escalasRes.data) setEscalas(escalasRes.data as unknown as Escala[]);
