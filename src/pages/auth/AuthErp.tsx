@@ -14,6 +14,11 @@ export default function AuthErp() {
   const navigate = useNavigate();
   const { user, roles, loading, signOut } = useAuth();
   const form = useAuthForm();
+
+  // ERP always uses email login
+  useEffect(() => {
+    form.setLoginMethod("email");
+  }, []);
   const [roleError, setRoleError] = useState(false);
 
   useEffect(() => {
