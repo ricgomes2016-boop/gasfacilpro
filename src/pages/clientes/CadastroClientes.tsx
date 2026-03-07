@@ -1161,6 +1161,12 @@ export default function CadastroClientesCad() {
                             </Badge>
                             {cliente.tipo && <Badge variant="outline" className="text-[10px] h-5">{cliente.tipo}</Badge>}
                             {cliente.bairro && <Badge variant="secondary" className="text-[10px] h-5">{cliente.bairro}</Badge>}
+                            {cliente.cadastro_app && (
+                              <Badge variant="secondary" className="text-[10px] h-5 gap-1">
+                                <Smartphone className="h-3 w-3" />
+                                App
+                              </Badge>
+                            )}
                           </div>
                         </div>
                         <div className="flex gap-1 shrink-0">
