@@ -635,8 +635,8 @@ export default function Integracoes() {
               WhatsApp por Unidade
             </DialogTitle>
             <DialogDescription>
-              Cada unidade pode ter seu próprio número de WhatsApp (Z-API).
-              Configure o Webhook no painel Z-API apontando para:
+              Cada unidade pode ter seu próprio número de WhatsApp (Z-API ou UaZapi).
+              Configure o Webhook no painel do provedor apontando para a URL exibida abaixo.
             </DialogDescription>
           </DialogHeader>
 
@@ -648,7 +648,10 @@ export default function Integracoes() {
                 <div key={cfg.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                   <div className="min-w-0">
                     <p className="font-medium text-sm">{(cfg as any).unidades?.nome || "Unidade"}</p>
-                    <p className="text-xs text-muted-foreground truncate">Instance: {cfg.instance_id}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      <Badge variant="outline" className="text-[10px] mr-1">{(cfg.provedor || "zapi").toUpperCase()}</Badge>
+                      Instance: {cfg.instance_id}
+                    </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <Badge variant={cfg.ativo ? "default" : "secondary"} className="text-[10px]">
@@ -670,6 +673,18 @@ export default function Integracoes() {
           {/* Form */}
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
+              <Label>Provedor WhatsApp</Label>
+              <Select value={wpProvedor} onValueChange={(v) => setWpProvedor(v as "zapi" | "uazapi")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="zapi">Z-API</SelectItem>
+                  <SelectItem value="uazapi">UaZapi</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
               <Label>Unidade</Label>
               <Select value={wpUnidadeId} onValueChange={setWpUnidadeId}>
                 <SelectTrigger>
@@ -684,16 +699,18 @@ export default function Integracoes() {
             </div>
             <div className="space-y-1.5">
               <Label>Instance ID</Label>
-              <Input value={wpInstanceId} onChange={(e) => setWpInstanceId(e.target.value)} placeholder="Sua Instance ID da Z-API" />
+              <Input value={wpInstanceId} onChange={(e) => setWpInstanceId(e.target.value)} placeholder={`Sua Instance ID da ${wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}`} />
             </div>
             <div className="space-y-1.5">
               <Label>Token</Label>
-              <Input type="password" value={wpToken} onChange={(e) => setWpToken(e.target.value)} placeholder="Token da Z-API" />
+              <Input type="password" value={wpToken} onChange={(e) => setWpToken(e.target.value)} placeholder={`Token da ${wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}`} />
             </div>
-            <div className="space-y-1.5">
-              <Label>Security Token (opcional)</Label>
-              <Input type="password" value={wpSecurityToken} onChange={(e) => setWpSecurityToken(e.target.value)} placeholder="Token de segurança" />
-            </div>
+            {wpProvedor === "zapi" && (
+              <div className="space-y-1.5">
+                <Label>Security Token (opcional)</Label>
+                <Input type="password" value={wpSecurityToken} onChange={(e) => setWpSecurityToken(e.target.value)} placeholder="Token de segurança" />
+              </div>
+            )}
 
             <Separator />
             <p className="text-sm font-medium">Limites de desconto da Bia</p>
@@ -725,9 +742,9 @@ export default function Integracoes() {
             </div>
 
             <div className="p-3 rounded-lg bg-muted/50 space-y-1">
-              <p className="text-xs font-medium">URL do Webhook (cole no painel Z-API):</p>
+              <p className="text-xs font-medium">URL do Webhook (cole no painel {wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}):</p>
               <code className="text-[11px] break-all text-primary">
-                {`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/zapi-webhook?unidade_id=${wpUnidadeId || "<selecione>"}`}
+                {`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/${wpProvedor === 'uazapi' ? 'uazapi-webhook' : 'zapi-webhook'}?unidade_id=${wpUnidadeId || "<selecione>"}`}
               </code>
             </div>
           </div>
