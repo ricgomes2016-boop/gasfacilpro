@@ -8,7 +8,6 @@ const UnidadesConfig = lazy(() => import("@/pages/config/Unidades"));
 const Usuarios = lazy(() => import("@/pages/config/Usuarios"));
 const DocumentosEmpresa = lazy(() => import("@/pages/config/DocumentosEmpresa"));
 const Notificacoes = lazy(() => import("@/pages/config/Notificacoes"));
-const Integracoes = lazy(() => import("@/pages/config/Integracoes"));
 const PersonalizacaoVisual = lazy(() => import("@/pages/config/PersonalizacaoVisual"));
 
 export const configRoutes: RouteConfig[] = [
@@ -19,6 +18,5 @@ export const configRoutes: RouteConfig[] = [
   { path: "/configuracoes", component: Configuracoes, roles: ["admin", "gestor"] },
   { path: "/config/documentos", component: DocumentosEmpresa, roles: ["admin", "gestor", "financeiro"] },
   { path: "/config/notificacoes", component: Notificacoes, roles: ["admin", "gestor"] },
-  { path: "/config/integracoes", component: Integracoes, roles: ["admin", "gestor"] },
   { path: "/config/personalizacao", component: PersonalizacaoVisual, roles: ["admin", "gestor"] },
 ];

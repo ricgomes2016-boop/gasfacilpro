@@ -154,6 +154,7 @@ export function inferAppFromPath(pathname: string): Exclude<SubdomainApp, null> 
     "/onboarding",
     "/entregas",
     "/assistente",
+    "/integracoes",
   ];
 
   if (erpPrefixes.some((prefix) => matchesRouteSegment(pathname, prefix))) {
@@ -198,7 +199,7 @@ export function isRouteAllowedForSubdomain(app: SubdomainApp, pathname: string):
         || matchesRouteSegment(pathname, "/clientes") || matchesRouteSegment(pathname, "/financeiro") || matchesRouteSegment(pathname, "/fiscal")
         || matchesRouteSegment(pathname, "/frota") || matchesRouteSegment(pathname, "/rh") || matchesRouteSegment(pathname, "/config")
         || matchesRouteSegment(pathname, "/operacional") || matchesRouteSegment(pathname, "/atendimento") || matchesRouteSegment(pathname, "/onboarding")
-        || matchesRouteSegment(pathname, "/entregas") || matchesRouteSegment(pathname, "/assistente");
+        || matchesRouteSegment(pathname, "/entregas") || matchesRouteSegment(pathname, "/assistente") || matchesRouteSegment(pathname, "/integracoes");
     case "painel":
       // painel.gasfacilpro.com.br — SaaS super admin only
       return pathname === "/auth" || pathname.startsWith("/admin");

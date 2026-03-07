@@ -263,6 +263,11 @@ export const menuItems: MenuItem[] = [
     ],
   },
   {
+    icon: Plug,
+    label: "Integrações / Hub",
+    path: "/integracoes",
+  },
+  {
     icon: Settings,
     label: "Configurações",
     submenu: [
@@ -275,7 +280,6 @@ export const menuItems: MenuItem[] = [
       { icon: FileSpreadsheet, label: "Categorias de Despesas", path: "/config/categorias-despesa" },
       { icon: FileText, label: "Documentos da Empresa", path: "/config/documentos" },
       { icon: Bell, label: "Notificações e Alertas", path: "/config/notificacoes" },
-      { icon: Plug, label: "Integrações", path: "/config/integracoes" },
       { icon: Star, label: "Personalização Visual", path: "/config/personalizacao" },
     ],
   },

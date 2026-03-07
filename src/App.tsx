@@ -35,6 +35,7 @@ import { entregadorRoutes } from "@/routes/entregadorRoutes";
 import { clienteAppRoutes } from "@/routes/clienteAppRoutes";
 import { parceiroRoutes } from "@/routes/parceiroRoutes";
 import { atendimentoRoutes } from "@/routes/atendimentoRoutes";
+import { integracoesRoutes } from "@/routes/integracoesRoutes";
 
 // Eager load: Auth + Dashboard (critical path)
 import Dashboard from "./pages/Dashboard";
@@ -128,6 +129,7 @@ const App = () => (
                           {renderRoutes(clienteAppRoutes)}
                           {renderRoutes(parceiroRoutes)}
                           {renderRoutes(atendimentoRoutes)}
+                          {renderRoutes(integracoesRoutes)}
 
                           {/* Legacy redirects */}
                           <Route path="/admin/dashboard" element={<Navigate to="/admin" replace />} />
