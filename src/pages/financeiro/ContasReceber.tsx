@@ -29,8 +29,9 @@ import {
 import {
   Wallet, Search, Plus, AlertCircle, CheckCircle2, Clock, MoreHorizontal,
   Pencil, Trash2, DollarSign, Download, MapPin, User, Filter, X,
-  CreditCard, Banknote, FileText, Handshake, Flame, Receipt,
+  CreditCard, Banknote, FileText, Handshake, Flame, Receipt, CheckSquare,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { ConferenciaCartao } from "@/components/financeiro/ConferenciaCartao";
 import { toast } from "sonner";
@@ -85,9 +86,10 @@ export default function ContasReceber() {
   const [receberConta, setReceberConta] = useState<ContaReceber | null>(null);
   const [dataInicial, setDataInicial] = useState("");
   const [dataFinal, setDataFinal] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [filtroStatus, setFiltroStatus] = useState("pendente");
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState("todos");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { unidadeAtual } = useUnidade();
 
   // Import states
@@ -315,14 +317,15 @@ export default function ContasReceber() {
 
   const hoje = getBrasiliaDateString();
 
-  // Filtragem base (nome, data, status)
+  // Filtragem base (nome, data, status) — por padrão mostra apenas pendentes/vencidas
   const baseFiltered = contas.filter(c => {
     const matchNome = !filtroNome || c.cliente.toLowerCase().includes(filtroNome.toLowerCase());
     const matchDataIni = !dataInicial || c.vencimento >= dataInicial;
     const matchDataFim = !dataFinal || c.vencimento <= dataFinal;
     const vencida = c.status === "pendente" && c.vencimento < hoje;
     const statusAtual = c.status === "recebida" ? "recebida" : vencida ? "vencida" : "pendente";
-    const matchStatus = filtroStatus === "todos" || statusAtual === filtroStatus;
+    const matchStatus = filtroStatus === "todos" || statusAtual === filtroStatus
+      || (filtroStatus === "pendente" && statusAtual === "vencida"); // pendente inclui vencidas
     return matchNome && matchDataIni && matchDataFim && matchStatus;
   });
 
@@ -349,8 +352,27 @@ export default function ContasReceber() {
     return counts;
   }, [contas]);
 
-  const hasActiveFilters = filtroNome || dataInicial || dataFinal || filtroStatus !== "todos";
-  const clearAllFilters = () => { setFiltroNome(""); setDataInicial(""); setDataFinal(""); setFiltroStatus("todos"); };
+  const hasActiveFilters = filtroNome || dataInicial || dataFinal || filtroStatus !== "pendente";
+  const clearAllFilters = () => { setFiltroNome(""); setDataInicial(""); setDataFinal(""); setFiltroStatus("pendente"); };
+
+  // Multi-select helpers
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length && filtered.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(c => c.id)));
+    }
+  };
+  const selectedContas = filtered.filter(c => selectedIds.has(c.id));
+  const selectedTotal = selectedContas.reduce((s, c) => s + Number(c.valor), 0);
+  const canBulkReceber = selectedContas.length > 0 && selectedContas.every(c => c.status !== "recebida");
 
   const exportToExcel = () => {
     const data = filtered.map(c => ({
@@ -393,6 +415,32 @@ export default function ContasReceber() {
 
   const renderTable = () => (
     <>
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20 mb-3">
+          <CheckSquare className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">
+            {selectedIds.size} selecionado(s) — R$ {selectedTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </span>
+          <div className="ml-auto flex gap-2">
+            {canBulkReceber && (
+              <Button size="sm" variant="default" className="gap-1.5" onClick={() => {
+                // Open receber for first selected (batch could be extended)
+                if (selectedContas.length === 1) {
+                  openReceberDialog(selectedContas[0]);
+                } else {
+                  toast.info("Selecione uma conta por vez para liquidar, ou use ações individuais.");
+                }
+              }}>
+                <DollarSign className="h-4 w-4" />Liquidar
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={() => setSelectedIds(new Set())}>
+              <X className="h-3.5 w-3.5 mr-1" />Limpar seleção
+            </Button>
+          </div>
+        </div>
+      )}
       {loading ? (
         <p className="text-center py-8 text-muted-foreground">Carregando...</p>
       ) : filtered.length === 0 ? (
@@ -402,6 +450,12 @@ export default function ContasReceber() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead className="hidden md:table-cell">Descrição</TableHead>
                 <TableHead className="hidden sm:table-cell">Forma</TableHead>
@@ -416,7 +470,13 @@ export default function ContasReceber() {
                 const vencida = conta.status === "pendente" && conta.vencimento < hoje;
                 const displayStatus = vencida ? "Vencida" : conta.status === "recebida" ? "Recebida" : "Pendente";
                 return (
-                  <TableRow key={conta.id}>
+                  <TableRow key={conta.id} data-state={selectedIds.has(conta.id) ? "selected" : undefined}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(conta.id)}
+                        onCheckedChange={() => toggleSelect(conta.id)}
+                      />
+                    </TableCell>
                     <TableCell>
                       <p className="font-medium text-sm">{conta.cliente}</p>
                       <p className="text-xs text-muted-foreground md:hidden">{conta.descricao}</p>
