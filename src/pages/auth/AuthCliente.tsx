@@ -383,31 +383,46 @@ export default function AuthCliente() {
         </CardHeader>
 
         <CardContent>
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="login">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Criar Conta</TabsTrigger>
-            </TabsList>
+          {roleError && (
+            <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+              Esta conta não é de cliente. Se você é administrador, acesse pelo sistema ERP.
+            </div>
+          )}
+          {form.errors.general && (
+            <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+              {form.errors.general}
+            </div>
+          )}
 
-            {roleError && (
-              <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
-                Esta conta não é de cliente. Se você é administrador, acesse pelo sistema ERP.
-              </div>
-            )}
-            {form.errors.general && (
-              <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
-                {form.errors.general}
-              </div>
-            )}
-
-            <TabsContent value="login">
-              <LoginForm form={form} />
-            </TabsContent>
-
-            <TabsContent value="signup">
+          {showSignup ? (
+            <>
               <SignupForm form={form} />
-            </TabsContent>
-          </Tabs>
+              <p className="text-center text-sm text-muted-foreground mt-4">
+                Já tem conta?{" "}
+                <button
+                  type="button"
+                  onClick={() => setShowSignup(false)}
+                  className="text-primary hover:underline font-medium"
+                >
+                  Faça login
+                </button>
+              </p>
+            </>
+          ) : (
+            <>
+              <SimpleLoginForm form={form} />
+              <p className="text-center text-sm text-muted-foreground mt-4">
+                Não tem conta?{" "}
+                <button
+                  type="button"
+                  onClick={() => setShowSignup(true)}
+                  className="text-primary hover:underline font-medium"
+                >
+                  Crie sua conta
+                </button>
+              </p>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
