@@ -21,6 +21,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
+import { saveIntegrationSettings, getIntegrationSettings } from "@/services/integrationsApi";
 
 interface Integracao {
   id: string;
