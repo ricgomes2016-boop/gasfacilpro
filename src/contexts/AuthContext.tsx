@@ -20,7 +20,7 @@ interface AuthContextType {
   profile: Profile | null;
   roles: AppRole[];
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string, empresaSlug?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string, empresaSlug?: string, phone?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   hasRole: (role: AppRole) => boolean;
@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, empresaSlug?: string) => {
+  const signUp = async (email: string, password: string, fullName: string, empresaSlug?: string, phone?: string) => {
     try {
       const redirectUrl = `${window.location.origin}/auth`;
       
@@ -103,6 +103,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
       if (empresaSlug) {
         metadata.empresa_slug = empresaSlug;
+      }
+      if (phone) {
+        metadata.phone = phone;
       }
       
       const { error } = await supabase.auth.signUp({
@@ -118,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error };
       }
 
-      toast.success("Cadastro realizado! Verifique seu email para confirmar a conta.");
+      toast.success("Cadastro realizado com sucesso!");
       return { error: null };
     } catch (error) {
       return { error: error as Error };
