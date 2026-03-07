@@ -431,9 +431,15 @@ export default function CadastroClientesCad() {
 
     try {
       const cpfClean = cpf.replace(/\D/g, "");
-      const { data: allClientes, error: fetchError } = await supabase
+      let dupQuery = supabase
         .from("clientes")
         .select("id, cpf");
+      
+      if (empresa?.id) {
+        dupQuery = dupQuery.eq("empresa_id", empresa.id);
+      }
+
+      const { data: allClientes, error: fetchError } = await dupQuery;
 
       if (fetchError) throw fetchError;
 
