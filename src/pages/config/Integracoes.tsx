@@ -295,6 +295,15 @@ export default function Integracoes() {
       }
       await loadWhatsappConfigs();
       resetWhatsappForm();
+
+      // Sync to external API (non-blocking)
+      if (empresa?.id) {
+        saveIntegrationSettings({
+          company_id: empresa.id,
+          integration_name: "whatsapp_zapi",
+          settings: { ...payload, unidade_id: wpUnidadeId },
+        }).catch(() => {});
+      }
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar");
     } finally {
