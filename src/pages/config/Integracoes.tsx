@@ -44,15 +44,15 @@ interface ConfigField {
 const integracoes: Integracao[] = [
   {
     id: "whatsapp_zapi",
-    nome: "WhatsApp (Z-API)",
-    descricao: "Envio automático de comprovantes, status de entrega e atendimento ao cliente via WhatsApp — configurável por unidade",
+    nome: "WhatsApp (Z-API / UaZapi)",
+    descricao: "Envio automático de comprovantes, status de entrega e atendimento ao cliente via WhatsApp — configurável por unidade com Z-API ou UaZapi",
     icon: MessageSquare,
     status: "conectado",
     categoria: "comunicacao",
     beneficios: [
       "Um número por unidade/filial",
+      "Escolha entre Z-API ou UaZapi",
       "Notificação automática de pedidos",
-      "Envio de comprovantes PIX/boleto",
       "Chatbot de atendimento (Bia)",
     ],
     helpUrl: "https://developer.z-api.io/",
@@ -233,6 +233,7 @@ export default function Integracoes() {
   const { unidades, unidadeAtual } = useUnidade();
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [whatsappConfigs, setWhatsappConfigs] = useState<any[]>([]);
+  const [wpProvedor, setWpProvedor] = useState<"zapi" | "uazapi">("zapi");
   const [wpUnidadeId, setWpUnidadeId] = useState("");
   const [wpInstanceId, setWpInstanceId] = useState("");
   const [wpToken, setWpToken] = useState("");
@@ -266,12 +267,13 @@ export default function Integracoes() {
         instance_id: wpInstanceId,
         token: wpToken,
         security_token: wpSecurityToken || null,
+        provedor: wpProvedor,
         desconto_etapa1: parseFloat(wpDescontoEtapa1) || 5,
         desconto_etapa2: parseFloat(wpDescontoEtapa2) || 10,
         preco_minimo_p13: wpPrecoMinimoP13 ? parseFloat(wpPrecoMinimoP13) : null,
         preco_minimo_p20: wpPrecoMinimoP20 ? parseFloat(wpPrecoMinimoP20) : null,
         ativo: true,
-      };
+      } as any;
       if (wpEditId) {
         const { error } = await supabase.from("integracoes_whatsapp").update(payload).eq("id", wpEditId);
         if (error) throw error;
@@ -291,6 +293,7 @@ export default function Integracoes() {
   };
 
   const resetWhatsappForm = () => {
+    setWpProvedor("zapi");
     setWpUnidadeId("");
     setWpInstanceId("");
     setWpToken("");
@@ -304,6 +307,7 @@ export default function Integracoes() {
 
   const editWhatsappConfig = (config: any) => {
     setWpEditId(config.id);
+    setWpProvedor(config.provedor || "zapi");
     setWpUnidadeId(config.unidade_id);
     setWpInstanceId(config.instance_id);
     setWpToken(config.token);
