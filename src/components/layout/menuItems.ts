@@ -263,11 +263,6 @@ export const menuItems: MenuItem[] = [
     ],
   },
   {
-    icon: Plug,
-    label: "Integrações / Hub",
-    path: "/integracoes",
-  },
-  {
     icon: Settings,
     label: "Configurações",
     submenu: [
@@ -281,6 +276,7 @@ export const menuItems: MenuItem[] = [
       { icon: FileText, label: "Documentos da Empresa", path: "/config/documentos" },
       { icon: Bell, label: "Notificações e Alertas", path: "/config/notificacoes" },
       { icon: Star, label: "Personalização Visual", path: "/config/personalizacao" },
+      { icon: Plug, label: "Integrações / Hub", path: "/integracoes" },
     ],
   },
 ];
