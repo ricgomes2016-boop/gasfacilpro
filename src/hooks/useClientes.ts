@@ -23,6 +23,7 @@ export interface ClienteDB {
   updated_at: string;
   total_pedidos?: number;
   ultimo_pedido?: string | null;
+  cadastro_app?: boolean;
 }
 
 export type ClienteForm = {
@@ -158,10 +159,24 @@ export function useClientes() {
           if (!entry.ultimo) entry.ultimo = p.created_at;
         });
 
+        // Check which clients have app accounts (profiles with role 'cliente')
+        const clientEmails = data.filter(c => c.email).map(c => c.email!);
+        const appEmailSet = new Set<string>();
+        if (clientEmails.length > 0) {
+          const { data: profilesData } = await supabase
+            .from("profiles")
+            .select("email")
+            .in("email", clientEmails);
+          profilesData?.forEach(p => {
+            if (p.email) appEmailSet.add(p.email.toLowerCase());
+          });
+        }
+
         const enriched = data.map((c) => ({
           ...c,
           total_pedidos: pedidoMap.get(c.id)?.count || 0,
           ultimo_pedido: pedidoMap.get(c.id)?.ultimo || null,
+          cadastro_app: !!(c.email && appEmailSet.has(c.email.toLowerCase())),
         }));
         setClientes(enriched);
       } else {
