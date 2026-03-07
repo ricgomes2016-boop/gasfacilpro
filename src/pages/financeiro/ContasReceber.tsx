@@ -352,8 +352,27 @@ export default function ContasReceber() {
     return counts;
   }, [contas]);
 
-  const hasActiveFilters = filtroNome || dataInicial || dataFinal || filtroStatus !== "todos";
-  const clearAllFilters = () => { setFiltroNome(""); setDataInicial(""); setDataFinal(""); setFiltroStatus("todos"); };
+  const hasActiveFilters = filtroNome || dataInicial || dataFinal || filtroStatus !== "pendente";
+  const clearAllFilters = () => { setFiltroNome(""); setDataInicial(""); setDataFinal(""); setFiltroStatus("pendente"); };
+
+  // Multi-select helpers
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length && filtered.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(c => c.id)));
+    }
+  };
+  const selectedContas = filtered.filter(c => selectedIds.has(c.id));
+  const selectedTotal = selectedContas.reduce((s, c) => s + Number(c.valor), 0);
+  const canBulkReceber = selectedContas.length > 0 && selectedContas.every(c => c.status !== "recebida");
 
   const exportToExcel = () => {
     const data = filtered.map(c => ({
