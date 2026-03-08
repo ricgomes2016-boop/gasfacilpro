@@ -51,8 +51,7 @@ export default function DashboardEstoque() {
   const { data: alertasRuptura = [] } = useQuery({
     queryKey: ["dashboard-estoque-ruptura", unidadeAtual?.id],
     queryFn: async () => {
-      let q = supabase
-        .from("vw_previsao_ruptura")
+      let q = (supabase as any).from("vw_previsao_ruptura")
         .select("id, nome, estoque, giro_diario, estoque_minimo_calculado, dias_ate_ruptura, situacao")
         .neq("situacao", "ok")
         .order("dias_ate_ruptura", { ascending: true, nullsFirst: false });
