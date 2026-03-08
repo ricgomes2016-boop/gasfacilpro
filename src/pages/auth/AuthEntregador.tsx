@@ -14,6 +14,11 @@ export default function AuthEntregador() {
   const form = useAuthForm();
   const [roleError, setRoleError] = useState(false);
 
+  // Delivery Portal always uses email login
+  useEffect(() => {
+    form.setLoginMethod("email");
+  }, []);
+
   useEffect(() => {
     document.title = "GásFácil Pro — Portal do Entregador";
   }, []);
