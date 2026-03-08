@@ -2,6 +2,7 @@ import { Bell, BellOff, BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
+import { Capacitor } from "@capacitor/core";
 
 interface NotificationToggleProps {
   className?: string;
@@ -11,7 +12,7 @@ interface NotificationToggleProps {
 export function NotificationToggle({ className, showLabel = false }: NotificationToggleProps) {
   const { permission, isSupported, requestPermission } = useNotifications();
 
-  if (!isSupported) {
+  if (!isSupported || Capacitor.isNativePlatform()) {
     return null;
   }
 
