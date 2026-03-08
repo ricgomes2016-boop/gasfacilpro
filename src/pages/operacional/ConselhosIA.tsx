@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Sparkles, TrendingUp, AlertTriangle, Lightbulb,
-  Target, Users, Package, DollarSign, RefreshCw,
+  Sparkles, AlertTriangle, Lightbulb,
+  Target, Users, Package, RefreshCw, ShieldAlert, Banknote,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -25,10 +25,10 @@ interface Insight {
 }
 
 const iconConfig = {
-  alerta:      { icon: AlertTriangle, color: "text-yellow-500",  bg: "bg-yellow-500/10"  },
-  oportunidade:{ icon: Users,         color: "text-blue-500",    bg: "bg-blue-500/10"    },
-  insight:     { icon: Lightbulb,     color: "text-purple-500",  bg: "bg-purple-500/10"  },
-  meta:        { icon: Target,        color: "text-red-500",     bg: "bg-red-500/10"     },
+  alerta:       { icon: AlertTriangle, color: "text-yellow-500",  bg: "bg-yellow-500/10"  },
+  oportunidade: { icon: Users,         color: "text-blue-500",    bg: "bg-blue-500/10"    },
+  insight:      { icon: Lightbulb,     color: "text-purple-500",  bg: "bg-purple-500/10"  },
+  meta:         { icon: Target,        color: "text-red-500",     bg: "bg-red-500/10"     },
 };
 
 export default function ConselhosIA() {
@@ -39,8 +39,7 @@ export default function ConselhosIA() {
   const { data: rupturas = [], isLoading: loadingRupturas } = useQuery({
     queryKey: ["conselhos-rupturas", unidadeAtual?.id],
     queryFn: async () => {
-      let q = supabase
-        .from("vw_previsao_ruptura")
+      let q = (supabase.from as any)("vw_previsao_ruptura")
         .select("nome, estoque, dias_ate_ruptura, situacao")
         .neq("situacao", "ok")
         .order("dias_ate_ruptura", { ascending: true, nullsFirst: false })
@@ -56,7 +55,6 @@ export default function ConselhosIA() {
     queryKey: ["conselhos-inativos", unidadeAtual?.id],
     queryFn: async () => {
       const limite = subDays(new Date(), 30).toISOString();
-      // Buscar clientes que têm pedidos, mas o mais recente foi há +30 dias
       let q = supabase
         .from("pedidos")
         .select("cliente_id, clientes:cliente_id(nome), created_at")
@@ -65,7 +63,6 @@ export default function ConselhosIA() {
       if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
       const { data: pedidos } = await q.limit(2000);
       if (!pedidos) return [];
-      // Agrupar último pedido por cliente
       const ultimoPorCliente: Record<string, { nome: string; data: string }> = {};
       for (const p of pedidos as any[]) {
         if (!ultimoPorCliente[p.cliente_id]) {
@@ -75,7 +72,6 @@ export default function ConselhosIA() {
           };
         }
       }
-      // Filtrar quem está inativo há 30d
       return Object.values(ultimoPorCliente)
         .filter(c => c.data < limite)
         .slice(0, 5);
@@ -115,7 +111,35 @@ export default function ConselhosIA() {
     },
   });
 
-  const isLoading = loadingRupturas || loadingInativos || loadingContas || loadingMetas;
+  // 5. Alertas de CNH (vw_alertas_cnh)
+  const { data: alertasCnh = [], isLoading: loadingCnh } = useQuery({
+    queryKey: ["conselhos-cnh", unidadeAtual?.id],
+    queryFn: async () => {
+      let q = (supabase.from as any)("vw_alertas_cnh")
+        .select("*")
+        .in("situacao", ["vencida", "vence_30d"])
+        .limit(10);
+      if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
+      const { data } = await q;
+      return (data || []) as any[];
+    },
+  });
+
+  // 6. Conferência de caixa (vw_conferencia_caixa)
+  const { data: conferenciaCaixa = [], isLoading: loadingCaixa } = useQuery({
+    queryKey: ["conselhos-caixa", unidadeAtual?.id],
+    queryFn: async () => {
+      const hoje = format(new Date(), "yyyy-MM-dd");
+      let q = (supabase.from as any)("vw_conferencia_caixa")
+        .select("*")
+        .eq("data", hoje);
+      if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
+      const { data } = await q;
+      return (data || []) as any[];
+    },
+  });
+
+  const isLoading = loadingRupturas || loadingInativos || loadingContas || loadingMetas || loadingCnh || loadingCaixa;
 
   // Montar lista de insights a partir dos dados reais
   const insights: Insight[] = useMemo(() => {
@@ -180,8 +204,38 @@ export default function ConselhosIA() {
       }
     }
 
+    // Alertas de CNH
+    for (const cnh of alertasCnh) {
+      const vencida = cnh.situacao === "vencida";
+      list.push({
+        id: `cnh-${cnh.entregador_id || cnh.nome}`,
+        tipo: "alerta",
+        titulo: vencida ? `CNH vencida: ${cnh.nome}` : `CNH vence em breve: ${cnh.nome}`,
+        descricao: vencida
+          ? `A CNH de ${cnh.nome} está vencida desde ${cnh.validade_cnh ? new Date(cnh.validade_cnh).toLocaleDateString("pt-BR") : "data desconhecida"}. O entregador não pode dirigir legalmente.`
+          : `A CNH de ${cnh.nome} vence em ${cnh.dias_ate_vencimento ?? "poucos"} dia(s). Providencie a renovação.`,
+        acao: "Ver entregadores",
+        prioridade: vencida ? "alta" : "media",
+      });
+    }
+
+    // Conferência de caixa - divergências
+    const caixaDivergente = conferenciaCaixa.filter((c: any) => c.diferenca_calculada && c.diferenca_calculada !== 0);
+    if (caixaDivergente.length > 0) {
+      const totalDif = caixaDivergente.reduce((s: number, c: any) => s + Math.abs(c.diferenca_calculada || 0), 0);
+      list.push({
+        id: "caixa-divergencia",
+        tipo: "insight",
+        titulo: `Divergência no caixa de hoje`,
+        descricao: `Foram detectadas ${caixaDivergente.length} sessão(ões) com diferença total de R$ ${totalDif.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}. Verifique os lançamentos.`,
+        acao: "Ver caixa do dia",
+        prioridade: "alta",
+        valor: `R$ ${totalDif.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      });
+    }
+
     return list;
-  }, [rupturas, clientesInativos, contasVencendo, metas]);
+  }, [rupturas, clientesInativos, contasVencendo, metas, alertasCnh, conferenciaCaixa]);
 
   const altaPrioridade = insights.filter(i => i.prioridade === "alta").length;
 
@@ -190,6 +244,8 @@ export default function ConselhosIA() {
     queryClient.invalidateQueries({ queryKey: ["conselhos-inativos"] });
     queryClient.invalidateQueries({ queryKey: ["conselhos-contas"] });
     queryClient.invalidateQueries({ queryKey: ["conselhos-metas"] });
+    queryClient.invalidateQueries({ queryKey: ["conselhos-cnh"] });
+    queryClient.invalidateQueries({ queryKey: ["conselhos-caixa"] });
   };
 
   return (
@@ -205,14 +261,14 @@ export default function ConselhosIA() {
         </div>
 
         {/* KPIs */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-primary/10"><Sparkles className="h-6 w-6 text-primary" /></div>
                 <div>
                   {isLoading ? <Skeleton className="h-8 w-12 mb-1" /> : <p className="text-2xl font-bold">{insights.length}</p>}
-                  <p className="text-sm text-muted-foreground">Insights Ativos</p>
+                  <p className="text-sm text-muted-foreground">Insights</p>
                 </div>
               </div>
             </CardContent>
@@ -234,7 +290,7 @@ export default function ConselhosIA() {
                 <div className="p-3 rounded-lg bg-blue-500/10"><Users className="h-6 w-6 text-blue-500" /></div>
                 <div>
                   {isLoading ? <Skeleton className="h-8 w-12 mb-1" /> : <p className="text-2xl font-bold">{clientesInativos.length}</p>}
-                  <p className="text-sm text-muted-foreground">Clientes Inativos (30d)</p>
+                  <p className="text-sm text-muted-foreground">Inativos (30d)</p>
                 </div>
               </div>
             </CardContent>
@@ -245,7 +301,29 @@ export default function ConselhosIA() {
                 <div className="p-3 rounded-lg bg-orange-500/10"><Package className="h-6 w-6 text-orange-500" /></div>
                 <div>
                   {isLoading ? <Skeleton className="h-8 w-12 mb-1" /> : <p className="text-2xl font-bold">{rupturas.length}</p>}
-                  <p className="text-sm text-muted-foreground">Produtos em Risco</p>
+                  <p className="text-sm text-muted-foreground">Estoque Risco</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-red-500/10"><ShieldAlert className="h-6 w-6 text-red-500" /></div>
+                <div>
+                  {isLoading ? <Skeleton className="h-8 w-12 mb-1" /> : <p className="text-2xl font-bold">{alertasCnh.length}</p>}
+                  <p className="text-sm text-muted-foreground">CNH em Risco</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-purple-500/10"><Banknote className="h-6 w-6 text-purple-500" /></div>
+                <div>
+                  {isLoading ? <Skeleton className="h-8 w-12 mb-1" /> : <p className="text-2xl font-bold">{conferenciaCaixa.filter((c: any) => c.diferenca_calculada && c.diferenca_calculada !== 0).length}</p>}
+                  <p className="text-sm text-muted-foreground">Caixa Divergente</p>
                 </div>
               </div>
             </CardContent>
