@@ -29,6 +29,9 @@ jobs:
     - name: Instalar Dependências
       run: npm ci
 
+    - name: Corrigir AGP Antigo no Plugin Background GPS
+      run: sed -i "s/gradle:8.0.0/gradle:8.13.0/g" node_modules/@capacitor-community/background-geolocation/android/build.gradle
+
     - name: Fazer Build do Painel Web (Vite)
       run: npm run build
 
@@ -39,7 +42,7 @@ jobs:
       working-directory: ./android
       run: |
         chmod +x gradlew
-        ./gradlew assembleDebug
+        ./gradlew assembleDebug -Dorg.gradle.java.home=$JAVA_HOME
 
     - name: Disponibilizar o APK para Download
       uses: actions/upload-artifact@v4
