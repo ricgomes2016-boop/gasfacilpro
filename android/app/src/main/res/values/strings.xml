@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GásFacilPro Entregador</string>
+    <string name="title_activity_main">GásFacilPro Entregador</string>
+    <string name="package_name">com.gasfacilpro.app</string>
+    <string name="custom_url_scheme">com.gasfacilpro.app</string>
+</resources>
