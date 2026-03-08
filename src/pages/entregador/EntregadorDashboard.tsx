@@ -26,6 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDate, getBrasiliaDateString } from "@/lib/utils";
+import { Capacitor } from "@capacitor/core";
 
 export default function EntregadorDashboard() {
   const { pendingDeliveries } = useDeliveryNotifications();
@@ -132,7 +133,7 @@ export default function EntregadorDashboard() {
     <EntregadorLayout title="Início">
       <div className="p-4 space-y-5">
         {/* Banner de ativar notificações */}
-        {permission !== "granted" && (
+        {permission !== "granted" && !Capacitor.isNativePlatform() && (
           <Card className="border-none shadow-md bg-primary/5 border-l-4 border-l-primary">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">

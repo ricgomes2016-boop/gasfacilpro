@@ -13,6 +13,7 @@ import { IniciarRotaModal } from "@/components/entregador/IniciarRotaModal";
 import { EntregaCard, type EntregaDB } from "@/components/entregador/EntregaCard";
 import { useDeliveryAlarm } from "@/hooks/useDeliveryAlarm";
 import { useNotifications } from "@/hooks/useNotifications";
+import { Capacitor } from "@capacitor/core";
 
 export default function EntregadorEntregas() {
   const [entregas, setEntregas] = useState<EntregaDB[]>([]);
@@ -184,24 +185,26 @@ export default function EntregadorEntregas() {
       <div className="p-3 sm:p-4">
         <div className="flex items-center justify-between mb-2 gap-2">
           <div className="flex items-center gap-1">
-            {permission !== "granted" && (
+            {!Capacitor.isNativePlatform() && permission !== "granted" && (
               <Button variant="outline" size="sm" onClick={requestPermission} className="text-xs">
                 <BellRing className="h-4 w-4 mr-1" />
                 Ativar Notificações
               </Button>
             )}
-            <Button
-              variant={alarmEnabled ? "default" : "outline"}
-              size="sm"
-              onClick={() => {
-                setAlarmEnabled(!alarmEnabled);
-                if (alarmEnabled) stopAlarm();
-              }}
-              className="text-xs"
-            >
-              {alarmEnabled ? <BellRing className="h-4 w-4 mr-1" /> : <BellOff className="h-4 w-4 mr-1" />}
-              {alarmEnabled ? "Som Ativo" : "Som Mudo"}
-            </Button>
+            {!Capacitor.isNativePlatform() && (
+              <Button
+                variant={alarmEnabled ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setAlarmEnabled(!alarmEnabled);
+                  if (alarmEnabled) stopAlarm();
+                }}
+                className="text-xs"
+              >
+                {alarmEnabled ? <BellRing className="h-4 w-4 mr-1" /> : <BellOff className="h-4 w-4 mr-1" />}
+                {alarmEnabled ? "Som Ativo" : "Som Mudo"}
+              </Button>
+            )}
             {isPlaying.current && (
               <Button variant="destructive" size="sm" onClick={stopAlarm} className="text-xs animate-pulse">
                 🔔 Parar Alarme
