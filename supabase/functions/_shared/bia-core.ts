@@ -363,6 +363,93 @@ export async function callAI(messages: any[]): Promise<string> {
   return result.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem.";
 }
 
+// ========== AUDIO TRANSCRIPTION ==========
+export async function downloadAudio(config: BiaConfig, mediaUrl: string): Promise<{ base64: string; mimeType: string } | null> {
+  try {
+    let fetchUrl = mediaUrl;
+    const headers: Record<string, string> = {};
+
+    // Z-API media URLs need authentication
+    if (config.provedor === "zapi" && !mediaUrl.startsWith("http")) {
+      fetchUrl = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/download-media`;
+      headers["Content-Type"] = "application/json";
+      if (config.securityToken) headers["Client-Token"] = config.securityToken;
+    } else if (config.provedor === "uazapi" && !mediaUrl.startsWith("http")) {
+      fetchUrl = `https://api.uazapi.com/${config.instanceId}/download-media`;
+      headers["Authorization"] = `Bearer ${config.token}`;
+      headers["Content-Type"] = "application/json";
+    }
+
+    const resp = await fetch(fetchUrl, { headers });
+    if (!resp.ok) {
+      console.error("Audio download failed:", resp.status);
+      return null;
+    }
+
+    const contentType = resp.headers.get("content-type") || "audio/ogg";
+    const buffer = await resp.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+
+    // Convert to base64
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+
+    return { base64, mimeType: contentType.split(";")[0] };
+  } catch (e) {
+    console.error("Audio download error:", e);
+    return null;
+  }
+}
+
+export async function transcribeAudio(audioBase64: string, mimeType: string): Promise<string | null> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) return null;
+
+  try {
+    // Use Gemini with inline audio data for transcription
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "input_audio",
+                input_audio: { data: audioBase64, format: mimeType.includes("ogg") ? "ogg" : "mp3" },
+              },
+              {
+                type: "text",
+                text: "Transcreva EXATAMENTE o que a pessoa disse neste áudio. Retorne APENAS a transcrição, sem nenhum comentário ou formatação extra. Se não conseguir entender, retorne 'inaudível'.",
+              },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!resp.ok) {
+      console.error("Transcription API error:", resp.status);
+      return null;
+    }
+
+    const result = await resp.json();
+    const text = result.choices?.[0]?.message?.content?.trim();
+    if (!text || text.toLowerCase() === "inaudível") return null;
+
+    console.log("Audio transcribed:", text.substring(0, 100));
+    return text;
+  } catch (e) {
+    console.error("Transcription error:", e);
+    return null;
+  }
+}
+
 // ========== PARSE ORDER ==========
 export function parseOrderData(raw: string): Record<string, string> | null {
   const lines = raw.trim().split("\n");

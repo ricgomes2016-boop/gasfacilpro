@@ -7,6 +7,7 @@ import {
   loadHistory, saveMessage, upsertConversation, isDuplicate,
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, registerCall,
+  downloadAudio, transcribeAudio,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
@@ -26,14 +27,42 @@ serve(async (req) => {
     // Skip own messages
     if (body.fromMe === true || body.direction === "sent") return OK({ ok: true, skipped: "fromMe" });
 
-    // Only process chat messages
-    if (!(body.cmd === "chat" || body.type === "chat" || body.isNewMsg === true)) return OK({ ok: true, skipped: "not_message" });
+    // Check for audio
+    const isAudio = body.type === "audio" || body.type === "ptt" || body.isAudio === true || !!body.audioMessage;
+    if (!isAudio && !(body.cmd === "chat" || body.type === "chat" || body.isNewMsg === true)) return OK({ ok: true, skipped: "not_message" });
 
     const phone = body.from || body.phone || body.sender || "";
-    const messageText = body.text || body.body || body.content || "";
+    let messageText = body.text || body.body || body.content || "";
     const senderName = body.senderName || body.pushName || body.chatName || "";
     const isGroup = body.isGroup === true || (phone && phone.includes("@g.us"));
-    if (isGroup || !phone || !messageText) return OK({ ok: true, skipped: "invalid" });
+    const audioUrl = body.audioMessage?.url || body.mediaUrl || body.audio || null;
+    if (isGroup || !phone) return OK({ ok: true, skipped: "invalid" });
+
+    // Handle audio messages
+    if (isAudio || (audioUrl && typeof audioUrl === "string" && !messageText)) {
+      const url0 = new URL(req.url);
+      const cfg0 = await resolveConfig(supabase, "uazapi", url0.searchParams.get("unidade_id"), null);
+      if (cfg0 && audioUrl) {
+        const audio = await downloadAudio(cfg0, audioUrl);
+        if (audio) {
+          const transcribed = await transcribeAudio(audio.base64, audio.mimeType);
+          if (transcribed) {
+            messageText = transcribed;
+            console.log("Audio transcribed:", messageText.substring(0, 80));
+          } else {
+            await sendMessage(cfg0, phone, "Desculpe, não consegui entender o áudio. Pode digitar ou enviar novamente? 😊");
+            return OK({ ok: true, skipped: "audio_unreadable" });
+          }
+        } else {
+          await sendMessage(cfg0, phone, "Desculpe, não consegui ouvir o áudio. Pode mandar por texto? 😊");
+          return OK({ ok: true, skipped: "audio_download_failed" });
+        }
+      } else if (!messageText) {
+        return OK({ ok: true, skipped: "audio_no_config" });
+      }
+    }
+
+    if (!messageText) return OK({ ok: true, skipped: "empty" });
 
     // Resolve config
     const url = new URL(req.url);
