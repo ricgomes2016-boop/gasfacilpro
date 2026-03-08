@@ -1,0 +1,126 @@
+name: Construir APK (Bina - Identificador de Chamadas)
+
+on:
+  workflow_dispatch: # Apenas disparo manual
+
+jobs:
+  build_bina:
+    name: Build Android APK (Bina)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Código (Repositório Principal)
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - name: Setup Java (Android SDK)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+
+    - name: Scaffold App Bina Isola
+      run: |
+        mkdir -p bina-app/www
+        cd bina-app
+        echo "<html><body><h1>App Bina - Caller ID</h1><p>Rodando em background.</p></body></html>" > www/index.html
+        
+        npm init -y
+        npm install @capacitor/core @capacitor/android @capacitor/cli
+        
+        npx cap init GasFacilBina app.gasfacil.bina --web-dir www
+        npx cap add android
+
+    - name: Injetar Permissões no AndroidManifest.xml
+      run: |
+        cd bina-app/android/app/src/main
+        
+        # Pega as permissões necessárias
+        PERMISSIONS="    <uses-permission android:name=\"android.permission.READ_PHONE_STATE\"/>\n    <uses-permission android:name=\"android.permission.READ_CALL_LOG\"/>\n    <uses-permission android:name=\"android.permission.RECEIVE_BOOT_COMPLETED\"/>\n    <uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\"/>\n    <uses-permission android:name=\"android.permission.BIND_NOTIFICATION_LISTENER_SERVICE\"/>\n"
+        
+        # Injeta logo antes da tag <application>
+        awk -v perm="$PERMISSIONS" '/<application/ {print perm; print; next} 1' AndroidManifest.xml > temp.xml
+        mv temp.xml AndroidManifest.xml
+        
+        # Adiciona o CallReceiver dentro da <application>
+        RECEIVER="        <receiver android:name=\".CallReceiver\" android:exported=\"true\">\n            <intent-filter>\n                <action android:name=\"android.intent.action.PHONE_STATE\" />\n            </intent-filter>\n        </receiver>\n"
+        awk -v rec="$RECEIVER" '/<\/application>/ {print rec; print; next} 1' AndroidManifest.xml > temp2.xml
+        mv temp2.xml AndroidManifest.xml
+
+    - name: Criar CallReceiver.kt (Kotlin Nativo)
+      run: |
+        mkdir -p bina-app/android/app/src/main/java/app/gasfacil/bina
+        cat << 'EOF' > bina-app/android/app/src/main/java/app/gasfacil/bina/CallReceiver.kt
+        package app.gasfacil.bina
+        
+        import android.content.BroadcastReceiver
+        import android.content.Context
+        import android.content.Intent
+        import android.telephony.TelephonyManager
+        import android.util.Log
+        import java.io.OutputStreamWriter
+        import java.net.HttpURLConnection
+        import java.net.URL
+        
+        class CallReceiver : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action == TelephonyManager.ACTION_PHONE_STATE_CHANGED) {
+                    val state = intent.getStringExtra(TelephonyManager.EXTRA_STATE)
+                    val number = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
+                    
+                    if (state == TelephonyManager.EXTRA_STATE_RINGING && !number.isNullOrEmpty()) {
+                        Log.d("BinaCallReceiver", "Chamada Ocorrida: $number")
+                        sendToWebhook(number, "celular")
+                    }
+                }
+            }
+        
+            private fun sendToWebhook(phone: String, type: String) {
+                Thread {
+                    try {
+                        val url = URL("https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/bina-webhook")
+                        val conn = url.openConnection() as HttpURLConnection
+                        conn.requestMethod = "POST"
+                        conn.setRequestProperty("Content-Type", "application/json; utf-8")
+                        conn.setRequestProperty("Accept", "application/json")
+                        conn.doOutput = true
+                        
+                        val jsonInputString = "{\"telefone\": \"$phone\", \"tipo\": \"$type\"}"
+                        
+                        OutputStreamWriter(conn.outputStream).use { os ->
+                            os.write(jsonInputString)
+                        }
+                        
+                        val responseCode = conn.responseCode
+                        Log.d("BinaCallReceiver", "Webhook POST Response: $responseCode")
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }.start()
+            }
+        }
+        EOF
+
+    - name: Configurar Java 21 no build.gradle
+      run: |
+        cd bina-app/android/app
+        # Força o target compatibility para Java 21
+        sed -i 's/JavaVersion.VERSION_17/JavaVersion.VERSION_21/g' build.gradle
+        sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_21/g' build.gradle
+
+    - name: Compilar APK (Gradle)
+      working-directory: bina-app/android
+      run: |
+        chmod +x gradlew
+        ./gradlew assembleDebug -Dorg.gradle.java.home=$JAVA_HOME
+
+    - name: Disponibilizar o APK para Download
+      uses: actions/upload-artifact@v4
+      with:
+        name: GasFacilPro_Bina.apk
+        path: bina-app/android/app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 7
