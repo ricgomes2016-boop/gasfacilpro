@@ -6,8 +6,8 @@ import {
   buildSystemPrompt, buildNegotiationHint, generateUUIDFromString,
   loadHistory, saveMessage, upsertConversation, isDuplicate,
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
-  createOrder, sendTyping, sendMessage, registerCall,
-  downloadAudio, transcribeAudio,
+  createOrder, sendTyping, sendMessage, sendLocation, registerCall,
+  downloadAudio, transcribeAudio, getEntregadorLocation,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
@@ -150,6 +150,17 @@ serve(async (req) => {
         }
       }
       await registerCall(supabase, phone, cliente.id, cliente.nome, senderName, config.unidadeId);
+    }
+
+    // Handle location sharing
+    if (reply.includes("[ENVIAR_LOCALIZACAO]")) {
+      reply = reply.replace(/\[ENVIAR_LOCALIZACAO\]/g, "").trim();
+      const loc = await getEntregadorLocation(supabase, cliente.id);
+      if (loc) {
+        await sendMessage(config, phone, reply);
+        await sendLocation(config, phone, loc.lat, loc.lng, loc.nome);
+        return OK({ ok: true, reply: reply.substring(0, 100), location_sent: true });
+      }
     }
 
     await sendMessage(config, phone, reply);

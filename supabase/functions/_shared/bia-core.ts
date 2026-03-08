@@ -208,7 +208,9 @@ ${cliente.endereco ? `ENDEREÇO: ${cliente.endereco}` : "SEM ENDEREÇO"}
 ${recentOrders ? `PEDIDOS RECENTES:\n${recentOrders}` : ""}
 
 ${orderStatus ? `PEDIDO ATIVO: #${orderStatus.id} — ${orderStatus.status} (R$ ${orderStatus.valor})
-Se o cliente perguntar sobre status/entrega/pedido, informe o status acima.` : ""}
+Se o cliente perguntar sobre status/entrega/pedido, informe o status acima.
+Se o pedido está "a caminho", diga: "Seu gás está a caminho! Vou enviar a localização do entregador 📍"
+Inclua [ENVIAR_LOCALIZACAO] na resposta para que o sistema envie o pin.` : ""}
 
 FLUXO DO PEDIDO (seja RÁPIDA e OBJETIVA):
 ${cliente.endereco
@@ -544,8 +546,85 @@ export async function createOrder(
     await supabase.from("pedido_itens").insert({
       pedido_id: ped.id, produto_id: produto.id, quantidade: qty, preco_unitario: produto.preco,
     });
+
+    // Auto-assign entregador based on bairro/rota
+    if (!isAgendado) {
+      await autoAssignEntregador(supabase, ped.id, orderData.endereco || "", unidadeId);
+    }
+
     console.log("Order created:", ped.id);
   } catch (e) { console.error("Create order error:", e); }
+}
+
+// ========== AUTO-ASSIGN ENTREGADOR ==========
+export async function autoAssignEntregador(supabase: any, pedidoId: string, endereco: string, unidadeId: string | null) {
+  try {
+    // 1. Try to find route matching the bairro in the address
+    const words = endereco.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2);
+
+    let entregadorId: string | null = null;
+
+    if (words.length > 0 && unidadeId) {
+      // Search rotas_definidas for matching bairros
+      const { data: rotas } = await supabase.from("rotas_definidas")
+        .select("id, entregador_padrao_id, bairros")
+        .eq("ativo", true)
+        .eq("unidade_id", unidadeId);
+
+      if (rotas) {
+        for (const rota of rotas) {
+          const bairros = (rota.bairros || []).map((b: string) => b.toLowerCase());
+          const matches = words.some((w: string) => bairros.some((b: string) => b.includes(w) || w.includes(b)));
+          if (matches && rota.entregador_padrao_id) {
+            // Check if entregador is available
+            const { data: ent } = await supabase.from("entregadores").select("id, status")
+              .eq("id", rota.entregador_padrao_id).eq("ativo", true).maybeSingle();
+            if (ent && ent.status === "disponivel") {
+              entregadorId = ent.id;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // 2. Fallback: any available entregador in the unit
+    if (!entregadorId) {
+      let q = supabase.from("entregadores").select("id")
+        .eq("ativo", true).eq("status", "disponivel").limit(1);
+      if (unidadeId) q = q.eq("unidade_id", unidadeId);
+      const { data: avail } = await q;
+      if (avail?.[0]) entregadorId = avail[0].id;
+    }
+
+    if (entregadorId) {
+      await supabase.from("pedidos").update({ entregador_id: entregadorId }).eq("id", pedidoId);
+      console.log("Auto-assigned entregador:", entregadorId, "to order:", pedidoId);
+    }
+  } catch (e) {
+    console.error("Auto-assign error:", e);
+  }
+}
+
+// ========== GET ENTREGADOR LOCATION ==========
+export async function getEntregadorLocation(supabase: any, clienteId: string | null) {
+  if (!clienteId) return null;
+
+  // Find active order with entregador em_rota
+  const { data: pedido } = await supabase.from("pedidos")
+    .select("id, entregador_id, entregadores:entregador_id(nome, latitude, longitude)")
+    .eq("cliente_id", clienteId)
+    .eq("status", "saiu_entrega")
+    .order("created_at", { ascending: false }).limit(1);
+
+  if (!pedido?.[0]?.entregadores?.latitude) return null;
+
+  const ent = pedido[0].entregadores;
+  return {
+    nome: ent.nome,
+    lat: ent.latitude,
+    lng: ent.longitude,
+  };
 }
 
 // ========== SEND TYPING INDICATOR ==========
@@ -584,6 +663,24 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
   } catch (e) { console.error("Send message error:", e); }
 }
 
+// ========== SEND LOCATION (WHATSAPP) ==========
+export async function sendLocation(config: BiaConfig, phone: string, lat: number, lng: number, name: string) {
+  try {
+    if (config.provedor === "zapi") {
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-location`;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (config.securityToken) headers["Client-Token"] = config.securityToken;
+      await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, lat: String(lat), lng: String(lng), title: `📍 ${name}`, address: "Entregador a caminho" }) });
+    } else {
+      await fetch(`https://api.uazapi.com/${config.instanceId}/send-location`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.token}` },
+        body: JSON.stringify({ to: phone.replace(/\D/g, ""), lat, lng, name: `📍 ${name}`, address: "Entregador a caminho" }),
+      });
+    }
+  } catch (e) { console.error("Send location error:", e); }
+}
+
 // ========== REGISTER CALL ==========
 export async function registerCall(supabase: any, phone: string, clienteId: string | null, clienteNome: string | null, senderName: string, unidadeId: string | null) {
   await supabase.from("chamadas_recebidas").insert({
@@ -591,3 +688,4 @@ export async function registerCall(supabase: any, phone: string, clienteId: stri
     tipo: "whatsapp", status: "recebida", unidade_id: unidadeId,
   });
 }
+

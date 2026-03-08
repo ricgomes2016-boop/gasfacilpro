@@ -14,17 +14,15 @@ import { DailySalesGoal } from "@/components/dashboard/DailySalesGoal";
 import { StockAlerts } from "@/components/dashboard/StockAlerts";
 import { DailyBriefingWidget } from "@/components/dashboard/DailyBriefingWidget";
 import { VoiceAssistant } from "@/components/ai/VoiceAssistant";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Truck, Users, DollarSign, TrendingUp, Flame, RefreshCw, AlertTriangle } from "lucide-react";
+import { ShoppingCart, Truck, Users, DollarSign, TrendingUp, Flame } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
-import { subDays, startOfWeek, startOfMonth } from "date-fns";
+import { subDays, startOfWeek, startOfMonth, startOfDay, endOfDay } from "date-fns";
 import { getBrasiliaDate, getBrasiliaStartOfDay, getBrasiliaEndOfDay } from "@/lib/utils";
 
 type Period = "hoje" | "semana" | "mes";
@@ -32,7 +30,6 @@ type Period = "hoje" | "semana" | "mes";
 export default function Dashboard() {
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
-  const queryClient = useQueryClient();
   const [period, setPeriod] = useState<Period>("hoje");
   const today = getBrasiliaDate();
 
@@ -47,11 +44,9 @@ export default function Dashboard() {
     }
   };
 
-  // Stats query with auto-refresh
-  const { data: stats, isLoading: loadingStats } = useQuery({
+  const { data: stats } = useQuery({
     queryKey: ["dashboard-stats", unidadeAtual?.id, empresa?.id, period],
     enabled: !!unidadeAtual?.id,
-    refetchInterval: 30000,
     queryFn: async () => {
       const { start, end } = getRange(period);
 
@@ -114,50 +109,6 @@ export default function Dashboard() {
     },
   });
 
-  // Conferência de caixa do dia (vw_conferencia_caixa)
-  const { data: conferenciaCaixa } = useQuery({
-    queryKey: ["dashboard-conferencia-caixa", unidadeAtual?.id],
-    refetchInterval: 30000,
-    queryFn: async () => {
-      const hoje = format(new Date(), "yyyy-MM-dd");
-      let q = (supabase.from as any)("vw_conferencia_caixa")
-        .select("*")
-        .eq("data", hoje);
-      if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
-      const { data } = await q;
-      return (data || []) as any[];
-    },
-  });
-
-  // Alertas críticos count (CNH + ruptura)
-  const { data: alertasCriticos = 0 } = useQuery({
-    queryKey: ["dashboard-alertas-criticos", unidadeAtual?.id],
-    refetchInterval: 30000,
-    queryFn: async () => {
-      let count = 0;
-      // CNH alerts
-      let qCnh = (supabase.from as any)("vw_alertas_cnh")
-        .select("*", { count: "exact", head: true })
-        .in("situacao", ["vencida", "vence_30d"]);
-      if (unidadeAtual?.id) qCnh = qCnh.eq("unidade_id", unidadeAtual.id);
-      const { count: cnhCount } = await qCnh;
-      count += cnhCount || 0;
-
-      // Stock rupture alerts
-      let qRupt = (supabase.from as any)("vw_previsao_ruptura")
-        .select("*", { count: "exact", head: true })
-        .neq("situacao", "ok");
-      if (unidadeAtual?.id) qRupt = qRupt.eq("unidade_id", unidadeAtual.id);
-      const { count: ruptCount } = await qRupt;
-      count += ruptCount || 0;
-
-      return count;
-    },
-  });
-
-  // Vendas do caixa (total_vendas da conferência)
-  const vendasCaixa = (conferenciaCaixa || []).reduce((s: number, c: any) => s + (Number(c.total_vendas) || 0), 0);
-
   const periodLabel = { hoje: "Hoje", semana: "Semana", mes: "Mês" }[period];
 
   const getGreeting = () => {
@@ -168,12 +119,6 @@ export default function Dashboard() {
   };
   const greeting = getGreeting();
   const todayFormatted = format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-
-  const handleRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-    queryClient.invalidateQueries({ queryKey: ["dashboard-conferencia-caixa"] });
-    queryClient.invalidateQueries({ queryKey: ["dashboard-alertas-criticos"] });
-  };
 
   return (
     <MainLayout>
@@ -198,46 +143,7 @@ export default function Dashboard() {
               </h1>
               <p className="text-sm text-white/70 capitalize">{todayFormatted}</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-white hover:bg-white/20"
-                onClick={handleRefresh}
-              >
-                <RefreshCw className={`h-4 w-4 mr-1.5 ${loadingStats ? "animate-spin" : ""}`} />
-                Atualizar
-              </Button>
-              <VoiceAssistant userName={greeting.text} />
-            </div>
-          </div>
-
-          {/* Real-time KPI strip inside hero */}
-          <div className="relative z-10 mt-5 grid grid-cols-3 gap-3">
-            <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-3">
-              <p className="text-xs text-white/70 mb-0.5">Vendas Hoje</p>
-              <p className="text-lg font-bold">
-                R$ {vendasCaixa > 0
-                  ? vendasCaixa.toLocaleString("pt-BR", { minimumFractionDigits: 2 })
-                  : (stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </p>
-            </div>
-            <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-3">
-              <p className="text-xs text-white/70 mb-0.5">Entregas Pendentes</p>
-              <p className="text-lg font-bold">{stats?.pendentes ?? 0}</p>
-            </div>
-            <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-3 flex items-center justify-between">
-              <div>
-                <p className="text-xs text-white/70 mb-0.5">Alertas Críticos</p>
-                <p className="text-lg font-bold">{alertasCriticos}</p>
-              </div>
-              {alertasCriticos > 0 && (
-                <Badge variant="destructive" className="bg-white/25 text-white border-0 text-xs animate-pulse">
-                  <AlertTriangle className="h-3 w-3 mr-1" />
-                  Atenção
-                </Badge>
-              )}
-            </div>
+            <VoiceAssistant userName={greeting.text} />
           </div>
         </div>
 
