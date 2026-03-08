@@ -1,0 +1,49 @@
+name: Construir APK (App do Entregador)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Permite rodar o build manualmente se quiser
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Código
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Setup Java (Android SDK)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Instalar Dependências
+      run: npm ci
+
+    - name: Fazer Build do Painel Web (Vite)
+      run: npm run build
+
+    - name: Sincronizar com Android (Capacitor)
+      run: npx cap sync android
+
+    - name: Compilar o APK (Gradle)
+      working-directory: ./android
+      run: |
+        chmod +x gradlew
+        ./gradlew assembleDebug
+
+    - name: Disponibilizar o APK para Download
+      uses: actions/upload-artifact@v4
+      with:
+        name: GasFacilPro_Entregador.apk
+        path: android/app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 7
