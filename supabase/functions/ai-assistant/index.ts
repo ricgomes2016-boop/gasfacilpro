@@ -28,6 +28,14 @@ Tabelas disponíveis no sistema (distribuidora de gás):
 - compras: id, fornecedor_id, valor_total, valor_frete, status, data_compra, data_recebimento, numero_nota_fiscal, chave_nfe, unidade_id
 - compra_itens: id, compra_id, produto_id, quantidade, preco_unitario
 - comodatos: id, cliente_id, produto_id, quantidade, deposito, status (ativo/devolvido/perdido), data_emprestimo, data_devolucao, prazo_devolucao, unidade_id
+- movimentacoes_estoque: id, produto_id, tipo (entrada/saida/avaria), quantidade, observacoes, unidade_id, created_at
+- transferencias_estoque: id, unidade_origem_id, unidade_destino_id, status (pendente/em_transito/recebido/cancelado), valor_total, data_transferencia, data_envio, data_recebimento, observacoes, created_at
+- transferencia_estoque_itens: id, transferencia_id, produto_id, quantidade, preco_compra
+
+== VIEW: PREVISÃO DE RUPTURA (Use esta view para perguntas sobre estoque crítico) ==
+- vw_previsao_ruptura: id, nome, categoria, tipo_botijao, estoque, unidade_id, giro_diario, estoque_minimo_calculado, dias_ate_ruptura (null = sem histórico de vendas), situacao (ok/alerta/critico/sem_estoque)
+  QUANDO USAR: "produtos críticos", "ruptura", "vai acabar", "dias restantes de estoque", "estoque mínimo"
+  EXEMPLO: SELECT nome, estoque, dias_ate_ruptura, situacao FROM vw_previsao_ruptura WHERE situacao != 'ok' AND unidade_id = '...' ORDER BY dias_ate_ruptura ASC
 
 == LOGÍSTICA & ENTREGAS ==
 - entregadores: id, nome, telefone, cpf, email, cnh, cnh_vencimento, status (disponivel/em_rota/indisponivel), ativo, latitude, longitude, user_id, funcionario_id, unidade_id
@@ -48,7 +56,7 @@ Tabelas disponíveis no sistema (distribuidora de gás):
 == RH & FUNCIONÁRIOS ==
 - funcionarios: id, nome, cargo, salario, setor, ativo, data_admissao, cpf, email, telefone, endereco, tipo_contrato, jornada_semanal, unidade_id
 - folhas_pagamento: id, mes_referencia, status, total_bruto, total_descontos, total_liquido, total_comissoes, total_funcionarios, unidade_id
-- folha_pagamento_itens: id, folha_id, funcionario_id, funcionario_nome, salario_base, comissao, horas_extras, bonus, bruto, inss, ir, vales_desconto, outros_descontos, total_descontos, liquido
+- folha_pagamento_itens: id, folha_id, funcionario_id, funcionario_nome, salario_base, comissao, horas_extras, bonus, bruto, inss, ir, vales_desconto, outros_descontos, liquido
 - ferias: id, funcionario_id, periodo_aquisitivo_inicio, periodo_aquisitivo_fim, dias_direito, dias_gozados, dias_vendidos, data_inicio, data_fim, status, unidade_id
 - banco_horas: id, funcionario_id, saldo_positivo, saldo_negativo, unidade_id
 - bonus: id, funcionario_id, tipo, valor, status, mes_referencia, unidade_id
@@ -73,13 +81,19 @@ Tabelas disponíveis no sistema (distribuidora de gás):
 - campanhas: id, nome, tipo, status, alcance, enviados, data_criacao, unidade_id
 - canais_venda: id, nome, tipo, ativo, unidade_id
 
+== METAS ==
+- metas: id, titulo, tipo, valor_objetivo, valor_atual, status (em_andamento/ativa/concluida/cancelada), prazo
+
 == CONFIGURAÇÕES ==
 - unidades: id, nome, tipo, cidade, estado, ativo, cnpj, telefone, endereco
 - fornecedores: id, razao_social, nome_fantasia, cnpj, tipo, telefone, email, cidade, estado, ativo
 - categorias_despesa: id, nome, grupo, tipo, ativo, codigo_contabil, valor_padrao, unidade_id
-- metas: id, titulo, tipo, valor_objetivo, valor_atual, status, prazo
 - profiles: id, user_id, full_name, email, avatar_url
 - user_roles: id, user_id, role (admin/gestor/operacional/financeiro/entregador)
+
+== ASSISTENTE IA ==
+- ai_conversas: id, user_id, titulo, created_at, updated_at
+- ai_mensagens: id, conversa_id, role (user/assistant), content, created_at
 `;
 
 const ACTIONS_SCHEMA = `
@@ -87,7 +101,6 @@ Ações que você pode executar (use a tool "execute_action" quando o usuário p
 - criar_pedido: {cliente_nome, produtos: [{nome, quantidade}], forma_pagamento, endereco_entrega}
 - atualizar_status_pedido: {pedido_id, novo_status}
 - atualizar_status_entregador: {entregador_id, novo_status}
-- criar_lembrete: {titulo, descricao, data}
 
 IMPORTANTE: Sempre confirme com o usuário antes de executar qualquer ação. Liste os dados e pergunte "Deseja que eu execute?".
 Quando o usuário confirmar, execute a ação. Se não confirmar, não execute.
