@@ -88,6 +88,8 @@ export function useGeoTracking() {
 
     const startWebTracking = () => {
       if (!navigator.geolocation) return;
+      if (statusRef.current === "offline") return;
+      
       watchIdRef.current = navigator.geolocation.watchPosition(
         (position) => updateLocation(position.coords.latitude, position.coords.longitude),
         (err) => console.warn("Erro de watchPosition:", err.message),
@@ -153,11 +155,12 @@ export function useGeoTracking() {
         document.addEventListener('visibilitychange', handleVisibilityChange);
       }
 
-      // Decide Tracking Strategy based on Environment (Native App vs Browser)
-      if (Capacitor.isNativePlatform()) {
-        startCapacitorTracking();
-      } else {
-        startWebTracking();
+      if (statusRef.current !== "offline") {
+        if (Capacitor.isNativePlatform()) {
+          startCapacitorTracking();
+        } else {
+          startWebTracking();
+        }
       }
     };
 

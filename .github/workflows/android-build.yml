@@ -23,8 +23,13 @@ jobs:
     - name: Setup Java (Android SDK)
       uses: actions/setup-java@v4
       with:
-        distribution: 'zulu'
+        distribution: 'temurin'
         java-version: '21'
+
+    - name: Verificar Ambiente Java
+      run: |
+        java -version
+        echo $JAVA_HOME
 
     - name: Instalar Dependências
       run: npm ci
