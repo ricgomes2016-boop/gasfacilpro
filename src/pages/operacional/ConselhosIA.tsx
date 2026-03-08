@@ -115,7 +115,34 @@ export default function ConselhosIA() {
     },
   });
 
-  const isLoading = loadingRupturas || loadingInativos || loadingContas || loadingMetas;
+  // 5. Alertas de CNH
+  const { data: alertasCnh = [], isLoading: loadingCnh } = useQuery({
+    queryKey: ["conselhos-cnh", unidadeAtual?.id],
+    queryFn: async () => {
+      let q = supabase.from("vw_alertas_cnh").select("*");
+      if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
+      const { data } = await q;
+      return (data || []) as any[];
+    },
+  });
+
+  // 6. Diferença de Caixa
+  const { data: diferencaCaixa = [], isLoading: loadingCaixa } = useQuery({
+    queryKey: ["conselhos-caixa", unidadeAtual?.id],
+    queryFn: async () => {
+      const hoje = format(new Date(), "yyyy-MM-dd");
+      let q = supabase
+        .from("vw_conferencia_caixa")
+        .select("*")
+        .eq("data", hoje)
+        .eq("sessao_status", "aberto");
+      if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
+      const { data } = await q.limit(1);
+      return (data || []) as any[];
+    },
+  });
+
+  const isLoading = loadingRupturas || loadingInativos || loadingContas || loadingMetas || loadingCnh || loadingCaixa;
 
   // Montar lista de insights a partir dos dados reais
   const insights: Insight[] = useMemo(() => {
@@ -180,8 +207,40 @@ export default function ConselhosIA() {
       }
     }
 
+    // Alertas de CNH
+    for (const cnh of alertasCnh) {
+      if (cnh.situacao !== "ok") {
+        list.push({
+          id: `cnh-${cnh.id}`,
+          tipo: "alerta",
+          titulo: `CNH ${cnh.situacao === "vencida" ? "Vencida" : "Vencendo"}: ${cnh.nome}`,
+          descricao: cnh.situacao === "vencida"
+            ? `A CNH está vencida. Atualize o cadastro imediatamente.`
+            : `Faltam ${cnh.dias_restantes} dias para o vencimento da CNH.`,
+          acao: "Ver entregador",
+          prioridade: cnh.situacao === "vencida" ? "alta" : "media",
+        });
+      }
+    }
+
+    // Divergência de Caixa
+    if (diferencaCaixa.length > 0) {
+      const caixa = diferencaCaixa[0];
+      if (caixa.diferenca_calculada !== 0) {
+        list.push({
+          id: `caixa-${caixa.sessao_id}`,
+          tipo: "alerta",
+          titulo: `Divergência no Caixa Atual`,
+          descricao: `Há uma diferença de R$ ${Math.abs(caixa.diferenca_calculada).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} entre as vendas/movimentações e o saldo esperado.`,
+          acao: "Ir para Controle de Caixa",
+          prioridade: "alta",
+          valor: `R$ ${caixa.diferenca_calculada.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+        });
+      }
+    }
+
     return list;
-  }, [rupturas, clientesInativos, contasVencendo, metas]);
+  }, [rupturas, clientesInativos, contasVencendo, metas, alertasCnh, diferencaCaixa]);
 
   const altaPrioridade = insights.filter(i => i.prioridade === "alta").length;
 
@@ -190,6 +249,8 @@ export default function ConselhosIA() {
     queryClient.invalidateQueries({ queryKey: ["conselhos-inativos"] });
     queryClient.invalidateQueries({ queryKey: ["conselhos-contas"] });
     queryClient.invalidateQueries({ queryKey: ["conselhos-metas"] });
+    queryClient.invalidateQueries({ queryKey: ["conselhos-cnh"] });
+    queryClient.invalidateQueries({ queryKey: ["conselhos-caixa"] });
   };
 
   return (
