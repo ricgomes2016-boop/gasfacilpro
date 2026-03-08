@@ -69,11 +69,6 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/20">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
               <SheetContent side="left" className="w-72 p-0 border-none">
                 <div className="gradient-dark h-full flex flex-col">
                   <div className="flex items-center gap-3 p-6 border-b border-white/10 flex-shrink-0">
@@ -146,7 +141,7 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-50">
         <div className="flex justify-around items-center py-2">
-          {menuItems.slice(0, 5).map((item) => {
+          {menuItems.slice(0, 4).map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             return (
@@ -165,6 +160,14 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
               </Link>
             );
           })}
+          
+          <button
+            onClick={() => setMenuOpen(true)}
+            className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all min-w-[60px] text-muted-foreground hover:text-foreground"
+          >
+            <Menu className="h-5 w-5" />
+            <span className="text-xs font-medium">Menu</span>
+          </button>
         </div>
       </nav>
     </div>
