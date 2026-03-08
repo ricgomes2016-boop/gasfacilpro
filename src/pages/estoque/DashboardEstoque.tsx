@@ -8,7 +8,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Package, Flame, Droplets, AlertTriangle, TrendingUp, DollarSign, BarChart3, Cylinder,
+  Package, Flame, Droplets, AlertTriangle, TrendingUp, DollarSign, BarChart3, Cylinder, Clock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -47,13 +47,18 @@ export default function DashboardEstoque() {
     },
   });
 
-  const { data: alertasEstoque = [] } = useQuery({
-    queryKey: ["dashboard-estoque-alertas", unidadeAtual?.id],
+  // Usa a view vw_previsao_ruptura — alertas baseados em MCMM real, não threshold fixo
+  const { data: alertasRuptura = [] } = useQuery({
+    queryKey: ["dashboard-estoque-ruptura", unidadeAtual?.id],
     queryFn: async () => {
-      let q = supabase.from("produtos").select("id, nome, estoque, categoria, tipo_botijao").eq("ativo", true).lt("estoque", 10);
+      let q = supabase
+        .from("vw_previsao_ruptura")
+        .select("id, nome, estoque, giro_diario, estoque_minimo_calculado, dias_ate_ruptura, situacao")
+        .neq("situacao", "ok")
+        .order("dias_ate_ruptura", { ascending: true, nullsFirst: false });
       if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
       const { data } = await q;
-      return data || [];
+      return (data || []) as any[];
     },
   });
 
@@ -65,8 +70,9 @@ export default function DashboardEstoque() {
     const totalVazios = vazios.reduce((s: number, p: any) => s + (p.estoque || 0), 0);
     const valorEstoque = produtos.filter((p: any) => p.tipo_botijao !== "vazio").reduce((s: number, p: any) => s + (p.estoque || 0) * (p.preco || 0), 0);
     const totalProdutos = produtos.length;
-    return { totalCheios, totalVazios, valorEstoque, totalProdutos };
-  }, [produtos]);
+    const rupturaEm7Dias = alertasRuptura.filter((a: any) => a.dias_ate_ruptura !== null && a.dias_ate_ruptura <= 7).length;
+    return { totalCheios, totalVazios, valorEstoque, totalProdutos, rupturaEm7Dias };
+  }, [produtos, alertasRuptura]);
 
   // Curva ABC
   const curvaABC = useMemo(() => {
@@ -124,12 +130,19 @@ export default function DashboardEstoque() {
     return Object.entries(cats).map(([name, value]) => ({ name, value: +value.toFixed(2) }));
   }, [produtos]);
 
+  const situacaoBadge = (situacao: string) => {
+    if (situacao === "sem_estoque") return <Badge variant="destructive">Sem estoque</Badge>;
+    if (situacao === "critico") return <Badge variant="destructive">Crítico</Badge>;
+    if (situacao === "alerta") return <Badge className="bg-yellow-500 text-white">Alerta</Badge>;
+    return <Badge variant="secondary">OK</Badge>;
+  };
+
   return (
     <MainLayout>
       <Header title="Dashboard de Estoque" subtitle="Visão consolidada do inventário" />
       <div className="p-3 sm:p-6 space-y-6">
         {/* KPIs */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-5">
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
               <div className="rounded-lg bg-primary/10 p-3"><Flame className="h-5 w-5 text-primary" /></div>
@@ -151,7 +164,18 @@ export default function DashboardEstoque() {
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
               <div className="rounded-lg bg-destructive/10 p-3"><AlertTriangle className="h-5 w-5 text-destructive" /></div>
-              <div><p className="text-xs text-muted-foreground">Alertas Ruptura</p><p className="text-2xl font-bold">{alertasEstoque.length}</p></div>
+              <div><p className="text-xs text-muted-foreground">Alertas Ruptura</p><p className="text-2xl font-bold">{alertasRuptura.length}</p></div>
+            </CardContent>
+          </Card>
+          <Card className={kpis.rupturaEm7Dias > 0 ? "border-destructive/50" : ""}>
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className={`rounded-lg p-3 ${kpis.rupturaEm7Dias > 0 ? "bg-destructive/10" : "bg-muted"}`}>
+                <Clock className={`h-5 w-5 ${kpis.rupturaEm7Dias > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Ruptura em 7d</p>
+                <p className={`text-2xl font-bold ${kpis.rupturaEm7Dias > 0 ? "text-destructive" : ""}`}>{kpis.rupturaEm7Dias}</p>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -191,21 +215,46 @@ export default function DashboardEstoque() {
           </Card>
         </div>
 
-        {/* Alertas de Ruptura */}
-        {alertasEstoque.length > 0 && (
+        {/* Alertas de Ruptura — dinâmicos via vw_previsao_ruptura */}
+        {alertasRuptura.length > 0 && (
           <Card className="border-destructive/30">
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2 text-destructive">
-                <AlertTriangle className="h-4 w-4" /> Produtos com Estoque Crítico (&lt;10 un)
+                <AlertTriangle className="h-4 w-4" /> Previsão de Ruptura — Ação Necessária
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {alertasEstoque.map((p: any) => (
-                  <Badge key={p.id} variant="destructive" className="text-sm">
-                    {p.nome}: {p.estoque ?? 0} un
-                  </Badge>
-                ))}
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead>Produto</TableHead>
+                      <TableHead className="text-center">Estoque</TableHead>
+                      <TableHead className="text-center">Giro/Dia</TableHead>
+                      <TableHead className="text-center">Mínimo (MCMM)</TableHead>
+                      <TableHead className="text-center">Dias até Zerar</TableHead>
+                      <TableHead className="text-center">Situação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {alertasRuptura.map((a: any) => (
+                      <TableRow key={a.id} className={a.situacao === "critico" || a.situacao === "sem_estoque" ? "bg-destructive/5" : "bg-yellow-50 dark:bg-yellow-950/10"}>
+                        <TableCell className="font-medium">{a.nome}</TableCell>
+                        <TableCell className="text-center font-bold">{a.estoque}</TableCell>
+                        <TableCell className="text-center text-muted-foreground">{Number(a.giro_diario).toFixed(1)}/d</TableCell>
+                        <TableCell className="text-center">{a.estoque_minimo_calculado}</TableCell>
+                        <TableCell className="text-center font-bold">
+                          {a.dias_ate_ruptura !== null ? (
+                            <span className={a.dias_ate_ruptura <= 3 ? "text-destructive" : a.dias_ate_ruptura <= 7 ? "text-yellow-600" : ""}>
+                              {a.dias_ate_ruptura === 0 ? "hoje" : `${a.dias_ate_ruptura}d`}
+                            </span>
+                          ) : "—"}
+                        </TableCell>
+                        <TableCell className="text-center">{situacaoBadge(a.situacao)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
           </Card>

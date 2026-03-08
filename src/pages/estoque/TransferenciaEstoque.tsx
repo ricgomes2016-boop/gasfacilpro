@@ -88,38 +88,28 @@ export default function TransferenciaEstoque() {
   const fetchTransferencias = async () => {
     setLoading(true);
     try {
+      // Single query: transferências + itens + produtos em uma só chamada
       const { data } = await supabase
         .from("transferencias_estoque")
         .select(`
           id, status, observacoes, valor_total, created_at, data_transferencia, data_envio, data_recebimento,
           unidade_origem:unidade_origem_id(id, nome),
-          unidade_destino:unidade_destino_id(id, nome)
+          unidade_destino:unidade_destino_id(id, nome),
+          itens:transferencia_estoque_itens(produto_id, quantidade, preco_compra, produtos:produto_id(nome))
         `)
         .or(unidadeAtual ? `unidade_origem_id.eq.${unidadeAtual.id},unidade_destino_id.eq.${unidadeAtual.id}` : "")
         .order("created_at", { ascending: false })
         .limit(50);
 
       if (data) {
-        // Fetch itens for each
-        const withItens = await Promise.all(
-          (data as any[]).map(async (t) => {
-            const { data: tItens } = await supabase
-              .from("transferencia_estoque_itens")
-              .select("produto_id, quantidade, preco_compra, produtos:produto_id(nome)")
-              .eq("transferencia_id", t.id);
-            return {
-              ...t,
-              unidade_origem: t.unidade_origem,
-              unidade_destino: t.unidade_destino,
-              itens: (tItens || []).map((i: any) => ({
-                produto_nome: i.produtos?.nome || "",
-                quantidade: i.quantidade,
-                preco_compra: i.preco_compra,
-              })),
-            };
-          })
-        );
-        setTransferencias(withItens);
+        setTransferencias((data as any[]).map(t => ({
+          ...t,
+          itens: (t.itens || []).map((i: any) => ({
+            produto_nome: i.produtos?.nome || "",
+            quantidade: i.quantidade,
+            preco_compra: i.preco_compra,
+          })),
+        })));
       }
     } catch (e) {
       console.error(e);
