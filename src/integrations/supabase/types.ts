@@ -81,6 +81,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "abastecimentos_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abastecimentos_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
+          },
+          {
             foreignKeyName: "abastecimentos_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
@@ -597,6 +611,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "avaliacoes_entrega_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_entrega_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
+          },
+          {
             foreignKeyName: "avaliacoes_entrega_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
@@ -1044,6 +1072,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "carregamentos_rota_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carregamentos_rota_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
+          },
+          {
             foreignKeyName: "carregamentos_rota_rota_definida_id_fkey"
             columns: ["rota_definida_id"]
             isOneToOne: false
@@ -1291,6 +1333,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "entregadores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_saida_veiculo_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_saida_veiculo_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
           },
           {
             foreignKeyName: "checklist_saida_veiculo_unidade_id_fkey"
@@ -3220,6 +3276,20 @@ export type Database = {
             referencedRelation: "entregadores"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "entregador_conquistas_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entregador_conquistas_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
+          },
         ]
       }
       entregadores: {
@@ -3361,6 +3431,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "entregadores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escalas_entregador_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escalas_entregador_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
           },
           {
             foreignKeyName: "escalas_entregador_rota_definida_id_fkey"
@@ -4073,6 +4157,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "gamificacao_ranking_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gamificacao_ranking_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
+          },
+          {
             foreignKeyName: "gamificacao_ranking_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
@@ -4128,6 +4226,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "entregadores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "horarios_funcionario_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "horarios_funcionario_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
           },
           {
             foreignKeyName: "horarios_funcionario_funcionario_id_fkey"
@@ -4782,6 +4894,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "movimentacoes_caixa_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_caixa_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
+          },
+          {
             foreignKeyName: "movimentacoes_caixa_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
@@ -4908,6 +5034,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "entregadores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "multas_frota_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "multas_frota_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
           },
           {
             foreignKeyName: "multas_frota_unidade_id_fkey"
@@ -5223,6 +5363,57 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      notificacoes_status_pedido: {
+        Row: {
+          cliente_id: string | null
+          created_at: string | null
+          enviado: boolean | null
+          id: string
+          mensagem: string | null
+          pedido_id: string
+          status_anterior: string | null
+          status_novo: string
+          telefone: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string | null
+          enviado?: boolean | null
+          id?: string
+          mensagem?: string | null
+          pedido_id: string
+          status_anterior?: string | null
+          status_novo: string
+          telefone?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string | null
+          enviado?: boolean | null
+          id?: string
+          mensagem?: string | null
+          pedido_id?: string
+          status_anterior?: string | null
+          status_novo?: string
+          telefone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_status_pedido_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificacoes_status_pedido_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       onboarding_checklists: {
         Row: {
@@ -5594,6 +5785,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pagamentos_cartao_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_cartao_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
+          },
+          {
             foreignKeyName: "pagamentos_cartao_loja_id_fkey"
             columns: ["loja_id"]
             isOneToOne: false
@@ -5775,6 +5980,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "entregadores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
           },
           {
             foreignKeyName: "pedidos_unidade_id_fkey"
@@ -6343,6 +6562,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "rotas_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rotas_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
+          },
+          {
             foreignKeyName: "rotas_veiculo_id_fkey"
             columns: ["veiculo_id"]
             isOneToOne: false
@@ -6560,6 +6793,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "terminais_cartao_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "terminais_cartao_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
+          },
+          {
             foreignKeyName: "terminais_cartao_operadora_id_fkey"
             columns: ["operadora_id"]
             isOneToOne: false
@@ -6734,6 +6981,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "entregadores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencias_estoque_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencias_estoque_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
           },
           {
             foreignKeyName: "transferencias_estoque_unidade_destino_id_fkey"
@@ -6974,6 +7235,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "entregadores"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vale_gas_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vale_gas_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
           },
           {
             foreignKeyName: "vale_gas_lote_id_fkey"
@@ -7389,6 +7664,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "veiculos_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "veiculos_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
+          },
+          {
             foreignKeyName: "veiculos_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
@@ -7478,7 +7767,114 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      vw_alertas_cnh: {
+        Row: {
+          cnh: string | null
+          cnh_vencimento: string | null
+          dias_restantes: number | null
+          id: string | null
+          nome: string | null
+          situacao: string | null
+          telefone: string | null
+          unidade_id: string | null
+        }
+        Insert: {
+          cnh?: string | null
+          cnh_vencimento?: string | null
+          dias_restantes?: never
+          id?: string | null
+          nome?: string | null
+          situacao?: never
+          telefone?: string | null
+          unidade_id?: string | null
+        }
+        Update: {
+          cnh?: string | null
+          cnh_vencimento?: string | null
+          dias_restantes?: never
+          id?: string | null
+          nome?: string | null
+          situacao?: never
+          telefone?: string | null
+          unidade_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entregadores_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_comissao_entregador: {
+        Row: {
+          comissao_calculada: number | null
+          entregador_id: string | null
+          entregador_nome: string | null
+          mes: string | null
+          total_entregas: number | null
+          unidade_id: string | null
+          valor_total_entregas: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_conferencia_caixa: {
+        Row: {
+          data: string | null
+          diferenca_calculada: number | null
+          sessao_id: string | null
+          sessao_status: string | null
+          total_entradas_caixa: number | null
+          total_saidas_caixa: number | null
+          total_vendas: number | null
+          unidade_id: string | null
+          valor_abertura: number | null
+          valor_fechamento: number | null
+        }
+        Insert: {
+          data?: string | null
+          diferenca_calculada?: never
+          sessao_id?: string | null
+          sessao_status?: string | null
+          total_entradas_caixa?: never
+          total_saidas_caixa?: never
+          total_vendas?: never
+          unidade_id?: string | null
+          valor_abertura?: number | null
+          valor_fechamento?: number | null
+        }
+        Update: {
+          data?: string | null
+          diferenca_calculada?: never
+          sessao_id?: string | null
+          sessao_status?: string | null
+          total_entradas_caixa?: never
+          total_saidas_caixa?: never
+          total_vendas?: never
+          unidade_id?: string | null
+          valor_abertura?: number | null
+          valor_fechamento?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caixa_sessoes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       caixa_dia_bloqueado: {
