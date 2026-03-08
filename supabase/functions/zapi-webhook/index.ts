@@ -6,8 +6,8 @@ import {
   buildSystemPrompt, buildNegotiationHint, generateUUIDFromString,
   loadHistory, saveMessage, upsertConversation, isDuplicate,
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
-  createOrder, sendTyping, sendMessage, sendLocation, registerCall,
-  downloadAudio, transcribeAudio, getEntregadorLocation,
+  createOrder, sendTyping, sendMessage, registerCall,
+  downloadAudio, transcribeAudio,
   type BiaConfig,
 } from "../_shared/bia-core.ts";
 
@@ -168,18 +168,6 @@ serve(async (req) => {
         }
       }
       await registerCall(supabase, phone, cliente.id, cliente.nome, senderName, finalConfig.unidadeId);
-    }
-
-    // Handle location sharing
-    if (reply.includes("[ENVIAR_LOCALIZACAO]")) {
-      reply = reply.replace(/\[ENVIAR_LOCALIZACAO\]/g, "").trim();
-      const loc = await getEntregadorLocation(supabase, cliente.id);
-      if (loc) {
-        // Send text first, then location pin
-        await sendMessage(finalConfig, phone, reply);
-        await sendLocation(finalConfig, phone, loc.lat, loc.lng, loc.nome);
-        return OK({ ok: true, reply: reply.substring(0, 100), location_sent: true });
-      }
     }
 
     await sendMessage(finalConfig, phone, reply);
