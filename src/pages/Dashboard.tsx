@@ -107,6 +107,25 @@ export default function Dashboard() {
         trendPedidos,
       };
     },
+    refetchInterval: 30000,
+  });
+
+  const { data: caixaDiario } = useQuery({
+    queryKey: ["dashboard-caixa-hoje", unidadeAtual?.id],
+    enabled: !!unidadeAtual?.id && period === "hoje",
+    queryFn: async () => {
+      const hoje = format(new Date(), "yyyy-MM-dd");
+      let q = supabase
+        .from("vw_conferencia_caixa")
+        .select("total_entradas_caixa, diferenca_calculada")
+        .eq("data", hoje)
+        .eq("sessao_status", "aberto");
+      if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
+      
+      const { data } = await q.maybeSingle();
+      return data || { total_entradas_caixa: 0, diferenca_calculada: 0 };
+    },
+    refetchInterval: 30000,
   });
 
   const periodLabel = { hoje: "Hoje", semana: "Semana", mes: "Mês" }[period];
@@ -168,7 +187,7 @@ export default function Dashboard() {
         <StockAlerts />
 
         {/* Cards com comparativo e Ticket Médio */}
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
           <StatCard
             title={`Vendas ${periodLabel}`}
             value={`R$ ${(stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
@@ -182,14 +201,30 @@ export default function Dashboard() {
             icon={ShoppingCart}
             trend={stats?.trendPedidos}
           />
+          <StatCard title="Pendentes" value={stats?.pendentes ?? 0} icon={Truck} variant="warning" />
+          <StatCard title="Clientes Ativos" value={stats?.clientesAtivos ?? 0} icon={Users} />
           <StatCard
             title="Ticket Médio"
             value={`R$ ${(stats?.ticketMedio ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
             icon={TrendingUp}
             variant="info"
           />
-          <StatCard title="Entregas Pendentes" value={stats?.pendentes ?? 0} icon={Truck} variant="warning" />
-          <StatCard title="Clientes Ativos" value={stats?.clientesAtivos ?? 0} icon={Users} />
+          {period === "hoje" && (
+            <>
+              <StatCard
+                title="Entradas Caixa"
+                value={`R$ ${(caixaDiario?.total_entradas_caixa ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                icon={DollarSign}
+                variant="success"
+              />
+              <StatCard
+                title="Diferença Caixa"
+                value={`R$ ${(caixaDiario?.diferenca_calculada ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                icon={Flame}
+                variant={(caixaDiario?.diferenca_calculada ?? 0) !== 0 ? "warning" : "default"}
+              />
+            </>
+          )}
         </div>
 
         {/* Atalhos rápidos */}
