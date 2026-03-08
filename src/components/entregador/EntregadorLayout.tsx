@@ -65,7 +65,7 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 gradient-primary text-primary-foreground shadow-lg">
+      <header className="sticky top-0 z-50 gradient-primary text-primary-foreground shadow-lg pt-[env(safe-area-inset-top)]">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
@@ -139,7 +139,7 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
       <ChatBase />
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-50 pb-[env(safe-area-inset-bottom)]">
         <div className="flex justify-around items-center py-2">
           {menuItems.slice(0, 4).map((item) => {
             const Icon = item.icon;
