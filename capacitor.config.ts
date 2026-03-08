@@ -4,7 +4,10 @@ const config: CapacitorConfig = {
   appId: 'com.gasfacilpro.app',
   appName: 'GásFacilPro Entregador',
   webDir: 'dist',
-  bundledWebRuntime: false,
+  server: {
+    url: 'https://entregador.gasfacilpro.com.br',
+    cleartext: true
+  },
   plugins: {
     BackgroundGeolocation: {
       locationProvider: 1,
