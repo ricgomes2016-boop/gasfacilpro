@@ -39,32 +39,74 @@ jobs:
       run: |
         cd bina-app/android/app/src/main
         
-        # Pega as permissões necessárias
         PERMISSIONS="    <uses-permission android:name=\"android.permission.READ_PHONE_STATE\"/>\n    <uses-permission android:name=\"android.permission.READ_CALL_LOG\"/>\n    <uses-permission android:name=\"android.permission.RECEIVE_BOOT_COMPLETED\"/>\n    <uses-permission android:name=\"android.permission.FOREGROUND_SERVICE\"/>\n    <uses-permission android:name=\"android.permission.BIND_NOTIFICATION_LISTENER_SERVICE\"/>\n"
-        
-        # Injeta logo antes da tag <application>
         awk -v perm="$PERMISSIONS" '/<application/ {print perm; print; next} 1' AndroidManifest.xml > temp.xml
         mv temp.xml AndroidManifest.xml
         
-        # Adiciona o CallReceiver dentro da <application>
-        RECEIVER="        <receiver android:name=\".CallReceiver\" android:exported=\"true\">\n            <intent-filter>\n                <action android:name=\"android.intent.action.PHONE_STATE\" />\n            </intent-filter>\n        </receiver>\n"
+        RECEIVER="        <receiver android:name=\".CallReceiver\" android:exported=\"true\">\n            <intent-filter>\n                <action android:name=\"android.intent.action.PHONE_STATE\" />\n            </intent-filter>\n        </receiver>\n        <receiver android:name=\".BootReceiver\" android:exported=\"true\">\n            <intent-filter>\n                <action android:name=\"android.intent.action.BOOT_COMPLETED\" />\n            </intent-filter>\n        </receiver>\n        <service android:name=\".WhatsappListener\" android:label=\"Bina WhatsApp Listener\" android:permission=\"android.permission.BIND_NOTIFICATION_LISTENER_SERVICE\" android:exported=\"true\">\n            <intent-filter>\n                <action android:name=\"android.service.notification.NotificationListenerService\" />\n            </intent-filter>\n        </service>\n"
         awk -v rec="$RECEIVER" '/<\/application>/ {print rec; print; next} 1' AndroidManifest.xml > temp2.xml
         mv temp2.xml AndroidManifest.xml
 
-    - name: Criar CallReceiver.kt (Kotlin Nativo)
+    - name: Criar Códigos Nativos Kotlin (Bina Avançado)
       run: |
         mkdir -p bina-app/android/app/src/main/java/app/gasfacil/bina
-        cat << 'EOF' > bina-app/android/app/src/main/java/app/gasfacil/bina/CallReceiver.kt
-        package app.gasfacil.bina
         
-        import android.content.BroadcastReceiver
+        # WebhookUtils.kt (Lida com o webhook e envia a bateria)
+        cat << 'EOF' > bina-app/android/app/src/main/java/app/gasfacil/bina/WebhookUtils.kt
+        package app.gasfacil.bina
         import android.content.Context
+        import android.os.BatteryManager
         import android.content.Intent
-        import android.telephony.TelephonyManager
+        import android.content.IntentFilter
         import android.util.Log
         import java.io.OutputStreamWriter
         import java.net.HttpURLConnection
         import java.net.URL
+        
+        object WebhookUtils {
+            fun sendToWebhook(context: Context, phone: String, type: String) {
+                Thread {
+                    try {
+                        val batteryStatus: Intent? = IntentFilter(Intent.ACTION_BATTERY_CHANGED).let { ifilter ->
+                            context.registerReceiver(null, ifilter)
+                        }
+                        val batteryPct: Float? = batteryStatus?.let { intent ->
+                            val level: Int = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                            val scale: Int = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                            level * 100 / scale.toFloat()
+                        }
+                        val batteryStr = batteryPct?.toInt()?.toString() ?: "100"
+        
+                        val url = URL("https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/bina-webhook")
+                        val conn = url.openConnection() as HttpURLConnection
+                        conn.requestMethod = "POST"
+                        conn.setRequestProperty("Content-Type", "application/json; utf-8")
+                        conn.setRequestProperty("Accept", "application/json")
+                        conn.doOutput = true
+                        
+                        val jsonInputString = "{\"telefone\": \"$phone\", \"tipo\": \"$type\", \"bateria\": \"$batteryStr\"}"
+                        
+                        OutputStreamWriter(conn.outputStream).use { os ->
+                            os.write(jsonInputString)
+                        }
+                        
+                        val responseCode = conn.responseCode
+                        Log.d("BinaWebhook", "POST Response: $responseCode - Data: $jsonInputString")
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }.start()
+            }
+        }
+        EOF
+
+        # CallReceiver.kt
+        cat << 'EOF' > bina-app/android/app/src/main/java/app/gasfacil/bina/CallReceiver.kt
+        package app.gasfacil.bina
+        import android.content.BroadcastReceiver
+        import android.content.Context
+        import android.content.Intent
+        import android.telephony.TelephonyManager
         
         class CallReceiver : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -73,34 +115,53 @@ jobs:
                     val number = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
                     
                     if (state == TelephonyManager.EXTRA_STATE_RINGING && !number.isNullOrEmpty()) {
-                        Log.d("BinaCallReceiver", "Chamada Ocorrida: $number")
-                        sendToWebhook(number, "celular")
+                        WebhookUtils.sendToWebhook(context, number, "celular")
                     }
                 }
             }
+        }
+        EOF
+
+        # BootReceiver.kt
+        cat << 'EOF' > bina-app/android/app/src/main/java/app/gasfacil/bina/BootReceiver.kt
+        package app.gasfacil.bina
+        import android.content.BroadcastReceiver
+        import android.content.Context
+        import android.content.Intent
+        import android.util.Log
         
-            private fun sendToWebhook(phone: String, type: String) {
-                Thread {
-                    try {
-                        val url = URL("https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/bina-webhook")
-                        val conn = url.openConnection() as HttpURLConnection
-                        conn.requestMethod = "POST"
-                        conn.setRequestProperty("Content-Type", "application/json; utf-8")
-                        conn.setRequestProperty("Accept", "application/json")
-                        conn.doOutput = true
-                        
-                        val jsonInputString = "{\"telefone\": \"$phone\", \"tipo\": \"$type\"}"
-                        
-                        OutputStreamWriter(conn.outputStream).use { os ->
-                            os.write(jsonInputString)
+        class BootReceiver : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
+                    Log.d("BinaBoot", "App Bina Iniciado - AutoStart Concluido")
+                }
+            }
+        }
+        EOF
+
+        # WhatsappListener.kt
+        cat << 'EOF' > bina-app/android/app/src/main/java/app/gasfacil/bina/WhatsappListener.kt
+        package app.gasfacil.bina
+        import android.service.notification.NotificationListenerService
+        import android.service.notification.StatusBarNotification
+        import android.util.Log
+        
+        class WhatsappListener : NotificationListenerService() {
+            override fun onNotificationPosted(sbn: StatusBarNotification) {
+                val packageName = sbn.packageName
+                if (packageName == "com.whatsapp" || packageName == "com.whatsapp.w4b") {
+                    val extras = sbn.notification.extras
+                    val title = extras.getString("android.title") ?: ""
+                    val text = extras.getCharSequence("android.text")?.toString() ?: ""
+                    
+                    if (text.contains("Chamada", ignoreCase = true) || title.contains("Chamada", ignoreCase = true)) {
+                        val contactName = title.replace("Chamada de voz recebida", "").replace("Chamada de vídeo recebida", "").trim()
+                        if (contactName.isNotEmpty() && contactName != "WhatsApp") {
+                            Log.d("BinaWhatsApp", "Chamada de WhatsApp detectada: $contactName")
+                            WebhookUtils.sendToWebhook(applicationContext, contactName, "whatsapp")
                         }
-                        
-                        val responseCode = conn.responseCode
-                        Log.d("BinaCallReceiver", "Webhook POST Response: $responseCode")
-                    } catch (e: Exception) {
-                        e.printStackTrace()
                     }
-                }.start()
+                }
             }
         }
         EOF
