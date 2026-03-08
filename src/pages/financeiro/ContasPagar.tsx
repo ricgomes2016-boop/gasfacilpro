@@ -521,7 +521,7 @@ export default function ContasPagar() {
         </Dialog>
 
         {/* Parcelamento */}
-        <ParcelamentoDialog open={cp.parcelamentoOpen} onOpenChange={cp.setParcelamentoOpen} onSuccess={cp.fetchContas} />
+        <ParcelamentoDialog open={cp.parcelamentoOpen} onOpenChange={cp.setParcelamentoOpen} categorias={[]} onSuccess={cp.fetchContas} />
       </div>
     </MainLayout>
   );

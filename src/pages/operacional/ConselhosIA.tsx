@@ -39,8 +39,8 @@ export default function ConselhosIA() {
   const { data: rupturas = [], isLoading: loadingRupturas } = useQuery({
     queryKey: ["conselhos-rupturas", unidadeAtual?.id],
     queryFn: async () => {
-      let q = supabase
-        .from("vw_previsao_ruptura")
+      let q = (supabase as any).from("vw_previsao_ruptura")
+        
         .select("nome, estoque, dias_ate_ruptura, situacao")
         .neq("situacao", "ok")
         .order("dias_ate_ruptura", { ascending: true, nullsFirst: false })
