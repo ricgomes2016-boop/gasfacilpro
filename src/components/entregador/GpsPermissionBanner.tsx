@@ -1,12 +1,23 @@
 import { useState, useEffect } from "react";
 import { MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Capacitor } from "@capacitor/core";
 
 export function GpsPermissionBanner() {
   const [status, setStatus] = useState<"granted" | "denied" | "prompt" | "unsupported" | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      setStatus("granted");
+      return;
+    }
+
+    if (sessionStorage.getItem("gpsBannerDismissed")) {
+      setDismissed(true);
+      return;
+    }
+
     if (!navigator.geolocation) {
       setStatus("unsupported");
       return;
@@ -35,7 +46,12 @@ export function GpsPermissionBanner() {
     );
   };
 
-  if (dismissed || status === "granted" || status === null) return null;
+  const handleDismiss = () => {
+    setDismissed(true);
+    sessionStorage.setItem("gpsBannerDismissed", "true");
+  };
+
+  if (Capacitor.isNativePlatform() || dismissed || status === "granted" || status === null) return null;
 
   return (
     <div className="mx-4 mt-3 rounded-lg border border-warning/30 bg-warning/10 p-3 flex items-start gap-3">
@@ -67,7 +83,7 @@ export function GpsPermissionBanner() {
           </>
         )}
       </div>
-      <button onClick={() => setDismissed(true)} className="text-muted-foreground hover:text-foreground shrink-0">
+      <button onClick={handleDismiss} className="text-muted-foreground hover:text-foreground shrink-0">
         <X className="h-4 w-4" />
       </button>
     </div>
