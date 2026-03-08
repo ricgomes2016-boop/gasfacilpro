@@ -74,6 +74,8 @@ export function NotificationPermissionBanner() {
   );
 }
 
+import { Capacitor } from "@capacitor/core";
+
 export function NotificationStatus() {
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const { requestPermission, isSupported } = useDeliveryNotifications();
@@ -85,6 +87,9 @@ export function NotificationStatus() {
   }, [isSupported]);
 
   if (!isSupported) {
+    // Esconder silenciosamente se for App Nativo (Capacitor) para não assustar o usuário
+    if (Capacitor.isNativePlatform()) return null;
+    
     return (
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <BellOff className="h-3 w-3" />

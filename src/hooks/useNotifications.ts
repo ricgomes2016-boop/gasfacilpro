@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "@/hooks/use-toast";
+import { Capacitor } from "@capacitor/core";
 
 interface NotificationOptions {
   title: string;
@@ -22,11 +23,13 @@ export function useNotifications() {
 
   const requestPermission = useCallback(async () => {
     if (!isSupported) {
-      toast({
-        title: "Não suportado",
-        description: "Seu navegador não suporta notificações push.",
-        variant: "destructive",
-      });
+      if (!Capacitor.isNativePlatform()) {
+        toast({
+          title: "Não suportado",
+          description: "Seu navegador não suporta notificações push.",
+          variant: "destructive",
+        });
+      }
       return false;
     }
 
