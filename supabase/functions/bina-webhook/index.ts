@@ -70,6 +70,7 @@ serve(async (req) => {
     }
 
     // Insert call record (triggers Realtime → CallerIdPopup)
+    const observacoesStr = body.bateria ? `Bateria: ${body.bateria}%` : null;
     const { data: chamada, error } = await supabase
       .from("chamadas_recebidas")
       .insert({
@@ -78,6 +79,7 @@ serve(async (req) => {
         cliente_nome: clienteNome,
         tipo,
         status: "recebida",
+        observacoes: observacoesStr
       })
       .select()
       .single();
