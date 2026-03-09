@@ -852,10 +852,15 @@ export default function Integracoes() {
               </div>
             </div>
             <div className="p-3 rounded-lg bg-muted/50 space-y-1">
-              <p className="text-xs font-medium">URL do Webhook (cole no painel {wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}):</p>
+              <p className="text-xs font-medium">URL do Webhook (cole no painel {wpProvedor === 'meta' ? 'Meta Developers' : wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}):</p>
               <code className="text-[11px] break-all text-primary">
-                {`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/${wpProvedor === 'uazapi' ? 'uazapi-webhook' : 'zapi-webhook'}?unidade_id=${wpUnidadeId || "<selecione>"}`}
+                {`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/${wpProvedor === 'meta' ? 'meta-webhook' : wpProvedor === 'uazapi' ? 'uazapi-webhook' : 'zapi-webhook'}?unidade_id=${wpUnidadeId || "<selecione>"}`}
               </code>
+              {wpProvedor === "meta" && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Verify Token: <strong>{wpMetaVerifyToken}</strong>
+                </p>
+              )}
             </div>
           </div>
 
