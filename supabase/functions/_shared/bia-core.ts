@@ -662,7 +662,7 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, message }) });
     } else {
-      await fetch(`https://api.uazapi.com/${config.instanceId}/send-text`, {
+      await fetch(`https://free.uazapi.com/${config.instanceId}/send-text`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.token}` },
         body: JSON.stringify({ to: phone.replace(/\D/g, ""), text: message }),
