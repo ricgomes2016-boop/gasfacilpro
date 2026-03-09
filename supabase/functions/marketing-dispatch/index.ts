@@ -84,14 +84,14 @@ Deno.serve(async (req) => {
 
       if (provedor === "uazapi") {
         // UaZapi API
-        const url = `https://free.uazapi.com/${instanceId}/send-text`;
+        const url = `https://free.uazapi.com/message/text`;
         const resp = await fetch(url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${zapToken}`,
+            "token": zapToken,
           },
-          body: JSON.stringify({ to: cleanPhone, text: content }),
+          body: JSON.stringify({ number: cleanPhone, text: content }),
         });
 
         if (!resp.ok) {
@@ -100,14 +100,14 @@ Deno.serve(async (req) => {
         }
 
         if (imageUrl) {
-          const imgUrl = `https://free.uazapi.com/${instanceId}/send-image`;
+          const imgUrl = `https://free.uazapi.com/message/image`;
           await fetch(imgUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${zapToken}`,
+              "token": zapToken,
             },
-            body: JSON.stringify({ to: cleanPhone, image: imageUrl }),
+            body: JSON.stringify({ number: cleanPhone, image: imageUrl }),
           });
         }
       } else {
