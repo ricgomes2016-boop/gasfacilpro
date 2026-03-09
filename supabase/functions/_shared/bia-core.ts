@@ -689,7 +689,7 @@ export async function sendLocation(config: BiaConfig, phone: string, lat: number
     } else {
       await fetch(`https://free.uazapi.com/message/location`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.token}` },
+        headers: { "Content-Type": "application/json", "token": config.token },
         body: JSON.stringify({ number: phone.replace(/\D/g, ""), lat, lng, name: `📍 ${name}`, address: "Entregador a caminho" }),
       });
     }
