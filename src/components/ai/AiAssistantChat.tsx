@@ -489,6 +489,12 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
           disabled={isLoading}
           className="flex-1"
         />
+        {enableVoice && (
+          <VoiceInputButton
+            onResult={(text) => { setInput(text); }}
+            disabled={isLoading}
+          />
+        )}
         <Button size="icon" onClick={sendMessage} disabled={isLoading || !input.trim()}>
           <Send className="h-4 w-4" />
         </Button>
