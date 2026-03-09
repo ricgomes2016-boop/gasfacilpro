@@ -11,7 +11,8 @@ export interface BiaConfig {
   descontoEtapa2: number;
   precoMinimoP13: number | null;
   precoMinimoP20: number | null;
-  provedor: "zapi" | "uazapi";
+  provedor: "zapi" | "uazapi" | "meta";
+  metaPhoneNumberId?: string | null;
 }
 
 export interface ClienteInfo {
