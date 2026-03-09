@@ -303,11 +303,12 @@ jobs:
         sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_21/g' build.gradle
         
         # Faz o Downgrade do targetSdk para 33 para evitar o Crash de Segurança do Android 14 (Broadcast Receivers)
-        cd ../variables.gradle || true
+        cd ..
         # Se variables.gradle não existir no Capacitor novo, tentamos no build.gradle principal
-        cd ../app
-        sed -i 's/targetSdkVersion.*/targetSdkVersion 33/g' build.gradle
-        sed -i 's/compileSdkVersion.*/compileSdkVersion 34/g' build.gradle
+        sed -i 's/targetSdkVersion.*/targetSdkVersion = 33/g' variables.gradle || true
+        cd app
+        sed -i 's/targetSdkVersion.*/targetSdkVersion 33/g' build.gradle || true
+        sed -i 's/compileSdkVersion.*/compileSdkVersion 34/g' build.gradle || true
 
     - name: Compilar APK (Gradle)
       working-directory: bina-app/android
