@@ -266,7 +266,8 @@ export default function Integracoes() {
   // WhatsApp per-unit config (legacy table)
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [whatsappConfigs, setWhatsappConfigs] = useState<any[]>([]);
-  const [wpProvedor, setWpProvedor] = useState<"zapi" | "uazapi">("zapi");
+  const [wpProvedor, setWpProvedor] = useState<"zapi" | "uazapi" | "meta">("zapi");
+  const [wpMetaVerifyToken, setWpMetaVerifyToken] = useState("gasfacil_meta_verify");
   const [wpUnidadeId, setWpUnidadeId] = useState("");
   const [wpInstanceId, setWpInstanceId] = useState("");
   const [wpToken, setWpToken] = useState("");
@@ -309,7 +310,7 @@ export default function Integracoes() {
     try {
       const payload = {
         unidade_id: wpUnidadeId,
-        instance_id: wpInstanceId,
+        instance_id: wpProvedor === "meta" ? (wpInstanceId || "meta") : wpInstanceId,
         token: wpToken,
         security_token: wpSecurityToken || null,
         provedor: wpProvedor,
@@ -318,6 +319,8 @@ export default function Integracoes() {
         preco_minimo_p13: wpPrecoMinimoP13 ? parseFloat(wpPrecoMinimoP13) : null,
         preco_minimo_p20: wpPrecoMinimoP20 ? parseFloat(wpPrecoMinimoP20) : null,
         ativo: true,
+        meta_phone_number_id: wpProvedor === "meta" ? wpInstanceId : null,
+        meta_verify_token: wpProvedor === "meta" ? wpMetaVerifyToken : null,
       } as any;
       if (wpEditId) {
         const { error } = await supabase.from("integracoes_whatsapp").update(payload).eq("id", wpEditId);
@@ -348,19 +351,21 @@ export default function Integracoes() {
     setWpPrecoMinimoP13("");
     setWpPrecoMinimoP20("");
     setWpEditId(null);
+    setWpMetaVerifyToken("gasfacil_meta_verify");
   };
 
   const editWhatsappConfig = (config: any) => {
     setWpEditId(config.id);
     setWpProvedor(config.provedor || "zapi");
     setWpUnidadeId(config.unidade_id);
-    setWpInstanceId(config.instance_id);
+    setWpInstanceId(config.provedor === "meta" ? (config.meta_phone_number_id || config.instance_id) : config.instance_id);
     setWpToken(config.token);
     setWpSecurityToken(config.security_token || "");
     setWpDescontoEtapa1(String(config.desconto_etapa1 ?? 5));
     setWpDescontoEtapa2(String(config.desconto_etapa2 ?? 10));
     setWpPrecoMinimoP13(config.preco_minimo_p13 ? String(config.preco_minimo_p13) : "");
     setWpPrecoMinimoP20(config.preco_minimo_p20 ? String(config.preco_minimo_p20) : "");
+    setWpMetaVerifyToken(config.meta_verify_token || "gasfacil_meta_verify");
     setWhatsappDialogOpen(true);
   };
 
@@ -784,11 +789,12 @@ export default function Integracoes() {
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label>Provedor WhatsApp</Label>
-              <Select value={wpProvedor} onValueChange={(v) => setWpProvedor(v as "zapi" | "uazapi")}>
+              <Select value={wpProvedor} onValueChange={(v) => setWpProvedor(v as "zapi" | "uazapi" | "meta")}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="zapi">Z-API</SelectItem>
                   <SelectItem value="uazapi">UaZapi</SelectItem>
+                  <SelectItem value="meta">Meta Cloud API (Oficial)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -804,13 +810,19 @@ export default function Integracoes() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Instance ID</Label>
-              <Input value={wpInstanceId} onChange={(e) => setWpInstanceId(e.target.value)} placeholder={`Sua Instance ID da ${wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}`} />
+              <Label>{wpProvedor === 'meta' ? 'Phone Number ID' : 'Instance ID'}</Label>
+              <Input value={wpInstanceId} onChange={(e) => setWpInstanceId(e.target.value)} placeholder={wpProvedor === 'meta' ? 'Ex: 123456789012345' : `Sua Instance ID da ${wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}`} />
             </div>
             <div className="space-y-1.5">
-              <Label>Token</Label>
-              <Input type="password" value={wpToken} onChange={(e) => setWpToken(e.target.value)} placeholder={`Token da ${wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}`} />
+              <Label>{wpProvedor === 'meta' ? 'Access Token (permanente)' : 'Token'}</Label>
+              <Input type="password" value={wpToken} onChange={(e) => setWpToken(e.target.value)} placeholder={wpProvedor === 'meta' ? 'Token do Meta Business' : `Token da ${wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}`} />
             </div>
+            {wpProvedor === "meta" && (
+              <div className="space-y-1.5">
+                <Label>Verify Token (para validação do webhook)</Label>
+                <Input value={wpMetaVerifyToken} onChange={(e) => setWpMetaVerifyToken(e.target.value)} placeholder="gasfacil_meta_verify" />
+              </div>
+            )}
             {wpProvedor === "zapi" && (
               <div className="space-y-1.5">
                 <Label>Security Token (opcional)</Label>
@@ -840,10 +852,15 @@ export default function Integracoes() {
               </div>
             </div>
             <div className="p-3 rounded-lg bg-muted/50 space-y-1">
-              <p className="text-xs font-medium">URL do Webhook (cole no painel {wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}):</p>
+              <p className="text-xs font-medium">URL do Webhook (cole no painel {wpProvedor === 'meta' ? 'Meta Developers' : wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}):</p>
               <code className="text-[11px] break-all text-primary">
-                {`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/${wpProvedor === 'uazapi' ? 'uazapi-webhook' : 'zapi-webhook'}?unidade_id=${wpUnidadeId || "<selecione>"}`}
+                {`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/${wpProvedor === 'meta' ? 'meta-webhook' : wpProvedor === 'uazapi' ? 'uazapi-webhook' : 'zapi-webhook'}?unidade_id=${wpUnidadeId || "<selecione>"}`}
               </code>
+              {wpProvedor === "meta" && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Verify Token: <strong>{wpMetaVerifyToken}</strong>
+                </p>
+              )}
             </div>
           </div>
 

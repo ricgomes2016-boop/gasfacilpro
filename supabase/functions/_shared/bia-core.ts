@@ -11,7 +11,8 @@ export interface BiaConfig {
   descontoEtapa2: number;
   precoMinimoP13: number | null;
   precoMinimoP20: number | null;
-  provedor: "zapi" | "uazapi";
+  provedor: "zapi" | "uazapi" | "meta";
+  metaPhoneNumberId?: string | null;
 }
 
 export interface ClienteInfo {
@@ -31,7 +32,7 @@ export function createSupabase() {
 // ========== RESOLVE CONFIG ==========
 export async function resolveConfig(
   supabase: any,
-  provedor: "zapi" | "uazapi",
+  provedor: "zapi" | "uazapi" | "meta",
   queryUnidadeId: string | null,
   payloadInstanceId: string | null
 ): Promise<BiaConfig | null> {
@@ -57,9 +58,9 @@ export async function resolveConfig(
   for (const strategy of strategies) {
     const { data } = await strategy;
     const config = Array.isArray(data) ? (data.length === 1 ? data[0] : null) : data;
-    if (config?.instance_id && config?.token) {
+    if (config?.token && (config?.instance_id || provedor === "meta")) {
       return {
-        instanceId: config.instance_id,
+        instanceId: config.instance_id || config.meta_phone_number_id || "",
         token: config.token,
         securityToken: config.security_token || null,
         unidadeId: config.unidade_id,
@@ -68,6 +69,7 @@ export async function resolveConfig(
         precoMinimoP13: config.preco_minimo_p13 ?? null,
         precoMinimoP20: config.preco_minimo_p20 ?? null,
         provedor,
+        metaPhoneNumberId: config.meta_phone_number_id || config.instance_id || null,
       };
     }
   }
@@ -380,7 +382,10 @@ export async function downloadAudio(config: BiaConfig, mediaUrl: string): Promis
     const headers: Record<string, string> = {};
 
     // Z-API media URLs need authentication
-    if (config.provedor === "zapi" && !mediaUrl.startsWith("http")) {
+    if (config.provedor === "meta") {
+      // Meta Cloud API media: need to download via graph API with auth
+      headers["Authorization"] = `Bearer ${config.token}`;
+    } else if (config.provedor === "zapi" && !mediaUrl.startsWith("http")) {
       fetchUrl = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/download-media`;
       headers["Content-Type"] = "application/json";
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
@@ -638,13 +643,15 @@ export async function getEntregadorLocation(supabase: any, clienteId: string | n
 // ========== SEND TYPING INDICATOR ==========
 export async function sendTyping(config: BiaConfig, phone: string) {
   try {
-    if (config.provedor === "zapi") {
+    if (config.provedor === "meta") {
+      // Meta Cloud API doesn't have a native typing indicator, skip
+      return;
+    } else if (config.provedor === "zapi") {
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/typing`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone }) });
     } else {
-      // UaZapiGO v2: POST /chat/presence with token header
       await fetch(`https://free.uazapi.com/chat/presence`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "token": config.token },
@@ -657,13 +664,33 @@ export async function sendTyping(config: BiaConfig, phone: string) {
 // ========== SEND MESSAGE ==========
 export async function sendMessage(config: BiaConfig, phone: string, message: string) {
   try {
-    if (config.provedor === "zapi") {
+    if (config.provedor === "meta") {
+      // Meta WhatsApp Cloud API
+      const phoneNumberId = config.metaPhoneNumberId || config.instanceId;
+      const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
+      const url = `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`;
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${config.token}`,
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: cleanPhone,
+          type: "text",
+          text: { preview_url: false, body: message },
+        }),
+      });
+      const respText = await resp.text();
+      console.log("Meta sendMessage response:", resp.status, respText.substring(0, 300));
+    } else if (config.provedor === "zapi") {
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-text`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, message }) });
     } else {
-      // UaZapiGO v2: POST /send/text with token header
       const uazUrl = `https://free.uazapi.com/send/text`;
       const uazBody = { number: phone.replace(/\D/g, ""), text: message };
       console.log("UaZapi sendMessage:", JSON.stringify({ url: uazUrl, number: uazBody.number, textLen: message.length }));
@@ -681,7 +708,20 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
 // ========== SEND LOCATION (WHATSAPP) ==========
 export async function sendLocation(config: BiaConfig, phone: string, lat: number, lng: number, name: string) {
   try {
-    if (config.provedor === "zapi") {
+    if (config.provedor === "meta") {
+      const phoneNumberId = config.metaPhoneNumberId || config.instanceId;
+      const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
+      await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${config.token}` },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: cleanPhone,
+          type: "location",
+          location: { longitude: lng, latitude: lat, name: `📍 ${name}`, address: "Entregador a caminho" },
+        }),
+      });
+    } else if (config.provedor === "zapi") {
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-location`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
