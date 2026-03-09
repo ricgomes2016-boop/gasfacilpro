@@ -434,6 +434,11 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
                       <ReactMarkdown>{text}</ReactMarkdown>
                     </div>
                     {chart && <ChartRenderer chartMeta={chart} />}
+                    {enableVoice && text.length > 10 && (
+                      <div className="flex justify-end mt-1">
+                        <TtsButton text={text} />
+                      </div>
+                    )}
                   </>
                 ) : (
                   msg.content
