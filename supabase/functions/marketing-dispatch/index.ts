@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
 
       if (provedor === "uazapi") {
         // UaZapi API
-        const url = `https://free.uazapi.com/message/text`;
+        const url = `https://free.uazapi.com/send/text`;
         const resp = await fetch(url, {
           method: "POST",
           headers: {
