@@ -662,9 +662,10 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, message }) });
     } else {
-      const uazUrl = `https://free.uazapi.com/${config.instanceId}/send-text`;
-      const uazBody = { to: phone.replace(/\D/g, ""), text: message };
-      console.log("UaZapi sendMessage:", JSON.stringify({ url: uazUrl, to: uazBody.to, textLen: message.length }));
+      // UaZapiGO v2: POST /message/text with Bearer token
+      const uazUrl = `https://free.uazapi.com/message/text`;
+      const uazBody = { number: phone.replace(/\D/g, ""), text: message };
+      console.log("UaZapi sendMessage:", JSON.stringify({ url: uazUrl, number: uazBody.number, textLen: message.length }));
       const resp = await fetch(uazUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.token}` },
