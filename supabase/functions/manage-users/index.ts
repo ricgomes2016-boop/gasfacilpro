@@ -152,14 +152,30 @@ Deno.serve(async (req) => {
         }
       }
 
-      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      let newUser: any = null;
+      const { data: createdUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
         password,
         email_confirm: true,
         user_metadata: { full_name },
       });
 
-      if (createError) throw createError;
+      if (createError) {
+        // If user already exists, find and reuse them
+        if (createError.message?.includes("already been registered")) {
+          const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
+          const existingUser = users?.find((u: any) => u.email === email);
+          if (existingUser) {
+            newUser = { user: existingUser };
+          } else {
+            throw new Error("Usuário com este email já existe mas não foi encontrado.");
+          }
+        } else {
+          throw createError;
+        }
+      } else {
+        newUser = createdUser;
+      }
 
       if (newUser.user) {
         await new Promise((resolve) => setTimeout(resolve, 500));
