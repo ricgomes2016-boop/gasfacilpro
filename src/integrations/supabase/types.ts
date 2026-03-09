@@ -4303,6 +4303,8 @@ export type Database = {
           desconto_etapa2: number | null
           id: string
           instance_id: string
+          meta_phone_number_id: string | null
+          meta_verify_token: string | null
           nome_bot: string | null
           preco_minimo_p13: number | null
           preco_minimo_p20: number | null
@@ -4319,6 +4321,8 @@ export type Database = {
           desconto_etapa2?: number | null
           id?: string
           instance_id: string
+          meta_phone_number_id?: string | null
+          meta_verify_token?: string | null
           nome_bot?: string | null
           preco_minimo_p13?: number | null
           preco_minimo_p20?: number | null
@@ -4335,6 +4339,8 @@ export type Database = {
           desconto_etapa2?: number | null
           id?: string
           instance_id?: string
+          meta_phone_number_id?: string | null
+          meta_verify_token?: string | null
           nome_bot?: string | null
           preco_minimo_p13?: number | null
           preco_minimo_p20?: number | null
