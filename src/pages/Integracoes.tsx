@@ -358,13 +358,14 @@ export default function Integracoes() {
     setWpEditId(config.id);
     setWpProvedor(config.provedor || "zapi");
     setWpUnidadeId(config.unidade_id);
-    setWpInstanceId(config.instance_id);
+    setWpInstanceId(config.provedor === "meta" ? (config.meta_phone_number_id || config.instance_id) : config.instance_id);
     setWpToken(config.token);
     setWpSecurityToken(config.security_token || "");
     setWpDescontoEtapa1(String(config.desconto_etapa1 ?? 5));
     setWpDescontoEtapa2(String(config.desconto_etapa2 ?? 10));
     setWpPrecoMinimoP13(config.preco_minimo_p13 ? String(config.preco_minimo_p13) : "");
     setWpPrecoMinimoP20(config.preco_minimo_p20 ? String(config.preco_minimo_p20) : "");
+    setWpMetaVerifyToken(config.meta_verify_token || "gasfacil_meta_verify");
     setWhatsappDialogOpen(true);
   };
 
