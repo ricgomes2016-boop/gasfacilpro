@@ -266,7 +266,8 @@ export default function Integracoes() {
   // WhatsApp per-unit config (legacy table)
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [whatsappConfigs, setWhatsappConfigs] = useState<any[]>([]);
-  const [wpProvedor, setWpProvedor] = useState<"zapi" | "uazapi">("zapi");
+  const [wpProvedor, setWpProvedor] = useState<"zapi" | "uazapi" | "meta">("zapi");
+  const [wpMetaVerifyToken, setWpMetaVerifyToken] = useState("gasfacil_meta_verify");
   const [wpUnidadeId, setWpUnidadeId] = useState("");
   const [wpInstanceId, setWpInstanceId] = useState("");
   const [wpToken, setWpToken] = useState("");
