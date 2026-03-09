@@ -385,8 +385,8 @@ export async function downloadAudio(config: BiaConfig, mediaUrl: string): Promis
       headers["Content-Type"] = "application/json";
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
     } else if (config.provedor === "uazapi" && !mediaUrl.startsWith("http")) {
-      fetchUrl = `https://free.uazapi.com/${config.instanceId}/download-media`;
-      headers["Authorization"] = `Bearer ${config.token}`;
+      fetchUrl = `https://free.uazapi.com/chat/downloadMedia`;
+      headers["token"] = config.token;
       headers["Content-Type"] = "application/json";
     }
 
