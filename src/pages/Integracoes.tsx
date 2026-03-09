@@ -789,11 +789,12 @@ export default function Integracoes() {
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label>Provedor WhatsApp</Label>
-              <Select value={wpProvedor} onValueChange={(v) => setWpProvedor(v as "zapi" | "uazapi")}>
+              <Select value={wpProvedor} onValueChange={(v) => setWpProvedor(v as "zapi" | "uazapi" | "meta")}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="zapi">Z-API</SelectItem>
                   <SelectItem value="uazapi">UaZapi</SelectItem>
+                  <SelectItem value="meta">Meta Cloud API (Oficial)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
