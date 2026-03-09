@@ -23,17 +23,19 @@ serve(async (req) => {
   try {
     const supabase = createSupabase();
     const body = await req.json();
-    console.log("Z-API webhook:", JSON.stringify(body).substring(0, 500));
+    console.log("Z-API webhook:", JSON.stringify(body).substring(0, 800));
 
     // Skip own messages and non-messages
     if (body.fromMe === true) return OK({ ok: true, skipped: "fromMe" });
-    const isAudio = body.type === "audio" || body.type === "ptt" || body.isAudio === true || !!body.audio;
-    if (!isAudio && !(body.type === "ReceivedCallback" || body.isNewMsg === true)) return OK({ ok: true, skipped: "not_message" });
+    const isAudio = body.type === "audio" || body.type === "ptt" || body.isAudio === true || !!body.audio || !!body.audioMessage;
+    if (!isAudio && !(body.type === "ReceivedCallback" || body.isNewMsg === true || body.status === "RECEIVED")) return OK({ ok: true, skipped: "not_message" });
 
     const phone = body.phone || body.from || "";
     let messageText = body.text?.message || body.body || body.text || "";
     const senderName = body.senderName || body.chatName || "";
-    const audioUrl = body.audio?.audioUrl || body.audio?.url || body.mediaUrl || body.audio || null;
+    // Robust audio URL extraction for Z-API various payload formats
+    const audioUrl = body.audio?.audioUrl || body.audio?.url || body.audioMessage?.url || body.audioMessage?.audioUrl || body.mediaUrl || (typeof body.audio === "string" ? body.audio : null) || null;
+    if (isAudio) console.log("Audio detected:", JSON.stringify({ type: body.type, hasAudio: !!body.audio, hasAudioMessage: !!body.audioMessage, audioUrl: audioUrl?.substring(0, 80) }));
     if (body.isGroup === true || !phone) return OK({ ok: true, skipped: "invalid" });
 
     // Handle audio: transcribe voice note to text

@@ -182,8 +182,16 @@ export function buildSystemPrompt(
   orderStatus: any | null,
   negotiationHint: string
 ): string {
+  // Dynamic greeting based on BRT time
+  const now = new Date();
+  const brt = new Date(now.getTime() + (-3 * 60 + now.getTimezoneOffset()) * 60000);
+  const hour = brt.getHours();
+  const saudacao = hour >= 5 && hour < 12 ? "Bom dia" : hour >= 12 && hour < 18 ? "Boa tarde" : "Boa noite";
+
   return `Você é a Bia, atendente real da empresa pelo WhatsApp. Você é uma pessoa, NÃO um robô.
 NUNCA diga que é IA, bot ou assistente virtual. Você é a Bia, atendente.
+
+HORÁRIO ATUAL: ${String(brt.getHours()).padStart(2, "0")}:${String(brt.getMinutes()).padStart(2, "0")} (Brasília)
 
 ESTILO (OBRIGATÓRIO):
 - Mensagens CURTAS: máximo 2-3 linhas. Nada de textão.
@@ -195,8 +203,8 @@ ESTILO (OBRIGATÓRIO):
 
 SAUDAÇÃO:
 ${cliente.nome
-  ? `- Cliente CADASTRADO: ${cliente.nome}. Cumprimente com o nome: "Boa noite, ${cliente.nome}! 😊" e ESPERE.`
-  : "- Cliente NOVO. Cumprimente: \"Boa noite! 😊\" e ESPERE."
+  ? `- Cliente CADASTRADO: ${cliente.nome}. Cumprimente com o nome: "${saudacao}, ${cliente.nome}! 😊" e ESPERE.`
+  : `- Cliente NOVO. Cumprimente: "${saudacao}! 😊" e ESPERE.`
 }
 - NÃO ofereça produtos na saudação.
 
