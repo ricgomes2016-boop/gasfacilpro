@@ -341,7 +341,7 @@ export function Sidebar() {
                               : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/80"
                           )}
                         >
-                          <item.icon className="h-[18px] w-[18px]" />
+                          <item.icon className={cn("h-[18px] w-[18px]", isChildActive ? "" : menuIconColors[item.label] || "")} />
                         </button>
                       )}
                     </TooltipTrigger>
