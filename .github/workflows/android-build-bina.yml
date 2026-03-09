@@ -169,16 +169,22 @@ jobs:
         import android.content.Context
         import android.content.Intent
         import android.telephony.TelephonyManager
+        import android.util.Log
         
         class CallReceiver : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                if (intent.action == TelephonyManager.ACTION_PHONE_STATE_CHANGED) {
-                    val state = intent.getStringExtra(TelephonyManager.EXTRA_STATE)
-                    val number = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
-                    
-                    if (state == TelephonyManager.EXTRA_STATE_RINGING && !number.isNullOrEmpty()) {
-                        WebhookUtils.sendToWebhook(context, number, "celular")
+                try {
+                    if (intent.action == TelephonyManager.ACTION_PHONE_STATE_CHANGED) {
+                        val state = intent.getStringExtra(TelephonyManager.EXTRA_STATE)
+                        val number = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
+                        
+                        if (state == TelephonyManager.EXTRA_STATE_RINGING && !number.isNullOrEmpty()) {
+                            WebhookUtils.sendToWebhook(context, number, "celular")
+                        }
                     }
+                } catch (e: Exception) {
+                    Log.e("BinaCall", "Erro ao processar chamada", e)
+                    WebhookUtils.sendLogToUI(context, "Erro (Receptor de Chamada): " + e.message)
                 }
             }
         }
@@ -211,19 +217,26 @@ jobs:
         
         class WhatsappListener : NotificationListenerService() {
             override fun onNotificationPosted(sbn: StatusBarNotification) {
-                val packageName = sbn.packageName
-                if (packageName == "com.whatsapp" || packageName == "com.whatsapp.w4b") {
-                    val extras = sbn.notification.extras
-                    val title = extras.getString("android.title") ?: ""
-                    val text = extras.getCharSequence("android.text")?.toString() ?: ""
-                    
-                    if (text.contains("Chamada", ignoreCase = true) || title.contains("Chamada", ignoreCase = true) || text.contains("Ligação", ignoreCase = true)) {
-                        val contactName = title.replace("Chamada de voz recebida", "").replace("Chamada de vídeo recebida", "").replace("Ligação", "").trim()
-                        if (contactName.isNotEmpty() && contactName != "WhatsApp") {
-                            Log.d("BinaWhatsApp", "Chamada de WhatsApp detectada: $contactName")
-                            WebhookUtils.sendToWebhook(applicationContext, contactName, "whatsapp")
+                try {
+                    val packageName = sbn.packageName
+                    if (packageName == "com.whatsapp" || packageName == "com.whatsapp.w4b") {
+                        val extras = sbn.notification.extras
+                        if (extras == null) return
+                        
+                        val title = extras.getString("android.title") ?: ""
+                        val text = extras.getCharSequence("android.text")?.toString() ?: ""
+                        
+                        if (text.contains("Chamada", ignoreCase = true) || title.contains("Chamada", ignoreCase = true) || text.contains("Ligação", ignoreCase = true)) {
+                            val contactName = title.replace("Chamada de voz recebida", "").replace("Chamada de vídeo recebida", "").replace("Ligação", "").trim()
+                            if (contactName.isNotEmpty() && contactName != "WhatsApp") {
+                                Log.d("BinaWhatsApp", "Chamada de WhatsApp detectada: $contactName")
+                                WebhookUtils.sendToWebhook(applicationContext, contactName, "whatsapp")
+                            }
                         }
                     }
+                } catch (e: Exception) {
+                    Log.e("BinaWhatsApp", "Erro no WhatsappListener", e)
+                    WebhookUtils.sendLogToUI(applicationContext, "Erro (WhatsApp): " + e.message)
                 }
             }
         }
