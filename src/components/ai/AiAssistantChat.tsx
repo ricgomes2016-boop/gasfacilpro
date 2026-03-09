@@ -8,6 +8,7 @@ import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from "recharts";
+import { VoiceInputButton, TtsButton } from "./VoiceButton";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Conversa = { id: string; titulo: string; created_at: string };
@@ -129,7 +130,7 @@ function getDynamicSuggestions(): string[] {
   return base.slice(0, 6);
 }
 
-export function AiAssistantChat({ fullPage = false }: { fullPage?: boolean }) {
+export function AiAssistantChat({ fullPage = false, enableVoice = false }: { fullPage?: boolean; enableVoice?: boolean }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
