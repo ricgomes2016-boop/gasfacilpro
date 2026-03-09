@@ -705,7 +705,20 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
 // ========== SEND LOCATION (WHATSAPP) ==========
 export async function sendLocation(config: BiaConfig, phone: string, lat: number, lng: number, name: string) {
   try {
-    if (config.provedor === "zapi") {
+    if (config.provedor === "meta") {
+      const phoneNumberId = config.metaPhoneNumberId || config.instanceId;
+      const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
+      await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${config.token}` },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: cleanPhone,
+          type: "location",
+          location: { longitude: lng, latitude: lat, name: `📍 ${name}`, address: "Entregador a caminho" },
+        }),
+      });
+    } else if (config.provedor === "zapi") {
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-location`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
