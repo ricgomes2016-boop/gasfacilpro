@@ -137,7 +137,6 @@ export const menuItems: MenuItem[] = [
     icon: Settings2,
     label: "Gestão Operacional",
     submenu: [
-      { icon: Gauge, label: "Cockpit do Gestor", path: "/operacional/cockpit" },
       { icon: Sparkles, label: "Central de Inteligência", path: "/operacional/ia" },
       { icon: Activity, label: "Central de Indicadores", path: "/operacional/indicadores" },
       { icon: Map, label: "Mapa Operacional", path: "/operacional/centro" },
