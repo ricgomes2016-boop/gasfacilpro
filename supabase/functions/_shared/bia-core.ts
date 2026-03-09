@@ -661,13 +661,33 @@ export async function sendTyping(config: BiaConfig, phone: string) {
 // ========== SEND MESSAGE ==========
 export async function sendMessage(config: BiaConfig, phone: string, message: string) {
   try {
-    if (config.provedor === "zapi") {
+    if (config.provedor === "meta") {
+      // Meta WhatsApp Cloud API
+      const phoneNumberId = config.metaPhoneNumberId || config.instanceId;
+      const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
+      const url = `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`;
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${config.token}`,
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: cleanPhone,
+          type: "text",
+          text: { preview_url: false, body: message },
+        }),
+      });
+      const respText = await resp.text();
+      console.log("Meta sendMessage response:", resp.status, respText.substring(0, 300));
+    } else if (config.provedor === "zapi") {
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-text`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, message }) });
     } else {
-      // UaZapiGO v2: POST /send/text with token header
       const uazUrl = `https://free.uazapi.com/send/text`;
       const uazBody = { number: phone.replace(/\D/g, ""), text: message };
       console.log("UaZapi sendMessage:", JSON.stringify({ url: uazUrl, number: uazBody.number, textLen: message.length }));
