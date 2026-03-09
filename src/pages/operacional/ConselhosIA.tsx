@@ -5,17 +5,24 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sparkles, AlertTriangle, Lightbulb,
   Target, Users, Package, RefreshCw,
   TrendingUp, Clock, Zap, Shield,
+  DollarSign, Truck, Sun,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { addDays, format, subDays } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { AgentDrawer } from "@/components/ai/AgentDrawer";
+import { RemindersWidget } from "@/components/dashboard/RemindersWidget";
+import { AiInsightsWidget } from "@/components/dashboard/AiInsightsWidget";
+import { ProdutividadeWidget } from "@/components/operacional/ProdutividadeWidget";
+import { PrevisaoDemandaWidget } from "@/components/operacional/PrevisaoDemandaWidget";
+import { getBrasiliaDate } from "@/lib/utils";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -83,7 +90,68 @@ function getProactiveSuggestions(): ProactiveSuggestion[] {
   return suggestions.slice(0, 4);
 }
 
-// ─── Custom Hooks for Data ──────────────────────────────────────────────────
+// ─── KPI Data Hook ───────────────────────────────────────────────────────────
+
+function useKpiData(unidadeId?: string) {
+  const [loading, setLoading] = useState(true);
+  const [dados, setDados] = useState({
+    vendasHoje: 0, faturamentoHoje: 0, ticketMedio: 0,
+    pedidosPendentes: 0, entregadoresAtivos: 0, entregadoresEmRota: 0,
+    faturamentoMes: 0, metaMensal: 150000,
+    faturamentoOntem: 0,
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const now = getBrasiliaDate();
+        const hojeInicio = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+        const ontemInicio = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toISOString();
+        const mesInicio = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+        let pHoje = supabase.from("pedidos").select("valor_total").gte("created_at", hojeInicio).neq("status", "cancelado");
+        if (unidadeId) pHoje = pHoje.eq("unidade_id", unidadeId);
+        const { data: pedidosHoje } = await pHoje;
+        const fatHoje = pedidosHoje?.reduce((s, p) => s + (p.valor_total || 0), 0) || 0;
+
+        let pOntem = supabase.from("pedidos").select("valor_total").gte("created_at", ontemInicio).lt("created_at", hojeInicio).neq("status", "cancelado");
+        if (unidadeId) pOntem = pOntem.eq("unidade_id", unidadeId);
+        const { data: pedidosOntem } = await pOntem;
+        const fatOntem = pedidosOntem?.reduce((s, p) => s + (p.valor_total || 0), 0) || 0;
+
+        let pMes = supabase.from("pedidos").select("valor_total").gte("created_at", mesInicio).neq("status", "cancelado");
+        if (unidadeId) pMes = pMes.eq("unidade_id", unidadeId);
+        const { data: pedidosMes } = await pMes;
+        const fatMes = pedidosMes?.reduce((s, p) => s + (p.valor_total || 0), 0) || 0;
+
+        let pPend = supabase.from("pedidos").select("id", { count: "exact" }).eq("status", "pendente");
+        if (unidadeId) pPend = pPend.eq("unidade_id", unidadeId);
+        const { count: pendentes } = await pPend;
+
+        const { data: entregs } = await supabase.from("entregadores").select("status").eq("ativo", true);
+        const emRota = entregs?.filter(e => e.status === "em_rota").length || 0;
+
+        setDados({
+          vendasHoje: pedidosHoje?.length || 0,
+          faturamentoHoje: fatHoje,
+          ticketMedio: pedidosHoje?.length ? fatHoje / pedidosHoje.length : 0,
+          pedidosPendentes: pendentes || 0,
+          entregadoresAtivos: entregs?.length || 0,
+          entregadoresEmRota: emRota,
+          faturamentoMes: fatMes,
+          metaMensal: 150000,
+          faturamentoOntem: fatOntem,
+        });
+      } catch (e) { console.error(e); } finally { setLoading(false); }
+    };
+    fetchData();
+  }, [unidadeId]);
+
+  return { loading, dados };
+}
+
+// ─── Insights Data Hook ──────────────────────────────────────────────────────
 
 function useInsightsData(unidadeId?: string) {
   const rupturas = useQuery({
@@ -183,7 +251,7 @@ function useInsightsData(unidadeId?: string) {
   };
 }
 
-// ─── Insights Builder ───────────────────────────────────────────────────────
+// ─── Insights Builder ────────────────────────────────────────────────────────
 
 function buildInsights(data: ReturnType<typeof useInsightsData>): Insight[] {
   const list: Insight[] = [];
@@ -195,9 +263,7 @@ function buildInsights(data: ReturnType<typeof useInsightsData>): Insight[] {
       id: `ruptura-${r.nome}`,
       tipo: "alerta",
       titulo: `Ruptura iminente: ${r.nome}`,
-      descricao: dias === 0
-        ? `Estoque zerado. Compra urgente necessária.`
-        : `Estoque (${r.estoque} un) zera em ${dias} dia${dias !== 1 ? "s" : ""}.`,
+      descricao: dias === 0 ? `Estoque zerado. Compra urgente necessária.` : `Estoque (${r.estoque} un) zera em ${dias} dia${dias !== 1 ? "s" : ""}.`,
       acao: "Registrar compra",
       prioridade: dias !== null && dias <= 2 ? "alta" : "media",
     });
@@ -272,7 +338,7 @@ function buildInsights(data: ReturnType<typeof useInsightsData>): Insight[] {
   return list;
 }
 
-// ─── InsightCard Component ──────────────────────────────────────────────────
+// ─── InsightCard Component ───────────────────────────────────────────────────
 
 function InsightCard({ insight, index }: { insight: Insight; index: number }) {
   const config = iconConfig[insight.tipo];
@@ -318,13 +384,14 @@ function InsightCard({ insight, index }: { insight: Insight; index: number }) {
   );
 }
 
-// ─── Main Page ──────────────────────────────────────────────────────────────
+// ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function ConselhosIA() {
   const { unidadeAtual } = useUnidade();
   const queryClient = useQueryClient();
-  const data = useInsightsData(unidadeAtual?.id);
-  const insights = useMemo(() => buildInsights(data), [data]);
+  const insightsData = useInsightsData(unidadeAtual?.id);
+  const { loading: kpiLoading, dados } = useKpiData(unidadeAtual?.id);
+  const insights = useMemo(() => buildInsights(insightsData), [insightsData]);
   const suggestions = useMemo(() => getProactiveSuggestions(), []);
 
   const altaPrioridade = insights.filter(i => i.prioridade === "alta").length;
@@ -334,13 +401,16 @@ export default function ConselhosIA() {
       .forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
   };
 
-  // Greeting based on time
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+  const progressoMeta = Math.min((dados.faturamentoMes / dados.metaMensal) * 100, 100);
+  const variacaoVendas = dados.faturamentoOntem > 0
+    ? ((dados.faturamentoHoje - dados.faturamentoOntem) / dados.faturamentoOntem * 100)
+    : 0;
 
   return (
     <MainLayout>
-      <Header title="Central de Inteligência" subtitle="Insights, alertas e agente IA em tempo real" />
+      <Header title="Central de Inteligência" subtitle="Cockpit operacional + insights e agente IA em tempo real" />
       <div className="p-3 sm:p-4 md:p-6 space-y-6">
 
         {/* Hero Section */}
@@ -351,58 +421,105 @@ export default function ConselhosIA() {
         >
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
           <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Sparkles className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-bold">{greeting}! Aqui está seu painel.</h2>
+            <div className="flex items-center gap-3">
+              <Sun className="h-8 w-8 text-chart-4 shrink-0" />
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h2 className="text-lg font-bold">{greeting}, Gestor!</h2>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {insightsData.isLoading ? "Analisando dados..." : (
+                    altaPrioridade > 0
+                      ? `⚠️ ${altaPrioridade} alerta${altaPrioridade > 1 ? "s" : ""} urgente${altaPrioridade > 1 ? "s" : ""} requer${altaPrioridade === 1 ? "" : "em"} atenção.`
+                      : "✅ Tudo sob controle. Sem alertas críticos."
+                  )}
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground">
-                {data.isLoading ? "Analisando dados..." : (
-                  altaPrioridade > 0
-                    ? `⚠️ ${altaPrioridade} alerta${altaPrioridade > 1 ? "s" : ""} urgente${altaPrioridade > 1 ? "s" : ""} requer${altaPrioridade === 1 ? "" : "em"} atenção.`
-                    : "✅ Tudo sob controle. Sem alertas críticos."
-                )}
-              </p>
             </div>
-            <Button onClick={refresh} disabled={data.isLoading} variant="outline" size="sm" className="shrink-0">
-              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${data.isLoading ? "animate-spin" : ""}`} />
+            <Button onClick={refresh} disabled={insightsData.isLoading} variant="outline" size="sm" className="shrink-0">
+              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${insightsData.isLoading ? "animate-spin" : ""}`} />
               Atualizar
             </Button>
           </div>
         </motion.div>
 
-        {/* KPI Strip */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* KPIs do dia */}
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
           {[
-            { label: "Insights Ativos", value: insights.length, icon: Sparkles, color: "text-primary" },
-            { label: "Urgentes", value: altaPrioridade, icon: AlertTriangle, color: altaPrioridade > 0 ? "text-destructive" : "text-muted-foreground" },
-            { label: "Clientes Inativos", value: data.clientesInativos.length, icon: Users, color: "text-blue-500" },
-            { label: "Produtos em Risco", value: data.rupturas.length, icon: Package, color: "text-orange-500" },
+            {
+              label: "Faturamento Hoje",
+              value: kpiLoading ? null : `R$ ${dados.faturamentoHoje.toLocaleString("pt-BR")}`,
+              sub: variacaoVendas !== 0 ? `${variacaoVendas > 0 ? "+" : ""}${variacaoVendas.toFixed(0)}% vs ontem` : null,
+              subColor: variacaoVendas >= 0 ? "text-chart-3" : "text-destructive",
+              icon: DollarSign,
+            },
+            {
+              label: "Vendas Hoje",
+              value: kpiLoading ? null : String(dados.vendasHoje),
+              sub: kpiLoading ? null : `Ticket: R$ ${dados.ticketMedio.toFixed(2)}`,
+              subColor: "text-muted-foreground",
+              icon: Package,
+            },
+            {
+              label: "Entregadores",
+              value: kpiLoading ? null : `${dados.entregadoresEmRota}/${dados.entregadoresAtivos}`,
+              sub: "em rota / total",
+              subColor: "text-muted-foreground",
+              icon: Truck,
+            },
+            {
+              label: "Pedidos Pendentes",
+              value: kpiLoading ? null : String(dados.pedidosPendentes),
+              sub: "aguardando ação",
+              subColor: "text-muted-foreground",
+              icon: Clock,
+            },
           ].map((kpi, i) => (
-            <motion.div
-              key={kpi.label}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.05 }}
-            >
-              <Card className="border-border/50">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-muted/50">
-                    <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
-                  </div>
-                  <div>
-                    {data.isLoading ? (
-                      <Skeleton className="h-6 w-10 mb-0.5" />
-                    ) : (
-                      <p className={`text-xl font-bold ${kpi.color}`}>{kpi.value}</p>
-                    )}
-                    <p className="text-[10px] text-muted-foreground leading-tight">{kpi.label}</p>
+            <motion.div key={kpi.label} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }}>
+              <Card>
+                <CardContent className="pt-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">{kpi.label}</p>
+                      {kpi.value === null ? (
+                        <Skeleton className="h-7 w-24 mt-1" />
+                      ) : (
+                        <p className="text-2xl font-bold">{kpi.value}</p>
+                      )}
+                      {kpi.sub && !kpiLoading && (
+                        <p className={`text-xs mt-0.5 flex items-center gap-1 ${kpi.subColor}`}>
+                          {kpi.label === "Faturamento Hoje" && variacaoVendas !== 0 && <TrendingUp className="h-3 w-3" />}
+                          {kpi.sub}
+                        </p>
+                      )}
+                    </div>
+                    <kpi.icon className="h-8 w-8 text-primary/25" />
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
           ))}
         </div>
+
+        {/* Meta mensal */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <TrendingUp className="h-4 w-4" />Meta Mensal de Faturamento
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                {kpiLoading ? <Skeleton className="h-4 w-32" /> : <span>R$ {dados.faturamentoMes.toLocaleString("pt-BR")}</span>}
+                <span className="font-medium text-muted-foreground">Meta: R$ {dados.metaMensal.toLocaleString("pt-BR")}</span>
+              </div>
+              <Progress value={kpiLoading ? 0 : progressoMeta} className="h-3" />
+              {!kpiLoading && <p className="text-xs text-muted-foreground text-center">{progressoMeta.toFixed(1)}% da meta atingida</p>}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Proactive Suggestions */}
         <div>
@@ -418,7 +535,6 @@ export default function ConselhosIA() {
                 transition={{ delay: 0.2 + i * 0.06 }}
                 className={`p-3 rounded-xl border border-border/50 bg-gradient-to-br ${s.gradient} text-left hover:shadow-md hover:border-primary/20 transition-all duration-200 group`}
                 onClick={() => {
-                  // Open agent with this prompt - dispatch custom event
                   window.dispatchEvent(new CustomEvent("agent-prompt", { detail: s.prompt }));
                 }}
               >
@@ -430,7 +546,7 @@ export default function ConselhosIA() {
         </div>
 
         {/* Insights Grid */}
-        {data.isLoading ? (
+        {insightsData.isLoading ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map(i => (
               <Card key={i}>
@@ -466,6 +582,16 @@ export default function ConselhosIA() {
             </AnimatePresence>
           </div>
         )}
+
+        {/* Widgets: Produtividade + Previsão + Lembretes + IA */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <ProdutividadeWidget />
+          <PrevisaoDemandaWidget />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <RemindersWidget />
+          <AiInsightsWidget />
+        </div>
       </div>
 
       {/* Floating Agent */}
