@@ -32,7 +32,7 @@ export function createSupabase() {
 // ========== RESOLVE CONFIG ==========
 export async function resolveConfig(
   supabase: any,
-  provedor: "zapi" | "uazapi",
+  provedor: "zapi" | "uazapi" | "meta",
   queryUnidadeId: string | null,
   payloadInstanceId: string | null
 ): Promise<BiaConfig | null> {
@@ -58,9 +58,9 @@ export async function resolveConfig(
   for (const strategy of strategies) {
     const { data } = await strategy;
     const config = Array.isArray(data) ? (data.length === 1 ? data[0] : null) : data;
-    if (config?.instance_id && config?.token) {
+    if (config?.token && (config?.instance_id || provedor === "meta")) {
       return {
-        instanceId: config.instance_id,
+        instanceId: config.instance_id || config.meta_phone_number_id || "",
         token: config.token,
         securityToken: config.security_token || null,
         unidadeId: config.unidade_id,
@@ -69,6 +69,7 @@ export async function resolveConfig(
         precoMinimoP13: config.preco_minimo_p13 ?? null,
         precoMinimoP20: config.preco_minimo_p20 ?? null,
         provedor,
+        metaPhoneNumberId: config.meta_phone_number_id || config.instance_id || null,
       };
     }
   }
