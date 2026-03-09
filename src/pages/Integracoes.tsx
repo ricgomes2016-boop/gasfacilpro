@@ -351,6 +351,7 @@ export default function Integracoes() {
     setWpPrecoMinimoP13("");
     setWpPrecoMinimoP20("");
     setWpEditId(null);
+    setWpMetaVerifyToken("gasfacil_meta_verify");
   };
 
   const editWhatsappConfig = (config: any) => {
