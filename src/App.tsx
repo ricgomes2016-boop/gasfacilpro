@@ -136,6 +136,7 @@ const App = () => (
                           <Route path="/cliente/dashboard" element={<Navigate to="/cliente" replace />} />
                           <Route path="/entregador/dashboard" element={<Navigate to="/entregador" replace />} />
                           <Route path="/parceiro/dashboard" element={<Navigate to="/parceiro" replace />} />
+                          <Route path="/operacional/cockpit" element={<Navigate to="/operacional/ia" replace />} />
 
                           {/* 404 */}
                           <Route path="*" element={<NotFound />} />

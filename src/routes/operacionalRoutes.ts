@@ -1,7 +1,7 @@
 import { lazy } from "react";
 import { RouteConfig } from "./helpers";
 
-const CockpitGestor = lazy(() => import("@/pages/operacional/CockpitGestor"));
+// CockpitGestor removed - unified into ConselhosIA (Central de Inteligência)
 const CentralIndicadores = lazy(() => import("@/pages/operacional/CentralIndicadores"));
 const MapaOperacional = lazy(() => import("@/pages/operacional/MapaOperacional"));
 const AlertasInteligentes = lazy(() => import("@/pages/operacional/AlertasInteligentes"));
@@ -31,7 +31,7 @@ const RelatorioGerencial = lazy(() => import("@/pages/operacional/RelatorioGeren
 const CategoriasDespesa = lazy(() => import("@/pages/config/CategoriasDespesa"));
 
 export const operacionalRoutes: RouteConfig[] = [
-  { path: "/operacional/cockpit", component: CockpitGestor, roles: ["admin", "gestor"] },
+  { path: "/operacional/ia", component: ConselhosIA, roles: ["admin", "gestor"] },
   { path: "/operacional/indicadores", component: CentralIndicadores, roles: ["admin", "gestor"] },
   { path: "/operacional/centro", component: MapaOperacional, roles: ["admin", "gestor", "operacional"] },
   { path: "/operacional/alertas", component: AlertasInteligentes, roles: ["admin", "gestor"] },
