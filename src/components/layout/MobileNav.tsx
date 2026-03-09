@@ -181,7 +181,8 @@ export function MobileNav() {
                         <div className="flex items-center gap-3">
                           <Icon className={cn(
                             "h-[18px] w-[18px] transition-transform duration-200 stroke-[2.25]",
-                            !hasActiveChild && "group-hover:scale-110"
+                            !hasActiveChild && "group-hover:scale-110",
+                            !hasActiveChild && (menuIconColors[item.label] || "")
                           )} />
                           <span>{item.label}</span>
                         </div>
