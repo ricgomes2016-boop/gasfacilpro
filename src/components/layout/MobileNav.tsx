@@ -226,7 +226,8 @@ export function MobileNav() {
                                     >
                                       <SubIcon className={cn(
                                         "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
-                                        !subActive && "group-hover:scale-110 group-hover:text-primary"
+                                        !subActive && "group-hover:scale-110",
+                                        !subActive && (subMenuIconColors[sub.label] || "")
                                       )} />
                                       <span>{sub.label}</span>
                                     </Link>
