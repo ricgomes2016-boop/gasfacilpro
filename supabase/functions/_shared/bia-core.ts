@@ -663,8 +663,8 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, message }) });
     } else {
-      // UaZapiGO v2: POST /message/text with token header
-      const uazUrl = `https://free.uazapi.com/message/text`;
+      // UaZapiGO v2: POST /send/text with token header
+      const uazUrl = `https://free.uazapi.com/send/text`;
       const uazBody = { number: phone.replace(/\D/g, ""), text: message };
       console.log("UaZapi sendMessage:", JSON.stringify({ url: uazUrl, number: uazBody.number, textLen: message.length }));
       const resp = await fetch(uazUrl, {
