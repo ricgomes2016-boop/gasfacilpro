@@ -360,7 +360,7 @@ export function Sidebar() {
                                   isActive(subItem.path) && "bg-accent font-medium text-primary"
                                 )}
                               >
-                                <SubIcon className="h-3 w-3 flex-shrink-0" />
+                                <SubIcon className={cn("h-3 w-3 flex-shrink-0", isActive(subItem.path) ? "" : subMenuIconColors[subItem.label] || menuIconColors[item.label] || "")} />
                                 <span>{subItem.label}</span>
                               </Link>
                             );
