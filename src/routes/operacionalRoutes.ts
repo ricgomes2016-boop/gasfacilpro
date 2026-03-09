@@ -24,7 +24,7 @@ const ResultadoOperacional = lazy(() => import("@/pages/operacional/ResultadoOpe
 const WorkflowAprovacoes = lazy(() => import("@/pages/operacional/WorkflowAprovacoes"));
 const SlaEntregas = lazy(() => import("@/pages/operacional/SlaEntregas"));
 const GestaoRotas = lazy(() => import("@/pages/operacional/GestaoRotas"));
-const GestaoEscalas = lazy(() => import("@/pages/rh/Horarios"));
+
 const GamificacaoEntregadores = lazy(() => import("@/pages/operacional/GamificacaoEntregadores"));
 const Licitacoes = lazy(() => import("@/pages/operacional/Licitacoes"));
 const RelatorioGerencial = lazy(() => import("@/pages/operacional/RelatorioGerencial"));
@@ -53,7 +53,7 @@ export const operacionalRoutes: RouteConfig[] = [
   { path: "/operacional/aprovacoes", component: WorkflowAprovacoes, roles: ["admin", "gestor"] },
   { path: "/operacional/sla", component: SlaEntregas, roles: ["admin", "gestor", "operacional"] },
   { path: "/operacional/rotas", component: GestaoRotas, roles: ["admin", "gestor"] },
-  { path: "/operacional/escalas", component: GestaoEscalas, roles: ["admin", "gestor"] },
+  
   { path: "/operacional/ponto-equilibrio", component: PontoEquilibrio, roles: ["admin", "gestor"] },
   { path: "/operacional/resultado", component: ResultadoOperacional, roles: ["admin", "gestor"] },
   { path: "/operacional/gamificacao-entregadores", component: GamificacaoEntregadores, roles: ["admin", "gestor"] },
