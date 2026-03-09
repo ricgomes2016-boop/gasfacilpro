@@ -644,7 +644,7 @@ export async function sendTyping(config: BiaConfig, phone: string) {
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone }) });
     } else {
-      await fetch(`https://api.uazapi.com/${config.instanceId}/typing`, {
+      await fetch(`https://free.uazapi.com/${config.instanceId}/typing`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.token}` },
         body: JSON.stringify({ to: phone.replace(/\D/g, "") }),
