@@ -810,13 +810,19 @@ export default function Integracoes() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Instance ID</Label>
-              <Input value={wpInstanceId} onChange={(e) => setWpInstanceId(e.target.value)} placeholder={`Sua Instance ID da ${wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}`} />
+              <Label>{wpProvedor === 'meta' ? 'Phone Number ID' : 'Instance ID'}</Label>
+              <Input value={wpInstanceId} onChange={(e) => setWpInstanceId(e.target.value)} placeholder={wpProvedor === 'meta' ? 'Ex: 123456789012345' : `Sua Instance ID da ${wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}`} />
             </div>
             <div className="space-y-1.5">
-              <Label>Token</Label>
-              <Input type="password" value={wpToken} onChange={(e) => setWpToken(e.target.value)} placeholder={`Token da ${wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}`} />
+              <Label>{wpProvedor === 'meta' ? 'Access Token (permanente)' : 'Token'}</Label>
+              <Input type="password" value={wpToken} onChange={(e) => setWpToken(e.target.value)} placeholder={wpProvedor === 'meta' ? 'Token do Meta Business' : `Token da ${wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}`} />
             </div>
+            {wpProvedor === "meta" && (
+              <div className="space-y-1.5">
+                <Label>Verify Token (para validação do webhook)</Label>
+                <Input value={wpMetaVerifyToken} onChange={(e) => setWpMetaVerifyToken(e.target.value)} placeholder="gasfacil_meta_verify" />
+              </div>
+            )}
             {wpProvedor === "zapi" && (
               <div className="space-y-1.5">
                 <Label>Security Token (opcional)</Label>
