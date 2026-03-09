@@ -310,7 +310,7 @@ export default function Integracoes() {
     try {
       const payload = {
         unidade_id: wpUnidadeId,
-        instance_id: wpInstanceId,
+        instance_id: wpProvedor === "meta" ? (wpInstanceId || "meta") : wpInstanceId,
         token: wpToken,
         security_token: wpSecurityToken || null,
         provedor: wpProvedor,
@@ -319,6 +319,8 @@ export default function Integracoes() {
         preco_minimo_p13: wpPrecoMinimoP13 ? parseFloat(wpPrecoMinimoP13) : null,
         preco_minimo_p20: wpPrecoMinimoP20 ? parseFloat(wpPrecoMinimoP20) : null,
         ativo: true,
+        meta_phone_number_id: wpProvedor === "meta" ? wpInstanceId : null,
+        meta_verify_token: wpProvedor === "meta" ? wpMetaVerifyToken : null,
       } as any;
       if (wpEditId) {
         const { error } = await supabase.from("integracoes_whatsapp").update(payload).eq("id", wpEditId);
