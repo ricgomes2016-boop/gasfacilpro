@@ -261,7 +261,8 @@ export function MobileNav() {
                     >
                       <Icon className={cn(
                         "h-[18px] w-[18px] transition-transform duration-200 stroke-[2.25]",
-                        !isActive(item.path!) && "group-hover:scale-110"
+                        !isActive(item.path!) && "group-hover:scale-110",
+                        !isActive(item.path!) && (menuIconColors[item.label] || "")
                       )} />
                       <span>{item.label}</span>
                     </Link>
