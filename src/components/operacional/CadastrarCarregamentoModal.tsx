@@ -87,13 +87,19 @@ export function CadastrarCarregamentoModal({ open, onOpenChange, onSaved }: Prop
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
 
-  const entregadores = selectedUnidadeId
-    ? allEntregadores.filter((e) => e.unidade_id === selectedUnidadeId)
-    : allEntregadores;
+  const entregadores = useMemo(() => 
+    selectedUnidadeId
+      ? allEntregadores.filter((e) => e.unidade_id === selectedUnidadeId)
+      : allEntregadores,
+    [selectedUnidadeId, allEntregadores]
+  );
 
-  const produtos = selectedUnidadeId
-    ? allProdutos.filter((p) => p.unidade_id === selectedUnidadeId)
-    : allProdutos;
+  const produtos = useMemo(() =>
+    selectedUnidadeId
+      ? allProdutos.filter((p) => p.unidade_id === selectedUnidadeId)
+      : allProdutos,
+    [selectedUnidadeId, allProdutos]
+  );
 
   const fetchData = async () => {
     const [entRes, rotaRes, prodRes, uniRes] = await Promise.all([
