@@ -477,7 +477,8 @@ export function Sidebar() {
                                 >
                                   <SubIcon className={cn(
                                     "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
-                                    !subActive && "group-hover:scale-110 group-hover:text-primary"
+                                    subActive ? "" : subMenuIconColors[subItem.label] || menuIconColors[item.label] || "",
+                                    !subActive && "group-hover:scale-110"
                                   )} />
                                   <span className="truncate">{subItem.label}</span>
                                 </Link>
