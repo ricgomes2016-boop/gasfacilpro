@@ -136,6 +136,7 @@ function EscalasTab() {
       turno_inicio: turnoInicio,
       turno_fim: turnoFim,
       observacoes: observacoes || null,
+      unidade_id: unidadeAtual?.id || null,
     };
 
     if (editingEscala) {
