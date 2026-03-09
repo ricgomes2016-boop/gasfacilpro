@@ -163,12 +163,17 @@ Deno.serve(async (req) => {
       if (createError) {
         // If user already exists, find and reuse them
         if (createError.message?.includes("already been registered")) {
-          const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
-          const existingUser = users?.find((u: any) => u.email === email);
-          if (existingUser) {
-            newUser = { user: existingUser };
+          // listUsers() can fail due to Supabase bug with NULL email_change
+          // Instead, look up the user via profiles table
+          const { data: existingProfile } = await supabaseAdmin
+            .from("profiles")
+            .select("user_id")
+            .eq("email", email)
+            .maybeSingle();
+          if (existingProfile) {
+            newUser = { user: { id: existingProfile.user_id } };
           } else {
-            throw new Error("Usuário com este email já existe mas não foi encontrado.");
+            throw new Error("Usuário com este email já existe mas não foi encontrado no sistema.");
           }
         } else {
           throw createError;
