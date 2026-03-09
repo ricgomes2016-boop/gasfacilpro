@@ -644,10 +644,11 @@ export async function sendTyping(config: BiaConfig, phone: string) {
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone }) });
     } else {
-      await fetch(`https://free.uazapi.com/${config.instanceId}/typing`, {
+      // UaZapiGO v2: POST /chat/presence with number
+      await fetch(`https://free.uazapi.com/chat/presence`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.token}` },
-        body: JSON.stringify({ to: phone.replace(/\D/g, "") }),
+        body: JSON.stringify({ number: phone.replace(/\D/g, ""), presence: "composing" }),
       });
     }
   } catch (e) { console.error("Typing indicator error:", e); }
