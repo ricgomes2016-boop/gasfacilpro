@@ -382,7 +382,10 @@ export async function downloadAudio(config: BiaConfig, mediaUrl: string): Promis
     const headers: Record<string, string> = {};
 
     // Z-API media URLs need authentication
-    if (config.provedor === "zapi" && !mediaUrl.startsWith("http")) {
+    if (config.provedor === "meta") {
+      // Meta Cloud API media: need to download via graph API with auth
+      headers["Authorization"] = `Bearer ${config.token}`;
+    } else if (config.provedor === "zapi" && !mediaUrl.startsWith("http")) {
       fetchUrl = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/download-media`;
       headers["Content-Type"] = "application/json";
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
