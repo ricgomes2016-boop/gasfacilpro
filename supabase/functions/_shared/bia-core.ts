@@ -640,13 +640,15 @@ export async function getEntregadorLocation(supabase: any, clienteId: string | n
 // ========== SEND TYPING INDICATOR ==========
 export async function sendTyping(config: BiaConfig, phone: string) {
   try {
-    if (config.provedor === "zapi") {
+    if (config.provedor === "meta") {
+      // Meta Cloud API doesn't have a native typing indicator, skip
+      return;
+    } else if (config.provedor === "zapi") {
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/typing`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone }) });
     } else {
-      // UaZapiGO v2: POST /chat/presence with token header
       await fetch(`https://free.uazapi.com/chat/presence`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "token": config.token },
