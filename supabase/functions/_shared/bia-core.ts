@@ -687,7 +687,7 @@ export async function sendLocation(config: BiaConfig, phone: string, lat: number
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, lat: String(lat), lng: String(lng), title: `📍 ${name}`, address: "Entregador a caminho" }) });
     } else {
-      await fetch(`https://free.uazapi.com/message/location`, {
+      await fetch(`https://free.uazapi.com/send/location`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "token": config.token },
         body: JSON.stringify({ number: phone.replace(/\D/g, ""), lat, lng, name: `📍 ${name}`, address: "Entregador a caminho" }),
