@@ -385,7 +385,7 @@ export async function downloadAudio(config: BiaConfig, mediaUrl: string): Promis
       headers["Content-Type"] = "application/json";
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
     } else if (config.provedor === "uazapi" && !mediaUrl.startsWith("http")) {
-      fetchUrl = `https://api.uazapi.com/${config.instanceId}/download-media`;
+      fetchUrl = `https://free.uazapi.com/${config.instanceId}/download-media`;
       headers["Authorization"] = `Bearer ${config.token}`;
       headers["Content-Type"] = "application/json";
     }
@@ -644,7 +644,7 @@ export async function sendTyping(config: BiaConfig, phone: string) {
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone }) });
     } else {
-      await fetch(`https://api.uazapi.com/${config.instanceId}/typing`, {
+      await fetch(`https://free.uazapi.com/${config.instanceId}/typing`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.token}` },
         body: JSON.stringify({ to: phone.replace(/\D/g, "") }),
@@ -662,7 +662,7 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, message }) });
     } else {
-      await fetch(`https://api.uazapi.com/${config.instanceId}/send-text`, {
+      await fetch(`https://free.uazapi.com/${config.instanceId}/send-text`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.token}` },
         body: JSON.stringify({ to: phone.replace(/\D/g, ""), text: message }),
@@ -680,7 +680,7 @@ export async function sendLocation(config: BiaConfig, phone: string, lat: number
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, lat: String(lat), lng: String(lng), title: `📍 ${name}`, address: "Entregador a caminho" }) });
     } else {
-      await fetch(`https://api.uazapi.com/${config.instanceId}/send-location`, {
+      await fetch(`https://free.uazapi.com/${config.instanceId}/send-location`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.token}` },
         body: JSON.stringify({ to: phone.replace(/\D/g, ""), lat, lng, name: `📍 ${name}`, address: "Entregador a caminho" }),

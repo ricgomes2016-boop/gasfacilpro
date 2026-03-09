@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
 
       if (provedor === "uazapi") {
         // UaZapi API
-        const url = `https://api.uazapi.com/${instanceId}/send-text`;
+        const url = `https://free.uazapi.com/${instanceId}/send-text`;
         const resp = await fetch(url, {
           method: "POST",
           headers: {
@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
         }
 
         if (imageUrl) {
-          const imgUrl = `https://api.uazapi.com/${instanceId}/send-image`;
+          const imgUrl = `https://free.uazapi.com/${instanceId}/send-image`;
           await fetch(imgUrl, {
             method: "POST",
             headers: {
