@@ -430,6 +430,7 @@ export function Sidebar() {
                     >
                       <item.icon className={cn(
                         "h-[18px] w-[18px] flex-shrink-0 transition-transform duration-200 stroke-[2.25]",
+                        isChildActive ? "" : menuIconColors[item.label] || "",
                         !isChildActive && "group-hover:scale-110"
                       )} />
                       <span className="flex-1 text-left truncate">{item.label}</span>
