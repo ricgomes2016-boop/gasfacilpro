@@ -37,29 +37,33 @@ serve(async (req) => {
         return OK({ ok: true, skipped: "not_message_event", eventType: rawBody.EventType });
       }
       
-      // UaZapi nests the actual message data in "message" or directly in the payload
+      // UaZapi nests the actual message data in "message"
       const msg = rawBody.message || rawBody.msg || rawBody;
       
-      // Log critical fields for debugging
-      console.log("UaZapi msg keys:", Object.keys(msg).join(","));
-      console.log("UaZapi message field:", JSON.stringify(rawBody.message || "none").substring(0, 500));
-      console.log("UaZapi chat field:", JSON.stringify(rawBody.chat || "none").substring(0, 300));
+      // UaZapi uses chatid for the real phone (e.g. "554399692765@s.whatsapp.net")
+      // sender_pn has the phone number, chatlid is a LID (not usable)
+      const realPhone = msg.chatid || msg.sender_pn || msg.sender || msg.from || msg.phone || rawBody.from || "";
+      const msgText = msg.text || (typeof msg.content === "string" ? msg.content : msg.content?.text) || msg.body || "";
+      
+      console.log("UaZapi extracted: phone=", realPhone, "text=", msgText?.substring(0, 80), "fromMe=", msg.fromMe, "wasSentByApi=", msg.wasSentByApi);
       
       // Build a normalized body from UaZapi format
       body = {
         ...msg,
-        // UaZapi uses "from" in the message or "owner" at top level for the instance owner
-        from: msg.from || msg.phone || msg.sender || rawBody.from || "",
+        from: realPhone,
         fromMe: msg.fromMe ?? rawBody.fromMe ?? false,
-        text: msg.text || msg.body || msg.content || msg.message || "",
+        text: msgText,
         type: msg.type || "chat",
-        senderName: msg.senderName || msg.pushName || msg.chatName || rawBody.chat?.name || rawBody.instanceName || "",
-        isGroup: msg.isGroup ?? (msg.from && msg.from.includes("@g.us")) ?? false,
-        isNewMsg: msg.isNewMsg ?? true,
-        id: msg.id || msg.messageId || msg.key?.id || rawBody.id || "",
+        senderName: msg.senderName || msg.pushName || rawBody.chat?.name || rawBody.instanceName || "",
+        isGroup: msg.isGroup ?? (realPhone && realPhone.includes("@g.us")) ?? false,
+        isNewMsg: true,
+        id: msg.id || msg.messageid || msg.messageId || rawBody.id || "",
         audioMessage: msg.audioMessage || null,
         mediaUrl: msg.mediaUrl || msg.audio || null,
       };
+      
+      // Also skip messages sent by the API (own bot replies)
+      if (msg.wasSentByApi === true) return OK({ ok: true, skipped: "wasSentByApi" });
       
       console.log("UaZapi normalized:", JSON.stringify({ from: body.from, text: body.text?.substring(0, 80), type: body.type, fromMe: body.fromMe, senderName: body.senderName }));
     }
