@@ -30,6 +30,140 @@ import { useState, useEffect } from "react";
 import { menuItems } from "./menuItems";
 import { motion, AnimatePresence } from "framer-motion";
 
+// Color map for menu category icons (HSL-based tailwind classes using semantic approach)
+const menuIconColors: Record<string, string> = {
+  "Dashboard": "text-blue-500",
+  "Assistente IA": "text-violet-500",
+  "Atendimento": "text-green-500",
+  "Vendas": "text-emerald-500",
+  "Caixa": "text-amber-500",
+  "Gestão Operacional": "text-cyan-500",
+  "Gestão de Clientes": "text-pink-500",
+  "Gestão de Estoque": "text-orange-500",
+  "Gestão Financeira": "text-yellow-500",
+  "Gestão de Frota": "text-indigo-500",
+  "Gestão de RH": "text-rose-500",
+  "Gestão Fiscal": "text-teal-500",
+  "Configurações": "text-slate-400",
+};
+
+const subMenuIconColors: Record<string, string> = {
+  // Atendimento
+  "Central de Atendimento": "text-green-500",
+  // Vendas
+  "PDV": "text-emerald-600",
+  "Nova Venda": "text-emerald-400",
+  "Pedidos": "text-emerald-500",
+  "Devoluções / Trocas": "text-red-400",
+  "Relatório de Vendas": "text-emerald-300",
+  // Caixa
+  "Acerto Diário Entregador": "text-amber-500",
+  "Caixa do Dia": "text-amber-400",
+  "Despesas (Sangria)": "text-amber-600",
+  // Gestão Operacional
+  "Central de Inteligência": "text-violet-500",
+  "Central de Indicadores": "text-cyan-400",
+  "Mapa Operacional": "text-cyan-500",
+  "Alertas Inteligentes": "text-red-400",
+  "Rotas de Entrega": "text-cyan-600",
+  "Escalas de Entregadores": "text-cyan-300",
+  "Análise de Resultados": "text-cyan-500",
+  "Planejamento": "text-blue-400",
+  "Metas e Desafios": "text-orange-400",
+  "Análise de Concorrência": "text-purple-400",
+  "Relatório Gerencial": "text-cyan-400",
+  "Gamificação Entregadores": "text-yellow-500",
+  "Licitações Públicas": "text-slate-400",
+  "Workflow Aprovações": "text-green-400",
+  "SLA de Entregas": "text-blue-500",
+  // Gestão de Clientes
+  "Clientes": "text-pink-500",
+  "Marketing IA": "text-violet-500",
+  "Contratos Recorrentes": "text-pink-400",
+  "Promoções e Cupons": "text-yellow-500",
+  "Campanhas": "text-pink-600",
+  "Fidelidade / Indicações": "text-red-400",
+  "CRM Avançado": "text-pink-300",
+  "Programa de Indicação": "text-rose-400",
+  "Ranking dos Clientes": "text-amber-500",
+  "Gestão de Crédito": "text-red-500",
+  "Aplicativo do Cliente": "text-blue-400",
+  // Gestão de Estoque
+  "Estoque do Dia": "text-orange-500",
+  "Produtos": "text-orange-400",
+  "Compras": "text-orange-600",
+  "Fornecedores": "text-orange-300",
+  "Comodatos": "text-amber-400",
+  "Transferência entre Filiais": "text-orange-500",
+  "MCMM Inteligente": "text-green-500",
+  "Histórico Movimentações": "text-orange-400",
+  "Lotes & Rastreabilidade": "text-orange-600",
+  // Gestão Financeira
+  "Fluxo de Caixa": "text-yellow-500",
+  "Contas a Pagar": "text-red-400",
+  "Contas a Receber": "text-green-400",
+  "Gestão de Cartões": "text-yellow-400",
+  "Contas Bancárias": "text-blue-400",
+  "Aprovar Despesas": "text-green-500",
+  "Cobranças": "text-yellow-600",
+  "Controle de Cheques": "text-yellow-300",
+  "Calendário Financeiro": "text-blue-300",
+  "Orçamentos": "text-yellow-500",
+  "Contador": "text-slate-400",
+  "Venda Antecipada": "text-green-500",
+  "Balanço Patrimonial": "text-yellow-400",
+  "Vale Gás": "text-amber-400",
+  "Fechamento Mensal": "text-yellow-600",
+  "E-mail Transacional": "text-blue-400",
+  "Exportação Contábil": "text-green-400",
+  // Gestão de Frota
+  "Veículos": "text-indigo-500",
+  "Controle de Combustível": "text-red-400",
+  "Manutenção": "text-indigo-400",
+  "Documentos": "text-indigo-300",
+  "Checklist de Saída": "text-green-400",
+  "Multas": "text-red-500",
+  "Relatórios": "text-indigo-400",
+  "Gamificação": "text-yellow-500",
+  // Gestão de RH
+  "Dashboard RH": "text-rose-400",
+  "Funcionários": "text-rose-500",
+  "Folha de Pagamento": "text-green-400",
+  "Ponto Eletrônico": "text-rose-400",
+  "Vale Funcionário": "text-amber-400",
+  "Comissão do Entregador": "text-green-500",
+  "Premiação": "text-yellow-400",
+  "Bônus": "text-amber-500",
+  "Alerta Jornada": "text-red-400",
+  "Banco de Horas": "text-blue-400",
+  "Horários": "text-rose-300",
+  "Controle de Férias": "text-cyan-400",
+  "Atestados e Faltas": "text-red-400",
+  "Avaliação de Desempenho": "text-yellow-500",
+  "Onboarding / Offboarding": "text-green-400",
+  "Prevenção Trabalhista - IA": "text-red-500",
+  "Produtividade - IA": "text-violet-500",
+  // Gestão Fiscal
+  "NF-e": "text-teal-500",
+  "NFC-e": "text-teal-400",
+  "MDF-e": "text-teal-600",
+  "CT-e": "text-teal-300",
+  "Central de XML": "text-teal-400",
+  "Painel Fiscal": "text-teal-500",
+  // Configurações
+  "Geral / Regras": "text-slate-400",
+  "Usuários": "text-blue-400",
+  "Permissões": "text-red-400",
+  "Auditoria": "text-green-400",
+  "Unidades / Lojas": "text-purple-400",
+  "Canais de Venda": "text-pink-400",
+  "Categorias de Despesas": "text-amber-400",
+  "Documentos da Empresa": "text-slate-400",
+  "Notificações e Alertas": "text-yellow-400",
+  "Personalização Visual": "text-violet-400",
+  "Integrações / Hub": "text-cyan-400",
+};
+
 export function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -196,7 +330,7 @@ export function Sidebar() {
                               : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/80"
                           )}
                         >
-                          <item.icon className="h-[18px] w-[18px]" />
+                          <item.icon className={cn("h-[18px] w-[18px]", isItemActive ? "" : menuIconColors[item.label] || "")} />
                         </Link>
                       ) : (
                         <button
@@ -207,7 +341,7 @@ export function Sidebar() {
                               : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/80"
                           )}
                         >
-                          <item.icon className="h-[18px] w-[18px]" />
+                          <item.icon className={cn("h-[18px] w-[18px]", isChildActive ? "" : menuIconColors[item.label] || "")} />
                         </button>
                       )}
                     </TooltipTrigger>
@@ -226,7 +360,7 @@ export function Sidebar() {
                                   isActive(subItem.path) && "bg-accent font-medium text-primary"
                                 )}
                               >
-                                <SubIcon className="h-3 w-3 flex-shrink-0" />
+                                <SubIcon className={cn("h-3 w-3 flex-shrink-0", isActive(subItem.path) ? "" : subMenuIconColors[subItem.label] || menuIconColors[item.label] || "")} />
                                 <span>{subItem.label}</span>
                               </Link>
                             );
@@ -278,6 +412,7 @@ export function Sidebar() {
                     >
                       <item.icon className={cn(
                         "h-[18px] w-[18px] flex-shrink-0 transition-transform duration-200 stroke-[2.25]",
+                        isItemActive ? "" : menuIconColors[item.label] || "",
                         !isItemActive && "group-hover:scale-110"
                       )} />
                       <span className="truncate">{item.label}</span>
@@ -295,6 +430,7 @@ export function Sidebar() {
                     >
                       <item.icon className={cn(
                         "h-[18px] w-[18px] flex-shrink-0 transition-transform duration-200 stroke-[2.25]",
+                        isChildActive ? "" : menuIconColors[item.label] || "",
                         !isChildActive && "group-hover:scale-110"
                       )} />
                       <span className="flex-1 text-left truncate">{item.label}</span>
@@ -341,7 +477,8 @@ export function Sidebar() {
                                 >
                                   <SubIcon className={cn(
                                     "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
-                                    !subActive && "group-hover:scale-110 group-hover:text-primary"
+                                    subActive ? "" : subMenuIconColors[subItem.label] || menuIconColors[item.label] || "",
+                                    !subActive && "group-hover:scale-110"
                                   )} />
                                   <span className="truncate">{subItem.label}</span>
                                 </Link>
