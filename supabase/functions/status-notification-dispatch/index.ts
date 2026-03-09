@@ -59,10 +59,10 @@ serve(async (req) => {
         // Send via Z-API or UaZapi
         let sendOk = false;
         if (integration.provedor === "uazapi") {
-          const resp = await fetch(`https://free.uazapi.com/${integration.instance_id}/send-text`, {
+          const resp = await fetch(`https://free.uazapi.com/send/text`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${integration.token}` },
-            body: JSON.stringify({ to: phone, text: notif.mensagem }),
+            headers: { "Content-Type": "application/json", "token": integration.token },
+            body: JSON.stringify({ number: phone, text: notif.mensagem }),
           });
           sendOk = resp.ok;
         } else {
