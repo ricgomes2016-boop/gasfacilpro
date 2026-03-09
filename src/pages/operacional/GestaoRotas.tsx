@@ -186,6 +186,7 @@ export default function GestaoRotas() {
       bairros,
       distancia_km: distanciaKm ? parseFloat(distanciaKm) : null,
       tempo_estimado: tempoEstimado || null,
+      ...(editingRota ? {} : { unidade_id: unidadeAtual?.id || null }),
     };
 
     if (editingRota) {
