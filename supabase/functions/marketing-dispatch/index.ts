@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
         }
 
         if (imageUrl) {
-          const imgUrl = `https://api.uazapi.com/${instanceId}/send-image`;
+          const imgUrl = `https://free.uazapi.com/${instanceId}/send-image`;
           await fetch(imgUrl, {
             method: "POST",
             headers: {
