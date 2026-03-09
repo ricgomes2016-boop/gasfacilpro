@@ -246,6 +246,27 @@ export function Sidebar() {
                   layout
                 >
                   {item.path ? (
+                    // Special treatment for Assistente IA
+                    item.label === "Assistente IA" ? (
+                      <Link
+                        to={item.path}
+                        className={cn(
+                          "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200 relative overflow-hidden",
+                          isItemActive
+                            ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/30"
+                            : "bg-gradient-to-r from-primary/10 via-primary/5 to-transparent text-primary border border-primary/20 hover:from-primary/20 hover:border-primary/40"
+                        )}
+                      >
+                        <motion.div
+                          animate={{ rotate: [0, 15, -10, 0] }}
+                          transition={{ duration: 3, repeat: Infinity, repeatDelay: 4, ease: "easeInOut" }}
+                        >
+                          <item.icon className="h-[18px] w-[18px] flex-shrink-0 stroke-[2.25]" />
+                        </motion.div>
+                        <span className="truncate">{item.label}</span>
+                        <span className="ml-auto text-[9px] font-bold uppercase tracking-wider opacity-70 bg-primary/15 px-1.5 py-0.5 rounded-full">IA</span>
+                      </Link>
+                    ) : (
                     <Link
                       to={item.path}
                       className={cn(
@@ -261,6 +282,7 @@ export function Sidebar() {
                       )} />
                       <span className="truncate">{item.label}</span>
                     </Link>
+                    )
                   ) : (
                     <button
                       onClick={() => toggleSubmenu(item.label)}

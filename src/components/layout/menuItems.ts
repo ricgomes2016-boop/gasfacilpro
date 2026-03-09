@@ -110,7 +110,6 @@ export const menuItems: MenuItem[] = [
     label: "Atendimento",
     submenu: [
       { icon: Phone, label: "Central de Atendimento", path: "/atendimento" },
-      { icon: Smartphone, label: "App Bina (Caller ID)", path: "/atendimento/bina" },
     ],
   },
   {
