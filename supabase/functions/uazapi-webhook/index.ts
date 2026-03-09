@@ -21,8 +21,48 @@ serve(async (req) => {
 
   try {
     const supabase = createSupabase();
-    const body = await req.json();
-    console.log("UaZapi webhook:", JSON.stringify(body).substring(0, 500));
+    const rawBody = await req.json();
+    console.log("UaZapi webhook raw:", JSON.stringify(rawBody).substring(0, 500));
+
+    // UaZapi wraps payloads in a container with EventType, message, chat, etc.
+    // Normalize: if rawBody has EventType "messages" and a nested message object, extract it
+    let body = rawBody;
+    const isUaZapiWrapped = !!rawBody.EventType;
+    
+    if (isUaZapiWrapped) {
+      console.log("UaZapi wrapped payload detected. EventType:", rawBody.EventType, "Keys:", Object.keys(rawBody).join(","));
+      
+      // Only process message events
+      if (rawBody.EventType !== "messages") {
+        return OK({ ok: true, skipped: "not_message_event", eventType: rawBody.EventType });
+      }
+      
+      // UaZapi nests the actual message data in "message" or directly in the payload
+      const msg = rawBody.message || rawBody.msg || rawBody;
+      
+      // Log critical fields for debugging
+      console.log("UaZapi msg keys:", Object.keys(msg).join(","));
+      console.log("UaZapi message field:", JSON.stringify(rawBody.message || "none").substring(0, 500));
+      console.log("UaZapi chat field:", JSON.stringify(rawBody.chat || "none").substring(0, 300));
+      
+      // Build a normalized body from UaZapi format
+      body = {
+        ...msg,
+        // UaZapi uses "from" in the message or "owner" at top level for the instance owner
+        from: msg.from || msg.phone || msg.sender || rawBody.from || "",
+        fromMe: msg.fromMe ?? rawBody.fromMe ?? false,
+        text: msg.text || msg.body || msg.content || msg.message || "",
+        type: msg.type || "chat",
+        senderName: msg.senderName || msg.pushName || msg.chatName || rawBody.chat?.name || rawBody.instanceName || "",
+        isGroup: msg.isGroup ?? (msg.from && msg.from.includes("@g.us")) ?? false,
+        isNewMsg: msg.isNewMsg ?? true,
+        id: msg.id || msg.messageId || msg.key?.id || rawBody.id || "",
+        audioMessage: msg.audioMessage || null,
+        mediaUrl: msg.mediaUrl || msg.audio || null,
+      };
+      
+      console.log("UaZapi normalized:", JSON.stringify({ from: body.from, text: body.text?.substring(0, 80), type: body.type, fromMe: body.fromMe, senderName: body.senderName }));
+    }
 
     // Skip own messages
     if (body.fromMe === true || body.direction === "sent") return OK({ ok: true, skipped: "fromMe" });
