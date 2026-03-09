@@ -644,10 +644,11 @@ export async function sendTyping(config: BiaConfig, phone: string) {
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone }) });
     } else {
-      await fetch(`https://free.uazapi.com/${config.instanceId}/typing`, {
+      // UaZapiGO v2: POST /chat/presence with number
+      await fetch(`https://free.uazapi.com/chat/presence`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.token}` },
-        body: JSON.stringify({ to: phone.replace(/\D/g, "") }),
+        body: JSON.stringify({ number: phone.replace(/\D/g, ""), presence: "composing" }),
       });
     }
   } catch (e) { console.error("Typing indicator error:", e); }
@@ -662,11 +663,27 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, message }) });
     } else {
-      await fetch(`https://free.uazapi.com/${config.instanceId}/send-text`, {
+      // Try UaZapi: POST /{token}/send-text with number field
+      const uazUrl = `https://free.uazapi.com/${config.token}/send-text`;
+      const uazBody = { number: phone.replace(/\D/g, ""), text: message };
+      console.log("UaZapi sendMessage:", JSON.stringify({ url: uazUrl, number: uazBody.number, textLen: message.length }));
+      let resp = await fetch(uazUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.token}` },
-        body: JSON.stringify({ to: phone.replace(/\D/g, ""), text: message }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(uazBody),
       });
+      let respText = await resp.text();
+      // Fallback: try with Authorization header and /message/text
+      if (resp.status === 405 || resp.status === 404) {
+        console.log("UaZapi fallback to /message/text with Auth header");
+        resp = await fetch(`https://free.uazapi.com/message/text`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.token}` },
+          body: JSON.stringify(uazBody),
+        });
+        respText = await resp.text();
+      }
+      console.log("UaZapi sendMessage response:", resp.status, respText.substring(0, 300));
     }
   } catch (e) { console.error("Send message error:", e); }
 }
@@ -680,10 +697,10 @@ export async function sendLocation(config: BiaConfig, phone: string, lat: number
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, lat: String(lat), lng: String(lng), title: `📍 ${name}`, address: "Entregador a caminho" }) });
     } else {
-      await fetch(`https://free.uazapi.com/${config.instanceId}/send-location`, {
+      await fetch(`https://free.uazapi.com/message/location`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.token}` },
-        body: JSON.stringify({ to: phone.replace(/\D/g, ""), lat, lng, name: `📍 ${name}`, address: "Entregador a caminho" }),
+        body: JSON.stringify({ number: phone.replace(/\D/g, ""), lat, lng, name: `📍 ${name}`, address: "Entregador a caminho" }),
       });
     }
   } catch (e) { console.error("Send location error:", e); }
