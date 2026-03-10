@@ -797,7 +797,15 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
 // ========== SEND LOCATION (WHATSAPP) ==========
 export async function sendLocation(config: BiaConfig, phone: string, lat: number, lng: number, name: string) {
   try {
-    if (config.provedor === "meta") {
+    if (config.provedor === "gateway") {
+      const url = `${config.gatewayBaseUrl}/instances/${config.gatewayInstanceName}/send-location`;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+      await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+        body: JSON.stringify({ phone: phone.replace(/\D/g, ""), latitude: lat, longitude: lng, name: `📍 ${name}`, address: "Entregador a caminho" }),
+      });
+    } else if (config.provedor === "meta") {
       const phoneNumberId = config.metaPhoneNumberId || config.instanceId;
       const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
       await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
