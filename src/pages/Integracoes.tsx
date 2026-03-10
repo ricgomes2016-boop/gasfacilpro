@@ -266,12 +266,13 @@ export default function Integracoes() {
   // WhatsApp per-unit config (legacy table)
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [whatsappConfigs, setWhatsappConfigs] = useState<any[]>([]);
-  const [wpProvedor, setWpProvedor] = useState<"zapi" | "uazapi" | "meta">("zapi");
+  const [wpProvedor, setWpProvedor] = useState<"zapi" | "uazapi" | "meta" | "evolution">("zapi");
   const [wpMetaVerifyToken, setWpMetaVerifyToken] = useState("gasfacil_meta_verify");
   const [wpUnidadeId, setWpUnidadeId] = useState("");
   const [wpInstanceId, setWpInstanceId] = useState("");
   const [wpToken, setWpToken] = useState("");
   const [wpSecurityToken, setWpSecurityToken] = useState("");
+  const [wpBaseUrl, setWpBaseUrl] = useState("");
   const [wpDescontoEtapa1, setWpDescontoEtapa1] = useState("5");
   const [wpDescontoEtapa2, setWpDescontoEtapa2] = useState("10");
   const [wpPrecoMinimoP13, setWpPrecoMinimoP13] = useState("");
@@ -313,6 +314,7 @@ export default function Integracoes() {
         instance_id: wpProvedor === "meta" ? (wpInstanceId || "meta") : wpInstanceId,
         token: wpToken,
         security_token: wpSecurityToken || null,
+        base_url: wpProvedor === "evolution" ? wpBaseUrl : null,
         provedor: wpProvedor,
         desconto_etapa1: parseFloat(wpDescontoEtapa1) || 5,
         desconto_etapa2: parseFloat(wpDescontoEtapa2) || 10,
@@ -346,6 +348,7 @@ export default function Integracoes() {
     setWpInstanceId("");
     setWpToken("");
     setWpSecurityToken("");
+    setWpBaseUrl("");
     setWpDescontoEtapa1("5");
     setWpDescontoEtapa2("10");
     setWpPrecoMinimoP13("");
@@ -361,6 +364,7 @@ export default function Integracoes() {
     setWpInstanceId(config.provedor === "meta" ? (config.meta_phone_number_id || config.instance_id) : config.instance_id);
     setWpToken(config.token);
     setWpSecurityToken(config.security_token || "");
+    setWpBaseUrl(config.base_url || "");
     setWpDescontoEtapa1(String(config.desconto_etapa1 ?? 5));
     setWpDescontoEtapa2(String(config.desconto_etapa2 ?? 10));
     setWpPrecoMinimoP13(config.preco_minimo_p13 ? String(config.preco_minimo_p13) : "");
@@ -789,12 +793,13 @@ export default function Integracoes() {
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <Label>Provedor WhatsApp</Label>
-              <Select value={wpProvedor} onValueChange={(v) => setWpProvedor(v as "zapi" | "uazapi" | "meta")}>
+              <Select value={wpProvedor} onValueChange={(v) => setWpProvedor(v as "zapi" | "uazapi" | "meta" | "evolution")}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="zapi">Z-API</SelectItem>
+                  <SelectItem value="zapi">Z-API (Oficial)</SelectItem>
                   <SelectItem value="uazapi">UaZapi</SelectItem>
                   <SelectItem value="meta">Meta Cloud API (Oficial)</SelectItem>
+                  <SelectItem value="evolution">Evolution API (Self-hosted)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -811,11 +816,11 @@ export default function Integracoes() {
             </div>
             <div className="space-y-1.5">
               <Label>{wpProvedor === 'meta' ? 'Phone Number ID' : 'Instance ID'}</Label>
-              <Input value={wpInstanceId} onChange={(e) => setWpInstanceId(e.target.value)} placeholder={wpProvedor === 'meta' ? 'Ex: 123456789012345' : `Sua Instance ID da ${wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}`} />
+              <Input value={wpInstanceId} onChange={(e) => setWpInstanceId(e.target.value)} placeholder={wpProvedor === 'meta' ? 'Ex: 123456789012345' : wpProvedor === 'evolution' ? 'Ex: gasfacil-centro' : `Sua Instance ID da ${wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}`} />
             </div>
             <div className="space-y-1.5">
-              <Label>{wpProvedor === 'meta' ? 'Access Token (permanente)' : 'Token'}</Label>
-              <Input type="password" value={wpToken} onChange={(e) => setWpToken(e.target.value)} placeholder={wpProvedor === 'meta' ? 'Token do Meta Business' : `Token da ${wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}`} />
+              <Label>{wpProvedor === 'meta' ? 'Access Token (permanente)' : wpProvedor === 'evolution' ? 'Global API Key (Token)' : 'Token'}</Label>
+              <Input type="password" value={wpToken} onChange={(e) => setWpToken(e.target.value)} placeholder={wpProvedor === 'meta' ? 'Token do Meta Business' : wpProvedor === 'evolution' ? `Token de autenticação` : `Token da ${wpProvedor === 'uazapi' ? 'UaZapi' : 'Z-API'}`} />
             </div>
             {wpProvedor === "meta" && (
               <div className="space-y-1.5">
@@ -827,6 +832,13 @@ export default function Integracoes() {
               <div className="space-y-1.5">
                 <Label>Security Token (opcional)</Label>
                 <Input type="password" value={wpSecurityToken} onChange={(e) => setWpSecurityToken(e.target.value)} placeholder="Token de segurança" />
+              </div>
+            )}
+            {wpProvedor === "evolution" && (
+              <div className="space-y-1.5">
+                <Label>URL do Servidor (Base URL)</Label>
+                <Input type="url" value={wpBaseUrl} onChange={(e) => setWpBaseUrl(e.target.value)} placeholder="Ex: http://187.77.52.241:8080" />
+                <p className="text-xs text-muted-foreground mt-1">Endereço público do seu servidor Docker.</p>
               </div>
             )}
             <Separator />

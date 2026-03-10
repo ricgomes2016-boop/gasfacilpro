@@ -56,9 +56,22 @@ serve(async (req) => {
         if (!integration) integration = integracoes.length === 1 ? integracoes[0] : null;
         if (!integration) continue;
 
-        // Send via Z-API or UaZapi
+        // Send via Z-API, UaZapi or Evolution API
         let sendOk = false;
-        if (integration.provedor === "uazapi") {
+        if (integration.provedor === "evolution") {
+          const baseUrl = integration.base_url?.replace(/\/$/, "") || "";
+          if (baseUrl) {
+            const resp = await fetch(`${baseUrl}/message/sendText/${integration.instance_id}`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                apikey: integration.token,
+              },
+              body: JSON.stringify({ number: `55${phone}`, text: notif.mensagem }),
+            });
+            sendOk = resp.ok;
+          }
+        } else if (integration.provedor === "uazapi") {
           const resp = await fetch(`https://free.uazapi.com/send/text`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "token": integration.token },

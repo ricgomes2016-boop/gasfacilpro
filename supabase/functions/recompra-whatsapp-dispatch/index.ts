@@ -143,20 +143,43 @@ serve(async (req) => {
       ];
       const message = messages[Math.floor(Math.random() * messages.length)];
 
-      // Send via Z-API
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (integration.security_token) headers["Client-Token"] = integration.security_token;
-
-      const sendResp = await fetch(
-        `https://api.z-api.io/instances/${integration.instance_id}/token/${integration.token}/send-text`,
-        {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ phone: `55${phone}`, message }),
+      // Send message according to provider
+      let sendResp: Response | null = null;
+      
+      if (integration.provedor === "evolution") {
+        const baseUrl = integration.base_url?.replace(/\/$/, "") || "";
+        if (baseUrl) {
+          sendResp = await fetch(`${baseUrl}/message/sendText/${integration.instance_id}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: integration.token,
+            },
+            body: JSON.stringify({ number: `55${phone}`, text: message }),
+          });
         }
-      );
+      } else if (integration.provedor === "uazapi") {
+        sendResp = await fetch(`https://free.uazapi.com/${integration.instance_id}/send-text`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${integration.token}` },
+          body: JSON.stringify({ to: phone, text: message }),
+        });
+      } else {
+        // Send via Z-API (default fallback)
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (integration.security_token) headers["Client-Token"] = integration.security_token;
+  
+        sendResp = await fetch(
+          `https://api.z-api.io/instances/${integration.instance_id}/token/${integration.token}/send-text`,
+          {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ phone: `55${phone}`, message }),
+          }
+        );
+      }
 
-      if (sendResp.ok) {
+      if (sendResp && sendResp.ok) {
         // Log dispatch
         await supabase.from("recompra_dispatches").insert({
           cliente_id: clienteId,
