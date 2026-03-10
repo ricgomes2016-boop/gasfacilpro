@@ -45,10 +45,18 @@ export async function resolveConfig(
     );
   }
   if (payloadInstanceId) {
-    strategies.push(
-      supabase.from("integracoes_whatsapp").select("*")
-        .eq("instance_id", payloadInstanceId).eq("ativo", true).maybeSingle()
-    );
+    // For Meta, search by meta_phone_number_id; for others, by instance_id
+    if (provedor === "meta") {
+      strategies.push(
+        supabase.from("integracoes_whatsapp").select("*")
+          .eq("meta_phone_number_id", payloadInstanceId).eq("ativo", true).maybeSingle()
+      );
+    } else {
+      strategies.push(
+        supabase.from("integracoes_whatsapp").select("*")
+          .eq("instance_id", payloadInstanceId).eq("ativo", true).maybeSingle()
+      );
+    }
   }
   strategies.push(
     supabase.from("integracoes_whatsapp").select("*")
