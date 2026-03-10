@@ -92,7 +92,69 @@ export async function resolveConfig(
   return null;
 }
 
-// ========== BUSINESS HOURS ==========
+// ========== RESOLVE GATEWAY CONFIG ==========
+async function resolveGatewayConfig(
+  supabase: any,
+  queryUnidadeId: string | null,
+  instanceNameOrId: string | null
+): Promise<BiaConfig | null> {
+  let instance: any = null;
+
+  if (instanceNameOrId) {
+    // Try by instance_name first, then by id
+    const { data: byName } = await supabase.from("whatsapp_gateway_instances").select("*")
+      .eq("instance_name", instanceNameOrId).maybeSingle();
+    instance = byName;
+    if (!instance) {
+      const { data: byId } = await supabase.from("whatsapp_gateway_instances").select("*")
+        .eq("id", instanceNameOrId).maybeSingle();
+      instance = byId;
+    }
+  }
+  if (!instance && queryUnidadeId) {
+    const { data } = await supabase.from("whatsapp_gateway_instances").select("*")
+      .eq("unidade_id", queryUnidadeId).eq("status", "connected").limit(1);
+    instance = data?.[0];
+  }
+
+  if (!instance) return null;
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+  const gatewayBaseUrl = `${supabaseUrl}/functions/v1/whatsapp-gateway-api`;
+
+  // For gateway, we use the integracoes_whatsapp config for Bia negotiation params
+  // Try to find matching config for negotiation parameters
+  let descontoEtapa1 = 5, descontoEtapa2 = 10;
+  let precoMinimoP13: number | null = null, precoMinimoP20: number | null = null;
+
+  if (instance.unidade_id) {
+    const { data: wpConfig } = await supabase.from("integracoes_whatsapp").select("*")
+      .eq("unidade_id", instance.unidade_id).eq("ativo", true).limit(1);
+    if (wpConfig?.[0]) {
+      descontoEtapa1 = wpConfig[0].desconto_etapa1 ?? 5;
+      descontoEtapa2 = wpConfig[0].desconto_etapa2 ?? 10;
+      precoMinimoP13 = wpConfig[0].preco_minimo_p13 ?? null;
+      precoMinimoP20 = wpConfig[0].preco_minimo_p20 ?? null;
+    }
+  }
+
+  return {
+    instanceId: instance.id,
+    token: instance.api_key || "",
+    securityToken: null,
+    unidadeId: instance.unidade_id,
+    descontoEtapa1,
+    descontoEtapa2,
+    precoMinimoP13,
+    precoMinimoP20,
+    provedor: "gateway",
+    metaPhoneNumberId: null,
+    gatewayBaseUrl,
+    gatewayInstanceName: instance.instance_name,
+  };
+}
+
+
 export async function checkBusinessHours(supabase: any, unidadeId: string | null) {
   if (!unidadeId) return { isOffHours: false, horarioInfo: "" };
 
