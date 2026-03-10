@@ -721,8 +721,8 @@ export async function getEntregadorLocation(supabase: any, clienteId: string | n
 // ========== SEND TYPING INDICATOR ==========
 export async function sendTyping(config: BiaConfig, phone: string) {
   try {
-    if (config.provedor === "meta") {
-      // Meta Cloud API doesn't have a native typing indicator, skip
+    if (config.provedor === "meta" || config.provedor === "gateway") {
+      // Meta and Gateway don't have native typing indicators, skip
       return;
     } else if (config.provedor === "zapi") {
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/typing`;
