@@ -11,8 +11,12 @@ export interface BiaConfig {
   descontoEtapa2: number;
   precoMinimoP13: number | null;
   precoMinimoP20: number | null;
-  provedor: "zapi" | "uazapi" | "meta";
+  provedor: "zapi" | "uazapi" | "meta" | "gateway";
   metaPhoneNumberId?: string | null;
+  /** Gateway-specific: URL of the gateway edge function */
+  gatewayBaseUrl?: string | null;
+  /** Gateway-specific: instance name for API calls */
+  gatewayInstanceName?: string | null;
 }
 
 export interface ClienteInfo {
