@@ -742,7 +742,18 @@ export async function sendTyping(config: BiaConfig, phone: string) {
 // ========== SEND MESSAGE ==========
 export async function sendMessage(config: BiaConfig, phone: string, message: string) {
   try {
-    if (config.provedor === "meta") {
+    if (config.provedor === "gateway") {
+      // Send via WhatsApp Gateway API
+      const url = `${config.gatewayBaseUrl}/instances/${config.gatewayInstanceName}/send-text`;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+        body: JSON.stringify({ phone: phone.replace(/\D/g, ""), message }),
+      });
+      const respText = await resp.text();
+      console.log("Gateway sendMessage response:", resp.status, respText.substring(0, 300));
+    } else if (config.provedor === "meta") {
       // Meta WhatsApp Cloud API
       const phoneNumberId = config.metaPhoneNumberId || config.instanceId;
       const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
