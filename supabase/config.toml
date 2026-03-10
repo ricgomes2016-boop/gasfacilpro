@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.uazapi-webhook]
 verify_jwt = false
+
+[functions.whatsapp-gateway-api]
+verify_jwt = false

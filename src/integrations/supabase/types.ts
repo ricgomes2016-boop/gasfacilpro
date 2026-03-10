@@ -7771,6 +7771,125 @@ export type Database = {
           },
         ]
       }
+      whatsapp_gateway_instances: {
+        Row: {
+          api_key: string | null
+          auto_reconnect: boolean | null
+          created_at: string
+          empresa_id: string
+          engine_url: string
+          id: string
+          instance_name: string
+          phone: string | null
+          qr_code: string | null
+          session_data: Json | null
+          status: string
+          unidade_id: string
+          updated_at: string
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          auto_reconnect?: boolean | null
+          created_at?: string
+          empresa_id: string
+          engine_url: string
+          id?: string
+          instance_name: string
+          phone?: string | null
+          qr_code?: string | null
+          session_data?: Json | null
+          status?: string
+          unidade_id: string
+          updated_at?: string
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          auto_reconnect?: boolean | null
+          created_at?: string
+          empresa_id?: string
+          engine_url?: string
+          id?: string
+          instance_name?: string
+          phone?: string | null
+          qr_code?: string | null
+          session_data?: Json | null
+          status?: string
+          unidade_id?: string
+          updated_at?: string
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_gateway_instances_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_gateway_instances_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_gateway_messages: {
+        Row: {
+          created_at: string
+          direction: string
+          external_id: string | null
+          id: string
+          instance_id: string
+          media_url: string | null
+          message: string | null
+          message_type: string
+          metadata: Json | null
+          phone: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          direction?: string
+          external_id?: string | null
+          id?: string
+          instance_id: string
+          media_url?: string | null
+          message?: string | null
+          message_type?: string
+          metadata?: Json | null
+          phone: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          direction?: string
+          external_id?: string | null
+          id?: string
+          instance_id?: string
+          media_url?: string | null
+          message?: string | null
+          message_type?: string
+          metadata?: Json | null
+          phone?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_gateway_messages_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_gateway_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       vw_alertas_cnh: {
