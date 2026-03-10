@@ -276,7 +276,7 @@ export const menuItems: MenuItem[] = [
       { icon: Bell, label: "Notificações e Alertas", path: "/config/notificacoes" },
       { icon: Star, label: "Personalização Visual", path: "/config/personalizacao" },
       { icon: Plug, label: "Integrações / Hub", path: "/integracoes" },
-      { icon: Smartphone, label: "WhatsApp Gateway", path: "/integracoes/whatsapp-gateway" },
+      { icon: Smartphone, label: "WhatsApp Manager", path: "/integracoes/whatsapp-gateway" },
     ],
   },
 ];

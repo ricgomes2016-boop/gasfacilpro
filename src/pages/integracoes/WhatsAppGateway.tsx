@@ -300,7 +300,7 @@ export default function WhatsAppGateway() {
 
   return (
     <MainLayout>
-      <Header title="WhatsApp Gateway" subtitle="Gerencie instâncias WhatsApp via QR Code — substituto direto de Z-API" />
+      <Header title="WhatsApp Manager" subtitle="Conecte e gerencie seus números WhatsApp via QR Code — multiempresa e multi-unidade" />
       <div className="p-4 md:p-6 space-y-6">
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
