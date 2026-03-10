@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.whatsapp-gateway-api]
 verify_jwt = false
+
+[functions.gateway-webhook]
+verify_jwt = false

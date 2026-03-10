@@ -11,8 +11,12 @@ export interface BiaConfig {
   descontoEtapa2: number;
   precoMinimoP13: number | null;
   precoMinimoP20: number | null;
-  provedor: "zapi" | "uazapi" | "meta";
+  provedor: "zapi" | "uazapi" | "meta" | "gateway";
   metaPhoneNumberId?: string | null;
+  /** Gateway-specific: URL of the gateway edge function */
+  gatewayBaseUrl?: string | null;
+  /** Gateway-specific: instance name for API calls */
+  gatewayInstanceName?: string | null;
 }
 
 export interface ClienteInfo {
@@ -32,10 +36,14 @@ export function createSupabase() {
 // ========== RESOLVE CONFIG ==========
 export async function resolveConfig(
   supabase: any,
-  provedor: "zapi" | "uazapi" | "meta",
+  provedor: "zapi" | "uazapi" | "meta" | "gateway",
   queryUnidadeId: string | null,
   payloadInstanceId: string | null
 ): Promise<BiaConfig | null> {
+  // Gateway provider: resolve from whatsapp_gateway_instances table
+  if (provedor === "gateway") {
+    return resolveGatewayConfig(supabase, queryUnidadeId, payloadInstanceId);
+  }
   const strategies = [];
 
   if (queryUnidadeId) {
@@ -84,7 +92,69 @@ export async function resolveConfig(
   return null;
 }
 
-// ========== BUSINESS HOURS ==========
+// ========== RESOLVE GATEWAY CONFIG ==========
+async function resolveGatewayConfig(
+  supabase: any,
+  queryUnidadeId: string | null,
+  instanceNameOrId: string | null
+): Promise<BiaConfig | null> {
+  let instance: any = null;
+
+  if (instanceNameOrId) {
+    // Try by instance_name first, then by id
+    const { data: byName } = await supabase.from("whatsapp_gateway_instances").select("*")
+      .eq("instance_name", instanceNameOrId).maybeSingle();
+    instance = byName;
+    if (!instance) {
+      const { data: byId } = await supabase.from("whatsapp_gateway_instances").select("*")
+        .eq("id", instanceNameOrId).maybeSingle();
+      instance = byId;
+    }
+  }
+  if (!instance && queryUnidadeId) {
+    const { data } = await supabase.from("whatsapp_gateway_instances").select("*")
+      .eq("unidade_id", queryUnidadeId).eq("status", "connected").limit(1);
+    instance = data?.[0];
+  }
+
+  if (!instance) return null;
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+  const gatewayBaseUrl = `${supabaseUrl}/functions/v1/whatsapp-gateway-api`;
+
+  // For gateway, we use the integracoes_whatsapp config for Bia negotiation params
+  // Try to find matching config for negotiation parameters
+  let descontoEtapa1 = 5, descontoEtapa2 = 10;
+  let precoMinimoP13: number | null = null, precoMinimoP20: number | null = null;
+
+  if (instance.unidade_id) {
+    const { data: wpConfig } = await supabase.from("integracoes_whatsapp").select("*")
+      .eq("unidade_id", instance.unidade_id).eq("ativo", true).limit(1);
+    if (wpConfig?.[0]) {
+      descontoEtapa1 = wpConfig[0].desconto_etapa1 ?? 5;
+      descontoEtapa2 = wpConfig[0].desconto_etapa2 ?? 10;
+      precoMinimoP13 = wpConfig[0].preco_minimo_p13 ?? null;
+      precoMinimoP20 = wpConfig[0].preco_minimo_p20 ?? null;
+    }
+  }
+
+  return {
+    instanceId: instance.id,
+    token: instance.api_key || "",
+    securityToken: null,
+    unidadeId: instance.unidade_id,
+    descontoEtapa1,
+    descontoEtapa2,
+    precoMinimoP13,
+    precoMinimoP20,
+    provedor: "gateway",
+    metaPhoneNumberId: null,
+    gatewayBaseUrl,
+    gatewayInstanceName: instance.instance_name,
+  };
+}
+
+
 export async function checkBusinessHours(supabase: any, unidadeId: string | null) {
   if (!unidadeId) return { isOffHours: false, horarioInfo: "" };
 
@@ -651,8 +721,8 @@ export async function getEntregadorLocation(supabase: any, clienteId: string | n
 // ========== SEND TYPING INDICATOR ==========
 export async function sendTyping(config: BiaConfig, phone: string) {
   try {
-    if (config.provedor === "meta") {
-      // Meta Cloud API doesn't have a native typing indicator, skip
+    if (config.provedor === "meta" || config.provedor === "gateway") {
+      // Meta and Gateway don't have native typing indicators, skip
       return;
     } else if (config.provedor === "zapi") {
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/typing`;
@@ -672,7 +742,18 @@ export async function sendTyping(config: BiaConfig, phone: string) {
 // ========== SEND MESSAGE ==========
 export async function sendMessage(config: BiaConfig, phone: string, message: string) {
   try {
-    if (config.provedor === "meta") {
+    if (config.provedor === "gateway") {
+      // Send via WhatsApp Gateway API
+      const url = `${config.gatewayBaseUrl}/instances/${config.gatewayInstanceName}/send-text`;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+        body: JSON.stringify({ phone: phone.replace(/\D/g, ""), message }),
+      });
+      const respText = await resp.text();
+      console.log("Gateway sendMessage response:", resp.status, respText.substring(0, 300));
+    } else if (config.provedor === "meta") {
       // Meta WhatsApp Cloud API
       const phoneNumberId = config.metaPhoneNumberId || config.instanceId;
       const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
@@ -716,7 +797,15 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
 // ========== SEND LOCATION (WHATSAPP) ==========
 export async function sendLocation(config: BiaConfig, phone: string, lat: number, lng: number, name: string) {
   try {
-    if (config.provedor === "meta") {
+    if (config.provedor === "gateway") {
+      const url = `${config.gatewayBaseUrl}/instances/${config.gatewayInstanceName}/send-location`;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+      await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+        body: JSON.stringify({ phone: phone.replace(/\D/g, ""), latitude: lat, longitude: lng, name: `📍 ${name}`, address: "Entregador a caminho" }),
+      });
+    } else if (config.provedor === "meta") {
       const phoneNumberId = config.metaPhoneNumberId || config.instanceId;
       const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
       await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
