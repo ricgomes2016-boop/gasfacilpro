@@ -36,10 +36,14 @@ export function createSupabase() {
 // ========== RESOLVE CONFIG ==========
 export async function resolveConfig(
   supabase: any,
-  provedor: "zapi" | "uazapi" | "meta",
+  provedor: "zapi" | "uazapi" | "meta" | "gateway",
   queryUnidadeId: string | null,
   payloadInstanceId: string | null
 ): Promise<BiaConfig | null> {
+  // Gateway provider: resolve from whatsapp_gateway_instances table
+  if (provedor === "gateway") {
+    return resolveGatewayConfig(supabase, queryUnidadeId, payloadInstanceId);
+  }
   const strategies = [];
 
   if (queryUnidadeId) {
