@@ -1,0 +1,1 @@
+UPDATE integracoes_whatsapp SET meta_phone_number_id = '935310426342230', updated_at = now() WHERE unidade_id = 'aa5b7c93-4fe6-4dba-a0b5-2af43cd20614' AND provedor = 'meta';
