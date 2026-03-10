@@ -162,6 +162,7 @@ const subMenuIconColors: Record<string, string> = {
   "Notificações e Alertas": "text-yellow-400",
   "Personalização Visual": "text-violet-400",
   "Integrações / Hub": "text-cyan-400",
+  "WhatsApp Gateway": "text-green-500",
 };
 
 export function Sidebar() {
