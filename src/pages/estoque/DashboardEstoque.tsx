@@ -191,35 +191,47 @@ export default function DashboardEstoque() {
         <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-5">
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
-              <div className="rounded-lg bg-primary/10 p-3"><Flame className="h-5 w-5 text-primary" /></div>
-              <div><p className="text-xs text-muted-foreground">Cheios</p><p className="text-2xl font-bold">{kpis.totalCheios}</p></div>
+              <div className="shrink-0 rounded-lg bg-primary/10 p-3"><Flame className="h-5 w-5 text-primary" /></div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Cheios</p>
+                <p className="text-2xl font-bold">{kpis.totalCheios}</p>
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
-              <div className="rounded-lg bg-muted p-3"><Cylinder className="h-5 w-5 text-muted-foreground" /></div>
-              <div><p className="text-xs text-muted-foreground">Vazios</p><p className="text-2xl font-bold">{kpis.totalVazios}</p></div>
+              <div className="shrink-0 rounded-lg bg-muted p-3"><Cylinder className="h-5 w-5 text-muted-foreground" /></div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Vazios</p>
+                <p className="text-2xl font-bold">{kpis.totalVazios}</p>
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
-              <div className="rounded-lg bg-accent p-3"><DollarSign className="h-5 w-5 text-accent-foreground" /></div>
-              <div><p className="text-xs text-muted-foreground">Valor Imobilizado</p><p className="text-xl font-bold">R$ {kpis.valorEstoque.toLocaleString("pt-BR")}</p></div>
+              <div className="shrink-0 rounded-lg bg-accent p-3"><DollarSign className="h-5 w-5 text-accent-foreground" /></div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Valor Imobilizado</p>
+                <p className="text-lg font-bold">R$ {kpis.valorEstoque.toLocaleString("pt-BR")}</p>
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
-              <div className="rounded-lg bg-destructive/10 p-3"><AlertTriangle className="h-5 w-5 text-destructive" /></div>
-              <div><p className="text-xs text-muted-foreground">Alertas Ruptura</p><p className="text-2xl font-bold">{alertasRuptura.length}</p></div>
+              <div className="shrink-0 rounded-lg bg-destructive/10 p-3"><AlertTriangle className="h-5 w-5 text-destructive" /></div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Alertas Ruptura</p>
+                <p className="text-2xl font-bold">{alertasRuptura.length}</p>
+              </div>
             </CardContent>
           </Card>
           <Card className={kpis.rupturaEm7Dias > 0 ? "border-destructive/50" : ""}>
             <CardContent className="flex items-center gap-3 p-4">
-              <div className={`rounded-lg p-3 ${kpis.rupturaEm7Dias > 0 ? "bg-destructive/10" : "bg-muted"}`}>
+              <div className={`shrink-0 rounded-lg p-3 ${kpis.rupturaEm7Dias > 0 ? "bg-destructive/10" : "bg-muted"}`}>
                 <Clock className={`h-5 w-5 ${kpis.rupturaEm7Dias > 0 ? "text-destructive" : "text-muted-foreground"}`} />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Ruptura em 7d</p>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Ruptura em 7d</p>
                 <p className={`text-2xl font-bold ${kpis.rupturaEm7Dias > 0 ? "text-destructive" : ""}`}>{kpis.rupturaEm7Dias}</p>
               </div>
             </CardContent>
