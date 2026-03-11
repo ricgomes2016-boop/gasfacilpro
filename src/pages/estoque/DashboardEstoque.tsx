@@ -40,7 +40,7 @@ export default function DashboardEstoque() {
   });
 
   const { data: vendasRaw = [] } = useQuery({
-    queryKey: ["dashboard-estoque-vendas", unidadeAtual?.id],
+    queryKey: ["dashboard-estoque-vendas", unidadeIdFiltrada],
     queryFn: async () => {
       const desde = subDays(new Date(), 30);
       let q = supabase
@@ -48,7 +48,7 @@ export default function DashboardEstoque() {
         .select("produto_id, quantidade, preco_unitario, produtos(nome, preco, categoria), pedidos!inner(created_at, status, unidade_id)")
         .gte("pedidos.created_at", startOfDay(desde).toISOString())
         .neq("pedidos.status", "cancelado");
-      if (unidadeAtual?.id) q = q.eq("pedidos.unidade_id", unidadeAtual.id);
+      if (unidadeIdFiltrada) q = q.eq("pedidos.unidade_id", unidadeIdFiltrada);
       const { data } = await q;
       return (data || []) as any[];
     },
