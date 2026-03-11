@@ -30,10 +30,10 @@ export default function DashboardEstoque() {
   const unidadeIdFiltrada = filtroUnidadeId === "todas" ? null : filtroUnidadeId;
 
   const { data: produtos = [] } = useQuery({
-    queryKey: ["dashboard-estoque-produtos", unidadeAtual?.id],
+    queryKey: ["dashboard-estoque-produtos", unidadeIdFiltrada],
     queryFn: async () => {
       let q = supabase.from("produtos").select("id, nome, categoria, tipo_botijao, estoque, preco").eq("ativo", true);
-      if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
+      if (unidadeIdFiltrada) q = q.eq("unidade_id", unidadeIdFiltrada);
       const { data } = await q;
       return data || [];
     },
