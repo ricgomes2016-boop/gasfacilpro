@@ -21,12 +21,9 @@ import {
 const COLORS = ["hsl(var(--primary))", "hsl(var(--destructive))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
 export default function DashboardEstoque() {
-  const { unidadeAtual, unidades } = useUnidade();
-  const [filtroUnidadeId, setFiltroUnidadeId] = useState<string>("todas");
+  const { unidadeAtual } = useUnidade();
   const [chartViewGiro, setChartViewGiro] = useState<"categoria" | "produto">("produto");
   const [chartViewValor, setChartViewValor] = useState<"categoria" | "produto">("produto");
-
-  const unidadeIdFiltrada = filtroUnidadeId === "todas" ? null : filtroUnidadeId;
 
   const { data: produtos = [] } = useQuery({
     queryKey: ["dashboard-estoque-produtos", unidadeIdFiltrada],
