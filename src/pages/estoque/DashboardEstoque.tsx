@@ -257,7 +257,9 @@ export default function DashboardEstoque() {
                   <XAxis dataKey="nome" className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} interval={0} angle={-20} textAnchor="end" height={50} />
                   <YAxis className="text-xs fill-muted-foreground" />
                   <Tooltip />
-                  <Bar dataKey="giro" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Giro" />
+                  <Bar dataKey="giro" radius={[4, 4, 0, 0]} name="Giro">
+                    {(chartViewGiro === "categoria" ? giroPorCategoria : giroPorProduto).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
