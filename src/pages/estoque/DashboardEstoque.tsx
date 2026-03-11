@@ -75,23 +75,23 @@ export default function DashboardEstoque() {
 
   // Curva ABC
   const curvaABC = useMemo(() => {
-    const vendasPorProduto: Record<string, { qty: number; nome: string; preco: number }> = {};
+    // Agrupa por NOME do produto para não duplicar (ex: Gas P13 de unidades diferentes)
+    const vendasPorNome: Record<string, { qty: number; valor: number }> = {};
     vendasRaw.forEach((v: any) => {
       const prodNome = v.produtos?.nome || produtos.find((p: any) => p.id === v.produto_id)?.nome || null;
-      if (!prodNome) return; // Ignora produtos realmente desconhecidos (deletados)
+      if (!prodNome) return;
       const preco = v.preco_unitario || v.produtos?.preco || produtos.find((p: any) => p.id === v.produto_id)?.preco || 0;
-      if (!vendasPorProduto[v.produto_id]) {
-        vendasPorProduto[v.produto_id] = { qty: 0, nome: prodNome, preco };
-      }
-      vendasPorProduto[v.produto_id].qty += v.quantidade;
+      if (!vendasPorNome[prodNome]) vendasPorNome[prodNome] = { qty: 0, valor: 0 };
+      vendasPorNome[prodNome].qty += v.quantidade;
+      vendasPorNome[prodNome].valor += v.quantidade * preco;
     });
 
-    const items = Object.entries(vendasPorProduto)
-      .map(([id, data]) => ({
-        id,
-        nome: data.nome,
+    const items = Object.entries(vendasPorNome)
+      .map(([nome, data]) => ({
+        id: nome,
+        nome,
         quantidade: data.qty,
-        valor: data.qty * data.preco,
+        valor: data.valor,
       }))
       .sort((a, b) => b.valor - a.valor);
 
