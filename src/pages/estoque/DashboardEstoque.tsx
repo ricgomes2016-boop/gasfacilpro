@@ -38,7 +38,7 @@ export default function DashboardEstoque() {
       const desde = subDays(new Date(), 30);
       let q = supabase
         .from("pedido_itens")
-        .select("produto_id, quantidade, pedidos!inner(created_at, status, unidade_id)")
+        .select("produto_id, quantidade, preco_unitario, produtos(nome, preco, categoria), pedidos!inner(created_at, status, unidade_id)")
         .gte("pedidos.created_at", startOfDay(desde).toISOString())
         .neq("pedidos.status", "cancelado");
       if (unidadeAtual?.id) q = q.eq("pedidos.unidade_id", unidadeAtual.id);
