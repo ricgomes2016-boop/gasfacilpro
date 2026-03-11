@@ -56,13 +56,13 @@ export default function DashboardEstoque() {
 
   // Usa a view vw_previsao_ruptura — alertas baseados em MCMM real, não threshold fixo
   const { data: alertasRuptura = [] } = useQuery({
-    queryKey: ["dashboard-estoque-ruptura", unidadeAtual?.id],
+    queryKey: ["dashboard-estoque-ruptura", unidadeIdFiltrada],
     queryFn: async () => {
       let q = (supabase as any).from("vw_previsao_ruptura")
         .select("id, nome, estoque, giro_diario, estoque_minimo_calculado, dias_ate_ruptura, situacao")
         .neq("situacao", "ok")
         .order("dias_ate_ruptura", { ascending: true, nullsFirst: false });
-      if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
+      if (unidadeIdFiltrada) q = q.eq("unidade_id", unidadeIdFiltrada);
       const { data } = await q;
       return (data || []) as any[];
     },
