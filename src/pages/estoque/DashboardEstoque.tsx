@@ -122,21 +122,58 @@ export default function DashboardEstoque() {
       if (p.tipo_botijao !== "vazio") categorias[cat].estoque += p.estoque || 0;
     });
     return Object.entries(categorias).map(([cat, data]) => ({
-      categoria: cat === "gas" ? "Gás" : cat === "agua" ? "Água" : cat === "acessorio" ? "Acessórios" : "Outros",
+      nome: cat === "gas" ? "Gás" : cat === "agua" ? "Água" : cat === "acessorio" ? "Acessórios" : "Outros",
       giro: data.estoque > 0 ? +(data.vendas / data.estoque).toFixed(2) : 0,
       vendas: data.vendas,
       estoque: data.estoque,
     }));
   }, [produtos, vendasRaw]);
 
+  // Giro por produto
+  const giroPorProduto = useMemo(() => {
+    const prods: Record<string, { vendas: number; estoque: number }> = {};
+    vendasRaw.forEach((v: any) => {
+      const nome = v.produtos?.nome || produtos.find((p: any) => p.id === v.produto_id)?.nome || null;
+      if (!nome) return;
+      if (!prods[nome]) prods[nome] = { vendas: 0, estoque: 0 };
+      prods[nome].vendas += v.quantidade;
+    });
+    produtos.filter((p: any) => p.tipo_botijao !== "vazio").forEach((p: any) => {
+      if (!prods[p.nome]) prods[p.nome] = { vendas: 0, estoque: 0 };
+      prods[p.nome].estoque += p.estoque || 0;
+    });
+    return Object.entries(prods)
+      .map(([nome, data]) => ({
+        nome,
+        giro: data.estoque > 0 ? +(data.vendas / data.estoque).toFixed(2) : 0,
+        vendas: data.vendas,
+        estoque: data.estoque,
+      }))
+      .sort((a, b) => b.giro - a.giro)
+      .slice(0, 15);
+  }, [produtos, vendasRaw]);
+
   // Distribuição valor por categoria (para pie chart)
-  const distribuicaoValor = useMemo(() => {
+  const distribuicaoValorCategoria = useMemo(() => {
     const cats: Record<string, number> = {};
     produtos.filter((p: any) => p.tipo_botijao !== "vazio").forEach((p: any) => {
       const cat = p.categoria === "gas" ? "Gás" : p.categoria === "agua" ? "Água" : p.categoria === "acessorio" ? "Acessórios" : "Outros";
       cats[cat] = (cats[cat] || 0) + (p.estoque || 0) * (p.preco || 0);
     });
     return Object.entries(cats).map(([name, value]) => ({ name, value: +value.toFixed(2) }));
+  }, [produtos]);
+
+  // Distribuição valor por produto
+  const distribuicaoValorProduto = useMemo(() => {
+    const prods: Record<string, number> = {};
+    produtos.filter((p: any) => p.tipo_botijao !== "vazio").forEach((p: any) => {
+      prods[p.nome] = (prods[p.nome] || 0) + (p.estoque || 0) * (p.preco || 0);
+    });
+    return Object.entries(prods)
+      .map(([name, value]) => ({ name, value: +value.toFixed(2) }))
+      .filter((i) => i.value > 0)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
   }, [produtos]);
 
   const situacaoBadge = (situacao: string) => {
