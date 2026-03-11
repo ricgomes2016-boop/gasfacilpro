@@ -109,8 +109,7 @@ export default function DashboardEstoque() {
   const giroPorCategoria = useMemo(() => {
     const categorias: Record<string, { vendas: number; estoque: number }> = {};
     vendasRaw.forEach((v: any) => {
-      const prod = produtos.find((p: any) => p.id === v.produto_id);
-      const cat = prod?.categoria || "outro";
+      const cat = v.produtos?.categoria || produtos.find((p: any) => p.id === v.produto_id)?.categoria || "outro";
       if (!categorias[cat]) categorias[cat] = { vendas: 0, estoque: 0 };
       categorias[cat].vendas += v.quantidade;
     });
