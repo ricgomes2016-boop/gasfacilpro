@@ -18,7 +18,11 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
 
-const COLORS = ["hsl(var(--primary))", "hsl(var(--destructive))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
+const COLORS = [
+  "hsl(var(--primary))", "hsl(var(--destructive))", "hsl(var(--chart-3))", 
+  "hsl(var(--chart-4))", "hsl(var(--chart-5))", "#2563eb", "#f59e0b", 
+  "#10b981", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"
+];
 
 export default function DashboardEstoque() {
   const { unidadeAtual } = useUnidade();
@@ -269,15 +273,29 @@ export default function DashboardEstoque() {
               </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie data={chartViewValor === "categoria" ? distribuicaoValorCategoria : distribuicaoValorProduto} cx="50%" cy="50%" outerRadius={75} innerRadius={35} dataKey="value" nameKey="name" paddingAngle={2}>
-                    {(chartViewValor === "categoria" ? distribuicaoValorCategoria : distribuicaoValorProduto).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
-                  <Legend layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize: 12, lineHeight: "20px" }} />
-                </PieChart>
-              </ResponsiveContainer>
+              {chartViewValor === "categoria" ? (
+                <ResponsiveContainer width="100%" height={260}>
+                  <PieChart>
+                    <Pie data={distribuicaoValorCategoria} cx="40%" cy="50%" outerRadius={75} innerRadius={35} dataKey="value" nameKey="name" paddingAngle={2}>
+                      {distribuicaoValorCategoria.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
+                    <Legend layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize: 12, lineHeight: "20px" }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={distribuicaoValorProduto} layout="vertical" margin={{ left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis type="number" className="text-xs fill-muted-foreground" tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                    <YAxis type="category" dataKey="name" className="text-xs fill-muted-foreground" width={110} tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
+                    <Bar dataKey="value" name="Valor" radius={[0, 4, 4, 0]}>
+                      {distribuicaoValorProduto.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </div>
