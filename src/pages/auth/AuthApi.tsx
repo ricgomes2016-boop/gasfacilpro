@@ -11,7 +11,7 @@ import { Plug, Loader2, Eye, EyeOff } from "lucide-react";
 export default function AuthApi() {
   const navigate = useNavigate();
   const { user, roles, loading, signOut } = useAuth();
-  const form = useAuthForm();
+  const form = useAuthForm(undefined, "email");
   const [roleError, setRoleError] = useState(false);
 
   useEffect(() => {

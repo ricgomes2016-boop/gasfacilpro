@@ -27,11 +27,11 @@ const phoneSignupSchema = z.object({
 
 export type LoginMethod = "email" | "phone";
 
-export function useAuthForm(empresaSlug?: string) {
+export function useAuthForm(empresaSlug?: string, defaultLoginMethod: LoginMethod = "phone") {
   const { signIn, signUp } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loginMethod, setLoginMethod] = useState<LoginMethod>("phone");
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>(defaultLoginMethod);
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPhone, setLoginPhone] = useState("");
