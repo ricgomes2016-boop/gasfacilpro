@@ -269,13 +269,13 @@ export default function DashboardEstoque() {
               </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={240}>
+              <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
-                  <Pie data={chartViewValor === "categoria" ? distribuicaoValorCategoria : distribuicaoValorProduto} cx="50%" cy="50%" outerRadius={80} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                  <Pie data={chartViewValor === "categoria" ? distribuicaoValorCategoria : distribuicaoValorProduto} cx="50%" cy="50%" outerRadius={75} innerRadius={35} dataKey="value" nameKey="name" paddingAngle={2}>
                     {(chartViewValor === "categoria" ? distribuicaoValorCategoria : distribuicaoValorProduto).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
-                  <Legend />
+                  <Legend layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize: 12, lineHeight: "20px" }} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
