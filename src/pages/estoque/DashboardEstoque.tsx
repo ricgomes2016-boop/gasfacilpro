@@ -18,7 +18,11 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
 
-const COLORS = ["hsl(var(--primary))", "hsl(var(--destructive))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
+const COLORS = [
+  "hsl(var(--primary))", "hsl(var(--destructive))", "hsl(var(--chart-3))", 
+  "hsl(var(--chart-4))", "hsl(var(--chart-5))", "#2563eb", "#f59e0b", 
+  "#10b981", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"
+];
 
 export default function DashboardEstoque() {
   const { unidadeAtual } = useUnidade();
