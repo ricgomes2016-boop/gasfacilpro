@@ -186,22 +186,6 @@ export default function DashboardEstoque() {
     <MainLayout>
       <Header title="Dashboard de Estoque" subtitle="Visão consolidada do inventário" />
       <div className="p-3 sm:p-6 space-y-6">
-        {/* Filtro de unidade */}
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-muted-foreground">Unidade:</span>
-          <Select value={filtroUnidadeId} onValueChange={setFiltroUnidadeId}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Selecione a unidade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as unidades</SelectItem>
-              {unidades.map((u) => (
-                <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
         {/* KPIs */}
         <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-5">
           <Card>
