@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -21,6 +22,8 @@ const COLORS = ["hsl(var(--primary))", "hsl(var(--destructive))", "hsl(var(--cha
 
 export default function DashboardEstoque() {
   const { unidadeAtual } = useUnidade();
+  const [chartViewGiro, setChartViewGiro] = useState<"categoria" | "produto">("produto");
+  const [chartViewValor, setChartViewValor] = useState<"categoria" | "produto">("produto");
 
   const { data: produtos = [] } = useQuery({
     queryKey: ["dashboard-estoque-produtos", unidadeAtual?.id],
@@ -119,21 +122,58 @@ export default function DashboardEstoque() {
       if (p.tipo_botijao !== "vazio") categorias[cat].estoque += p.estoque || 0;
     });
     return Object.entries(categorias).map(([cat, data]) => ({
-      categoria: cat === "gas" ? "Gás" : cat === "agua" ? "Água" : cat === "acessorio" ? "Acessórios" : "Outros",
+      nome: cat === "gas" ? "Gás" : cat === "agua" ? "Água" : cat === "acessorio" ? "Acessórios" : "Outros",
       giro: data.estoque > 0 ? +(data.vendas / data.estoque).toFixed(2) : 0,
       vendas: data.vendas,
       estoque: data.estoque,
     }));
   }, [produtos, vendasRaw]);
 
+  // Giro por produto
+  const giroPorProduto = useMemo(() => {
+    const prods: Record<string, { vendas: number; estoque: number }> = {};
+    vendasRaw.forEach((v: any) => {
+      const nome = v.produtos?.nome || produtos.find((p: any) => p.id === v.produto_id)?.nome || null;
+      if (!nome) return;
+      if (!prods[nome]) prods[nome] = { vendas: 0, estoque: 0 };
+      prods[nome].vendas += v.quantidade;
+    });
+    produtos.filter((p: any) => p.tipo_botijao !== "vazio").forEach((p: any) => {
+      if (!prods[p.nome]) prods[p.nome] = { vendas: 0, estoque: 0 };
+      prods[p.nome].estoque += p.estoque || 0;
+    });
+    return Object.entries(prods)
+      .map(([nome, data]) => ({
+        nome,
+        giro: data.estoque > 0 ? +(data.vendas / data.estoque).toFixed(2) : 0,
+        vendas: data.vendas,
+        estoque: data.estoque,
+      }))
+      .sort((a, b) => b.giro - a.giro)
+      .slice(0, 15);
+  }, [produtos, vendasRaw]);
+
   // Distribuição valor por categoria (para pie chart)
-  const distribuicaoValor = useMemo(() => {
+  const distribuicaoValorCategoria = useMemo(() => {
     const cats: Record<string, number> = {};
     produtos.filter((p: any) => p.tipo_botijao !== "vazio").forEach((p: any) => {
       const cat = p.categoria === "gas" ? "Gás" : p.categoria === "agua" ? "Água" : p.categoria === "acessorio" ? "Acessórios" : "Outros";
       cats[cat] = (cats[cat] || 0) + (p.estoque || 0) * (p.preco || 0);
     });
     return Object.entries(cats).map(([name, value]) => ({ name, value: +value.toFixed(2) }));
+  }, [produtos]);
+
+  // Distribuição valor por produto
+  const distribuicaoValorProduto = useMemo(() => {
+    const prods: Record<string, number> = {};
+    produtos.filter((p: any) => p.tipo_botijao !== "vazio").forEach((p: any) => {
+      prods[p.nome] = (prods[p.nome] || 0) + (p.estoque || 0) * (p.preco || 0);
+    });
+    return Object.entries(prods)
+      .map(([name, value]) => ({ name, value: +value.toFixed(2) }))
+      .filter((i) => i.value > 0)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
   }, [produtos]);
 
   const situacaoBadge = (situacao: string) => {
@@ -151,35 +191,47 @@ export default function DashboardEstoque() {
         <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-5">
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
-              <div className="rounded-lg bg-primary/10 p-3"><Flame className="h-5 w-5 text-primary" /></div>
-              <div><p className="text-xs text-muted-foreground">Cheios</p><p className="text-2xl font-bold">{kpis.totalCheios}</p></div>
+              <div className="shrink-0 rounded-lg bg-primary/10 p-3"><Flame className="h-5 w-5 text-primary" /></div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Cheios</p>
+                <p className="text-2xl font-bold">{kpis.totalCheios}</p>
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
-              <div className="rounded-lg bg-muted p-3"><Cylinder className="h-5 w-5 text-muted-foreground" /></div>
-              <div><p className="text-xs text-muted-foreground">Vazios</p><p className="text-2xl font-bold">{kpis.totalVazios}</p></div>
+              <div className="shrink-0 rounded-lg bg-muted p-3"><Cylinder className="h-5 w-5 text-muted-foreground" /></div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Vazios</p>
+                <p className="text-2xl font-bold">{kpis.totalVazios}</p>
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
-              <div className="rounded-lg bg-accent p-3"><DollarSign className="h-5 w-5 text-accent-foreground" /></div>
-              <div><p className="text-xs text-muted-foreground">Valor Imobilizado</p><p className="text-xl font-bold">R$ {kpis.valorEstoque.toLocaleString("pt-BR")}</p></div>
+              <div className="shrink-0 rounded-lg bg-accent p-3"><DollarSign className="h-5 w-5 text-accent-foreground" /></div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Valor Imobilizado</p>
+                <p className="text-lg font-bold">R$ {kpis.valorEstoque.toLocaleString("pt-BR")}</p>
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex items-center gap-3 p-4">
-              <div className="rounded-lg bg-destructive/10 p-3"><AlertTriangle className="h-5 w-5 text-destructive" /></div>
-              <div><p className="text-xs text-muted-foreground">Alertas Ruptura</p><p className="text-2xl font-bold">{alertasRuptura.length}</p></div>
+              <div className="shrink-0 rounded-lg bg-destructive/10 p-3"><AlertTriangle className="h-5 w-5 text-destructive" /></div>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Alertas Ruptura</p>
+                <p className="text-2xl font-bold">{alertasRuptura.length}</p>
+              </div>
             </CardContent>
           </Card>
           <Card className={kpis.rupturaEm7Dias > 0 ? "border-destructive/50" : ""}>
             <CardContent className="flex items-center gap-3 p-4">
-              <div className={`rounded-lg p-3 ${kpis.rupturaEm7Dias > 0 ? "bg-destructive/10" : "bg-muted"}`}>
+              <div className={`shrink-0 rounded-lg p-3 ${kpis.rupturaEm7Dias > 0 ? "bg-destructive/10" : "bg-muted"}`}>
                 <Clock className={`h-5 w-5 ${kpis.rupturaEm7Dias > 0 ? "text-destructive" : "text-muted-foreground"}`} />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Ruptura em 7d</p>
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Ruptura em 7d</p>
                 <p className={`text-2xl font-bold ${kpis.rupturaEm7Dias > 0 ? "text-destructive" : ""}`}>{kpis.rupturaEm7Dias}</p>
               </div>
             </CardContent>
@@ -188,14 +240,20 @@ export default function DashboardEstoque() {
 
         {/* Charts row */}
         <div className="grid gap-4 md:grid-cols-2">
-          {/* Giro por Categoria */}
+          {/* Giro de Estoque */}
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-base">Giro de Estoque por Categoria (30d)</CardTitle></CardHeader>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base">Giro de Estoque (30d)</CardTitle>
+              <div className="flex gap-1">
+                <Button size="sm" variant={chartViewGiro === "produto" ? "default" : "outline"} className="h-7 text-xs px-2" onClick={() => setChartViewGiro("produto")}>Produto</Button>
+                <Button size="sm" variant={chartViewGiro === "categoria" ? "default" : "outline"} className="h-7 text-xs px-2" onClick={() => setChartViewGiro("categoria")}>Categoria</Button>
+              </div>
+            </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={giroPorCategoria}>
+                <BarChart data={chartViewGiro === "categoria" ? giroPorCategoria : giroPorProduto}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="categoria" className="text-xs fill-muted-foreground" />
+                  <XAxis dataKey="nome" className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} interval={0} angle={-20} textAnchor="end" height={50} />
                   <YAxis className="text-xs fill-muted-foreground" />
                   <Tooltip />
                   <Bar dataKey="giro" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Giro" />
@@ -206,12 +264,18 @@ export default function DashboardEstoque() {
 
           {/* Distribuição Valor */}
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-base">Valor Imobilizado por Categoria</CardTitle></CardHeader>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base">Valor Imobilizado</CardTitle>
+              <div className="flex gap-1">
+                <Button size="sm" variant={chartViewValor === "produto" ? "default" : "outline"} className="h-7 text-xs px-2" onClick={() => setChartViewValor("produto")}>Produto</Button>
+                <Button size="sm" variant={chartViewValor === "categoria" ? "default" : "outline"} className="h-7 text-xs px-2" onClick={() => setChartViewValor("categoria")}>Categoria</Button>
+              </div>
+            </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
-                  <Pie data={distribuicaoValor} cx="50%" cy="50%" outerRadius={80} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                    {distribuicaoValor.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  <Pie data={chartViewValor === "categoria" ? distribuicaoValorCategoria : distribuicaoValorProduto} cx="50%" cy="50%" outerRadius={80} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {(chartViewValor === "categoria" ? distribuicaoValorCategoria : distribuicaoValorProduto).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
                   <Legend />
