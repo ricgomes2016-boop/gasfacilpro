@@ -188,52 +188,50 @@ export default function DashboardEstoque() {
       <Header title="Dashboard de Estoque" subtitle="Visão consolidada do inventário" />
       <div className="p-3 sm:p-6 space-y-6">
         {/* KPIs */}
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-5">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-5">
           <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="shrink-0 rounded-lg bg-primary/10 p-3"><Flame className="h-5 w-5 text-primary" /></div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">Cheios</p>
-                <p className="text-2xl font-bold">{kpis.totalCheios}</p>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Flame className="h-4 w-4 text-primary shrink-0" />
+                <p className="text-xs text-muted-foreground">Cheios</p>
               </div>
+              <p className="text-2xl font-bold">{kpis.totalCheios}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="shrink-0 rounded-lg bg-muted p-3"><Cylinder className="h-5 w-5 text-muted-foreground" /></div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">Vazios</p>
-                <p className="text-2xl font-bold">{kpis.totalVazios}</p>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Cylinder className="h-4 w-4 text-muted-foreground shrink-0" />
+                <p className="text-xs text-muted-foreground">Vazios</p>
               </div>
+              <p className="text-2xl font-bold">{kpis.totalVazios}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="shrink-0 rounded-lg bg-accent p-3"><DollarSign className="h-5 w-5 text-accent-foreground" /></div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">Valor Imobilizado</p>
-                <p className="text-lg font-bold">R$ {kpis.valorEstoque.toLocaleString("pt-BR")}</p>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <DollarSign className="h-4 w-4 text-accent-foreground shrink-0" />
+                <p className="text-xs text-muted-foreground">Valor Imobilizado</p>
               </div>
+              <p className="text-lg font-bold">R$ {kpis.valorEstoque.toLocaleString("pt-BR")}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="shrink-0 rounded-lg bg-destructive/10 p-3"><AlertTriangle className="h-5 w-5 text-destructive" /></div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">Alertas Ruptura</p>
-                <p className="text-2xl font-bold">{alertasRuptura.length}</p>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+                <p className="text-xs text-muted-foreground">Alertas Ruptura</p>
               </div>
+              <p className="text-2xl font-bold">{alertasRuptura.length}</p>
             </CardContent>
           </Card>
           <Card className={kpis.rupturaEm7Dias > 0 ? "border-destructive/50" : ""}>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className={`shrink-0 rounded-lg p-3 ${kpis.rupturaEm7Dias > 0 ? "bg-destructive/10" : "bg-muted"}`}>
-                <Clock className={`h-5 w-5 ${kpis.rupturaEm7Dias > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className={`h-4 w-4 shrink-0 ${kpis.rupturaEm7Dias > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+                <p className="text-xs text-muted-foreground">Ruptura em 7d</p>
               </div>
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground truncate">Ruptura em 7d</p>
-                <p className={`text-2xl font-bold ${kpis.rupturaEm7Dias > 0 ? "text-destructive" : ""}`}>{kpis.rupturaEm7Dias}</p>
-              </div>
+              <p className={`text-2xl font-bold ${kpis.rupturaEm7Dias > 0 ? "text-destructive" : ""}`}>{kpis.rupturaEm7Dias}</p>
             </CardContent>
           </Card>
         </div>
