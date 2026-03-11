@@ -1,0 +1,1 @@
+DELETE FROM ai_mensagens WHERE conversa_id = '374bc612-fa97-4cf3-9b3a-2f9ad4f37d18' AND created_at > '2026-03-11 20:09:00';
