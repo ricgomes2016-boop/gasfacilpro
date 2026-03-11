@@ -240,14 +240,20 @@ export default function DashboardEstoque() {
 
         {/* Charts row */}
         <div className="grid gap-4 md:grid-cols-2">
-          {/* Giro por Categoria */}
+          {/* Giro de Estoque */}
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-base">Giro de Estoque por Categoria (30d)</CardTitle></CardHeader>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base">Giro de Estoque (30d)</CardTitle>
+              <div className="flex gap-1">
+                <Button size="sm" variant={chartViewGiro === "produto" ? "default" : "outline"} className="h-7 text-xs px-2" onClick={() => setChartViewGiro("produto")}>Produto</Button>
+                <Button size="sm" variant={chartViewGiro === "categoria" ? "default" : "outline"} className="h-7 text-xs px-2" onClick={() => setChartViewGiro("categoria")}>Categoria</Button>
+              </div>
+            </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={giroPorCategoria}>
+                <BarChart data={chartViewGiro === "categoria" ? giroPorCategoria : giroPorProduto}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="categoria" className="text-xs fill-muted-foreground" />
+                  <XAxis dataKey="nome" className="text-xs fill-muted-foreground" tick={{ fontSize: 11 }} interval={0} angle={-20} textAnchor="end" height={50} />
                   <YAxis className="text-xs fill-muted-foreground" />
                   <Tooltip />
                   <Bar dataKey="giro" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Giro" />
@@ -258,12 +264,18 @@ export default function DashboardEstoque() {
 
           {/* Distribuição Valor */}
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-base">Valor Imobilizado por Categoria</CardTitle></CardHeader>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base">Valor Imobilizado</CardTitle>
+              <div className="flex gap-1">
+                <Button size="sm" variant={chartViewValor === "produto" ? "default" : "outline"} className="h-7 text-xs px-2" onClick={() => setChartViewValor("produto")}>Produto</Button>
+                <Button size="sm" variant={chartViewValor === "categoria" ? "default" : "outline"} className="h-7 text-xs px-2" onClick={() => setChartViewValor("categoria")}>Categoria</Button>
+              </div>
+            </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
-                  <Pie data={distribuicaoValor} cx="50%" cy="50%" outerRadius={80} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                    {distribuicaoValor.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  <Pie data={chartViewValor === "categoria" ? distribuicaoValorCategoria : distribuicaoValorProduto} cx="50%" cy="50%" outerRadius={80} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {(chartViewValor === "categoria" ? distribuicaoValorCategoria : distribuicaoValorProduto).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
                   <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR")}`} />
                   <Legend />
