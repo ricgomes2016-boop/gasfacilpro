@@ -75,16 +75,24 @@ export default function DashboardEstoque() {
 
   // Curva ABC
   const curvaABC = useMemo(() => {
-    const vendasPorProduto: Record<string, number> = {};
+    const vendasPorProduto: Record<string, { qty: number; nome: string; preco: number }> = {};
     vendasRaw.forEach((v: any) => {
-      vendasPorProduto[v.produto_id] = (vendasPorProduto[v.produto_id] || 0) + v.quantidade;
+      const prodNome = v.produtos?.nome || produtos.find((p: any) => p.id === v.produto_id)?.nome || null;
+      if (!prodNome) return; // Ignora produtos realmente desconhecidos (deletados)
+      const preco = v.preco_unitario || v.produtos?.preco || produtos.find((p: any) => p.id === v.produto_id)?.preco || 0;
+      if (!vendasPorProduto[v.produto_id]) {
+        vendasPorProduto[v.produto_id] = { qty: 0, nome: prodNome, preco };
+      }
+      vendasPorProduto[v.produto_id].qty += v.quantidade;
     });
 
     const items = Object.entries(vendasPorProduto)
-      .map(([id, qty]) => {
-        const prod = produtos.find((p: any) => p.id === id);
-        return { id, nome: prod?.nome || "Desconhecido", quantidade: qty, valor: qty * (prod?.preco || 0) };
-      })
+      .map(([id, data]) => ({
+        id,
+        nome: data.nome,
+        quantidade: data.qty,
+        valor: data.qty * data.preco,
+      }))
       .sort((a, b) => b.valor - a.valor);
 
     const totalValor = items.reduce((s, i) => s + i.valor, 0);
