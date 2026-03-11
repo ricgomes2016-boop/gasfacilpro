@@ -5,7 +5,6 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -22,25 +21,22 @@ import {
 const COLORS = ["hsl(var(--primary))", "hsl(var(--destructive))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
 export default function DashboardEstoque() {
-  const { unidadeAtual, unidades } = useUnidade();
-  const [filtroUnidadeId, setFiltroUnidadeId] = useState<string>("todas");
+  const { unidadeAtual } = useUnidade();
   const [chartViewGiro, setChartViewGiro] = useState<"categoria" | "produto">("produto");
   const [chartViewValor, setChartViewValor] = useState<"categoria" | "produto">("produto");
 
-  const unidadeIdFiltrada = filtroUnidadeId === "todas" ? null : filtroUnidadeId;
-
   const { data: produtos = [] } = useQuery({
-    queryKey: ["dashboard-estoque-produtos", unidadeIdFiltrada],
+    queryKey: ["dashboard-estoque-produtos", unidadeAtual?.id],
     queryFn: async () => {
       let q = supabase.from("produtos").select("id, nome, categoria, tipo_botijao, estoque, preco").eq("ativo", true);
-      if (unidadeIdFiltrada) q = q.eq("unidade_id", unidadeIdFiltrada);
+      if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
       const { data } = await q;
       return data || [];
     },
   });
 
   const { data: vendasRaw = [] } = useQuery({
-    queryKey: ["dashboard-estoque-vendas", unidadeIdFiltrada],
+    queryKey: ["dashboard-estoque-vendas", unidadeAtual?.id],
     queryFn: async () => {
       const desde = subDays(new Date(), 30);
       let q = supabase
@@ -48,21 +44,20 @@ export default function DashboardEstoque() {
         .select("produto_id, quantidade, preco_unitario, produtos(nome, preco, categoria), pedidos!inner(created_at, status, unidade_id)")
         .gte("pedidos.created_at", startOfDay(desde).toISOString())
         .neq("pedidos.status", "cancelado");
-      if (unidadeIdFiltrada) q = q.eq("pedidos.unidade_id", unidadeIdFiltrada);
+      if (unidadeAtual?.id) q = q.eq("pedidos.unidade_id", unidadeAtual.id);
       const { data } = await q;
       return (data || []) as any[];
     },
   });
 
-  // Usa a view vw_previsao_ruptura — alertas baseados em MCMM real, não threshold fixo
   const { data: alertasRuptura = [] } = useQuery({
-    queryKey: ["dashboard-estoque-ruptura", unidadeIdFiltrada],
+    queryKey: ["dashboard-estoque-ruptura", unidadeAtual?.id],
     queryFn: async () => {
       let q = (supabase as any).from("vw_previsao_ruptura")
         .select("id, nome, estoque, giro_diario, estoque_minimo_calculado, dias_ate_ruptura, situacao")
         .neq("situacao", "ok")
         .order("dias_ate_ruptura", { ascending: true, nullsFirst: false });
-      if (unidadeIdFiltrada) q = q.eq("unidade_id", unidadeIdFiltrada);
+      if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
       const { data } = await q;
       return (data || []) as any[];
     },
@@ -191,22 +186,6 @@ export default function DashboardEstoque() {
     <MainLayout>
       <Header title="Dashboard de Estoque" subtitle="Visão consolidada do inventário" />
       <div className="p-3 sm:p-6 space-y-6">
-        {/* Filtro de unidade */}
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-muted-foreground">Unidade:</span>
-          <Select value={filtroUnidadeId} onValueChange={setFiltroUnidadeId}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Selecione a unidade" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as unidades</SelectItem>
-              {unidades.map((u) => (
-                <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
         {/* KPIs */}
         <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-5">
           <Card>
