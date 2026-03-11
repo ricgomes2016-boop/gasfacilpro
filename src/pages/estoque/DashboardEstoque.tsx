@@ -22,6 +22,8 @@ const COLORS = ["hsl(var(--primary))", "hsl(var(--destructive))", "hsl(var(--cha
 
 export default function DashboardEstoque() {
   const { unidadeAtual } = useUnidade();
+  const [chartViewGiro, setChartViewGiro] = useState<"categoria" | "produto">("produto");
+  const [chartViewValor, setChartViewValor] = useState<"categoria" | "produto">("produto");
 
   const { data: produtos = [] } = useQuery({
     queryKey: ["dashboard-estoque-produtos", unidadeAtual?.id],
