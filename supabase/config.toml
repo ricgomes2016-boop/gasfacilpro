@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.gateway-webhook]
 verify_jwt = false
+
+[functions.consulta-cnpj]
+verify_jwt = false
