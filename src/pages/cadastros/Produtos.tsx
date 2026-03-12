@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Package, Plus, Search, Edit, Trash2, Flame, Droplets, Box, Loader2, ScanBarcode, Camera, CameraOff, Zap } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,6 +56,7 @@ interface Produto {
   descricao: string | null;
   tipo_botijao: string | null;
   image_url: string | null;
+  estoque_unico: boolean;
 }
 
 interface ProdutoForm {
@@ -70,6 +72,7 @@ interface ProdutoForm {
   descricao: string;
   tipo_botijao: string;
   image_url: string | null;
+  estoque_unico: boolean;
 }
 
 const initialForm: ProdutoForm = {
@@ -85,6 +88,7 @@ const initialForm: ProdutoForm = {
   descricao: "",
   tipo_botijao: "",
   image_url: null,
+  estoque_unico: false,
 };
 
 export default function Produtos() {
@@ -173,7 +177,8 @@ export default function Produtos() {
     mutationFn: async (dados: ProdutoForm) => {
       const tipoBotijao = dados.tipo_botijao || null;
       const categoria = dados.categoria || null;
-      const isBotijaoOuAgua = (categoria === "gas" || categoria === "agua") && tipoBotijao === "cheio";
+      const isEstoqueUnico = dados.estoque_unico;
+      const isBotijaoOuAgua = !isEstoqueUnico && (categoria === "gas" || categoria === "agua") && tipoBotijao === "cheio";
 
       // Criar produto cheio
       const { data: produtoCheio, error } = await supabase
@@ -190,6 +195,7 @@ export default function Produtos() {
           descricao: dados.descricao || null,
           tipo_botijao: isBotijaoOuAgua ? "cheio" : tipoBotijao,
           image_url: dados.image_url || null,
+          estoque_unico: isEstoqueUnico,
           ativo: true,
           unidade_id: unidadeAtual?.id || null,
         })
@@ -261,6 +267,7 @@ export default function Produtos() {
           descricao: dados.descricao || null,
           tipo_botijao: dados.tipo_botijao || null,
           image_url: dados.image_url || null,
+          estoque_unico: dados.estoque_unico,
         })
         .eq("id", id)
         .select()
@@ -336,6 +343,7 @@ export default function Produtos() {
       descricao: produto.descricao || "",
       tipo_botijao: produto.tipo_botijao || "",
       image_url: produto.image_url || null,
+      estoque_unico: produto.estoque_unico ?? false,
     });
     setDialogAberto(true);
   };
@@ -432,10 +440,12 @@ export default function Produtos() {
                     value={form.categoria}
                     onValueChange={(value) => {
                       const isBotijaoCategoria = value === "gas" || value === "agua";
+                      const isAcessorioOuOutro = value === "acessorio" || value === "outro";
                       setForm({
                         ...form,
                         categoria: value,
                         tipo_botijao: isBotijaoCategoria ? "cheio" : form.tipo_botijao,
+                        estoque_unico: isAcessorioOuOutro ? true : false,
                       });
                     }}
                   >
@@ -450,7 +460,24 @@ export default function Produtos() {
                     </SelectContent>
                   </Select>
                 </div>
-                {(form.categoria === "gas" || form.categoria === "agua") ? (
+                {/* Toggle estoque único para categorias que suportam par cheio/vazio */}
+                {(form.categoria === "gas" || form.categoria === "agua") && (
+                  <div className="flex items-center justify-between rounded-lg border border-input p-3 md:col-span-2">
+                    <div>
+                      <Label className="text-sm font-medium">Estoque Único</Label>
+                      <p className="text-xs text-muted-foreground">
+                        {form.estoque_unico
+                          ? "Produto sem par cheio/vazio (ex: acessório de gás)"
+                          : "Produto com par cheio/vazio criado automaticamente"}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={form.estoque_unico}
+                      onCheckedChange={(checked) => setForm({ ...form, estoque_unico: checked })}
+                    />
+                  </div>
+                )}
+                {(form.categoria === "gas" || form.categoria === "agua") && !form.estoque_unico ? (
                   <div className="space-y-2">
                     <Label>Tipo</Label>
                     <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-input bg-muted/50 text-sm">
@@ -459,7 +486,7 @@ export default function Produtos() {
                       <span className="text-muted-foreground text-xs ml-auto">Par vazio criado automaticamente</span>
                     </div>
                   </div>
-                ) : (
+                ) : (form.categoria !== "gas" && form.categoria !== "agua") && !form.estoque_unico ? (
                   <div className="space-y-2">
                     <Label>Tipo de Botijão</Label>
                     <Select
@@ -475,8 +502,8 @@ export default function Produtos() {
                       </SelectContent>
                     </Select>
                   </div>
-                )}
-                {(form.categoria === "gas" || form.categoria === "agua") && (
+                ) : null}
+                {(form.categoria === "gas" || form.categoria === "agua") && !form.estoque_unico && (
                   <div className="space-y-2">
                     <Label>Estoque Cheio</Label>
                     <Input
@@ -487,7 +514,7 @@ export default function Produtos() {
                     />
                   </div>
                 )}
-                {(form.categoria === "gas" || form.categoria === "agua") && !editandoProduto && (
+                {(form.categoria === "gas" || form.categoria === "agua") && !form.estoque_unico && !editandoProduto && (
                   <div className="space-y-2">
                     <Label>Estoque Vazio (Vasilhames)</Label>
                     <Input
@@ -530,7 +557,7 @@ export default function Produtos() {
                     onChange={(e) => setForm({ ...form, preco_telefone: e.target.value })}
                   />
                 </div>
-                {!(form.categoria === "gas" || form.categoria === "agua") && (
+                {(!(form.categoria === "gas" || form.categoria === "agua") || form.estoque_unico) && (
                   <div className="space-y-2">
                     <Label>Estoque Atual</Label>
                     <Input
@@ -538,6 +565,20 @@ export default function Produtos() {
                       type="number"
                       value={form.estoque}
                       onChange={(e) => setForm({ ...form, estoque: e.target.value })}
+                    />
+                  </div>
+                )}
+                {(form.categoria === "acessorio" || form.categoria === "outro") && (
+                  <div className="flex items-center justify-between rounded-lg border border-input p-3 md:col-span-2">
+                    <div>
+                      <Label className="text-sm font-medium">Estoque Único</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Produto com controle de estoque simples (sem par cheio/vazio)
+                      </p>
+                    </div>
+                    <Switch
+                      checked={form.estoque_unico}
+                      onCheckedChange={(checked) => setForm({ ...form, estoque_unico: checked })}
                     />
                   </div>
                 )}

@@ -6269,6 +6269,7 @@ export type Database = {
           created_at: string
           descricao: string | null
           estoque: number | null
+          estoque_unico: boolean
           id: string
           image_url: string | null
           nome: string
@@ -6288,6 +6289,7 @@ export type Database = {
           created_at?: string
           descricao?: string | null
           estoque?: number | null
+          estoque_unico?: boolean
           id?: string
           image_url?: string | null
           nome: string
@@ -6307,6 +6309,7 @@ export type Database = {
           created_at?: string
           descricao?: string | null
           estoque?: number | null
+          estoque_unico?: boolean
           id?: string
           image_url?: string | null
           nome?: string
