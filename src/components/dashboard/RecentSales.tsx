@@ -63,7 +63,7 @@ export function RecentSales() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Vendas Recentes</CardTitle>
+        <CardTitle>Vendas do Dia</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
