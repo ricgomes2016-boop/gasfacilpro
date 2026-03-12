@@ -52,4 +52,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.gateway-webhook]
+
+[functions.consulta-cnpj]
 verify_jwt = false
