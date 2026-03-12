@@ -310,6 +310,11 @@ export function CallerIdPopup() {
         pedidoId={chamada.pedido_gerado_id}
         onSuccess={() => setChamada(null)}
       />
+      <NovaVendaModal
+        open={showVendaModal}
+        onClose={() => setShowVendaModal(false)}
+        clienteId={vendaClienteId}
+      />
     </div>
   );
 }
