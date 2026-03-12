@@ -340,6 +340,7 @@ export default function Produtos() {
       descricao: produto.descricao || "",
       tipo_botijao: produto.tipo_botijao || "",
       image_url: produto.image_url || null,
+      estoque_unico: produto.estoque_unico ?? false,
     });
     setDialogAberto(true);
   };
