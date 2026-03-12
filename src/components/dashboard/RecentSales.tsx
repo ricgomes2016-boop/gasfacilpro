@@ -20,11 +20,19 @@ export function RecentSales() {
     queryKey: ["recent-sales", unidadeAtual?.id],
     enabled: !!unidadeAtual?.id,
     queryFn: async () => {
+      // Início do dia no horário de Brasília (UTC-3)
+      const now = new Date();
+      const brasiliaOffset = -3 * 60;
+      const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+      const brasiliaDate = new Date(utcMs + brasiliaOffset * 60000);
+      const todayStr = brasiliaDate.toISOString().split("T")[0];
+      const todayStartUTC = new Date(`${todayStr}T03:00:00Z`).toISOString(); // 00:00 BRT = 03:00 UTC
+
       let query = supabase
         .from("pedidos")
         .select(`*, clientes (nome), pedido_itens (quantidade, produtos (nome))`)
-        .order("created_at", { ascending: false })
-        .limit(5);
+        .gte("created_at", todayStartUTC)
+        .order("created_at", { ascending: false });
 
       if (unidadeAtual?.id) {
         query = query.eq("unidade_id", unidadeAtual.id);
