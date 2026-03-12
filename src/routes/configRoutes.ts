@@ -12,6 +12,7 @@ const PersonalizacaoVisual = lazy(() => import("@/pages/config/PersonalizacaoVis
 const MeuPerfil = lazy(() => import("@/pages/MeuPerfil"));
 
 export const configRoutes: RouteConfig[] = [
+  { path: "/meu-perfil", component: MeuPerfil, roles: ["admin", "gestor", "financeiro", "operacional"] },
   { path: "/config/auditoria", component: Auditoria, roles: ["admin"] },
   { path: "/config/permissoes", component: Permissoes, roles: ["admin"] },
   { path: "/config/unidades", component: UnidadesConfig, roles: ["admin", "gestor"] },
