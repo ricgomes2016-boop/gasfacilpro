@@ -72,6 +72,7 @@ interface ProdutoForm {
   descricao: string;
   tipo_botijao: string;
   image_url: string | null;
+  estoque_unico: boolean;
 }
 
 const initialForm: ProdutoForm = {
@@ -87,6 +88,7 @@ const initialForm: ProdutoForm = {
   descricao: "",
   tipo_botijao: "",
   image_url: null,
+  estoque_unico: false,
 };
 
 export default function Produtos() {
