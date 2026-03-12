@@ -15,9 +15,10 @@ export function StockAlerts() {
     queryFn: async () => {
       let query = supabase
         .from("produtos")
-        .select("id, nome, estoque, categoria")
+        .select("id, nome, estoque, categoria, tipo_botijao")
         .eq("ativo", true)
         .lt("estoque", LOW_STOCK_THRESHOLD)
+        .not("tipo_botijao", "eq", "vazio")
         .order("estoque", { ascending: true });
 
       if (unidadeAtual?.id) {
