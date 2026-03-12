@@ -160,6 +160,7 @@ export default function AdminAdmins() {
     finally { setDeleting(false); }
   };
 
+  const filtered = admins.filter((a) =>
     a.full_name.toLowerCase().includes(search.toLowerCase()) ||
     a.email.toLowerCase().includes(search.toLowerCase()) ||
     (a.empresa_nome || "").toLowerCase().includes(search.toLowerCase())
