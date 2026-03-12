@@ -460,7 +460,24 @@ export default function Produtos() {
                     </SelectContent>
                   </Select>
                 </div>
-                {(form.categoria === "gas" || form.categoria === "agua") ? (
+                {/* Toggle estoque único para categorias que suportam par cheio/vazio */}
+                {(form.categoria === "gas" || form.categoria === "agua") && (
+                  <div className="flex items-center justify-between rounded-lg border border-input p-3 md:col-span-2">
+                    <div>
+                      <Label className="text-sm font-medium">Estoque Único</Label>
+                      <p className="text-xs text-muted-foreground">
+                        {form.estoque_unico
+                          ? "Produto sem par cheio/vazio (ex: acessório de gás)"
+                          : "Produto com par cheio/vazio criado automaticamente"}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={form.estoque_unico}
+                      onCheckedChange={(checked) => setForm({ ...form, estoque_unico: checked })}
+                    />
+                  </div>
+                )}
+                {(form.categoria === "gas" || form.categoria === "agua") && !form.estoque_unico ? (
                   <div className="space-y-2">
                     <Label>Tipo</Label>
                     <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-input bg-muted/50 text-sm">
@@ -469,7 +486,7 @@ export default function Produtos() {
                       <span className="text-muted-foreground text-xs ml-auto">Par vazio criado automaticamente</span>
                     </div>
                   </div>
-                ) : (
+                ) : (form.categoria !== "gas" && form.categoria !== "agua") && !form.estoque_unico ? (
                   <div className="space-y-2">
                     <Label>Tipo de Botijão</Label>
                     <Select
@@ -485,8 +502,8 @@ export default function Produtos() {
                       </SelectContent>
                     </Select>
                   </div>
-                )}
-                {(form.categoria === "gas" || form.categoria === "agua") && (
+                ) : null}
+                {(form.categoria === "gas" || form.categoria === "agua") && !form.estoque_unico && (
                   <div className="space-y-2">
                     <Label>Estoque Cheio</Label>
                     <Input
@@ -497,7 +514,7 @@ export default function Produtos() {
                     />
                   </div>
                 )}
-                {(form.categoria === "gas" || form.categoria === "agua") && !editandoProduto && (
+                {(form.categoria === "gas" || form.categoria === "agua") && !form.estoque_unico && !editandoProduto && (
                   <div className="space-y-2">
                     <Label>Estoque Vazio (Vasilhames)</Label>
                     <Input
