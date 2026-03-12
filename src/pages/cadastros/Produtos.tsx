@@ -177,7 +177,8 @@ export default function Produtos() {
     mutationFn: async (dados: ProdutoForm) => {
       const tipoBotijao = dados.tipo_botijao || null;
       const categoria = dados.categoria || null;
-      const isBotijaoOuAgua = (categoria === "gas" || categoria === "agua") && tipoBotijao === "cheio";
+      const isEstoqueUnico = dados.estoque_unico;
+      const isBotijaoOuAgua = !isEstoqueUnico && (categoria === "gas" || categoria === "agua") && tipoBotijao === "cheio";
 
       // Criar produto cheio
       const { data: produtoCheio, error } = await supabase
