@@ -846,13 +846,40 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       if (!confirm("Deseja realmente cancelar esta venda? Os dados serão perdidos.")) return;
     }
     clearDraft();
-    navigate("/vendas/pedidos");
+    if (embedded && onClose) {
+      onClose();
+    } else {
+      navigate("/vendas/pedidos");
+    }
   };
 
-  return (
-    <MainLayout>
-      {/* #1 - Single header, no duplicate */}
-      <Header title="Nova Venda" subtitle={unidadeAtual?.nome || "Carregando..."} />
+  // Load initial client when in embedded mode (e.g., from CallerIdPopup)
+  useEffect(() => {
+    if (!initialClienteId || !embedded) return;
+    const loadCliente = async () => {
+      const { data } = await supabase
+        .from("clientes")
+        .select("*")
+        .eq("id", initialClienteId)
+        .single();
+      if (data) {
+        setCustomer({
+          id: data.id,
+          nome: data.nome,
+          telefone: data.telefone || "",
+          endereco: data.endereco || "",
+          numero: data.numero || "",
+          complemento: "",
+          bairro: data.bairro || "",
+          cep: data.cep || "",
+          observacao: "",
+        });
+      }
+    };
+    loadCliente();
+  }, [initialClienteId, embedded]);
+
+  const vendaContent = (
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         <CaixaBloqueadoBanner />
 
