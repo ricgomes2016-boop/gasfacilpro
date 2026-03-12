@@ -440,10 +440,12 @@ export default function Produtos() {
                     value={form.categoria}
                     onValueChange={(value) => {
                       const isBotijaoCategoria = value === "gas" || value === "agua";
+                      const isAcessorioOuOutro = value === "acessorio" || value === "outro";
                       setForm({
                         ...form,
                         categoria: value,
                         tipo_botijao: isBotijaoCategoria ? "cheio" : form.tipo_botijao,
+                        estoque_unico: isAcessorioOuOutro ? true : false,
                       });
                     }}
                   >
