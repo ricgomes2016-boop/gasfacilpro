@@ -118,7 +118,13 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda }: {
   );
 }
 
-export default function NovaVenda() {
+interface NovaVendaProps {
+  embedded?: boolean;
+  initialClienteId?: string | null;
+  onClose?: () => void;
+}
+
+export default function NovaVenda({ embedded = false, initialClienteId, onClose }: NovaVendaProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
