@@ -131,10 +131,9 @@ export function CallerIdPopup() {
   };
 
   const handleNovaVenda = () => {
-    // If we have a client ID, we can pass it to the nova-venda route via URL params or state
-    // For now, simply navigate to nova venda
-    navigate(chamada.cliente_id ? `/vendas/nova?cliente=${chamada.cliente_id}` : `/vendas/nova`);
+    setVendaClienteId(chamada.cliente_id || null);
     setChamada(null);
+    setShowVendaModal(true);
   };
 
   const handleVerPerfil = () => {
