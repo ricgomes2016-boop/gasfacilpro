@@ -195,6 +195,7 @@ export default function Produtos() {
           descricao: dados.descricao || null,
           tipo_botijao: isBotijaoOuAgua ? "cheio" : tipoBotijao,
           image_url: dados.image_url || null,
+          estoque_unico: isEstoqueUnico,
           ativo: true,
           unidade_id: unidadeAtual?.id || null,
         })
