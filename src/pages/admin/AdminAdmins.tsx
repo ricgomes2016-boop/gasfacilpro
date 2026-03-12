@@ -52,6 +52,10 @@ export default function AdminAdmins() {
   const [editNome, setEditNome] = useState("");
   const [editEmpresaId, setEditEmpresaId] = useState("");
 
+  // Delete
+  const [deleteAdmin, setDeleteAdmin] = useState<AdminUser | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const fetchData = async () => {
     const [rolesRes, empresasRes] = await Promise.all([
       supabase.from("user_roles").select("user_id").eq("role", "admin"),
