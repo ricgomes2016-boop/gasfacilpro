@@ -267,6 +267,7 @@ export default function Produtos() {
           descricao: dados.descricao || null,
           tipo_botijao: dados.tipo_botijao || null,
           image_url: dados.image_url || null,
+          estoque_unico: dados.estoque_unico,
         })
         .eq("id", id)
         .select()
