@@ -9,6 +9,7 @@ const Usuarios = lazy(() => import("@/pages/config/Usuarios"));
 const DocumentosEmpresa = lazy(() => import("@/pages/config/DocumentosEmpresa"));
 const Notificacoes = lazy(() => import("@/pages/config/Notificacoes"));
 const PersonalizacaoVisual = lazy(() => import("@/pages/config/PersonalizacaoVisual"));
+const MeuPerfil = lazy(() => import("@/pages/MeuPerfil"));
 
 export const configRoutes: RouteConfig[] = [
   { path: "/config/auditoria", component: Auditoria, roles: ["admin"] },
