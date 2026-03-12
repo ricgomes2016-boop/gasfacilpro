@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Phone, MessageSquare, X, User, Clock, Truck, Eye, Battery, BatteryWarning, ShoppingCart } from "lucide-react";
 import { RepassarEntregadorDialog } from "./RepassarEntregadorDialog";
+import { NovaVendaModal } from "@/components/vendas/NovaVendaModal";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,6 +39,8 @@ export function CallerIdPopup() {
   const [chamada, setChamada] = useState<ChamadaRecebida | null>(null);
   const [ultimoPedido, setUltimoPedido] = useState<UltimoPedidoInfo | null>(null);
   const [showRepassar, setShowRepassar] = useState(false);
+  const [showVendaModal, setShowVendaModal] = useState(false);
+  const [vendaClienteId, setVendaClienteId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { unidadeAtual } = useUnidade();
 
@@ -120,7 +123,15 @@ export function CallerIdPopup() {
     };
   }, [handleNovaChamada]);
 
-  if (!chamada) return null;
+  if (!chamada) {
+    return (
+      <NovaVendaModal
+        open={showVendaModal}
+        onClose={() => setShowVendaModal(false)}
+        clienteId={vendaClienteId}
+      />
+    );
+  }
 
   const handleVerPedido = () => {
     navigate(`/vendas/pedidos`);
@@ -128,10 +139,9 @@ export function CallerIdPopup() {
   };
 
   const handleNovaVenda = () => {
-    // If we have a client ID, we can pass it to the nova-venda route via URL params or state
-    // For now, simply navigate to nova venda
-    navigate(chamada.cliente_id ? `/vendas/nova?cliente=${chamada.cliente_id}` : `/vendas/nova`);
+    setVendaClienteId(chamada.cliente_id || null);
     setChamada(null);
+    setShowVendaModal(true);
   };
 
   const handleVerPerfil = () => {
@@ -299,6 +309,11 @@ export function CallerIdPopup() {
         onOpenChange={setShowRepassar}
         pedidoId={chamada.pedido_gerado_id}
         onSuccess={() => setChamada(null)}
+      />
+      <NovaVendaModal
+        open={showVendaModal}
+        onClose={() => setShowVendaModal(false)}
+        clienteId={vendaClienteId}
       />
     </div>
   );

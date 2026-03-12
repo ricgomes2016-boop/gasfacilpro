@@ -118,7 +118,13 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda }: {
   );
 }
 
-export default function NovaVenda() {
+interface NovaVendaProps {
+  embedded?: boolean;
+  initialClienteId?: string | null;
+  onClose?: () => void;
+}
+
+export default function NovaVenda({ embedded = false, initialClienteId, onClose }: NovaVendaProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
@@ -840,13 +846,41 @@ export default function NovaVenda() {
       if (!confirm("Deseja realmente cancelar esta venda? Os dados serão perdidos.")) return;
     }
     clearDraft();
-    navigate("/vendas/pedidos");
+    if (embedded && onClose) {
+      onClose();
+    } else {
+      navigate("/vendas/pedidos");
+    }
   };
 
-  return (
-    <MainLayout>
-      {/* #1 - Single header, no duplicate */}
-      <Header title="Nova Venda" subtitle={unidadeAtual?.nome || "Carregando..."} />
+  // Load initial client when in embedded mode (e.g., from CallerIdPopup)
+  useEffect(() => {
+    if (!initialClienteId || !embedded) return;
+    const loadCliente = async () => {
+      const { data } = await supabase
+        .from("clientes")
+        .select("*")
+        .eq("id", initialClienteId)
+        .single();
+      if (data) {
+        setCustomer({
+          id: data.id,
+          nome: data.nome,
+          telefone: data.telefone || "",
+          endereco: data.endereco || "",
+          numero: data.numero || "",
+          complemento: "",
+          bairro: data.bairro || "",
+          cep: data.cep || "",
+          observacao: "",
+        });
+      }
+    };
+    loadCliente();
+  }, [initialClienteId, embedded]);
+
+  const vendaContent = (
+    <>
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         <CaixaBloqueadoBanner />
 
@@ -1035,7 +1069,7 @@ export default function NovaVenda() {
         if (!open) {
           setPrintDialogOpen(false);
           setPendingReceiptData(null);
-          navigate("/vendas/pedidos");
+          if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
         }
       }}>
         <DialogContent className="max-w-sm">
@@ -1047,7 +1081,7 @@ export default function NovaVenda() {
             <Button variant="outline" onClick={() => {
               setPrintDialogOpen(false);
               setPendingReceiptData(null);
-              navigate("/vendas/pedidos");
+              if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
             }}>
               Não
             </Button>
@@ -1057,13 +1091,24 @@ export default function NovaVenda() {
               }
               setPrintDialogOpen(false);
               setPendingReceiptData(null);
-              navigate("/vendas/pedidos");
+              if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
             }}>
               Sim, Imprimir
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+    </>
+  );
+
+  if (embedded) {
+    return vendaContent;
+  }
+
+  return (
+    <MainLayout>
+      <Header title="Nova Venda" subtitle={unidadeAtual?.nome || "Carregando..."} />
+      {vendaContent}
     </MainLayout>
   );
 }
