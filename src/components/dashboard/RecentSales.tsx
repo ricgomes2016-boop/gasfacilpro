@@ -71,7 +71,7 @@ export function RecentSales() {
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
           </div>
         ) : sales.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">Nenhuma venda encontrada</p>
+          <p className="text-sm text-muted-foreground text-center py-8">Nenhuma venda hoje</p>
         ) : (
           <div className="space-y-4">
             {sales.map((sale) => (
