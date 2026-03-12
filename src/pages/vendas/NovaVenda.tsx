@@ -1068,7 +1068,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         if (!open) {
           setPrintDialogOpen(false);
           setPendingReceiptData(null);
-          navigate("/vendas/pedidos");
+          if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
         }
       }}>
         <DialogContent className="max-w-sm">
@@ -1080,7 +1080,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             <Button variant="outline" onClick={() => {
               setPrintDialogOpen(false);
               setPendingReceiptData(null);
-              navigate("/vendas/pedidos");
+              if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
             }}>
               Não
             </Button>
@@ -1090,13 +1090,24 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               }
               setPrintDialogOpen(false);
               setPendingReceiptData(null);
-              navigate("/vendas/pedidos");
+              if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
             }}>
               Sim, Imprimir
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+    </>
+  );
+
+  if (embedded) {
+    return vendaContent;
+  }
+
+  return (
+    <MainLayout>
+      <Header title="Nova Venda" subtitle={unidadeAtual?.nome || "Carregando..."} />
+      {vendaContent}
     </MainLayout>
   );
 }
