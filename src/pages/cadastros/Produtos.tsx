@@ -557,7 +557,7 @@ export default function Produtos() {
                     onChange={(e) => setForm({ ...form, preco_telefone: e.target.value })}
                   />
                 </div>
-                {!(form.categoria === "gas" || form.categoria === "agua") && (
+                {(!(form.categoria === "gas" || form.categoria === "agua") || form.estoque_unico) && (
                   <div className="space-y-2">
                     <Label>Estoque Atual</Label>
                     <Input
@@ -565,6 +565,20 @@ export default function Produtos() {
                       type="number"
                       value={form.estoque}
                       onChange={(e) => setForm({ ...form, estoque: e.target.value })}
+                    />
+                  </div>
+                )}
+                {(form.categoria === "acessorio" || form.categoria === "outro") && (
+                  <div className="flex items-center justify-between rounded-lg border border-input p-3 md:col-span-2">
+                    <div>
+                      <Label className="text-sm font-medium">Estoque Único</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Produto com controle de estoque simples (sem par cheio/vazio)
+                      </p>
+                    </div>
+                    <Switch
+                      checked={form.estoque_unico}
+                      onCheckedChange={(checked) => setForm({ ...form, estoque_unico: checked })}
                     />
                   </div>
                 )}
