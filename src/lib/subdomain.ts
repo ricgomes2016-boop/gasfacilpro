@@ -205,7 +205,7 @@ export function isRouteAllowedForSubdomain(app: SubdomainApp, pathname: string):
         || matchesRouteSegment(pathname, "/clientes") || matchesRouteSegment(pathname, "/financeiro") || matchesRouteSegment(pathname, "/fiscal")
         || matchesRouteSegment(pathname, "/frota") || matchesRouteSegment(pathname, "/rh") || matchesRouteSegment(pathname, "/config")
         || matchesRouteSegment(pathname, "/operacional") || matchesRouteSegment(pathname, "/atendimento") || matchesRouteSegment(pathname, "/onboarding")
-        || matchesRouteSegment(pathname, "/entregas") || matchesRouteSegment(pathname, "/assistente") || matchesRouteSegment(pathname, "/integracoes");
+        || matchesRouteSegment(pathname, "/entregas") || matchesRouteSegment(pathname, "/assistente") || matchesRouteSegment(pathname, "/assistente-ia") || matchesRouteSegment(pathname, "/integracoes");
     case "api":
       // api.gasfacilpro.com.br — Hub de Integrações
       return pathname === "/auth" || matchesRouteSegment(pathname, "/integracoes");
