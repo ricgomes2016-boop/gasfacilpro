@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Loader2, Users, Search, Shield } from "lucide-react";
+import { Plus, Loader2, Users, Search, Shield, Pencil } from "lucide-react";
 
 interface AdminUser {
   user_id: string;
@@ -33,13 +33,20 @@ export default function AdminAdmins() {
   const [empresas, setEmpresas] = useState<EmpresaOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
 
+  // Create form
   const [nomeAdmin, setNomeAdmin] = useState("");
   const [emailAdmin, setEmailAdmin] = useState("");
   const [senhaAdmin, setSenhaAdmin] = useState("");
   const [empresaId, setEmpresaId] = useState("");
+
+  // Edit form
+  const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
+  const [editNome, setEditNome] = useState("");
+  const [editEmpresaId, setEditEmpresaId] = useState("");
 
   const fetchData = async () => {
     const [rolesRes, empresasRes] = await Promise.all([
@@ -84,6 +91,45 @@ export default function AdminAdmins() {
       toast.success("Admin criado e vinculado à empresa!");
       setDialogOpen(false);
       setNomeAdmin(""); setEmailAdmin(""); setSenhaAdmin(""); setEmpresaId("");
+      fetchData();
+    } catch (error: any) { toast.error("Erro: " + error.message); }
+    finally { setSaving(false); }
+  };
+
+  const openEdit = (admin: AdminUser) => {
+    setEditingAdmin(admin);
+    setEditNome(admin.full_name);
+    setEditEmpresaId(admin.empresa_id || "");
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingAdmin || !editNome.trim() || !editEmpresaId) {
+      toast.error("Preencha todos os campos"); return;
+    }
+    setSaving(true);
+    try {
+      // Update name via manage-users edge function
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: {
+          action: "update",
+          user_id: editingAdmin.user_id,
+          full_name: editNome,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Update empresa_id on profile (super_admin has RLS access)
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ empresa_id: editEmpresaId })
+        .eq("user_id", editingAdmin.user_id);
+      if (profileError) throw profileError;
+
+      toast.success("Admin atualizado com sucesso!");
+      setEditDialogOpen(false);
+      setEditingAdmin(null);
       fetchData();
     } catch (error: any) { toast.error("Erro: " + error.message); }
     finally { setSaving(false); }
@@ -170,18 +216,19 @@ export default function AdminAdmins() {
                   <TableHead className="font-semibold">Email</TableHead>
                   <TableHead className="font-semibold">Empresa</TableHead>
                   <TableHead className="font-semibold">Perfil</TableHead>
+                  <TableHead className="font-semibold text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-12">
+                    <TableCell colSpan={5} className="text-center py-12">
                       <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                       {search ? "Nenhum admin encontrado." : "Nenhum admin cadastrado."}
                     </TableCell>
                   </TableRow>
@@ -206,6 +253,11 @@ export default function AdminAdmins() {
                           Admin
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(a)} title="Editar admin">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -213,6 +265,43 @@ export default function AdminAdmins() {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Edit Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Administrador</DialogTitle>
+              <DialogDescription>
+                Atualize o nome ou a empresa vinculada a este administrador.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-muted-foreground text-sm">Email</Label>
+                <Input value={editingAdmin?.email || ""} disabled className="opacity-60" />
+              </div>
+              <div className="space-y-2">
+                <Label>Nome completo *</Label>
+                <Input value={editNome} onChange={(e) => setEditNome(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Empresa *</Label>
+                <Select value={editEmpresaId} onValueChange={setEditEmpresaId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
+                  <SelectContent>
+                    {empresas.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleUpdate} disabled={saving} className="w-full">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Salvar Alterações
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );
