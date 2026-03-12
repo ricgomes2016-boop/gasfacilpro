@@ -16,7 +16,11 @@ import {
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Loader2, Users, Search, Shield, Pencil } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Plus, Loader2, Users, Search, Shield, Pencil, Trash2 } from "lucide-react";
 
 interface AdminUser {
   user_id: string;
@@ -47,6 +51,10 @@ export default function AdminAdmins() {
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
   const [editNome, setEditNome] = useState("");
   const [editEmpresaId, setEditEmpresaId] = useState("");
+
+  // Delete
+  const [deleteAdmin, setDeleteAdmin] = useState<AdminUser | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchData = async () => {
     const [rolesRes, empresasRes] = await Promise.all([
@@ -133,6 +141,23 @@ export default function AdminAdmins() {
       fetchData();
     } catch (error: any) { toast.error("Erro: " + error.message); }
     finally { setSaving(false); }
+  };
+
+
+  const handleDelete = async () => {
+    if (!deleteAdmin) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "delete", user_id: deleteAdmin.user_id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Admin excluído com sucesso!");
+      setDeleteAdmin(null);
+      fetchData();
+    } catch (error: any) { toast.error("Erro: " + error.message); }
+    finally { setDeleting(false); }
   };
 
   const filtered = admins.filter((a) =>
@@ -254,9 +279,14 @@ export default function AdminAdmins() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(a)} title="Editar admin">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(a)} title="Editar admin">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setDeleteAdmin(a)} title="Excluir admin" className="text-destructive hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -302,6 +332,25 @@ export default function AdminAdmins() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation */}
+        <AlertDialog open={!!deleteAdmin} onOpenChange={(open) => !open && setDeleteAdmin(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir administrador?</AlertDialogTitle>
+              <AlertDialogDescription>
+                O administrador <strong>{deleteAdmin?.full_name}</strong> ({deleteAdmin?.email}) será removido permanentemente. Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   );
