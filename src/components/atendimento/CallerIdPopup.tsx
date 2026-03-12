@@ -39,6 +39,8 @@ export function CallerIdPopup() {
   const [chamada, setChamada] = useState<ChamadaRecebida | null>(null);
   const [ultimoPedido, setUltimoPedido] = useState<UltimoPedidoInfo | null>(null);
   const [showRepassar, setShowRepassar] = useState(false);
+  const [showVendaModal, setShowVendaModal] = useState(false);
+  const [vendaClienteId, setVendaClienteId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { unidadeAtual } = useUnidade();
 
