@@ -880,6 +880,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   }, [initialClienteId, embedded]);
 
   const vendaContent = (
+    <>
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         <CaixaBloqueadoBanner />
 
