@@ -123,7 +123,15 @@ export function CallerIdPopup() {
     };
   }, [handleNovaChamada]);
 
-  if (!chamada) return null;
+  if (!chamada) {
+    return (
+      <NovaVendaModal
+        open={showVendaModal}
+        onClose={() => setShowVendaModal(false)}
+        clienteId={vendaClienteId}
+      />
+    );
+  }
 
   const handleVerPedido = () => {
     navigate(`/vendas/pedidos`);
