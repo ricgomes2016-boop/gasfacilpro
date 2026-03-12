@@ -3138,45 +3138,78 @@ export type Database = {
       empresas: {
         Row: {
           ativo: boolean
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
           cnpj: string | null
+          complemento: string | null
           created_at: string
           email: string | null
+          endereco: string | null
+          estado: string | null
           id: string
+          inscricao_estadual: string | null
           logo_url: string | null
           nome: string
+          nome_fantasia: string | null
+          numero: string | null
           plano: string
           plano_max_unidades: number
           plano_max_usuarios: number
+          razao_social: string | null
+          regime_tributacao: string | null
           slug: string
           telefone: string | null
           updated_at: string
         }
         Insert: {
           ativo?: boolean
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
+          complemento?: string | null
           created_at?: string
           email?: string | null
+          endereco?: string | null
+          estado?: string | null
           id?: string
+          inscricao_estadual?: string | null
           logo_url?: string | null
           nome: string
+          nome_fantasia?: string | null
+          numero?: string | null
           plano?: string
           plano_max_unidades?: number
           plano_max_usuarios?: number
+          razao_social?: string | null
+          regime_tributacao?: string | null
           slug: string
           telefone?: string | null
           updated_at?: string
         }
         Update: {
           ativo?: boolean
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
+          complemento?: string | null
           created_at?: string
           email?: string | null
+          endereco?: string | null
+          estado?: string | null
           id?: string
+          inscricao_estadual?: string | null
           logo_url?: string | null
           nome?: string
+          nome_fantasia?: string | null
+          numero?: string | null
           plano?: string
           plano_max_unidades?: number
           plano_max_usuarios?: number
+          razao_social?: string | null
+          regime_tributacao?: string | null
           slug?: string
           telefone?: string | null
           updated_at?: string
