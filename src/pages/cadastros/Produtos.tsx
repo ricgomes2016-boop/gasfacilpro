@@ -56,6 +56,7 @@ interface Produto {
   descricao: string | null;
   tipo_botijao: string | null;
   image_url: string | null;
+  estoque_unico: boolean;
 }
 
 interface ProdutoForm {
