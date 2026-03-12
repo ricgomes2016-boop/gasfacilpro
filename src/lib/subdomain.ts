@@ -161,6 +161,8 @@ export function inferAppFromPath(pathname: string): Exclude<SubdomainApp, null> 
     "/entregas",
     "/assistente",
     "/assistente-ia",
+    "/meu-perfil",
+    "/configuracoes",
   ];
 
   if (erpPrefixes.some((prefix) => matchesRouteSegment(pathname, prefix))) {
@@ -205,7 +207,7 @@ export function isRouteAllowedForSubdomain(app: SubdomainApp, pathname: string):
         || matchesRouteSegment(pathname, "/clientes") || matchesRouteSegment(pathname, "/financeiro") || matchesRouteSegment(pathname, "/fiscal")
         || matchesRouteSegment(pathname, "/frota") || matchesRouteSegment(pathname, "/rh") || matchesRouteSegment(pathname, "/config")
         || matchesRouteSegment(pathname, "/operacional") || matchesRouteSegment(pathname, "/atendimento") || matchesRouteSegment(pathname, "/onboarding")
-        || matchesRouteSegment(pathname, "/entregas") || matchesRouteSegment(pathname, "/assistente") || matchesRouteSegment(pathname, "/assistente-ia") || matchesRouteSegment(pathname, "/integracoes");
+        || matchesRouteSegment(pathname, "/entregas") || matchesRouteSegment(pathname, "/assistente") || matchesRouteSegment(pathname, "/assistente-ia") || matchesRouteSegment(pathname, "/meu-perfil") || matchesRouteSegment(pathname, "/configuracoes") || matchesRouteSegment(pathname, "/integracoes");
     case "api":
       // api.gasfacilpro.com.br — Hub de Integrações
       return pathname === "/auth" || matchesRouteSegment(pathname, "/integracoes");

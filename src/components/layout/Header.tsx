@@ -114,7 +114,7 @@ export function Header({ title, subtitle }: HeaderProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/config/permissoes")}>
+            <DropdownMenuItem onClick={() => navigate("/meu-perfil")}>
               <UserCircle className="mr-2 h-4 w-4" />
               Perfil
             </DropdownMenuItem>
