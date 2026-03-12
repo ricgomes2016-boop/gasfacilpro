@@ -143,7 +143,23 @@ export default function AdminAdmins() {
     finally { setSaving(false); }
   };
 
-  const filtered = admins.filter((a) =>
+
+  const handleDelete = async () => {
+    if (!deleteAdmin) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-users", {
+        body: { action: "delete", user_id: deleteAdmin.user_id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("Admin excluído com sucesso!");
+      setDeleteAdmin(null);
+      fetchData();
+    } catch (error: any) { toast.error("Erro: " + error.message); }
+    finally { setDeleting(false); }
+  };
+
     a.full_name.toLowerCase().includes(search.toLowerCase()) ||
     a.email.toLowerCase().includes(search.toLowerCase()) ||
     (a.empresa_nome || "").toLowerCase().includes(search.toLowerCase())
