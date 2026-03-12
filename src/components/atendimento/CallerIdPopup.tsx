@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Phone, MessageSquare, X, User, Clock, Truck, Eye, Battery, BatteryWarning, ShoppingCart } from "lucide-react";
 import { RepassarEntregadorDialog } from "./RepassarEntregadorDialog";
+import { NovaVendaModal } from "@/components/vendas/NovaVendaModal";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
