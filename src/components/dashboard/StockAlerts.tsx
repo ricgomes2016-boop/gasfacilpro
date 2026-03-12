@@ -4,6 +4,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { AlertTriangle } from "lucide-react";
 
 const LOW_STOCK_THRESHOLD = 10;
+const MAX_ALERTS = 4;
 
 export function StockAlerts() {
   const { unidadeAtual } = useUnidade();
@@ -14,7 +15,7 @@ export function StockAlerts() {
     queryFn: async () => {
       let query = supabase
         .from("produtos")
-        .select("id, nome, estoque")
+        .select("id, nome, estoque, categoria")
         .eq("ativo", true)
         .lt("estoque", LOW_STOCK_THRESHOLD)
         .order("estoque", { ascending: true });
@@ -24,7 +25,15 @@ export function StockAlerts() {
       }
 
       const { data } = await query;
-      return data || [];
+      if (!data) return [];
+
+      // Prioriza Gás P13 e produtos de gás/água (mais vendidos)
+      const priority = data.filter((p: any) =>
+        /p13|13\s*kg/i.test(p.nome) || ["gás", "gas", "água", "agua"].some(t => (p.categoria || p.nome || "").toLowerCase().includes(t))
+      );
+      const others = data.filter((p: any) => !priority.includes(p));
+
+      return [...priority, ...others].slice(0, MAX_ALERTS);
     },
   });
 
