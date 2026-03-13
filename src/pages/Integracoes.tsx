@@ -823,6 +823,16 @@ export default function Integracoes() {
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    {cfg.provedor === "evolution" && (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => handleEvolutionConnect(cfg)} title="Conectar via QR Code">
+                          <QrCode className="h-3.5 w-3.5 text-primary" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleEvolutionStatus(cfg)} title="Verificar Status">
+                          <Wifi className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    )}
                     <Badge variant={cfg.ativo ? "default" : "secondary"} className="text-[10px]">
                       {cfg.ativo ? "Ativo" : "Inativo"}
                     </Badge>
