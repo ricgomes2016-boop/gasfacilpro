@@ -74,7 +74,22 @@ serve(async (req) => {
     }
 
     console.log(`[EVOLUTION-PROXY] ${method} ${url}`);
-    const resp = await fetch(url, { method, headers, body });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    let resp: Response;
+    try {
+      resp = await fetch(url, { method, headers, body, signal: controller.signal });
+    } catch (fetchErr: any) {
+      clearTimeout(timeout);
+      console.error(`[EVOLUTION-PROXY] Fetch failed:`, fetchErr.message);
+      return new Response(JSON.stringify({ 
+        error: `Não foi possível conectar ao servidor Evolution API em ${baseUrl}. Verifique se o firewall permite conexões externas na porta 8080.`,
+        details: fetchErr.message 
+      }), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    clearTimeout(timeout);
     const data = await resp.json().catch(() => ({ ok: resp.ok }));
     console.log(`[EVOLUTION-PROXY] Response ${resp.status}:`, JSON.stringify(data).substring(0, 500));
 
