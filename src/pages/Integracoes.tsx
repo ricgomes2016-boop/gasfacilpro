@@ -16,7 +16,7 @@ import {
 import {
   Plug, MessageSquare, CreditCard, FileText, Truck, Globe, Webhook,
   ArrowUpRight, CheckCircle2, Settings, Zap, BarChart3, ScanBarcode,
-  Phone, Mail, Receipt, Shield, Loader2, ExternalLink, AlertTriangle, Building2,
+  Phone, Mail, Receipt, Shield, Loader2, ExternalLink, AlertTriangle, Building2, QrCode, Wifi, WifiOff,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
