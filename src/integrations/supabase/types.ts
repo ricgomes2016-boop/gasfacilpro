@@ -4331,6 +4331,7 @@ export type Database = {
       integracoes_whatsapp: {
         Row: {
           ativo: boolean | null
+          base_url: string | null
           created_at: string | null
           desconto_etapa1: number | null
           desconto_etapa2: number | null
@@ -4349,6 +4350,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean | null
+          base_url?: string | null
           created_at?: string | null
           desconto_etapa1?: number | null
           desconto_etapa2?: number | null
@@ -4367,6 +4369,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean | null
+          base_url?: string | null
           created_at?: string | null
           desconto_etapa1?: number | null
           desconto_etapa2?: number | null

@@ -1,0 +1,1 @@
+ALTER TABLE public.integracoes_whatsapp ADD COLUMN IF NOT EXISTS base_url text;
