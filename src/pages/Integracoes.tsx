@@ -279,6 +279,55 @@ export default function Integracoes() {
   const [wpPrecoMinimoP20, setWpPrecoMinimoP20] = useState("");
   const [wpSaving, setWpSaving] = useState(false);
   const [wpEditId, setWpEditId] = useState<string | null>(null);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrInstanceName, setQrInstanceName] = useState("");
+  const [qrStatus, setQrStatus] = useState<string | null>(null);
+
+  const handleEvolutionConnect = async (cfg: any) => {
+    setQrInstanceName(cfg.instance_id);
+    setQrCodeData(null);
+    setQrStatus(null);
+    setQrDialogOpen(true);
+    setQrLoading(true);
+    try {
+      // First try to create the instance (idempotent)
+      await supabase.functions.invoke("evolution-proxy", {
+        body: { action: "create", instance_id: cfg.instance_id },
+      });
+      // Then get QR code
+      const { data, error } = await supabase.functions.invoke("evolution-proxy", {
+        body: { action: "qrcode", instance_id: cfg.instance_id },
+      });
+      if (error) throw error;
+      const qr = data?.qrcode?.base64 || data?.base64 || data?.qrcode || null;
+      if (qr) {
+        setQrCodeData(qr);
+      } else if (data?.instance?.state === "open" || data?.instance?.state === "connected") {
+        setQrStatus("connected");
+      } else {
+        toast.info("Nenhum QR Code retornado. Verifique se a instância existe no servidor.");
+      }
+    } catch (err: any) {
+      console.error("Evolution connect error:", err);
+      toast.error("Erro ao conectar: " + (err.message || "Verifique o servidor"));
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const handleEvolutionStatus = async (cfg: any) => {
+    try {
+      const { data } = await supabase.functions.invoke("evolution-proxy", {
+        body: { action: "status", instance_id: cfg.instance_id },
+      });
+      const state = data?.instance?.state || data?.state || "unknown";
+      toast.info(`Status: ${state === "open" ? "Conectado ✅" : state === "close" ? "Desconectado ❌" : state}`);
+    } catch {
+      toast.error("Erro ao verificar status");
+    }
+  };
 
   const loadWhatsappConfigs = async () => {
     const { data } = await supabase
