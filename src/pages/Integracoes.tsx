@@ -944,6 +944,56 @@ export default function Integracoes() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog QR Code Evolution API */}
+      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="h-5 w-5 text-primary" />
+              Conectar WhatsApp
+            </DialogTitle>
+            <DialogDescription>
+              Escaneie o QR Code abaixo com seu WhatsApp para conectar a instância <strong>{qrInstanceName}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            {qrLoading ? (
+              <div className="flex flex-col items-center gap-3 py-8">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Gerando QR Code...</p>
+              </div>
+            ) : qrStatus === "connected" ? (
+              <div className="flex flex-col items-center gap-3 py-8">
+                <Wifi className="h-12 w-12 text-green-500" />
+                <p className="text-sm font-medium">WhatsApp já está conectado!</p>
+              </div>
+            ) : qrCodeData ? (
+              <>
+                <img
+                  src={qrCodeData.startsWith("data:") ? qrCodeData : `data:image/png;base64,${qrCodeData}`}
+                  alt="QR Code WhatsApp"
+                  className="w-64 h-64 rounded-lg border"
+                />
+                <p className="text-xs text-muted-foreground text-center">
+                  Abra o WhatsApp → Menu (⋮) → Aparelhos conectados → Conectar aparelho
+                </p>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-3 py-8">
+                <WifiOff className="h-12 w-12 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">QR Code não disponível</p>
+                <Button variant="outline" size="sm" onClick={() => {
+                  const cfg = whatsappConfigs.find(c => c.instance_id === qrInstanceName);
+                  if (cfg) handleEvolutionConnect(cfg);
+                }}>
+                  Tentar novamente
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 }
