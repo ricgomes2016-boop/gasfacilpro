@@ -16,7 +16,7 @@ import {
 import {
   Plug, MessageSquare, CreditCard, FileText, Truck, Globe, Webhook,
   ArrowUpRight, CheckCircle2, Settings, Zap, BarChart3, ScanBarcode,
-  Phone, Mail, Receipt, Shield, Loader2, ExternalLink, AlertTriangle, Building2,
+  Phone, Mail, Receipt, Shield, Loader2, ExternalLink, AlertTriangle, Building2, QrCode, Wifi, WifiOff,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -279,6 +279,55 @@ export default function Integracoes() {
   const [wpPrecoMinimoP20, setWpPrecoMinimoP20] = useState("");
   const [wpSaving, setWpSaving] = useState(false);
   const [wpEditId, setWpEditId] = useState<string | null>(null);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrInstanceName, setQrInstanceName] = useState("");
+  const [qrStatus, setQrStatus] = useState<string | null>(null);
+
+  const handleEvolutionConnect = async (cfg: any) => {
+    setQrInstanceName(cfg.instance_id);
+    setQrCodeData(null);
+    setQrStatus(null);
+    setQrDialogOpen(true);
+    setQrLoading(true);
+    try {
+      // First try to create the instance (idempotent)
+      await supabase.functions.invoke("evolution-proxy", {
+        body: { action: "create", instance_id: cfg.instance_id },
+      });
+      // Then get QR code
+      const { data, error } = await supabase.functions.invoke("evolution-proxy", {
+        body: { action: "qrcode", instance_id: cfg.instance_id },
+      });
+      if (error) throw error;
+      const qr = data?.qrcode?.base64 || data?.base64 || data?.qrcode || null;
+      if (qr) {
+        setQrCodeData(qr);
+      } else if (data?.instance?.state === "open" || data?.instance?.state === "connected") {
+        setQrStatus("connected");
+      } else {
+        toast.info("Nenhum QR Code retornado. Verifique se a instância existe no servidor.");
+      }
+    } catch (err: any) {
+      console.error("Evolution connect error:", err);
+      toast.error("Erro ao conectar: " + (err.message || "Verifique o servidor"));
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const handleEvolutionStatus = async (cfg: any) => {
+    try {
+      const { data } = await supabase.functions.invoke("evolution-proxy", {
+        body: { action: "status", instance_id: cfg.instance_id },
+      });
+      const state = data?.instance?.state || data?.state || "unknown";
+      toast.info(`Status: ${state === "open" ? "Conectado ✅" : state === "close" ? "Desconectado ❌" : state}`);
+    } catch {
+      toast.error("Erro ao verificar status");
+    }
+  };
 
   const loadWhatsappConfigs = async () => {
     const { data } = await supabase
@@ -774,6 +823,16 @@ export default function Integracoes() {
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    {cfg.provedor === "evolution" && (
+                      <>
+                        <Button variant="ghost" size="sm" onClick={() => handleEvolutionConnect(cfg)} title="Conectar via QR Code">
+                          <QrCode className="h-3.5 w-3.5 text-primary" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleEvolutionStatus(cfg)} title="Verificar Status">
+                          <Wifi className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    )}
                     <Badge variant={cfg.ativo ? "default" : "secondary"} className="text-[10px]">
                       {cfg.ativo ? "Ativo" : "Inativo"}
                     </Badge>
@@ -883,6 +942,56 @@ export default function Integracoes() {
               {wpEditId ? "Atualizar" : "Vincular WhatsApp"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog QR Code Evolution API */}
+      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <QrCode className="h-5 w-5 text-primary" />
+              Conectar WhatsApp
+            </DialogTitle>
+            <DialogDescription>
+              Escaneie o QR Code abaixo com seu WhatsApp para conectar a instância <strong>{qrInstanceName}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            {qrLoading ? (
+              <div className="flex flex-col items-center gap-3 py-8">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Gerando QR Code...</p>
+              </div>
+            ) : qrStatus === "connected" ? (
+              <div className="flex flex-col items-center gap-3 py-8">
+                <Wifi className="h-12 w-12 text-green-500" />
+                <p className="text-sm font-medium">WhatsApp já está conectado!</p>
+              </div>
+            ) : qrCodeData ? (
+              <>
+                <img
+                  src={qrCodeData.startsWith("data:") ? qrCodeData : `data:image/png;base64,${qrCodeData}`}
+                  alt="QR Code WhatsApp"
+                  className="w-64 h-64 rounded-lg border"
+                />
+                <p className="text-xs text-muted-foreground text-center">
+                  Abra o WhatsApp → Menu (⋮) → Aparelhos conectados → Conectar aparelho
+                </p>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-3 py-8">
+                <WifiOff className="h-12 w-12 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">QR Code não disponível</p>
+                <Button variant="outline" size="sm" onClick={() => {
+                  const cfg = whatsappConfigs.find(c => c.instance_id === qrInstanceName);
+                  if (cfg) handleEvolutionConnect(cfg);
+                }}>
+                  Tentar novamente
+                </Button>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </MainLayout>
