@@ -1,0 +1,91 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const { action, instance_id } = await req.json();
+    
+    // Get instance config from integracoes_whatsapp
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: config, error } = await supabase
+      .from("integracoes_whatsapp")
+      .select("*")
+      .eq("instance_id", instance_id)
+      .eq("provedor", "evolution")
+      .single();
+
+    if (error || !config) {
+      return new Response(JSON.stringify({ error: "Instância não encontrada" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const baseUrl = (config.base_url || "").replace(/\/$/, "");
+    const apiKey = config.token;
+
+    if (!baseUrl) {
+      return new Response(JSON.stringify({ error: "base_url não configurada" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (apiKey) headers["apikey"] = apiKey;
+
+    let url: string;
+    let method = "GET";
+    let body: string | undefined;
+
+    switch (action) {
+      case "qrcode":
+        url = `${baseUrl}/instance/connect/${instance_id}`;
+        break;
+      case "status":
+        url = `${baseUrl}/instance/connectionState/${instance_id}`;
+        break;
+      case "create":
+        url = `${baseUrl}/instance/create`;
+        method = "POST";
+        body = JSON.stringify({ instanceName: instance_id, token: apiKey, qrcode: true });
+        break;
+      case "restart":
+        url = `${baseUrl}/instance/restart/${instance_id}`;
+        method = "PUT";
+        break;
+      case "logout":
+        url = `${baseUrl}/instance/logout/${instance_id}`;
+        method = "DELETE";
+        break;
+      default:
+        return new Response(JSON.stringify({ error: "Ação inválida" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+    }
+
+    console.log(`[EVOLUTION-PROXY] ${method} ${url}`);
+    const resp = await fetch(url, { method, headers, body });
+    const data = await resp.json().catch(() => ({ ok: resp.ok }));
+    console.log(`[EVOLUTION-PROXY] Response ${resp.status}:`, JSON.stringify(data).substring(0, 500));
+
+    return new Response(JSON.stringify(data), {
+      status: resp.status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (err: any) {
+    console.error("[EVOLUTION-PROXY] Error:", err);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
