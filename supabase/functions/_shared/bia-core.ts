@@ -817,7 +817,22 @@ export async function sendTyping(config: BiaConfig, phone: string) {
 // ========== SEND MESSAGE ==========
 export async function sendMessage(config: BiaConfig, phone: string, message: string) {
   try {
-    if (config.provedor === "gateway") {
+    if (config.provedor === "evolution") {
+      // Evolution API v2 - send text message
+      const baseUrl = config.evolutionBaseUrl;
+      const instance = config.evolutionInstanceName;
+      if (!baseUrl || !instance) { console.error("Evolution: missing baseUrl or instance"); return; }
+      const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
+      const url = `${baseUrl}/message/sendText/${instance}`;
+      console.log("Evolution sendMessage:", JSON.stringify({ url, phone: cleanPhone, textLen: message.length }));
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": config.token },
+        body: JSON.stringify({ number: `${cleanPhone}@s.whatsapp.net`, text: message }),
+      });
+      const respText = await resp.text();
+      console.log("Evolution sendMessage response:", resp.status, respText.substring(0, 300));
+    } else if (config.provedor === "gateway") {
       // Send via WhatsApp Gateway API
       const url = `${config.gatewayBaseUrl}/instances/${config.gatewayInstanceName}/send-text`;
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
