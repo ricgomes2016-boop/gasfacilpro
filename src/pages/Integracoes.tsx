@@ -393,7 +393,7 @@ export default function Integracoes() {
   const [gatewayQrLoading, setGatewayQrLoading] = useState<string | null>(null);
 
   const callGatewayApi = async (path: string, method = "GET", body?: any) => {
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "scqenurznkatvrqxqjmt";
     const url = `https://${projectId}.supabase.co/functions/v1/whatsapp-gateway-api${path}`;
     const session = (await supabase.auth.getSession()).data.session;
     
@@ -697,7 +697,7 @@ export default function Integracoes() {
     }
     
     setWpConfiguringWebhook(true);
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "vjrsptpdtfexxexvjyqx"; // Fallback to provided prod ID if env missing
+    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "scqenurznkatvrqxqjmt";
     const webhookUrl = `https://${projectId}.supabase.co/functions/v1/evolution-webhook?unidade_id=${wpUnidadeId}&instance=${wpInstanceId}`;
     
     try {
