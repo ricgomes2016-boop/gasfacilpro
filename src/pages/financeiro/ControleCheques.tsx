@@ -17,7 +17,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { FileText, Plus, AlertTriangle, CheckCircle2, Clock, XCircle, RotateCcw, Pencil, Camera, Search, Image as ImageIcon, Loader2 } from "lucide-react";
+import { FileText, Plus, AlertTriangle, CheckCircle2, Clock, XCircle, RotateCcw, Pencil, Camera, Search, Image as ImageIcon, Loader2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { parseLocalDate, getBrasiliaDateString } from "@/lib/utils";
@@ -229,6 +229,14 @@ export default function ControleCheques() {
     const { error } = await supabase.from("cheques").update(updates).eq("id", id);
     if (error) { toast.error("Erro ao atualizar"); return; }
     toast.success(`Cheque marcado como ${novoStatus}`);
+    queryClient.invalidateQueries({ queryKey: ["cheques"] });
+  };
+
+  const excluirCheque = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este cheque? Esta ação não pode ser desfeita.")) return;
+    const { error } = await supabase.from("cheques").delete().eq("id", id);
+    if (error) { toast.error("Erro ao excluir cheque"); console.error(error); return; }
+    toast.success("Cheque excluído com sucesso");
     queryClient.invalidateQueries({ queryKey: ["cheques"] });
   };
 
@@ -446,6 +454,9 @@ export default function ControleCheques() {
                             <div className="flex gap-1 flex-wrap">
                               <Button size="sm" variant="ghost" onClick={() => openEdit(c)} title="Editar">
                                 <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => excluirCheque(c.id)} title="Excluir">
+                                <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                               {c.status === "em_maos" && (
                                 <Button size="sm" variant="outline" onClick={() => atualizarStatus(c.id, "depositado")}>Depositar</Button>
