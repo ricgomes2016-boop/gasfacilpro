@@ -455,6 +455,9 @@ export default function ControleCheques() {
                               <Button size="sm" variant="ghost" onClick={() => openEdit(c)} title="Editar">
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
+                              <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => excluirCheque(c.id)} title="Excluir">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
                               {c.status === "em_maos" && (
                                 <Button size="sm" variant="outline" onClick={() => atualizarStatus(c.id, "depositado")}>Depositar</Button>
                               )}
