@@ -555,7 +555,7 @@ export default function Integracoes() {
   // Auto-fetch QR code when dialog opens and it's a new or existing evolution config
   useEffect(() => {
     if (whatsappDialogOpen && wpProvedor === "evolution") {
-      const defaultUrl = "http://187.77.52.241:8080";
+      const defaultUrl = "http://187.77.52.241:8000";
       const defaultToken = "gasfacilpro2026";
       
       if (!wpBaseUrl) setWpBaseUrl(defaultUrl);
@@ -659,11 +659,8 @@ export default function Integracoes() {
     }
     
     setWpConfiguringWebhook(true);
-    // Use the Lovable project domain for the webhook
-    const projectHost = window.location.host.includes("lovable.app") 
-      ? window.location.host.split(".")[0] + ".lovable.app"
-      : "gasfacilpro.lovable.app";
-    const webhookUrl = `https://${projectHost}/functions/v1/evolution-webhook?unidade_id=${wpUnidadeId}&instance=${wpInstanceId}`;
+    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "vjrsptpdtfexxexvjyqx"; // Fallback to provided prod ID if env missing
+    const webhookUrl = `https://${projectId}.supabase.co/functions/v1/evolution-webhook?unidade_id=${wpUnidadeId}&instance=${wpInstanceId}`;
     
     try {
       const baseUrl = wpBaseUrl.replace(/\/$/, "");

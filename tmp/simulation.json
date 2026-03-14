@@ -1,0 +1,15 @@
+{
+  "event": "messages.upsert",
+  "instance": "centralgas_matriz",
+  "data": {
+    "key": {
+      "remoteJid": "5511999999999@s.whatsapp.net",
+      "fromMe": false,
+      "id": "SIMULATION_003"
+    },
+    "pushName": "Ricardo Teste",
+    "message": {
+      "conversation": "Oi"
+    }
+  }
+}

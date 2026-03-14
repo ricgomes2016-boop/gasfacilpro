@@ -14,12 +14,28 @@ then
     rm cloudflared.deb
 fi
 
-# 2. Configuração do Túnel (Modo Rápido)
-# Para produção, recomenda-se um túnel nomeado com domínio fixo.
+# 2. Instalação do Docker (se não houver)
+if ! command -v docker &> /dev/null
+then
+    echo "🐳 Instalando Docker (via script oficial)..."
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sudo sh get-docker.sh
+    rm get-docker.sh
+fi
+
+# 3. Iniciar Evolution API via Docker Compose
+echo "🔋 Iniciando Evolution API + Database + Redis..."
+# Liberar porta 8080 se estiver ocupada (proativo)
+sudo fuser -k 8080/tcp &> /dev/null || true
+sudo docker compose up -d
+
+# 4. Configuração do Túnel (Modo Rápido)
 echo "🌐 Iniciando Túnel do Cloudflare..."
-echo "⚠️  COPIE A URL 'https://...trycloudflare.com' QUE APARECER ABAIXO"
-echo "E COLE NA PÁGINA DE INTEGRAÇÕES DO SISTEMA."
+echo "----------------------------------------------------------------"
+echo "⚠️  ATENÇÃO: NÃO USE O IP NO NAVEGADOR (Pode estar bloqueado)"
+echo "⚠️  COPIE A URL ABAIXO (https://...trycloudflare.com)"
+echo "----------------------------------------------------------------"
 echo ""
 
-# Rodar o túnel em background para não travar o script, mas mostrar a URL
-cloudflared tunnel --url http://localhost:8080
+# Rodar o túnel e mostrar a saída filtrada para a URL
+cloudflared tunnel --url http://localhost:8080 2>&1 | grep --line-buffered trycloudflare.com

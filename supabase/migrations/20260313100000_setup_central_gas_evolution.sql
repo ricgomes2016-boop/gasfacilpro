@@ -1,7 +1,7 @@
 -- Atualização da Evolution API para Central Gás Matriz (IDs Reais)
 UPDATE public.integracoes_whatsapp 
 SET 
-  base_url = 'http://187.77.52.241:8080',
+  base_url = 'http://187.77.52.241:8000',
   token = 'gasfacilpro2026', -- Token atualizado conforme VPS
   provedor = 'evolution',
   ativo = true
@@ -20,7 +20,7 @@ SELECT
   'aa5b7c93-4fe6-4dba-a0b5-2af43cd20614', 
   'centralgas_matriz', 
   'gasfacilpro2026', 
-  'http://187.77.52.241:8080', 
+  'http://187.77.52.241:8000', 
   'evolution', 
   true
 WHERE NOT EXISTS (
