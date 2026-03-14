@@ -40,7 +40,7 @@ export function createSupabase() {
 // ========== RESOLVE CONFIG ==========
 export async function resolveConfig(
   supabase: any,
-  provedor: "zapi" | "uazapi" | "meta" | "gateway",
+  provedor: "zapi" | "uazapi" | "meta" | "gateway" | "evolution",
   queryUnidadeId: string | null,
   payloadInstanceId: string | null
 ): Promise<BiaConfig | null> {
@@ -48,6 +48,12 @@ export async function resolveConfig(
   if (provedor === "gateway") {
     return resolveGatewayConfig(supabase, queryUnidadeId, payloadInstanceId);
   }
+
+  // Evolution provider: resolve from integracoes_whatsapp where provedor='evolution'
+  if (provedor === "evolution") {
+    return resolveEvolutionConfig(supabase, queryUnidadeId, payloadInstanceId);
+  }
+
   const strategies = [];
 
   if (queryUnidadeId) {
@@ -94,6 +100,55 @@ export async function resolveConfig(
     }
   }
   return null;
+}
+
+// ========== RESOLVE EVOLUTION CONFIG ==========
+async function resolveEvolutionConfig(
+  supabase: any,
+  queryUnidadeId: string | null,
+  instanceNameOrId: string | null
+): Promise<BiaConfig | null> {
+  let config: any = null;
+
+  // Strategy 1: Find by instance name/id in integracoes_whatsapp
+  if (instanceNameOrId) {
+    const { data: byInstance } = await supabase.from("integracoes_whatsapp").select("*")
+      .eq("instance_id", instanceNameOrId).eq("provedor", "evolution").eq("ativo", true).maybeSingle();
+    config = byInstance;
+  }
+
+  // Strategy 2: Find by unidade_id
+  if (!config && queryUnidadeId) {
+    const { data } = await supabase.from("integracoes_whatsapp").select("*")
+      .eq("unidade_id", queryUnidadeId).eq("provedor", "evolution").eq("ativo", true).maybeSingle();
+    config = data;
+  }
+
+  // Strategy 3: Find any active evolution config (single instance fallback)
+  if (!config) {
+    const { data } = await supabase.from("integracoes_whatsapp").select("*")
+      .eq("provedor", "evolution").eq("ativo", true).limit(2);
+    if (data?.length === 1) config = data[0];
+  }
+
+  if (!config?.token || !config?.base_url) return null;
+
+  const baseUrl = (config.base_url || "").replace(/\/$/, "");
+
+  return {
+    instanceId: config.instance_id || "",
+    token: config.token,
+    securityToken: config.security_token || null,
+    unidadeId: config.unidade_id,
+    descontoEtapa1: config.desconto_etapa1 ?? 5,
+    descontoEtapa2: config.desconto_etapa2 ?? 10,
+    precoMinimoP13: config.preco_minimo_p13 ?? null,
+    precoMinimoP20: config.preco_minimo_p20 ?? null,
+    provedor: "evolution",
+    metaPhoneNumberId: null,
+    evolutionBaseUrl: baseUrl,
+    evolutionInstanceName: config.instance_id || "",
+  };
 }
 
 // ========== RESOLVE GATEWAY CONFIG ==========
