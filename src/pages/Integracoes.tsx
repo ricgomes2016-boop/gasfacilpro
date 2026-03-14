@@ -557,7 +557,7 @@ export default function Integracoes() {
     setWpProvedor("evolution");
     setWpUnidadeId("");
     setWpInstanceId("gasfacil_matriz");
-    setWpToken("");
+    setWpToken("gasfacilpro2026");
     setWpSecurityToken("");
     setWpBaseUrl("http://187.77.52.241:8000");
     setWpDescontoEtapa1("5");
@@ -598,7 +598,7 @@ export default function Integracoes() {
 
   const handleFetchQrCode = async () => {
     if (!wpBaseUrl || !wpInstanceId || !wpToken) {
-      toast.error("Preencha URL, Instance ID e Token (Global API Key) primeiro.");
+      console.warn("handleFetchQrCode: Missing required fields (BaseURL, InstanceID or Token)");
       return;
     }
     setWpConnecting(true);
