@@ -543,6 +543,19 @@ export default function Integracoes() {
         if (error) throw error;
         toast.success("WhatsApp vinculado à unidade!");
       }
+
+      // Sync with whatsapp_gateway_instances to enable the proxy
+      if (wpProvedor === "evolution") {
+        await supabase.from("whatsapp_gateway_instances").upsert({
+          empresa_id: (await supabase.auth.getSession()).data.session?.user.user_metadata.empresa_id || "", 
+          unidade_id: wpUnidadeId,
+          instance_name: wpInstanceId,
+          engine_url: wpBaseUrl,
+          api_key: wpToken,
+          status: "disconnected"
+        }, { onConflict: "empresa_id,instance_name" });
+      }
+
       await loadWhatsappConfigs();
       resetWhatsappForm();
       loadGatewayInstances();
@@ -605,25 +618,34 @@ export default function Integracoes() {
     setWpQrCode(null);
     setWpConnectionStatus("Solicitando QR Code...");
     try {
-      const { data, error } = await supabase.functions.invoke("evolution-proxy", {
-        body: { 
-          action: "qrcode", 
-          instance_id: wpInstanceId,
-          base_url: wpBaseUrl,
-          api_key: wpToken
+      // Use existing whatsapp-gateway-api as a secure proxy
+      const { data, error } = await supabase.functions.invoke("whatsapp-gateway-api", {
+        method: "GET",
+        headers: { "x-instance-token": wpToken }, // if useful for gateway
+        body: {}, // invoke requires a body or use URL
+      });
+      
+      // Since invoke might not let us change the path easily in one go, 
+      // let's use the helper callGatewayApi if available or construct the URL
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "scqenurznkatvrqxqjmt";
+      const qrUrl = `https://${projectId}.supabase.co/functions/v1/whatsapp-gateway-api/instances/${wpInstanceId}/qrcode`;
+      
+      const session = (await supabase.auth.getSession()).data.session;
+      const resp = await fetch(qrUrl, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${session?.access_token}`,
         },
       });
-
-      if (error) throw error;
       
-      const qrData = data?.qrcode?.base64 || data?.base64 || data?.qrcode || null;
+      const qrResult = await resp.json();
       
-      if (qrData) {
-        setWpQrCode(qrData);
+      if (qrResult.qrcode) {
+        setWpQrCode(qrResult.qrcode);
         setWpConnectionStatus("Escaneie o QR Code no seu WhatsApp");
         // Start polling for status
         startConnectionPolling(wpBaseUrl, wpInstanceId, wpToken);
-      } else if (data?.instance?.state === "open" || data?.instance?.state === "connected") {
+      } else if (qrResult.status === "open" || qrResult.status === "connected") {
         setWpConnectionStatus("Conectado com sucesso! 🎉");
         setWpQrCode(null);
         toast.success("WhatsApp já está conectado!");
@@ -633,7 +655,7 @@ export default function Integracoes() {
       }
     } catch (err: any) {
       console.error("Fetch QR error:", err);
-      toast.error("Erro ao conectar com a Evolution API via Proxy.");
+      toast.error("Erro ao conectar com a Evolution API via Bridge.");
       setWpConnectionStatus("Erro técnico na conexão");
     } finally {
       setWpConnecting(false);
@@ -643,15 +665,19 @@ export default function Integracoes() {
   const startConnectionPolling = (baseUrl: string, instanceId: string, token: string) => {
     const interval = setInterval(async () => {
       try {
-        const { data } = await supabase.functions.invoke("evolution-proxy", {
-          body: { 
-            action: "status", 
-            instance_id: instanceId,
-            base_url: baseUrl,
-            api_key: token
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "scqenurznkatvrqxqjmt";
+        const statusUrl = `https://${projectId}.supabase.co/functions/v1/whatsapp-gateway-api/instances/${instanceId}/status`;
+        const session = (await supabase.auth.getSession()).data.session;
+        
+        const resp = await fetch(statusUrl, {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${session?.access_token}`,
           },
         });
-        const state = data.instance?.state || data.state;
+        
+        const data = await resp.json();
+        const state = data.status || data.state;
         if (state === "open" || state === "connected") {
           setWpConnectionStatus("Conectado com sucesso! 🎉");
           setWpQrCode(null);
@@ -701,37 +727,30 @@ export default function Integracoes() {
     const webhookUrl = `https://${projectId}.supabase.co/functions/v1/evolution-webhook?unidade_id=${wpUnidadeId}&instance=${wpInstanceId}`;
     
     try {
-      const { data, error } = await supabase.functions.invoke("evolution-proxy", {
-        body: { 
-          action: "webhook", 
-          instance_id: wpInstanceId,
-          base_url: wpBaseUrl,
-          api_key: wpToken,
-          body: {
-            enabled: true,
-            url: webhookUrl,
-            webhookByEvents: true,
-            events: [
-              "MESSAGES_UPSERT",
-              "MESSAGES_UPDATE",
-              "MESSAGES_DELETE",
-              "SEND_MESSAGE",
-              "CONNECTION_UPDATE",
-              "TYPEBOT_START",
-              "TYPEBOT_CHANGE_STATUS"
-            ]
-          }
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "scqenurznkatvrqxqjmt";
+      const webhookConfigUrl = `https://${projectId}.supabase.co/functions/v1/whatsapp-gateway-api/instances/${wpInstanceId}/config`;
+      const session = (await supabase.auth.getSession()).data.session;
+      
+      const resp = await fetch(webhookConfigUrl, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`,
         },
+        body: JSON.stringify({
+          webhook_url: webhookUrl,
+          webhook_secret: null, // placeholder if needed
+        }),
       });
       
-      if (error) throw error;
+      const resData = await resp.json();
       
-      if (data?.status === "SUCCESS" || data?.ok || data?.webhook) {
+      if (resp.ok) {
         toast.success("Webhook configurado com sucesso na Evolution API!");
         // Also update the nome_bot if needed
         if (wpNomeBot) await supabase.from("integracoes_whatsapp").update({ nome_bot: wpNomeBot }).eq("id", wpEditId);
       } else {
-        toast.error(`Erro ao configurar webhook: ${data.message || "Erro desconhecido"}`);
+        toast.error(`Erro ao configurar webhook: ${resData.message || "Erro desconhecido"}`);
       }
     } catch (err: any) {
       console.error("Webhook config error:", err);
