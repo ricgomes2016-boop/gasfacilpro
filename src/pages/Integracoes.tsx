@@ -45,22 +45,6 @@ interface Integracao {
 
 const integracoes: Integracao[] = [
   {
-    id: "whatsapp_zapi",
-    nome: "WhatsApp (Z-API / UaZapi)",
-    descricao: "Envio automático de comprovantes, status de entrega e atendimento ao cliente via WhatsApp — configurável por unidade com Z-API ou UaZapi",
-    icon: MessageSquare,
-    status: "conectado",
-    categoria: "comunicacao",
-    isWhatsapp: true,
-    beneficios: [
-      "Um número por unidade/filial",
-      "Escolha entre Z-API ou UaZapi",
-      "Notificação automática de pedidos",
-      "Chatbot de atendimento (Bia)",
-    ],
-    helpUrl: "https://developer.z-api.io/",
-  },
-  {
     id: "boleto_leitura",
     nome: "Leitura de Boletos (IA)",
     descricao: "Escaneie boletos com a câmera ou envie PDF — a IA extrai fornecedor, valor, vencimento e código de barras automaticamente",
