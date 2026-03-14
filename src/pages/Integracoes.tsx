@@ -552,6 +552,25 @@ export default function Integracoes() {
     setWpNomeBot("Bia");
   };
 
+  // Auto-fetch QR code when dialog opens and it's a new or existing evolution config
+  useEffect(() => {
+    if (whatsappDialogOpen && wpProvedor === "evolution") {
+      const defaultUrl = "http://187.77.52.241:8080";
+      const defaultToken = "gasfacilpro2026";
+      
+      if (!wpBaseUrl) setWpBaseUrl(defaultUrl);
+      if (!wpToken) setWpToken(defaultToken);
+      
+      // If we have minimal info, try to fetch QR automatically after a short delay
+      if (wpInstanceId && (wpBaseUrl || defaultUrl) && (wpToken || defaultToken)) {
+        const timer = setTimeout(() => {
+          handleFetchQrCode();
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [whatsappDialogOpen, wpProvedor, wpInstanceId]);
+
   const currentWpConfig = wpEditId ? whatsappConfigs.find(c => c.id === wpEditId) : null;
 
   const handleFetchQrCode = async () => {
@@ -640,7 +659,11 @@ export default function Integracoes() {
     }
     
     setWpConfiguringWebhook(true);
-    const webhookUrl = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/evolution-webhook?unidade_id=${wpUnidadeId}&instance=${wpInstanceId}`;
+    // Use the Lovable project domain for the webhook
+    const projectHost = window.location.host.includes("lovable.app") 
+      ? window.location.host.split(".")[0] + ".lovable.app"
+      : "gasfacilpro.lovable.app";
+    const webhookUrl = `https://${projectHost}/functions/v1/evolution-webhook?unidade_id=${wpUnidadeId}&instance=${wpInstanceId}`;
     
     try {
       const baseUrl = wpBaseUrl.replace(/\/$/, "");
@@ -1211,10 +1234,26 @@ export default function Integracoes() {
                 <Input className="h-10 text-xs" type="password" value={wpToken} onChange={(e) => setWpToken(e.target.value)} placeholder="API Key ou Token" />
               </div>
 
-              {wpProvedor === "evolution" && (
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold">URL do Servidor</Label>
-                  <Input className="h-10 text-xs" type="url" value={wpBaseUrl} onChange={(e) => setWpBaseUrl(e.target.value)} placeholder="https://seu-servidor.com" />
+              {(wpProvedor === "evolution" || !wpProvedor) && (
+                <div className="space-y-4 p-4 rounded-xl border border-primary/20 bg-primary/5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-bold text-primary uppercase">Conexão Inteligente Ativa</span>
+                  </div>
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold text-muted-foreground">Instância (Identificador)</Label>
+                      <Input 
+                        className="h-9 text-xs font-mono" 
+                        value={wpInstanceId} 
+                        onChange={(e) => setWpInstanceId(e.target.value)} 
+                        placeholder="Ex: whatsapp_matriz" 
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-2 italic">
+                    * A URL e Token são gerenciados automaticamente pelo sistema para simplificar o seu acesso.
+                  </p>
                 </div>
               )}
             </div>
