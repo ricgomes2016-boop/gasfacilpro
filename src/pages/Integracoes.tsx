@@ -319,13 +319,32 @@ export default function Integracoes() {
     setQrDialogOpen(true);
     setQrLoading(true);
     try {
-      // First try to create the instance (idempotent)
-      await supabase.functions.invoke("evolution-proxy", {
-        body: { action: "create", instance_id: cfg.instance_id },
-      });
+      const baseUrl = cfg.base_url || wpBaseUrl;
+      const apiKey = cfg.token || wpToken;
+
+      // First try to create the instance (idempotent-ish)
+      try {
+        await supabase.functions.invoke("evolution-proxy", {
+          body: { 
+            action: "create", 
+            instance_id: cfg.instance_id, 
+            base_url: baseUrl, 
+            api_key: apiKey 
+          },
+        });
+      } catch (err) {
+        // Ignore create errors (usually means instance already exists)
+        console.warn("Instance creation warning:", err);
+      }
+
       // Then get QR code
       const { data, error } = await supabase.functions.invoke("evolution-proxy", {
-        body: { action: "qrcode", instance_id: cfg.instance_id },
+        body: { 
+          action: "qrcode", 
+          instance_id: cfg.instance_id, 
+          base_url: baseUrl, 
+          api_key: apiKey 
+        },
       });
       if (error) throw error;
       const qr = data?.qrcode?.base64 || data?.base64 || data?.qrcode || null;
@@ -334,7 +353,7 @@ export default function Integracoes() {
       } else if (data?.instance?.state === "open" || data?.instance?.state === "connected") {
         setQrStatus("connected");
       } else {
-        toast.info("Nenhum QR Code retornado. Verifique se a instância existe no servidor.");
+        toast.info("Nenhum QR Code retornado. Verifique se a instância está pronta.");
       }
     } catch (err: any) {
       console.error("Evolution connect error:", err);

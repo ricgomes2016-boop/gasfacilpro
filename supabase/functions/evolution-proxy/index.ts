@@ -10,32 +10,33 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { action, instance_id } = await req.json();
+    const { action, instance_id, base_url: bodyBaseUrl, api_key: bodyApiKey } = await req.json();
     
-    // Get instance config from integracoes_whatsapp
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    // Get instance config from integracoes_whatsapp if not provided in body
+    let baseUrl = (bodyBaseUrl || "").replace(/\/$/, "");
+    let apiKey = bodyApiKey;
 
-    const { data: config, error } = await supabase
-      .from("integracoes_whatsapp")
-      .select("*")
-      .eq("instance_id", instance_id)
-      .eq("provedor", "evolution")
-      .single();
+    if (!baseUrl || !apiKey) {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
 
-    if (error || !config) {
-      return new Response(JSON.stringify({ error: "Instância não encontrada" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      const { data: config, error: dbError } = await supabase
+        .from("integracoes_whatsapp")
+        .select("*")
+        .eq("instance_id", instance_id)
+        .eq("provedor", "evolution")
+        .maybeSingle();
+
+      if (config) {
+        if (!baseUrl) baseUrl = (config.base_url || "").replace(/\/$/, "");
+        if (!apiKey) apiKey = config.token;
+      }
     }
 
-    const baseUrl = (config.base_url || "").replace(/\/$/, "");
-    const apiKey = config.token;
-
     if (!baseUrl) {
-      return new Response(JSON.stringify({ error: "base_url não configurada" }), {
+      return new Response(JSON.stringify({ error: "base_url não configurada e não fornecida no corpo" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
