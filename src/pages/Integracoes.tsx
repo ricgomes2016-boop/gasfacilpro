@@ -1101,6 +1101,17 @@ export default function Integracoes() {
                       </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                      {cfg.provedor === "evolution" && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-[10px] gap-1 px-2 font-bold text-primary border-primary/20 bg-primary/5 hover:bg-primary/10" 
+                          onClick={() => handleEvolutionConnect(cfg)}
+                        >
+                          <QrCode className="h-3 w-3" />
+                          CONECTAR
+                        </Button>
+                      )}
                       <Badge variant={cfg.ativo ? "default" : "secondary"} className="text-[10px] h-5">
                         {cfg.ativo ? "Ativo" : "Inativo"}
                       </Badge>
@@ -1326,36 +1337,47 @@ export default function Integracoes() {
       <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <QrCode className="h-5 w-5 text-primary" />
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <QrCode className="h-6 w-6 text-primary" />
               Conectar WhatsApp
             </DialogTitle>
-            <DialogDescription>
-              Escaneie o QR Code abaixo com seu WhatsApp para conectar a instância <strong>{qrInstanceName}</strong>.
+            <DialogDescription className="font-medium">
+              Vincule seu aparelho para ativar as mensagens automáticas da unidade <strong>{qrInstanceName}</strong>.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col items-center gap-4 py-4">
+          <div className="flex flex-col items-center gap-6 py-6">
             {qrLoading ? (
-              <div className="flex flex-col items-center gap-3 py-8">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Gerando QR Code...</p>
+              <div className="flex flex-col items-center gap-3 py-10">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="text-sm font-semibold animate-pulse">Gerando link seguro...</p>
               </div>
             ) : qrStatus === "connected" ? (
-              <div className="flex flex-col items-center gap-3 py-8">
-                <Wifi className="h-12 w-12 text-green-500" />
-                <p className="text-sm font-medium">WhatsApp já está conectado!</p>
+              <div className="flex flex-col items-center gap-3 py-10 text-center">
+                <div className="bg-green-100 p-4 rounded-full">
+                  <Wifi className="h-10 w-10 text-green-600" />
+                </div>
+                <p className="text-lg font-bold text-green-700">Conectado com Sucesso!</p>
+                <p className="text-sm text-muted-foreground">Sua unidade já está enviando mensagens.</p>
               </div>
             ) : qrCodeData ? (
-              <>
-                <img
-                  src={qrCodeData.startsWith("data:") ? qrCodeData : `data:image/png;base64,${qrCodeData}`}
-                  alt="QR Code WhatsApp"
-                  className="w-64 h-64 rounded-lg border"
-                />
-                <p className="text-xs text-muted-foreground text-center">
-                  Abra o WhatsApp → Menu (⋮) → Aparelhos conectados → Conectar aparelho
-                </p>
-              </>
+              <div className="flex flex-col items-center gap-6 w-full">
+                <div className="p-4 bg-white rounded-3xl shadow-2xl ring-8 ring-primary/5 border-2 border-primary/10">
+                  <img
+                    src={qrCodeData.startsWith("data:") ? qrCodeData : `data:image/png;base64,${qrCodeData}`}
+                    alt="QR Code WhatsApp"
+                    className="w-56 h-56"
+                  />
+                </div>
+                
+                <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 text-center w-full space-y-2">
+                  <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Instruções de Pareamento</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    1. Abra o <strong>WhatsApp</strong> no seu celular<br/>
+                    2. Toque em <strong>Aparelhos Conectados</strong><br/>
+                    3. Toque em <strong>Conectar um aparelho</strong> e aponte a câmera.
+                  </p>
+                </div>
+              </div>
             ) : (
               <div className="flex flex-col items-center gap-3 py-8">
                 <WifiOff className="h-12 w-12 text-muted-foreground" />
