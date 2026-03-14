@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.consulta-cnpj]
 verify_jwt = false
+
+[functions.evolution-webhook]
+verify_jwt = false
