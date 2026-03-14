@@ -534,14 +534,17 @@ export default function Integracoes() {
   };
 
   const resetWhatsappForm = () => {
-    setWpProvedor("zapi");
+    setWpProvedor("evolution");
     setWpUnidadeId("");
-    setWpInstanceId("");
+    setWpInstanceId("gasfacil_matriz");
     setWpToken("");
     setWpSecurityToken("");
-    setWpBaseUrl("");
+    setWpBaseUrl("http://187.77.52.241:8000");
     setWpDescontoEtapa1("5");
     setWpDescontoEtapa2("10");
+    if (unidades.length === 1) {
+      setWpUnidadeId(unidades[0].id);
+    }
     setWpPrecoMinimoP13("");
     setWpPrecoMinimoP20("");
     setWpEditId(null);
@@ -774,6 +777,15 @@ export default function Integracoes() {
       : integracoes.filter(i => i.status === "disponivel" || i.status === "em_breve");
 
   const filteredCategorias = [...new Set(filteredIntegracoes.map(i => i.categoria))];
+
+  // Auto-open WhatsApp dialog if requested via URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("open") === "whatsapp") {
+      resetWhatsappForm();
+      setWhatsappDialogOpen(true);
+    }
+  }, []);
 
   const handleOpenConfig = (integracao: Integracao) => {
     if (integracao.isWhatsapp) {
