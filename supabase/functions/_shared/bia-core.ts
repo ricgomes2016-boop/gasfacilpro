@@ -788,6 +788,17 @@ export async function sendTyping(config: BiaConfig, phone: string) {
     if (config.provedor === "meta" || config.provedor === "gateway") {
       // Meta and Gateway don't have native typing indicators, skip
       return;
+    } else if (config.provedor === "evolution") {
+      // Evolution API v2 - send presence update
+      const baseUrl = config.evolutionBaseUrl;
+      const instance = config.evolutionInstanceName;
+      if (!baseUrl || !instance) return;
+      const cleanPhone = phone.replace(/\D/g, "");
+      await fetch(`${baseUrl}/chat/presence/${instance}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": config.token },
+        body: JSON.stringify({ number: `${cleanPhone}@s.whatsapp.net`, presence: "composing" }),
+      });
     } else if (config.provedor === "zapi") {
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/typing`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
