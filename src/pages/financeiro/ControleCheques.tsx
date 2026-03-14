@@ -17,7 +17,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { FileText, Plus, AlertTriangle, CheckCircle2, Clock, XCircle, RotateCcw, Pencil, Camera, Search, Image as ImageIcon, Loader2 } from "lucide-react";
+import { FileText, Plus, AlertTriangle, CheckCircle2, Clock, XCircle, RotateCcw, Pencil, Camera, Search, Image as ImageIcon, Loader2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { parseLocalDate, getBrasiliaDateString } from "@/lib/utils";
