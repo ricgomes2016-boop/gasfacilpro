@@ -13,6 +13,8 @@ export interface BiaConfig {
   precoMinimoP20: number | null;
   provedor: "zapi" | "uazapi" | "meta" | "gateway" | "evolution";
   metaPhoneNumberId?: string | null;
+  /** Evolution-specific: Base URL for API calls */
+  baseUrl?: string | null;
   /** Gateway-specific: URL of the gateway edge function */
   gatewayBaseUrl?: string | null;
   /** Gateway-specific: instance name for API calls */
@@ -21,6 +23,8 @@ export interface BiaConfig {
   evolutionBaseUrl?: string | null;
   /** Evolution-specific: instance name for Evolution API calls */
   evolutionInstanceName?: string | null;
+  /** Custom agent name for this unit (default: Bia) */
+  agentName?: string | null;
 }
 
 export interface ClienteInfo {
@@ -95,7 +99,9 @@ export async function resolveConfig(
         precoMinimoP13: config.preco_minimo_p13 ?? null,
         precoMinimoP20: config.preco_minimo_p20 ?? null,
         provedor,
+        baseUrl: config.base_url || null,
         metaPhoneNumberId: config.meta_phone_number_id || config.instance_id || null,
+        agentName: config.nome_bot || "Bia",
       };
     }
   }
@@ -210,6 +216,7 @@ async function resolveGatewayConfig(
     metaPhoneNumberId: null,
     gatewayBaseUrl,
     gatewayInstanceName: instance.instance_name,
+    agentName: instance.agent_name || "Bia",
   };
 }
 
@@ -321,14 +328,15 @@ export function buildSystemPrompt(
   orderStatus: any | null,
   negotiationHint: string
 ): string {
+  const agentName = config.agentName || "Bia";
   // Dynamic greeting based on BRT time
   const now = new Date();
   const brt = new Date(now.getTime() + (-3 * 60 + now.getTimezoneOffset()) * 60000);
   const hour = brt.getHours();
   const saudacao = hour >= 5 && hour < 12 ? "Bom dia" : hour >= 12 && hour < 18 ? "Boa tarde" : "Boa noite";
 
-  return `Você é a Bia, atendente real da empresa pelo WhatsApp. Você é uma pessoa, NÃO um robô.
-NUNCA diga que é IA, bot ou assistente virtual. Você é a Bia, atendente.
+  return `Você é a ${agentName}, atendente real da empresa pelo WhatsApp. Você é uma pessoa, NÃO um robô.
+NUNCA diga que é IA, bot ou assistente virtual. Você é a ${agentName}, atendente.
 
 HORÁRIO ATUAL: ${String(brt.getHours()).padStart(2, "0")}:${String(brt.getMinutes()).padStart(2, "0")} (Brasília)
 
@@ -702,9 +710,10 @@ export async function createOrder(
       pedido_id: ped.id, produto_id: produto.id, quantidade: qty, preco_unitario: produto.preco,
     });
 
-    // Auto-assign entregador based on bairro/rota
+    // Auto-assign entregador based on proximity or route
     if (!isAgendado) {
-      await autoAssignEntregador(supabase, ped.id, orderData.endereco || "", unidadeId);
+      const { data: cliente } = await supabase.from("clientes").select("latitude, longitude").eq("id", clienteId).maybeSingle();
+      await autoAssignEntregador(supabase, ped.id, orderData.endereco || "", unidadeId, cliente?.latitude, cliente?.longitude);
     }
 
     console.log("Order created:", ped.id);
@@ -712,38 +721,66 @@ export async function createOrder(
 }
 
 // ========== AUTO-ASSIGN ENTREGADOR ==========
-export async function autoAssignEntregador(supabase: any, pedidoId: string, endereco: string, unidadeId: string | null) {
+export async function autoAssignEntregador(
+  supabase: any, 
+  pedidoId: string, 
+  endereco: string, 
+  unidadeId: string | null,
+  clienteLat?: number | null,
+  clienteLng?: number | null
+) {
   try {
-    // 1. Try to find route matching the bairro in the address
-    const words = endereco.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2);
-
     let entregadorId: string | null = null;
 
-    if (words.length > 0 && unidadeId) {
-      // Search rotas_definidas for matching bairros
-      const { data: rotas } = await supabase.from("rotas_definidas")
-        .select("id, entregador_padrao_id, bairros")
+    // 1. Proximity-based assignment (if coordinates available)
+    if (clienteLat && clienteLng && unidadeId) {
+      const { data: availableEntregadores } = await supabase.from("entregadores")
+        .select("id, latitude, longitude")
+        .eq("unidade_id", unidadeId)
         .eq("ativo", true)
-        .eq("unidade_id", unidadeId);
+        .eq("status", "disponivel")
+        .not("latitude", "is", null)
+        .not("longitude", "is", null);
 
-      if (rotas) {
-        for (const rota of rotas) {
-          const bairros = (rota.bairros || []).map((b: string) => b.toLowerCase());
-          const matches = words.some((w: string) => bairros.some((b: string) => b.includes(w) || w.includes(b)));
-          if (matches && rota.entregador_padrao_id) {
-            // Check if entregador is available
-            const { data: ent } = await supabase.from("entregadores").select("id, status")
-              .eq("id", rota.entregador_padrao_id).eq("ativo", true).maybeSingle();
-            if (ent && ent.status === "disponivel") {
-              entregadorId = ent.id;
-              break;
+      if (availableEntregadores?.length) {
+        let minDist = Infinity;
+        for (const ent of availableEntregadores) {
+          const dist = calculateDistance(clienteLat, clienteLng, ent.latitude, ent.longitude);
+          if (dist < minDist) {
+            minDist = dist;
+            entregadorId = ent.id;
+          }
+        }
+      }
+    }
+
+    // 2. Route-based fallback
+    if (!entregadorId) {
+      const words = endereco.toLowerCase().split(/[,\s]+/).filter(w => w.length > 2);
+      if (words.length > 0 && unidadeId) {
+        const { data: rotas } = await supabase.from("rotas_definidas")
+          .select("id, entregador_padrao_id, bairros")
+          .eq("ativo", true)
+          .eq("unidade_id", unidadeId);
+
+        if (rotas) {
+          for (const rota of rotas) {
+            const bairros = (rota.bairros || []).map((b: string) => b.toLowerCase());
+            const matches = words.some((w: string) => bairros.some((b: string) => b.includes(w) || w.includes(b)));
+            if (matches && rota.entregador_padrao_id) {
+              const { data: ent } = await supabase.from("entregadores").select("id, status")
+                .eq("id", rota.entregador_padrao_id).eq("ativo", true).maybeSingle();
+              if (ent && ent.status === "disponivel") {
+                entregadorId = ent.id;
+                break;
+              }
             }
           }
         }
       }
     }
 
-    // 2. Fallback: any available entregador in the unit
+    // 3. Fallback: first available
     if (!entregadorId) {
       let q = supabase.from("entregadores").select("id")
         .eq("ativo", true).eq("status", "disponivel").limit(1);
@@ -759,6 +796,18 @@ export async function autoAssignEntregador(supabase: any, pedidoId: string, ende
   } catch (e) {
     console.error("Auto-assign error:", e);
   }
+}
+
+// ========== GEOLOCATION UTILS ==========
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }
 
 // ========== GET ENTREGADOR LOCATION ==========
@@ -804,6 +853,15 @@ export async function sendTyping(config: BiaConfig, phone: string) {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone }) });
+    } else if (config.provedor === "evolution") {
+      const baseUrl = config.baseUrl?.replace(/\/$/, "") || "";
+      if (baseUrl) {
+        await fetch(`${baseUrl}/chat/retrivePresence/${config.instanceId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: config.token },
+          body: JSON.stringify({ number: phone.replace(/\D/g, ""), presence: "composing" }),
+        });
+      }
     } else {
       await fetch(`https://free.uazapi.com/chat/presence`, {
         method: "POST",
@@ -869,6 +927,15 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, message }) });
+    } else if (config.provedor === "evolution") {
+      const baseUrl = config.baseUrl?.replace(/\/$/, "") || "";
+      if (baseUrl) {
+        await fetch(`${baseUrl}/message/sendText/${config.instanceId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: config.token },
+          body: JSON.stringify({ number: phone.replace(/\D/g, ""), text: message }),
+        });
+      }
     } else {
       const uazUrl = `https://free.uazapi.com/send/text`;
       const uazBody = { number: phone.replace(/\D/g, ""), text: message };
@@ -929,6 +996,21 @@ export async function sendLocation(config: BiaConfig, phone: string, lat: number
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, lat: String(lat), lng: String(lng), title: `📍 ${name}`, address: "Entregador a caminho" }) });
+    } else if (config.provedor === "evolution") {
+      const baseUrl = config.baseUrl?.replace(/\/$/, "") || "";
+      if (baseUrl) {
+        await fetch(`${baseUrl}/message/sendLocation/${config.instanceId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: config.token },
+          body: JSON.stringify({
+            number: phone.replace(/\D/g, ""),
+            latitude: lat,
+            longitude: lng,
+            name: `📍 ${name}`,
+            address: "Entregador a caminho",
+          }),
+        });
+      }
     } else {
       await fetch(`https://free.uazapi.com/send/location`, {
         method: "POST",
