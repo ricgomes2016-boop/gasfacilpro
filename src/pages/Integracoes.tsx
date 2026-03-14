@@ -1231,15 +1231,25 @@ export default function Integracoes() {
                 <Input className="h-10 text-xs" type="password" value={wpToken} onChange={(e) => setWpToken(e.target.value)} placeholder="API Key ou Token" />
               </div>
 
-              {(wpProvedor === "evolution" || !wpProvedor) && (
+              {wpProvedor === "evolution" && (
                 <div className="space-y-4 p-4 rounded-xl border border-primary/20 bg-primary/5">
                   <div className="flex items-center gap-2 mb-2">
                     <Zap className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-bold text-primary uppercase">Conexão Inteligente Ativa</span>
+                    <span className="text-xs font-bold text-primary uppercase">Configuração Evolution</span>
                   </div>
                   <div className="grid gap-4">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-bold text-muted-foreground">Instância (Identificador)</Label>
+                      <Label className="text-[10px] font-bold text-muted-foreground">URL do Servidor</Label>
+                      <Input 
+                        className="h-9 text-xs"
+                        type="url"
+                        value={wpBaseUrl || "http://187.77.52.241:8000"} 
+                        onChange={(e) => setWpBaseUrl(e.target.value)} 
+                        placeholder="http://seu-ip:8000" 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold text-muted-foreground">Instância (ID)</Label>
                       <Input 
                         className="h-9 text-xs font-mono" 
                         value={wpInstanceId} 
@@ -1248,9 +1258,6 @@ export default function Integracoes() {
                       />
                     </div>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-2 italic">
-                    * A URL e Token são gerenciados automaticamente pelo sistema para simplificar o seu acesso.
-                  </p>
                 </div>
               )}
             </div>
