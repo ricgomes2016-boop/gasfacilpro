@@ -232,6 +232,14 @@ export default function ControleCheques() {
     queryClient.invalidateQueries({ queryKey: ["cheques"] });
   };
 
+  const excluirCheque = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este cheque? Esta ação não pode ser desfeita.")) return;
+    const { error } = await supabase.from("cheques").delete().eq("id", id);
+    if (error) { toast.error("Erro ao excluir cheque"); console.error(error); return; }
+    toast.success("Cheque excluído com sucesso");
+    queryClient.invalidateQueries({ queryKey: ["cheques"] });
+  };
+
   const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
     em_maos: { label: "Em Mãos", variant: "outline", icon: Clock },
     depositado: { label: "Depositado", variant: "secondary", icon: FileText },
