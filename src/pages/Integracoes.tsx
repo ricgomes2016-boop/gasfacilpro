@@ -605,23 +605,35 @@ export default function Integracoes() {
     setWpQrCode(null);
     setWpConnectionStatus("Solicitando QR Code...");
     try {
-      const baseUrl = wpBaseUrl.replace(/\/$/, "");
-      const resp = await fetch(`${baseUrl}/instance/connect/${wpInstanceId}`, {
-        method: "GET",
-        headers: { apikey: wpToken },
+      const { data, error } = await supabase.functions.invoke("evolution-proxy", {
+        body: { 
+          action: "qrcode", 
+          instance_id: wpInstanceId,
+          base_url: wpBaseUrl,
+          api_key: wpToken
+        },
       });
-      const data = await resp.json();
-      if (data.code || data.base64) {
-        setWpQrCode(data.base64 || data.code);
+
+      if (error) throw error;
+      
+      const qrData = data?.qrcode?.base64 || data?.base64 || data?.qrcode || null;
+      
+      if (qrData) {
+        setWpQrCode(qrData);
         setWpConnectionStatus("Escaneie o QR Code no seu WhatsApp");
         // Start polling for status
-        startConnectionPolling(baseUrl, wpInstanceId, wpToken);
+        startConnectionPolling(wpBaseUrl, wpInstanceId, wpToken);
+      } else if (data?.instance?.state === "open" || data?.instance?.state === "connected") {
+        setWpConnectionStatus("Conectado com sucesso! 🎉");
+        setWpQrCode(null);
+        toast.success("WhatsApp já está conectado!");
       } else {
         toast.error("Não foi possível gerar o QR Code. Verifique se a instância está pronta.");
         setWpConnectionStatus("Erro ao gerar QR Code");
       }
     } catch (err: any) {
-      toast.error("Erro ao conectar com a Evolution API.");
+      console.error("Fetch QR error:", err);
+      toast.error("Erro ao conectar com a Evolution API via Proxy.");
       setWpConnectionStatus("Erro técnico na conexão");
     } finally {
       setWpConnecting(false);
@@ -631,11 +643,14 @@ export default function Integracoes() {
   const startConnectionPolling = (baseUrl: string, instanceId: string, token: string) => {
     const interval = setInterval(async () => {
       try {
-        const resp = await fetch(`${baseUrl}/instance/connectionState/${instanceId}`, {
-          method: "GET",
-          headers: { apikey: token },
+        const { data } = await supabase.functions.invoke("evolution-proxy", {
+          body: { 
+            action: "status", 
+            instance_id: instanceId,
+            base_url: baseUrl,
+            api_key: token
+          },
         });
-        const data = await resp.json();
         const state = data.instance?.state || data.state;
         if (state === "open" || state === "connected") {
           setWpConnectionStatus("Conectado com sucesso! 🎉");
@@ -686,31 +701,32 @@ export default function Integracoes() {
     const webhookUrl = `https://${projectId}.supabase.co/functions/v1/evolution-webhook?unidade_id=${wpUnidadeId}&instance=${wpInstanceId}`;
     
     try {
-      const baseUrl = wpBaseUrl.replace(/\/$/, "");
-      const resp = await fetch(`${baseUrl}/webhook/set/${wpInstanceId}`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          apikey: wpToken 
+      const { data, error } = await supabase.functions.invoke("evolution-proxy", {
+        body: { 
+          action: "webhook", 
+          instance_id: wpInstanceId,
+          base_url: wpBaseUrl,
+          api_key: wpToken,
+          body: {
+            enabled: true,
+            url: webhookUrl,
+            webhookByEvents: true,
+            events: [
+              "MESSAGES_UPSERT",
+              "MESSAGES_UPDATE",
+              "MESSAGES_DELETE",
+              "SEND_MESSAGE",
+              "CONNECTION_UPDATE",
+              "TYPEBOT_START",
+              "TYPEBOT_CHANGE_STATUS"
+            ]
+          }
         },
-        body: JSON.stringify({
-          enabled: true,
-          url: webhookUrl,
-          webhookByEvents: true,
-          events: [
-            "MESSAGES_UPSERT",
-            "MESSAGES_UPDATE",
-            "MESSAGES_DELETE",
-            "SEND_MESSAGE",
-            "CONNECTION_UPDATE",
-            "TYPEBOT_START",
-            "TYPEBOT_CHANGE_STATUS"
-          ]
-        }),
       });
       
-      const data = await resp.json();
-      if (resp.ok) {
+      if (error) throw error;
+      
+      if (data?.status === "SUCCESS" || data?.ok || data?.webhook) {
         toast.success("Webhook configurado com sucesso na Evolution API!");
         // Also update the nome_bot if needed
         if (wpNomeBot) await supabase.from("integracoes_whatsapp").update({ nome_bot: wpNomeBot }).eq("id", wpEditId);

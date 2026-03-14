@@ -10,7 +10,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { action, instance_id, base_url: bodyBaseUrl, api_key: bodyApiKey } = await req.json();
+    const fullBody = await req.json();
+    const { action, instance_id, base_url: bodyBaseUrl, api_key: bodyApiKey } = fullBody;
     
     // Get instance config from integracoes_whatsapp if not provided in body
     let baseUrl = (bodyBaseUrl || "").replace(/\/$/, "");
@@ -67,6 +68,11 @@ serve(async (req) => {
       case "logout":
         url = `${baseUrl}/instance/logout/${instance_id}`;
         method = "DELETE";
+        break;
+      case "webhook":
+        url = `${baseUrl}/webhook/set/${instance_id}`;
+        method = "POST";
+        body = JSON.stringify(fullBody.body); // Repassamos o corpo que vem do frontend
         break;
       default:
         return new Response(JSON.stringify({ error: "Ação inválida" }), {
