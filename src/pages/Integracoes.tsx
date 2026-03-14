@@ -316,6 +316,7 @@ export default function Integracoes() {
     setQrInstanceName(cfg.instance_id);
     setQrCodeData(null);
     setQrStatus(null);
+    setWhatsappDialogOpen(false); // Evita sobreposição de janelas
     setQrDialogOpen(true);
     setQrLoading(true);
     try {
