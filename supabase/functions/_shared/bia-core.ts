@@ -887,7 +887,23 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
 // ========== SEND LOCATION (WHATSAPP) ==========
 export async function sendLocation(config: BiaConfig, phone: string, lat: number, lng: number, name: string) {
   try {
-    if (config.provedor === "gateway") {
+    if (config.provedor === "evolution") {
+      const baseUrl = config.evolutionBaseUrl;
+      const instance = config.evolutionInstanceName;
+      if (!baseUrl || !instance) return;
+      const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
+      await fetch(`${baseUrl}/message/sendLocation/${instance}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": config.token },
+        body: JSON.stringify({
+          number: `${cleanPhone}@s.whatsapp.net`,
+          name: `📍 ${name}`,
+          address: "Entregador a caminho",
+          latitude: lat,
+          longitude: lng,
+        }),
+      });
+    } else if (config.provedor === "gateway") {
       const url = `${config.gatewayBaseUrl}/instances/${config.gatewayInstanceName}/send-location`;
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
       await fetch(url, {
