@@ -418,6 +418,12 @@ ${isOffHours ? `FORA DO HORÁRIO (${horarioInfo}):
 - "Estamos fechados agora, mas posso agendar! Quer?"
 - Se sim, colete dados e adicione "agendado: sim" no bloco.` : ""}
 
+${sundayContext?.isSunday ? `REGRAS DE DOMINGO (ATIVAS AGORA):
+- Funcionamento reduzido: ${horarioInfo}.
+- NÃO há entrega de água aos domingos. Água APENAS para retirada presencial na portaria.
+- Se o cliente pedir água para entrega, informe: "Aos domingos não fazemos entrega de água, mas pode retirar aqui na portaria até o horário de fechamento! 😊"
+- NÃO inclua água em pedidos de entrega aos domingos.` : ""}
+
 EXEMPLO COM DESCONTO:
 [PEDIDO_CONFIRMADO]
 nome: João
