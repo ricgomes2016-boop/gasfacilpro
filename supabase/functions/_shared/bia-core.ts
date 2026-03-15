@@ -221,21 +221,31 @@ async function resolveGatewayConfig(
 }
 
 
+const SUNDAY_MAX_CLOSING = "14:00";
+
 export async function checkBusinessHours(supabase: any, unidadeId: string | null) {
-  if (!unidadeId) return { isOffHours: false, horarioInfo: "" };
+  if (!unidadeId) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true };
 
   const { data: u } = await supabase.from("unidades")
     .select("horario_abertura, horario_fechamento").eq("id", unidadeId).maybeSingle();
 
-  if (!u?.horario_abertura || !u?.horario_fechamento) return { isOffHours: false, horarioInfo: "" };
+  if (!u?.horario_abertura || !u?.horario_fechamento) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true };
 
   const now = new Date();
   const brt = new Date(now.getTime() + (-3 * 60 + now.getTimezoneOffset()) * 60000);
   const cur = `${String(brt.getHours()).padStart(2, "0")}:${String(brt.getMinutes()).padStart(2, "0")}`;
+  const isSunday = brt.getDay() === 0;
+
+  let effectiveClosing = u.horario_fechamento;
+  if (isSunday) {
+    effectiveClosing = effectiveClosing > SUNDAY_MAX_CLOSING ? SUNDAY_MAX_CLOSING : effectiveClosing;
+  }
 
   return {
-    isOffHours: cur < u.horario_abertura || cur >= u.horario_fechamento,
-    horarioInfo: `das ${u.horario_abertura} às ${u.horario_fechamento}`,
+    isOffHours: cur < u.horario_abertura || cur >= effectiveClosing,
+    horarioInfo: `das ${u.horario_abertura} às ${effectiveClosing}${isSunday ? " (horário de domingo)" : ""}`,
+    isSunday,
+    waterDeliveryAllowed: !isSunday,
   };
 }
 
@@ -326,7 +336,8 @@ export function buildSystemPrompt(
   isOffHours: boolean,
   horarioInfo: string,
   orderStatus: any | null,
-  negotiationHint: string
+  negotiationHint: string,
+  sundayContext?: { isSunday: boolean; waterDeliveryAllowed: boolean }
 ): string {
   const agentName = config.agentName || "Bia";
   // Dynamic greeting based on BRT time
@@ -406,6 +417,12 @@ NEGOCIAÇÃO (3 ETAPAS):
 ${isOffHours ? `FORA DO HORÁRIO (${horarioInfo}):
 - "Estamos fechados agora, mas posso agendar! Quer?"
 - Se sim, colete dados e adicione "agendado: sim" no bloco.` : ""}
+
+${sundayContext?.isSunday ? `REGRAS DE DOMINGO (ATIVAS AGORA):
+- Funcionamento reduzido: ${horarioInfo}.
+- NÃO há entrega de água aos domingos. Água APENAS para retirada presencial na portaria.
+- Se o cliente pedir água para entrega, informe: "Aos domingos não fazemos entrega de água, mas pode retirar aqui na portaria até o horário de fechamento! 😊"
+- NÃO inclua água em pedidos de entrega aos domingos.` : ""}
 
 EXEMPLO COM DESCONTO:
 [PEDIDO_CONFIRMADO]

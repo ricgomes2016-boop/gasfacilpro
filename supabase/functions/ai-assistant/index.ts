@@ -271,6 +271,18 @@ ${TABLES_SCHEMA}`,
     else timeContext = "É noite — bom momento para verificar o fechamento do dia.";
     if (dayOfMonth >= 25) timeContext += " Fim do mês — considere verificar contas a pagar/receber e folha.";
 
+    // Sunday business rules
+    const isSunday = dayOfWeek.toLowerCase().includes("domingo");
+    let sundayContext = "";
+    if (isSunday) {
+      sundayContext = `
+REGRAS DE DOMINGO (ATIVAS AGORA):
+- Horário de funcionamento reduzido: todas as unidades fecham no máximo às 14:00 (se o horário cadastrado for anterior, prevalece o menor).
+- NÃO há entrega de água aos domingos. Água só está disponível para retirada presencial na portaria até às 14h.
+- Considere essas restrições ao sugerir ações, responder sobre entregas ou status da loja.
+- Se o cliente perguntar sobre água no domingo, informe claramente que não há entrega, apenas retirada.`;
+    }
+
     const finalResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -290,6 +302,7 @@ Se houve erro na consulta, peça ao usuário reformular a pergunta.
 Seja proativo: além de responder, sugira insights ou ações baseadas nos dados.
 
 CONTEXTO TEMPORAL: Hoje é ${dayOfWeek}, ${now.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}. ${timeContext}
+${sundayContext}
 
 AÇÕES DISPONÍVEIS: Você pode ajudar o usuário a executar ações no sistema. ${ACTIONS_SCHEMA}
 
