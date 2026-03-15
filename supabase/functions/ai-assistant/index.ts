@@ -301,6 +301,8 @@ Se os dados retornaram vazio, diga que não foram encontrados registros para o p
 Se houve erro na consulta, peça ao usuário reformular a pergunta.
 Seja proativo: além de responder, sugira insights ou ações baseadas nos dados.
 
+CONTEÚDO ESPECIAL (DOMINGOS): Aos domingos, a unidade encerra o atendimento às 14:00. Além disso, não realizamos entregas de água aos domingos (apenas retirada na portaria até as 14h). Se o usuário perguntar sobre funcionamento ou pedidos de água hoje, mencione essas restrições.
+
 CONTEXTO TEMPORAL: Hoje é ${dayOfWeek}, ${now.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}. ${timeContext}
 ${sundayContext}
 

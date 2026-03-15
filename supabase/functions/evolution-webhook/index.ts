@@ -36,21 +36,13 @@ serve(async (req) => {
     if (payload.key.fromMe === true) return OK({ ok: true, skipped: "fromMe" });
 
     const phone = payload.key.remoteJid?.split("@")[0] || "";
-    // Extract text from various message types (conversation, extendedTextMessage, etc.)
-    const messageText = payload.message?.conversation || 
-                       payload.message?.extendedTextMessage?.text || 
-                       payload.message?.imageMessage?.caption || 
-                       "";
-    
     const senderName = payload.pushName || "";
     const isGroup = payload.key.remoteJid?.includes("@g.us");
 
     if (isGroup || !phone) return OK({ ok: true, skipped: "invalid" });
-    if (!messageText) return OK({ ok: true, skipped: "empty_text" });
 
-    // Resolve config
+    // Resolve config early for audio/typing
     const url = new URL(req.url);
-    // Evolution instances are identified by the "instance" field in the body or the query param
     const instanceName = body.instance || url.searchParams.get("instance") || null;
     const config = await resolveConfig(supabase, "evolution", url.searchParams.get("unidade_id"), instanceName);
 
@@ -58,6 +50,43 @@ serve(async (req) => {
       console.error("No config found for Evolution instance:", instanceName);
       return OK({ ok: true, skipped: "no_config" });
     }
+
+    // Extract text from various message types (conversation, extendedTextMessage, imageMessage, etc.)
+    let messageText = payload.message?.conversation || 
+                       payload.message?.extendedTextMessage?.text || 
+                       payload.message?.imageMessage?.caption || 
+                       "";
+
+    // Handle audio: voice notes
+    const audioMessage = payload.message?.audioMessage;
+    const isAudio = !!audioMessage || payload.messageType === "audioMessage";
+    
+    if (isAudio) {
+      // For Evolution, media URL might be in the payload or needs to be constructed/fetched
+      // In latest versions, it often provides a URL or requires using the download endpoint
+      const mediaUrl = audioMessage?.url || `${config.evolutionBaseUrl}/message/download/${payload.key.id}`;
+      console.log("Evolution audio detected:", { instance: instanceName, messageId: payload.key.id });
+      
+      const audio = await downloadAudio(config, mediaUrl);
+      if (audio) {
+        const transcribed = await transcribeAudio(audio.base64, audio.mimeType);
+        if (transcribed) {
+          messageText = transcribed;
+          console.log("Audio transcribed (Evolution):", messageText.substring(0, 80));
+        } else {
+          await sendMessage(config, phone, "Desculpe, não consegui entender o áudio. Pode digitar? 😊");
+          return OK({ ok: true, skipped: "audio_unreadable" });
+        }
+      } else {
+        // Only return if we literally have no text. If it was a caption + audio (rare), we keep going.
+        if (!messageText) {
+          await sendMessage(config, phone, "Desculpe, não consegui processar seu áudio agora. Pode mandar por texto? 😊");
+          return OK({ ok: true, skipped: "audio_download_failed" });
+        }
+      }
+    }
+
+    if (!messageText) return OK({ ok: true, skipped: "empty_text" });
 
     const normalized = normalizePhone(phone);
     const conversationId = await generateUUIDFromString(`whatsapp_${normalized}`);
@@ -160,9 +189,68 @@ serve(async (req) => {
 
     await sendMessage(config, phone, reply);
 
+    // --- AUTO FOLLOW-UP FOR NEGOTIATION (Evolution) ---
+    const replyLower = reply.toLowerCase();
+    const mentionedMgr = replyLower.includes("verificar com o gerente") || replyLower.includes("falar com o gerente") ||
+      replyLower.includes("consultar o gerente") || (replyLower.includes("um momento") && !replyLower.includes("desconto"));
+    const hasDiscount = replyLower.includes("desconto") && replyLower.includes("r$");
+
+    if (mentionedMgr && !hasDiscount && config.descontoEtapa1 > 0) {
+      setTimeout(async () => {
+        try {
+          // Race check: did user say something else in the last 4s?
+          const { data: newer } = await supabase.from("ai_mensagens").select("id")
+            .eq("conversa_id", conversationId).eq("role", "user")
+            .gt("created_at", new Date(Date.now() - 4000).toISOString()).limit(1);
+          if (newer?.length) return;
+
+          // Dedup follow-up
+          const { data: existFU } = await supabase.from("ai_mensagens").select("id")
+            .eq("conversa_id", conversationId).eq("role", "assistant")
+            .contains("metadata", { auto_followup_for: messageKey }).limit(1);
+          if (existFU?.length) return;
+
+          // Products for prices
+          const { data: allProds } = await supabase.from("produtos").select("nome, preco").eq("ativo", true);
+          const p13 = allProds?.find((p: any) => /p\s*13|13\s*kg/i.test(p.nome));
+          const p20 = allProds?.find((p: any) => /p\s*20|20\s*kg/i.test(p.nome));
+          const p13B = p13 ? Number(p13.preco) : null;
+          const p20B = p20 ? Number(p20.preco) : null;
+
+          const { data: freshHist } = await supabase.from("ai_mensagens").select("content")
+            .eq("conversa_id", conversationId).eq("role", "assistant").order("created_at", { ascending: true });
+          const dcCount = (freshHist || []).filter((m: any) => {
+            const c = m.content.toLowerCase();
+            return (c.includes("consegui") || c.includes("desconto especial") || c.includes("desconto total")) && c.includes("r$") && c.includes("desconto");
+          }).length;
+
+          const fmt = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
+          let fu: string;
+          if (dcCount >= 1) {
+            const lines = ["Consegui falar com o gerente novamente ✅", `Fechamos no valor mínimo: desconto total de ${fmt(config.descontoEtapa2)}/un.`];
+            if (p13B) lines.push(`• P13: de ${fmt(p13B)} por ${fmt(config.precoMinimoP13 ?? p13B - config.descontoEtapa2)}`);
+            if (p20B) lines.push(`• P20: de ${fmt(p20B)} por ${fmt(config.precoMinimoP20 ?? p20B - config.descontoEtapa2)}`);
+            lines.push("Esse é o menor preço. Posso confirmar?");
+            fu = lines.join("\n");
+          } else {
+            const lines = ["Consegui um desconto com o gerente ✅", `Desconto especial de ${fmt(config.descontoEtapa1)}/un.`];
+            if (p13B) lines.push(`• P13: de ${fmt(p13B)} por ${fmt(p13B - config.descontoEtapa1)}`);
+            if (p20B) lines.push(`• P20: de ${fmt(p20B)} por ${fmt(p20B - config.descontoEtapa1)}`);
+            lines.push("Posso confirmar seu pedido?");
+            fu = lines.join("\n");
+          }
+
+          await saveMessage(supabase, conversationId, "assistant", fu, { source: "evolution-webhook", auto_followup_for: messageKey });
+          await sendMessage(config, phone, fu);
+        } catch (err) {
+          console.error("Evolution follow-up error:", err);
+        }
+      }, 5000);
+    }
+
     return OK({ ok: true, reply: reply.substring(0, 100) });
   } catch (error) {
     console.error("Evolution webhook error:", error);
-    return new Response(JSON.stringify({ error: "Internal error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Internal error", details: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

@@ -358,7 +358,9 @@ export default function Integracoes() {
       }
     } catch (err: any) {
       console.error("Evolution connect error:", err);
-      toast.error("Erro ao conectar: " + (err.message || "Verifique o servidor"));
+      if (!err.message?.includes("Abort")) {
+        toast.error("Erro ao conectar: " + (err.message || "Verifique o servidor"));
+      }
     } finally {
       setQrLoading(false);
     }
@@ -665,9 +667,10 @@ export default function Integracoes() {
         setWpConnectionStatus("Escaneie o QR Code no seu WhatsApp");
         // Start polling for status
         startConnectionPolling(wpBaseUrl, wpInstanceId, wpToken);
-      } else if (data?.instance?.state === "open" || data?.instance?.state === "connected") {
+      } else if (data?.instance?.state === "open" || data?.instance?.state === "connected" || data?.state === "open" || data?.state === "connected") {
         setWpConnectionStatus("Conectado com sucesso! 🎉");
         setWpQrCode(null);
+        setQrCodeData(null); // Limpa também o outro estado de QR
         toast.success("WhatsApp já está conectado!");
       } else {
         toast.error("Não foi possível gerar o QR Code. Experimente clicar em Conectar novamente.");
@@ -675,8 +678,13 @@ export default function Integracoes() {
       }
     } catch (err: any) {
       console.error("Fetch QR error:", err);
-      toast.error("Servidor Evolution ainda offline ou em carregamento.");
-      setWpConnectionStatus("Erro na conexão");
+      // Only show error toast if we are not already polling or if it's a critical failure
+      if (err.message?.includes("fetch") || err.name === "AbortError") {
+        setWpConnectionStatus("Servidor Evolution demorando a responder. Verifique se está online.");
+      } else {
+        toast.error("Erro ao solicitar QR Code. Tente novamente.");
+        setWpConnectionStatus("Erro na conexão");
+      }
     } finally {
       setWpConnecting(false);
     }
@@ -698,6 +706,7 @@ export default function Integracoes() {
         if (state === "open" || state === "connected") {
           setWpConnectionStatus("Conectado com sucesso! 🎉");
           setWpQrCode(null);
+          setQrCodeData(null); // Limpa também o outro estado de QR
           clearInterval(interval);
           toast.success("WhatsApp conectado!");
           loadWhatsappConfigs();
@@ -751,18 +760,19 @@ export default function Integracoes() {
           base_url: wpBaseUrl,
           api_key: wpToken,
           body: {
-            enabled: true,
-            url: webhookUrl,
-            webhookByEvents: true,
-            events: [
-              "MESSAGES_UPSERT",
-              "MESSAGES_UPDATE",
-              "MESSAGES_DELETE",
-              "SEND_MESSAGE",
-              "CONNECTION_UPDATE",
-              "TYPEBOT_START",
-              "TYPEBOT_CHANGE_STATUS"
-            ]
+            webhook: {
+              enabled: true,
+              url: webhookUrl,
+              webhook_by_events: false,
+              events: [
+                "MESSAGES_UPSERT",
+                "MESSAGES_UPDATE",
+                "MESSAGES_DELETE",
+                "SEND_MESSAGE",
+                "CONNECTION_UPDATE",
+                "CALL"
+              ]
+            }
           }
         },
       });

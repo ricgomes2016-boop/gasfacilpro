@@ -96,9 +96,8 @@ serve(async (req) => {
 
   try {
     // Parse path: remove empty segments
-    // pathParts[0] = "whatsapp-gateway-api" (function name) — may or may not be present
-    let segments = pathParts;
-    if (segments[0] === "whatsapp-gateway-api") segments = segments.slice(1);
+    // Filter out internal Supabase path segments
+    let segments = pathParts.filter(p => !["functions", "v1", "whatsapp-gateway-api"].includes(p));
 
     // ===== WEBHOOK RECEIVER (POST /webhook/{instance_name}) =====
     if (segments[0] === "webhook" && segments[1] && req.method === "POST") {

@@ -59,7 +59,12 @@ serve(async (req) => {
       case "create":
         url = `${baseUrl}/instance/create`;
         method = "POST";
-        body = JSON.stringify({ instanceName: instance_id, token: apiKey, qrcode: true });
+        body = JSON.stringify({ 
+          instanceName: instance_id, 
+          token: apiKey, 
+          qrcode: true,
+          integration: "WHATSAPP-BAILEYS"
+        });
         break;
       case "restart":
         url = `${baseUrl}/instance/restart/${instance_id}`;

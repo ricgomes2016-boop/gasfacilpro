@@ -242,6 +242,7 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
 
   const now = new Date();
   const brt = new Date(now.getTime() + (-3 * 60 + now.getTimezoneOffset()) * 60000);
+  const day = brt.getDay(); // 0 = Domingo
   const cur = `${String(brt.getHours()).padStart(2, "0")}:${String(brt.getMinutes()).padStart(2, "0")}`;
   const isSunday = brt.getDay() === 0;
 
@@ -255,9 +256,15 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
     }
   }
 
+  let closing = u.horario_fechamento;
+  // Regra de Domingo: fechar as 14:00 se ainda não estiver configurado para fechar mais cedo
+  if (day === 0 && closing > "14:00") {
+    closing = "14:00";
+  }
+
   return {
     isOffHours: cur < abertura || cur >= effectiveClosing,
-    horarioInfo: `das ${abertura} às ${effectiveClosing}${isSunday ? " (horário de domingo)" : ""}`,
+    horarioInfo: `das ${abertura} às ${effectiveClosing}${isSunday ? " (horário especial de domingo)" : ""}`,
     isSunday,
     waterDeliveryAllowed: !(isSunday && !aguaEntregaDomingo),
     empresaId: u.empresa_id || null,
@@ -385,6 +392,13 @@ export function buildSystemPrompt(
 NUNCA diga que é IA, bot ou assistente virtual. Você é a ${agentName}, atendente.
 
 HORÁRIO ATUAL: ${String(brt.getHours()).padStart(2, "0")}:${String(brt.getMinutes()).padStart(2, "0")} (Brasília)
+DIA DA SEMANA: ${brt.getDay() === 0 ? "Domingo" : "Dia útil"}
+${brt.getDay() === 0 ? `
+REGRAS DE DOMINGO:
+- NÃO fazemos entrega de ÁGUA aos domingos.
+- Água pode ser RETIRADA na portaria apenas até as 14:00.
+- O atendimento encerra às 14:00.
+- Se o cliente pedir entrega de água hoje, explique educadamente que domingo só retirando na portaria até as 14h.` : ""}
 
 ESTILO (OBRIGATÓRIO):
 - Mensagens CURTAS: máximo 2-3 linhas. Nada de textão.
@@ -601,6 +615,9 @@ export async function downloadAudio(config: BiaConfig, mediaUrl: string): Promis
     if (config.provedor === "meta") {
       // Meta Cloud API media: need to download via graph API with auth
       headers["Authorization"] = `Bearer ${config.token}`;
+    } else if (config.provedor === "evolution") {
+      // Evolution API media: download using apikey
+      headers["apikey"] = config.token;
     } else if (config.provedor === "zapi" && !mediaUrl.startsWith("http")) {
       fetchUrl = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/download-media`;
       headers["Content-Type"] = "application/json";
@@ -948,15 +965,6 @@ export async function sendTyping(config: BiaConfig, phone: string) {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone }) });
-    } else if (config.provedor === "evolution") {
-      const baseUrl = config.baseUrl?.replace(/\/$/, "") || "";
-      if (baseUrl) {
-        await fetch(`${baseUrl}/chat/retrivePresence/${config.instanceId}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", apikey: config.token },
-          body: JSON.stringify({ number: phone.replace(/\D/g, ""), presence: "composing" }),
-        });
-      }
     } else {
       await fetch(`https://free.uazapi.com/chat/presence`, {
         method: "POST",
@@ -1022,15 +1030,6 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, message }) });
-    } else if (config.provedor === "evolution") {
-      const baseUrl = config.baseUrl?.replace(/\/$/, "") || "";
-      if (baseUrl) {
-        await fetch(`${baseUrl}/message/sendText/${config.instanceId}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", apikey: config.token },
-          body: JSON.stringify({ number: phone.replace(/\D/g, ""), text: message }),
-        });
-      }
     } else {
       const uazUrl = `https://free.uazapi.com/send/text`;
       const uazBody = { number: phone.replace(/\D/g, ""), text: message };
@@ -1091,21 +1090,6 @@ export async function sendLocation(config: BiaConfig, phone: string, lat: number
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
       await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, lat: String(lat), lng: String(lng), title: `📍 ${name}`, address: "Entregador a caminho" }) });
-    } else if (config.provedor === "evolution") {
-      const baseUrl = config.baseUrl?.replace(/\/$/, "") || "";
-      if (baseUrl) {
-        await fetch(`${baseUrl}/message/sendLocation/${config.instanceId}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", apikey: config.token },
-          body: JSON.stringify({
-            number: phone.replace(/\D/g, ""),
-            latitude: lat,
-            longitude: lng,
-            name: `📍 ${name}`,
-            address: "Entregador a caminho",
-          }),
-        });
-      }
     } else {
       await fetch(`https://free.uazapi.com/send/location`, {
         method: "POST",
