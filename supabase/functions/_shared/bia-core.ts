@@ -393,7 +393,7 @@ ${cliente.endereco
 - Quando tiver TUDO (produto + endereço + pagamento), finalize com:
    [PEDIDO_CONFIRMADO]
    nome: Nome
-   produto: Produto
+   produto: (USE O NOME EXATO do produto da lista: "Gás P13", "Gás P20", "Gás P45" ou "Água Mineral 20L")
    quantidade: X
    endereco: Endereço
    pagamento: forma
