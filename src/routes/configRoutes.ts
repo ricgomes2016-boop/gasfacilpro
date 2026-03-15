@@ -9,6 +9,7 @@ const Usuarios = lazy(() => import("@/pages/config/Usuarios"));
 const DocumentosEmpresa = lazy(() => import("@/pages/config/DocumentosEmpresa"));
 const Notificacoes = lazy(() => import("@/pages/config/Notificacoes"));
 const PersonalizacaoVisual = lazy(() => import("@/pages/config/PersonalizacaoVisual"));
+const RegrasBia = lazy(() => import("@/pages/config/RegrasBia"));
 const MeuPerfil = lazy(() => import("@/pages/MeuPerfil"));
 
 export const configRoutes: RouteConfig[] = [
