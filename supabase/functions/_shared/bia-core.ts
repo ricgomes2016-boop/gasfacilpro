@@ -527,8 +527,14 @@ export async function isPostOrderFollowUp(supabase: any, phone: string, messageT
 
   if (!data?.length) return false;
 
-  const isNewOrder = /(quero|preciso|novo pedido|pedido|gás|gas|botij|p13|p20|p45|água|agua|comprar|entrega)/i.test(messageText);
-  const isFollowUp = /(obrigad|valeu|ok|não|nao|sim|certo|perfeito|show|blz|beleza)/i.test(messageText.toLowerCase());
+  const trimmed = messageText.trim();
+  
+  // Only treat as follow-up if the ENTIRE message is a short acknowledgment (max 3 words)
+  const wordCount = trimmed.split(/\s+/).length;
+  if (wordCount > 3) return false;
+
+  const isNewOrder = /(quero|preciso|novo pedido|pedido|gás|gas|botij|p13|p20|p45|água|agua|comprar|entrega|preço|preco|quanto)/i.test(trimmed);
+  const isFollowUp = /^(obrigad[oa]?|valeu|certo|perfeito|show|blz|beleza|tmj|falou|vlw|brigad[oa]?|thanks|thx)$/i.test(trimmed);
 
   return !isNewOrder && isFollowUp;
 }
