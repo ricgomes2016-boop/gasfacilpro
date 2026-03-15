@@ -224,28 +224,32 @@ async function resolveGatewayConfig(
 const SUNDAY_MAX_CLOSING = "14:00";
 
 export async function checkBusinessHours(supabase: any, unidadeId: string | null) {
-  if (!unidadeId) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true };
+  if (!unidadeId) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: null };
 
   const { data: u } = await supabase.from("unidades")
-    .select("horario_abertura, horario_fechamento").eq("id", unidadeId).maybeSingle();
+    .select("horario_abertura, horario_fechamento, empresa_id").eq("id", unidadeId).maybeSingle();
 
-  if (!u?.horario_abertura || !u?.horario_fechamento) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true };
+  if (!u?.horario_abertura || !u?.horario_fechamento) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: u?.empresa_id || null };
 
   const now = new Date();
   const brt = new Date(now.getTime() + (-3 * 60 + now.getTimezoneOffset()) * 60000);
   const cur = `${String(brt.getHours()).padStart(2, "0")}:${String(brt.getMinutes()).padStart(2, "0")}`;
   const isSunday = brt.getDay() === 0;
 
+  const CENTRAL_GAS_EMPRESA_ID = "f27e158e-7ab5-4617-9f66-c6b4a084d293";
+  const isCentralGas = u.empresa_id === CENTRAL_GAS_EMPRESA_ID;
+
   let effectiveClosing = u.horario_fechamento;
-  if (isSunday) {
+  if (isSunday && isCentralGas) {
     effectiveClosing = effectiveClosing > SUNDAY_MAX_CLOSING ? SUNDAY_MAX_CLOSING : effectiveClosing;
   }
 
   return {
     isOffHours: cur < u.horario_abertura || cur >= effectiveClosing,
-    horarioInfo: `das ${u.horario_abertura} às ${effectiveClosing}${isSunday ? " (horário de domingo)" : ""}`,
+    horarioInfo: `das ${u.horario_abertura} às ${effectiveClosing}${isSunday && isCentralGas ? " (horário de domingo)" : ""}`,
     isSunday,
-    waterDeliveryAllowed: !isSunday,
+    waterDeliveryAllowed: !(isSunday && isCentralGas),
+    empresaId: u.empresa_id || null,
   };
 }
 
@@ -418,11 +422,19 @@ ${isOffHours ? `FORA DO HORÁRIO (${horarioInfo}):
 - "Estamos fechados agora, mas posso agendar! Quer?"
 - Se sim, colete dados e adicione "agendado: sim" no bloco.` : ""}
 
-${sundayContext?.isSunday ? `REGRAS DE DOMINGO (ATIVAS AGORA):
+${sundayContext?.isSunday && !sundayContext?.waterDeliveryAllowed ? `REGRAS DE DOMINGO (ATIVAS AGORA — CENTRAL GÁS):
 - Funcionamento reduzido: ${horarioInfo}.
 - NÃO há entrega de água aos domingos. Água APENAS para retirada presencial na portaria.
-- Se o cliente pedir água para entrega, informe: "Aos domingos não fazemos entrega de água, mas pode retirar aqui na portaria até o horário de fechamento! 😊"
-- NÃO inclua água em pedidos de entrega aos domingos.` : ""}
+- Se o cliente pedir água para entrega, informe UMA VEZ: "Aos domingos não fazemos entrega de água, mas pode retirar aqui na portaria até o horário de fechamento! 😊"
+- NÃO inclua água em pedidos de entrega aos domingos.
+- Após informar a restrição, NÃO repita. Se o cliente responder "ok/entendi/tá bom", diga apenas "Precisa de mais alguma coisa?" e PARE.
+- NÃO gere [PEDIDO_CONFIRMADO] com água para entrega no domingo.` : ""}
+
+ANTI-LOOP (OBRIGATÓRIO):
+- Se você já informou uma restrição ou aviso, NÃO repita se o cliente responder "ok/sim/entendi/tá bom". Apenas pergunte se precisa de algo mais.
+- NUNCA faça mais de 2 perguntas seguidas sem dados novos do cliente.
+- Se o cliente já respondeu uma pergunta, NÃO pergunte de novo — avance o fluxo.
+- Se o cliente diz apenas "ok/sim/tá bom" sem contexto de pedido ativo, responda brevemente e pergunte se precisa de algo.
 
 EXEMPLO COM DESCONTO:
 [PEDIDO_CONFIRMADO]
@@ -515,8 +527,14 @@ export async function isPostOrderFollowUp(supabase: any, phone: string, messageT
 
   if (!data?.length) return false;
 
-  const isNewOrder = /(quero|preciso|novo pedido|pedido|gás|gas|botij|p13|p20|p45|água|agua|comprar|entrega)/i.test(messageText);
-  const isFollowUp = /(obrigad|valeu|ok|não|nao|sim|certo|perfeito|show|blz|beleza)/i.test(messageText.toLowerCase());
+  const trimmed = messageText.trim();
+  
+  // Only treat as follow-up if the ENTIRE message is a short acknowledgment (max 3 words)
+  const wordCount = trimmed.split(/\s+/).length;
+  if (wordCount > 3) return false;
+
+  const isNewOrder = /(quero|preciso|novo pedido|pedido|gás|gas|botij|p13|p20|p45|água|agua|comprar|entrega|preço|preco|quanto)/i.test(trimmed);
+  const isFollowUp = /^(obrigad[oa]?|valeu|certo|perfeito|show|blz|beleza|tmj|falou|vlw|brigad[oa]?|thanks|thx)$/i.test(trimmed);
 
   return !isNewOrder && isFollowUp;
 }
