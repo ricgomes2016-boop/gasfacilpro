@@ -19,6 +19,9 @@ export interface Unidade {
   latitude: number | null;
   longitude: number | null;
   chave_pix: string | null;
+  horario_abertura: string | null;
+  horario_fechamento: string | null;
+  bairros_atendidos: string | null;
 }
 
 interface UnidadeContextType {

@@ -221,21 +221,31 @@ async function resolveGatewayConfig(
 }
 
 
+const SUNDAY_MAX_CLOSING = "14:00";
+
 export async function checkBusinessHours(supabase: any, unidadeId: string | null) {
-  if (!unidadeId) return { isOffHours: false, horarioInfo: "" };
+  if (!unidadeId) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true };
 
   const { data: u } = await supabase.from("unidades")
     .select("horario_abertura, horario_fechamento").eq("id", unidadeId).maybeSingle();
 
-  if (!u?.horario_abertura || !u?.horario_fechamento) return { isOffHours: false, horarioInfo: "" };
+  if (!u?.horario_abertura || !u?.horario_fechamento) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true };
 
   const now = new Date();
   const brt = new Date(now.getTime() + (-3 * 60 + now.getTimezoneOffset()) * 60000);
   const cur = `${String(brt.getHours()).padStart(2, "0")}:${String(brt.getMinutes()).padStart(2, "0")}`;
+  const isSunday = brt.getDay() === 0;
+
+  let effectiveClosing = u.horario_fechamento;
+  if (isSunday) {
+    effectiveClosing = effectiveClosing > SUNDAY_MAX_CLOSING ? SUNDAY_MAX_CLOSING : effectiveClosing;
+  }
 
   return {
-    isOffHours: cur < u.horario_abertura || cur >= u.horario_fechamento,
-    horarioInfo: `das ${u.horario_abertura} às ${u.horario_fechamento}`,
+    isOffHours: cur < u.horario_abertura || cur >= effectiveClosing,
+    horarioInfo: `das ${u.horario_abertura} às ${effectiveClosing}${isSunday ? " (horário de domingo)" : ""}`,
+    isSunday,
+    waterDeliveryAllowed: !isSunday,
   };
 }
 

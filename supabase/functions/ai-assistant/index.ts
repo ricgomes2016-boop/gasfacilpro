@@ -302,6 +302,7 @@ Se houve erro na consulta, peça ao usuário reformular a pergunta.
 Seja proativo: além de responder, sugira insights ou ações baseadas nos dados.
 
 CONTEXTO TEMPORAL: Hoje é ${dayOfWeek}, ${now.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}. ${timeContext}
+${sundayContext}
 
 AÇÕES DISPONÍVEIS: Você pode ajudar o usuário a executar ações no sistema. ${ACTIONS_SCHEMA}
 
