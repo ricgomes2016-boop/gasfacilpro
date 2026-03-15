@@ -336,7 +336,8 @@ export function buildSystemPrompt(
   isOffHours: boolean,
   horarioInfo: string,
   orderStatus: any | null,
-  negotiationHint: string
+  negotiationHint: string,
+  sundayContext?: { isSunday: boolean; waterDeliveryAllowed: boolean }
 ): string {
   const agentName = config.agentName || "Bia";
   // Dynamic greeting based on BRT time
