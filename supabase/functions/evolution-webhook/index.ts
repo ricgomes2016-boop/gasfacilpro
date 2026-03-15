@@ -99,7 +99,7 @@ serve(async (req) => {
 
     // Build prompt
     const negHint = buildNegotiationHint(history, config, messageText);
-    const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, config, bh.isOffHours, bh.horarioInfo, orderStatus, negHint);
+    const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, config, bh.isOffHours, bh.horarioInfo, orderStatus, negHint, { isSunday: bh.isSunday, waterDeliveryAllowed: bh.waterDeliveryAllowed });
 
     // Call AI
     let reply: string;
