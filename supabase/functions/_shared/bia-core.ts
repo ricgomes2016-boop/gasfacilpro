@@ -330,7 +330,7 @@ export async function getOrderStatus(supabase: any, clienteId: string | null, ph
 }
 
 // ========== PRODUCTS ==========
-export async function getProducts(supabase: any, unidadeId: string | null, empresaId?: string | null) {
+export async function getProducts(supabase: any, unidadeId: string | null) {
   let q = supabase.from("produtos").select("nome, preco, estoque, categoria")
     .eq("ativo", true).gt("estoque", 0).order("nome").limit(15);
   if (unidadeId) q = q.or(`unidade_id.eq.${unidadeId},unidade_id.is.null`);
@@ -338,14 +338,17 @@ export async function getProducts(supabase: any, unidadeId: string | null, empre
   const { data } = await q;
   if (!data?.length) return "Produtos indisponíveis no momento.";
 
-  // Filter by categorias_permitidas from regras_bia if empresa available
+  // Filter by categorias_permitidas from regras_bia
   let allowedCategories: string[] | null = null;
-  if (empresaId) {
-    const { data: configEmpresa } = await supabase.from("configuracoes_empresa")
-      .select("regras_bia").eq("empresa_id", empresaId).maybeSingle();
-    const regras = configEmpresa?.regras_bia;
-    if (regras?.categorias_permitidas?.length) {
-      allowedCategories = regras.categorias_permitidas;
+  if (unidadeId) {
+    const { data: u } = await supabase.from("unidades").select("empresa_id").eq("id", unidadeId).maybeSingle();
+    if (u?.empresa_id) {
+      const { data: configEmpresa } = await supabase.from("configuracoes_empresa")
+        .select("regras_bia").eq("empresa_id", u.empresa_id).maybeSingle();
+      const regras = configEmpresa?.regras_bia;
+      if (regras?.categorias_permitidas?.length) {
+        allowedCategories = regras.categorias_permitidas;
+      }
     }
   }
 
