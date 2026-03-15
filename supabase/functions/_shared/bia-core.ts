@@ -330,14 +330,31 @@ export async function getOrderStatus(supabase: any, clienteId: string | null, ph
 }
 
 // ========== PRODUCTS ==========
-export async function getProducts(supabase: any, unidadeId: string | null) {
-  let q = supabase.from("produtos").select("nome, preco, estoque")
+export async function getProducts(supabase: any, unidadeId: string | null, empresaId?: string | null) {
+  let q = supabase.from("produtos").select("nome, preco, estoque, categoria")
     .eq("ativo", true).gt("estoque", 0).order("nome").limit(15);
   if (unidadeId) q = q.or(`unidade_id.eq.${unidadeId},unidade_id.is.null`);
 
   const { data } = await q;
-  return data
-    ? data.map((p: any) => `- ${p.nome}: R$ ${Number(p.preco).toFixed(2)}`).join("\n")
+  if (!data?.length) return "Produtos indisponíveis no momento.";
+
+  // Filter by categorias_permitidas from regras_bia if empresa available
+  let allowedCategories: string[] | null = null;
+  if (empresaId) {
+    const { data: configEmpresa } = await supabase.from("configuracoes_empresa")
+      .select("regras_bia").eq("empresa_id", empresaId).maybeSingle();
+    const regras = configEmpresa?.regras_bia;
+    if (regras?.categorias_permitidas?.length) {
+      allowedCategories = regras.categorias_permitidas;
+    }
+  }
+
+  const filtered = allowedCategories
+    ? data.filter((p: any) => !p.categoria || allowedCategories!.includes(p.categoria))
+    : data;
+
+  return filtered.length
+    ? filtered.map((p: any) => `- ${p.nome}: R$ ${Number(p.preco).toFixed(2)}`).join("\n")
     : "Produtos indisponíveis no momento.";
 }
 
