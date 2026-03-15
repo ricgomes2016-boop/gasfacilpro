@@ -224,28 +224,32 @@ async function resolveGatewayConfig(
 const SUNDAY_MAX_CLOSING = "14:00";
 
 export async function checkBusinessHours(supabase: any, unidadeId: string | null) {
-  if (!unidadeId) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true };
+  if (!unidadeId) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: null };
 
   const { data: u } = await supabase.from("unidades")
-    .select("horario_abertura, horario_fechamento").eq("id", unidadeId).maybeSingle();
+    .select("horario_abertura, horario_fechamento, empresa_id").eq("id", unidadeId).maybeSingle();
 
-  if (!u?.horario_abertura || !u?.horario_fechamento) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true };
+  if (!u?.horario_abertura || !u?.horario_fechamento) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: u?.empresa_id || null };
 
   const now = new Date();
   const brt = new Date(now.getTime() + (-3 * 60 + now.getTimezoneOffset()) * 60000);
   const cur = `${String(brt.getHours()).padStart(2, "0")}:${String(brt.getMinutes()).padStart(2, "0")}`;
   const isSunday = brt.getDay() === 0;
 
+  const CENTRAL_GAS_EMPRESA_ID = "f27e158e-7ab5-4617-9f66-c6b4a084d293";
+  const isCentralGas = u.empresa_id === CENTRAL_GAS_EMPRESA_ID;
+
   let effectiveClosing = u.horario_fechamento;
-  if (isSunday) {
+  if (isSunday && isCentralGas) {
     effectiveClosing = effectiveClosing > SUNDAY_MAX_CLOSING ? SUNDAY_MAX_CLOSING : effectiveClosing;
   }
 
   return {
     isOffHours: cur < u.horario_abertura || cur >= effectiveClosing,
-    horarioInfo: `das ${u.horario_abertura} às ${effectiveClosing}${isSunday ? " (horário de domingo)" : ""}`,
+    horarioInfo: `das ${u.horario_abertura} às ${effectiveClosing}${isSunday && isCentralGas ? " (horário de domingo)" : ""}`,
     isSunday,
-    waterDeliveryAllowed: !isSunday,
+    waterDeliveryAllowed: !(isSunday && isCentralGas),
+    empresaId: u.empresa_id || null,
   };
 }
 
