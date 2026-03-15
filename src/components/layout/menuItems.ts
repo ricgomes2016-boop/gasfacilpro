@@ -276,6 +276,7 @@ export const menuItems: MenuItem[] = [
       { icon: FileText, label: "Documentos da Empresa", path: "/config/documentos" },
       { icon: Bell, label: "Notificações e Alertas", path: "/config/notificacoes" },
       { icon: Star, label: "Personalização Visual", path: "/config/personalizacao" },
+      { icon: Brain, label: "Regras da Bia", path: "/config/regras-bia" },
       { icon: Plug, label: "Integrações / Hub", path: "/integracoes" },
     ],
   },

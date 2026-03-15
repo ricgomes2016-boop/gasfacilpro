@@ -9,6 +9,7 @@ const Usuarios = lazy(() => import("@/pages/config/Usuarios"));
 const DocumentosEmpresa = lazy(() => import("@/pages/config/DocumentosEmpresa"));
 const Notificacoes = lazy(() => import("@/pages/config/Notificacoes"));
 const PersonalizacaoVisual = lazy(() => import("@/pages/config/PersonalizacaoVisual"));
+const RegrasBia = lazy(() => import("@/pages/config/RegrasBia"));
 const MeuPerfil = lazy(() => import("@/pages/MeuPerfil"));
 
 export const configRoutes: RouteConfig[] = [
@@ -21,4 +22,5 @@ export const configRoutes: RouteConfig[] = [
   { path: "/config/documentos", component: DocumentosEmpresa, roles: ["admin", "gestor", "financeiro"] },
   { path: "/config/notificacoes", component: Notificacoes, roles: ["admin", "gestor"] },
   { path: "/config/personalizacao", component: PersonalizacaoVisual, roles: ["admin", "gestor"] },
+  { path: "/config/regras-bia", component: RegrasBia, roles: ["admin", "gestor"] },
 ];

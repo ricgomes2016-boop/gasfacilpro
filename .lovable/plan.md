@@ -1,60 +1,18 @@
 
 
-# Página de Regras de Atendimento da Bia
+## Problem
 
-## Objetivo
-Criar uma página onde cada empresa configura as regras operacionais da Bia: horários, produtos permitidos, e regras especiais (como domingo).
+The `check-subscription` edge function returns 500 with "Auth session missing!" because `checkSubscription()` is called as soon as `user` exists, but the auth session token may not be fully ready yet. Also, it runs for ALL users (including clients, drivers) who don't need subscription checks.
 
-## Mudanças no Banco de Dados
+## Plan
 
-Adicionar coluna JSONB `regras_bia` na tabela `configuracoes_empresa` para armazenar:
-```json
-{
-  "bia_ativa": true,
-  "horario_abertura": "08:00",
-  "horario_fechamento": "18:00",
-  "horario_domingo_fechamento": "14:00",
-  "domingo_ativo": true,
-  "agua_entrega_domingo": false,
-  "categorias_permitidas": ["gas", "agua"],
-  "mensagem_fora_horario": "Estamos fechados, mas posso agendar!",
-  "desconto_etapa1": 3,
-  "desconto_etapa2": 5,
-  "preco_minimo_p13": null,
-  "preco_minimo_p20": null
-}
-```
+1. **`src/contexts/EmpresaContext.tsx`** — Guard the `checkSubscription` call:
+   - Only call it when `user` exists AND `roles` are loaded (not empty)
+   - Only call it for staff/admin users who actually need subscription info
+   - Add `roles` to the dependency array of the useEffect that triggers the check
+   - This prevents the 500 error for unauthenticated sessions and unnecessary calls for non-staff users
 
-## Nova Página: `src/pages/config/RegrasBia.tsx`
+### Changes
 
-Cards organizados:
-
-1. **Status da Bia** — Switch ativo/inativo
-2. **Horários de Atendimento** — Inputs de abertura/fechamento, configuração específica de domingo (ativo, horário, restrição de água)
-3. **Produtos Permitidos** — Lista de produtos da unidade com checkboxes por categoria (gás, água, vasilhame) para definir o que a Bia pode vender
-4. **Negociação** — Desconto etapa 1, etapa 2, preço mínimo P13/P20
-5. **Mensagem Fora do Horário** — Texto customizável
-
-## Rota e Menu
-
-- Rota: `/config/regras-bia` em `configRoutes.ts` (roles: admin, gestor)
-- Menu: Adicionar item "Regras da Bia" no submenu de Configurações em `menuItems.ts`
-
-## Atualização do `bia-core.ts`
-
-- Na função que monta o prompt, buscar `regras_bia` da `configuracoes_empresa` para a empresa da unidade
-- Filtrar produtos com base nas `categorias_permitidas`
-- Usar horários da config da Bia (ao invés de hardcoded)
-- Aplicar regras de domingo condicionalmente por empresa (substituindo o hardcode do `empresa_id` da Central Gás)
-
-## Arquivos
-
-| Arquivo | Ação |
-|---------|------|
-| `configuracoes_empresa` | Migration: adicionar coluna `regras_bia jsonb` |
-| `src/pages/config/RegrasBia.tsx` | Criar |
-| `src/routes/configRoutes.ts` | Adicionar rota |
-| `src/components/layout/menuItems.ts` | Adicionar item no menu |
-| `supabase/functions/_shared/bia-core.ts` | Ler `regras_bia` e aplicar filtros |
-| Edge functions (5 webhooks + ai-assistant) | Redeploy |
+In the useEffect at line 184-188, change the condition from `if (user && !authLoading)` to `if (user && !authLoading && isStaff)`, and add `roles` to deps so `isStaff` is evaluated correctly.
 
