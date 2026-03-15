@@ -393,7 +393,7 @@ ${cliente.endereco
 - Quando tiver TUDO (produto + endereço + pagamento), finalize com:
    [PEDIDO_CONFIRMADO]
    nome: Nome
-   produto: Produto
+   produto: (USE O NOME EXATO do produto da lista: "Gás P13", "Gás P20", "Gás P45" ou "Água Mineral 20L")
    quantidade: X
    endereco: Endereço
    pagamento: forma
@@ -687,18 +687,47 @@ export async function createOrder(
       if (ex && !ex.endereco) await supabase.from("clientes").update({ endereco: orderData.endereco }).eq("id", clienteId);
     }
 
-    // Find product
+    // Find product — detect category to avoid água ↔ gás confusion
     let produto: any = null;
-    const { data: prods } = await supabase.from("produtos").select("id, nome, preco")
-      .eq("ativo", true).ilike("nome", `%${orderData.produto}%`).limit(1);
+    const prodName = orderData.produto || "";
+    const isWater = /água|agua|mineral|galão|galao|20\s*l/i.test(prodName);
+    const isGas = /g[aá]s|P\s*13|P\s*20|P\s*45|botij/i.test(prodName);
+    const categoryFilter = isWater ? "agua" : isGas ? "gas" : null;
+
+    // Primary search with category filter
+    let query = supabase.from("produtos").select("id, nome, preco, categoria")
+      .eq("ativo", true).ilike("nome", `%${prodName}%`);
+    if (categoryFilter) query = query.eq("categoria", categoryFilter);
+    const { data: prods } = await query.limit(1);
     produto = prods?.[0];
+
+    // Fallback: prioritize patterns with units (20L for water) before bare numbers
     if (!produto) {
-      const m = orderData.produto.match(/(P\s*13|P\s*20|P\s*45|20\s*L|13|20|45)/i);
-      if (m) {
-        const n = m[1].replace(/\D/g, "");
-        const { data: fb } = await supabase.from("produtos").select("id, nome, preco")
-          .eq("ativo", true).or(`nome.ilike.%P${n}%,nome.ilike.%${n}kg%,nome.ilike.%${n}L%`).limit(1);
-        produto = fb?.[0];
+      // First try unit-specific patterns
+      const unitMatch = prodName.match(/(20\s*L|P\s*13|P\s*20|P\s*45)/i);
+      if (unitMatch) {
+        const pattern = unitMatch[1].trim();
+        if (/20\s*L/i.test(pattern)) {
+          // Explicitly water
+          const { data: fb } = await supabase.from("produtos").select("id, nome, preco, categoria")
+            .eq("ativo", true).eq("categoria", "agua").limit(1);
+          produto = fb?.[0];
+        } else {
+          const n = pattern.replace(/\D/g, "");
+          const { data: fb } = await supabase.from("produtos").select("id, nome, preco, categoria")
+            .eq("ativo", true).eq("categoria", "gas").ilike("nome", `%P${n}%`).limit(1);
+          produto = fb?.[0];
+        }
+      }
+      // Last resort: bare number fallback (only for gas)
+      if (!produto) {
+        const bareMatch = prodName.match(/(13|20|45)/);
+        if (bareMatch && !isWater) {
+          const n = bareMatch[1];
+          const { data: fb } = await supabase.from("produtos").select("id, nome, preco, categoria")
+            .eq("ativo", true).eq("categoria", "gas").ilike("nome", `%P${n}%`).limit(1);
+          produto = fb?.[0];
+        }
       }
     }
     if (!produto) { console.error("Product not found:", orderData.produto); return; }
