@@ -433,7 +433,7 @@ ${isOffHours ? `FORA DO HORÁRIO (${horarioInfo}):
 - "Estamos fechados agora, mas posso agendar! Quer?"
 - Se sim, colete dados e adicione "agendado: sim" no bloco.` : ""}
 
-${sundayContext?.isSunday && !sundayContext?.waterDeliveryAllowed ? `REGRAS DE DOMINGO (ATIVAS AGORA — CENTRAL GÁS):
+${sundayContext?.isSunday && !sundayContext?.waterDeliveryAllowed ? `REGRAS DE DOMINGO (ATIVAS AGORA):
 - Funcionamento reduzido: ${horarioInfo}.
 - NÃO há entrega de água aos domingos. Água APENAS para retirada presencial na portaria.
 - Se o cliente pedir água para entrega, informe UMA VEZ: "Aos domingos não fazemos entrega de água, mas pode retirar aqui na portaria até o horário de fechamento! 😊"
