@@ -22,4 +22,5 @@ export const configRoutes: RouteConfig[] = [
   { path: "/config/documentos", component: DocumentosEmpresa, roles: ["admin", "gestor", "financeiro"] },
   { path: "/config/notificacoes", component: Notificacoes, roles: ["admin", "gestor"] },
   { path: "/config/personalizacao", component: PersonalizacaoVisual, roles: ["admin", "gestor"] },
+  { path: "/config/regras-bia", component: RegrasBia, roles: ["admin", "gestor"] },
 ];
