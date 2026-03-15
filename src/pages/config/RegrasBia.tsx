@@ -88,7 +88,7 @@ export default function RegrasBia() {
     try {
       const { error } = await supabase
         .from("configuracoes_empresa")
-        .update({ regras_bia: config as unknown as Record<string, unknown> })
+        .update({ regras_bia: config as any })
         .eq("empresa_id", empresa.id);
 
       if (error) throw error;
