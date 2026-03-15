@@ -422,11 +422,19 @@ ${isOffHours ? `FORA DO HORÁRIO (${horarioInfo}):
 - "Estamos fechados agora, mas posso agendar! Quer?"
 - Se sim, colete dados e adicione "agendado: sim" no bloco.` : ""}
 
-${sundayContext?.isSunday ? `REGRAS DE DOMINGO (ATIVAS AGORA):
+${sundayContext?.isSunday && !sundayContext?.waterDeliveryAllowed ? `REGRAS DE DOMINGO (ATIVAS AGORA — CENTRAL GÁS):
 - Funcionamento reduzido: ${horarioInfo}.
 - NÃO há entrega de água aos domingos. Água APENAS para retirada presencial na portaria.
-- Se o cliente pedir água para entrega, informe: "Aos domingos não fazemos entrega de água, mas pode retirar aqui na portaria até o horário de fechamento! 😊"
-- NÃO inclua água em pedidos de entrega aos domingos.` : ""}
+- Se o cliente pedir água para entrega, informe UMA VEZ: "Aos domingos não fazemos entrega de água, mas pode retirar aqui na portaria até o horário de fechamento! 😊"
+- NÃO inclua água em pedidos de entrega aos domingos.
+- Após informar a restrição, NÃO repita. Se o cliente responder "ok/entendi/tá bom", diga apenas "Precisa de mais alguma coisa?" e PARE.
+- NÃO gere [PEDIDO_CONFIRMADO] com água para entrega no domingo.` : ""}
+
+ANTI-LOOP (OBRIGATÓRIO):
+- Se você já informou uma restrição ou aviso, NÃO repita se o cliente responder "ok/sim/entendi/tá bom". Apenas pergunte se precisa de algo mais.
+- NUNCA faça mais de 2 perguntas seguidas sem dados novos do cliente.
+- Se o cliente já respondeu uma pergunta, NÃO pergunte de novo — avance o fluxo.
+- Se o cliente diz apenas "ok/sim/tá bom" sem contexto de pedido ativo, responda brevemente e pergunte se precisa de algo.
 
 EXEMPLO COM DESCONTO:
 [PEDIDO_CONFIRMADO]
