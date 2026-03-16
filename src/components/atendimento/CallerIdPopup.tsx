@@ -106,7 +106,7 @@ export function CallerIdPopup() {
         }
       }
     }
-  }, []);
+  }, [notify]);
 
   useEffect(() => {
     let lastSeenId: string | null = null;
