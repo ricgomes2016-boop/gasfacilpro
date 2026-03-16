@@ -1,12 +1,15 @@
 // evolution-webhook — BIA WhatsApp via Evolution API (thin wrapper over bia-core)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
+import {
   createSupabase, resolveConfig, checkBusinessHours, normalizePhone,
   findCliente, getRecentOrders, getOrderStatus, getProducts,
   buildSystemPrompt, buildNegotiationHint, generateUUIDFromString,
   loadHistory, saveMessage, upsertConversation, isDuplicate,
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall, getEntregadorLocation,
+  downloadAudio, transcribeAudio,
+} from "../_shared/bia-core.ts";
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
@@ -251,6 +254,6 @@ serve(async (req) => {
     return OK({ ok: true, reply: reply.substring(0, 100) });
   } catch (error) {
     console.error("Evolution webhook error:", error);
-    return new Response(JSON.stringify({ error: "Internal error", details: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Internal error", details: (error as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

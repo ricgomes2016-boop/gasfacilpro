@@ -190,7 +190,7 @@ serve(async (req) => {
         sent++;
         console.log(`Recompra sent to ${firstName} (${phone})`);
       } else {
-        console.error(`Failed to send to ${phone}:`, await sendResp.text());
+        console.error(`Failed to send to ${phone}:`, await sendResp?.text());
       }
 
       // Rate limit: small delay between sends
