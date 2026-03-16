@@ -505,6 +505,20 @@ ${sundayContext?.isSunday && !sundayContext?.waterDeliveryAllowed ? `REGRAS DE D
 - Após informar a restrição, NÃO repita. Se o cliente responder "ok/entendi/tá bom", diga apenas "Precisa de mais alguma coisa?" e PARE.
 - NÃO gere [PEDIDO_CONFIRMADO] com água para entrega no domingo.` : ""}
 
+${(() => {
+  if (!history?.length) return "";
+  const collected = extractCollectedData(history);
+  const items: string[] = [];
+  if (collected.pagamento) items.push(`- Pagamento: ${collected.pagamento} ✅`);
+  if (collected.produto) items.push(`- Produto: ${collected.produto} ✅`);
+  if (collected.enderecoConfirmado) items.push(`- Endereço confirmado: Sim ✅`);
+  if (cliente.endereco) items.push(`- Endereço cadastrado: ${cliente.endereco} ✅`);
+  if (!items.length) return "";
+  const allReady = collected.pagamento && collected.produto && (collected.enderecoConfirmado || cliente.endereco);
+  return `DADOS JÁ INFORMADOS PELO CLIENTE (NÃO pergunte novamente sobre NENHUM destes):
+${items.join("\n")}
+${allReady ? "→ TODOS OS DADOS ESTÃO COMPLETOS. FINALIZE O PEDIDO IMEDIATAMENTE com [PEDIDO_CONFIRMADO].\n" : "→ Peça APENAS o que está faltando acima.\n"}`;
+})()}
 ANTI-LOOP (OBRIGATÓRIO):
 - Se você já informou uma restrição ou aviso, NÃO repita se o cliente responder "ok/sim/entendi/tá bom". Apenas pergunte se precisa de algo mais.
 - COLETA DE NOME: Se o cliente for NOVO e você já perguntou o nome dele na mensagem anterior do histórico, mas ele ignorou e pediu um produto, NÃO INSISTA. Aceite o pedido e siga o fluxo sem o nome.
