@@ -6,6 +6,7 @@ import { PedidoFormatado, PedidoStatus } from "@/types/pedido";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { reverterEstoqueVenda } from "@/services/estoqueService";
 import { toast } from "sonner";
+import { requestNotificationPermission, sendOrderNotification } from "@/services/notificationService";
 
 export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) {
   const queryClient = useQueryClient();
@@ -90,6 +91,10 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
     },
   });
 
+  useEffect(() => {
+    requestNotificationPermission();
+  }, []);
+
   // #8 - Realtime: auto-refresh on pedidos changes + toast notifications
   const knownPedidosRef = useRef<Map<string, string>>(new Map());
   const isFirstLoadRef = useRef(true);
@@ -114,6 +119,10 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
             description: `${p?.cliente_nome || "Cliente"} · R$ ${Number(p?.valor_total || 0).toFixed(2)}`,
             duration: 5000,
           });
+          
+          // Disparar notificação nativa (Windows)
+          sendOrderNotification(p?.cliente_nome || "Cliente", Number(p?.valor_total || 0));
+          
           queryClient.invalidateQueries({ queryKey: ["pedidos"] });
         }
       )
