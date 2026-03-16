@@ -361,6 +361,41 @@ export async function getProducts(supabase: any, unidadeId: string | null) {
     : "Produtos indisponíveis no momento.";
 }
 
+// ========== EXTRACT COLLECTED DATA FROM HISTORY ==========
+export function extractCollectedData(history: any[]): { pagamento?: string; produto?: string; enderecoConfirmado?: boolean } {
+  const result: { pagamento?: string; produto?: string; enderecoConfirmado?: boolean } = {};
+
+  // Scan user messages for payment method
+  const userMsgs = history.filter((m: any) => m.role === "user");
+  for (const msg of userMsgs) {
+    const t = msg.content.toLowerCase();
+    if (!result.pagamento) {
+      if (/\b(dinheiro|em\s*dinheiro)\b/i.test(t)) result.pagamento = "dinheiro";
+      else if (/\bpix\b/i.test(t)) result.pagamento = "pix";
+      else if (/\b(cart[aã]o|cartao|débito|credito|crédito)\b/i.test(t)) result.pagamento = "cartão";
+      else if (/\bfiad[oa]?\b/i.test(t)) result.pagamento = "fiado";
+    }
+    if (!result.produto) {
+      if (/\bp\s*13\b/i.test(t) || /\bgás\b/i.test(t) || /\bgas\b/i.test(t) || /\bbotij/i.test(t)) result.produto = "Gás P13";
+      else if (/\bp\s*20\b/i.test(t)) result.produto = "Gás P20";
+      else if (/\bp\s*45\b/i.test(t)) result.produto = "Gás P45";
+      else if (/\b(água|agua|mineral|gal[aã]o|20\s*l)/i.test(t)) result.produto = "Água Mineral 20L";
+    }
+  }
+
+  // Check if address was confirmed (assistant asked "Entrego na..." and user said sim/ok)
+  for (let i = 0; i < history.length - 1; i++) {
+    if (history[i].role === "assistant" && /entrego\s*(na|no|em)\s/i.test(history[i].content)) {
+      const next = history[i + 1];
+      if (next?.role === "user" && /^(sim|ok|isso|pode|confirmo|confirmed|s|ss|sss|é|eh|correto|certo|beleza|blz)/i.test(next.content.trim())) {
+        result.enderecoConfirmado = true;
+      }
+    }
+  }
+
+  return result;
+}
+
 // ========== BUILD SYSTEM PROMPT (IMPROVED) ==========
 export function buildSystemPrompt(
   productList: string,
@@ -372,7 +407,8 @@ export function buildSystemPrompt(
   horarioInfo: string,
   orderStatus: any | null,
   negotiationHint: string,
-  sundayContext?: { isSunday: boolean; waterDeliveryAllowed: boolean }
+  sundayContext?: { isSunday: boolean; waterDeliveryAllowed: boolean },
+  history?: any[]
 ): string {
   const agentName = config.agentName || "Bia";
   // Dynamic greeting based on BRT time
