@@ -25,6 +25,12 @@ export interface BiaConfig {
   evolutionInstanceName?: string | null;
   /** Custom agent name for this unit (default: Bia) */
   agentName?: string | null;
+  tabelaPrecos?: {
+    gas_p13: { preco: number; preco_desconto: number };
+    gas_p20: { preco: number; preco_desconto: number };
+    gas_p45: { preco: number; preco_desconto: number };
+    agua_20l: { preco: number; preco_desconto: number };
+  } | null;
 }
 
 export interface ClienteInfo {
@@ -102,6 +108,7 @@ export async function resolveConfig(
         baseUrl: config.base_url || null,
         metaPhoneNumberId: config.meta_phone_number_id || config.instance_id || null,
         agentName: config.nome_bot || "Bia",
+        tabelaPrecos: config.regras_bia?.tabela_precos || null,
       };
     }
   }
@@ -330,7 +337,7 @@ export async function getOrderStatus(supabase: any, clienteId: string | null, ph
 }
 
 // ========== PRODUCTS ==========
-export async function getProducts(supabase: any, unidadeId: string | null) {
+export async function getProducts(supabase: any, unidadeId: string | null, config?: BiaConfig | null) {
   let q = supabase.from("produtos").select("nome, preco, estoque, categoria")
     .eq("ativo", true).gt("estoque", 0).order("nome").limit(15);
   if (unidadeId) q = q.or(`unidade_id.eq.${unidadeId},unidade_id.is.null`);
@@ -350,6 +357,16 @@ export async function getProducts(supabase: any, unidadeId: string | null) {
         allowedCategories = regras.categorias_permitidas;
       }
     }
+  }
+
+  if (config?.tabelaPrecos) {
+    const tp = config.tabelaPrecos;
+    const items = [];
+    if (tp.gas_p13?.preco) items.push(`- Gás P13: R$ ${tp.gas_p13.preco.toFixed(2)}`);
+    if (tp.gas_p20?.preco) items.push(`- Gás P20: R$ ${tp.gas_p20.preco.toFixed(2)}`);
+    if (tp.gas_p45?.preco) items.push(`- Gás P45: R$ ${tp.gas_p45.preco.toFixed(2)}`);
+    if (tp.agua_20l?.preco) items.push(`- Água Mineral 20L: R$ ${tp.agua_20l.preco.toFixed(2)}`);
+    if (items.length) return items.join("\n");
   }
 
   const filtered = allowedCategories
@@ -416,54 +433,35 @@ export function buildSystemPrompt(
   const hour = brt.getHours();
   const saudacao = hour >= 5 && hour < 12 ? "Bom dia" : hour >= 12 && hour < 18 ? "Boa tarde" : "Boa noite";
 
-  return `Você é a ${agentName}, assistente virtual de vendas de gás da empresa. Seu atendimento deve ser rápido, humano, educado e objetivo. Seu principal objetivo é registrar pedidos de gás da forma mais simples possível. Nunca complique o atendimento e nunca repita perguntas.
+  return `Você é a ${agentName}, assistente virtual de vendas de gás da empresa. Seu atendimento deve ser humano, educado e objetivo.
 
-COMPORTAMENTO:
-• Fale de forma simples e natural
-• Use frases curtas
-• Seja simpática e direta
-• Evite mensagens longas
+REGRAS DE OURO:
+1. NÃO FINALIZAR PEDIDOS AUTOMATICAMENTE: Mesmo que o cliente já seja conhecido, NUNCA crie ou confirme um pedido no início da conversa.
+2. ESPERAR O PEDIDO: Comece apenas saudando pelo nome. Espere o cliente dizer que quer gás ou água antes de seguir para o endereço.
+3. PREÇO RÍGIDO: O valor a ser registrado no sistema deve ser EXATAMENTE o valor que você informou ao cliente na conversa.
 
-REGRA MAIS IMPORTANTE:
-Analise a mensagem do cliente e identifique quais informações ele já enviou. Nunca pergunte algo que o cliente já informou.
+FLUXO OBRIGATÓRIO (NÃO PULE ETAPAS):
+Passo 1 – SAUDAÇÃO: "Olá [Nome]! 👋 Que bom falar com você. Como posso ajudar hoje?"
+Passo 2 – CLIENTE PEDE PRODUTO: Só após o cliente pedir, você confirma o endereço.
+Passo 3 – CONFIRMAR ENDEREÇO: "A entrega será na [Endereço]?" (Aguarde o "Sim" ou novo endereço).
+Passo 4 – FORMA DE PAGAMENTO: "Qual será a forma de pagamento (Dinheiro, Pix ou Cartão)?"
+Passo 5 – REGISTRAR: Após as confirmações, informe: "Perfeito! Seu pedido foi registrado. Entrega prevista: 20 a 40 minutos."
 
-INFORMAÇÕES NECESSÁRIAS PARA PEDIDO:
-- Endereço de entrega com número (ou ponto de referência)
-- Forma de pagamento
-Se o cliente já enviou essas informações, confirme o pedido imediatamente.
+IDENTIFICAÇÃO DE ENDEREÇO: Considere informado se a mensagem tiver Rua/Av/Travessa + número ou pontos de referência claros.
 
-FLUXO DE ATENDIMENTO:
-1. SAUDAÇÃO: Se apenas cumprimentar (oi/olá/boa tarde/etc), responda: "Olá! Tudo bem? Como posso ajudar?"
-2. PEDIDO DE GÁS: Se pedir gás/botijão, responda: "Claro! Qual seu endereço com número?"
-3. IDENTIFICAÇÃO AUTOMÁTICA DE ENDEREÇO: Considere que o cliente informou o endereço se a mensagem tiver:
-   • Rua/Avenida/Travessa/Bairro + número
-   • Nome de escola, empresa, mercado ou ponto de referência (ex: "Escola Eunice", "Mercado São José")
-   Se identificar o endereço, NÃO pergunte novamente. Pergunte apenas a forma de pagamento: "Perfeito! Qual a forma de pagamento?"
-4. CONFIRMAÇÃO: Assim que tiver endereço e pagamento, responda: "Pedido confirmado! Já vou passar para o entregador."
-
-REGRA INTELIGENTE (TUDO EM UMA MENSAGEM):
-Exemplo: "Quero um gás na Rua Ceará 20 vou pagar no pix"
-Responder: "Perfeito! Pedido confirmado na [Endereço]. Já vou enviar para o entregador."
-E gere o bloco [PEDIDO_CONFIRMADO] imediatamente.
-
-PRODUTOS DISPONÍVEIS:
+PRODUTOS E PREÇOS DISPONÍVEIS:
 ${productList}
 
-DADOS TÉCNICOS DE FINALIZAÇÃO:
-Gere este bloco apenas quando o pedido for confirmado.
+DADOS TÉCNICOS (SÓ GERE APÓS O PASSO 5):
 [PEDIDO_CONFIRMADO]
 nome: ${cliente.nome || "Cliente"}
 produto: (Nome EXATO: "Gás P13", "Gás P20", "Gás P45" ou "Água Mineral 20L")
 quantidade: 1
-endereco: Endereço
-pagamento: forma
+endereco: Endereço completo
+pagamento: forma escolhida
+valor: (O valor EXATO que você informou ao cliente)
 telefone: ${normalized}
 [/PEDIDO_CONFIRMADO]
-
-NUNCA:
-- Não repita perguntas.
-- Não peça nome se não for necessário.
-- Não mande textos longos.
 
 ${isOffHours ? `FORA DO HORÁRIO (${horarioInfo}): Informe fechamento e ofereça agendamento.` : ""}
 ${negotiationHint}`;

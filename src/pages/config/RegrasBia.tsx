@@ -14,6 +14,11 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Bot, Clock, Package, HandCoins, MessageSquare, Save, Loader2, Droplets, Flame, Container } from "lucide-react";
 
+interface PrecoProduto {
+  preco: number;
+  preco_desconto: number;
+}
+
 interface RegrasBiaConfig {
   bia_ativa: boolean;
   horario_abertura: string;
@@ -27,6 +32,12 @@ interface RegrasBiaConfig {
   desconto_etapa2: number;
   preco_minimo_p13: number | null;
   preco_minimo_p20: number | null;
+  tabela_precos: {
+    gas_p13: PrecoProduto;
+    gas_p20: PrecoProduto;
+    gas_p45: PrecoProduto;
+    agua_20l: PrecoProduto;
+  };
 }
 
 const defaultConfig: RegrasBiaConfig = {
@@ -42,6 +53,12 @@ const defaultConfig: RegrasBiaConfig = {
   desconto_etapa2: 5,
   preco_minimo_p13: null,
   preco_minimo_p20: null,
+  tabela_precos: {
+    gas_p13: { preco: 125, preco_desconto: 120 },
+    gas_p20: { preco: 210, preco_desconto: 200 },
+    gas_p45: { preco: 450, preco_desconto: 430 },
+    agua_20l: { preco: 15, preco_desconto: 13 },
+  },
 };
 
 const categorias = [
@@ -73,7 +90,14 @@ export default function RegrasBia() {
         .maybeSingle();
 
       if (data?.regras_bia) {
-        setConfig({ ...defaultConfig, ...(data.regras_bia as Record<string, unknown>) } as RegrasBiaConfig);
+        const rb = data.regras_bia as any;
+        // Merge with default to ensure new fields (like tabela_precos) exist
+        const merged = { ...defaultConfig, ...rb };
+        // Ensure nesting is preserved
+        if (rb.tabela_precos) {
+          merged.tabela_precos = { ...defaultConfig.tabela_precos, ...rb.tabela_precos };
+        }
+        setConfig(merged);
       }
     } catch (e) {
       console.error("Erro ao carregar config:", e);
@@ -237,21 +261,68 @@ export default function RegrasBia() {
           </CardContent>
         </Card>
 
-        {/* Negociação */}
+        {/* Tabela de Preços */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
               <HandCoins className="h-5 w-5 text-primary" />
               <div>
-                <CardTitle className="text-lg">Negociação</CardTitle>
-                <CardDescription>Parâmetros de desconto progressivo da Bia</CardDescription>
+                <CardTitle className="text-lg">Tabela de Preços (WhatsApp)</CardTitle>
+                <CardDescription>Preços que a Bia usará nas conversas e pedidos</CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[
+                { key: "gas_p13", label: "Gás P13" },
+                { key: "gas_p20", label: "Gás P20" },
+                { key: "gas_p45", label: "Gás P45" },
+                { key: "agua_20l", label: "Água 20L" },
+              ].map((item) => (
+                <div key={item.key} className="space-y-4 p-4 border rounded-lg bg-accent/5">
+                  <p className="font-semibold text-sm border-b pb-2">{item.label}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Preço Normal (R$)</Label>
+                      <Input
+                        type="number"
+                        step={0.5}
+                        value={config.tabela_precos[item.key as keyof typeof config.tabela_precos].preco}
+                        onChange={(e) => setConfig(prev => ({
+                          ...prev,
+                          tabela_precos: {
+                            ...prev.tabela_precos,
+                            [item.key]: { ...prev.tabela_precos[item.key as keyof typeof config.tabela_precos], preco: Number(e.target.value) }
+                          }
+                        }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Com Desconto (R$)</Label>
+                      <Input
+                        type="number"
+                        step={0.5}
+                        value={config.tabela_precos[item.key as keyof typeof config.tabela_precos].preco_desconto}
+                        onChange={(e) => setConfig(prev => ({
+                          ...prev,
+                          tabela_precos: {
+                            ...prev.tabela_precos,
+                            [item.key]: { ...prev.tabela_precos[item.key as keyof typeof config.tabela_precos], preco_desconto: Number(e.target.value) }
+                          }
+                        }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <Separator />
+            
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Desconto Etapa 1 (R$)</Label>
+                <Label>Desconto Máximo Manual (R$)</Label>
                 <Input
                   type="number"
                   min={0}
@@ -259,10 +330,10 @@ export default function RegrasBia() {
                   value={config.desconto_etapa1}
                   onChange={(e) => setConfig(prev => ({ ...prev, desconto_etapa1: Number(e.target.value) }))}
                 />
-                <p className="text-xs text-muted-foreground">Primeiro desconto ao reclamar</p>
+                <p className="text-xs text-muted-foreground">Valor subtraído se o cliente pedir desconto (etapa 1)</p>
               </div>
               <div className="space-y-2">
-                <Label>Desconto Etapa 2 (R$)</Label>
+                <Label>Desconto Final (R$)</Label>
                 <Input
                   type="number"
                   min={0}
@@ -270,32 +341,7 @@ export default function RegrasBia() {
                   value={config.desconto_etapa2}
                   onChange={(e) => setConfig(prev => ({ ...prev, desconto_etapa2: Number(e.target.value) }))}
                 />
-                <p className="text-xs text-muted-foreground">Desconto máximo final</p>
-              </div>
-            </div>
-            <Separator />
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Preço Mínimo P13 (R$)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  placeholder="Sem limite"
-                  value={config.preco_minimo_p13 ?? ""}
-                  onChange={(e) => setConfig(prev => ({ ...prev, preco_minimo_p13: e.target.value ? Number(e.target.value) : null }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Preço Mínimo P20 (R$)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  placeholder="Sem limite"
-                  value={config.preco_minimo_p20 ?? ""}
-                  onChange={(e) => setConfig(prev => ({ ...prev, preco_minimo_p20: e.target.value ? Number(e.target.value) : null }))}
-                />
+                <p className="text-xs text-muted-foreground">Valor subtraído na negociação final (etapa 2)</p>
               </div>
             </div>
           </CardContent>

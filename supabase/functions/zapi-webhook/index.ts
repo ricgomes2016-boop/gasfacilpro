@@ -99,7 +99,7 @@ serve(async (req) => {
     const [cliente, bh, products, history] = await Promise.all([
       findCliente(supabase, phone),
       checkBusinessHours(supabase, finalConfig.unidadeId),
-      getProducts(supabase, finalConfig.unidadeId),
+      getProducts(supabase, finalConfig.unidadeId, finalConfig),
       loadHistory(supabase, conversationId),
     ]);
     const [recentOrders, orderStatus] = await Promise.all([
