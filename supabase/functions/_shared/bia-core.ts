@@ -469,6 +469,7 @@ ${cliente.endereco
 - NÃO INSISTA NO PAGAMENTO: Se o cliente não falou, coloque "dinheiro" no bloco e finalize.
 - Se o cliente mandou um valor (ex: "100", "50"), é o pagamento/troco. Ignore e finalize.
 - Use o nome exato do produto: "Gás P13", "Gás P20", "Gás P45" ou "Água Mineral 20L".
+- Formas de pagamento válidas: dinheiro, pix, cartão, vale gás, fiado.
 - Quando tiver TUDO (produto + endereço + pagamento), finalize com:
    [PEDIDO_CONFIRMADO]
    nome: Nome
@@ -856,6 +857,7 @@ export async function createOrder(
     const payMap: Record<string, string> = {
       dinheiro: "dinheiro", pix: "pix", "cartão": "cartao", cartao: "cartao",
       "crédito": "cartao", credito: "cartao", "débito": "cartao", debito: "cartao",
+      "vale gás": "vale_gas", valegas: "vale_gas", "vale-gás": "vale_gas",
     };
 
     const { data: ped, error } = await supabase.from("pedidos").insert({
