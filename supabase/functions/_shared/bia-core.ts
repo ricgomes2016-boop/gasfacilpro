@@ -237,7 +237,7 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
   const abertura = regras.horario_abertura || u?.horario_abertura || "08:00";
   const fechamento = regras.horario_fechamento || u?.horario_fechamento || "18:00";
   const domingoAtivo = regras.domingo_ativo ?? true;
-  const fechamentoDomingo = regras.horario_domingo_fechamento || "14:00";
+  const fechamentoDomingo = regras.horario_domingo_fechamento || "18:00";
   const aguaEntregaDomingo = regras.agua_entrega_domingo ?? true;
 
   const now = new Date();
@@ -402,6 +402,7 @@ ESTILO (OBRIGATÓRIO):
 - Despedida curta: "Qualquer coisa me chama! 😊"
 - NUNCA repita a saudação se já cumprimentou antes no histórico.
 - NUNCA repita uma pergunta que o cliente já respondeu no histórico.
+- NUNCA peça uma informação que JÁ consta nas variáveis de contexto abaixo (CLIENTE, ENDEREÇO, etc.) ou que o cliente JÁ enviou na última mensagem.
 
 SAUDAÇÃO:
 ${cliente.nome
@@ -425,10 +426,10 @@ Inclua [ENVIAR_LOCALIZACAO] na resposta para que o sistema envie o pin.` : ""}
 
 FLUXO DO PEDIDO (seja RÁPIDA e OBJETIVA):
 ${cliente.endereco
-  ? `- Cliente com endereço: quando pedir produto, confirme: "Entrego na ${cliente.endereco}? Qual a forma de pagamento?"`
+  ? `- Cliente com endereço: Confirme a entrega na ${cliente.endereco}. Se o cliente ainda não informou a forma de pagamento, pergunte-a. Se ele já informou (ex: "dinheiro", "pix"), NÃO pergunte.`
   : "- Cliente novo: pergunte nome e endereço. Depois, forma de pagamento."
 }
-- REGRA CRÍTICA: Leia o HISTÓRICO INTEIRO antes de responder. Se o cliente JÁ informou produto, endereço e pagamento, NÃO pergunte de novo — FINALIZE O PEDIDO IMEDIATAMENTE.
+- REGRA CRÍTICA: Leia o HISTÓRICO INTEIRO antes de responder. Se o cliente JÁ informou produto, endereço e pagamento, NÃO pergunte de novo — FINALIZE O PEDIDO IMEDIATAMENTE (gere o bloco [PEDIDO_CONFIRMADO]).
 - Peça SÓ o que falta. Se já tem tudo, finalize.
 - Sem especificar tipo: assuma P13. Sem quantidade: assuma 1.
 - Formas de pagamento válidas: dinheiro, pix, cartão, fiado. Se o cliente diz qualquer uma dessas, ACEITE e finalize.
