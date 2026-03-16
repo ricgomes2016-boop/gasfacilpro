@@ -7,9 +7,11 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter,
 } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, TrendingUp, Package, Calculator, Printer } from "lucide-react";
+import { DollarSign, TrendingUp, Package, Calculator, Printer, Edit2, Save, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -47,6 +49,13 @@ export default function ComissaoEntregador() {
   // Filtros
   const [mesSelecionado, setMesSelecionado] = useState(format(now, "yyyy-MM"));
   const [entregadorSelecionado, setEntregadorSelecionado] = useState<string>("todos");
+  const [editingConfig, setEditingConfig] = useState<{
+    produtoId: string;
+    produtoNome: string;
+    canal: string;
+    valor: number;
+  } | null>(null);
+  const queryClient = useQueryClient();
 
   const mesesDisponiveis = useMemo(() => {
     const meses = [];
@@ -147,7 +156,11 @@ export default function ComissaoEntregador() {
   const dadosAgrupados = useMemo(() => {
     const porEntregador = new Map<string, {
       nome: string;
-      produtos: Map<string, { nome: string; canais: Map<string, { qtd: number; comissaoUnit: number }> }>;
+      produtos: Map<string, { 
+        id: string; // Adicionado ID do produto
+        nome: string; 
+        canais: Map<string, { qtd: number; comissaoUnit: number }> 
+      }>;
     }>();
 
     pedidosDetalhados.forEach((item: any) => {
@@ -163,7 +176,7 @@ export default function ComissaoEntregador() {
       const ent = porEntregador.get(eId)!;
 
       if (!ent.produtos.has(prodNome)) {
-        ent.produtos.set(prodNome, { nome: prodNome, canais: new Map() });
+        ent.produtos.set(prodNome, { id: item.produto_id, nome: prodNome, canais: new Map() });
       }
       const prod = ent.produtos.get(prodNome)!;
 
@@ -181,6 +194,7 @@ export default function ComissaoEntregador() {
         prod.canais.forEach((canalData, canal) => {
           const total = canalData.qtd * canalData.comissaoUnit;
           linhas.push({
+            produtoId: prod.id,
             produto: prod.nome,
             canal,
             quantidade: canalData.qtd,
@@ -195,6 +209,33 @@ export default function ComissaoEntregador() {
       return { id, nome: ent.nome, linhas, totalQtd, totalComissao };
     }).sort((a, b) => b.totalComissao - a.totalComissao);
   }, [pedidosDetalhados, comissaoMap]);
+
+  const handleSaveQuickConfig = async () => {
+    if (!editingConfig || !unidadeAtual?.id) return;
+    try {
+      // Upsert specific config
+      const { error } = await supabase
+        .from("comissao_config")
+        .upsert({
+          unidade_id: unidadeAtual.id,
+          produto_id: editingConfig.produtoId,
+          canal_venda: editingConfig.canal,
+          valor: editingConfig.valor
+        }, {
+          onConflict: "unidade_id,produto_id,canal_venda"
+        });
+
+      if (error) throw error;
+
+      toast.success("Comissão atualizada!");
+      setEditingConfig(null);
+      queryClient.invalidateQueries({ queryKey: ["comissao-config"] });
+      queryClient.invalidateQueries({ queryKey: ["comissao-detalhada"] });
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao salvar comissão");
+    }
+  };
 
   // Resumo por entregador (para cards)
   const totalComissao = dadosAgrupados.reduce((acc, e) => acc + e.totalComissao, 0);
@@ -339,9 +380,26 @@ export default function ComissaoEntregador() {
                     {entregador.linhas.map((linha, idx) => (
                       <TableRow key={idx}>
                         <TableCell className="font-medium">{linha.produto}</TableCell>
-                        <TableCell>{linha.canal}</TableCell>
+                        <TableCell className="capitalize">{linha.canal}</TableCell>
                         <TableCell className="text-center">{linha.quantidade}</TableCell>
-                        <TableCell className="text-right">R$ {linha.comissaoUnit.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2 group">
+                            <span>R$ {linha.comissaoUnit.toFixed(2)}</span>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => setEditingConfig({
+                                produtoId: linha.produtoId,
+                                produtoNome: linha.produto,
+                                canal: linha.canal,
+                                valor: linha.comissaoUnit
+                              })}
+                            >
+                              <Edit2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
                         <TableCell className="text-right">R$ {linha.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                       </TableRow>
                     ))}
@@ -375,6 +433,44 @@ export default function ComissaoEntregador() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+        {/* Modal de Edição Rápida */}
+        <Dialog open={!!editingConfig} onOpenChange={(open) => !open && setEditingConfig(null)}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Editar Comissão: {editingConfig?.produtoNome}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label className="text-right text-sm font-medium">Canal</label>
+                <div className="col-span-3 capitalize py-2 px-3 bg-muted rounded-md text-sm">
+                  {editingConfig?.canal}
+                </div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label htmlFor="valor" className="text-right text-sm font-medium">Valor (R$)</label>
+                <div className="col-span-3 flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="valor"
+                    type="number"
+                    step="0.01"
+                    value={editingConfig?.valor ?? 0}
+                    onChange={(e) => setEditingConfig(prev => prev ? { ...prev, valor: parseFloat(e.target.value) || 0 } : null)}
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setEditingConfig(null)} className="gap-2">
+                <X className="h-4 w-4" /> Cancelar
+              </Button>
+              <Button onClick={handleSaveQuickConfig} className="gap-2">
+                <Save className="h-4 w-4" /> Salvar Alteração
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );
