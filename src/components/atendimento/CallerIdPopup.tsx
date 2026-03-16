@@ -46,6 +46,7 @@ export function CallerIdPopup() {
   const [vendaClienteId, setVendaClienteId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { unidadeAtual } = useUnidade();
+  const { notify } = useDesktopNotification();
 
   const handleNovaChamada = useCallback(async (nova: ChamadaRecebida) => {
     setChamada(nova);
@@ -53,9 +54,15 @@ export function CallerIdPopup() {
 
     // Play a ringing sound if possible
     try {
-      const audio = new Audio('/notification.mp3'); // Fallback to notification sound
+      const audio = new Audio('/notification.mp3');
       audio.play().catch(e => console.log("Audio play prevented", e));
     } catch(e) {}
+
+    // Desktop notification when tab is not visible
+    notify(
+      `🚚 Novo Pedido - ${nova.cliente_nome || nova.telefone}`,
+      nova.tipo === "whatsapp" ? "Pedido via WhatsApp recebido" : "Nova chamada recebida",
+    );
 
     if (nova.pedido_gerado_id || nova.cliente_id) {
       const { data } = await supabase

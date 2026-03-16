@@ -271,6 +271,24 @@ export default function CentralAtendimento() {
       <Header title="Central de Atendimento" subtitle="Dashboard operacional em tempo real" />
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
 
+        {/* Banner de permissão de notificações desktop */}
+        {"Notification" in window && Notification.permission === "default" && (
+          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/20 rounded-full">
+                <AlertTriangle className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Ative as notificações desktop</p>
+                <p className="text-xs text-muted-foreground">Receba alertas de novos pedidos mesmo quando a aba não estiver visível.</p>
+              </div>
+            </div>
+            <Button size="sm" onClick={() => Notification.requestPermission()}>
+              Ativar
+            </Button>
+          </div>
+        )}
+
         {/* === DASHBOARD KPIs === */}
         <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
           <Card>
