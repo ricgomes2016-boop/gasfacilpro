@@ -46,7 +46,17 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
         const { data, error } = await query;
 
         if (!error && data) {
-          setEntregadores(data);
+          // Remover duplicados por nome para evitar confusão visual se houver registros redundantes
+          const nomesUnicos = new Set();
+          const uniqueData = data.filter(e => {
+            if (nomesUnicos.has(e.nome)) {
+              console.warn(`Entregador duplicado detectado: ${e.nome} (ID: ${e.id})`);
+              return false;
+            }
+            nomesUnicos.add(e.nome);
+            return true;
+          });
+          setEntregadores(uniqueData);
         }
       } catch (error) {
         console.error("Erro ao buscar entregadores:", error);
