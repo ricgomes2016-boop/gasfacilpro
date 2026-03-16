@@ -1,7 +1,6 @@
 // evolution-webhook — BIA WhatsApp via Evolution API (thin wrapper over bia-core)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
-import {
   createSupabase, resolveConfig, checkBusinessHours, normalizePhone,
   findCliente, getRecentOrders, getOrderStatus, getProducts,
   buildSystemPrompt, buildNegotiationHint, generateUUIDFromString,
@@ -9,7 +8,6 @@ import {
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall, getEntregadorLocation,
   downloadAudio, transcribeAudio,
-} from "../_shared/bia-core.ts";
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
