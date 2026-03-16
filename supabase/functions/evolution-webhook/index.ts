@@ -254,6 +254,6 @@ serve(async (req) => {
     return OK({ ok: true, reply: reply.substring(0, 100) });
   } catch (error) {
     console.error("Evolution webhook error:", error);
-    return new Response(JSON.stringify({ error: "Internal error", details: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Internal error", details: (error as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
