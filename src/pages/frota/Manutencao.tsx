@@ -54,6 +54,7 @@ export default function Manutencao() {
     data: getBrasiliaDateString(),
     status: "Agendada",
     observacoes: "",
+    km_atual: "",
   });
 
   // OCR
@@ -114,6 +115,7 @@ export default function Manutencao() {
       oficina: data.oficina || prev.oficina,
       valor: data.valor != null ? String(data.valor) : prev.valor,
       data: data.data || prev.data,
+      km_atual: data.km_atual != null ? String(data.km_atual) : prev.km_atual,
     }));
     toast.success("Dados extraídos! Confira e complete.");
   };
@@ -245,6 +247,7 @@ export default function Manutencao() {
         valor: Number(form.valor),
         data: form.data,
         status: form.status,
+        km_atual: form.km_atual ? Number(form.km_atual) : null,
         unidade_id: unidadeAtual?.id || null,
       };
 
@@ -259,7 +262,7 @@ export default function Manutencao() {
       }
       setShowForm(false);
       setEditId(null);
-      setForm({ veiculo_id: "", descricao: "", tipo: "Preventiva", oficina: "", valor: "", data: getBrasiliaDateString(), status: "Agendada", observacoes: "" });
+      setForm({ veiculo_id: "", descricao: "", tipo: "Preventiva", oficina: "", valor: "", data: getBrasiliaDateString(), status: "Agendada", observacoes: "", km_atual: "" });
       fetchData();
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar");
@@ -277,6 +280,7 @@ export default function Manutencao() {
       valor: String(m.valor),
       data: m.data,
       status: m.status,
+      km_atual: m.km_atual != null ? String(m.km_atual) : "",
       observacoes: "",
     });
     setEditId(m.id);
@@ -495,6 +499,7 @@ export default function Manutencao() {
                   <TableHead>Descrição</TableHead>
                   <TableHead>Oficina</TableHead>
                   <TableHead>Data</TableHead>
+                  <TableHead>KM</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -547,7 +552,7 @@ export default function Manutencao() {
       </div>
 
       {/* Dialog: Nova Manutenção */}
-      <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) { setEditId(null); setForm({ veiculo_id: "", descricao: "", tipo: "Preventiva", oficina: "", valor: "", data: getBrasiliaDateString(), status: "Agendada", observacoes: "" }); } }}>
+      <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) { setEditId(null); setForm({ veiculo_id: "", descricao: "", tipo: "Preventiva", oficina: "", valor: "", data: getBrasiliaDateString(), status: "Agendada", observacoes: "", km_atual: "" }); } }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editId ? "Editar Manutenção" : "Nova Manutenção"}</DialogTitle></DialogHeader>
 
@@ -643,6 +648,16 @@ export default function Manutencao() {
             <div>
               <Label>Data</Label>
               <Input type="date" value={form.data} onChange={(e) => setForm(f => ({ ...f, data: e.target.value }))} />
+            </div>
+
+            <div>
+              <Label>KM Atual</Label>
+              <Input 
+                type="number" 
+                placeholder="0" 
+                value={form.km_atual} 
+                onChange={(e) => setForm(f => ({ ...f, km_atual: e.target.value }))} 
+              />
             </div>
           </div>
 

@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDate, getBrasiliaDateString } from "@/lib/utils";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useNavigate } from "react-router-dom";
+import { FrotaIAInsights } from "@/components/frota/FrotaIAInsights";
 
 interface AlertaDoc {
   tipo: "crlv" | "seguro" | "cnh";
@@ -179,6 +180,9 @@ export default function DashboardFrota() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Insights da IA */}
+        <FrotaIAInsights />
 
         {/* Alertas de Documentos */}
         {alertasDoc.length > 0 && (
