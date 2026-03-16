@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { haversineDistance } from "@/lib/haversine";
 import { toast } from "sonner";
+import { useDesktopNotification } from "@/hooks/useDesktopNotification";
 
 interface ChamadaRecebida {
   id: string;
