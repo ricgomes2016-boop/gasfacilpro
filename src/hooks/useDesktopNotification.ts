@@ -20,14 +20,13 @@ export function useDesktopNotification() {
   const notify = useCallback(
     (title: string, body: string, onClick?: () => void) => {
       if (!isSupported || Notification.permission !== "granted") return;
-      // Only send desktop notification when tab is not visible
-      if (!document.hidden) return;
 
       try {
         const notification = new Notification(title, {
           body,
           icon: "/favicon.ico",
-          tag: "novo-pedido",
+          tag: `novo-pedido-${Date.now()}`,
+          requireInteraction: true,
         });
 
         notification.onclick = () => {
@@ -36,8 +35,13 @@ export function useDesktopNotification() {
           onClick?.();
         };
 
-        // Auto-close after 15s
-        setTimeout(() => notification.close(), 15000);
+        // Vibrate if supported
+        if (navigator.vibrate) {
+          navigator.vibrate([200, 100, 200]);
+        }
+
+        // Fallback auto-close after 30s
+        setTimeout(() => notification.close(), 30000);
       } catch (e) {
         console.error("Desktop notification error:", e);
       }
