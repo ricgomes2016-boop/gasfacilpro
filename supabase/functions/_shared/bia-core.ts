@@ -432,13 +432,14 @@ REGRAS DE DOMINGO:
 ESTILO (OBRIGATÓRIO):
 - Mensagens CURTAS: máximo 2-3 linhas. Nada de textão.
 - Tom simpático e direto. No máximo 1 emoji por mensagem.
-- NUNCA pergunte sobre troco. Ignore completamente o assunto.
+- NUNCA, sob hipótese alguma, pergunte sobre troco. Se o cliente mandar um número alto (ex: "100"), entenda que é a nota de pagamento ou troco, mas NÃO comente. Apenas finalize o pedido.
 - NUNCA use "tanque de gás". Diga "gás", "botijão", "P13", "P20", "P45".
 - NUNCA faça listas longas de produtos. Se pedir, cite os 3 principais.
 - Despedida curta: "Qualquer coisa me chama! 😊"
 - NUNCA repita a saudação se já cumprimentou antes no histórico.
 - NUNCA repita uma pergunta que o cliente já respondeu no histórico.
 - NUNCA peça uma informação que JÁ consta nas variáveis de contexto abaixo (CLIENTE, ENDEREÇO, etc.) ou que o cliente JÁ enviou na última mensagem.
+- SE o cliente pediu ÁGUA, mantenha o foco em ÁGUA. Não ofereça Gás ou descontos de Gás a menos que ele mude o assunto.
 
 SAUDAÇÃO:
 ${cliente.nome
@@ -468,6 +469,7 @@ ${cliente.endereco
 - REGRA CRÍTICA: Leia o HISTÓRICO INTEIRO antes de responder. Se o cliente JÁ informou produto, endereço e pagamento, NÃO pergunte de novo — FINALIZE O PEDIDO IMEDIATAMENTE (gere o bloco [PEDIDO_CONFIRMADO]).
 - Peça SÓ o que falta. Se já tem tudo, finalize.
 - Sem especificar tipo: assuma P13. Sem quantidade: assuma 1.
+- REGRA DE PRODUTO: Se o cliente pediu água, NÃO fale de gás. Se o cliente mandou "100" após confirmar entrega de água, finalize o pedido de água e ignore o número "100" (é apenas o pagamento).
 - Formas de pagamento válidas: dinheiro, pix, cartão, fiado. Se o cliente diz qualquer uma dessas, ACEITE e finalize.
 - Quando tiver TUDO (produto + endereço + pagamento), finalize com:
    [PEDIDO_CONFIRMADO]
@@ -554,8 +556,13 @@ export function buildNegotiationHint(history: any[], config: BiaConfig, messageT
       c.includes("r$") && c.includes("desconto");
   });
 
-  const askingPrice = /(?:faz|quero|pode|fech[aeo]|consegu[ei]|por|aceito)\s*(?:por\s*)?r?\$?\s*\d+/i.test(messageText) ||
-    /^\s*\d{2,3}\s*(?:reais)?\s*$/i.test(messageText);
+  const askingPrice = /(?:faz|fazer|pode|consegue|consegui|aceita)\s*(?:por\s*)?r?\$?\s*\d+/i.test(messageText);
+  
+  const isWaterMode = history.some(m => /água|agua|mineral|20\s*l/i.test(m.content.toLowerCase())).toString() === "true";
+
+  if (isWaterMode && !messageText.toLowerCase().includes("gás") && !messageText.toLowerCase().includes("gas")) {
+    return ""; // No negotiation hints for water if it's clearly defined
+  }
 
   if (mentionsManager && discountMsgs.length === 0) {
     return `\n\nATENÇÃO: Você disse que ia ver com o gerente. RETORNE com desconto de R$ ${config.descontoEtapa1.toFixed(2)}/un. Mostre preço original e final. NÃO diga que vai verificar de novo.`;
