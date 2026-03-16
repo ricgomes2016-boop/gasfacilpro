@@ -165,11 +165,11 @@ serve(async (req) => {
             .order("created_at", { ascending: false }).limit(30);
           const discount = extractLatestNegotiatedDiscountPerUnit([reply, ...(prevMsgs || []).map((m: any) => m.content)]);
 
-          await createOrder(supabase, orderData, cliente.id, cliente.nome, senderName, normalized, finalConfig.unidadeId, isAgendado, discount);
+          const orderResult = await createOrder(supabase, orderData, cliente.id, cliente.nome, senderName, normalized, finalConfig.unidadeId, isAgendado, discount);
           reply = reply.replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/, "").trim();
+          await registerCall(supabase, phone, cliente.id, cliente.nome, senderName, finalConfig.unidadeId, orderResult?.pedidoId);
         }
       }
-      await registerCall(supabase, phone, cliente.id, cliente.nome, senderName, finalConfig.unidadeId);
     }
 
     // Handle location sharing

@@ -251,15 +251,8 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
     if (!domingoAtivo) {
       return { isOffHours: true, horarioInfo: "Não abrimos aos domingos", isSunday: true, waterDeliveryAllowed: false, empresaId: u.empresa_id };
     }
-    if (fechamentoDomingo < effectiveClosing) {
-      effectiveClosing = fechamentoDomingo;
-    }
-  }
-
-  let closing = u.horario_fechamento;
-  // Regra de Domingo: fechar as 14:00 se ainda não estiver configurado para fechar mais cedo
-  if (day === 0 && closing > "14:00") {
-    closing = "14:00";
+    // Respect dynamic Sunday closing time from regras_bia
+    effectiveClosing = fechamentoDomingo;
   }
 
   return {
@@ -477,6 +470,7 @@ ${sundayContext?.isSunday && !sundayContext?.waterDeliveryAllowed ? `REGRAS DE D
 
 ANTI-LOOP (OBRIGATÓRIO):
 - Se você já informou uma restrição ou aviso, NÃO repita se o cliente responder "ok/sim/entendi/tá bom". Apenas pergunte se precisa de algo mais.
+- COLETA DE NOME: Se o cliente for NOVO e você já perguntou o nome dele na mensagem anterior do histórico, mas ele ignorou e pediu um produto, NÃO INSISTA. Aceite o pedido e siga o fluxo sem o nome.
 - NUNCA faça mais de 2 perguntas seguidas sem dados novos do cliente.
 - Se o cliente já respondeu uma pergunta, NÃO pergunte de novo — avance o fluxo.
 - Se o cliente diz apenas "ok/sim/tá bom" sem contexto de pedido ativo, responda brevemente e pergunte se precisa de algo.
@@ -824,12 +818,31 @@ export async function createOrder(
 
     // Auto-assign entregador based on proximity or route
     if (!isAgendado) {
-      const { data: cliente } = await supabase.from("clientes").select("latitude, longitude").eq("id", clienteId).maybeSingle();
-      await autoAssignEntregador(supabase, ped.id, orderData.endereco || "", unidadeId, cliente?.latitude, cliente?.longitude);
+      let { data: cliente } = await supabase.from("clientes").select("latitude, longitude").eq("id", clienteId).maybeSingle();
+      
+      // If no coordinates, try to geocode the order address
+      let currentLat = cliente?.latitude;
+      let currentLng = cliente?.longitude;
+
+      if (!currentLat && orderData.endereco) {
+        const coords = await geocodeAddress(orderData.endereco);
+        if (coords) {
+          currentLat = coords.lat;
+          currentLng = coords.lng;
+          // Update client with new coordinates for future use
+          await supabase.from("clientes").update({ latitude: currentLat, longitude: currentLng }).eq("id", clienteId);
+        }
+      }
+
+      await autoAssignEntregador(supabase, ped.id, orderData.endereco || "", unidadeId, currentLat, currentLng);
     }
 
     console.log("Order created:", ped.id);
-  } catch (e) { console.error("Create order error:", e); }
+    return { pedidoId: ped.id as string, entregadorId: (ped as any).entregador_id as string | null };
+  } catch (e) {
+    console.error("Create order error:", e);
+    return null;
+  }
 }
 
 // ========== AUTO-ASSIGN ENTREGADOR ==========
@@ -911,6 +924,24 @@ export async function autoAssignEntregador(
 }
 
 // ========== GEOLOCATION UTILS ==========
+export async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  if (!address || address.trim().length < 5) return null;
+  try {
+    const query = encodeURIComponent(address.trim());
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${query}&countrycodes=br&limit=1`,
+      { headers: { "User-Agent": "GasFacilPro-BiaIA" } }
+    );
+    const data = await response.json();
+    if (data && data.length > 0) {
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    }
+  } catch (error) {
+    console.error("Geocoding error:", error);
+  }
+  return null;
+}
+
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -1101,10 +1132,23 @@ export async function sendLocation(config: BiaConfig, phone: string, lat: number
 }
 
 // ========== REGISTER CALL ==========
-export async function registerCall(supabase: any, phone: string, clienteId: string | null, clienteNome: string | null, senderName: string, unidadeId: string | null) {
+export async function registerCall(
+  supabase: any,
+  phone: string,
+  clienteId: string | null,
+  clienteNome: string | null,
+  senderName: string,
+  unidadeId: string | null,
+  pedidoId?: string | null
+) {
   await supabase.from("chamadas_recebidas").insert({
-    telefone: phone, cliente_id: clienteId, cliente_nome: clienteNome || senderName,
-    tipo: "whatsapp", status: "recebida", unidade_id: unidadeId,
+    telefone: phone,
+    cliente_id: clienteId,
+    cliente_nome: clienteNome || senderName,
+    tipo: "whatsapp",
+    status: "recebida",
+    unidade_id: unidadeId,
+    pedido_gerado_id: pedidoId || null,
   });
 }
 

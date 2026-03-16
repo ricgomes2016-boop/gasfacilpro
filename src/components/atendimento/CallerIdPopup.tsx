@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Phone, MessageSquare, X, User, Clock, Truck, Eye, Battery, BatteryWarning, ShoppingCart } from "lucide-react";
+import { Phone, MessageSquare, X, User, Clock, Truck, Eye, Battery, BatteryWarning, ShoppingCart, Navigation } from "lucide-react";
 import { RepassarEntregadorDialog } from "./RepassarEntregadorDialog";
 import { NovaVendaModal } from "@/components/vendas/NovaVendaModal";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { haversineDistance } from "@/lib/haversine";
 import { toast } from "sonner";
 
 interface ChamadaRecebida {
@@ -33,6 +34,7 @@ interface UltimoPedidoInfo {
   forma_pagamento: string | null;
   canal_venda: string | null;
   itens: { produto_id: string; nome: string; quantidade: number; preco_unitario: number }[];
+  entregador?: { id: string; nome: string; latitude?: number; longitude?: number; distanciaKm?: number } | null;
 }
 
 export function CallerIdPopup() {
@@ -54,11 +56,14 @@ export function CallerIdPopup() {
       audio.play().catch(e => console.log("Audio play prevented", e));
     } catch(e) {}
 
-    if (nova.cliente_id) {
+    if (nova.pedido_gerado_id || nova.cliente_id) {
       const { data } = await supabase
         .from("pedidos")
-        .select("id, valor_total, created_at, status, endereco_entrega, forma_pagamento, canal_venda")
-        .eq("cliente_id", nova.cliente_id)
+        .select(`
+          id, valor_total, created_at, status, endereco_entrega, forma_pagamento, canal_venda,
+          entregadores:entregador_id(id, nome)
+        `)
+        .eq(nova.pedido_gerado_id ? "id" : "cliente_id", nova.pedido_gerado_id || nova.cliente_id)
         .neq("status", "cancelado")
         .order("created_at", { ascending: false })
         .limit(1);
@@ -71,6 +76,7 @@ export function CallerIdPopup() {
 
         setUltimoPedido({
           ...data[0],
+          entregador: (data[0] as any).entregadores,
           itens: (itensData || []).map((i: any) => ({
             produto_id: i.produto_id,
             nome: i.produtos?.nome || "Produto",
@@ -78,6 +84,18 @@ export function CallerIdPopup() {
             preco_unitario: i.preco_unitario,
           })),
         });
+
+        // Async calculate distance for the UI
+        if (nova.cliente_id && (data[0] as any).entregadores?.latitude) {
+            const { data: cliente } = await supabase.from("clientes").select("latitude, longitude").eq("id", nova.cliente_id).maybeSingle();
+            if (cliente?.latitude && (data[0] as any).entregadores.latitude) {
+                const dist = haversineDistance(cliente.latitude, cliente.longitude, (data[0] as any).entregadores.latitude, (data[0] as any).entregadores.longitude);
+                setUltimoPedido(prev => prev ? { 
+                    ...prev, 
+                    entregador: { ...prev.entregador!, distanciaKm: dist } 
+                } : null);
+            }
+        }
       }
     }
   }, []);
@@ -164,141 +182,119 @@ export function CallerIdPopup() {
   const isBatteryLow = batteryLevel !== null && batteryLevel <= 15;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-300 p-4">
-      <Card className="w-full max-w-2xl border-none shadow-2xl bg-background/95 backdrop-blur overflow-hidden animate-in zoom-in-95 duration-300">
+    <div className="fixed bottom-4 right-4 z-[9999] w-[380px] animate-in slide-in-from-right-10 duration-500">
+      <Card className="border-none shadow-2xl bg-background/95 backdrop-blur-md border border-primary/20 overflow-hidden ring-1 ring-black/5">
         
-        {/* Superior Header (Warning/Info Bar) */}
-        <div className="bg-primary text-primary-foreground px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-full bg-white/20 animate-pulse ring-4 ring-white/10">
+        {/* Header - Compacto e Elegante */}
+        <div className="bg-primary px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-full bg-white/20 ring-2 ring-white/10">
               {chamada.tipo === "whatsapp" ? (
-                <MessageSquare className="h-8 w-8 text-white" />
+                <MessageSquare className="h-5 w-5 text-white" />
               ) : (
-                <Phone className="h-8 w-8 text-white" />
+                <Phone className="h-5 w-5 text-white" />
               )}
             </div>
             <div>
-              <h2 className="text-2xl font-bold tracking-tight">
-                {chamada.tipo === "whatsapp" ? "LIGAÇÃO WHATSAPP" : "LIGAÇÃO RECEBIDA"}
-              </h2>
-              <p className="text-primary-foreground/80 opacity-90">
-                {format(new Date(chamada.created_at), "HH:mm:ss", { locale: ptBR })}
+              <p className="text-xs font-bold text-primary-foreground/70 uppercase tracking-widest">
+                Novo Pedido IA
               </p>
+              <h2 className="text-sm font-bold text-white leading-tight">
+                {chamada.cliente_nome || chamada.telefone}
+              </h2>
             </div>
           </div>
           
-          <Button variant="ghost" size="icon" className="h-10 w-10 text-white hover:bg-white/20 rounded-full" onClick={handleDismiss}>
-            <X className="h-6 w-6" />
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20 rounded-full shrink-0" onClick={handleDismiss}>
+            <X className="h-4 w-4" />
           </Button>
         </div>
 
-        <CardContent className="p-8">
+        <CardContent className="p-4 space-y-4">
           
-          {/* Main Content Area */}
-          <div className="flex flex-col md:flex-row gap-8 items-start">
-            
-            {/* Left Col: Caller Info */}
-            <div className="flex-1 space-y-4">
+          {/* Info do Histórico / Pedido Atual */}
+          {ultimoPedido ? (
+            <div className="bg-muted/50 rounded-lg p-3 border border-border/50 space-y-2">
+              <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> Detalhes do Pedido</span>
+                <span>{format(new Date(ultimoPedido.created_at), "HH:mm", { locale: ptBR })}</span>
+              </div>
+              
               <div className="space-y-1">
-                <div className="flex items-center gap-3">
-                  <span className="text-4xl font-extrabold text-foreground">
-                    {chamada.cliente_nome || chamada.telefone}
-                  </span>
-                  {chamada.cliente_id ? (
-                    <Badge variant="default" className="text-sm px-3 py-1 uppercase tracking-wider bg-green-600">Cliente Recorrente</Badge>
-                  ) : (
-                    <Badge variant="secondary" className="text-sm px-3 py-1 uppercase tracking-wider">Novo Cliente</Badge>
-                  )}
-                </div>
-                {chamada.cliente_nome && (
-                  <p className="text-xl text-muted-foreground font-medium">{chamada.telefone}</p>
-                )}
+                {ultimoPedido.itens.map((item, idx) => (
+                  <div key={idx} className="flex justify-between text-xs font-semibold">
+                    <span>{item.quantidade}x {item.nome}</span>
+                    <span>R$ {(item.quantidade * item.preco_unitario).toFixed(2)}</span>
+                  </div>
+                ))}
               </div>
 
-              {/* Último pedido detalhado */}
-              {ultimoPedido ? (
-                <div className="bg-muted/40 rounded-xl p-5 border border-border/50">
-                  <div className="flex items-center justify-between mb-3 border-b border-border/50 pb-2">
-                    <span className="text-sm font-bold text-muted-foreground flex items-center gap-2">
-                      <Clock className="h-4 w-4" /> COMPRA ANTERIOR
-                    </span>
-                    <span className="text-sm font-medium">
-                      {format(new Date(ultimoPedido.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                    </span>
-                  </div>
-                  <div className="space-y-2 mb-3">
-                    {ultimoPedido.itens.map((item, idx) => (
-                      <div key={idx} className="flex justify-between text-base">
-                        <span className="font-medium">{item.quantidade}x {item.nome}</span>
-                        <span className="text-muted-foreground">
-                          R$ {(item.quantidade * item.preco_unitario).toFixed(2)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex justify-between text-lg font-bold border-t border-border/50 pt-2 text-primary">
-                    <span>Total</span>
-                    <span>R$ {Number(ultimoPedido.valor_total).toFixed(2)}</span>
-                  </div>
-                  {ultimoPedido.endereco_entrega && (
-                    <p className="text-sm text-muted-foreground mt-2 flex gap-1">
-                      <Truck className="h-4 w-4 inline shrink-0" />
-                      <span className="line-clamp-2">{ultimoPedido.endereco_entrega}</span>
-                    </p>
-                  )}
-                </div>
-              ) : (
-                chamada.cliente_id && (
-                  <div className="bg-muted/40 rounded-xl p-5 border border-border/50 flex flex-col items-center justify-center text-center h-full min-h-[140px]">
-                    <Clock className="h-8 w-8 text-muted-foreground/40 mb-2" />
-                    <p className="text-muted-foreground font-medium">Nenhuma compra recente encontrada.</p>
-                  </div>
-                )
-              )}
-            </div>
-            
-            {/* Right Col: Actions & Devices */}
-            <div className="w-full md:w-64 space-y-4 shrink-0">
-              
-              <Button size="lg" className="w-full h-16 text-lg font-bold gap-2 bg-green-600 hover:bg-green-700 text-white shadow-lg" onClick={handleNovaVenda}>
-                <ShoppingCart className="h-6 w-6" />
-                VENDER AGORA
-              </Button>
-              
-              <Button size="lg" variant="outline" className="w-full h-14 font-semibold" onClick={handleVerPedido}>
-                <Eye className="h-5 w-5 mr-2" />
-                Ver Pedidos
-              </Button>
-              
-              {chamada.cliente_id && (
-                <Button size="lg" variant="ghost" className="w-full h-14 font-semibold bg-muted/50 hover:bg-muted" onClick={handleVerPerfil}>
-                  <User className="h-5 w-5 mr-2" />
-                  Perfil do Cliente
-                </Button>
-              )}
-              
-              {/* Bina Device Status */}
-              {(batteryLevel !== null) && (
-                <div className={`mt-6 p-4 rounded-xl border ${isBatteryLow ? 'bg-red-500/10 border-red-500/30' : 'bg-muted/30 border-border/50'} flex items-start gap-3`}>
-                  {isBatteryLow ? (
-                    <BatteryWarning className="h-6 w-6 text-red-500 shrink-0 mt-0.5" />
-                  ) : (
-                    <Battery className="h-6 w-6 text-muted-foreground shrink-0 mt-0.5" />
-                  )}
-                  <div>
-                    <p className={`text-sm font-bold ${isBatteryLow ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
-                      Bateria do App Bina: {batteryLevel}%
-                    </p>
-                    {isBatteryLow && (
-                      <p className="text-xs text-red-500/80 font-medium leading-tight mt-1">
-                        Atenção: Conecte o celular do balcão ao carregador ou o identificador de chamadas irá desligar!
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+              <div className="flex justify-between text-sm font-bold pt-1 border-t border-border/50 text-primary">
+                <span>Total</span>
+                <span>R$ {Number(ultimoPedido.valor_total).toFixed(2)}</span>
+              </div>
 
+              {ultimoPedido.endereco_entrega && (
+                <div className="flex flex-col gap-1 pt-1 opacity-80">
+                  <p className="text-[10px] text-muted-foreground leading-snug flex gap-1">
+                    <Truck className="h-3 w-3 shrink-0" />
+                    <span className="line-clamp-1">{ultimoPedido.endereco_entrega}</span>
+                  </p>
+                  {ultimoPedido.entregador && chamada.cliente_id && (
+                    <p className="text-[10px] text-primary/80 font-bold flex items-center gap-1">
+                      <Navigation className="h-3 w-3" />
+                      Distância: {ultimoPedido.entregador.id ? "Calculando..." : "N/A"}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="h-20 flex items-center justify-center bg-muted/30 rounded-lg border border-dashed text-center p-4">
+              <p className="text-xs text-muted-foreground italic">
+                {chamada.cliente_id ? "Buscando dados do pedido..." : "Aguardando detalhes da Bia..."}
+              </p>
+            </div>
+          )}
+
+          {/* Status de Entrega IA */}
+          <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center gap-3">
+             <div className="h-8 w-8 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+               <Truck className="h-4 w-4 text-green-600" />
+             </div>
+             <div className="space-y-0.5">
+               <p className="text-[11px] font-bold text-green-700 uppercase">Logística IA</p>
+               <p className="text-xs text-green-600 font-medium leading-tight">
+                 {ultimoPedido?.entregador?.nome 
+                   ? `Encaminhado para ${ultimoPedido.entregador.nome} ${ultimoPedido.entregador.distanciaKm ? `(${ultimoPedido.entregador.distanciaKm.toFixed(1)}km)` : ""} ✅`
+                   : "Aguardando entregador..."}
+               </p>
+             </div>
+          </div>
+
+          {/* Ações de Gestão */}
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <Button size="sm" className="col-span-2 h-10 font-bold bg-primary hover:bg-primary/90 gap-2 shadow-sm" onClick={() => setShowRepassar(true)}>
+              <Truck className="h-4 w-4" />
+              REPASSAR ENTREGADOR
+            </Button>
+
+            <Button variant="outline" size="sm" className="h-9 text-[11px] font-bold border-border/60 hover:bg-muted" onClick={handleVerPedido}>
+              <Eye className="h-3 w-3 mr-1.5" />
+              VISUALIZAR
+            </Button>
+            
+            <Button variant="outline" size="sm" className="h-9 text-[11px] font-bold border-border/60 hover:bg-muted" onClick={handleVerPerfil}>
+              <User className="h-3 w-3 mr-1.5" />
+              HISTÓRICO
+            </Button>
+
+            {(!ultimoPedido?.endereco_entrega || ultimoPedido?.endereco_entrega.length < 5) && (
+              <Button size="sm" variant="secondary" className="col-span-2 h-10 font-bold bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border border-orange-200 gap-2" onClick={handleNovaVenda}>
+                <ShoppingCart className="h-4 w-4" />
+                COMPLETAR VENDA
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

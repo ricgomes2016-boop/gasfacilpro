@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { 
+  createSupabase, 
+  findCliente, 
+  createOrder, 
+  checkBusinessHours,
+  registerCall
+} from "../_shared/bia-core.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,9 +33,7 @@ serve(async (req) => {
       const functionName = toolCall.function.name;
       const args = toolCall.function.arguments; // JSON object with parameters
 
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = createSupabase();
 
       // We default to Central Gas Matriz for now. 
       // In production with multiple numbers, this would be dynamic based on the caller's number.
@@ -37,12 +41,23 @@ serve(async (req) => {
       const { data: matriz } = await supabase.from('unidades').select('id').eq('tipo', 'matriz').maybeSingle();
       if (matriz) unidadeId = matriz.id;
 
+      // Check Business Hours / Sunday Rules
+      const { isOffHours, horarioInfo, isSunday, waterDeliveryAllowed } = await checkBusinessHours(supabase, unidadeId);
+
       if (functionName === "consultar_preco") {
-        return await handleConsultarPreco(supabase, args, toolCall.id, unidadeId, corsHeaders);
+        return await handleConsultarPreco(supabase, args, toolCall.id, unidadeId, corsHeaders, { isSunday, waterDeliveryAllowed });
       } 
       
       if (functionName === "criar_pedido") {
-        return await handleCriarPedido(supabase, args, toolCall.id, unidadeId, corsHeaders);
+        if (isOffHours) {
+           return new Response(JSON.stringify({
+            results: [{
+              toolCallId: toolCall.id,
+              result: `No momento estamos fechados. Nosso horário é ${horarioInfo}. Mas posso agendar para você se quiser!`
+            }]
+          }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        return await handleCriarPedido(supabase, args, toolCall.id, unidadeId, corsHeaders, { isOffHours, horarioInfo });
       }
 
       // Fallback for unknown tools
@@ -73,11 +88,22 @@ serve(async (req) => {
 // TOOLS IMPLEMENTATION
 // ============================================================================
 
-async function handleConsultarPreco(supabase: any, args: any, toolCallId: string, unidadeId: string | null, corsHeaders: any) {
+async function handleConsultarPreco(supabase: any, args: any, toolCallId: string, unidadeId: string | null, corsHeaders: any, context: { isSunday: boolean, waterDeliveryAllowed: boolean }) {
   const produtoNome = args.produto || "P13";
   
+  // Detecção de água no domingo
+  const isWater = /água|agua|mineral|galão|galao|20\s*l/i.test(produtoNome);
+  if (context.isSunday && isWater && !context.waterDeliveryAllowed) {
+     return new Response(JSON.stringify({
+      results: [{
+        toolCallId: toolCallId,
+        result: "Infelizmente aos domingos não fazemos entrega de água, apenas carga de gás. Mas você pode retirar água aqui na portaria até as 14:00!"
+      }]
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
   let q = supabase.from("produtos")
-    .select("id, nome, preco, estoque")
+    .select("id, nome, preco, estoque, categoria")
     .ilike("nome", `%${produtoNome}%`)
     .eq("ativo", true);
     
@@ -92,6 +118,9 @@ async function handleConsultarPreco(supabase: any, args: any, toolCallId: string
     resultado = `Temos o ${data.nome} por R$ ${Number(data.preco).toFixed(2)}, mas no momento está fora de estoque.`;
   } else {
     resultado = `O valor do ${data.nome} é R$ ${Number(data.preco).toFixed(2)}. Temos em estoque para pronta entrega.`;
+    if (context.isSunday && data.categoria === 'gas') {
+      resultado += " Hoje no domingo atendemos até as 14:00.";
+    }
   }
 
   return new Response(JSON.stringify({
@@ -103,8 +132,7 @@ async function handleConsultarPreco(supabase: any, args: any, toolCallId: string
 }
 
 
-async function handleCriarPedido(supabase: any, args: any, toolCallId: string, unidadeId: string | null, corsHeaders: any) {
-  // Params expected from Vapi
+async function handleCriarPedido(supabase: any, args: any, toolCallId: string, unidadeId: string | null, corsHeaders: any, context: any) {
   const { nome, telefone, endereco, pagamento, produto } = args;
 
   if (!telefone || !endereco) {
@@ -116,69 +144,36 @@ async function handleCriarPedido(supabase: any, args: any, toolCallId: string, u
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
-  // 1. Find product
-  const produtoBusca = produto || "P13";
-  let qProd = supabase.from("produtos").select("id, preco, nome").ilike("nome", `%${produtoBusca}%`).eq("ativo", true);
-  if (unidadeId) qProd = qProd.or(`unidade_id.eq.${unidadeId},unidade_id.is.null`);
+  // Use bia-core findCliente for consistency
+  const cliente = await findCliente(supabase, telefone);
   
-  const { data: prodData } = await qProd.limit(1).maybeSingle();
-  if (!prodData) {
-    return new Response(JSON.stringify({
-      results: [{ toolCallId: toolCallId, result: "Não consegui identificar o produto para fechar o pedido." }]
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  }
-
-  // 2. Normalize and find/create client
-  const phoneDigits = telefone.replace(/\D/g, "");
-  const normalized = phoneDigits.slice(-11);
-  const searchPatterns = [normalized, normalized.slice(-10)];
-  
-  let clienteId = null;
-  const { data: clientes } = await supabase.from("clientes").select("id, nome")
-    .or(searchPatterns.map(p => `telefone.ilike.%${p}%`).join(","))
-    .limit(1);
-
-  if (clientes && clientes.length > 0) {
-    clienteId = clientes[0].id;
-  } else {
-    // Create new client if not exists
-    const { data: newClient } = await supabase.from("clientes").insert({
-      nome: nome || "Cliente Vapi",
-      telefone: normalized,
-      endereco: endereco,
-      origem: "voice_ai"
-    }).select().single();
-    if (newClient) clienteId = newClient.id;
-  }
-
-  // 3. Transform payment method
-  const pagInput = (pagamento || "").toLowerCase();
-  let formaPagamento = "dinheiro";
-  if (pagInput.includes("pix")) formaPagamento = "pix";
-  if (pagInput.includes("cartao") || pagInput.includes("cartão")) formaPagamento = "cartao";
-  if (pagInput.includes("fiado") || pagInput.includes("prazo")) formaPagamento = "fiado";
-
-  // 4. Create Order
-  const pedidoData = {
-    cliente_id: clienteId,
-    valor_total: prodData.preco,
-    forma_pagamento: formaPagamento,
-    endereco_entrega: endereco,
-    canal_venda: "telefone",
-    status: "pendente",
-    observacoes: `Criado via Assistente de Voz Vapi.ai\nItem: ${prodData.nome}`,
-    unidade_id: unidadeId
+  // Transform order data for bia-core createOrder
+  const orderData = {
+    nome: nome || cliente.nome || "Cliente Vapi",
+    produto: produto || "P13",
+    endereco: endereco,
+    pagamento: pagamento || "dinheiro",
+    quantidade: "1"
   };
 
-  const { data: novoPedido, error } = await supabase.from("pedidos").insert(pedidoData).select().single();
+  // Create order using central logic
+  const pedidoResult = await createOrder(
+    supabase,
+    orderData,
+    cliente.id,
+    cliente.nome,
+    nome || "Cliente Vapi",
+    telefone,
+    unidadeId
+  );
 
   let resultMsg = "";
-  if (error) {
-    console.error("Erro ao criar pedido VAPI:", error);
+  if (!pedidoResult) {
     resultMsg = "Houve um problema sistêmico e não consegui gerar o pedido agora.";
   } else {
-    // Return success to Vapi so the AI can say it out loud
-    resultMsg = `Pedido criado com sucesso! O valor total é R$ ${Number(prodData.preco).toFixed(2)}. O entregador deve chegar em cerca de 30 a 45 minutos.`;
+    resultMsg = `Pedido criado com sucesso! O entregador já foi avisado e deve chegar em 30 a 45 minutos.`;
+    // Register the call to trigger frontend popup
+    await registerCall(supabase, telefone, cliente.id, cliente.nome, nome || "Cliente Vapi", unidadeId, pedidoResult.pedidoId);
   }
 
   return new Response(JSON.stringify({
