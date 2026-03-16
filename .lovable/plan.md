@@ -1,37 +1,18 @@
 
 
-# Notificação Desktop para Novos Pedidos
+## Problem
 
-## Problema
-Quando a aba do sistema não está visível, o atendente não vê o popup do CallerIdPopup e perde pedidos.
+The `check-subscription` edge function returns 500 with "Auth session missing!" because `checkSubscription()` is called as soon as `user` exists, but the auth session token may not be fully ready yet. Also, it runs for ALL users (including clients, drivers) who don't need subscription checks.
 
-## Solução
-Usar a **Notification API do navegador** para exibir notificações nativas do sistema operacional quando um novo pedido chega e a aba não está em foco.
+## Plan
 
-## Implementação
+1. **`src/contexts/EmpresaContext.tsx`** — Guard the `checkSubscription` call:
+   - Only call it when `user` exists AND `roles` are loaded (not empty)
+   - Only call it for staff/admin users who actually need subscription info
+   - Add `roles` to the dependency array of the useEffect that triggers the check
+   - This prevents the 500 error for unauthenticated sessions and unnecessary calls for non-staff users
 
-### 1. Criar hook `useDesktopNotification`
-- Gerencia permissão da Notification API
-- Função `notify(title, body, onClick)` que dispara notificação nativa
-- Só dispara quando `document.hidden === true` (aba não visível)
-- Ao clicar na notificação, foca a aba e executa callback
+### Changes
 
-### 2. Alterar `CallerIdPopup.tsx`
-- Importar o novo hook
-- Na função `handleNovaChamada`, além do popup e áudio, disparar notificação desktop:
-  - Título: "🚚 Novo Pedido - [nome do cliente]"
-  - Body: detalhes do pedido (produto, endereço)
-  - onClick: foca a janela do sistema
-
-### 3. Banner de permissão na Central de Atendimento
-- Se `Notification.permission === "default"`, mostrar um banner discreto pedindo para ativar notificações desktop
-- Botão "Ativar notificações" chama `Notification.requestPermission()`
-
-## Arquivos
-
-| Arquivo | Ação |
-|---------|------|
-| `src/hooks/useDesktopNotification.ts` | Criar |
-| `src/components/atendimento/CallerIdPopup.tsx` | Adicionar chamada de notificação nativa |
-| `src/pages/atendimento/CentralAtendimento.tsx` | Adicionar banner de permissão |
+In the useEffect at line 184-188, change the condition from `if (user && !authLoading)` to `if (user && !authLoading && isStaff)`, and add `roles` to deps so `isStaff` is evaluated correctly.
 
