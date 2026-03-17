@@ -34,7 +34,7 @@ export function useDesktopNotification() {
             requireInteraction: true,
             vibrate: [200, 100, 200],
             data: { url: "/pedidos" },
-          });
+          } as NotificationOptions);
         } else {
           // Fallback: standard Notification API
           const notification = new Notification(title, {

@@ -35,7 +35,7 @@ export const sendOrderNotification = async (
   try {
     const registration = await navigator.serviceWorker.ready;
 
-    registration.showNotification("🛵 Novo Pedido!", {
+    (registration as any).showNotification("🛵 Novo Pedido!", {
       body,
       icon: "/favicon.png",
       badge: "/favicon.png",
