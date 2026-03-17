@@ -58,7 +58,7 @@ export default function AnaliseConcorrencia() {
     queryFn: async () => {
       let query = supabase
         .from("produtos")
-        .select("nome, preco_venda, preco_portaria, preco_telefone")
+        .select("nome, preco, preco_portaria, preco_telefone")
         .eq("ativo", true);
       if (unidadeId) query = query.eq("unidade_id", unidadeId);
       const { data, error } = await query;
