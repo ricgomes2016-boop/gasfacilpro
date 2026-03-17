@@ -68,19 +68,37 @@ export default function AnaliseConcorrencia() {
     enabled: !!empresaId,
   });
 
-  // Build pricing map: { produto: { portaria, telefone, unico } }
+  // Extract P-code (e.g. "P13") from product name for flexible matching
+  const extractPCode = (name: string): string | null => {
+    const match = name.match(/P\d+/i);
+    return match ? match[0].toUpperCase() : null;
+  };
+
+  // Build pricing map with flexible key matching
   const nossosPrecos = useMemo(() => {
     const map: Record<string, { portaria: number; telefone: number; unico: number }> = {};
+    const pCodeMap: Record<string, { portaria: number; telefone: number; unico: number }> = {};
     produtos.forEach((p: any) => {
       if (p.nome) {
-        map[p.nome] = {
+        const entry = {
           portaria: Number(p.preco_portaria) || Number(p.preco) || 0,
           telefone: Number(p.preco_telefone) || Number(p.preco) || 0,
           unico: Number(p.preco) || 0,
         };
+        map[p.nome] = entry;
+        const pCode = extractPCode(p.nome);
+        if (pCode) pCodeMap[pCode] = entry;
       }
     });
-    return map;
+    // Add fallback keys from pCode matching
+    return new Proxy(map, {
+      get(target, prop: string) {
+        if (prop in target) return target[prop];
+        const pCode = extractPCode(prop);
+        if (pCode && pCode in pCodeMap) return pCodeMap[pCode];
+        return undefined;
+      },
+    });
   }, [produtos]);
 
   // Analyse per product
