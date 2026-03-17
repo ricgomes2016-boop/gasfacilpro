@@ -379,19 +379,30 @@ export async function getProducts(supabase: any, unidadeId: string | null, confi
 }
 
 // ========== EXTRACT COLLECTED DATA FROM HISTORY ==========
-export function extractCollectedData(history: any[]): { pagamento?: string; produto?: string; enderecoConfirmado?: boolean } {
-  const result: { pagamento?: string; produto?: string; enderecoConfirmado?: boolean } = {};
+export function extractCollectedData(history: any[]): { pagamento?: string; produto?: string; enderecoConfirmado?: boolean; clienteInstitucional?: boolean; skipPagamentoValor?: boolean } {
+  const result: { pagamento?: string; produto?: string; enderecoConfirmado?: boolean; clienteInstitucional?: boolean; skipPagamentoValor?: boolean } = {};
 
-  // Scan user messages for payment method
+  // Scan user messages for payment method and institutional detection
   const userMsgs = history.filter((m: any) => m.role === "user");
   for (const msg of userMsgs) {
     const t = msg.content.toLowerCase();
+
+    // Detect institutional client
+    if (!result.clienteInstitucional && /\b(escola|col[eé]gio|pol[ií]cia|secretaria\s*(de\s*educa[çc][aã]o)?|assist[eê]ncia\s*social|prefeitura)\b/i.test(t)) {
+      result.clienteInstitucional = true;
+      result.pagamento = "institucional";
+      result.skipPagamentoValor = true;
+    }
+
     if (!result.pagamento) {
       if (/\b(dinheiro|em\s*dinheiro)\b/i.test(t)) result.pagamento = "dinheiro";
       else if (/\bpix\b/i.test(t)) result.pagamento = "pix";
       else if (/\b(cart[aã]o|cartao|débito|credito|crédito)\b/i.test(t)) result.pagamento = "cartão";
       else if (/\bfiad[oa]?\b/i.test(t)) result.pagamento = "fiado";
-      else if (/\b(vale\s*g[aá]s|vale)\b/i.test(t)) result.pagamento = "vale gás";
+      else if (/\b(vale\s*g[aá]s|vale)\b/i.test(t)) {
+        result.pagamento = "vale gás";
+        result.skipPagamentoValor = true;
+      }
     }
     if (!result.produto) {
       if (/\bp\s*13\b/i.test(t) || /\bgás\b/i.test(t) || /\bgas\b/i.test(t) || /\bbotij/i.test(t)) result.produto = "Gás P13";
