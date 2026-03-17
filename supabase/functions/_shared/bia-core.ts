@@ -379,19 +379,30 @@ export async function getProducts(supabase: any, unidadeId: string | null, confi
 }
 
 // ========== EXTRACT COLLECTED DATA FROM HISTORY ==========
-export function extractCollectedData(history: any[]): { pagamento?: string; produto?: string; enderecoConfirmado?: boolean } {
-  const result: { pagamento?: string; produto?: string; enderecoConfirmado?: boolean } = {};
+export function extractCollectedData(history: any[]): { pagamento?: string; produto?: string; enderecoConfirmado?: boolean; clienteInstitucional?: boolean; skipPagamentoValor?: boolean } {
+  const result: { pagamento?: string; produto?: string; enderecoConfirmado?: boolean; clienteInstitucional?: boolean; skipPagamentoValor?: boolean } = {};
 
-  // Scan user messages for payment method
+  // Scan user messages for payment method and institutional detection
   const userMsgs = history.filter((m: any) => m.role === "user");
   for (const msg of userMsgs) {
     const t = msg.content.toLowerCase();
+
+    // Detect institutional client
+    if (!result.clienteInstitucional && /\b(escola|col[eé]gio|pol[ií]cia|secretaria\s*(de\s*educa[çc][aã]o)?|assist[eê]ncia\s*social|prefeitura)\b/i.test(t)) {
+      result.clienteInstitucional = true;
+      result.pagamento = "institucional";
+      result.skipPagamentoValor = true;
+    }
+
     if (!result.pagamento) {
       if (/\b(dinheiro|em\s*dinheiro)\b/i.test(t)) result.pagamento = "dinheiro";
       else if (/\bpix\b/i.test(t)) result.pagamento = "pix";
       else if (/\b(cart[aã]o|cartao|débito|credito|crédito)\b/i.test(t)) result.pagamento = "cartão";
       else if (/\bfiad[oa]?\b/i.test(t)) result.pagamento = "fiado";
-      else if (/\b(vale\s*g[aá]s|vale)\b/i.test(t)) result.pagamento = "vale gás";
+      else if (/\b(vale\s*g[aá]s|vale)\b/i.test(t)) {
+        result.pagamento = "vale gás";
+        result.skipPagamentoValor = true;
+      }
     }
     if (!result.produto) {
       if (/\bp\s*13\b/i.test(t) || /\bgás\b/i.test(t) || /\bgas\b/i.test(t) || /\bbotij/i.test(t)) result.produto = "Gás P13";
@@ -415,10 +426,20 @@ export function extractCollectedData(history: any[]): { pagamento?: string; prod
 }
 
 // ========== DETECT CONVERSATION STEP ==========
-function detectCurrentStep(history: any[], collected: { pagamento?: string; produto?: string; enderecoConfirmado?: boolean }): { step: number; label: string } {
+function detectCurrentStep(history: any[], collected: { pagamento?: string; produto?: string; enderecoConfirmado?: boolean; skipPagamentoValor?: boolean }): { step: number; label: string } {
   if (!history || history.length === 0) return { step: 1, label: "Passo 1 (saudação inicial)" };
 
   const hasGreeting = history.some((m: any) => m.role === "assistant" && /ol[aá]|bom dia|boa tarde|boa noite|como posso ajudar/i.test(m.content));
+
+  // For institutional/vale gás: skip payment step entirely
+  if (collected.skipPagamentoValor) {
+    if (collected.produto && collected.enderecoConfirmado) {
+      return { step: 5, label: "Passo 5 (registrar pedido — cliente institucional/vale gás, pular pagamento e valor)" };
+    }
+    if (collected.produto) {
+      return { step: 3, label: "Passo 3 (confirmar endereço de entrega — pagamento não necessário)" };
+    }
+  }
 
   if (collected.enderecoConfirmado && collected.produto && collected.pagamento) {
     return { step: 5, label: "Passo 5 (registrar pedido — todos os dados confirmados)" };
@@ -470,10 +491,13 @@ export function buildSystemPrompt(
     collectedSection = `\n\nDADOS JÁ INFORMADOS PELO CLIENTE (NÃO pergunte novamente):\n${collectedItems.join("\n")}`;
   }
 
-  // Finalize immediately if all data present
+  // Finalize immediately if all data present (or institutional/vale gás skips payment)
   let finalizeHint = "";
   if (collected.produto && collected.enderecoConfirmado && collected.pagamento) {
     finalizeHint = "\n\n⚠️ TODOS OS DADOS FORAM COLETADOS. FINALIZE O PEDIDO IMEDIATAMENTE gerando a tag [PEDIDO_CONFIRMADO]. NÃO faça mais perguntas.";
+  }
+  if (collected.skipPagamentoValor && collected.produto && collected.enderecoConfirmado) {
+    finalizeHint = "\n\n⚠️ CLIENTE INSTITUCIONAL OU VALE GÁS — TODOS OS DADOS COLETADOS. FINALIZE O PEDIDO IMEDIATAMENTE com pagamento '" + collected.pagamento + "' e valor: 0. Gere a tag [PEDIDO_CONFIRMADO] AGORA.";
   }
 
   return `Você é a ${agentName}, assistente virtual de vendas de gás da empresa. Seu atendimento deve ser humano, educado e objetivo.
@@ -499,6 +523,17 @@ Passo 3 – CONFIRMAR ENDEREÇO: "A entrega será na [Endereço]?" (Aguarde o "S
 Passo 4 – FORMA DE PAGAMENTO: "Qual será a forma de pagamento (Dinheiro, Pix ou Cartão)?"
 Passo 5 – REGISTRAR: Após as confirmações, informe: "Perfeito! Seu pedido foi registrado. Entrega prevista: 20 a 40 minutos."
 
+CLIENTES INSTITUCIONAIS E VALE GÁS (CRÍTICO — SIGA À RISCA):
+- Se o cliente informar que é de ESCOLA, COLÉGIO, POLÍCIA, SECRETARIA DE EDUCAÇÃO, ASSISTÊNCIA SOCIAL ou PREFEITURA:
+  → NÃO pergunte forma de pagamento.
+  → NÃO informe valor/preço do produto.
+  → Após confirmar endereço, registre o pedido IMEDIATAMENTE com pagamento "institucional" e valor: 0.
+  → Pule o Passo 4 completamente.
+- Se o cliente informar que vai pagar com VALE GÁS:
+  → NÃO informe valor/preço do produto.
+  → Após confirmar endereço, registre o pedido IMEDIATAMENTE com pagamento "vale gás" e valor: 0.
+  → Pule o Passo 4 completamente.
+
 IDENTIFICAÇÃO DE ENDEREÇO: Considere informado se a mensagem tiver Rua/Av/Travessa + número ou pontos de referência claros.
 
 PRODUTOS E PREÇOS DISPONÍVEIS:
@@ -510,8 +545,8 @@ nome: ${cliente.nome || "Cliente"}
 produto: (Nome EXATO: "Gás P13", "Gás P20", "Gás P45" ou "Água Mineral 20L")
 quantidade: 1
 endereco: Endereço completo
-pagamento: forma escolhida
-valor: (O valor EXATO que você informou ao cliente)
+pagamento: forma escolhida (ou "institucional" / "vale gás")
+valor: (O valor EXATO que você informou ao cliente, ou 0 para institucional/vale gás)
 telefone: ${normalized}
 [/PEDIDO_CONFIRMADO]
 
