@@ -1,18 +1,45 @@
 
 
-## Problem
+# Plano: Clientes Institucionais e Vale Gás — Pular Pagamento e Valor
 
-The `check-subscription` edge function returns 500 with "Auth session missing!" because `checkSubscription()` is called as soon as `user` exists, but the auth session token may not be fully ready yet. Also, it runs for ALL users (including clients, drivers) who don't need subscription checks.
+## Problema
+Quando o cliente informa que é de escola, colégio, polícia, secretaria de educação, assistência social, prefeitura, ou que vai pagar com vale gás, a Bia ainda pergunta forma de pagamento e informa valor. Esses clientes não precisam dessas etapas.
 
-## Plan
+## Alterações em `supabase/functions/_shared/bia-core.ts`
 
-1. **`src/contexts/EmpresaContext.tsx`** — Guard the `checkSubscription` call:
-   - Only call it when `user` exists AND `roles` are loaded (not empty)
-   - Only call it for staff/admin users who actually need subscription info
-   - Add `roles` to the dependency array of the useEffect that triggers the check
-   - This prevents the 500 error for unauthenticated sessions and unnecessary calls for non-staff users
+### 1. Detectar cliente institucional no `extractCollectedData`
+Adicionar detecção de "tipo de cliente" no scan de mensagens do usuário. Se o texto mencionar escola, colégio, polícia, secretaria, assistência social, prefeitura → marcar como `clienteInstitucional = true` e setar `pagamento = "institucional"`.
 
-### Changes
+Regex: `/\b(escola|col[eé]gio|pol[ií]cia|secretaria\s*(de\s*educa[çc][aã]o)?|assist[eê]ncia\s*social|prefeitura)\b/i`
 
-In the useEffect at line 184-188, change the condition from `if (user && !authLoading)` to `if (user && !authLoading && isStaff)`, and add `roles` to deps so `isStaff` is evaluated correctly.
+Se vale gás detectado, também pular valor (já detecta pagamento "vale gás").
+
+### 2. Atualizar `detectCurrentStep`
+Se `pagamento` é "institucional" ou "vale gás" E produto e endereço confirmados → ir direto ao Passo 5 (registrar).
+Se `pagamento` é "institucional" ou "vale gás" E produto confirmado → pular Passo 4, ir ao Passo 3 (endereço).
+Se `pagamento` é "institucional" ou "vale gás" E endereço confirmado → ir ao Passo 5.
+
+### 3. Atualizar `buildSystemPrompt`
+Adicionar regra no prompt:
+
+```
+CLIENTES INSTITUCIONAIS E VALE GÁS (CRÍTICO):
+- Se o cliente informar que é de escola, colégio, polícia, secretaria de educação, 
+  assistência social ou prefeitura: NÃO pergunte forma de pagamento, NÃO informe valor.
+  Registre pagamento como "institucional" e valor como 0.
+- Se o cliente informar que vai pagar com vale gás: NÃO informe valor. 
+  Registre pagamento como "vale gás" e valor como 0.
+- Para esses casos, após confirmar endereço, registre o pedido imediatamente.
+```
+
+Ajustar `finalizeHint` para considerar que pagamento "institucional" ou "vale gás" dispensa a etapa 4.
+
+### 4. Ajustar tag PEDIDO_CONFIRMADO
+Na seção de dados técnicos, adicionar nota: `valor: 0 (para institucional ou vale gás)`.
+
+## Arquivo a alterar
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `supabase/functions/_shared/bia-core.ts` | `extractCollectedData`: detectar cliente institucional. `detectCurrentStep`: pular passo 4 para institucional/vale gás. `buildSystemPrompt`: regra institucional + valor 0 |
 
