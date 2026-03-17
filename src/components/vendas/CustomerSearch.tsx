@@ -121,7 +121,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
           setShowResults(data.length > 0);
         }
       } else if (field === "nome") {
-        // Nome busca em nome, endereco, bairro, cidade
+        // Busca inteligente: tenta encontrar termos no nome, endereço, bairro ou número
         const terms = term.trim().split(/\s+/).filter(t => t.length >= 2);
         if (terms.length === 0) {
           setSearchResults([]);
@@ -130,11 +130,15 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
           return;
         }
 
+        // Para performance, usamos o termo mais longo para filtrar no servidor primeiro
+        const serverTerm = [...terms].sort((a, b) => b.length - a.length)[0];
+
         let query = supabase
           .from("clientes")
           .select("id, nome, telefone, endereco, numero, bairro, cep, cidade")
           .eq("ativo", true)
-          .limit(50);
+          .or(`nome.ilike.%${serverTerm}%,endereco.ilike.%${serverTerm}%,bairro.ilike.%${serverTerm}%,numero.ilike.%${serverTerm}%`)
+          .limit(100);
 
         if (filterByUnidade) {
           query = query.in("id", unidadeClienteIds);
@@ -144,6 +148,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
         if (!error && data) {
           const normalize = (s: string) =>
             s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          
           const filtered = data.filter(cliente => {
             const searchable = normalize([
               cliente.nome || "",
@@ -151,9 +156,12 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
               cliente.bairro || "",
               cliente.cidade || "",
               cliente.numero || "",
+              cliente.telefone || "",
             ].join(" "));
+            
+            // Garantir que todos os termos digitados estejam presentes em qualquer ordem nos campos concatenados
             return terms.every(t => searchable.includes(normalize(t)));
-          }).slice(0, 8);
+          }).slice(0, 10);
 
           setSearchResults(filtered);
           setShowResults(filtered.length > 0);
