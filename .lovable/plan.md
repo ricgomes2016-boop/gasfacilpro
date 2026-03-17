@@ -1,43 +1,18 @@
 
 
-# Fix: "Nosso Preço" sem valor na Análise de Concorrência
+## Problem
 
-## Problema
-A query em `AnaliseConcorrencia.tsx` busca `preco_venda` na tabela `produtos`, mas a coluna real se chama `preco`. Como `preco_venda` não existe, o Supabase retorna `null` para todos os produtos, resultando em "nosso preço = 0" em toda a análise.
+The `check-subscription` edge function returns 500 with "Auth session missing!" because `checkSubscription()` is called as soon as `user` exists, but the auth session token may not be fully ready yet. Also, it runs for ALL users (including clients, drivers) who don't need subscription checks.
 
-Além disso, `preco_portaria` e `preco_telefone` estão `null` para quase todos os produtos — apenas "Água Mineral 20L" tem esses campos preenchidos.
+## Plan
 
-## Correção
+1. **`src/contexts/EmpresaContext.tsx`** — Guard the `checkSubscription` call:
+   - Only call it when `user` exists AND `roles` are loaded (not empty)
+   - Only call it for staff/admin users who actually need subscription info
+   - Add `roles` to the dependency array of the useEffect that triggers the check
+   - This prevents the 500 error for unauthenticated sessions and unnecessary calls for non-staff users
 
-### 1. Corrigir a query de produtos (AnaliseConcorrencia.tsx, linha 61)
+### Changes
 
-```typescript
-// De:
-.select("nome, preco_venda, preco_portaria, preco_telefone")
-
-// Para:
-.select("nome, preco, preco_portaria, preco_telefone")
-```
-
-### 2. Corrigir o mapeamento `nossosPrecos` (linhas 74-81)
-
-```typescript
-// De: Number(p.preco_venda)
-// Para: Number(p.preco)
-map[p.nome] = {
-  portaria: Number(p.preco_portaria) || Number(p.preco) || 0,
-  telefone: Number(p.preco_telefone) || Number(p.preco) || 0,
-  unico: Number(p.preco) || 0,
-};
-```
-
-### 3. Exibir "Nosso Preço" na tabela de histórico
-
-Atualmente a coluna "vs Nosso" mostra apenas a % de diferença. Com o fix, os valores corretos (ex: R$ 120.00) aparecerão automaticamente pois o `nossosPrecos` terá dados reais.
-
-## Arquivo a alterar
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/pages/operacional/AnaliseConcorrencia.tsx` | Trocar `preco_venda` → `preco` na query e no mapeamento |
+In the useEffect at line 184-188, change the condition from `if (user && !authLoading)` to `if (user && !authLoading && isStaff)`, and add `roles` to deps so `isStaff` is evaluated correctly.
 

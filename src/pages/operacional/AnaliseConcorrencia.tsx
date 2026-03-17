@@ -58,7 +58,7 @@ export default function AnaliseConcorrencia() {
     queryFn: async () => {
       let query = supabase
         .from("produtos")
-        .select("nome, preco_venda, preco_portaria, preco_telefone")
+        .select("nome, preco, preco_portaria, preco_telefone")
         .eq("ativo", true);
       if (unidadeId) query = query.eq("unidade_id", unidadeId);
       const { data, error } = await query;
@@ -74,9 +74,9 @@ export default function AnaliseConcorrencia() {
     produtos.forEach((p: any) => {
       if (p.nome) {
         map[p.nome] = {
-          portaria: Number(p.preco_portaria) || Number(p.preco_venda) || 0,
-          telefone: Number(p.preco_telefone) || Number(p.preco_venda) || 0,
-          unico: Number(p.preco_venda) || 0,
+          portaria: Number(p.preco_portaria) || Number(p.preco) || 0,
+          telefone: Number(p.preco_telefone) || Number(p.preco) || 0,
+          unico: Number(p.preco) || 0,
         };
       }
     });
