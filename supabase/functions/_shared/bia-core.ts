@@ -523,6 +523,17 @@ Passo 3 – CONFIRMAR ENDEREÇO: "A entrega será na [Endereço]?" (Aguarde o "S
 Passo 4 – FORMA DE PAGAMENTO: "Qual será a forma de pagamento (Dinheiro, Pix ou Cartão)?"
 Passo 5 – REGISTRAR: Após as confirmações, informe: "Perfeito! Seu pedido foi registrado. Entrega prevista: 20 a 40 minutos."
 
+CLIENTES INSTITUCIONAIS E VALE GÁS (CRÍTICO — SIGA À RISCA):
+- Se o cliente informar que é de ESCOLA, COLÉGIO, POLÍCIA, SECRETARIA DE EDUCAÇÃO, ASSISTÊNCIA SOCIAL ou PREFEITURA:
+  → NÃO pergunte forma de pagamento.
+  → NÃO informe valor/preço do produto.
+  → Após confirmar endereço, registre o pedido IMEDIATAMENTE com pagamento "institucional" e valor: 0.
+  → Pule o Passo 4 completamente.
+- Se o cliente informar que vai pagar com VALE GÁS:
+  → NÃO informe valor/preço do produto.
+  → Após confirmar endereço, registre o pedido IMEDIATAMENTE com pagamento "vale gás" e valor: 0.
+  → Pule o Passo 4 completamente.
+
 IDENTIFICAÇÃO DE ENDEREÇO: Considere informado se a mensagem tiver Rua/Av/Travessa + número ou pontos de referência claros.
 
 PRODUTOS E PREÇOS DISPONÍVEIS:
@@ -534,8 +545,8 @@ nome: ${cliente.nome || "Cliente"}
 produto: (Nome EXATO: "Gás P13", "Gás P20", "Gás P45" ou "Água Mineral 20L")
 quantidade: 1
 endereco: Endereço completo
-pagamento: forma escolhida
-valor: (O valor EXATO que você informou ao cliente)
+pagamento: forma escolhida (ou "institucional" / "vale gás")
+valor: (O valor EXATO que você informou ao cliente, ou 0 para institucional/vale gás)
 telefone: ${normalized}
 [/PEDIDO_CONFIRMADO]
 
