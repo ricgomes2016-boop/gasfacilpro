@@ -426,10 +426,20 @@ export function extractCollectedData(history: any[]): { pagamento?: string; prod
 }
 
 // ========== DETECT CONVERSATION STEP ==========
-function detectCurrentStep(history: any[], collected: { pagamento?: string; produto?: string; enderecoConfirmado?: boolean }): { step: number; label: string } {
+function detectCurrentStep(history: any[], collected: { pagamento?: string; produto?: string; enderecoConfirmado?: boolean; skipPagamentoValor?: boolean }): { step: number; label: string } {
   if (!history || history.length === 0) return { step: 1, label: "Passo 1 (saudação inicial)" };
 
   const hasGreeting = history.some((m: any) => m.role === "assistant" && /ol[aá]|bom dia|boa tarde|boa noite|como posso ajudar/i.test(m.content));
+
+  // For institutional/vale gás: skip payment step entirely
+  if (collected.skipPagamentoValor) {
+    if (collected.produto && collected.enderecoConfirmado) {
+      return { step: 5, label: "Passo 5 (registrar pedido — cliente institucional/vale gás, pular pagamento e valor)" };
+    }
+    if (collected.produto) {
+      return { step: 3, label: "Passo 3 (confirmar endereço de entrega — pagamento não necessário)" };
+    }
+  }
 
   if (collected.enderecoConfirmado && collected.produto && collected.pagamento) {
     return { step: 5, label: "Passo 5 (registrar pedido — todos os dados confirmados)" };
