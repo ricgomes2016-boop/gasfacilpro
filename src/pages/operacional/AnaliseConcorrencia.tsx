@@ -231,10 +231,10 @@ export default function AnaliseConcorrencia() {
                             ))
                           ) : (
                             <>
-                              <SelectItem value="P13 Cheio">P13 Cheio</SelectItem>
-                              <SelectItem value="P45 Cheio">P45 Cheio</SelectItem>
-                              <SelectItem value="P20 Cheio">P20 Cheio</SelectItem>
-                              <SelectItem value="Água Mineral">Água Mineral</SelectItem>
+                              <SelectItem value="Gás P13">Gás P13</SelectItem>
+                              <SelectItem value="Gás P45">Gás P45</SelectItem>
+                              <SelectItem value="Gás P20">Gás P20</SelectItem>
+                              <SelectItem value="Água Mineral 20L">Água Mineral 20L</SelectItem>
                             </>
                           )}
                         </SelectContent>
