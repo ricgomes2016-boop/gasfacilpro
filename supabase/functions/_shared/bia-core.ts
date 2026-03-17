@@ -491,10 +491,13 @@ export function buildSystemPrompt(
     collectedSection = `\n\nDADOS JÁ INFORMADOS PELO CLIENTE (NÃO pergunte novamente):\n${collectedItems.join("\n")}`;
   }
 
-  // Finalize immediately if all data present
+  // Finalize immediately if all data present (or institutional/vale gás skips payment)
   let finalizeHint = "";
   if (collected.produto && collected.enderecoConfirmado && collected.pagamento) {
     finalizeHint = "\n\n⚠️ TODOS OS DADOS FORAM COLETADOS. FINALIZE O PEDIDO IMEDIATAMENTE gerando a tag [PEDIDO_CONFIRMADO]. NÃO faça mais perguntas.";
+  }
+  if (collected.skipPagamentoValor && collected.produto && collected.enderecoConfirmado) {
+    finalizeHint = "\n\n⚠️ CLIENTE INSTITUCIONAL OU VALE GÁS — TODOS OS DADOS COLETADOS. FINALIZE O PEDIDO IMEDIATAMENTE com pagamento '" + collected.pagamento + "' e valor: 0. Gere a tag [PEDIDO_CONFIRMADO] AGORA.";
   }
 
   return `Você é a ${agentName}, assistente virtual de vendas de gás da empresa. Seu atendimento deve ser humano, educado e objetivo.
