@@ -120,8 +120,12 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
             duration: 5000,
           });
           
-          // Disparar notificação nativa (Windows)
-          sendOrderNotification(p?.cliente_nome || "Cliente", Number(p?.valor_total || 0));
+          // Disparar notificação nativa (Windows) via Service Worker
+          sendOrderNotification(
+            p?.cliente_nome || "Cliente",
+            Number(p?.valor_total || 0),
+            p?.forma_pagamento
+          );
           
           queryClient.invalidateQueries({ queryKey: ["pedidos"] });
         }

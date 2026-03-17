@@ -20,30 +20,47 @@ export const requestNotificationPermission = async () => {
   return false;
 };
 
-export const sendOrderNotification = async (cliente: string, valor: number) => {
+export const sendOrderNotification = async (
+  cliente: string,
+  valor: number,
+  formaPagamento?: string
+) => {
   if (Notification.permission !== "granted") return;
+
+  const pagamentoLabel = formaPagamento
+    ? ` · ${formaPagamento.charAt(0).toUpperCase() + formaPagamento.slice(1).replace(/_/g, " ")}`
+    : "";
+  const body = `${cliente} · R$ ${valor.toFixed(2)}${pagamentoLabel}`;
 
   try {
     const registration = await navigator.serviceWorker.ready;
-    
-    (registration as any).showNotification("🛵 Novo Pedido!", {
-      body: `${cliente} · R$ ${valor.toFixed(2)}`,
+
+    registration.showNotification("🛵 Novo Pedido!", {
+      body,
       icon: "/favicon.png",
       badge: "/favicon.png",
       vibrate: [200, 100, 200],
-      tag: "novo-pedido", // Evita empilhar muitas notificações iguais
+      tag: `novo-pedido-${Date.now()}`,
       renotify: true,
-      data: {
-        url: "/pedidos"
-      }
+      requireInteraction: true,
+      data: { url: "/pedidos" },
     });
   } catch (error) {
-    console.error("Erro ao disparar notificação:", error);
-    
-    // Fallback: tenta disparar sem o service worker se falhar
-    new Notification("🛵 Novo Pedido!", {
-      body: `${cliente} · R$ ${valor.toFixed(2)}`,
-      icon: "/favicon.png",
-    });
+    console.error("Erro ao disparar notificação via SW:", error);
+
+    // Fallback: standard Notification API
+    try {
+      const n = new Notification("🛵 Novo Pedido!", {
+        body,
+        icon: "/favicon.png",
+        requireInteraction: true,
+      });
+      n.onclick = () => {
+        window.focus();
+        n.close();
+        window.location.href = "/pedidos";
+      };
+      setTimeout(() => n.close(), 30000);
+    } catch (_) {}
   }
 };
