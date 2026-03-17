@@ -391,6 +391,7 @@ export function extractCollectedData(history: any[]): { pagamento?: string; prod
       else if (/\bpix\b/i.test(t)) result.pagamento = "pix";
       else if (/\b(cart[aã]o|cartao|débito|credito|crédito)\b/i.test(t)) result.pagamento = "cartão";
       else if (/\bfiad[oa]?\b/i.test(t)) result.pagamento = "fiado";
+      else if (/\b(vale\s*g[aá]s|vale)\b/i.test(t)) result.pagamento = "vale gás";
     }
     if (!result.produto) {
       if (/\bp\s*13\b/i.test(t) || /\bgás\b/i.test(t) || /\bgas\b/i.test(t) || /\bbotij/i.test(t)) result.produto = "Gás P13";
