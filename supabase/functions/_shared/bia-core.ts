@@ -414,6 +414,27 @@ export function extractCollectedData(history: any[]): { pagamento?: string; prod
   return result;
 }
 
+// ========== DETECT CONVERSATION STEP ==========
+function detectCurrentStep(history: any[], collected: { pagamento?: string; produto?: string; enderecoConfirmado?: boolean }): { step: number; label: string } {
+  if (!history || history.length === 0) return { step: 1, label: "Passo 1 (saudação inicial)" };
+
+  const hasGreeting = history.some((m: any) => m.role === "assistant" && /ol[aá]|bom dia|boa tarde|boa noite|como posso ajudar/i.test(m.content));
+
+  if (collected.enderecoConfirmado && collected.produto && collected.pagamento) {
+    return { step: 5, label: "Passo 5 (registrar pedido — todos os dados confirmados)" };
+  }
+  if (collected.enderecoConfirmado && collected.produto) {
+    return { step: 4, label: "Passo 4 (perguntar forma de pagamento)" };
+  }
+  if (collected.produto) {
+    return { step: 3, label: "Passo 3 (confirmar endereço de entrega)" };
+  }
+  if (hasGreeting) {
+    return { step: 2, label: "Passo 2 (aguardar cliente pedir produto)" };
+  }
+  return { step: 1, label: "Passo 1 (saudação inicial)" };
+}
+
 // ========== BUILD SYSTEM PROMPT (IMPROVED) ==========
 export function buildSystemPrompt(
   productList: string,
@@ -434,7 +455,37 @@ export function buildSystemPrompt(
   const hour = brt.getHours();
   const saudacao = hour >= 5 && hour < 12 ? "Bom dia" : hour >= 12 && hour < 18 ? "Boa tarde" : "Boa noite";
 
+  // Extract collected data and detect step
+  const collected = extractCollectedData(history || []);
+  const currentStep = detectCurrentStep(history || [], collected);
+
+  // Build collected data section
+  let collectedSection = "";
+  const collectedItems: string[] = [];
+  if (collected.produto) collectedItems.push(`- Produto: ${collected.produto}`);
+  if (collected.enderecoConfirmado) collectedItems.push(`- Endereço: CONFIRMADO pelo cliente`);
+  if (collected.pagamento) collectedItems.push(`- Pagamento: ${collected.pagamento}`);
+
+  if (collectedItems.length > 0) {
+    collectedSection = `\n\nDADOS JÁ INFORMADOS PELO CLIENTE (NÃO pergunte novamente):\n${collectedItems.join("\n")}`;
+  }
+
+  // Finalize immediately if all data present
+  let finalizeHint = "";
+  if (collected.produto && collected.enderecoConfirmado && collected.pagamento) {
+    finalizeHint = "\n\n⚠️ TODOS OS DADOS FORAM COLETADOS. FINALIZE O PEDIDO IMEDIATAMENTE gerando a tag [PEDIDO_CONFIRMADO]. NÃO faça mais perguntas.";
+  }
+
   return `Você é a ${agentName}, assistente virtual de vendas de gás da empresa. Seu atendimento deve ser humano, educado e objetivo.
+
+ANTI-REPETIÇÃO (CRÍTICO — SIGA À RISCA):
+- Se o histórico já contém sua saudação (Olá, Bom dia, etc.), NÃO cumprimente novamente. Vá direto ao assunto.
+- Se o cliente já disse o que quer (gás, água, etc.), NÃO pergunte "como posso ajudar". Avance para confirmar endereço.
+- NUNCA repita a mesma mensagem ou pergunta duas vezes consecutivas.
+- Leia o histórico completo antes de responder — se já perguntou algo, NÃO repita.
+- Se o cliente informou forma de pagamento, NÃO pergunte novamente.
+
+ETAPA ATUAL DA CONVERSA: ${currentStep.label}. NÃO volte a passos anteriores.${collectedSection}${finalizeHint}
 
 REGRAS DE OURO:
 1. NÃO FINALIZAR PEDIDOS AUTOMATICAMENTE: Mesmo que o cliente já seja conhecido, NUNCA crie ou confirme um pedido no início da conversa.
@@ -442,7 +493,7 @@ REGRAS DE OURO:
 3. PREÇO RÍGIDO: O valor a ser registrado no sistema deve ser EXATAMENTE o valor que você informou ao cliente na conversa.
 
 FLUXO OBRIGATÓRIO (NÃO PULE ETAPAS):
-Passo 1 – SAUDAÇÃO: "Olá [Nome]! 👋 Que bom falar com você. Como posso ajudar hoje?"
+Passo 1 – SAUDAÇÃO: "Olá [Nome]! 👋 Que bom falar com você. Como posso ajudar hoje?" (SÓ na primeira mensagem, NUNCA repetir)
 Passo 2 – CLIENTE PEDE PRODUTO: Só após o cliente pedir, você confirma o endereço.
 Passo 3 – CONFIRMAR ENDEREÇO: "A entrega será na [Endereço]?" (Aguarde o "Sim" ou novo endereço).
 Passo 4 – FORMA DE PAGAMENTO: "Qual será a forma de pagamento (Dinheiro, Pix ou Cartão)?"
