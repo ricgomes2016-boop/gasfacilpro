@@ -1,34 +1,54 @@
 
 
-# Diagnóstico: Preços Zerados e Nomes Inconsistentes
+# Cadastrar preços de portaria e telefone nas unidades
 
-## Situação encontrada
+## Situação atual
 
-### 1. Produtos com preço R$ 0,00
-A unidade **Matriz** (07f9bfac) tem **todos os produtos com preço R$ 0,00**. Outras unidades como Japa Gás e Temgas têm preços preenchidos (ex: Gás P13 = R$ 120,00). Se você está visualizando a unidade Matriz, é por isso que "Nosso Preço" não aparece.
+As unidades **Japa Gás**, **Temgas** e **Central Gás** (referência) da empresa Central Gas têm os seguintes preços cadastrados:
 
-### 2. Nomes inconsistentes na tabela de concorrentes
-Existem dois padrões de nomes misturados nos registros de concorrentes:
+| Unidade | Produto | Preço | Portaria | Telefone |
+|---------|---------|-------|----------|----------|
+| **Central Gas** | Gás P13 | 125 | 110 | 125 |
+| **Central Gas** | Água 20L | 20 | 15 | 20 |
+| **Central Gas** | Gás P20 | 210 | NULL | NULL |
+| **Central Gas** | Gás P45 | 410 | NULL | NULL |
+| **Japa Gás** | Gás P13 | 120 | NULL | NULL |
+| **Japa Gás** | Gás P20 | 180 | NULL | NULL |
+| **Japa Gás** | Gás P45 | 450 | NULL | NULL |
+| **Japa Gás** | Água 20L | 20 | NULL | NULL |
+| **Temgas** | Gás P13 | 120 | NULL | NULL |
+| **Temgas** | Gás P20 | 180 | NULL | NULL |
+| **Temgas** | Gás P45 | 380 | NULL | NULL |
+| **Temgas** | Água 20L | 20 | NULL | NULL |
 
-| Registro atual | Nome correto |
-|---|---|
-| "P13 Cheio" | "Gás P13" |
-| "Gás P13" | "Gás P13" (ok) |
-| "Gás P45" | "Gás P45" (ok) |
+Todas as colunas `preco_portaria` e `preco_telefone` estão NULL nessas unidades. A Central Gas só tem P13 e Água preenchidos.
 
-Os registros de "Aguia Gas" e "Fama Gas" usam "P13 Cheio", enquanto "Top Gas" já usa "Gás P13".
+## Plano
 
-## Plano de correção
+Usar o insert tool para executar UPDATEs nos produtos das 3 unidades, definindo:
+- **preco_portaria** = preço de balcão/portaria (geralmente menor que telefone)
+- **preco_telefone** = preço para entrega por telefone (geralmente igual ou maior que portaria)
 
-### 1. Padronizar nomes na tabela `concorrente_precos`
-Atualizar via SQL (INSERT tool) os registros que usam nomes antigos:
-- `"P13 Cheio"` → `"Gás P13"`
-- `"P45 Cheio"` → `"Gás P45"` (se existir)
-- `"P20 Cheio"` → `"Gás P20"` (se existir)
+**Lógica de preços sugerida** (baseada no padrão da Central Gas onde portaria ~88% do telefone):
 
-### 2. Fallback options no código já corrigidos
-O código em `AnaliseConcorrencia.tsx` já usa os nomes corretos ("Gás P13", "Gás P45", etc.) nos options de fallback e tem o matching flexível via Proxy. Nenhuma alteração de código necessária.
+| Unidade | Produto | Portaria | Telefone |
+|---------|---------|----------|----------|
+| **Japa Gás** | P13 | 110 | 120 |
+| **Japa Gás** | P20 | 170 | 180 |
+| **Japa Gás** | P45 | 430 | 450 |
+| **Japa Gás** | Água | 15 | 20 |
+| **Temgas** | P13 | 110 | 120 |
+| **Temgas** | P20 | 170 | 180 |
+| **Temgas** | P45 | 360 | 380 |
+| **Temgas** | Água | 15 | 20 |
+| **Central Gas** | P20 | 195 | 210 |
+| **Central Gas** | P45 | 390 | 410 |
 
-### 3. Sobre os preços zerados
-Os preços da unidade Matriz estão todos em R$ 0,00 no banco. Isso precisa ser corrigido pelo usuário na tela de Produtos, cadastrando os valores reais. Posso definir preços padrão se você informar os valores.
+Os valores seguem o padrão: portaria ~R$10 menor para gás, R$5 menor para água.
+
+## Execução
+
+8 UPDATEs por produto ID usando o insert tool. Nenhuma alteração de código necessária.
+
+> **Nota:** Se os valores sugeridos não estiverem corretos, me informe os valores desejados antes de aprovar.
 
