@@ -7543,6 +7543,8 @@ export type Database = {
           email: string | null
           endereco: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           nome: string
           telefone: string | null
           tipo: string
@@ -7557,6 +7559,8 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           nome: string
           telefone?: string | null
           tipo?: string
@@ -7571,6 +7575,8 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           nome?: string
           telefone?: string | null
           tipo?: string

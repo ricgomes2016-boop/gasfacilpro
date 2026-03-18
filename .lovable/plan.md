@@ -1,33 +1,18 @@
 
 
-# Adicionar Parceiros ao Mapa de Concorrentes
+## Problem
 
-## Contexto
-A tabela `vale_gas_parceiros` não possui colunas de coordenadas (`latitude`, `longitude`). Precisamos adicioná-las e criar a lógica para exibir parceiros no mapa com um ícone diferenciado de "revenda".
+The `check-subscription` edge function returns 500 with "Auth session missing!" because `checkSubscription()` is called as soon as `user` exists, but the auth session token may not be fully ready yet. Also, it runs for ALL users (including clients, drivers) who don't need subscription checks.
 
-## Etapas
+## Plan
 
-### 1. Migração de banco de dados
-Adicionar colunas `latitude` e `longitude` (numeric, nullable) na tabela `vale_gas_parceiros`.
+1. **`src/contexts/EmpresaContext.tsx`** — Guard the `checkSubscription` call:
+   - Only call it when `user` exists AND `roles` are loaded (not empty)
+   - Only call it for staff/admin users who actually need subscription info
+   - Add `roles` to the dependency array of the useEffect that triggers the check
+   - This prevents the 500 error for unauthenticated sessions and unnecessary calls for non-staff users
 
-### 2. Novo ícone de parceiro/revenda
-Criar uma variante do `createIcon` com um ícone de revenda (cor verde-azulado `#0ea5e9`, com símbolo de loja/R dentro do pin) para diferenciar visualmente dos concorrentes e das unidades próprias.
+### Changes
 
-### 3. Alterações no `ConcorrentesMap.tsx`
-- **Query de parceiros**: Buscar parceiros da mesma `unidade_id` (ou empresa) que tenham latitude/longitude preenchidos.
-- **Marcadores no mapa**: Renderizar cada parceiro com o ícone de revenda, popup com nome, telefone, tipo e endereço.
-- **Toggle de visibilidade**: Adicionar um checkbox/switch na legenda para mostrar/ocultar parceiros.
-- **Legenda**: Incluir entrada "Parceiros/Revendas" com a cor correspondente.
-- **Cadastro de localização**: Permitir que, ao clicar no mapa, o usuário escolha se está adicionando um concorrente ou um parceiro. Ou adicionar um botão separado para posicionar parceiros existentes (sem criar novos, apenas atualizar lat/lng de parceiros já cadastrados).
-
-### 4. Dialog de posicionamento de parceiro
-Ao invés de criar parceiros novos pelo mapa (já existe tela própria), oferecer um modo "Posicionar Parceiro" onde o usuário:
-- Clica no mapa
-- Seleciona qual parceiro existente deseja posicionar
-- Salva as coordenadas
-
-### Detalhes Técnicos
-- **SQL Migration**: `ALTER TABLE vale_gas_parceiros ADD COLUMN latitude numeric, ADD COLUMN longitude numeric;`
-- **Icon**: Pin azul-claro (#0ea5e9) com "R" (Revenda) no centro
-- **Counter overlay**: Atualizar para mostrar parceiros + concorrentes
+In the useEffect at line 184-188, change the condition from `if (user && !authLoading)` to `if (user && !authLoading && isStaff)`, and add `roles` to deps so `isStaff` is evaluated correctly.
 

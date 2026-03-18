@@ -1,0 +1,1 @@
+ALTER TABLE public.vale_gas_parceiros ADD COLUMN latitude numeric, ADD COLUMN longitude numeric;
