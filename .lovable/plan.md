@@ -1,54 +1,33 @@
 
 
-# Cadastrar preços de portaria e telefone nas unidades
+# Adicionar Parceiros ao Mapa de Concorrentes
 
-## Situação atual
+## Contexto
+A tabela `vale_gas_parceiros` não possui colunas de coordenadas (`latitude`, `longitude`). Precisamos adicioná-las e criar a lógica para exibir parceiros no mapa com um ícone diferenciado de "revenda".
 
-As unidades **Japa Gás**, **Temgas** e **Central Gás** (referência) da empresa Central Gas têm os seguintes preços cadastrados:
+## Etapas
 
-| Unidade | Produto | Preço | Portaria | Telefone |
-|---------|---------|-------|----------|----------|
-| **Central Gas** | Gás P13 | 125 | 110 | 125 |
-| **Central Gas** | Água 20L | 20 | 15 | 20 |
-| **Central Gas** | Gás P20 | 210 | NULL | NULL |
-| **Central Gas** | Gás P45 | 410 | NULL | NULL |
-| **Japa Gás** | Gás P13 | 120 | NULL | NULL |
-| **Japa Gás** | Gás P20 | 180 | NULL | NULL |
-| **Japa Gás** | Gás P45 | 450 | NULL | NULL |
-| **Japa Gás** | Água 20L | 20 | NULL | NULL |
-| **Temgas** | Gás P13 | 120 | NULL | NULL |
-| **Temgas** | Gás P20 | 180 | NULL | NULL |
-| **Temgas** | Gás P45 | 380 | NULL | NULL |
-| **Temgas** | Água 20L | 20 | NULL | NULL |
+### 1. Migração de banco de dados
+Adicionar colunas `latitude` e `longitude` (numeric, nullable) na tabela `vale_gas_parceiros`.
 
-Todas as colunas `preco_portaria` e `preco_telefone` estão NULL nessas unidades. A Central Gas só tem P13 e Água preenchidos.
+### 2. Novo ícone de parceiro/revenda
+Criar uma variante do `createIcon` com um ícone de revenda (cor verde-azulado `#0ea5e9`, com símbolo de loja/R dentro do pin) para diferenciar visualmente dos concorrentes e das unidades próprias.
 
-## Plano
+### 3. Alterações no `ConcorrentesMap.tsx`
+- **Query de parceiros**: Buscar parceiros da mesma `unidade_id` (ou empresa) que tenham latitude/longitude preenchidos.
+- **Marcadores no mapa**: Renderizar cada parceiro com o ícone de revenda, popup com nome, telefone, tipo e endereço.
+- **Toggle de visibilidade**: Adicionar um checkbox/switch na legenda para mostrar/ocultar parceiros.
+- **Legenda**: Incluir entrada "Parceiros/Revendas" com a cor correspondente.
+- **Cadastro de localização**: Permitir que, ao clicar no mapa, o usuário escolha se está adicionando um concorrente ou um parceiro. Ou adicionar um botão separado para posicionar parceiros existentes (sem criar novos, apenas atualizar lat/lng de parceiros já cadastrados).
 
-Usar o insert tool para executar UPDATEs nos produtos das 3 unidades, definindo:
-- **preco_portaria** = preço de balcão/portaria (geralmente menor que telefone)
-- **preco_telefone** = preço para entrega por telefone (geralmente igual ou maior que portaria)
+### 4. Dialog de posicionamento de parceiro
+Ao invés de criar parceiros novos pelo mapa (já existe tela própria), oferecer um modo "Posicionar Parceiro" onde o usuário:
+- Clica no mapa
+- Seleciona qual parceiro existente deseja posicionar
+- Salva as coordenadas
 
-**Lógica de preços sugerida** (baseada no padrão da Central Gas onde portaria ~88% do telefone):
-
-| Unidade | Produto | Portaria | Telefone |
-|---------|---------|----------|----------|
-| **Japa Gás** | P13 | 110 | 120 |
-| **Japa Gás** | P20 | 170 | 180 |
-| **Japa Gás** | P45 | 430 | 450 |
-| **Japa Gás** | Água | 15 | 20 |
-| **Temgas** | P13 | 110 | 120 |
-| **Temgas** | P20 | 170 | 180 |
-| **Temgas** | P45 | 360 | 380 |
-| **Temgas** | Água | 15 | 20 |
-| **Central Gas** | P20 | 195 | 210 |
-| **Central Gas** | P45 | 390 | 410 |
-
-Os valores seguem o padrão: portaria ~R$10 menor para gás, R$5 menor para água.
-
-## Execução
-
-8 UPDATEs por produto ID usando o insert tool. Nenhuma alteração de código necessária.
-
-> **Nota:** Se os valores sugeridos não estiverem corretos, me informe os valores desejados antes de aprovar.
+### Detalhes Técnicos
+- **SQL Migration**: `ALTER TABLE vale_gas_parceiros ADD COLUMN latitude numeric, ADD COLUMN longitude numeric;`
+- **Icon**: Pin azul-claro (#0ea5e9) com "R" (Revenda) no centro
+- **Counter overlay**: Atualizar para mostrar parceiros + concorrentes
 
