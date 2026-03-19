@@ -209,6 +209,25 @@ export function ConcorrentesMap() {
   const parceirosNoMapa = parceiros.filter((p) => p.latitude && p.longitude);
   const parceirosSemLocal = parceiros.filter((p) => !p.latitude || !p.longitude);
 
+  // Query clientes tipo revenda/revendedor
+  const { data: clientesRevenda = [] } = useQuery({
+    queryKey: ["clientes-revenda-mapa", empresaId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome, telefone, latitude, longitude, tipo")
+        .eq("empresa_id", empresaId!)
+        .in("tipo", ["revenda", "revendedor"])
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return (data || []) as ClienteRevenda[];
+    },
+    enabled: !!empresaId,
+  });
+
+  const revendasNoMapa = clientesRevenda.filter((c) => c.latitude && c.longitude);
+
   const addMutation = useMutation({
     mutationFn: async (concorrente: Partial<Concorrente>) => {
       const { error } = await supabase.from("concorrentes").insert({
