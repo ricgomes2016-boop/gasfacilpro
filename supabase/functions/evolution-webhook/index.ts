@@ -132,7 +132,7 @@ serve(async (req) => {
     }
 
     // Build prompt
-    const negHint = buildNegotiationHint(history, config, messageText);
+    const negHint = buildNegotiationHint(history, config, finalMessageText);
     const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, config, bh.isOffHours, bh.horarioInfo, orderStatus, negHint, { isSunday: bh.isSunday, waterDeliveryAllowed: bh.waterDeliveryAllowed }, history);
 
     // Call AI
@@ -141,7 +141,7 @@ serve(async (req) => {
       reply = await callAI([
         { role: "system", content: systemPrompt },
         ...history,
-        { role: "user", content: messageText },
+        { role: "user", content: finalMessageText },
       ]);
     } catch (e: any) {
       const fallback = e.message === "RATE_LIMIT"
