@@ -608,7 +608,11 @@ export function ConcorrentesMap() {
             </div>
             <div>
               <Handshake className="h-3.5 w-3.5 inline mr-1" />
-              {parceirosNoMapa.length} revenda{parceirosNoMapa.length !== 1 ? "s" : ""}
+              {parceirosNoMapa.length} parceiro{parceirosNoMapa.length !== 1 ? "s" : ""}
+            </div>
+            <div>
+              <Users className="h-3.5 w-3.5 inline mr-1" />
+              {revendasNoMapa.length} revenda{revendasNoMapa.length !== 1 ? "s" : ""}
             </div>
           </div>
         </div>
