@@ -285,6 +285,8 @@ export default function Integracoes() {
   const [tabAtiva, setTabAtiva] = useState("todas");
 
   const { unidades } = useUnidade();
+  const { empresa } = useEmpresa();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Generic per-unit configs from integracoes_config
   const [genericConfigs, setGenericConfigs] = useState<any[]>([]);
