@@ -7,7 +7,7 @@ import {
   loadHistory, saveMessage, upsertConversation, isDuplicate,
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall, getEntregadorLocation,
-  downloadAudio, transcribeAudio,
+  downloadAudio, transcribeAudio, collectBufferedMessages,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
@@ -101,7 +101,7 @@ serve(async (req) => {
 
     // Gather context
     const [cliente, bh, products, history] = await Promise.all([
-      findCliente(supabase, phone),
+      findCliente(supabase, phone, senderName),
       checkBusinessHours(supabase, config.unidadeId),
       getProducts(supabase, config.unidadeId, config),
       loadHistory(supabase, conversationId),
@@ -119,8 +119,12 @@ serve(async (req) => {
     });
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`);
 
+    // Debounce: wait 3s and collect any follow-up messages
+    const combinedText = await collectBufferedMessages(supabase, conversationId, messageText);
+    const finalMessageText = combinedText || messageText;
+
     // Post-order follow-up shortcut
-    if (await isPostOrderFollowUp(supabase, normalized, messageText)) {
+    if (await isPostOrderFollowUp(supabase, normalized, finalMessageText)) {
       const reply = "Perfeito! Seu pedido já está confirmado ✅\nA entrega segue em andamento (prazo de 30 a 60 minutos).";
       await saveMessage(supabase, conversationId, "assistant", reply, { source: "evolution-webhook", post_order_followup: true });
       await sendMessage(config, phone, reply);
@@ -128,7 +132,7 @@ serve(async (req) => {
     }
 
     // Build prompt
-    const negHint = buildNegotiationHint(history, config, messageText);
+    const negHint = buildNegotiationHint(history, config, finalMessageText);
     const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, config, bh.isOffHours, bh.horarioInfo, orderStatus, negHint, { isSunday: bh.isSunday, waterDeliveryAllowed: bh.waterDeliveryAllowed }, history);
 
     // Call AI
@@ -137,7 +141,7 @@ serve(async (req) => {
       reply = await callAI([
         { role: "system", content: systemPrompt },
         ...history,
-        { role: "user", content: messageText },
+        { role: "user", content: finalMessageText },
       ]);
     } catch (e: any) {
       const fallback = e.message === "RATE_LIMIT"

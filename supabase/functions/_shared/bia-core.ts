@@ -277,7 +277,7 @@ export function normalizePhone(raw: string): string {
 }
 
 // ========== FIND CLIENT ==========
-export async function findCliente(supabase: any, phone: string): Promise<ClienteInfo> {
+export async function findCliente(supabase: any, phone: string, senderName?: string): Promise<ClienteInfo> {
   const normalized = normalizePhone(phone);
   const patterns = [normalized, normalized.slice(-10)];
 
@@ -287,6 +287,16 @@ export async function findCliente(supabase: any, phone: string): Promise<Cliente
     .limit(1);
 
   if (data?.[0]) {
+    // Update generic/empty name with WhatsApp pushName
+    if (senderName && senderName.trim().length >= 2) {
+      const currentName = (data[0].nome || "").trim();
+      const isGeneric = !currentName || /^(cliente\s*(whatsapp|vapi|novo)?|unknown|\d+)$/i.test(currentName);
+      if (isGeneric) {
+        await supabase.from("clientes").update({ nome: senderName.trim() }).eq("id", data[0].id);
+        data[0].nome = senderName.trim();
+        console.log("Updated client name:", data[0].id, "→", senderName.trim());
+      }
+    }
     return {
       id: data[0].id,
       nome: data[0].nome,
@@ -294,6 +304,30 @@ export async function findCliente(supabase: any, phone: string): Promise<Cliente
     };
   }
   return { id: null, nome: null, endereco: null };
+}
+
+// ========== MESSAGE DEBOUNCE ==========
+export async function collectBufferedMessages(supabase: any, conversationId: string, currentText: string, delayMs = 3000): Promise<string> {
+  // Wait for more messages to arrive
+  await new Promise(resolve => setTimeout(resolve, delayMs));
+
+  // Fetch all user messages from the last 5 seconds that haven't been processed
+  const fiveSecsAgo = new Date(Date.now() - 5000).toISOString();
+  const { data: recentMsgs } = await supabase.from("ai_mensagens")
+    .select("content, created_at")
+    .eq("conversa_id", conversationId)
+    .eq("role", "user")
+    .gte("created_at", fiveSecsAgo)
+    .order("created_at", { ascending: true });
+
+  if (recentMsgs && recentMsgs.length > 1) {
+    // Combine all recent messages
+    const combined = recentMsgs.map((m: any) => m.content).join("\n");
+    console.log("Debounce: combined", recentMsgs.length, "messages:", combined.substring(0, 100));
+    return combined;
+  }
+
+  return currentText;
 }
 
 // ========== RECENT ORDERS ==========
@@ -387,8 +421,8 @@ export function extractCollectedData(history: any[]): { pagamento?: string; prod
   for (const msg of userMsgs) {
     const t = msg.content.toLowerCase();
 
-    // Detect institutional client
-    if (!result.clienteInstitucional && /\b(escola|col[eé]gio|pol[ií]cia|secretaria\s*(de\s*educa[çc][aã]o)?|assist[eê]ncia\s*social|prefeitura)\b/i.test(t)) {
+  // Detect institutional client (expanded keywords)
+    if (!result.clienteInstitucional && /\b(escola|col[eé]gio|creche|emei|emef|ubs|posto\s*de\s*sa[uú]de|pol[ií]cia|secretaria|assist[eê]ncia\s*social|prefeitura|damasco|municipal|estadual)\b/i.test(t)) {
       result.clienteInstitucional = true;
       result.pagamento = "institucional";
       result.skipPagamentoValor = true;
@@ -517,24 +551,35 @@ REGRAS DE OURO:
 3. PREÇO RÍGIDO: O valor a ser registrado no sistema deve ser EXATAMENTE o valor que você informou ao cliente na conversa.
 
 FLUXO OBRIGATÓRIO (NÃO PULE ETAPAS):
-Passo 1 – SAUDAÇÃO: "Olá [Nome]! 👋 Que bom falar com você. Como posso ajudar hoje?" (SÓ na primeira mensagem, NUNCA repetir)
+Passo 1 – SAUDAÇÃO: ${cliente.nome ? `"${saudacao}, ${cliente.nome.split(" ")[0]}! Tudo bem?" — PARE AQUI. Espere o cliente responder antes de perguntar qualquer coisa.` : `"${saudacao}! 👋 Aqui é a ${agentName}. Como posso ajudar?" (SÓ na primeira mensagem, NUNCA repetir)`}
 Passo 2 – CLIENTE PEDE PRODUTO: Só após o cliente pedir, você confirma o endereço.
-Passo 3 – CONFIRMAR ENDEREÇO: "A entrega será na [Endereço]?" (Aguarde o "Sim" ou novo endereço).
-Passo 4 – FORMA DE PAGAMENTO: "Qual será a forma de pagamento (Dinheiro, Pix ou Cartão)?"
-Passo 5 – REGISTRAR: Após as confirmações, informe: "Perfeito! Seu pedido foi registrado. Entrega prevista: 20 a 40 minutos."
+Passo 3 – CONFIRMAR ENDEREÇO: ${cliente.endereco ? `"Entrego na ${cliente.endereco}?" (Aguarde o "Sim" ou novo endereço).` : `Pergunte: "Qual o endereço de entrega?"`}
+Passo 4 – FORMA DE PAGAMENTO: Pergunte apenas: "Qual a forma de pagamento?" — NÃO liste as opções, espere o cliente responder.
+Passo 5 – REGISTRAR: Após as confirmações, informe: "Perfeito! Já vou repassar para o entregador. Entrega em 20 a 40 minutos."
 
 CLIENTES INSTITUCIONAIS E VALE GÁS (CRÍTICO — SIGA À RISCA):
-- Se o cliente informar que é de ESCOLA, COLÉGIO, POLÍCIA, SECRETARIA DE EDUCAÇÃO, ASSISTÊNCIA SOCIAL ou PREFEITURA:
+- Se o cliente mencionar QUALQUER uma dessas palavras: escola, colégio, creche, EMEI, EMEF, UBS, posto de saúde, polícia, secretaria, assistência social, prefeitura, Damasco, municipal, estadual:
+  → Reconheça IMEDIATAMENTE como cliente institucional.
   → NÃO pergunte forma de pagamento.
   → NÃO informe valor/preço do produto.
-  → Após confirmar endereço, registre o pedido IMEDIATAMENTE com pagamento "institucional" e valor: 0.
-  → Pule o Passo 4 completamente.
+  → Se o nome/endereço já está cadastrado, confirme: "Entrego sim, [Nome da instituição], [Endereço cadastrado]? Já vou repassar para o entregador."
+  → Se NÃO está cadastrado, peça só o endereço: "Entrego sim! Me confirme o endereço de entrega."
+  → Registre o pedido com pagamento "institucional" e valor: 0.
 - Se o cliente informar que vai pagar com VALE GÁS:
   → NÃO informe valor/preço do produto.
   → Após confirmar endereço, registre o pedido IMEDIATAMENTE com pagamento "vale gás" e valor: 0.
-  → Pule o Passo 4 completamente.
 
-IDENTIFICAÇÃO DE ENDEREÇO: Considere informado se a mensagem tiver Rua/Av/Travessa + número ou pontos de referência claros.
+ENDEREÇO FRAGMENTADO (IMPORTANTE):
+- O cliente pode enviar o endereço em VÁRIAS mensagens separadas (ex: "Rua Goiás" numa mensagem, "número 500" na próxima, "bairro Centro" depois).
+- JUNTE todas as informações de localização do histórico para montar o endereço completo.
+- Aceite QUALQUER formato: rua + número, nome de local, ponto de referência, bairro.
+- NÃO exija formato rígido. Se tem rua e número, é suficiente.
+- Se falta apenas o número ou bairro, pergunte de forma natural: "Qual o número?"
+
+RESPOSTAS CURTAS E OBJETIVAS:
+- Responda em no máximo 2-3 linhas.
+- Seja direto e humano, como se fosse uma atendente real.
+- NÃO use listas longas ou textos explicativos desnecessários.
 
 PRODUTOS E PREÇOS DISPONÍVEIS:
 ${productList}
