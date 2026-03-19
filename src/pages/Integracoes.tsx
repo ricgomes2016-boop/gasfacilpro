@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -283,6 +285,8 @@ export default function Integracoes() {
   const [tabAtiva, setTabAtiva] = useState("todas");
 
   const { unidades } = useUnidade();
+  const { empresa } = useEmpresa();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Generic per-unit configs from integracoes_config
   const [genericConfigs, setGenericConfigs] = useState<any[]>([]);
@@ -513,6 +517,15 @@ export default function Integracoes() {
     loadGenericConfigs();
   }, []);
 
+  // Auto-open WhatsApp dialog from URL param (?open=whatsapp)
+  useEffect(() => {
+    if (searchParams.get("open") === "whatsapp") {
+      setWhatsappDialogOpen(true);
+      searchParams.delete("open");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams]);
+
   // --- WhatsApp handlers (legacy) ---
   const handleSaveWhatsapp = async () => {
     if (!wpUnidadeId || !wpInstanceId || !wpToken) {
@@ -547,9 +560,9 @@ export default function Integracoes() {
       }
 
       // Sync with whatsapp_gateway_instances to enable the proxy
-      if (wpProvedor === "evolution") {
+      if (wpProvedor === "evolution" && empresa?.id) {
         await supabase.from("whatsapp_gateway_instances").upsert({
-          empresa_id: (await supabase.auth.getSession()).data.session?.user.user_metadata.empresa_id || "", 
+          empresa_id: empresa.id, 
           unidade_id: wpUnidadeId,
           instance_name: wpInstanceId,
           engine_url: wpBaseUrl,
@@ -571,15 +584,13 @@ export default function Integracoes() {
   const resetWhatsappForm = () => {
     setWpProvedor("evolution");
     setWpUnidadeId("");
-    // Se já existem configurações, usar a primeira como base ou manter vazio para nova
-    const existing = whatsappConfigs.length > 0 ? whatsappConfigs[0] : null;
     
-    setWpInstanceId(existing?.instance_id || "gasfacil_matriz");
-    setWpToken(existing?.token || "gasfacilpro2026");
-    setWpSecurityToken(existing?.security_token || "");
-    setWpBaseUrl(existing?.base_url || "http://187.77.52.241:8000");
-    setWpDescontoEtapa1(existing ? String(existing.desconto_etapa1 || 5) : "5");
-    setWpDescontoEtapa2(existing ? String(existing.desconto_etapa2 || 10) : "10");
+    setWpInstanceId("");
+    setWpToken("");
+    setWpSecurityToken("");
+    setWpBaseUrl("");
+    setWpDescontoEtapa1("5");
+    setWpDescontoEtapa2("10");
     
     if (unidades.length === 1) {
       setWpUnidadeId(unidades[0].id);
@@ -594,16 +605,26 @@ export default function Integracoes() {
     setWpNomeBot("Bia");
   };
 
+  // Auto-generate instance name based on empresa slug + unidade name
+  useEffect(() => {
+    if (wpUnidadeId && empresa?.slug && !wpEditId) {
+      const unidade = unidades.find(u => u.id === wpUnidadeId);
+      if (unidade) {
+        const normalizedName = unidade.nome
+          .toLowerCase()
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]/g, "_")
+          .replace(/_+/g, "_")
+          .replace(/^_|_$/g, "");
+        setWpInstanceId(`${empresa.slug}_${normalizedName}`);
+      }
+    }
+  }, [wpUnidadeId, empresa?.slug, wpEditId]);
+
   // Auto-fetch QR code when dialog opens and it's a new or existing evolution config
   useEffect(() => {
     if (whatsappDialogOpen && wpProvedor === "evolution") {
-      const defaultUrl = "http://187.77.52.241:8000";
-      const defaultToken = "gasfacilpro2026";
-      
-      if (!wpInstanceId) return;
-
-      if (!wpBaseUrl) setWpBaseUrl(defaultUrl);
-      if (!wpToken) setWpToken(defaultToken);
+      if (!wpInstanceId || !wpBaseUrl || !wpToken) return;
       
       const timer = setTimeout(() => {
         handleFetchQrCode();
