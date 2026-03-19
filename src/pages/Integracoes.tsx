@@ -517,6 +517,15 @@ export default function Integracoes() {
     loadGenericConfigs();
   }, []);
 
+  // Auto-open WhatsApp dialog from URL param (?open=whatsapp)
+  useEffect(() => {
+    if (searchParams.get("open") === "whatsapp") {
+      setWhatsappDialogOpen(true);
+      searchParams.delete("open");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams]);
+
   // --- WhatsApp handlers (legacy) ---
   const handleSaveWhatsapp = async () => {
     if (!wpUnidadeId || !wpInstanceId || !wpToken) {
