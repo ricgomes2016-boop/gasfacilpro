@@ -124,7 +124,7 @@ serve(async (req) => {
     const finalMessageText = combinedText || messageText;
 
     // Post-order follow-up shortcut
-    if (await isPostOrderFollowUp(supabase, normalized, messageText)) {
+    if (await isPostOrderFollowUp(supabase, normalized, finalMessageText)) {
       const reply = "Perfeito! Seu pedido já está confirmado ✅\nA entrega segue em andamento (prazo de 30 a 60 minutos).";
       await saveMessage(supabase, conversationId, "assistant", reply, { source: "evolution-webhook", post_order_followup: true });
       await sendMessage(config, phone, reply);
