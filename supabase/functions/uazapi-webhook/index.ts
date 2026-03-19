@@ -139,8 +139,12 @@ serve(async (req) => {
     await saveMessage(supabase, conversationId, "user", messageText, { source: "uazapi-webhook", message_id: messageKey });
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`);
 
+    // Debounce: wait 3s and collect any follow-up messages
+    const combinedText = await collectBufferedMessages(supabase, conversationId, messageText);
+    const finalMessageText = combinedText || messageText;
+
     // Post-order shortcut
-    if (await isPostOrderFollowUp(supabase, normalized, messageText)) {
+    if (await isPostOrderFollowUp(supabase, normalized, finalMessageText)) {
       const reply = "Perfeito! Seu pedido já está confirmado ✅\nA entrega segue em andamento (prazo de 30 a 60 minutos).";
       await saveMessage(supabase, conversationId, "assistant", reply, { source: "uazapi-webhook", post_order_followup: true });
       await sendMessage(config, phone, reply);
