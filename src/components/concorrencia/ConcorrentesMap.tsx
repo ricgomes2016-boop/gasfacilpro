@@ -509,6 +509,40 @@ export function ConcorrentesMap() {
               </Marker>
             ))}
 
+            {/* Clientes Revenda */}
+            {mostrarRevendas && revendasNoMapa.map((c) => (
+              <Marker
+                key={`revenda-${c.id}`}
+                position={[c.latitude!, c.longitude!]}
+                icon={revendaIcon}
+                draggable={true}
+                eventHandlers={{
+                  dragend: async (e) => {
+                    const marker = e.target;
+                    const pos = marker.getLatLng();
+                    const { error } = await supabase.from("clientes").update({ latitude: pos.lat, longitude: pos.lng }).eq("id", c.id);
+                    if (error) { toast.error("Erro ao atualizar"); return; }
+                    queryClient.invalidateQueries({ queryKey: ["clientes-revenda-mapa"] });
+                    toast.success("Localização da revenda atualizada!");
+                  },
+                }}
+              >
+                <Popup>
+                  <div className="min-w-[160px]">
+                    <div className="flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5" style={{ color: REVENDA_COR }} />
+                      <strong className="text-sm">{c.nome}</strong>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] mt-1">Cliente Revenda</Badge>
+                    {c.telefone && <p className="text-xs mt-1">📞 {c.telefone}</p>}
+                    <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                      <GripVertical className="h-3 w-3" /> Arraste para corrigir
+                    </p>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+
             {/* Competitors */}
             {concorrentes.map((c) => (
               <Marker
