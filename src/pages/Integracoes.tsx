@@ -584,15 +584,13 @@ export default function Integracoes() {
   const resetWhatsappForm = () => {
     setWpProvedor("evolution");
     setWpUnidadeId("");
-    // Se já existem configurações, usar a primeira como base ou manter vazio para nova
-    const existing = whatsappConfigs.length > 0 ? whatsappConfigs[0] : null;
     
-    setWpInstanceId(existing?.instance_id || "gasfacil_matriz");
-    setWpToken(existing?.token || "gasfacilpro2026");
-    setWpSecurityToken(existing?.security_token || "");
-    setWpBaseUrl(existing?.base_url || "http://187.77.52.241:8000");
-    setWpDescontoEtapa1(existing ? String(existing.desconto_etapa1 || 5) : "5");
-    setWpDescontoEtapa2(existing ? String(existing.desconto_etapa2 || 10) : "10");
+    setWpInstanceId("");
+    setWpToken("");
+    setWpSecurityToken("");
+    setWpBaseUrl("");
+    setWpDescontoEtapa1("5");
+    setWpDescontoEtapa2("10");
     
     if (unidades.length === 1) {
       setWpUnidadeId(unidades[0].id);
@@ -606,6 +604,22 @@ export default function Integracoes() {
     setWpConnectionStatus(null);
     setWpNomeBot("Bia");
   };
+
+  // Auto-generate instance name based on empresa slug + unidade name
+  useEffect(() => {
+    if (wpUnidadeId && empresa?.slug && !wpEditId) {
+      const unidade = unidades.find(u => u.id === wpUnidadeId);
+      if (unidade) {
+        const normalizedName = unidade.nome
+          .toLowerCase()
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]/g, "_")
+          .replace(/_+/g, "_")
+          .replace(/^_|_$/g, "");
+        setWpInstanceId(`${empresa.slug}_${normalizedName}`);
+      }
+    }
+  }, [wpUnidadeId, empresa?.slug, wpEditId]);
 
   // Auto-fetch QR code when dialog opens and it's a new or existing evolution config
   useEffect(() => {
