@@ -277,7 +277,7 @@ export function normalizePhone(raw: string): string {
 }
 
 // ========== FIND CLIENT ==========
-export async function findCliente(supabase: any, phone: string): Promise<ClienteInfo> {
+export async function findCliente(supabase: any, phone: string, senderName?: string): Promise<ClienteInfo> {
   const normalized = normalizePhone(phone);
   const patterns = [normalized, normalized.slice(-10)];
 
@@ -287,6 +287,16 @@ export async function findCliente(supabase: any, phone: string): Promise<Cliente
     .limit(1);
 
   if (data?.[0]) {
+    // Update generic/empty name with WhatsApp pushName
+    if (senderName && senderName.trim().length >= 2) {
+      const currentName = (data[0].nome || "").trim();
+      const isGeneric = !currentName || /^(cliente\s*(whatsapp|vapi|novo)?|unknown|\d+)$/i.test(currentName);
+      if (isGeneric) {
+        await supabase.from("clientes").update({ nome: senderName.trim() }).eq("id", data[0].id);
+        data[0].nome = senderName.trim();
+        console.log("Updated client name:", data[0].id, "→", senderName.trim());
+      }
+    }
     return {
       id: data[0].id,
       nome: data[0].nome,
@@ -294,6 +304,30 @@ export async function findCliente(supabase: any, phone: string): Promise<Cliente
     };
   }
   return { id: null, nome: null, endereco: null };
+}
+
+// ========== MESSAGE DEBOUNCE ==========
+export async function collectBufferedMessages(supabase: any, conversationId: string, currentText: string, delayMs = 3000): Promise<string> {
+  // Wait for more messages to arrive
+  await new Promise(resolve => setTimeout(resolve, delayMs));
+
+  // Fetch all user messages from the last 5 seconds that haven't been processed
+  const fiveSecsAgo = new Date(Date.now() - 5000).toISOString();
+  const { data: recentMsgs } = await supabase.from("ai_mensagens")
+    .select("content, created_at")
+    .eq("conversa_id", conversationId)
+    .eq("role", "user")
+    .gte("created_at", fiveSecsAgo)
+    .order("created_at", { ascending: true });
+
+  if (recentMsgs && recentMsgs.length > 1) {
+    // Combine all recent messages
+    const combined = recentMsgs.map((m: any) => m.content).join("\n");
+    console.log("Debounce: combined", recentMsgs.length, "messages:", combined.substring(0, 100));
+    return combined;
+  }
+
+  return currentText;
 }
 
 // ========== RECENT ORDERS ==========
