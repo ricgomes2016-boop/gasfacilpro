@@ -125,7 +125,7 @@ serve(async (req) => {
 
     // Gather context in parallel
     const [cliente, bh, products, history] = await Promise.all([
-      findCliente(supabase, phone),
+      findCliente(supabase, phone, senderName),
       checkBusinessHours(supabase, config.unidadeId),
       getProducts(supabase, config.unidadeId, config),
       loadHistory(supabase, conversationId),
