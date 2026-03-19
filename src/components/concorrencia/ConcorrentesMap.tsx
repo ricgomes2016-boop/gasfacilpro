@@ -122,6 +122,7 @@ export function ConcorrentesMap() {
   const [searchAddress, setSearchAddress] = useState("");
   const [searching, setSearching] = useState(false);
   const [mostrarParceiros, setMostrarParceiros] = useState(true);
+  const [mostrarRevendas, setMostrarRevendas] = useState(true);
   const [modoParceiro, setModoParceiro] = useState(false);
   const [parceiroSelecionadoId, setParceiroSelecionadoId] = useState<string>("");
 
