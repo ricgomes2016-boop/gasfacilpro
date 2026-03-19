@@ -136,6 +136,7 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
           nome: formData.nome, cnpj: formData.cnpj, telefone: formData.telefone,
           email: formData.email, endereco: formData.endereco, tipo: formData.tipo,
           latitude: formData.latitude, longitude: formData.longitude,
+          unidade_id: unidadeAtual?.id,
         };
         if (userId) updatePayload.user_id = userId;
 
