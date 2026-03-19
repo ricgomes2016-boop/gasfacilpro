@@ -119,6 +119,10 @@ serve(async (req) => {
     });
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`);
 
+    // Debounce: wait 3s and collect any follow-up messages
+    const combinedText = await collectBufferedMessages(supabase, conversationId, messageText);
+    const finalMessageText = combinedText || messageText;
+
     // Post-order follow-up shortcut
     if (await isPostOrderFollowUp(supabase, normalized, messageText)) {
       const reply = "Perfeito! Seu pedido já está confirmado ✅\nA entrega segue em andamento (prazo de 30 a 60 minutos).";
