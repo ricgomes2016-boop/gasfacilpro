@@ -147,7 +147,7 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
         await addParceiro({
           ...formData,
           ativo: true,
-          unidade_id: unidadeAtual?.id || null,
+          unidade_id: unidadeAtual?.id,
         });
         // Link user_id to the newly created parceiro
         if (userId) {
