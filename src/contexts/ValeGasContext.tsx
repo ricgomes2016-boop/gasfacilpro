@@ -163,7 +163,7 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
   const proximoNumeroVale = vales.length > 0 ? Math.max(...vales.map(v => v.numero)) + 1 : 1;
 
   // Parceiro CRUD
-  const addParceiro = async (parceiro: { nome: string; cnpj: string; telefone: string; email: string; endereco: string; tipo: TipoParceiro; ativo: boolean }) => {
+  const addParceiro = async (parceiro: { nome: string; cnpj: string; telefone: string; email: string; endereco: string; tipo: TipoParceiro; ativo: boolean; latitude?: number | null; longitude?: number | null; unidade_id?: string | null }) => {
     const { error } = await (supabase as any).from("vale_gas_parceiros").insert(parceiro);
     if (error) throw error;
     refetch();

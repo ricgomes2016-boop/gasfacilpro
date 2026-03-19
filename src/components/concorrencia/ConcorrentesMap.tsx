@@ -167,20 +167,20 @@ export function ConcorrentesMap() {
     enabled: !!empresaId,
   });
 
-  // Query parceiros
+  // Query parceiros (filter by unidade_id, include those without unidade)
   const { data: parceiros = [] } = useQuery({
-    queryKey: ["parceiros-mapa", empresaId],
+    queryKey: ["parceiros-mapa", unidadeId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vale_gas_parceiros")
         .select("id, nome, telefone, tipo, latitude, longitude")
-        .eq("empresa_id", empresaId!)
+        .or(`unidade_id.eq.${unidadeId},unidade_id.is.null`)
         .eq("ativo", true)
         .order("nome");
       if (error) throw error;
       return (data || []) as Parceiro[];
     },
-    enabled: !!empresaId,
+    enabled: !!unidadeId,
   });
 
   const parceirosNoMapa = parceiros.filter((p) => p.latitude && p.longitude);
