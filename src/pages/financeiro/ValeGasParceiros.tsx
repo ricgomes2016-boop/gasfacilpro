@@ -16,9 +16,10 @@ import {
 } from "@/components/ui/select";
 import { useValeGas, TipoParceiro } from "@/contexts/ValeGasContext";
 import { supabase } from "@/integrations/supabase/client";
+import { geocodeAddress } from "@/lib/geocoding";
 import { 
   Building2, Plus, CreditCard, TrendingUp, Package, Phone, Mail, UserCheck,
-  Lock, Loader2,
+  Lock, Loader2, MapPin, Search,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -29,11 +30,14 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
   const { unidadeAtual } = useUnidade();
   const emptyForm = {
     nome: "", cnpj: "", telefone: "", email: "", endereco: "",
     tipo: "prepago" as TipoParceiro,
     login_email: "", login_password: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
   };
   const [formData, setFormData] = useState(emptyForm);
 
@@ -51,8 +55,30 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
       tipo: parceiro.tipo || "prepago",
       login_email: "",
       login_password: "",
+      latitude: parceiro.latitude || null,
+      longitude: parceiro.longitude || null,
     });
     setDialogOpen(true);
+  };
+
+  const handleGeocode = async () => {
+    if (!formData.endereco.trim()) {
+      toast.error("Preencha o endereço primeiro");
+      return;
+    }
+    setGeocoding(true);
+    const result = await geocodeAddress(formData.endereco);
+    setGeocoding(false);
+    if (result) {
+      setFormData(p => ({
+        ...p,
+        latitude: result.latitude,
+        longitude: result.longitude,
+      }));
+      toast.success("Localização encontrada!");
+    } else {
+      toast.error("Endereço não encontrado. Tente ser mais específico.");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,6 +135,7 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
         const updatePayload: any = {
           nome: formData.nome, cnpj: formData.cnpj, telefone: formData.telefone,
           email: formData.email, endereco: formData.endereco, tipo: formData.tipo,
+          latitude: formData.latitude, longitude: formData.longitude,
         };
         if (userId) updatePayload.user_id = userId;
 
@@ -116,7 +143,11 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
         if (error) throw error;
         toast.success("Parceiro atualizado!");
       } else {
-        await addParceiro({ ...formData, ativo: true });
+        await addParceiro({
+          ...formData,
+          ativo: true,
+          unidade_id: unidadeAtual?.id || null,
+        });
         // Link user_id to the newly created parceiro
         if (userId) {
           const { data: newParceiro } = await (supabase as any)
@@ -168,7 +199,39 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
                   <div className="space-y-2"><Label>Telefone *</Label><Input value={formData.telefone} onChange={e => setFormData(p => ({ ...p, telefone: e.target.value }))} placeholder="(00) 00000-0000" required /></div>
                 </div>
                 <div className="space-y-2"><Label>E-mail *</Label><Input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} placeholder="email@parceiro.com" required /></div>
-                <div className="space-y-2"><Label>Endereço *</Label><Input value={formData.endereco} onChange={e => setFormData(p => ({ ...p, endereco: e.target.value }))} placeholder="Endereço completo" required /></div>
+                
+                {/* Endereço com geocodificação */}
+                <div className="space-y-2">
+                  <Label>Endereço *</Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      value={formData.endereco} 
+                      onChange={e => setFormData(p => ({ ...p, endereco: e.target.value }))} 
+                      placeholder="Endereço completo" 
+                      required 
+                      className="flex-1"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon" 
+                      onClick={handleGeocode} 
+                      disabled={geocoding}
+                      title="Buscar localização"
+                    >
+                      {geocoding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  {formData.latitude && formData.longitude ? (
+                    <div className="flex items-center gap-1.5 text-xs text-green-600">
+                      <MapPin className="h-3 w-3" />
+                      Localizado: {formData.latitude.toFixed(5)}, {formData.longitude.toFixed(5)}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Clique na lupa para buscar a localização no mapa</p>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <Label>Tipo de Parceiro</Label>
                   <Select value={formData.tipo} onValueChange={(v: TipoParceiro) => setFormData(p => ({ ...p, tipo: v }))}>
@@ -258,15 +321,17 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
                 <TableRow>
                   <TableHead>Parceiro</TableHead><TableHead>Tipo</TableHead><TableHead>Contato</TableHead>
                       <TableHead className="text-center">Total Vales</TableHead><TableHead className="text-center">Utilizados</TableHead>
-                      <TableHead className="text-right">Valor Pendente</TableHead><TableHead className="text-center">Portal</TableHead>
+                      <TableHead className="text-right">Valor Pendente</TableHead><TableHead className="text-center">Mapa</TableHead>
+                      <TableHead className="text-center">Portal</TableHead>
                       <TableHead className="text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {parceiros.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum parceiro cadastrado</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum parceiro cadastrado</TableCell></TableRow>
                 ) : parceiros.map(parceiro => {
                   const stats = getEstatisticasParceiro(parceiro.id);
+                  const hasLocation = !!(parceiro as any).latitude && !!(parceiro as any).longitude;
                   return (
                     <TableRow key={parceiro.id}>
                       <TableCell>
@@ -287,6 +352,15 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
                       <TableCell className="text-center">{stats.valesUtilizados}</TableCell>
                       <TableCell className="text-right">
                         {stats.valorPendente > 0 ? <span className="text-amber-600 font-medium">R$ {stats.valorPendente.toFixed(2)}</span> : <span className="text-green-600">Quitado</span>}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {hasLocation ? (
+                          <Badge variant="outline" className="gap-1 text-xs text-green-600">
+                            <MapPin className="h-3 w-3" />
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-center">
                         {getParceiroHasUser(parceiro) ? (
