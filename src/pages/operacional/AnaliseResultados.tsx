@@ -106,18 +106,26 @@ export default function AnaliseResultados() {
       let cpq = supabase.from("contas_pagar").select("valor, categoria").eq("status", "pago").gte("vencimento", inicioDate).lte("vencimento", fimDate);
       if (unidadeAtual?.id) cpq = cpq.eq("unidade_id", unidadeAtual.id);
 
+      // Also fetch contas_pagar for previous month
+      const inicioAnteriorDate = format(mesAnteriorDate, "yyyy-MM-dd");
+      const fimAnteriorDate = format(endOfMonth(mesAnteriorDate), "yyyy-MM-dd");
+      let cpqAnterior = supabase.from("contas_pagar").select("valor").eq("status", "pago").gte("vencimento", inicioAnteriorDate).lte("vencimento", fimAnteriorDate);
+      if (unidadeAtual?.id) cpqAnterior = cpqAnterior.eq("unidade_id", unidadeAtual.id);
+
       const [
         { data: pedidosAtual },
         { data: pedidosAnterior },
         { data: despesasAtual },
         { data: despesasAnterior },
         { data: contasPagarAtual },
+        { data: contasPagarAnterior },
       ] = await Promise.all([
         buildPedidosQuery(inicioAtual, fimAtual),
         buildPedidosQuery(inicioAnterior, fimAnterior),
         buildMovQuery(inicioAtual, fimAtual),
         buildMovQuery(inicioAnterior, fimAnterior),
         cpq,
+        cpqAnterior,
       ]);
 
       const receitaMesAtual = (pedidosAtual || []).reduce((s, p) => s + (Number(p.valor_total) || 0), 0);
