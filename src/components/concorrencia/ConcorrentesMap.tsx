@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { MapPin, Plus, Search, Trash2, Store, GripVertical, Handshake } from "lucide-react";
+import { MapPin, Plus, Search, Trash2, Store, GripVertical, Handshake, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -40,6 +40,16 @@ interface Parceiro {
   longitude: number | null;
 }
 
+
+interface ClienteRevenda {
+  id: string;
+  nome: string;
+  telefone: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  tipo: string | null;
+}
+
 const ameacaCores: Record<string, string> = {
   alto: "#ef4444",
   moderado: "#f59e0b",
@@ -53,6 +63,7 @@ const ameacaLabels: Record<string, string> = {
 };
 
 const PARCEIRO_COR = "#0ea5e9";
+const REVENDA_COR = "#8b5cf6";
 
 function createIcon(color: string, isOwn = false) {
   const svg = isOwn
@@ -74,6 +85,17 @@ function createParceiroIcon() {
     iconSize: [30, 38],
     iconAnchor: [15, 38],
     popupAnchor: [0, -40],
+    className: "",
+  });
+}
+
+function createRevendaClienteIcon() {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36"><path d="M14 0C6.3 0 0 6.3 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.3 21.7 0 14 0z" fill="${REVENDA_COR}" stroke="#fff" stroke-width="2"/><circle cx="14" cy="13" r="5" fill="#fff" opacity="0.95"/><text x="14" y="17" text-anchor="middle" font-size="9" font-weight="bold" fill="${REVENDA_COR}">C</text></svg>`;
+  return L.divIcon({
+    html: svg,
+    iconSize: [28, 36],
+    iconAnchor: [14, 36],
+    popupAnchor: [0, -38],
     className: "",
   });
 }
@@ -100,6 +122,7 @@ export function ConcorrentesMap() {
   const [searchAddress, setSearchAddress] = useState("");
   const [searching, setSearching] = useState(false);
   const [mostrarParceiros, setMostrarParceiros] = useState(true);
+  const [mostrarRevendas, setMostrarRevendas] = useState(true);
   const [modoParceiro, setModoParceiro] = useState(false);
   const [parceiroSelecionadoId, setParceiroSelecionadoId] = useState<string>("");
 
@@ -167,24 +190,43 @@ export function ConcorrentesMap() {
     enabled: !!empresaId,
   });
 
-  // Query parceiros
+  // Query parceiros (filter by unidade_id, include those without unidade)
   const { data: parceiros = [] } = useQuery({
-    queryKey: ["parceiros-mapa", empresaId],
+    queryKey: ["parceiros-mapa", unidadeId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vale_gas_parceiros")
         .select("id, nome, telefone, tipo, latitude, longitude")
-        .eq("empresa_id", empresaId!)
+        .or(`unidade_id.eq.${unidadeId},unidade_id.is.null`)
         .eq("ativo", true)
         .order("nome");
       if (error) throw error;
       return (data || []) as Parceiro[];
     },
-    enabled: !!empresaId,
+    enabled: !!unidadeId,
   });
 
   const parceirosNoMapa = parceiros.filter((p) => p.latitude && p.longitude);
   const parceirosSemLocal = parceiros.filter((p) => !p.latitude || !p.longitude);
+
+  // Query clientes tipo revenda/revendedor
+  const { data: clientesRevenda = [] } = useQuery({
+    queryKey: ["clientes-revenda-mapa", empresaId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome, telefone, latitude, longitude, tipo")
+        .eq("empresa_id", empresaId!)
+        .in("tipo", ["revenda", "revendedor"])
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return (data || []) as ClienteRevenda[];
+    },
+    enabled: !!empresaId,
+  });
+
+  const revendasNoMapa = clientesRevenda.filter((c) => c.latitude && c.longitude);
 
   const addMutation = useMutation({
     mutationFn: async (concorrente: Partial<Concorrente>) => {
@@ -303,6 +345,7 @@ export function ConcorrentesMap() {
   };
 
   const parceiroIcon = createParceiroIcon();
+  const revendaIcon = createRevendaClienteIcon();
 
   return (
     <Card>
@@ -466,6 +509,40 @@ export function ConcorrentesMap() {
               </Marker>
             ))}
 
+            {/* Clientes Revenda */}
+            {mostrarRevendas && revendasNoMapa.map((c) => (
+              <Marker
+                key={`revenda-${c.id}`}
+                position={[c.latitude!, c.longitude!]}
+                icon={revendaIcon}
+                draggable={true}
+                eventHandlers={{
+                  dragend: async (e) => {
+                    const marker = e.target;
+                    const pos = marker.getLatLng();
+                    const { error } = await supabase.from("clientes").update({ latitude: pos.lat, longitude: pos.lng }).eq("id", c.id);
+                    if (error) { toast.error("Erro ao atualizar"); return; }
+                    queryClient.invalidateQueries({ queryKey: ["clientes-revenda-mapa"] });
+                    toast.success("Localização da revenda atualizada!");
+                  },
+                }}
+              >
+                <Popup>
+                  <div className="min-w-[160px]">
+                    <div className="flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5" style={{ color: REVENDA_COR }} />
+                      <strong className="text-sm">{c.nome}</strong>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] mt-1">Cliente Revenda</Badge>
+                    {c.telefone && <p className="text-xs mt-1">📞 {c.telefone}</p>}
+                    <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                      <GripVertical className="h-3 w-3" /> Arraste para corrigir
+                    </p>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+
             {/* Competitors */}
             {concorrentes.map((c) => (
               <Marker
@@ -543,9 +620,17 @@ export function ConcorrentesMap() {
             <div className="flex items-center justify-between gap-2 pt-1 border-t">
               <div className="flex items-center gap-1.5">
                 <span className="w-3 h-3 rounded-full border border-white" style={{ background: PARCEIRO_COR }} />
-                <span>Revendas ({parceirosNoMapa.length})</span>
+                <span>Parceiros ({parceirosNoMapa.length})</span>
               </div>
               <Switch checked={mostrarParceiros} onCheckedChange={setMostrarParceiros} className="scale-75" />
+            </div>
+            {/* Clientes Revenda toggle */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full border border-white" style={{ background: REVENDA_COR }} />
+                <span>Clientes Revenda ({revendasNoMapa.length})</span>
+              </div>
+              <Switch checked={mostrarRevendas} onCheckedChange={setMostrarRevendas} className="scale-75" />
             </div>
           </div>
 
@@ -557,7 +642,11 @@ export function ConcorrentesMap() {
             </div>
             <div>
               <Handshake className="h-3.5 w-3.5 inline mr-1" />
-              {parceirosNoMapa.length} revenda{parceirosNoMapa.length !== 1 ? "s" : ""}
+              {parceirosNoMapa.length} parceiro{parceirosNoMapa.length !== 1 ? "s" : ""}
+            </div>
+            <div>
+              <Users className="h-3.5 w-3.5 inline mr-1" />
+              {revendasNoMapa.length} revenda{revendasNoMapa.length !== 1 ? "s" : ""}
             </div>
           </div>
         </div>

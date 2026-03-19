@@ -84,7 +84,7 @@ interface ValeGasContextType {
   lotes: LoteVales[];
   acertos: AcertoConta[];
   isLoading: boolean;
-  addParceiro: (parceiro: { nome: string; cnpj: string; telefone: string; email: string; endereco: string; tipo: TipoParceiro; ativo: boolean }) => Promise<void>;
+  addParceiro: (parceiro: { nome: string; cnpj: string; telefone: string; email: string; endereco: string; tipo: TipoParceiro; ativo: boolean; latitude?: number | null; longitude?: number | null; unidade_id?: string | null }) => Promise<void>;
   updateParceiro: (id: string, data: Partial<Parceiro>) => Promise<void>;
   emitirLote: (data: { parceiroId: string; quantidade: number; valorUnitario: number; numeroInicial?: number; dataVencimento?: Date; observacao?: string; descricao?: string; clienteId?: string; clienteNome?: string; produtoId?: string; produtoNome?: string; gerarContaReceber?: boolean }) => Promise<LoteVales>;
   cancelarLote: (loteId: string) => Promise<void>;
@@ -163,7 +163,7 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
   const proximoNumeroVale = vales.length > 0 ? Math.max(...vales.map(v => v.numero)) + 1 : 1;
 
   // Parceiro CRUD
-  const addParceiro = async (parceiro: { nome: string; cnpj: string; telefone: string; email: string; endereco: string; tipo: TipoParceiro; ativo: boolean }) => {
+  const addParceiro = async (parceiro: { nome: string; cnpj: string; telefone: string; email: string; endereco: string; tipo: TipoParceiro; ativo: boolean; latitude?: number | null; longitude?: number | null; unidade_id?: string | null }) => {
     const { error } = await (supabase as any).from("vale_gas_parceiros").insert(parceiro);
     if (error) throw error;
     refetch();

@@ -1,34 +1,18 @@
-# Corrigir Parceiros no Mapa e Adicionar Localização no Cadastro
 
-## Problemas Encontrados
 
-1. **Query errada no mapa**: O `ConcorrentesMap.tsx` filtra parceiros por `.eq("empresa_id", empresaId!)`, mas a tabela `vale_gas_parceiros` **não tem coluna `empresa_id**` -- ela tem `unidade_id`. Resultado: nenhum parceiro aparece no mapa.
-2. **Formulário sem localização**: A tela de cadastro de parceiros (`ValeGasParceiros.tsx`) não possui campos de endereço com geocodificação nem campos de latitude/longitude, impossibilitando definir a localização por ali.
+## Problem
 
-## Etapas
+The `check-subscription` edge function returns 500 with "Auth session missing!" because `checkSubscription()` is called as soon as `user` exists, but the auth session token may not be fully ready yet. Also, it runs for ALL users (including clients, drivers) who don't need subscription checks.
 
-### 1. Corrigir query de parceiros no mapa
+## Plan
 
-Em `ConcorrentesMap.tsx`, trocar o filtro `.eq("empresa_id", empresaId!)` por uma lógica baseada em `unidade_id` (filtrar pela unidade atual, ou buscar todas as unidades da empresa via join/subquery). A abordagem mais simples: buscar parceiros pela mesma `unidade_id` da unidade atual, ou sem filtro de unidade se o parceiro não tiver uma associada.
+1. **`src/contexts/EmpresaContext.tsx`** — Guard the `checkSubscription` call:
+   - Only call it when `user` exists AND `roles` are loaded (not empty)
+   - Only call it for staff/admin users who actually need subscription info
+   - Add `roles` to the dependency array of the useEffect that triggers the check
+   - This prevents the 500 error for unauthenticated sessions and unnecessary calls for non-staff users
 
-### 2. Adicionar campos de localização no formulário de parceiros
+### Changes
 
-Em `ValeGasParceiros.tsx`:
+In the useEffect at line 184-188, change the condition from `if (user && !authLoading)` to `if (user && !authLoading && isStaff)`, and add `roles` to deps so `isStaff` is evaluated correctly.
 
-- Adicionar campo de endereço com botão de geocodificação (usando a função `geocodeAddress` já existente)
-- Ao salvar, gravar `latitude` e `longitude` automaticamente a partir do endereço geocodificado
-- Exibir indicador visual de "localizado" / "sem localização" na lista de parceiros
-
-### 3. Ajustar `addParceiro` no contexto
-
-Em `ValeGasContext.tsx`, incluir `latitude`, `longitude` e `unidade_id` nos campos aceitos pelo `addParceiro` para que o formulário consiga salvar as coordenadas.
-
-4. Mesmo na tela de cadastro do cliente,  ao colocar tipo do cliente: revenda, revendedor. Ter opção de colocar no mapa de analise de clientes. 
-  &nbsp;
-
-### Detalhes Técnicos
-
-- **Sem migração necessária** -- as colunas `latitude` e `longitude` já existem na tabela
-- **Geocodificação**: reutilizar `geocodeAddress` de `@/lib/geocoding` (já usado no mapa de concorrentes)
-- **Filtro corrigido**: `.or(\`unidade_id.eq.${unidadeId},unidade_id.is.null)` para pegar parceiros da unidade atual + parceiros sem unidade associada
-- &nbsp;
