@@ -84,7 +84,7 @@ interface ValeGasContextType {
   lotes: LoteVales[];
   acertos: AcertoConta[];
   isLoading: boolean;
-  addParceiro: (parceiro: { nome: string; cnpj: string; telefone: string; email: string; endereco: string; tipo: TipoParceiro; ativo: boolean }) => Promise<void>;
+  addParceiro: (parceiro: { nome: string; cnpj: string; telefone: string; email: string; endereco: string; tipo: TipoParceiro; ativo: boolean; latitude?: number | null; longitude?: number | null; unidade_id?: string | null }) => Promise<void>;
   updateParceiro: (id: string, data: Partial<Parceiro>) => Promise<void>;
   emitirLote: (data: { parceiroId: string; quantidade: number; valorUnitario: number; numeroInicial?: number; dataVencimento?: Date; observacao?: string; descricao?: string; clienteId?: string; clienteNome?: string; produtoId?: string; produtoNome?: string; gerarContaReceber?: boolean }) => Promise<LoteVales>;
   cancelarLote: (loteId: string) => Promise<void>;
