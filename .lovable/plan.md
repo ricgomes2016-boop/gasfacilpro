@@ -1,18 +1,26 @@
 
 
-## Problem
+# Corrigir erro RLS ao salvar parceiro
 
-The `check-subscription` edge function returns 500 with "Auth session missing!" because `checkSubscription()` is called as soon as `user` exists, but the auth session token may not be fully ready yet. Also, it runs for ALL users (including clients, drivers) who don't need subscription checks.
+## Problema
 
-## Plan
+A policy `tenant_isolation_vale_gas_parceiros` tem `WITH CHECK`:
+```
+has_role(auth.uid(), 'super_admin') OR unidade_belongs_to_user_empresa(unidade_id)
+```
 
-1. **`src/contexts/EmpresaContext.tsx`** — Guard the `checkSubscription` call:
-   - Only call it when `user` exists AND `roles` are loaded (not empty)
-   - Only call it for staff/admin users who actually need subscription info
-   - Add `roles` to the dependency array of the useEffect that triggers the check
-   - This prevents the 500 error for unauthenticated sessions and unnecessary calls for non-staff users
+Diferente do `USING` (que permite `unidade_id IS NULL`), o `WITH CHECK` **nao permite NULL**. Quando o update e feito sem incluir `unidade_id` no payload, o valor existente (possivelmente NULL) falha na validacao.
 
-### Changes
+## Correcao
 
-In the useEffect at line 184-188, change the condition from `if (user && !authLoading)` to `if (user && !authLoading && isStaff)`, and add `roles` to deps so `isStaff` is evaluated correctly.
+### 1. Incluir `unidade_id` no payload de update (ValeGasParceiros.tsx)
+No `handleSubmit`, adicionar `unidade_id: unidadeAtual?.id` ao `updatePayload` para que o campo sempre tenha um valor valido da empresa do usuario.
+
+### 2. Garantir `unidade_id` no insert
+Ja esta sendo feito via `addParceiro({ ..., unidade_id: unidadeAtual?.id || null })`, mas o `|| null` pode causar o mesmo problema. Trocar para `unidadeAtual?.id` sem fallback para null.
+
+### Detalhes Tecnicos
+- Arquivo: `src/pages/financeiro/ValeGasParceiros.tsx`
+- Linha ~131: adicionar `unidade_id: unidadeAtual?.id` ao `updatePayload`
+- Linha ~148: trocar `unidade_id: unidadeAtual?.id || null` por `unidade_id: unidadeAtual?.id`
 
