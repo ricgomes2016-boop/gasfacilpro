@@ -40,6 +40,16 @@ interface Parceiro {
   longitude: number | null;
 }
 
+
+interface ClienteRevenda {
+  id: string;
+  nome: string;
+  telefone: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  tipo: string | null;
+}
+
 const ameacaCores: Record<string, string> = {
   alto: "#ef4444",
   moderado: "#f59e0b",
@@ -53,6 +63,7 @@ const ameacaLabels: Record<string, string> = {
 };
 
 const PARCEIRO_COR = "#0ea5e9";
+const REVENDA_COR = "#8b5cf6";
 
 function createIcon(color: string, isOwn = false) {
   const svg = isOwn
