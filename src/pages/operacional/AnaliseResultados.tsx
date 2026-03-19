@@ -137,7 +137,9 @@ export default function AnaliseResultados() {
       const despMov = (despesasAtual || []).reduce((s, d) => s + (Number(d.valor) || 0), 0);
       const despCP = (contasPagarAtual || []).reduce((s, d) => s + (Number(d.valor) || 0), 0);
       const despesasMesAtual = despMov + despCP;
-      const despesasMesAnterior = (despesasAnterior || []).reduce((s, d) => s + (Number(d.valor) || 0), 0);
+      const despMovAnterior = (despesasAnterior || []).reduce((s, d) => s + (Number(d.valor) || 0), 0);
+      const despCPAnterior = (contasPagarAnterior || []).reduce((s, d) => s + (Number(d.valor) || 0), 0);
+      const despesasMesAnterior = despMovAnterior + despCPAnterior;
 
       const lucroMesAtual = receitaMesAtual - despesasMesAtual;
       const lucroMesAnterior = receitaMesAnterior - despesasMesAnterior;
