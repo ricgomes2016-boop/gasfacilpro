@@ -624,13 +624,7 @@ export default function Integracoes() {
   // Auto-fetch QR code when dialog opens and it's a new or existing evolution config
   useEffect(() => {
     if (whatsappDialogOpen && wpProvedor === "evolution") {
-      const defaultUrl = "http://187.77.52.241:8000";
-      const defaultToken = "gasfacilpro2026";
-      
-      if (!wpInstanceId) return;
-
-      if (!wpBaseUrl) setWpBaseUrl(defaultUrl);
-      if (!wpToken) setWpToken(defaultToken);
+      if (!wpInstanceId || !wpBaseUrl || !wpToken) return;
       
       const timer = setTimeout(() => {
         handleFetchQrCode();
