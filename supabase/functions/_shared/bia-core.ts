@@ -421,8 +421,8 @@ export function extractCollectedData(history: any[]): { pagamento?: string; prod
   for (const msg of userMsgs) {
     const t = msg.content.toLowerCase();
 
-    // Detect institutional client
-    if (!result.clienteInstitucional && /\b(escola|col[eé]gio|pol[ií]cia|secretaria\s*(de\s*educa[çc][aã]o)?|assist[eê]ncia\s*social|prefeitura)\b/i.test(t)) {
+  // Detect institutional client (expanded keywords)
+    if (!result.clienteInstitucional && /\b(escola|col[eé]gio|creche|emei|emef|ubs|posto\s*de\s*sa[uú]de|pol[ií]cia|secretaria|assist[eê]ncia\s*social|prefeitura|damasco|municipal|estadual)\b/i.test(t)) {
       result.clienteInstitucional = true;
       result.pagamento = "institucional";
       result.skipPagamentoValor = true;
