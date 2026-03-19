@@ -586,9 +586,17 @@ export function ConcorrentesMap() {
             <div className="flex items-center justify-between gap-2 pt-1 border-t">
               <div className="flex items-center gap-1.5">
                 <span className="w-3 h-3 rounded-full border border-white" style={{ background: PARCEIRO_COR }} />
-                <span>Revendas ({parceirosNoMapa.length})</span>
+                <span>Parceiros ({parceirosNoMapa.length})</span>
               </div>
               <Switch checked={mostrarParceiros} onCheckedChange={setMostrarParceiros} className="scale-75" />
+            </div>
+            {/* Clientes Revenda toggle */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full border border-white" style={{ background: REVENDA_COR }} />
+                <span>Clientes Revenda ({revendasNoMapa.length})</span>
+              </div>
+              <Switch checked={mostrarRevendas} onCheckedChange={setMostrarRevendas} className="scale-75" />
             </div>
           </div>
 
