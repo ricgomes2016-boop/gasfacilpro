@@ -560,9 +560,9 @@ export default function Integracoes() {
       }
 
       // Sync with whatsapp_gateway_instances to enable the proxy
-      if (wpProvedor === "evolution") {
+      if (wpProvedor === "evolution" && empresa?.id) {
         await supabase.from("whatsapp_gateway_instances").upsert({
-          empresa_id: (await supabase.auth.getSession()).data.session?.user.user_metadata.empresa_id || "", 
+          empresa_id: empresa.id, 
           unidade_id: wpUnidadeId,
           instance_name: wpInstanceId,
           engine_url: wpBaseUrl,
