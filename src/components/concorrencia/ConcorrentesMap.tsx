@@ -345,6 +345,7 @@ export function ConcorrentesMap() {
   };
 
   const parceiroIcon = createParceiroIcon();
+  const revendaIcon = createRevendaClienteIcon();
 
   return (
     <Card>
