@@ -162,28 +162,41 @@ export default function AnaliseResultados() {
         .slice(0, 8)
         .map(([name, value], i) => ({ name, value, color: COLORS[i % COLORS.length] }));
 
-      // Evolution last 6 months
-      const evolucao: OverviewData["evolucao"] = [];
+      // Evolution last 6 months - batch all queries then resolve
+      const evolQueries = [];
       for (let i = 5; i >= 0; i--) {
         const d = subMonths(mesAtualDate, i);
         const ini = startOfMonth(d).toISOString();
         const fim = endOfMonth(d).toISOString();
+        const iniDate = format(startOfMonth(d), "yyyy-MM-dd");
+        const fimDateEv = format(endOfMonth(d), "yyyy-MM-dd");
         let pq = supabase.from("pedidos").select("valor_total").gte("created_at", ini).lte("created_at", fim).neq("status", "cancelado");
         let dq = supabase.from("movimentacoes_caixa").select("valor").eq("tipo", "saida").gte("created_at", ini).lte("created_at", fim);
+        let cpqEv = supabase.from("contas_pagar").select("valor").eq("status", "pago").gte("vencimento", iniDate).lte("vencimento", fimDateEv);
         if (unidadeAtual?.id) {
           pq = pq.eq("unidade_id", unidadeAtual.id);
           dq = dq.eq("unidade_id", unidadeAtual.id);
+          cpqEv = cpqEv.eq("unidade_id", unidadeAtual.id);
         }
-        const [{ data: peds }, { data: desps }] = await Promise.all([pq, dq]);
+        evolQueries.push({ d, pq, dq, cpqEv });
+      }
+
+      const evolResults = await Promise.all(
+        evolQueries.map(({ pq, dq, cpqEv }) => Promise.all([pq, dq, cpqEv]))
+      );
+
+      const evolucao: OverviewData["evolucao"] = evolResults.map(([ { data: peds }, { data: desps }, { data: bills } ], idx) => {
         const rec = (peds || []).reduce((s, p) => s + (Number(p.valor_total) || 0), 0);
-        const desp = (desps || []).reduce((s, dd) => s + (Number(dd.valor) || 0), 0);
-        evolucao.push({
-          mes: format(d, "MMM", { locale: ptBR }).replace(/^\w/, c => c.toUpperCase()),
+        const despMov2 = (desps || []).reduce((s, dd) => s + (Number(dd.valor) || 0), 0);
+        const despCP2 = (bills || []).reduce((s, dd) => s + (Number(dd.valor) || 0), 0);
+        const desp = despMov2 + despCP2;
+        return {
+          mes: format(evolQueries[idx].d, "MMM", { locale: ptBR }).replace(/^\w/, c => c.toUpperCase()),
           receita: rec,
           despesa: desp,
           lucro: rec - desp,
-        });
-      }
+        };
+      });
 
       setOverview({
         receitaMesAtual, receitaMesAnterior,
