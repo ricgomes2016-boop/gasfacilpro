@@ -23,7 +23,7 @@ serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
 
-      const { data: config, error: dbError } = await supabase
+      const { data: config } = await supabase
         .from("integracoes_whatsapp")
         .select("*")
         .eq("instance_id", instance_id)
@@ -36,8 +36,16 @@ serve(async (req) => {
       }
     }
 
+    // Fallback to global secrets if still missing
     if (!baseUrl) {
-      return new Response(JSON.stringify({ error: "base_url não configurada e não fornecida no corpo" }), {
+      baseUrl = (Deno.env.get("EVOLUTION_BASE_URL") || "").replace(/\/$/, "");
+    }
+    if (!apiKey) {
+      apiKey = Deno.env.get("EVOLUTION_GLOBAL_APIKEY") || "";
+    }
+
+    if (!baseUrl) {
+      return new Response(JSON.stringify({ error: "base_url não configurada. Configure o secret EVOLUTION_BASE_URL." }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -74,10 +82,17 @@ serve(async (req) => {
         url = `${baseUrl}/instance/logout/${instance_id}`;
         method = "DELETE";
         break;
+      case "delete":
+        url = `${baseUrl}/instance/delete/${instance_id}`;
+        method = "DELETE";
+        break;
+      case "fetchInstances":
+        url = `${baseUrl}/instance/fetchInstances`;
+        break;
       case "webhook":
         url = `${baseUrl}/webhook/set/${instance_id}`;
         method = "POST";
-        body = JSON.stringify(fullBody.body); // Repassamos o corpo que vem do frontend
+        body = JSON.stringify(fullBody.body);
         break;
       default:
         return new Response(JSON.stringify({ error: "Ação inválida" }), {
@@ -95,7 +110,7 @@ serve(async (req) => {
       clearTimeout(timeout);
       console.error(`[EVOLUTION-PROXY] Fetch failed:`, fetchErr.message);
       return new Response(JSON.stringify({ 
-        error: `Não foi possível conectar ao servidor Evolution API em ${baseUrl}. Verifique se o firewall permite conexões externas na porta 8080.`,
+        error: `Não foi possível conectar ao servidor Evolution API em ${baseUrl}. Verifique se o firewall permite conexões externas.`,
         details: fetchErr.message 
       }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -104,6 +119,11 @@ serve(async (req) => {
     clearTimeout(timeout);
     const data = await resp.json().catch(() => ({ ok: resp.ok }));
     console.log(`[EVOLUTION-PROXY] Response ${resp.status}:`, JSON.stringify(data).substring(0, 500));
+
+    // For create action, extract and return the generated token
+    if (action === "create" && data?.hash?.apikey) {
+      data._generated_token = data.hash.apikey;
+    }
 
     return new Response(JSON.stringify(data), {
       status: resp.status,
