@@ -639,30 +639,7 @@ export default function Integracoes() {
 
   const filteredCategorias = [...new Set(filteredIntegracoes.map(i => i.categoria))];
 
-  // Auto-open WhatsApp dialog if requested via URL
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("open") === "whatsapp" && whatsappConfigs.length > 0) {
-      // Find the best config to open or just the first one
-      const config = whatsappConfigs[0];
-      editWhatsappConfig(config);
-    } else if (params.get("open") === "whatsapp") {
-      resetWhatsappForm();
-      setWhatsappDialogOpen(true);
-    }
-  }, [whatsappConfigs.length]);
-
-  const handleOpenConfig = (integracao: Integracao) => {
-    if (integracao.isWhatsapp) {
-      resetWhatsappForm();
-      setWhatsappDialogOpen(true);
-      return;
-    }
-    if (integracao.status === "em_breve") return;
-    setSelectedIntegracao(integracao);
-    resetGenericForm();
-    setConfigOpen(true);
-  };
+  // (auto-open handled above in earlier useEffect)
 
   return (
     <MainLayout>
