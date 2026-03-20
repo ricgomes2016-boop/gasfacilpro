@@ -1,97 +1,54 @@
 
 
-# Simplificar Conexão WhatsApp (Evolution API) — Multi-Loja
+# Corrigir: Bia nao respeita horario de atendimento
 
-## Contexto
+## Problema
 
-Atualmente, o formulario de conexao WhatsApp exige que o usuario preencha URL do servidor, Token, Instance ID, provedor, etc. O objetivo e simplificar drasticamente: o usuario digita apenas o **nome da instancia** e clica em **Gerar Token / Conectar**. A URL e API Key global da Evolution ficam configuradas centralmente (no `integracoes_config` ou como secret), nao por conexao.
+Quando `isOffHours = true`, o sistema **nao bloqueia** o atendimento. Ele apenas adiciona uma linha no prompt da IA dizendo "FORA DO HORÁRIO: Informe fechamento e ofereça agendamento." — mas a IA continua processando normalmente e muitas vezes ignora essa instrucao, atendendo o cliente como se estivesse aberto.
 
-## Arquitetura Proposta
-
-```text
-┌─────────────────────────────────────────────┐
-│  Central de WhatsApp (Dialog Redesenhado)    │
-├─────────────────────────────────────────────┤
-│  CONEXOES ATIVAS                            │
-│  ┌─────────────────────────────────────┐    │
-│  │ 📱 centralgas_matriz               │    │
-│  │    Loja: Central Gas - Matriz       │    │
-│  │    Numero: +55 11 99999-9999        │    │
-│  │    Status: 🟢 Conectado             │    │
-│  │    [Excluir]                        │    │
-│  └─────────────────────────────────────┘    │
-│                                             │
-│  NOVA CONEXAO                               │
-│  ┌─────────────────────────────────────┐    │
-│  │ Loja:     [Selecione...]           │    │
-│  │ Filial:   [Selecione...]           │    │
-│  │ Instancia: [auto-gerado]           │    │
-│  │                                     │    │
-│  │ [Criar Conexao e Gerar QR Code]     │    │
-│  └─────────────────────────────────────┘    │
-└─────────────────────────────────────────────┘
+A linha responsavel (bia-core.ts, ~598):
+```
+${isOffHours ? `FORA DO HORÁRIO (${horarioInfo}): Informe fechamento e ofereça agendamento.` : ""}
 ```
 
-## Mudancas
+Isso e apenas uma sugestao no prompt — nao ha bloqueio real.
 
-### 1. Configuracao Global da Evolution (unica vez)
-Armazenar `EVOLUTION_BASE_URL` e `EVOLUTION_GLOBAL_APIKEY` como secrets no backend. O `evolution-proxy` ja le do DB; vamos adicionar fallback para secrets do edge function.
+## Solucao
 
-### 2. Redesenhar Dialog WhatsApp (`Integracoes.tsx`)
+Adicionar um **bloqueio hard-coded** em todos os webhooks: quando `isOffHours = true`, enviar uma mensagem fixa diretamente ao cliente **sem chamar a IA**. A mensagem informa o horario e oferece agendamento.
 
-**Remover do formulario de nova conexao:**
-- Campo de URL do servidor
-- Campo de Token/API Key
-- Seletor de Provedor (fixar em "evolution")
-- Campos de Security Token
+### Alteracoes
 
-**Simplificar para:**
-- Select de **Loja** (empresa) — ja resolvido pelo contexto multi-tenant
-- Select de **Filial/Unidade**
-- Campo **Nome da Instancia** (auto-gerado a partir de slug+unidade, editavel)
-- Botao **"Criar Conexao"** que:
-  1. Chama `evolution-proxy` action `create` (gera token automatico)
-  2. Salva no DB (`integracoes_whatsapp` + `whatsapp_gateway_instances`)
-  3. Exibe QR Code para pareamento
+**1. `bia-core.ts` — Nova funcao `getOffHoursMessage`**
+Criar funcao que retorna a mensagem padrao de fora do horario, usando o nome do cliente e o horario de funcionamento:
+```
+"Oi [nome]! No momento estamos fechados. 
+Nosso horário de funcionamento é [horarioInfo]. 
+Se quiser, posso agendar seu pedido para quando abrirmos! 
+Basta me dizer o que precisa. 😊"
+```
 
-**Lista de conexoes ativas — cada card mostra:**
-- Nome da instancia
-- Unidade vinculada
-- Numero conectado (do campo `phone`)
-- Status (conectado/desconectado) com badge colorido
-- Botao Excluir (com confirmacao)
-- Botao Reconectar (gera novo QR)
+**2. Todos os webhooks (evolution, gateway, meta, zapi, uazapi)**
+Apos o `checkBusinessHours`, antes de chamar a IA:
+```
+if (bh.isOffHours) {
+  const reply = getOffHoursMessage(cliente.nome, bh.horarioInfo);
+  await saveMessage(supabase, conversationId, "assistant", reply, { source: "...", off_hours: true });
+  await sendMessage(config, phone, reply);
+  return OK({ ok: true, skipped: "off_hours" });
+}
+```
 
-### 3. Atualizar `evolution-proxy` Edge Function
-- Adicionar fallback: se `base_url` e `api_key` nao vierem no body nem no DB, ler de secrets (`EVOLUTION_BASE_URL`, `EVOLUTION_GLOBAL_APIKEY`)
-- Na action `create`: retornar o token gerado pela Evolution API (campo `hash.apikey` da resposta) para salvar no DB
+Isso garante que **nenhuma chamada a IA** acontece fora do horario — a resposta e instantanea e deterministica.
 
-### 4. Fluxo Simplificado
+**3. Excecao para agendamento**
+Se o cliente ja estava em conversa de agendamento (ultima mensagem da Bia menciona "agendar"), permitir que a IA processe — mas com prompt restrito apenas a agendamento, sem permitir venda imediata.
 
-1. Usuario abre Central WhatsApp
-2. Seleciona Unidade → nome auto-gerado (ex: `maniadagas_matriz`)
-3. Clica "Criar Conexao"
-4. Backend: `POST /instance/create` com `instanceName` e `qrcode: true`
-5. Resposta contem `hash.apikey` (token da instancia) — salvo no DB automaticamente
-6. QR Code exibido para escaneio
-7. Polling verifica status ate conectar
-8. Conexao aparece na lista com status verde e numero
-
-### 5. Secrets Necessarios
-- `EVOLUTION_BASE_URL` — URL do servidor Evolution (ex: `http://187.77.52.241:8000`)
-- `EVOLUTION_GLOBAL_APIKEY` — API Key global do servidor Evolution
-
-### Detalhes Tecnicos
-
-**Arquivos a modificar:**
-- `src/pages/Integracoes.tsx` — redesenhar dialog WhatsApp, remover campos desnecessarios, adicionar lista de conexoes com status/excluir
-- `supabase/functions/evolution-proxy/index.ts` — adicionar fallback para secrets globais, retornar token gerado
-
-**Tabela `whatsapp_gateway_instances`:**
-- `engine_url` tem `NOT NULL` — precisa migration para tornar nullable (usara o valor global)
-- Ou: preencher com o valor global ao criar
-
-**Tabela `integracoes_whatsapp`:**
-- `token` sera preenchido automaticamente com o `hash.apikey` retornado pela Evolution
-- `base_url` sera preenchido com o valor global
+### Arquivos modificados
+- `supabase/functions/_shared/bia-core.ts` — adicionar `getOffHoursMessage()`
+- `supabase/functions/evolution-webhook/index.ts` — bloqueio hard
+- `supabase/functions/gateway-webhook/index.ts` — bloqueio hard
+- `supabase/functions/meta-webhook/index.ts` — bloqueio hard
+- `supabase/functions/zapi-webhook/index.ts` — bloqueio hard
+- `supabase/functions/uazapi-webhook/index.ts` — bloqueio hard
 
