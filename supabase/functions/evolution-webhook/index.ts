@@ -7,7 +7,7 @@ import {
   loadHistory, saveMessage, upsertConversation, isDuplicate,
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall, getEntregadorLocation,
-  downloadAudio, transcribeAudio, collectBufferedMessages,
+  downloadAudio, transcribeAudio, collectBufferedMessages, getOffHoursMessage,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
