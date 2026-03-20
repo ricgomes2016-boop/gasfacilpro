@@ -7,6 +7,7 @@ import {
   loadHistory, saveMessage, upsertConversation, isDuplicate,
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall,
+  getOffHoursMessage,
   getEntregadorLocation,
 } from "../_shared/bia-core.ts";
 
