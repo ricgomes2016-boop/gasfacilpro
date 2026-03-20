@@ -294,27 +294,20 @@ export default function Integracoes() {
   const [configValues, setConfigValues] = useState<Record<string, string>>({});
   const [configEditId, setConfigEditId] = useState<string | null>(null);
 
-  // WhatsApp per-unit config (legacy table)
+  // WhatsApp simplified connection
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [whatsappConfigs, setWhatsappConfigs] = useState<any[]>([]);
-  const [wpProvedor, setWpProvedor] = useState<"zapi" | "uazapi" | "meta" | "evolution">("zapi");
-  const [wpMetaVerifyToken, setWpMetaVerifyToken] = useState("gasfacil_meta_verify");
   const [wpUnidadeId, setWpUnidadeId] = useState("");
   const [wpInstanceId, setWpInstanceId] = useState("");
-  const [wpToken, setWpToken] = useState("");
-  const [wpSecurityToken, setWpSecurityToken] = useState("");
-  const [wpBaseUrl, setWpBaseUrl] = useState("");
-  const [wpDescontoEtapa1, setWpDescontoEtapa1] = useState("5");
-  const [wpDescontoEtapa2, setWpDescontoEtapa2] = useState("10");
-  const [wpPrecoMinimoP13, setWpPrecoMinimoP13] = useState("");
-  const [wpPrecoMinimoP20, setWpPrecoMinimoP20] = useState("");
   const [wpSaving, setWpSaving] = useState(false);
-  const [wpEditId, setWpEditId] = useState<string | null>(null);
+  const [wpCreating, setWpCreating] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrInstanceName, setQrInstanceName] = useState("");
   const [qrStatus, setQrStatus] = useState<string | null>(null);
+  const [connectionStatuses, setConnectionStatuses] = useState<Record<string, string>>({});
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleEvolutionConnect = async (cfg: any) => {
     setQrInstanceName(cfg.instance_id);
