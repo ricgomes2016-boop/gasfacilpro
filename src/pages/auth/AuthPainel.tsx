@@ -15,6 +15,10 @@ export default function AuthPainel() {
   const [roleError, setRoleError] = useState(false);
 
   useEffect(() => {
+    form.setLoginMethod("email");
+  }, []);
+
+  useEffect(() => {
     document.title = "GásFácil Pro — Painel Super Admin v2";
   }, []);
 
