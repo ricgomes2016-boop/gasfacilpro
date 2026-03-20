@@ -18,11 +18,10 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Plug, MessageSquare, CreditCard, FileText, Truck, Globe, Webhook,
-  ArrowUpRight, CheckCircle2, Settings, Zap, BarChart3, ScanBarcode,
-  Phone, Mail, Receipt, Shield, Loader2, ExternalLink, AlertTriangle, Building2,
-  QrCode, RefreshCw, XCircle, Smartphone, Plus, Trash2, Power, PowerOff,
-  Signal, SignalZero, Wifi, WifiOff, Code2, Eye,
-  ArrowUpDown, Send, Image, MapPin, Copy, Check, ScrollText,
+  CheckCircle2, Settings, Zap, BarChart3, ScanBarcode,
+  Phone, Mail, Loader2, ExternalLink, AlertTriangle, Building2,
+  QrCode, RefreshCw, Smartphone, Plus, Trash2,
+  Signal, Wifi, WifiOff,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -45,40 +44,9 @@ interface Integracao {
   configFields?: ConfigField[];
   helpUrl?: string;
   beneficios?: string[];
-  /** Whether this integration uses the legacy integracoes_whatsapp table */
   isWhatsapp?: boolean;
 }
 
-interface GatewayInstance {
-  id: string;
-  empresa_id: string;
-  unidade_id: string;
-  instance_name: string;
-  phone: string | null;
-  status: string;
-  qr_code: string | null;
-  webhook_url: string | null;
-  webhook_secret: string | null;
-  engine_url: string;
-  api_key: string | null;
-  auto_reconnect: boolean;
-  created_at: string;
-  updated_at: string;
-  unidades?: { nome: string };
-  agent_name?: string | null;
-}
-
-interface GatewayMessage {
-  id: string;
-  instance_id: string;
-  phone: string;
-  message: string | null;
-  media_url: string | null;
-  message_type: string;
-  direction: string;
-  status: string;
-  created_at: string;
-}
 
 const integracoes: Integracao[] = [
   {
