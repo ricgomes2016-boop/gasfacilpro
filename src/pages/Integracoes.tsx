@@ -19,7 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Plug, MessageSquare, CreditCard, FileText, Truck, Globe, Webhook,
   CheckCircle2, Settings, Zap, BarChart3, ScanBarcode,
-  Phone, Mail, Loader2, ExternalLink, AlertTriangle, Building2,
+  Phone, Mail, Loader2, ExternalLink, AlertTriangle, Building2, Shield,
   QrCode, RefreshCw, Smartphone, Plus, Trash2,
   Signal, Wifi, WifiOff,
 } from "lucide-react";
