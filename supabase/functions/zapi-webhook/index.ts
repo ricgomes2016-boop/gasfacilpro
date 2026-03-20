@@ -115,6 +115,14 @@ serve(async (req) => {
     });
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`);
 
+    // Hard block: off-hours → fixed message, no AI
+    if (bh.isOffHours) {
+      const reply = getOffHoursMessage(cliente.nome, bh.horarioInfo);
+      await saveMessage(supabase, conversationId, "assistant", reply, { source: "zapi-webhook", off_hours: true });
+      await sendMessage(finalConfig, phone, reply);
+      return OK({ ok: true, skipped: "off_hours" });
+    }
+
     // Post-order follow-up shortcut
     if (await isPostOrderFollowUp(supabase, normalized, messageText)) {
       const reply = "Perfeito! Seu pedido já está confirmado ✅\nA entrega segue em andamento (prazo de 30 a 60 minutos).";
