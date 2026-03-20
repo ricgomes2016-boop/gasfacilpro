@@ -72,6 +72,14 @@ serve(async (req) => {
     await saveMessage(supabase, conversationId, "user", messageText, { source: "gateway-webhook", message_id: messageId, instance: instanceName });
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`);
 
+    // Hard block: off-hours → fixed message, no AI
+    if (bh.isOffHours) {
+      const reply = getOffHoursMessage(cliente.nome, bh.horarioInfo);
+      await saveMessage(supabase, conversationId, "assistant", reply, { source: "gateway-webhook", off_hours: true });
+      await sendMessage(config, phone, reply);
+      return OK({ ok: true, skipped: "off_hours" });
+    }
+
     // Post-order shortcut
     if (await isPostOrderFollowUp(supabase, normalized, messageText)) {
       const reply = "Perfeito! Seu pedido já está confirmado ✅\nA entrega segue em andamento (prazo de 30 a 60 minutos).";
