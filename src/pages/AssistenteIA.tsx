@@ -7,7 +7,7 @@ export default function AssistenteIA() {
     <MainLayout>
       <Header title="Assistente IA" subtitle="Consulte dados do sistema em linguagem natural" />
       <div className="p-4 md:p-6 max-w-4xl mx-auto">
-        <AiAssistantChat fullPage />
+        <AiAssistantChat fullPage enableVoice />
       </div>
     </MainLayout>
   );
