@@ -1,17 +1,48 @@
 
 
-# Adicionar botão de microfone na Assistente IA
+# Corrigir: Bia nao reconhece audio
 
 ## Problema
-O componente `AiAssistantChat` já possui suporte a voz (botão de microfone via `VoiceInputButton` e TTS via `TtsButton`), mas só exibe quando a prop `enableVoice={true}` é passada. A página `/assistente-ia` passa apenas `fullPage` sem `enableVoice`.
 
-## Solução
-Uma única alteração: adicionar `enableVoice` na chamada do componente em `AssistenteIA.tsx`.
+A funcao `transcribeAudio` em `bia-core.ts` envia o audio usando o formato `input_audio` do OpenAI, mas o modelo configurado e `google/gemini-3-flash-preview`. O gateway Lovable AI com modelos Gemini **nao suporta o content type `input_audio`** — esse formato e exclusivo dos modelos OpenAI com suporte nativo a audio.
 
-### Arquivo: `src/pages/AssistenteIA.tsx`
-- Mudar `<AiAssistantChat fullPage />` para `<AiAssistantChat fullPage enableVoice />`
+Codigo atual (linha 786-790):
+```json
+{
+  "type": "input_audio",
+  "input_audio": { "data": "base64...", "format": "ogg" }
+}
+```
 
-Isso ativa:
-- **Botão de microfone** no campo de input (Speech-to-Text via Web Speech API em pt-BR)
-- **Botão de ouvir resposta** (TTS) em cada mensagem da IA
+Gemini espera midia inline via `image_url` com data URI, que funciona para qualquer tipo de midia (imagem, audio, video):
+```json
+{
+  "type": "image_url",
+  "image_url": { "url": "data:audio/ogg;base64,..." }
+}
+```
+
+## Solucao
+
+**Arquivo:** `supabase/functions/_shared/bia-core.ts` — funcao `transcribeAudio`
+
+Alterar o formato do content block de `input_audio` para `image_url` com data URI base64, que e o formato compativel com Gemini via API OpenAI-compatible:
+
+```typescript
+content: [
+  {
+    type: "image_url",
+    image_url: { url: `data:${mimeType};base64,${audioBase64}` },
+  },
+  {
+    type: "text",
+    text: "Transcreva EXATAMENTE o que a pessoa disse neste áudio...",
+  },
+],
+```
+
+Tambem adicionar `max_tokens: 2000` para garantir resposta completa.
+
+### Arquivos modificados
+- `supabase/functions/_shared/bia-core.ts` — apenas a funcao `transcribeAudio` (~5 linhas)
 
