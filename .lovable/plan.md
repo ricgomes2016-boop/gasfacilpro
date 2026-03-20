@@ -1,28 +1,17 @@
 
 
-# Corrigir: Botao de login do Painel Super Admin nao funciona
+# Adicionar botão de microfone na Assistente IA
 
 ## Problema
+O componente `AiAssistantChat` já possui suporte a voz (botão de microfone via `VoiceInputButton` e TTS via `TtsButton`), mas só exibe quando a prop `enableVoice={true}` é passada. A página `/assistente-ia` passa apenas `fullPage` sem `enableVoice`.
 
-O hook `useAuthForm` tem `defaultLoginMethod = "phone"`. O `AuthErp` corrige isso chamando `form.setLoginMethod("email")` no `useEffect`, mas o `AuthPainel` **nao faz isso**.
+## Solução
+Uma única alteração: adicionar `enableVoice` na chamada do componente em `AssistenteIA.tsx`.
 
-Quando o usuario digita email e senha no AuthPainel e clica "Acessar Painel Admin":
-1. `handleLogin` executa com `loginMethod = "phone"`
-2. Valida usando `phoneLoginSchema` contra `loginPhone` (que esta vazio)
-3. Seta erro no campo `phone` — mas o formulario so mostra campo `email`
-4. **Nada visivel acontece** — o erro e silencioso
+### Arquivo: `src/pages/AssistenteIA.tsx`
+- Mudar `<AiAssistantChat fullPage />` para `<AiAssistantChat fullPage enableVoice />`
 
-## Correcao
-
-**Arquivo:** `src/pages/auth/AuthPainel.tsx`
-
-Adicionar `useEffect` para forcar `loginMethod = "email"`, identico ao que ja existe no `AuthErp`:
-
-```typescript
-useEffect(() => {
-  form.setLoginMethod("email");
-}, []);
-```
-
-Uma linha resolve o problema.
+Isso ativa:
+- **Botão de microfone** no campo de input (Speech-to-Text via Web Speech API em pt-BR)
+- **Botão de ouvir resposta** (TTS) em cada mensagem da IA
 
