@@ -230,13 +230,6 @@ const statusConfig = {
   em_breve: { label: "Em breve", variant: "outline" as const, dotColor: "bg-muted-foreground" },
 };
 
-const gatewayStatusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  connected: { label: "Conectado", color: "bg-green-500", icon: Wifi },
-  open: { label: "Conectado", color: "bg-green-500", icon: Wifi },
-  connecting: { label: "Conectando...", color: "bg-yellow-500", icon: RefreshCw },
-  disconnected: { label: "Desconectado", color: "bg-red-500", icon: WifiOff },
-  close: { label: "Desconectado", color: "bg-red-500", icon: WifiOff },
-};
 
 const categoriasLabel: Record<string, { label: string; icon: React.ElementType }> = {
   pagamento: { label: "Pagamento", icon: CreditCard },
