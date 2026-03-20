@@ -785,8 +785,8 @@ export async function transcribeAudio(audioBase64: string, mimeType: string): Pr
             role: "user",
             content: [
               {
-                type: "input_audio",
-                input_audio: { data: audioBase64, format: mimeType.includes("ogg") ? "ogg" : "mp3" },
+                type: "image_url",
+                image_url: { url: `data:${mimeType};base64,${audioBase64}` },
               },
               {
                 type: "text",
@@ -795,6 +795,7 @@ export async function transcribeAudio(audioBase64: string, mimeType: string): Pr
             ],
           },
         ],
+        max_tokens: 2000,
       }),
     });
 
