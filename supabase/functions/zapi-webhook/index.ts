@@ -8,6 +8,7 @@ import {
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall,
   downloadAudio, transcribeAudio, getEntregadorLocation,
+  getOffHoursMessage,
   type BiaConfig,
 } from "../_shared/bia-core.ts";
 
@@ -113,6 +114,14 @@ serve(async (req) => {
       raw_message_id: body.messageId ?? null, moment: body.momment ?? null,
     });
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`);
+
+    // Hard block: off-hours → fixed message, no AI
+    if (bh.isOffHours) {
+      const reply = getOffHoursMessage(cliente.nome, bh.horarioInfo);
+      await saveMessage(supabase, conversationId, "assistant", reply, { source: "zapi-webhook", off_hours: true });
+      await sendMessage(finalConfig, phone, reply);
+      return OK({ ok: true, skipped: "off_hours" });
+    }
 
     // Post-order follow-up shortcut
     if (await isPostOrderFollowUp(supabase, normalized, messageText)) {

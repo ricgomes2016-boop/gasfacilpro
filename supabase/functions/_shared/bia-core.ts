@@ -271,6 +271,13 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
   };
 }
 
+// ========== OFF-HOURS MESSAGE ==========
+export function getOffHoursMessage(clienteNome: string | null, horarioInfo: string): string {
+  const nome = clienteNome ? clienteNome.split(" ")[0] : "";
+  const saudacao = nome ? `Oi ${nome}!` : "Olá!";
+  return `${saudacao} 😊\nNo momento estamos *fechados*.\nNosso horário de funcionamento é *${horarioInfo}*.\n\nSe quiser, posso *agendar seu pedido* para quando abrirmos! Basta me dizer o que precisa. 📋`;
+}
+
 // ========== NORMALIZE PHONE ==========
 export function normalizePhone(raw: string): string {
   return raw.replace(/\D/g, "").slice(-11);

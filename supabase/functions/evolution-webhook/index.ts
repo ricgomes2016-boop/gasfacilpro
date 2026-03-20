@@ -7,7 +7,7 @@ import {
   loadHistory, saveMessage, upsertConversation, isDuplicate,
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall, getEntregadorLocation,
-  downloadAudio, transcribeAudio, collectBufferedMessages,
+  downloadAudio, transcribeAudio, collectBufferedMessages, getOffHoursMessage,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
@@ -118,6 +118,14 @@ serve(async (req) => {
       instance: instanceName
     });
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`);
+
+    // Hard block: off-hours → fixed message, no AI
+    if (bh.isOffHours) {
+      const reply = getOffHoursMessage(cliente.nome, bh.horarioInfo);
+      await saveMessage(supabase, conversationId, "assistant", reply, { source: "evolution-webhook", off_hours: true });
+      await sendMessage(config, phone, reply);
+      return OK({ ok: true, skipped: "off_hours" });
+    }
 
     // Debounce: wait 3s and collect any follow-up messages
     const combinedText = await collectBufferedMessages(supabase, conversationId, messageText);

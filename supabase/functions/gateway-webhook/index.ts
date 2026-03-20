@@ -7,6 +7,7 @@ import {
   loadHistory, saveMessage, upsertConversation, isDuplicate,
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall,
+  getOffHoursMessage,
   getEntregadorLocation,
 } from "../_shared/bia-core.ts";
 
@@ -70,6 +71,14 @@ serve(async (req) => {
     // Save inbound
     await saveMessage(supabase, conversationId, "user", messageText, { source: "gateway-webhook", message_id: messageId, instance: instanceName });
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`);
+
+    // Hard block: off-hours → fixed message, no AI
+    if (bh.isOffHours) {
+      const reply = getOffHoursMessage(cliente.nome, bh.horarioInfo);
+      await saveMessage(supabase, conversationId, "assistant", reply, { source: "gateway-webhook", off_hours: true });
+      await sendMessage(config, phone, reply);
+      return OK({ ok: true, skipped: "off_hours" });
+    }
 
     // Post-order shortcut
     if (await isPostOrderFollowUp(supabase, normalized, messageText)) {
