@@ -362,126 +362,27 @@ export default function Integracoes() {
     }
   };
 
-  // QR Code state for Evolution API
-  const [wpQrCode, setWpQrCode] = useState<string | null>(null);
-  const [wpConnecting, setWpConnecting] = useState(false);
-  const [wpConnectionStatus, setWpConnectionStatus] = useState<string | null>(null);
-  const [wpConfiguringWebhook, setWpConfiguringWebhook] = useState(false);
-  const [wpNomeBot, setWpNomeBot] = useState("Bia");
-
-  // Gateway specific states (merged from WhatsAppGateway.tsx)
-  const [gatewayInstances, setGatewayInstances] = useState<GatewayInstance[]>([]);
-  const [gatewayMessagesOpen, setGatewayMessagesOpen] = useState(false);
-  const [gatewaySelectedInstance, setGatewaySelectedInstance] = useState<GatewayInstance | null>(null);
-  const [gatewayMessages, setGatewayMessages] = useState<GatewayMessage[]>([]);
-  const [gatewayLoading, setGatewayLoading] = useState(false);
-  const [gatewayActionLoading, setGatewayActionLoading] = useState<string | null>(null);
-  const [gatewayQrLoading, setGatewayQrLoading] = useState<string | null>(null);
-
-  const callGatewayApi = async (path: string, method = "GET", body?: any) => {
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "scqenurznkatvrqxqjmt";
-    const url = `https://${projectId}.supabase.co/functions/v1/whatsapp-gateway-api${path}`;
-    const session = (await supabase.auth.getSession()).data.session;
-    
-    const resp = await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session?.access_token}`,
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    return resp.json();
-  };
-
-  const loadGatewayInstances = async () => {
-    setGatewayLoading(true);
-    const { data, error } = await supabase
-      .from("whatsapp_gateway_instances")
-      .select("*, unidades(nome)")
-      .order("created_at");
-    if (!error) setGatewayInstances((data as any) || []);
-    setGatewayLoading(false);
-  };
-
-  const handleCreateGateway = async () => {
-    try {
-      setGatewayActionLoading("create");
-      const name = `inst_${Math.random().toString(36).substring(2, 7)}`;
-      const result = await callGatewayApi("/instances/create", "POST", {
-        name,
-        unidade_id: wpUnidadeId,
-      });
-      if (result.success) {
-        toast.success("Instância criada!");
-        await loadGatewayInstances();
-      } else {
-        toast.error(result.message || "Erro ao criar");
-      }
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setGatewayActionLoading(null);
-    }
-  };
-
-  const handleGetGatewayQR = async (instanceName: string) => {
-    try {
-      setGatewayQrLoading(instanceName);
-      const result = await callGatewayApi(`/instances/${instanceName}/qr`);
-      if (result.success && result.qr) {
-        setWpQrCode(result.qr);
-        setWpConnectionStatus("QR Code gerado");
-      } else {
-        toast.error(result.message || "Erro ao obter QR");
-      }
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setGatewayQrLoading(null);
-    }
-  };
-
-  const manageGatewayAction = async (instanceName: string, action: "disconnect" | "restart" | "delete") => {
-    try {
-      setGatewayActionLoading(`${instanceName}-${action}`);
-      const method = action === "delete" ? "DELETE" : "POST";
-      const result = await callGatewayApi(`/instances/${instanceName}/${action}`, method);
-      if (result.success) {
-        toast.success(`Ação ${action} concluída!`);
-        await loadGatewayInstances();
-      } else {
-        toast.error(result.message || `Erro ao ${action}`);
-      }
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setGatewayActionLoading(null);
-    }
-  };
-
-  const handleViewGatewayMessages = async (instance: GatewayInstance) => {
-    try {
-      setGatewaySelectedInstance(instance);
-      setGatewayMessagesOpen(true);
-      setGatewayLoading(true);
-      const result = await callGatewayApi(`/instances/${instance.instance_name}/messages`);
-      if (result.success) {
-        setGatewayMessages(result.messages || []);
-      }
-    } catch (err: any) {
-      toast.error("Erro ao carregar mensagens");
-    } finally {
-      setGatewayLoading(false);
-    }
-  };
-
   const loadWhatsappConfigs = async () => {
     const { data } = await supabase
       .from("integracoes_whatsapp")
       .select("*, unidades(nome)")
       .order("created_at");
     setWhatsappConfigs(data || []);
+
+    // Load connection status for each config
+    for (const cfg of (data || [])) {
+      if (cfg.provedor === "evolution") {
+        try {
+          const { data: statusData } = await supabase.functions.invoke("evolution-proxy", {
+            body: { action: "status", instance_id: cfg.instance_id },
+          });
+          const state = statusData?.instance?.state || statusData?.state || "disconnected";
+          setConnectionStatuses(prev => ({ ...prev, [cfg.id]: state }));
+        } catch {
+          setConnectionStatuses(prev => ({ ...prev, [cfg.id]: "disconnected" }));
+        }
+      }
+    }
   };
 
   const loadGenericConfigs = async () => {
@@ -506,88 +407,9 @@ export default function Integracoes() {
     }
   }, [searchParams]);
 
-  // --- WhatsApp handlers (legacy) ---
-  const handleSaveWhatsapp = async () => {
-    if (!wpUnidadeId || !wpInstanceId || !wpToken) {
-      toast.error("Preencha Unidade, Instance ID e Token.");
-      return;
-    }
-    setWpSaving(true);
-    try {
-      const payload = {
-        unidade_id: wpUnidadeId,
-        instance_id: wpProvedor === "meta" ? (wpInstanceId || "meta") : wpInstanceId,
-        token: wpToken,
-        security_token: wpSecurityToken || null,
-        base_url: wpProvedor === "evolution" ? wpBaseUrl : null,
-        provedor: wpProvedor,
-        desconto_etapa1: parseFloat(wpDescontoEtapa1) || 5,
-        desconto_etapa2: parseFloat(wpDescontoEtapa2) || 10,
-        preco_minimo_p13: wpPrecoMinimoP13 ? parseFloat(wpPrecoMinimoP13) : null,
-        preco_minimo_p20: wpPrecoMinimoP20 ? parseFloat(wpPrecoMinimoP20) : null,
-        ativo: true,
-        meta_phone_number_id: wpProvedor === "meta" ? wpInstanceId : null,
-        meta_verify_token: wpProvedor === "meta" ? wpMetaVerifyToken : null,
-      } as any;
-      if (wpEditId) {
-        const { error } = await supabase.from("integracoes_whatsapp").update(payload).eq("id", wpEditId);
-        if (error) throw error;
-        toast.success("Configuração atualizada!");
-      } else {
-        const { error } = await supabase.from("integracoes_whatsapp").insert(payload);
-        if (error) throw error;
-        toast.success("WhatsApp vinculado à unidade!");
-      }
-
-      // Sync with whatsapp_gateway_instances to enable the proxy
-      if (wpProvedor === "evolution" && empresa?.id) {
-        await supabase.from("whatsapp_gateway_instances").upsert({
-          empresa_id: empresa.id, 
-          unidade_id: wpUnidadeId,
-          instance_name: wpInstanceId,
-          engine_url: wpBaseUrl,
-          api_key: wpToken,
-          status: "disconnected"
-        }, { onConflict: "empresa_id,instance_name" });
-      }
-
-      await loadWhatsappConfigs();
-      resetWhatsappForm();
-      loadGatewayInstances();
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao salvar");
-    } finally {
-      setWpSaving(false);
-    }
-  };
-
-  const resetWhatsappForm = () => {
-    setWpProvedor("evolution");
-    setWpUnidadeId("");
-    
-    setWpInstanceId("");
-    setWpToken("");
-    setWpSecurityToken("");
-    setWpBaseUrl("");
-    setWpDescontoEtapa1("5");
-    setWpDescontoEtapa2("10");
-    
-    if (unidades.length === 1) {
-      setWpUnidadeId(unidades[0].id);
-    }
-    setWpPrecoMinimoP13("");
-    setWpPrecoMinimoP20("");
-    setWpEditId(null);
-    setWpMetaVerifyToken("gasfacil_meta_verify");
-    setWpQrCode(null);
-    setWpConnecting(false);
-    setWpConnectionStatus(null);
-    setWpNomeBot("Bia");
-  };
-
   // Auto-generate instance name based on empresa slug + unidade name
   useEffect(() => {
-    if (wpUnidadeId && empresa?.slug && !wpEditId) {
+    if (wpUnidadeId && empresa?.slug) {
       const unidade = unidades.find(u => u.id === wpUnidadeId);
       if (unidade) {
         const normalizedName = unidade.nome
@@ -599,115 +421,121 @@ export default function Integracoes() {
         setWpInstanceId(`${empresa.slug}_${normalizedName}`);
       }
     }
-  }, [wpUnidadeId, empresa?.slug, wpEditId]);
+  }, [wpUnidadeId, empresa?.slug]);
 
-  // Auto-fetch QR code when dialog opens and it's a new or existing evolution config
-  useEffect(() => {
-    if (whatsappDialogOpen && wpProvedor === "evolution") {
-      if (!wpInstanceId || !wpBaseUrl || !wpToken) return;
-      
-      const timer = setTimeout(() => {
-        handleFetchQrCode();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [whatsappDialogOpen, wpProvedor]);
-
-  const currentWpConfig = wpEditId ? whatsappConfigs.find(c => c.id === wpEditId) : null;
-
-  const handleFetchQrCode = async () => {
-    if (!wpBaseUrl || !wpInstanceId || !wpToken) {
-      console.warn("handleFetchQrCode: Missing required fields (BaseURL, InstanceID or Token)");
+  // --- Simplified WhatsApp: Create Connection ---
+  const handleCreateConnection = async () => {
+    if (!wpUnidadeId || !wpInstanceId) {
+      toast.error("Selecione a unidade e defina o nome da instância.");
       return;
     }
-    setWpConnecting(true);
-    setWpQrCode(null);
-    setWpConnectionStatus("Solicitando QR Code...");
+    setWpCreating(true);
     try {
-      setWpConnectionStatus("Solicitando QR Code...");
-      const { data, error } = await supabase.functions.invoke("evolution-proxy", {
-        body: { 
-          action: "qrcode", 
+      // 1. Create instance on Evolution API
+      const { data: createData, error: createError } = await supabase.functions.invoke("evolution-proxy", {
+        body: { action: "create", instance_id: wpInstanceId },
+      });
+      
+      if (createError) throw createError;
+      
+      // Extract auto-generated token
+      const generatedToken = createData?._generated_token || createData?.hash?.apikey || "";
+      
+      // 2. Save to integracoes_whatsapp
+      const { error: insertError } = await supabase.from("integracoes_whatsapp").insert({
+        unidade_id: wpUnidadeId,
+        instance_id: wpInstanceId,
+        token: generatedToken,
+        provedor: "evolution",
+        ativo: true,
+        desconto_etapa1: 5,
+        desconto_etapa2: 10,
+      });
+      if (insertError) throw insertError;
+
+      // 3. Sync with whatsapp_gateway_instances
+      if (empresa?.id) {
+        await supabase.from("whatsapp_gateway_instances").upsert({
+          empresa_id: empresa.id,
+          unidade_id: wpUnidadeId,
+          instance_name: wpInstanceId,
+          engine_url: "global",
+          api_key: generatedToken,
+          status: "disconnected",
+        }, { onConflict: "empresa_id,instance_name" });
+      }
+
+      // 4. Configure webhook automatically
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "scqenurznkatvrqxqjmt";
+      const webhookUrl = `https://${projectId}.supabase.co/functions/v1/evolution-webhook?unidade_id=${wpUnidadeId}&instance=${wpInstanceId}`;
+      
+      await supabase.functions.invoke("evolution-proxy", {
+        body: {
+          action: "webhook",
           instance_id: wpInstanceId,
-          base_url: wpBaseUrl,
-          api_key: wpToken
+          body: {
+            webhook: {
+              enabled: true,
+              url: webhookUrl,
+              webhook_by_events: false,
+              events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "CALL"],
+            },
+          },
         },
       });
 
-      // Se der erro de instância não encontrada, tentamos criar
-      if (error?.message?.includes("not found") || data?.status === 404 || data?.error?.includes("not found") || (data?.status === 400 && data?.message?.includes("not exist"))) {
-        setWpConnectionStatus("Criando instância Evolution...");
-        await supabase.functions.invoke("evolution-proxy", {
-          body: { 
-            action: "create", 
-            instance_id: wpInstanceId,
-            base_url: wpBaseUrl,
-            api_key: wpToken
-          },
-        });
-        
-        // Tenta buscar o QR code novamente após criar
-        const retry = await supabase.functions.invoke("evolution-proxy", {
-          body: { action: "qrcode", instance_id: wpInstanceId, base_url: wpBaseUrl, api_key: wpToken },
-        });
-        
-        if (retry.data?.qrcode) {
-          setWpQrCode(retry.data.qrcode?.base64 || retry.data.qrcode);
-          setWpConnectionStatus("Escaneie o QR Code no seu WhatsApp");
-          startConnectionPolling(wpBaseUrl, wpInstanceId, wpToken);
-          return;
-        }
-      }
-
-      if (error) throw error;
+      toast.success("Conexão criada com sucesso!");
       
-      const qrData = data?.qrcode?.base64 || data?.base64 || data?.qrcode || null;
+      // 5. Show QR code
+      await loadWhatsappConfigs();
+      setWpUnidadeId("");
+      setWpInstanceId("");
       
-      if (qrData) {
-        setWpQrCode(qrData);
-        setWpConnectionStatus("Escaneie o QR Code no seu WhatsApp");
-        // Start polling for status
-        startConnectionPolling(wpBaseUrl, wpInstanceId, wpToken);
-      } else if (data?.instance?.state === "open" || data?.instance?.state === "connected" || data?.state === "open" || data?.state === "connected") {
-        setWpConnectionStatus("Conectado com sucesso! 🎉");
-        setWpQrCode(null);
-        setQrCodeData(null); // Limpa também o outro estado de QR
-        toast.success("WhatsApp já está conectado!");
-      } else {
-        toast.error("Não foi possível gerar o QR Code. Experimente clicar em Conectar novamente.");
-        setWpConnectionStatus("Aguardando comando...");
-      }
+      // Open QR dialog for this new instance
+      const newCfg = { instance_id: wpInstanceId };
+      handleEvolutionConnect(newCfg);
     } catch (err: any) {
-      console.error("Fetch QR error:", err);
-      // Only show error toast if we are not already polling or if it's a critical failure
-      if (err.message?.includes("fetch") || err.name === "AbortError") {
-        setWpConnectionStatus("Servidor Evolution demorando a responder. Verifique se está online.");
-      } else {
-        toast.error("Erro ao solicitar QR Code. Tente novamente.");
-        setWpConnectionStatus("Erro na conexão");
-      }
+      console.error("Create connection error:", err);
+      toast.error(err.message || "Erro ao criar conexão");
     } finally {
-      setWpConnecting(false);
+      setWpCreating(false);
     }
   };
 
-  const startConnectionPolling = (baseUrl: string, instanceId: string, token: string) => {
+  const deleteWhatsappConfig = async (id: string, instanceId: string) => {
+    setDeletingId(id);
+    try {
+      // Delete from Evolution API
+      try {
+        await supabase.functions.invoke("evolution-proxy", {
+          body: { action: "delete", instance_id: instanceId },
+        });
+      } catch {
+        // Ignore deletion errors from Evolution
+      }
+      
+      // Delete from DB
+      await supabase.from("integracoes_whatsapp").delete().eq("id", id);
+      await supabase.from("whatsapp_gateway_instances").delete().eq("instance_name", instanceId);
+      toast.success("Conexão removida.");
+      loadWhatsappConfigs();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const startConnectionPolling = (instanceId: string) => {
     const interval = setInterval(async () => {
       try {
         const { data } = await supabase.functions.invoke("evolution-proxy", {
-          body: { 
-            action: "status", 
-            instance_id: instanceId,
-            base_url: baseUrl,
-            api_key: token
-          },
+          body: { action: "status", instance_id: instanceId },
         });
-        
         const state = data?.instance?.state || data?.state;
         if (state === "open" || state === "connected") {
-          setWpConnectionStatus("Conectado com sucesso! 🎉");
-          setWpQrCode(null);
-          setQrCodeData(null); // Limpa também o outro estado de QR
+          setQrStatus("connected");
+          setQrCodeData(null);
           clearInterval(interval);
           toast.success("WhatsApp conectado!");
           loadWhatsappConfigs();
@@ -716,84 +544,27 @@ export default function Integracoes() {
         console.error("Polling error:", e);
       }
     }, 3000);
-    // Auto-clear after 2 minutes
     setTimeout(() => clearInterval(interval), 120000);
   };
 
-  const editWhatsappConfig = (config: any) => {
-    setWpEditId(config.id);
-    setWpProvedor(config.provedor || "zapi");
-    setWpUnidadeId(config.unidade_id);
-    setWpInstanceId(config.provedor === "meta" ? (config.meta_phone_number_id || config.instance_id) : config.instance_id);
-    setWpToken(config.token);
-    setWpSecurityToken(config.security_token || "");
-    setWpBaseUrl(config.base_url || "");
-    setWpDescontoEtapa1(String(config.desconto_etapa1 ?? 5));
-    setWpDescontoEtapa2(String(config.desconto_etapa2 ?? 10));
-    setWpPrecoMinimoP13(config.preco_minimo_p13 ? String(config.preco_minimo_p13) : "");
-    setWpPrecoMinimoP20(config.preco_minimo_p20 ? String(config.preco_minimo_p20) : "");
-    setWpMetaVerifyToken(config.meta_verify_token || "gasfacil_meta_verify");
-    setWpNomeBot(config.nome_bot || "Bia");
-    setWhatsappDialogOpen(true);
-  };
-
-  const deleteWhatsappConfig = async (id: string) => {
-    await supabase.from("integracoes_whatsapp").delete().eq("id", id);
-    toast.success("Configuração removida.");
-    loadWhatsappConfigs();
-  };
-
-  const handleConfigureWebhook = async () => {
-    if (!wpBaseUrl || !wpInstanceId || !wpToken) {
-      toast.error("Preencha URL, Instance ID e Token primeiro.");
+  const handleOpenConfig = (integracao: Integracao) => {
+    if (integracao.isWhatsapp) {
+      setWhatsappDialogOpen(true);
       return;
     }
-    
-    setWpConfiguringWebhook(true);
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "scqenurznkatvrqxqjmt";
-    const webhookUrl = `https://${projectId}.supabase.co/functions/v1/evolution-webhook?unidade_id=${wpUnidadeId}&instance=${wpInstanceId}`;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke("evolution-proxy", {
-        body: { 
-          action: "webhook", 
-          instance_id: wpInstanceId,
-          base_url: wpBaseUrl,
-          api_key: wpToken,
-          body: {
-            webhook: {
-              enabled: true,
-              url: webhookUrl,
-              webhook_by_events: false,
-              events: [
-                "MESSAGES_UPSERT",
-                "MESSAGES_UPDATE",
-                "MESSAGES_DELETE",
-                "SEND_MESSAGE",
-                "CONNECTION_UPDATE",
-                "CALL"
-              ]
-            }
-          }
-        },
-      });
-      
-      if (error) throw error;
-      
-      if (data?.status === "SUCCESS" || data?.ok || data?.webhook) {
-        toast.success("Webhook configurado com sucesso na Evolution API!");
-        // Also update the nome_bot if needed
-        if (wpNomeBot) await supabase.from("integracoes_whatsapp").update({ nome_bot: wpNomeBot }).eq("id", wpEditId);
-      } else {
-        toast.error(`Erro ao configurar webhook: ${data.message || "Erro desconhecido"}`);
-      }
-    } catch (err: any) {
-      console.error("Webhook config error:", err);
-      toast.error("Falha ao conectar com a Evolution API para configurar o webhook.");
-    } finally {
-      setWpConfiguringWebhook(false);
-    }
+    if (integracao.status === "em_breve") return;
+    setSelectedIntegracao(integracao);
+    resetGenericForm();
+    setConfigOpen(true);
   };
+
+  // Auto-open WhatsApp dialog if requested via URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("open") === "whatsapp") {
+      setWhatsappDialogOpen(true);
+    }
+  }, [whatsappConfigs.length]);
 
   // --- Generic integration handlers ---
   const handleSaveGenericConfig = async () => {
