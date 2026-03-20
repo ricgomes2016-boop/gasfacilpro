@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import {
   Plug, MessageSquare, CreditCard, FileText, Truck, Globe, Webhook,
   CheckCircle2, Settings, Zap, BarChart3, ScanBarcode,
