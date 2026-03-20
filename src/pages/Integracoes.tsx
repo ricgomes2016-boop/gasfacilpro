@@ -313,41 +313,28 @@ export default function Integracoes() {
     setQrInstanceName(cfg.instance_id);
     setQrCodeData(null);
     setQrStatus(null);
-    setWhatsappDialogOpen(false); // Evita sobreposição de janelas
+    setWhatsappDialogOpen(false);
     setQrDialogOpen(true);
     setQrLoading(true);
     try {
-      const baseUrl = cfg.base_url || wpBaseUrl;
-      const apiKey = cfg.token || wpToken;
-
-      // First try to create the instance (idempotent-ish)
+      // Try create first (idempotent)
       try {
         await supabase.functions.invoke("evolution-proxy", {
-          body: { 
-            action: "create", 
-            instance_id: cfg.instance_id, 
-            base_url: baseUrl, 
-            api_key: apiKey 
-          },
+          body: { action: "create", instance_id: cfg.instance_id },
         });
       } catch (err) {
-        // Ignore create errors (usually means instance already exists)
         console.warn("Instance creation warning:", err);
       }
 
-      // Then get QR code
+      // Get QR code
       const { data, error } = await supabase.functions.invoke("evolution-proxy", {
-        body: { 
-          action: "qrcode", 
-          instance_id: cfg.instance_id, 
-          base_url: baseUrl, 
-          api_key: apiKey 
-        },
+        body: { action: "qrcode", instance_id: cfg.instance_id },
       });
       if (error) throw error;
       const qr = data?.qrcode?.base64 || data?.base64 || data?.qrcode || null;
       if (qr) {
         setQrCodeData(qr);
+        startConnectionPolling(cfg.instance_id);
       } else if (data?.instance?.state === "open" || data?.instance?.state === "connected") {
         setQrStatus("connected");
       } else {
