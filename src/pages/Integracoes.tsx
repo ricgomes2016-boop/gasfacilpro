@@ -924,7 +924,7 @@ export default function Integracoes() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog WhatsApp por Unidade */}
+      {/* Dialog WhatsApp — Simplified */}
       <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -933,256 +933,124 @@ export default function Integracoes() {
               Central de WhatsApp
             </DialogTitle>
             <DialogDescription>
-              Gerencie as conexões de WhatsApp das suas unidades. Suporte para Evolution, Z-API, Meta e instâncias In-House.
+              Gerencie as conexões de WhatsApp das suas lojas e filiais.
             </DialogDescription>
           </DialogHeader>
 
-          {/* 1. Provedores Externos Configurados */}
+          {/* Active Connections */}
           {whatsappConfigs.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold flex items-center gap-2">
-                <Globe className="h-4 w-4 text-primary" />
-                Provedores Externos
+                <Smartphone className="h-4 w-4 text-primary" />
+                Conexões Ativas
               </h3>
               <div className="grid gap-2">
-                {whatsappConfigs.map((cfg) => (
-                  <div key={cfg.id} className="flex items-center justify-between p-3 rounded-xl border bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <div className="min-w-0">
-                      <p className="font-bold text-sm">{(cfg as any).unidades?.nome || "Unidade"}</p>
-                      <p className="text-[10px] text-muted-foreground flex items-center gap-2">
-                        <Badge variant="outline" className="text-[9px] h-4 uppercase">{(cfg.provedor || "zapi")}</Badge>
-                        <span className="truncate">ID: {cfg.instance_id}</span>
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {cfg.provedor === "evolution" && (
+                {whatsappConfigs.map((cfg) => {
+                  const connStatus = connectionStatuses[cfg.id] || "disconnected";
+                  const isConnected = connStatus === "open" || connStatus === "connected";
+                  return (
+                    <div key={cfg.id} className="p-3 rounded-xl border bg-card/50 hover:bg-muted/30 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`p-2 rounded-lg ${isConnected ? "bg-green-500/10" : "bg-muted"}`}>
+                            <Smartphone className={`h-5 w-5 ${isConnected ? "text-green-600" : "text-muted-foreground"}`} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold truncate">{cfg.instance_id}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {(cfg as any).unidades?.nome || "Unidade"}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge 
+                          variant={isConnected ? "default" : "secondary"} 
+                          className={`text-[10px] gap-1 shrink-0 ${isConnected ? "bg-green-500/10 text-green-700 border-green-500/20" : ""}`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-green-500" : "bg-muted-foreground"}`} />
+                          {isConnected ? "Conectado" : "Desconectado"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 mt-3 pl-11">
                         <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 text-[10px] gap-1 px-2 font-bold text-primary border-primary/20 bg-primary/5 hover:bg-primary/10" 
+                          variant="outline" size="sm" 
+                          className="h-7 text-[10px] gap-1 px-2 font-bold" 
                           onClick={() => handleEvolutionConnect(cfg)}
                         >
                           <QrCode className="h-3 w-3" />
-                          CONECTAR
+                          {isConnected ? "Reconectar" : "Conectar"}
                         </Button>
-                      )}
-                      <Badge variant={cfg.ativo ? "default" : "secondary"} className="text-[10px] h-5">
-                        {cfg.ativo ? "Ativo" : "Inativo"}
-                      </Badge>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => editWhatsappConfig(cfg)}>
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteWhatsappConfig(cfg.id)}>
-                        <XCircle className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Separator />
-            </div>
-          )}
-
-          {/* 2. Instâncias In-House (Gateway) */}
-          <div className="space-y-4 pt-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <Smartphone className="h-4 w-4 text-primary" />
-                Instâncias In-House (Gateway)
-              </h3>
-              <Button size="sm" variant="outline" className="h-8 gap-2 font-semibold" onClick={handleCreateGateway} disabled={gatewayActionLoading === "create"}>
-                {gatewayActionLoading === "create" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
-                Nova Instância
-              </Button>
-            </div>
-            
-            {gatewayInstances.length === 0 ? (
-              <div className="text-center p-6 border-2 border-dashed rounded-2xl bg-muted/5 flex flex-col items-center gap-2">
-                <Smartphone className="h-6 w-6 text-muted-foreground/30" />
-                <p className="text-xs text-muted-foreground">Nenhuma instância in-house configurada.</p>
-              </div>
-            ) : (
-              <div className="grid gap-3">
-                {gatewayInstances.map((inst) => {
-                  const status = gatewayStatusConfig[inst.status || "disconnected"] || gatewayStatusConfig.disconnected;
-                  const Icon = status.icon;
-                  const isLoading = gatewayActionLoading?.startsWith(inst.instance_name);
-                  
-                  return (
-                    <div key={inst.id} className="p-4 rounded-xl border bg-card/50 flex flex-col gap-3 shadow-sm border-primary/5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-primary/10">
-                            <Smartphone className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-bold leading-none">{inst.instance_name}</p>
-                            <p className="text-[10px] text-muted-foreground mt-1 font-medium">{inst.unidades?.nome || "Unidade não vinculada"}</p>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className={`text-[10px] gap-1 font-bold py-1 ${status.color.replace('bg-', 'text-')} border-current animate-pulse`}>
-                          <Icon className="h-2.5 w-2.5" />
-                          {status.label.toUpperCase()}
-                        </Badge>
-                      </div>
-
-                      <div className="flex items-center gap-2 justify-between mt-1">
-                         <div className="flex items-center gap-2">
-                            <Button variant="secondary" size="sm" className="h-8 text-xs gap-2 font-bold" 
-                                    onClick={() => handleGetGatewayQR(inst.instance_name)}
-                                    disabled={!!gatewayQrLoading}>
-                              {gatewayQrLoading === inst.instance_name ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <QrCode className="h-3.5 w-3.5" />}
-                              QR CODE
-                            </Button>
-                            <Button variant="outline" size="sm" className="h-8 text-xs gap-2" onClick={() => handleViewGatewayMessages(inst)}>
-                              <Eye className="h-4 w-4" />
-                              MENSAGENS
-                            </Button>
-                         </div>
-                         <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-yellow-600 hover:bg-yellow-50" onClick={() => manageGatewayAction(inst.instance_name, "restart")} disabled={isLoading}>
-                              <RefreshCw className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-red-50" onClick={() => manageGatewayAction(inst.instance_name, "delete")} disabled={isLoading}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                         </div>
+                        <Button 
+                          variant="outline" size="sm" 
+                          className="h-7 text-[10px] gap-1 px-2" 
+                          onClick={() => handleEvolutionStatus(cfg)}
+                        >
+                          <Signal className="h-3 w-3" />
+                          Status
+                        </Button>
+                        <Button 
+                          variant="ghost" size="sm" 
+                          className="h-7 text-[10px] gap-1 px-2 text-destructive hover:text-destructive" 
+                          onClick={() => deleteWhatsappConfig(cfg.id, cfg.instance_id)}
+                          disabled={deletingId === cfg.id}
+                        >
+                          {deletingId === cfg.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                          Excluir
+                        </Button>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            )}
-            <Separator />
-          </div>
+              <Separator />
+            </div>
+          )}
 
-          <div className="space-y-5 py-4">
-            <h3 className="text-sm font-bold text-primary px-1">Configuração de Nova Unidade</h3>
+          {/* New Connection Form */}
+          <div className="space-y-4 pt-2">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Plus className="h-4 w-4 text-primary" />
+              Nova Conexão
+            </h3>
             
             <div className="grid gap-4 bg-muted/20 p-4 rounded-2xl border border-primary/10">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold">Provedor</Label>
-                  <Select value={wpProvedor} onValueChange={(v) => setWpProvedor(v as any)}>
-                    <SelectTrigger className="h-10 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="zapi">Z-API (Oficial)</SelectItem>
-                      <SelectItem value="uazapi">UaZapi</SelectItem>
-                      <SelectItem value="meta">Meta Cloud API</SelectItem>
-                      <SelectItem value="evolution">Evolution API</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold">Unidade</Label>
-                  <Select value={wpUnidadeId} onValueChange={setWpUnidadeId}>
-                    <SelectTrigger className="h-10 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {unidades.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold">Filial / Unidade</Label>
+                <Select value={wpUnidadeId} onValueChange={setWpUnidadeId}>
+                  <SelectTrigger className="h-10 text-xs"><SelectValue placeholder="Selecione a unidade..." /></SelectTrigger>
+                  <SelectContent>
+                    {unidades.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-bold">{wpProvedor === 'meta' ? 'Phone Number ID' : 'Instance ID'}</Label>
-                <Input className="h-10 text-xs" value={wpInstanceId} onChange={(e) => setWpInstanceId(e.target.value)} placeholder="Identificador da instância" />
+                <Label className="text-xs font-bold">Nome da Instância</Label>
+                <Input 
+                  className="h-10 text-xs font-mono" 
+                  value={wpInstanceId} 
+                  onChange={(e) => setWpInstanceId(e.target.value)} 
+                  placeholder="Ex: suaempresa_matriz" 
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Gerado automaticamente ao selecionar a unidade. Editável se necessário.
+                </p>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs font-bold">Token de Acesso</Label>
-                <Input className="h-10 text-xs" type="password" value={wpToken} onChange={(e) => setWpToken(e.target.value)} placeholder="API Key ou Token" />
-              </div>
-
-              {wpProvedor === "evolution" && (
-                <div className="space-y-4 p-4 rounded-xl border border-primary/20 bg-primary/5">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-bold text-primary uppercase">Configuração Evolution</span>
-                  </div>
-                  <div className="grid gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-bold text-muted-foreground">URL do Servidor</Label>
-                      <Input 
-                        className="h-9 text-xs"
-                        type="url"
-                        value={wpBaseUrl || "http://187.77.52.241:8000"} 
-                        onChange={(e) => setWpBaseUrl(e.target.value)} 
-                        placeholder="http://seu-ip:8000" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-bold text-muted-foreground">Instância (ID)</Label>
-                      <Input 
-                        className="h-9 text-xs font-mono" 
-                        value={wpInstanceId} 
-                        onChange={(e) => setWpInstanceId(e.target.value)} 
-                        placeholder="Ex: whatsapp_matriz" 
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
+              <Button 
+                onClick={handleCreateConnection} 
+                disabled={wpCreating || !wpUnidadeId || !wpInstanceId} 
+                className="w-full gap-2 font-bold py-5"
+              >
+                {wpCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                Criar Conexão e Gerar QR Code
+              </Button>
             </div>
-
-            <div className="space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Inteligência da Bia</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold">Nome do Agente</Label>
-                  <Input className="h-10 text-xs" value={wpNomeBot} onChange={(e) => setWpNomeBot(e.target.value)} placeholder="Ex: Bia" />
-                </div>
-                <div className="space-y-2">
-                   <Label className="text-xs font-bold">1º Desconto (R$)</Label>
-                   <Input className="h-10 text-xs" type="number" value={wpDescontoEtapa1} onChange={(e) => setWpDescontoEtapa1(e.target.value)} />
-                </div>
-              </div>
-            </div>
-
-            {wpProvedor === "evolution" && wpBaseUrl && wpInstanceId && (
-              <div className="space-y-4 p-5 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5">
-                <div className="flex flex-col items-center gap-4">
-                  {wpQrCode ? (
-                    <div className="p-3 bg-white rounded-2xl shadow-xl ring-8 ring-primary/5">
-                      <img src={wpQrCode} alt="WhatsApp QR Code" className="w-56 h-56" />
-                    </div>
-                  ) : (
-                    <div className="w-56 h-56 bg-muted/50 rounded-2xl flex flex-col items-center justify-center text-center p-6 border-2 border-dashed">
-                      {wpConnecting ? <RefreshCw className="h-10 w-10 text-primary animate-spin" /> : <QrCode className="h-10 w-10 text-muted-foreground/20" />}
-                      <p className="text-xs text-muted-foreground mt-4 font-medium">
-                        {wpConnecting ? "Gerando link seguro..." : "Clique para gerar o QR Code de conexão"}
-                      </p>
-                    </div>
-                  )}
-                  
-                  <div className="flex flex-col gap-2 w-full max-w-xs">
-                    <Button onClick={handleFetchQrCode} disabled={wpConnecting} className="w-full gap-2 font-bold py-6 shadow-lg shadow-primary/20">
-                      {wpConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
-                      {wpQrCode ? "Regerar QR Code" : "Conectar Aparelho"}
-                    </Button>
-                    <Button 
-                      variant="secondary" 
-                      className="w-full gap-2 font-bold py-6" 
-                      onClick={handleConfigureWebhook}
-                      disabled={wpConfiguringWebhook || !wpUnidadeId}
-                    >
-                      {wpConfiguringWebhook ? <Loader2 className="h-4 w-4 animate-spin" /> : <Webhook className="h-4 w-4" />}
-                      Webhook Automático
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
-          <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t gap-2">
-            <Button variant="ghost" onClick={() => { setWhatsappDialogOpen(false); resetWhatsappForm(); }} className="font-semibold">Fechar</Button>
-            <Button onClick={handleSaveWhatsapp} disabled={wpSaving} className="font-bold px-8">
-              {wpSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {wpEditId ? "Salvar Alterações" : "Ativar WhatsApp"}
-            </Button>
+          <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t">
+            <Button variant="ghost" onClick={() => setWhatsappDialogOpen(false)} className="font-semibold">Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1196,7 +1064,7 @@ export default function Integracoes() {
               Conectar WhatsApp
             </DialogTitle>
             <DialogDescription className="font-medium">
-              Vincule seu aparelho para ativar as mensagens automáticas da unidade <strong>{qrInstanceName}</strong>.
+              Vincule seu aparelho para ativar as mensagens automáticas da instância <strong>{qrInstanceName}</strong>.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-6 py-6">
@@ -1207,7 +1075,7 @@ export default function Integracoes() {
               </div>
             ) : qrStatus === "connected" ? (
               <div className="flex flex-col items-center gap-3 py-10 text-center">
-                <div className="bg-green-100 p-4 rounded-full">
+                <div className="bg-green-500/10 p-4 rounded-full">
                   <Wifi className="h-10 w-10 text-green-600" />
                 </div>
                 <p className="text-lg font-bold text-green-700">Conectado com Sucesso!</p>
@@ -1215,7 +1083,7 @@ export default function Integracoes() {
               </div>
             ) : qrCodeData ? (
               <div className="flex flex-col items-center gap-6 w-full">
-                <div className="p-4 bg-white rounded-3xl shadow-2xl ring-8 ring-primary/5 border-2 border-primary/10">
+                <div className="p-4 bg-background rounded-3xl shadow-2xl ring-8 ring-primary/5 border-2 border-primary/10">
                   <img
                     src={qrCodeData.startsWith("data:") ? qrCodeData : `data:image/png;base64,${qrCodeData}`}
                     alt="QR Code WhatsApp"
@@ -1245,49 +1113,6 @@ export default function Integracoes() {
               </div>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Gateway Instances Management Section */}
-      <Dialog open={gatewayMessagesOpen} onOpenChange={setGatewayMessagesOpen}>
-        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0">
-          <DialogHeader className="p-6 pb-0">
-            <DialogTitle className="flex items-center gap-2">
-              <ScrollText className="h-5 w-5" />
-              Histórico de Mensagens — {gatewaySelectedInstance?.instance_name}
-            </DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="flex-1 p-6">
-            <div className="space-y-4">
-              {gatewayLoading ? (
-                <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
-              ) : gatewayMessages.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">Nenhuma mensagem encontrada.</p>
-              ) : (
-                <div className="space-y-2">
-                  {gatewayMessages.map((msg) => (
-                    <div key={msg.id} className={`flex flex-col ${msg.direction === 'out' ? 'items-end' : 'items-start'}`}>
-                      <div className={`max-w-[80%] p-3 rounded-2xl ${msg.direction === 'out' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-muted rounded-tl-none'}`}>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[10px] opacity-70 font-semibold">{msg.phone}</span>
-                          {msg.message_type === 'text' ? (
-                             <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
-                          ) : (
-                             <div className="flex items-center gap-2 text-xs">
-                               <Image className="h-4 w-4" /> Media: {msg.message_type}
-                             </div>
-                          )}
-                          <span className="text-[9px] opacity-50 self-end">
-                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </ScrollArea>
         </DialogContent>
       </Dialog>
     </MainLayout>
