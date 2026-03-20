@@ -15,14 +15,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import {
   Plug, MessageSquare, CreditCard, FileText, Truck, Globe, Webhook,
-  ArrowUpRight, CheckCircle2, Settings, Zap, BarChart3, ScanBarcode,
-  Phone, Mail, Receipt, Shield, Loader2, ExternalLink, AlertTriangle, Building2,
-  QrCode, RefreshCw, XCircle, Smartphone, Plus, Trash2, Power, PowerOff,
-  Signal, SignalZero, Wifi, WifiOff, Code2, Eye,
-  ArrowUpDown, Send, Image, MapPin, Copy, Check, ScrollText,
+  CheckCircle2, Settings, Zap, BarChart3, ScanBarcode,
+  Phone, Mail, Loader2, ExternalLink, AlertTriangle, Building2, Shield,
+  QrCode, RefreshCw, Smartphone, Plus, Trash2,
+  Signal, Wifi, WifiOff,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -45,40 +44,9 @@ interface Integracao {
   configFields?: ConfigField[];
   helpUrl?: string;
   beneficios?: string[];
-  /** Whether this integration uses the legacy integracoes_whatsapp table */
   isWhatsapp?: boolean;
 }
 
-interface GatewayInstance {
-  id: string;
-  empresa_id: string;
-  unidade_id: string;
-  instance_name: string;
-  phone: string | null;
-  status: string;
-  qr_code: string | null;
-  webhook_url: string | null;
-  webhook_secret: string | null;
-  engine_url: string;
-  api_key: string | null;
-  auto_reconnect: boolean;
-  created_at: string;
-  updated_at: string;
-  unidades?: { nome: string };
-  agent_name?: string | null;
-}
-
-interface GatewayMessage {
-  id: string;
-  instance_id: string;
-  phone: string;
-  message: string | null;
-  media_url: string | null;
-  message_type: string;
-  direction: string;
-  status: string;
-  created_at: string;
-}
 
 const integracoes: Integracao[] = [
   {
@@ -262,13 +230,6 @@ const statusConfig = {
   em_breve: { label: "Em breve", variant: "outline" as const, dotColor: "bg-muted-foreground" },
 };
 
-const gatewayStatusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  connected: { label: "Conectado", color: "bg-green-500", icon: Wifi },
-  open: { label: "Conectado", color: "bg-green-500", icon: Wifi },
-  connecting: { label: "Conectando...", color: "bg-yellow-500", icon: RefreshCw },
-  disconnected: { label: "Desconectado", color: "bg-red-500", icon: WifiOff },
-  close: { label: "Desconectado", color: "bg-red-500", icon: WifiOff },
-};
 
 const categoriasLabel: Record<string, { label: string; icon: React.ElementType }> = {
   pagamento: { label: "Pagamento", icon: CreditCard },
@@ -294,67 +255,47 @@ export default function Integracoes() {
   const [configValues, setConfigValues] = useState<Record<string, string>>({});
   const [configEditId, setConfigEditId] = useState<string | null>(null);
 
-  // WhatsApp per-unit config (legacy table)
+  // WhatsApp simplified connection
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [whatsappConfigs, setWhatsappConfigs] = useState<any[]>([]);
-  const [wpProvedor, setWpProvedor] = useState<"zapi" | "uazapi" | "meta" | "evolution">("zapi");
-  const [wpMetaVerifyToken, setWpMetaVerifyToken] = useState("gasfacil_meta_verify");
   const [wpUnidadeId, setWpUnidadeId] = useState("");
   const [wpInstanceId, setWpInstanceId] = useState("");
-  const [wpToken, setWpToken] = useState("");
-  const [wpSecurityToken, setWpSecurityToken] = useState("");
-  const [wpBaseUrl, setWpBaseUrl] = useState("");
-  const [wpDescontoEtapa1, setWpDescontoEtapa1] = useState("5");
-  const [wpDescontoEtapa2, setWpDescontoEtapa2] = useState("10");
-  const [wpPrecoMinimoP13, setWpPrecoMinimoP13] = useState("");
-  const [wpPrecoMinimoP20, setWpPrecoMinimoP20] = useState("");
   const [wpSaving, setWpSaving] = useState(false);
-  const [wpEditId, setWpEditId] = useState<string | null>(null);
+  const [wpCreating, setWpCreating] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [qrInstanceName, setQrInstanceName] = useState("");
   const [qrStatus, setQrStatus] = useState<string | null>(null);
+  const [connectionStatuses, setConnectionStatuses] = useState<Record<string, string>>({});
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleEvolutionConnect = async (cfg: any) => {
     setQrInstanceName(cfg.instance_id);
     setQrCodeData(null);
     setQrStatus(null);
-    setWhatsappDialogOpen(false); // Evita sobreposição de janelas
+    setWhatsappDialogOpen(false);
     setQrDialogOpen(true);
     setQrLoading(true);
     try {
-      const baseUrl = cfg.base_url || wpBaseUrl;
-      const apiKey = cfg.token || wpToken;
-
-      // First try to create the instance (idempotent-ish)
+      // Try create first (idempotent)
       try {
         await supabase.functions.invoke("evolution-proxy", {
-          body: { 
-            action: "create", 
-            instance_id: cfg.instance_id, 
-            base_url: baseUrl, 
-            api_key: apiKey 
-          },
+          body: { action: "create", instance_id: cfg.instance_id },
         });
       } catch (err) {
-        // Ignore create errors (usually means instance already exists)
         console.warn("Instance creation warning:", err);
       }
 
-      // Then get QR code
+      // Get QR code
       const { data, error } = await supabase.functions.invoke("evolution-proxy", {
-        body: { 
-          action: "qrcode", 
-          instance_id: cfg.instance_id, 
-          base_url: baseUrl, 
-          api_key: apiKey 
-        },
+        body: { action: "qrcode", instance_id: cfg.instance_id },
       });
       if (error) throw error;
       const qr = data?.qrcode?.base64 || data?.base64 || data?.qrcode || null;
       if (qr) {
         setQrCodeData(qr);
+        startConnectionPolling(cfg.instance_id);
       } else if (data?.instance?.state === "open" || data?.instance?.state === "connected") {
         setQrStatus("connected");
       } else {
@@ -382,126 +323,27 @@ export default function Integracoes() {
     }
   };
 
-  // QR Code state for Evolution API
-  const [wpQrCode, setWpQrCode] = useState<string | null>(null);
-  const [wpConnecting, setWpConnecting] = useState(false);
-  const [wpConnectionStatus, setWpConnectionStatus] = useState<string | null>(null);
-  const [wpConfiguringWebhook, setWpConfiguringWebhook] = useState(false);
-  const [wpNomeBot, setWpNomeBot] = useState("Bia");
-
-  // Gateway specific states (merged from WhatsAppGateway.tsx)
-  const [gatewayInstances, setGatewayInstances] = useState<GatewayInstance[]>([]);
-  const [gatewayMessagesOpen, setGatewayMessagesOpen] = useState(false);
-  const [gatewaySelectedInstance, setGatewaySelectedInstance] = useState<GatewayInstance | null>(null);
-  const [gatewayMessages, setGatewayMessages] = useState<GatewayMessage[]>([]);
-  const [gatewayLoading, setGatewayLoading] = useState(false);
-  const [gatewayActionLoading, setGatewayActionLoading] = useState<string | null>(null);
-  const [gatewayQrLoading, setGatewayQrLoading] = useState<string | null>(null);
-
-  const callGatewayApi = async (path: string, method = "GET", body?: any) => {
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "scqenurznkatvrqxqjmt";
-    const url = `https://${projectId}.supabase.co/functions/v1/whatsapp-gateway-api${path}`;
-    const session = (await supabase.auth.getSession()).data.session;
-    
-    const resp = await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session?.access_token}`,
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    return resp.json();
-  };
-
-  const loadGatewayInstances = async () => {
-    setGatewayLoading(true);
-    const { data, error } = await supabase
-      .from("whatsapp_gateway_instances")
-      .select("*, unidades(nome)")
-      .order("created_at");
-    if (!error) setGatewayInstances((data as any) || []);
-    setGatewayLoading(false);
-  };
-
-  const handleCreateGateway = async () => {
-    try {
-      setGatewayActionLoading("create");
-      const name = `inst_${Math.random().toString(36).substring(2, 7)}`;
-      const result = await callGatewayApi("/instances/create", "POST", {
-        name,
-        unidade_id: wpUnidadeId,
-      });
-      if (result.success) {
-        toast.success("Instância criada!");
-        await loadGatewayInstances();
-      } else {
-        toast.error(result.message || "Erro ao criar");
-      }
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setGatewayActionLoading(null);
-    }
-  };
-
-  const handleGetGatewayQR = async (instanceName: string) => {
-    try {
-      setGatewayQrLoading(instanceName);
-      const result = await callGatewayApi(`/instances/${instanceName}/qr`);
-      if (result.success && result.qr) {
-        setWpQrCode(result.qr);
-        setWpConnectionStatus("QR Code gerado");
-      } else {
-        toast.error(result.message || "Erro ao obter QR");
-      }
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setGatewayQrLoading(null);
-    }
-  };
-
-  const manageGatewayAction = async (instanceName: string, action: "disconnect" | "restart" | "delete") => {
-    try {
-      setGatewayActionLoading(`${instanceName}-${action}`);
-      const method = action === "delete" ? "DELETE" : "POST";
-      const result = await callGatewayApi(`/instances/${instanceName}/${action}`, method);
-      if (result.success) {
-        toast.success(`Ação ${action} concluída!`);
-        await loadGatewayInstances();
-      } else {
-        toast.error(result.message || `Erro ao ${action}`);
-      }
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setGatewayActionLoading(null);
-    }
-  };
-
-  const handleViewGatewayMessages = async (instance: GatewayInstance) => {
-    try {
-      setGatewaySelectedInstance(instance);
-      setGatewayMessagesOpen(true);
-      setGatewayLoading(true);
-      const result = await callGatewayApi(`/instances/${instance.instance_name}/messages`);
-      if (result.success) {
-        setGatewayMessages(result.messages || []);
-      }
-    } catch (err: any) {
-      toast.error("Erro ao carregar mensagens");
-    } finally {
-      setGatewayLoading(false);
-    }
-  };
-
   const loadWhatsappConfigs = async () => {
     const { data } = await supabase
       .from("integracoes_whatsapp")
       .select("*, unidades(nome)")
       .order("created_at");
     setWhatsappConfigs(data || []);
+
+    // Load connection status for each config
+    for (const cfg of (data || [])) {
+      if (cfg.provedor === "evolution") {
+        try {
+          const { data: statusData } = await supabase.functions.invoke("evolution-proxy", {
+            body: { action: "status", instance_id: cfg.instance_id },
+          });
+          const state = statusData?.instance?.state || statusData?.state || "disconnected";
+          setConnectionStatuses(prev => ({ ...prev, [cfg.id]: state }));
+        } catch {
+          setConnectionStatuses(prev => ({ ...prev, [cfg.id]: "disconnected" }));
+        }
+      }
+    }
   };
 
   const loadGenericConfigs = async () => {
@@ -526,88 +368,9 @@ export default function Integracoes() {
     }
   }, [searchParams]);
 
-  // --- WhatsApp handlers (legacy) ---
-  const handleSaveWhatsapp = async () => {
-    if (!wpUnidadeId || !wpInstanceId || !wpToken) {
-      toast.error("Preencha Unidade, Instance ID e Token.");
-      return;
-    }
-    setWpSaving(true);
-    try {
-      const payload = {
-        unidade_id: wpUnidadeId,
-        instance_id: wpProvedor === "meta" ? (wpInstanceId || "meta") : wpInstanceId,
-        token: wpToken,
-        security_token: wpSecurityToken || null,
-        base_url: wpProvedor === "evolution" ? wpBaseUrl : null,
-        provedor: wpProvedor,
-        desconto_etapa1: parseFloat(wpDescontoEtapa1) || 5,
-        desconto_etapa2: parseFloat(wpDescontoEtapa2) || 10,
-        preco_minimo_p13: wpPrecoMinimoP13 ? parseFloat(wpPrecoMinimoP13) : null,
-        preco_minimo_p20: wpPrecoMinimoP20 ? parseFloat(wpPrecoMinimoP20) : null,
-        ativo: true,
-        meta_phone_number_id: wpProvedor === "meta" ? wpInstanceId : null,
-        meta_verify_token: wpProvedor === "meta" ? wpMetaVerifyToken : null,
-      } as any;
-      if (wpEditId) {
-        const { error } = await supabase.from("integracoes_whatsapp").update(payload).eq("id", wpEditId);
-        if (error) throw error;
-        toast.success("Configuração atualizada!");
-      } else {
-        const { error } = await supabase.from("integracoes_whatsapp").insert(payload);
-        if (error) throw error;
-        toast.success("WhatsApp vinculado à unidade!");
-      }
-
-      // Sync with whatsapp_gateway_instances to enable the proxy
-      if (wpProvedor === "evolution" && empresa?.id) {
-        await supabase.from("whatsapp_gateway_instances").upsert({
-          empresa_id: empresa.id, 
-          unidade_id: wpUnidadeId,
-          instance_name: wpInstanceId,
-          engine_url: wpBaseUrl,
-          api_key: wpToken,
-          status: "disconnected"
-        }, { onConflict: "empresa_id,instance_name" });
-      }
-
-      await loadWhatsappConfigs();
-      resetWhatsappForm();
-      loadGatewayInstances();
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao salvar");
-    } finally {
-      setWpSaving(false);
-    }
-  };
-
-  const resetWhatsappForm = () => {
-    setWpProvedor("evolution");
-    setWpUnidadeId("");
-    
-    setWpInstanceId("");
-    setWpToken("");
-    setWpSecurityToken("");
-    setWpBaseUrl("");
-    setWpDescontoEtapa1("5");
-    setWpDescontoEtapa2("10");
-    
-    if (unidades.length === 1) {
-      setWpUnidadeId(unidades[0].id);
-    }
-    setWpPrecoMinimoP13("");
-    setWpPrecoMinimoP20("");
-    setWpEditId(null);
-    setWpMetaVerifyToken("gasfacil_meta_verify");
-    setWpQrCode(null);
-    setWpConnecting(false);
-    setWpConnectionStatus(null);
-    setWpNomeBot("Bia");
-  };
-
   // Auto-generate instance name based on empresa slug + unidade name
   useEffect(() => {
-    if (wpUnidadeId && empresa?.slug && !wpEditId) {
+    if (wpUnidadeId && empresa?.slug) {
       const unidade = unidades.find(u => u.id === wpUnidadeId);
       if (unidade) {
         const normalizedName = unidade.nome
@@ -619,115 +382,121 @@ export default function Integracoes() {
         setWpInstanceId(`${empresa.slug}_${normalizedName}`);
       }
     }
-  }, [wpUnidadeId, empresa?.slug, wpEditId]);
+  }, [wpUnidadeId, empresa?.slug]);
 
-  // Auto-fetch QR code when dialog opens and it's a new or existing evolution config
-  useEffect(() => {
-    if (whatsappDialogOpen && wpProvedor === "evolution") {
-      if (!wpInstanceId || !wpBaseUrl || !wpToken) return;
-      
-      const timer = setTimeout(() => {
-        handleFetchQrCode();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [whatsappDialogOpen, wpProvedor]);
-
-  const currentWpConfig = wpEditId ? whatsappConfigs.find(c => c.id === wpEditId) : null;
-
-  const handleFetchQrCode = async () => {
-    if (!wpBaseUrl || !wpInstanceId || !wpToken) {
-      console.warn("handleFetchQrCode: Missing required fields (BaseURL, InstanceID or Token)");
+  // --- Simplified WhatsApp: Create Connection ---
+  const handleCreateConnection = async () => {
+    if (!wpUnidadeId || !wpInstanceId) {
+      toast.error("Selecione a unidade e defina o nome da instância.");
       return;
     }
-    setWpConnecting(true);
-    setWpQrCode(null);
-    setWpConnectionStatus("Solicitando QR Code...");
+    setWpCreating(true);
     try {
-      setWpConnectionStatus("Solicitando QR Code...");
-      const { data, error } = await supabase.functions.invoke("evolution-proxy", {
-        body: { 
-          action: "qrcode", 
+      // 1. Create instance on Evolution API
+      const { data: createData, error: createError } = await supabase.functions.invoke("evolution-proxy", {
+        body: { action: "create", instance_id: wpInstanceId },
+      });
+      
+      if (createError) throw createError;
+      
+      // Extract auto-generated token
+      const generatedToken = createData?._generated_token || createData?.hash?.apikey || "";
+      
+      // 2. Save to integracoes_whatsapp
+      const { error: insertError } = await supabase.from("integracoes_whatsapp").insert({
+        unidade_id: wpUnidadeId,
+        instance_id: wpInstanceId,
+        token: generatedToken,
+        provedor: "evolution",
+        ativo: true,
+        desconto_etapa1: 5,
+        desconto_etapa2: 10,
+      });
+      if (insertError) throw insertError;
+
+      // 3. Sync with whatsapp_gateway_instances
+      if (empresa?.id) {
+        await supabase.from("whatsapp_gateway_instances").upsert({
+          empresa_id: empresa.id,
+          unidade_id: wpUnidadeId,
+          instance_name: wpInstanceId,
+          engine_url: "global",
+          api_key: generatedToken,
+          status: "disconnected",
+        }, { onConflict: "empresa_id,instance_name" });
+      }
+
+      // 4. Configure webhook automatically
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "scqenurznkatvrqxqjmt";
+      const webhookUrl = `https://${projectId}.supabase.co/functions/v1/evolution-webhook?unidade_id=${wpUnidadeId}&instance=${wpInstanceId}`;
+      
+      await supabase.functions.invoke("evolution-proxy", {
+        body: {
+          action: "webhook",
           instance_id: wpInstanceId,
-          base_url: wpBaseUrl,
-          api_key: wpToken
+          body: {
+            webhook: {
+              enabled: true,
+              url: webhookUrl,
+              webhook_by_events: false,
+              events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "CALL"],
+            },
+          },
         },
       });
 
-      // Se der erro de instância não encontrada, tentamos criar
-      if (error?.message?.includes("not found") || data?.status === 404 || data?.error?.includes("not found") || (data?.status === 400 && data?.message?.includes("not exist"))) {
-        setWpConnectionStatus("Criando instância Evolution...");
-        await supabase.functions.invoke("evolution-proxy", {
-          body: { 
-            action: "create", 
-            instance_id: wpInstanceId,
-            base_url: wpBaseUrl,
-            api_key: wpToken
-          },
-        });
-        
-        // Tenta buscar o QR code novamente após criar
-        const retry = await supabase.functions.invoke("evolution-proxy", {
-          body: { action: "qrcode", instance_id: wpInstanceId, base_url: wpBaseUrl, api_key: wpToken },
-        });
-        
-        if (retry.data?.qrcode) {
-          setWpQrCode(retry.data.qrcode?.base64 || retry.data.qrcode);
-          setWpConnectionStatus("Escaneie o QR Code no seu WhatsApp");
-          startConnectionPolling(wpBaseUrl, wpInstanceId, wpToken);
-          return;
-        }
-      }
-
-      if (error) throw error;
+      toast.success("Conexão criada com sucesso!");
       
-      const qrData = data?.qrcode?.base64 || data?.base64 || data?.qrcode || null;
+      // 5. Show QR code
+      await loadWhatsappConfigs();
+      setWpUnidadeId("");
+      setWpInstanceId("");
       
-      if (qrData) {
-        setWpQrCode(qrData);
-        setWpConnectionStatus("Escaneie o QR Code no seu WhatsApp");
-        // Start polling for status
-        startConnectionPolling(wpBaseUrl, wpInstanceId, wpToken);
-      } else if (data?.instance?.state === "open" || data?.instance?.state === "connected" || data?.state === "open" || data?.state === "connected") {
-        setWpConnectionStatus("Conectado com sucesso! 🎉");
-        setWpQrCode(null);
-        setQrCodeData(null); // Limpa também o outro estado de QR
-        toast.success("WhatsApp já está conectado!");
-      } else {
-        toast.error("Não foi possível gerar o QR Code. Experimente clicar em Conectar novamente.");
-        setWpConnectionStatus("Aguardando comando...");
-      }
+      // Open QR dialog for this new instance
+      const newCfg = { instance_id: wpInstanceId };
+      handleEvolutionConnect(newCfg);
     } catch (err: any) {
-      console.error("Fetch QR error:", err);
-      // Only show error toast if we are not already polling or if it's a critical failure
-      if (err.message?.includes("fetch") || err.name === "AbortError") {
-        setWpConnectionStatus("Servidor Evolution demorando a responder. Verifique se está online.");
-      } else {
-        toast.error("Erro ao solicitar QR Code. Tente novamente.");
-        setWpConnectionStatus("Erro na conexão");
-      }
+      console.error("Create connection error:", err);
+      toast.error(err.message || "Erro ao criar conexão");
     } finally {
-      setWpConnecting(false);
+      setWpCreating(false);
     }
   };
 
-  const startConnectionPolling = (baseUrl: string, instanceId: string, token: string) => {
+  const deleteWhatsappConfig = async (id: string, instanceId: string) => {
+    setDeletingId(id);
+    try {
+      // Delete from Evolution API
+      try {
+        await supabase.functions.invoke("evolution-proxy", {
+          body: { action: "delete", instance_id: instanceId },
+        });
+      } catch {
+        // Ignore deletion errors from Evolution
+      }
+      
+      // Delete from DB
+      await supabase.from("integracoes_whatsapp").delete().eq("id", id);
+      await supabase.from("whatsapp_gateway_instances").delete().eq("instance_name", instanceId);
+      toast.success("Conexão removida.");
+      loadWhatsappConfigs();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const startConnectionPolling = (instanceId: string) => {
     const interval = setInterval(async () => {
       try {
         const { data } = await supabase.functions.invoke("evolution-proxy", {
-          body: { 
-            action: "status", 
-            instance_id: instanceId,
-            base_url: baseUrl,
-            api_key: token
-          },
+          body: { action: "status", instance_id: instanceId },
         });
-        
         const state = data?.instance?.state || data?.state;
         if (state === "open" || state === "connected") {
-          setWpConnectionStatus("Conectado com sucesso! 🎉");
-          setWpQrCode(null);
-          setQrCodeData(null); // Limpa também o outro estado de QR
+          setQrStatus("connected");
+          setQrCodeData(null);
           clearInterval(interval);
           toast.success("WhatsApp conectado!");
           loadWhatsappConfigs();
@@ -736,84 +505,27 @@ export default function Integracoes() {
         console.error("Polling error:", e);
       }
     }, 3000);
-    // Auto-clear after 2 minutes
     setTimeout(() => clearInterval(interval), 120000);
   };
 
-  const editWhatsappConfig = (config: any) => {
-    setWpEditId(config.id);
-    setWpProvedor(config.provedor || "zapi");
-    setWpUnidadeId(config.unidade_id);
-    setWpInstanceId(config.provedor === "meta" ? (config.meta_phone_number_id || config.instance_id) : config.instance_id);
-    setWpToken(config.token);
-    setWpSecurityToken(config.security_token || "");
-    setWpBaseUrl(config.base_url || "");
-    setWpDescontoEtapa1(String(config.desconto_etapa1 ?? 5));
-    setWpDescontoEtapa2(String(config.desconto_etapa2 ?? 10));
-    setWpPrecoMinimoP13(config.preco_minimo_p13 ? String(config.preco_minimo_p13) : "");
-    setWpPrecoMinimoP20(config.preco_minimo_p20 ? String(config.preco_minimo_p20) : "");
-    setWpMetaVerifyToken(config.meta_verify_token || "gasfacil_meta_verify");
-    setWpNomeBot(config.nome_bot || "Bia");
-    setWhatsappDialogOpen(true);
-  };
-
-  const deleteWhatsappConfig = async (id: string) => {
-    await supabase.from("integracoes_whatsapp").delete().eq("id", id);
-    toast.success("Configuração removida.");
-    loadWhatsappConfigs();
-  };
-
-  const handleConfigureWebhook = async () => {
-    if (!wpBaseUrl || !wpInstanceId || !wpToken) {
-      toast.error("Preencha URL, Instance ID e Token primeiro.");
+  const handleOpenConfig = (integracao: Integracao) => {
+    if (integracao.isWhatsapp) {
+      setWhatsappDialogOpen(true);
       return;
     }
-    
-    setWpConfiguringWebhook(true);
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "scqenurznkatvrqxqjmt";
-    const webhookUrl = `https://${projectId}.supabase.co/functions/v1/evolution-webhook?unidade_id=${wpUnidadeId}&instance=${wpInstanceId}`;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke("evolution-proxy", {
-        body: { 
-          action: "webhook", 
-          instance_id: wpInstanceId,
-          base_url: wpBaseUrl,
-          api_key: wpToken,
-          body: {
-            webhook: {
-              enabled: true,
-              url: webhookUrl,
-              webhook_by_events: false,
-              events: [
-                "MESSAGES_UPSERT",
-                "MESSAGES_UPDATE",
-                "MESSAGES_DELETE",
-                "SEND_MESSAGE",
-                "CONNECTION_UPDATE",
-                "CALL"
-              ]
-            }
-          }
-        },
-      });
-      
-      if (error) throw error;
-      
-      if (data?.status === "SUCCESS" || data?.ok || data?.webhook) {
-        toast.success("Webhook configurado com sucesso na Evolution API!");
-        // Also update the nome_bot if needed
-        if (wpNomeBot) await supabase.from("integracoes_whatsapp").update({ nome_bot: wpNomeBot }).eq("id", wpEditId);
-      } else {
-        toast.error(`Erro ao configurar webhook: ${data.message || "Erro desconhecido"}`);
-      }
-    } catch (err: any) {
-      console.error("Webhook config error:", err);
-      toast.error("Falha ao conectar com a Evolution API para configurar o webhook.");
-    } finally {
-      setWpConfiguringWebhook(false);
-    }
+    if (integracao.status === "em_breve") return;
+    setSelectedIntegracao(integracao);
+    resetGenericForm();
+    setConfigOpen(true);
   };
+
+  // Auto-open WhatsApp dialog if requested via URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("open") === "whatsapp") {
+      setWhatsappDialogOpen(true);
+    }
+  }, [whatsappConfigs.length]);
 
   // --- Generic integration handlers ---
   const handleSaveGenericConfig = async () => {
@@ -888,30 +600,7 @@ export default function Integracoes() {
 
   const filteredCategorias = [...new Set(filteredIntegracoes.map(i => i.categoria))];
 
-  // Auto-open WhatsApp dialog if requested via URL
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("open") === "whatsapp" && whatsappConfigs.length > 0) {
-      // Find the best config to open or just the first one
-      const config = whatsappConfigs[0];
-      editWhatsappConfig(config);
-    } else if (params.get("open") === "whatsapp") {
-      resetWhatsappForm();
-      setWhatsappDialogOpen(true);
-    }
-  }, [whatsappConfigs.length]);
-
-  const handleOpenConfig = (integracao: Integracao) => {
-    if (integracao.isWhatsapp) {
-      resetWhatsappForm();
-      setWhatsappDialogOpen(true);
-      return;
-    }
-    if (integracao.status === "em_breve") return;
-    setSelectedIntegracao(integracao);
-    resetGenericForm();
-    setConfigOpen(true);
-  };
+  // (auto-open handled above in earlier useEffect)
 
   return (
     <MainLayout>
@@ -1196,7 +885,7 @@ export default function Integracoes() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog WhatsApp por Unidade */}
+      {/* Dialog WhatsApp — Simplified */}
       <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1205,256 +894,124 @@ export default function Integracoes() {
               Central de WhatsApp
             </DialogTitle>
             <DialogDescription>
-              Gerencie as conexões de WhatsApp das suas unidades. Suporte para Evolution, Z-API, Meta e instâncias In-House.
+              Gerencie as conexões de WhatsApp das suas lojas e filiais.
             </DialogDescription>
           </DialogHeader>
 
-          {/* 1. Provedores Externos Configurados */}
+          {/* Active Connections */}
           {whatsappConfigs.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold flex items-center gap-2">
-                <Globe className="h-4 w-4 text-primary" />
-                Provedores Externos
+                <Smartphone className="h-4 w-4 text-primary" />
+                Conexões Ativas
               </h3>
               <div className="grid gap-2">
-                {whatsappConfigs.map((cfg) => (
-                  <div key={cfg.id} className="flex items-center justify-between p-3 rounded-xl border bg-muted/30 hover:bg-muted/50 transition-colors">
-                    <div className="min-w-0">
-                      <p className="font-bold text-sm">{(cfg as any).unidades?.nome || "Unidade"}</p>
-                      <p className="text-[10px] text-muted-foreground flex items-center gap-2">
-                        <Badge variant="outline" className="text-[9px] h-4 uppercase">{(cfg.provedor || "zapi")}</Badge>
-                        <span className="truncate">ID: {cfg.instance_id}</span>
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {cfg.provedor === "evolution" && (
+                {whatsappConfigs.map((cfg) => {
+                  const connStatus = connectionStatuses[cfg.id] || "disconnected";
+                  const isConnected = connStatus === "open" || connStatus === "connected";
+                  return (
+                    <div key={cfg.id} className="p-3 rounded-xl border bg-card/50 hover:bg-muted/30 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`p-2 rounded-lg ${isConnected ? "bg-green-500/10" : "bg-muted"}`}>
+                            <Smartphone className={`h-5 w-5 ${isConnected ? "text-green-600" : "text-muted-foreground"}`} />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold truncate">{cfg.instance_id}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {(cfg as any).unidades?.nome || "Unidade"}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge 
+                          variant={isConnected ? "default" : "secondary"} 
+                          className={`text-[10px] gap-1 shrink-0 ${isConnected ? "bg-green-500/10 text-green-700 border-green-500/20" : ""}`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-green-500" : "bg-muted-foreground"}`} />
+                          {isConnected ? "Conectado" : "Desconectado"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 mt-3 pl-11">
                         <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 text-[10px] gap-1 px-2 font-bold text-primary border-primary/20 bg-primary/5 hover:bg-primary/10" 
+                          variant="outline" size="sm" 
+                          className="h-7 text-[10px] gap-1 px-2 font-bold" 
                           onClick={() => handleEvolutionConnect(cfg)}
                         >
                           <QrCode className="h-3 w-3" />
-                          CONECTAR
+                          {isConnected ? "Reconectar" : "Conectar"}
                         </Button>
-                      )}
-                      <Badge variant={cfg.ativo ? "default" : "secondary"} className="text-[10px] h-5">
-                        {cfg.ativo ? "Ativo" : "Inativo"}
-                      </Badge>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => editWhatsappConfig(cfg)}>
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteWhatsappConfig(cfg.id)}>
-                        <XCircle className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Separator />
-            </div>
-          )}
-
-          {/* 2. Instâncias In-House (Gateway) */}
-          <div className="space-y-4 pt-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <Smartphone className="h-4 w-4 text-primary" />
-                Instâncias In-House (Gateway)
-              </h3>
-              <Button size="sm" variant="outline" className="h-8 gap-2 font-semibold" onClick={handleCreateGateway} disabled={gatewayActionLoading === "create"}>
-                {gatewayActionLoading === "create" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
-                Nova Instância
-              </Button>
-            </div>
-            
-            {gatewayInstances.length === 0 ? (
-              <div className="text-center p-6 border-2 border-dashed rounded-2xl bg-muted/5 flex flex-col items-center gap-2">
-                <Smartphone className="h-6 w-6 text-muted-foreground/30" />
-                <p className="text-xs text-muted-foreground">Nenhuma instância in-house configurada.</p>
-              </div>
-            ) : (
-              <div className="grid gap-3">
-                {gatewayInstances.map((inst) => {
-                  const status = gatewayStatusConfig[inst.status || "disconnected"] || gatewayStatusConfig.disconnected;
-                  const Icon = status.icon;
-                  const isLoading = gatewayActionLoading?.startsWith(inst.instance_name);
-                  
-                  return (
-                    <div key={inst.id} className="p-4 rounded-xl border bg-card/50 flex flex-col gap-3 shadow-sm border-primary/5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-primary/10">
-                            <Smartphone className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-bold leading-none">{inst.instance_name}</p>
-                            <p className="text-[10px] text-muted-foreground mt-1 font-medium">{inst.unidades?.nome || "Unidade não vinculada"}</p>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className={`text-[10px] gap-1 font-bold py-1 ${status.color.replace('bg-', 'text-')} border-current animate-pulse`}>
-                          <Icon className="h-2.5 w-2.5" />
-                          {status.label.toUpperCase()}
-                        </Badge>
-                      </div>
-
-                      <div className="flex items-center gap-2 justify-between mt-1">
-                         <div className="flex items-center gap-2">
-                            <Button variant="secondary" size="sm" className="h-8 text-xs gap-2 font-bold" 
-                                    onClick={() => handleGetGatewayQR(inst.instance_name)}
-                                    disabled={!!gatewayQrLoading}>
-                              {gatewayQrLoading === inst.instance_name ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <QrCode className="h-3.5 w-3.5" />}
-                              QR CODE
-                            </Button>
-                            <Button variant="outline" size="sm" className="h-8 text-xs gap-2" onClick={() => handleViewGatewayMessages(inst)}>
-                              <Eye className="h-4 w-4" />
-                              MENSAGENS
-                            </Button>
-                         </div>
-                         <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-yellow-600 hover:bg-yellow-50" onClick={() => manageGatewayAction(inst.instance_name, "restart")} disabled={isLoading}>
-                              <RefreshCw className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-red-50" onClick={() => manageGatewayAction(inst.instance_name, "delete")} disabled={isLoading}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                         </div>
+                        <Button 
+                          variant="outline" size="sm" 
+                          className="h-7 text-[10px] gap-1 px-2" 
+                          onClick={() => handleEvolutionStatus(cfg)}
+                        >
+                          <Signal className="h-3 w-3" />
+                          Status
+                        </Button>
+                        <Button 
+                          variant="ghost" size="sm" 
+                          className="h-7 text-[10px] gap-1 px-2 text-destructive hover:text-destructive" 
+                          onClick={() => deleteWhatsappConfig(cfg.id, cfg.instance_id)}
+                          disabled={deletingId === cfg.id}
+                        >
+                          {deletingId === cfg.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                          Excluir
+                        </Button>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            )}
-            <Separator />
-          </div>
+              <Separator />
+            </div>
+          )}
 
-          <div className="space-y-5 py-4">
-            <h3 className="text-sm font-bold text-primary px-1">Configuração de Nova Unidade</h3>
+          {/* New Connection Form */}
+          <div className="space-y-4 pt-2">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Plus className="h-4 w-4 text-primary" />
+              Nova Conexão
+            </h3>
             
             <div className="grid gap-4 bg-muted/20 p-4 rounded-2xl border border-primary/10">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold">Provedor</Label>
-                  <Select value={wpProvedor} onValueChange={(v) => setWpProvedor(v as any)}>
-                    <SelectTrigger className="h-10 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="zapi">Z-API (Oficial)</SelectItem>
-                      <SelectItem value="uazapi">UaZapi</SelectItem>
-                      <SelectItem value="meta">Meta Cloud API</SelectItem>
-                      <SelectItem value="evolution">Evolution API</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold">Unidade</Label>
-                  <Select value={wpUnidadeId} onValueChange={setWpUnidadeId}>
-                    <SelectTrigger className="h-10 text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      {unidades.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold">Filial / Unidade</Label>
+                <Select value={wpUnidadeId} onValueChange={setWpUnidadeId}>
+                  <SelectTrigger className="h-10 text-xs"><SelectValue placeholder="Selecione a unidade..." /></SelectTrigger>
+                  <SelectContent>
+                    {unidades.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-bold">{wpProvedor === 'meta' ? 'Phone Number ID' : 'Instance ID'}</Label>
-                <Input className="h-10 text-xs" value={wpInstanceId} onChange={(e) => setWpInstanceId(e.target.value)} placeholder="Identificador da instância" />
+                <Label className="text-xs font-bold">Nome da Instância</Label>
+                <Input 
+                  className="h-10 text-xs font-mono" 
+                  value={wpInstanceId} 
+                  onChange={(e) => setWpInstanceId(e.target.value)} 
+                  placeholder="Ex: suaempresa_matriz" 
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Gerado automaticamente ao selecionar a unidade. Editável se necessário.
+                </p>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs font-bold">Token de Acesso</Label>
-                <Input className="h-10 text-xs" type="password" value={wpToken} onChange={(e) => setWpToken(e.target.value)} placeholder="API Key ou Token" />
-              </div>
-
-              {wpProvedor === "evolution" && (
-                <div className="space-y-4 p-4 rounded-xl border border-primary/20 bg-primary/5">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-bold text-primary uppercase">Configuração Evolution</span>
-                  </div>
-                  <div className="grid gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-bold text-muted-foreground">URL do Servidor</Label>
-                      <Input 
-                        className="h-9 text-xs"
-                        type="url"
-                        value={wpBaseUrl || "http://187.77.52.241:8000"} 
-                        onChange={(e) => setWpBaseUrl(e.target.value)} 
-                        placeholder="http://seu-ip:8000" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-bold text-muted-foreground">Instância (ID)</Label>
-                      <Input 
-                        className="h-9 text-xs font-mono" 
-                        value={wpInstanceId} 
-                        onChange={(e) => setWpInstanceId(e.target.value)} 
-                        placeholder="Ex: whatsapp_matriz" 
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
+              <Button 
+                onClick={handleCreateConnection} 
+                disabled={wpCreating || !wpUnidadeId || !wpInstanceId} 
+                className="w-full gap-2 font-bold py-5"
+              >
+                {wpCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                Criar Conexão e Gerar QR Code
+              </Button>
             </div>
-
-            <div className="space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Inteligência da Bia</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold">Nome do Agente</Label>
-                  <Input className="h-10 text-xs" value={wpNomeBot} onChange={(e) => setWpNomeBot(e.target.value)} placeholder="Ex: Bia" />
-                </div>
-                <div className="space-y-2">
-                   <Label className="text-xs font-bold">1º Desconto (R$)</Label>
-                   <Input className="h-10 text-xs" type="number" value={wpDescontoEtapa1} onChange={(e) => setWpDescontoEtapa1(e.target.value)} />
-                </div>
-              </div>
-            </div>
-
-            {wpProvedor === "evolution" && wpBaseUrl && wpInstanceId && (
-              <div className="space-y-4 p-5 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5">
-                <div className="flex flex-col items-center gap-4">
-                  {wpQrCode ? (
-                    <div className="p-3 bg-white rounded-2xl shadow-xl ring-8 ring-primary/5">
-                      <img src={wpQrCode} alt="WhatsApp QR Code" className="w-56 h-56" />
-                    </div>
-                  ) : (
-                    <div className="w-56 h-56 bg-muted/50 rounded-2xl flex flex-col items-center justify-center text-center p-6 border-2 border-dashed">
-                      {wpConnecting ? <RefreshCw className="h-10 w-10 text-primary animate-spin" /> : <QrCode className="h-10 w-10 text-muted-foreground/20" />}
-                      <p className="text-xs text-muted-foreground mt-4 font-medium">
-                        {wpConnecting ? "Gerando link seguro..." : "Clique para gerar o QR Code de conexão"}
-                      </p>
-                    </div>
-                  )}
-                  
-                  <div className="flex flex-col gap-2 w-full max-w-xs">
-                    <Button onClick={handleFetchQrCode} disabled={wpConnecting} className="w-full gap-2 font-bold py-6 shadow-lg shadow-primary/20">
-                      {wpConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
-                      {wpQrCode ? "Regerar QR Code" : "Conectar Aparelho"}
-                    </Button>
-                    <Button 
-                      variant="secondary" 
-                      className="w-full gap-2 font-bold py-6" 
-                      onClick={handleConfigureWebhook}
-                      disabled={wpConfiguringWebhook || !wpUnidadeId}
-                    >
-                      {wpConfiguringWebhook ? <Loader2 className="h-4 w-4 animate-spin" /> : <Webhook className="h-4 w-4" />}
-                      Webhook Automático
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
-          <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t gap-2">
-            <Button variant="ghost" onClick={() => { setWhatsappDialogOpen(false); resetWhatsappForm(); }} className="font-semibold">Fechar</Button>
-            <Button onClick={handleSaveWhatsapp} disabled={wpSaving} className="font-bold px-8">
-              {wpSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {wpEditId ? "Salvar Alterações" : "Ativar WhatsApp"}
-            </Button>
+          <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t">
+            <Button variant="ghost" onClick={() => setWhatsappDialogOpen(false)} className="font-semibold">Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1468,7 +1025,7 @@ export default function Integracoes() {
               Conectar WhatsApp
             </DialogTitle>
             <DialogDescription className="font-medium">
-              Vincule seu aparelho para ativar as mensagens automáticas da unidade <strong>{qrInstanceName}</strong>.
+              Vincule seu aparelho para ativar as mensagens automáticas da instância <strong>{qrInstanceName}</strong>.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-6 py-6">
@@ -1479,7 +1036,7 @@ export default function Integracoes() {
               </div>
             ) : qrStatus === "connected" ? (
               <div className="flex flex-col items-center gap-3 py-10 text-center">
-                <div className="bg-green-100 p-4 rounded-full">
+                <div className="bg-green-500/10 p-4 rounded-full">
                   <Wifi className="h-10 w-10 text-green-600" />
                 </div>
                 <p className="text-lg font-bold text-green-700">Conectado com Sucesso!</p>
@@ -1487,7 +1044,7 @@ export default function Integracoes() {
               </div>
             ) : qrCodeData ? (
               <div className="flex flex-col items-center gap-6 w-full">
-                <div className="p-4 bg-white rounded-3xl shadow-2xl ring-8 ring-primary/5 border-2 border-primary/10">
+                <div className="p-4 bg-background rounded-3xl shadow-2xl ring-8 ring-primary/5 border-2 border-primary/10">
                   <img
                     src={qrCodeData.startsWith("data:") ? qrCodeData : `data:image/png;base64,${qrCodeData}`}
                     alt="QR Code WhatsApp"
@@ -1517,49 +1074,6 @@ export default function Integracoes() {
               </div>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Gateway Instances Management Section */}
-      <Dialog open={gatewayMessagesOpen} onOpenChange={setGatewayMessagesOpen}>
-        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-0">
-          <DialogHeader className="p-6 pb-0">
-            <DialogTitle className="flex items-center gap-2">
-              <ScrollText className="h-5 w-5" />
-              Histórico de Mensagens — {gatewaySelectedInstance?.instance_name}
-            </DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="flex-1 p-6">
-            <div className="space-y-4">
-              {gatewayLoading ? (
-                <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
-              ) : gatewayMessages.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">Nenhuma mensagem encontrada.</p>
-              ) : (
-                <div className="space-y-2">
-                  {gatewayMessages.map((msg) => (
-                    <div key={msg.id} className={`flex flex-col ${msg.direction === 'out' ? 'items-end' : 'items-start'}`}>
-                      <div className={`max-w-[80%] p-3 rounded-2xl ${msg.direction === 'out' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-muted rounded-tl-none'}`}>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[10px] opacity-70 font-semibold">{msg.phone}</span>
-                          {msg.message_type === 'text' ? (
-                             <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
-                          ) : (
-                             <div className="flex items-center gap-2 text-xs">
-                               <Image className="h-4 w-4" /> Media: {msg.message_type}
-                             </div>
-                          )}
-                          <span className="text-[9px] opacity-50 self-end">
-                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </ScrollArea>
         </DialogContent>
       </Dialog>
     </MainLayout>
