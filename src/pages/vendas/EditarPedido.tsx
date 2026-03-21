@@ -108,9 +108,18 @@ export default function EditarPedido() {
       if (clienteSearchRef.current && !clienteSearchRef.current.contains(event.target as Node)) {
         setShowClienteResults(false);
       }
+      if (addressRef.current && !addressRef.current.contains(event.target as Node)) {
+        setShowAddressSuggestions(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current);
+    };
   }, []);
 
   const searchCliente = useCallback((term: string) => {
@@ -141,6 +150,88 @@ export default function EditarPedido() {
     setShowClienteResults(false);
   };
 
+  // ViaCEP resolver (primary CEP source)
+  const resolverCepViaViaCEP = useCallback(async (logradouro: string, cidade?: string, bairroHint?: string): Promise<string | null> => {
+    const uf = unidadeAtual?.estado || "PR";
+    const cidadeUsar = cidade || unidadeAtual?.cidade || "";
+    if (!logradouro || !cidadeUsar) return null;
+    try {
+      const cleanLogradouro = logradouro.replace(/^(Rua|Avenida|Av\.|Travessa|Tv\.|Alameda|Al\.|Praça|Pc\.)\s+/i, "").trim();
+      const searchTerm = cleanLogradouro.length >= 3 ? cleanLogradouro : logradouro;
+      const response = await fetch(
+        `https://viacep.com.br/ws/${encodeURIComponent(uf)}/${encodeURIComponent(cidadeUsar)}/${encodeURIComponent(searchTerm)}/json/`
+      );
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        if (bairroHint) {
+          const normalize = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          const match = data.find((d: any) => normalize(d.bairro || "").includes(normalize(bairroHint)));
+          if (match?.cep) return formatCEP(match.cep);
+        }
+        if (data[0].cep) return formatCEP(data[0].cep);
+      }
+    } catch (e) {
+      console.error("Erro ao buscar CEP via ViaCEP:", e);
+    }
+    return null;
+  }, [unidadeAtual?.estado, unidadeAtual?.cidade]);
+
+  // Address autocomplete via Nominatim
+  const searchAddress = useCallback(async (term: string) => {
+    if (term.length < 3) { setAddressSuggestions([]); setShowAddressSuggestions(false); return; }
+    setIsSearchingAddress(true);
+    try {
+      const cidade = unidadeAtual?.cidade || "";
+      const estado = unidadeAtual?.estado || "";
+      const query = encodeURIComponent(`${term}, ${cidade}, ${estado}`.trim());
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${query}&countrycodes=br&limit=5&addressdetails=1`,
+        { headers: { "Accept-Language": "pt-BR" } }
+      );
+      const data: NominatimResult[] = await response.json();
+      if (data && data.length > 0) {
+        setAddressSuggestions(data);
+        setShowAddressSuggestions(true);
+      } else {
+        setAddressSuggestions([]);
+        setShowAddressSuggestions(false);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar endereço:", error);
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  }, [unidadeAtual?.cidade, unidadeAtual?.estado]);
+
+  const debouncedAddressSearch = useCallback((term: string) => {
+    if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current);
+    if (term.length < 3) { setAddressSuggestions([]); setShowAddressSuggestions(false); return; }
+    addressDebounceRef.current = setTimeout(() => searchAddress(term), 500);
+  }, [searchAddress]);
+
+  const selectAddress = async (result: NominatimResult) => {
+    const addr = result.address || {};
+    const road = addr.road || enderecoFields.endereco;
+    const bairro = addr.suburb || addr.neighbourhood || enderecoFields.bairro;
+    const cidade = addr.city || addr.town || addr.village || unidadeAtual?.cidade || "";
+
+    setEnderecoFields(prev => ({ ...prev, endereco: road, bairro, cidade }));
+    setCoords({ lat: parseFloat(result.lat), lng: parseFloat(result.lon) });
+    setShowAddressSuggestions(false);
+    setAddressSuggestions([]);
+
+    // Resolve CEP via ViaCEP (primary)
+    const cepViaCEP = await resolverCepViaViaCEP(road, cidade, bairro);
+    if (cepViaCEP) {
+      setEnderecoFields(prev => ({ ...prev, cep: cepViaCEP }));
+    } else {
+      const cepNominatim = addr.postcode ? formatCEP(addr.postcode) : "";
+      if (cepNominatim) {
+        setEnderecoFields(prev => ({ ...prev, cep: cepNominatim }));
+      }
+    }
+  };
+
   useEffect(() => {
     if (id) fetchPedido(id);
   }, [id]);
@@ -168,7 +259,6 @@ export default function EditarPedido() {
 
       const cliente = pedidoData.clientes;
 
-      // Populate separate address fields from pedido columns or fallback to client
       const endFields: EnderecoFields = {
         endereco: pedidoData.endereco_entrega || cliente?.endereco || "",
         numero: pedidoData.numero_entrega || cliente?.numero || "",
@@ -222,20 +312,40 @@ export default function EditarPedido() {
 
   const updateField = (field: keyof EnderecoFields, value: string) => {
     setEnderecoFields((prev) => ({ ...prev, [field]: value }));
+    if (field === "endereco") {
+      setCoords({ lat: null, lng: null });
+      debouncedAddressSearch(value);
+    }
   };
 
   const handleAddressBlur = async () => {
-    const addr = [enderecoFields.endereco, enderecoFields.numero, enderecoFields.bairro, enderecoFields.cidade].filter(Boolean).join(", ");
-    if (addr.length < 5) return;
+    if (!enderecoFields.endereco || enderecoFields.endereco.length < 3) return;
     setIsGeocoding(true);
-    const result = await geocodeAddress(addr);
-    if (result) {
-      setCoords({ lat: result.latitude, lng: result.longitude });
-      setEnderecoFields((prev) => ({
-        ...prev,
-        bairro: prev.bairro || result.bairro || "",
-        cep: prev.cep || result.cep || "",
-      }));
+    try {
+      const cidade = unidadeAtual?.cidade || enderecoFields.cidade;
+      const estado = unidadeAtual?.estado || "";
+      const fullAddress = [enderecoFields.endereco, enderecoFields.numero, enderecoFields.bairro, cidade, estado].filter(Boolean).join(", ");
+
+      if (!coords.lat || !coords.lng) {
+        const result = await geocodeAddress(fullAddress);
+        if (result) {
+          setCoords({ lat: result.latitude, lng: result.longitude });
+          setEnderecoFields(prev => ({
+            ...prev,
+            bairro: prev.bairro || result.bairro || "",
+          }));
+        }
+      }
+
+      // Always resolve CEP via ViaCEP if not set or generic
+      if (!enderecoFields.cep || enderecoFields.cep.replace(/\D/g, "").endsWith("000")) {
+        const cep = await resolverCepViaViaCEP(enderecoFields.endereco, cidade, enderecoFields.bairro);
+        if (cep) {
+          setEnderecoFields(prev => ({ ...prev, cep }));
+        }
+      }
+    } catch (e) {
+      console.error("Erro no blur do endereço:", e);
     }
     setIsGeocoding(false);
   };
