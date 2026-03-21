@@ -1,33 +1,34 @@
 
 
-# Melhorias no Campo de Cliente e Endereço na Nova Venda
+# Corrigir: Clicar no resultado da busca de cliente não funciona
 
-## Problemas Identificados
+## Problema
 
-1. **Nome não grava**: Na `handleFinalizar` (linha 643), o campo `cidade` está sempre `null` (`cidade: customer.bairro ? null : null`). Além disso, o `CustomerSearch` não passa `cidade` no `CustomerData`, então o auto-cadastro nunca salva a cidade do cliente.
+O dropdown de resultados (linhas 433-451) está renderizado **fora** do `searchRef` (linhas 368-431). Quando o usuário clica em um resultado:
 
-2. **Campo de busca/nome**: O campo "Nome do Cliente" já funciona como busca e nome ao mesmo tempo — busca enquanto digita, e se não encontrar, usa o texto como nome para auto-cadastro. Vamos manter assim (conforme sua preferência), mas melhorar o feedback visual.
+1. Evento `mousedown` dispara primeiro
+2. `handleClickOutside` detecta que o clique está fora de `searchRef`
+3. Seta `showResults = false` — dropdown some
+4. O `onClick` do botão nunca executa
 
-3. **Endereço sem autocomplete**: O campo endereço atual usa apenas geocoding por coordenadas no blur. Não tem autocomplete com sugestões enquanto digita. A tela de Cadastro de Clientes já tem essa funcionalidade (Nominatim + cidade da unidade como contexto).
+## Solução
 
-## Alterações Planejadas
+**Arquivo:** `src/components/vendas/CustomerSearch.tsx`
 
-### 1. Corrigir auto-cadastro do cliente (NovaVenda.tsx)
-- Linha 643: trocar `cidade: customer.bairro ? null : null` por `cidade: unidadeAtual?.cidade || null`
-- Garantir que o nome digitado no campo seja salvo corretamente no cadastro
+Mover o bloco de resultados do autocomplete (linhas 433-451) para **dentro** do `div` com `ref={searchRef}` (antes do fechamento na linha 431). Assim, clicar nos resultados não será detectado como "click outside".
 
-### 2. Adicionar autocomplete de endereço no CustomerSearch
-Replicar o padrão já existente em `CadastroClientes.tsx`:
-- Ao digitar no campo endereço, buscar via Nominatim com a cidade da unidade como contexto padrão
-- Mostrar dropdown com sugestões de endereço
-- Ao selecionar, preencher automaticamente: endereço, bairro, CEP, latitude e longitude
-- Debounce de 500ms para não sobrecarregar a API
+Alternativa mais simples: trocar o `onClick` dos botões de resultado para `onMouseDown` com `e.preventDefault()`, igual ao que já é feito nos resultados de endereço (linha 510). Isso garante que o clique é capturado antes do blur/mousedown fechar o dropdown.
 
-### 3. Feedback visual no campo nome/busca
-- Mostrar ícone de loading enquanto busca
-- Mostrar mensagem "Nenhum cliente encontrado — será cadastrado automaticamente" quando a busca não retorna resultados e há texto digitado
+**Abordagem escolhida:** Usar `onMouseDown` + `preventDefault` nos botões de resultado do cliente (consistente com o padrão já usado no dropdown de endereço).
 
-### Arquivos modificados
-- `src/components/vendas/CustomerSearch.tsx` — autocomplete de endereço via Nominatim + feedback no campo nome
-- `src/pages/vendas/NovaVenda.tsx` — corrigir cidade no auto-cadastro (1 linha)
+### Alteração
+Linha 441: trocar `onClick={() => selectCliente(cliente)}` por:
+```typescript
+onMouseDown={(e) => {
+  e.preventDefault();
+  selectCliente(cliente);
+}}
+```
+
+Uma linha resolve o problema.
 
