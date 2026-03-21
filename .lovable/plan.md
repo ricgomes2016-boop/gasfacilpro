@@ -1,34 +1,22 @@
 
 
-# Corrigir: Clicar no resultado da busca de cliente não funciona
+# Trocar "Repetir última venda" por "Nova Venda" com modal
 
-## Problema
+## O que muda
 
-O dropdown de resultados (linhas 433-451) está renderizado **fora** do `searchRef` (linhas 368-431). Quando o usuário clica em um resultado:
+Na tela Nova Venda (`/vendas/nova`), substituir o botão "Repetir última venda" por um botão "Nova Venda" que abre um modal fullscreen com uma nova instância da tela de vendas — reutilizando o `NovaVendaModal` que já existe no projeto.
 
-1. Evento `mousedown` dispara primeiro
-2. `handleClickOutside` detecta que o clique está fora de `searchRef`
-3. Seta `showResults = false` — dropdown some
-4. O `onClick` do botão nunca executa
+## Alterações
 
-## Solução
+### Arquivo: `src/pages/vendas/NovaVenda.tsx`
 
-**Arquivo:** `src/components/vendas/CustomerSearch.tsx`
+1. **Remover** a função `handleRepetirUltimaVenda` e a importação de `RotateCcw`
+2. **Adicionar** estado `const [showNovaVendaModal, setShowNovaVendaModal] = useState(false)`
+3. **Importar** `NovaVendaModal` de `@/components/vendas/NovaVendaModal`
+4. **Substituir** o botão (linha 895-898):
+   - De: `Repetir última venda` com ícone `RotateCcw`
+   - Para: `Nova Venda` com ícone `PlusCircle`, que seta `showNovaVendaModal = true`
+5. **Renderizar** `<NovaVendaModal open={showNovaVendaModal} onClose={() => setShowNovaVendaModal(false)} />` no final do componente
 
-Mover o bloco de resultados do autocomplete (linhas 433-451) para **dentro** do `div` com `ref={searchRef}` (antes do fechamento na linha 431). Assim, clicar nos resultados não será detectado como "click outside".
-
-Alternativa mais simples: trocar o `onClick` dos botões de resultado para `onMouseDown` com `e.preventDefault()`, igual ao que já é feito nos resultados de endereço (linha 510). Isso garante que o clique é capturado antes do blur/mousedown fechar o dropdown.
-
-**Abordagem escolhida:** Usar `onMouseDown` + `preventDefault` nos botões de resultado do cliente (consistente com o padrão já usado no dropdown de endereço).
-
-### Alteração
-Linha 441: trocar `onClick={() => selectCliente(cliente)}` por:
-```typescript
-onMouseDown={(e) => {
-  e.preventDefault();
-  selectCliente(cliente);
-}}
-```
-
-Uma linha resolve o problema.
+O modal já existe e funciona em fullscreen — nenhum componente novo é necessário.
 
