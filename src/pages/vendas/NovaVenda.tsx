@@ -544,63 +544,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const totalVenda = itens.reduce((acc, item) => acc + item.total, 0);
 
 
-  // #7 - Repeat last sale
-  const handleRepetirUltimaVenda = async () => {
-    try {
-      const { data: ultimoPedido } = await supabase
-        .from("pedidos")
-        .select(`
-          *,
-          clientes (id, nome, telefone, endereco, bairro, cep),
-          pedido_itens (produto_id, quantidade, preco_unitario, produtos (id, nome))
-        `)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (!ultimoPedido) {
-        toast({ title: "Nenhuma venda anterior", variant: "destructive" });
-        return;
-      }
-
-      const cliente = ultimoPedido.clientes;
-      if (cliente) {
-        setCustomer({
-          id: cliente.id,
-          nome: cliente.nome,
-          telefone: cliente.telefone || "",
-          endereco: cliente.endereco || "",
-          numero: "",
-          complemento: "",
-          bairro: cliente.bairro || "",
-          cep: cliente.cep || "",
-          observacao: ultimoPedido.observacoes || "",
-        });
-      }
-
-      const itensUltimo: ItemVenda[] = (ultimoPedido.pedido_itens || []).map((item: any) => ({
-        id: crypto.randomUUID(),
-        produto_id: item.produto_id,
-        nome: item.produtos?.nome || "Produto",
-        quantidade: item.quantidade,
-        preco_unitario: Number(item.preco_unitario),
-        total: item.quantidade * Number(item.preco_unitario),
-      }));
-      setItens(itensUltimo);
-
-      if (ultimoPedido.forma_pagamento) {
-        const totalItens = itensUltimo.reduce((a, i) => a + i.total, 0);
-        setPagamentos([{ id: crypto.randomUUID(), forma: ultimoPedido.forma_pagamento.split(",")[0].trim(), valor: totalItens }]);
-      }
-
-      if (ultimoPedido.canal_venda) setCanalVenda(ultimoPedido.canal_venda);
-
-      toast({ title: "Última venda carregada!", description: `Dados de ${cliente?.nome || "cliente"} foram preenchidos.` });
-    } catch (error: any) {
-      console.error("Erro ao repetir venda:", error);
-      toast({ title: "Erro ao carregar", description: "Não foi possível carregar a última venda.", variant: "destructive" });
-    }
-  };
+  // Nova Venda modal state
+  const [showNovaVendaModal, setShowNovaVendaModal] = useState(false);
 
   const handleSelecionarEntregador = (id: string, nome: string) => {
     setEntregador({ id, nome });
