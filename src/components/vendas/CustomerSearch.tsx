@@ -42,6 +42,21 @@ interface CustomerSearchProps {
   onChange: (data: CustomerData) => void;
 }
 
+interface NominatimResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+  address?: {
+    road?: string;
+    suburb?: string;
+    neighbourhood?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    postcode?: string;
+  };
+}
+
 export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
   const { unidadeAtual } = useUnidade();
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
@@ -50,8 +65,13 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
+  const [addressSuggestions, setAddressSuggestions] = useState<NominatimResult[]>([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const addressRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const addressDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const [unidadeClienteIds, setUnidadeClienteIds] = useState<string[] | null>(null);
 
   // Fetch cliente IDs for current unidade
@@ -69,11 +89,14 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
       });
   }, [unidadeAtual?.id]);
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setShowResults(false);
+      }
+      if (addressRef.current && !addressRef.current.contains(event.target as Node)) {
+        setShowAddressSuggestions(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -121,7 +144,6 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
           setShowResults(data.length > 0);
         }
       } else if (field === "nome") {
-        // Busca inteligente: tenta encontrar termos no nome, endereço, bairro ou número
         const terms = term.trim().split(/\s+/).filter(t => t.length >= 2);
         if (terms.length === 0) {
           setSearchResults([]);
@@ -130,7 +152,6 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
           return;
         }
 
-        // Para performance, usamos o termo mais longo para filtrar no servidor primeiro
         const serverTerm = [...terms].sort((a, b) => b.length - a.length)[0];
 
         let query = supabase
@@ -159,7 +180,6 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
               cliente.telefone || "",
             ].join(" "));
             
-            // Garantir que todos os termos digitados estejam presentes em qualquer ordem nos campos concatenados
             return terms.every(t => searchable.includes(normalize(t)));
           }).slice(0, 10);
 
@@ -188,11 +208,55 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     }, 300);
   }, [executeSearch]);
 
+  // Address autocomplete via Nominatim
+  const searchAddress = useCallback(async (term: string) => {
+    if (term.length < 3) {
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      return;
+    }
+
+    setIsSearchingAddress(true);
+    try {
+      const cityContext = unidadeAtual?.cidade || "";
+      const query = encodeURIComponent(`${term}, ${cityContext}`.trim());
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${query}&countrycodes=br&limit=5&addressdetails=1`,
+        { headers: { "Accept-Language": "pt-BR" } }
+      );
+      const data: NominatimResult[] = await response.json();
+      if (data && data.length > 0) {
+        setAddressSuggestions(data);
+        setShowAddressSuggestions(true);
+      } else {
+        setAddressSuggestions([]);
+        setShowAddressSuggestions(false);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar endereço:", error);
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  }, [unidadeAtual?.cidade]);
+
+  const debouncedAddressSearch = useCallback((term: string) => {
+    if (addressDebounceRef.current) {
+      clearTimeout(addressDebounceRef.current);
+    }
+    if (term.length < 3) {
+      setAddressSuggestions([]);
+      setShowAddressSuggestions(false);
+      return;
+    }
+    addressDebounceRef.current = setTimeout(() => {
+      searchAddress(term);
+    }, 500);
+  }, [searchAddress]);
+
   useEffect(() => {
     return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current);
     };
   }, []);
 
@@ -211,6 +275,20 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     setSearchResults([]);
   };
 
+  const selectAddress = (result: NominatimResult) => {
+    const addr = result.address || {};
+    onChange({
+      ...value,
+      endereco: addr.road || value.endereco,
+      bairro: addr.suburb || addr.neighbourhood || value.bairro,
+      cep: addr.postcode ? formatCEP(addr.postcode) : value.cep,
+      latitude: parseFloat(result.lat),
+      longitude: parseFloat(result.lon),
+    });
+    setShowAddressSuggestions(false);
+    setAddressSuggestions([]);
+  };
+
   const handleFieldChange = (field: keyof CustomerData, fieldValue: string) => {
     onChange({ ...value, [field]: fieldValue, id: field === "nome" || field === "telefone" ? null : value.id });
   };
@@ -219,6 +297,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
   const handleAddressBlur = async () => {
     const fullAddress = [value.endereco, value.numero, value.bairro, value.cep].filter(Boolean).join(", ");
     if (fullAddress.length < 5) return;
+    if (value.latitude && value.longitude) return; // already geocoded
 
     setIsGeocoding(true);
     const result = await geocodeAddress(fullAddress);
@@ -273,8 +352,11 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     }
   };
 
+  // Show "new client" feedback
+  const showNewClientHint = !isSearching && value.nome.trim().length >= 2 && !value.id && !showResults;
+
   return (
-    <Card ref={searchRef}>
+    <Card>
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-base">
           <User className="h-5 w-5" />
@@ -283,7 +365,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Search Row */}
-        <div className="flex gap-3">
+        <div className="flex gap-3" ref={searchRef}>
           <div className="flex-1 relative">
             <Label className="text-xs text-muted-foreground">Telefone</Label>
             <div className="relative">
@@ -301,16 +383,26 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
               />
             </div>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 relative">
             <Label className="text-xs text-muted-foreground">Nome do Cliente</Label>
-            <Input
-              placeholder="Nome do cliente"
-              value={value.nome}
-              onChange={(e) => {
-                handleFieldChange("nome", e.target.value);
-                searchClientes(e.target.value, "nome");
-              }}
-            />
+            <div className="relative">
+              <Input
+                placeholder="Nome do cliente"
+                value={value.nome}
+                onChange={(e) => {
+                  handleFieldChange("nome", e.target.value);
+                  searchClientes(e.target.value, "nome");
+                }}
+              />
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
+            {showNewClientHint && (
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                ✨ Novo cliente — será cadastrado automaticamente
+              </p>
+            )}
           </div>
           <Button
             variant="outline"
@@ -328,6 +420,8 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
                 bairro: "",
                 cep: "",
                 observacao: "",
+                latitude: null,
+                longitude: null,
               });
             }}
             title="Novo cliente (limpar campos)"
@@ -358,7 +452,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
 
         {/* Address Row */}
         <div className="grid gap-3 md:grid-cols-4">
-          <div className="md:col-span-3 relative">
+          <div className="md:col-span-3 relative" ref={addressRef}>
             <Label className="text-xs text-muted-foreground">Endereço</Label>
             <div className="relative flex gap-1">
               <div className="relative flex-1">
@@ -368,10 +462,20 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
                   value={value.endereco}
                   onChange={(e) => {
                     handleFieldChange("endereco", e.target.value);
+                    debouncedAddressSearch(e.target.value);
                   }}
-                  onBlur={handleAddressBlur}
+                  onBlur={() => {
+                    // delay to allow click on suggestion
+                    setTimeout(() => {
+                      setShowAddressSuggestions(false);
+                      handleAddressBlur();
+                    }, 200);
+                  }}
                   className="pl-10"
                 />
+                {isSearchingAddress && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                )}
               </div>
               <Button
                 variant="outline"
@@ -387,6 +491,23 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
                 )}
               </Button>
             </div>
+            {/* Address suggestions dropdown */}
+            {showAddressSuggestions && addressSuggestions.length > 0 && (
+              <div className="absolute z-50 left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-48 overflow-y-auto">
+                {addressSuggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    className="w-full px-4 py-2.5 text-left hover:bg-accent transition-colors border-b border-border last:border-0"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      selectAddress(s);
+                    }}
+                  >
+                    <p className="text-sm truncate">{s.display_name}</p>
+                  </button>
+                ))}
+              </div>
+            )}
             {value.latitude && value.longitude && (
               <p className="text-[10px] text-muted-foreground mt-1">
                 📍 {value.latitude.toFixed(5)}, {value.longitude.toFixed(5)}

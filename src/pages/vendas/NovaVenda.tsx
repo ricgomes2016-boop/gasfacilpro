@@ -640,7 +640,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             endereco: customer.endereco || null,
             numero: customer.numero || null,
             bairro: customer.bairro || null,
-            cidade: customer.bairro ? null : null,
+            cidade: unidadeAtual?.cidade || null,
             cep: customer.cep || null,
             tipo: "residencial",
             ativo: true,
