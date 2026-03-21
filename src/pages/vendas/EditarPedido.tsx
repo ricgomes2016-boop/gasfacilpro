@@ -435,6 +435,20 @@ export default function EditarPedido() {
       const { error: insertError } = await supabase.from("pedido_itens").insert(novosItens);
       if (insertError) throw insertError;
 
+      // Sync client data back to clientes table
+      if (pedido.cliente_id) {
+        await supabase.from("clientes").update({
+          nome: pedido.cliente_nome,
+          endereco: enderecoFields.endereco || null,
+          numero: enderecoFields.numero || null,
+          bairro: enderecoFields.bairro || null,
+          cidade: enderecoFields.cidade || null,
+          cep: enderecoFields.cep || null,
+          latitude: coords.lat,
+          longitude: coords.lng,
+        }).eq("id", pedido.cliente_id);
+      }
+
       toast({ title: "Pedido atualizado!", description: `Pedido #${id.slice(0, 6)} foi salvo com sucesso.` });
       navigate("/vendas/pedidos");
     } catch (error: any) {
