@@ -529,10 +529,19 @@ export default function EditarPedido() {
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <User className="h-5 w-5" />
-                    Cliente: {pedido.cliente_nome}
+                    Cliente
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-3">
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs">Nome do Cliente</Label>
+                    <Input
+                      value={pedido.cliente_nome}
+                      onChange={(e) => setPedido(prev => prev ? { ...prev, cliente_nome: e.target.value } : prev)}
+                      placeholder="Nome do cliente"
+                      disabled={isDisabled}
+                    />
+                  </div>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -546,12 +555,15 @@ export default function EditarPedido() {
                       disabled={isDisabled}
                     />
                     {showClienteResults && clienteResults.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
+                      <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
                         {clienteResults.map((c) => (
                           <button
                             key={c.id}
                             className="w-full px-4 py-3 text-left hover:bg-accent transition-colors border-b border-border last:border-0"
-                            onClick={() => selectCliente(c)}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              selectCliente(c);
+                            }}
                           >
                             <p className="font-medium text-sm">{c.nome}</p>
                             <p className="text-xs text-muted-foreground">
@@ -575,17 +587,26 @@ export default function EditarPedido() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-4 gap-3">
-                    <div className="col-span-3 grid gap-1.5">
+                    <div className="col-span-3 grid gap-1.5 relative" ref={addressRef}>
                       <Label className="text-xs">Logradouro</Label>
                       <div className="flex gap-1">
-                        <Input
-                          value={enderecoFields.endereco}
-                          onChange={(e) => updateField("endereco", e.target.value)}
-                          onBlur={handleAddressBlur}
-                          placeholder="Rua, Avenida..."
-                          className="flex-1"
-                          disabled={isDisabled}
-                        />
+                        <div className="relative flex-1">
+                          <Input
+                            value={enderecoFields.endereco}
+                            onChange={(e) => updateField("endereco", e.target.value)}
+                            onBlur={() => {
+                              setTimeout(() => {
+                                setShowAddressSuggestions(false);
+                                handleAddressBlur();
+                              }, 200);
+                            }}
+                            placeholder="Rua, Avenida..."
+                            disabled={isDisabled}
+                          />
+                          {isSearchingAddress && (
+                            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                          )}
+                        </div>
                         <Button
                           variant="outline"
                           size="icon"
@@ -596,6 +617,23 @@ export default function EditarPedido() {
                           {isGeocoding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Map className="h-4 w-4" />}
                         </Button>
                       </div>
+                      {/* Address suggestions dropdown */}
+                      {showAddressSuggestions && addressSuggestions.length > 0 && (
+                        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-48 overflow-y-auto">
+                          {addressSuggestions.map((s, i) => (
+                            <button
+                              key={i}
+                              className="w-full px-4 py-2.5 text-left hover:bg-accent transition-colors border-b border-border last:border-0"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                selectAddress(s);
+                              }}
+                            >
+                              <p className="text-sm truncate">{s.display_name}</p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="grid gap-1.5">
                       <Label className="text-xs">Nº</Label>
