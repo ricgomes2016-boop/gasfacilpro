@@ -208,6 +208,37 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     }, 300);
   }, [executeSearch]);
 
+  // Resolve CEP via ViaCEP (primary source for Brazilian addresses)
+  const resolverCepViaViaCEP = useCallback(async (logradouro: string, cidade?: string, bairroHint?: string): Promise<string | null> => {
+    const uf = unidadeAtual?.estado || "PR";
+    const cidadeUsar = cidade || unidadeAtual?.cidade || "";
+    if (!logradouro || !cidadeUsar) return null;
+
+    try {
+      // Extract just the street name without type prefix for better matching
+      const cleanLogradouro = logradouro.replace(/^(Rua|Avenida|Av\.|Travessa|Tv\.|Alameda|Al\.|Praça|Pc\.)\s+/i, "").trim();
+      const searchTerm = cleanLogradouro.length >= 3 ? cleanLogradouro : logradouro;
+      
+      const response = await fetch(
+        `https://viacep.com.br/ws/${encodeURIComponent(uf)}/${encodeURIComponent(cidadeUsar)}/${encodeURIComponent(searchTerm)}/json/`
+      );
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        // If we have a bairro hint, try to find exact match
+        if (bairroHint) {
+          const normalize = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          const match = data.find((d: any) => normalize(d.bairro || "").includes(normalize(bairroHint)));
+          if (match?.cep) return formatCEP(match.cep);
+        }
+        // Otherwise return first result
+        if (data[0].cep) return formatCEP(data[0].cep);
+      }
+    } catch (e) {
+      console.error("Erro ao buscar CEP via ViaCEP:", e);
+    }
+    return null;
+  }, [unidadeAtual?.estado, unidadeAtual?.cidade]);
+
   // Address autocomplete via Nominatim
   const searchAddress = useCallback(async (term: string) => {
     if (term.length < 3) {
@@ -218,8 +249,9 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
 
     setIsSearchingAddress(true);
     try {
-      const cityContext = unidadeAtual?.cidade || "";
-      const query = encodeURIComponent(`${term}, ${cityContext}`.trim());
+      const cidade = unidadeAtual?.cidade || "";
+      const estado = unidadeAtual?.estado || "";
+      const query = encodeURIComponent(`${term}, ${cidade}, ${estado}`.trim());
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${query}&countrycodes=br&limit=5&addressdetails=1`,
         { headers: { "Accept-Language": "pt-BR" } }
@@ -237,7 +269,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     } finally {
       setIsSearchingAddress(false);
     }
-  }, [unidadeAtual?.cidade]);
+  }, [unidadeAtual?.cidade, unidadeAtual?.estado]);
 
   const debouncedAddressSearch = useCallback((term: string) => {
     if (addressDebounceRef.current) {
@@ -275,87 +307,87 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     setSearchResults([]);
   };
 
-  const buscarCEPPorEndereco = async (logradouro: string, cidade: string): Promise<string | null> => {
-    try {
-      const uf = unidadeAtual?.estado || "SP";
-      const response = await fetch(
-        `https://viacep.com.br/ws/${encodeURIComponent(uf)}/${encodeURIComponent(cidade)}/${encodeURIComponent(logradouro)}/json/`
-      );
-      const data = await response.json();
-      if (Array.isArray(data) && data.length > 0 && data[0].cep) {
-        return formatCEP(data[0].cep);
-      }
-    } catch (e) {
-      console.error("Erro ao buscar CEP por endereço:", e);
-    }
-    return null;
-  };
-
   const selectAddress = async (result: NominatimResult) => {
     const addr = result.address || {};
-    const cepFromNominatim = addr.postcode ? formatCEP(addr.postcode) : "";
     const road = addr.road || value.endereco;
     const bairro = addr.suburb || addr.neighbourhood || value.bairro;
     const cidade = addr.city || addr.town || addr.village || unidadeAtual?.cidade || "";
 
+    // Set address fields immediately (without CEP yet)
     const baseUpdate = {
       ...value,
       endereco: road,
       bairro,
-      cep: cepFromNominatim || value.cep,
       latitude: parseFloat(result.lat),
       longitude: parseFloat(result.lon),
     };
-
-    onChange(baseUpdate);
+    onChange({ ...baseUpdate, cep: value.cep }); // keep old CEP while resolving
     setShowAddressSuggestions(false);
     setAddressSuggestions([]);
 
-    // Fallback: buscar CEP via ViaCEP se Nominatim não retornou
-    if (!cepFromNominatim && addr.road && cidade) {
-      const cep = await buscarCEPPorEndereco(addr.road, cidade);
-      if (cep) {
-        onChange({ ...baseUpdate, cep });
+    // Always resolve CEP via ViaCEP (primary source)
+    const cepViaCEP = await resolverCepViaViaCEP(road, cidade, bairro);
+    if (cepViaCEP) {
+      onChange({ ...baseUpdate, cep: cepViaCEP });
+    } else {
+      // Fallback: use Nominatim postcode if ViaCEP failed
+      const cepNominatim = addr.postcode ? formatCEP(addr.postcode) : "";
+      if (cepNominatim) {
+        onChange({ ...baseUpdate, cep: cepNominatim });
       }
     }
   };
 
   const handleFieldChange = (field: keyof CustomerData, fieldValue: string) => {
-    onChange({ ...value, [field]: fieldValue, id: field === "nome" || field === "telefone" ? null : value.id });
+    const updates: Partial<CustomerData> = { [field]: fieldValue };
+    if (field === "nome" || field === "telefone") updates.id = null;
+    // Clear coords when address is edited so blur re-validates
+    if (field === "endereco") {
+      updates.latitude = null;
+      updates.longitude = null;
+    }
+    onChange({ ...value, ...updates });
   };
 
-  // Geocode address on blur
+  // Geocode address on blur — always re-validate CEP
   const handleAddressBlur = async () => {
-    const fullAddress = [value.endereco, value.numero, value.bairro, value.cep].filter(Boolean).join(", ");
-    if (fullAddress.length < 5) return;
-    if (value.latitude && value.longitude) return; // already geocoded
+    if (!value.endereco || value.endereco.length < 3) return;
 
     setIsGeocoding(true);
-    const result = await geocodeAddress(fullAddress);
-    if (result) {
-      const updatedCep = value.cep || (result.cep ? formatCEP(result.cep) : "");
-      const baseUpdate = {
-        ...value,
-        latitude: result.latitude,
-        longitude: result.longitude,
-        bairro: value.bairro || result.bairro || "",
-        cep: updatedCep,
-      };
-      onChange(baseUpdate);
+    try {
+      // Build full address with unit city/state context
+      const cidade = unidadeAtual?.cidade || "";
+      const estado = unidadeAtual?.estado || "";
+      const fullAddress = [value.endereco, value.numero, value.bairro, cidade, estado].filter(Boolean).join(", ");
 
-      // Fallback ViaCEP se ainda sem CEP
-      if (!updatedCep && value.endereco && unidadeAtual?.cidade) {
-        const cep = await buscarCEPPorEndereco(value.endereco, unidadeAtual.cidade);
-        if (cep) {
-          onChange({ ...baseUpdate, cep });
+      // Geocode if no coords
+      if (!value.latitude || !value.longitude) {
+        const result = await geocodeAddress(fullAddress);
+        if (result) {
+          onChange({
+            ...value,
+            latitude: result.latitude,
+            longitude: result.longitude,
+            bairro: value.bairro || result.bairro || "",
+          });
         }
       }
-    } else if (!value.cep && value.endereco && unidadeAtual?.cidade) {
-      // Geocoding falhou mas tenta buscar CEP via ViaCEP
-      const cep = await buscarCEPPorEndereco(value.endereco, unidadeAtual.cidade);
-      if (cep) {
-        onChange({ ...value, cep });
+
+      // Always resolve CEP via ViaCEP if not set or generic
+      if (!value.cep || value.cep.replace(/\D/g, "").endsWith("000")) {
+        const cep = await resolverCepViaViaCEP(value.endereco, cidade, value.bairro);
+        if (cep) {
+          onChange({
+            ...value,
+            latitude: value.latitude,
+            longitude: value.longitude,
+            bairro: value.bairro,
+            cep,
+          });
+        }
       }
+    } catch (e) {
+      console.error("Erro no blur do endereço:", e);
     }
     setIsGeocoding(false);
   };
