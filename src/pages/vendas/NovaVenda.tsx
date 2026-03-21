@@ -1052,13 +1052,14 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   );
 
   if (embedded) {
-    return vendaContent;
+    return <>{vendaContent}{novaVendaModalElement}</>;
   }
 
   return (
     <MainLayout>
       <Header title="Nova Venda" subtitle={unidadeAtual?.nome || "Carregando..."} />
       {vendaContent}
+      {novaVendaModalElement}
     </MainLayout>
   );
 }
