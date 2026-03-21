@@ -298,14 +298,16 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     const bairro = addr.suburb || addr.neighbourhood || value.bairro;
     const cidade = addr.city || addr.town || addr.village || unidadeAtual?.cidade || "";
 
-    onChange({
+    const baseUpdate = {
       ...value,
       endereco: road,
       bairro,
       cep: cepFromNominatim || value.cep,
       latitude: parseFloat(result.lat),
       longitude: parseFloat(result.lon),
-    });
+    };
+
+    onChange(baseUpdate);
     setShowAddressSuggestions(false);
     setAddressSuggestions([]);
 
@@ -313,14 +315,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     if (!cepFromNominatim && addr.road && cidade) {
       const cep = await buscarCEPPorEndereco(addr.road, cidade);
       if (cep) {
-        onChange({
-          ...value,
-          endereco: road,
-          bairro,
-          cep,
-          latitude: parseFloat(result.lat),
-          longitude: parseFloat(result.lon),
-        });
+        onChange({ ...baseUpdate, cep });
       }
     }
   };
