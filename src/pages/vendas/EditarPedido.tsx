@@ -19,7 +19,23 @@ import { PedidoStatus } from "@/types/pedido";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { geocodeAddress } from "@/lib/geocoding";
 import { MapPickerDialog } from "@/components/ui/map-picker-dialog";
+import { formatCEP } from "@/hooks/useInputMasks";
 import type { GeocodingResult } from "@/lib/geocoding";
+
+interface NominatimResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+  address?: {
+    road?: string;
+    suburb?: string;
+    neighbourhood?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    postcode?: string;
+  };
+}
 
 interface PedidoData {
   id: string;
