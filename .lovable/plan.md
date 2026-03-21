@@ -1,22 +1,42 @@
 
 
-# Trocar "Repetir última venda" por "Nova Venda" com modal
+# Corrigir: CEP nao atualiza ao digitar/selecionar endereco
 
-## O que muda
+## Problemas encontrados
 
-Na tela Nova Venda (`/vendas/nova`), substituir o botão "Repetir última venda" por um botão "Nova Venda" que abre um modal fullscreen com uma nova instância da tela de vendas — reutilizando o `NovaVendaModal` que já existe no projeto.
+1. **`selectAddress`** (ao clicar sugestao): depende de `addr.postcode` do Nominatim, que frequentemente vem vazio para enderecos brasileiros
+2. **`handleAddressBlur`** (ao sair do campo): faz geocoding mas nunca atualiza o CEP — so atualiza lat/lng e bairro
 
-## Alterações
+## Solucao
 
-### Arquivo: `src/pages/vendas/NovaVenda.tsx`
+### Arquivo: `src/components/vendas/CustomerSearch.tsx`
 
-1. **Remover** a função `handleRepetirUltimaVenda` e a importação de `RotateCcw`
-2. **Adicionar** estado `const [showNovaVendaModal, setShowNovaVendaModal] = useState(false)`
-3. **Importar** `NovaVendaModal` de `@/components/vendas/NovaVendaModal`
-4. **Substituir** o botão (linha 895-898):
-   - De: `Repetir última venda` com ícone `RotateCcw`
-   - Para: `Nova Venda` com ícone `PlusCircle`, que seta `showNovaVendaModal = true`
-5. **Renderizar** `<NovaVendaModal open={showNovaVendaModal} onClose={() => setShowNovaVendaModal(false)} />` no final do componente
+**1. `handleAddressBlur`** — adicionar CEP do resultado do geocoding:
+```typescript
+onChange({
+  ...value,
+  latitude: result.latitude,
+  longitude: result.longitude,
+  bairro: value.bairro || result.bairro || "",
+  cep: value.cep || (result.cep ? formatCEP(result.cep) : ""),
+});
+```
 
-O modal já existe e funciona em fullscreen — nenhum componente novo é necessário.
+**2. `selectAddress`** — quando Nominatim nao retorna `postcode`, fazer fallback buscando CEP via ViaCEP usando o logradouro + cidade:
+- Apos preencher endereco/bairro/lat/lng da sugestao
+- Se `postcode` estiver vazio e tiver `road` + cidade, buscar CEP via ViaCEP search API (`https://viacep.com.br/ws/{UF}/{cidade}/{logradouro}/json/`)
+- Preencher o CEP automaticamente com o primeiro resultado
+
+**3. Criar funcao auxiliar `buscarCEPPorEndereco`**:
+```typescript
+const buscarCEPPorEndereco = async (logradouro: string, cidade: string) => {
+  // usa API ViaCEP de busca por endereco
+  // retorna o primeiro CEP encontrado
+};
+```
+
+Isso garante que o CEP sera preenchido em todos os cenarios: clicando na sugestao, saindo do campo, ou via mapa.
+
+### Resumo de alteracoes
+- `src/components/vendas/CustomerSearch.tsx` — 3 pontos: handleAddressBlur, selectAddress, nova funcao buscarCEPPorEndereco
 
