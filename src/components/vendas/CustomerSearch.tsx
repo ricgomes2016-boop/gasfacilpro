@@ -275,18 +275,54 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     setSearchResults([]);
   };
 
-  const selectAddress = (result: NominatimResult) => {
+  const buscarCEPPorEndereco = async (logradouro: string, cidade: string): Promise<string | null> => {
+    try {
+      const uf = unidadeAtual?.estado || "SP";
+      const response = await fetch(
+        `https://viacep.com.br/ws/${encodeURIComponent(uf)}/${encodeURIComponent(cidade)}/${encodeURIComponent(logradouro)}/json/`
+      );
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0 && data[0].cep) {
+        return formatCEP(data[0].cep);
+      }
+    } catch (e) {
+      console.error("Erro ao buscar CEP por endereço:", e);
+    }
+    return null;
+  };
+
+  const selectAddress = async (result: NominatimResult) => {
     const addr = result.address || {};
+    const cepFromNominatim = addr.postcode ? formatCEP(addr.postcode) : "";
+    const road = addr.road || value.endereco;
+    const bairro = addr.suburb || addr.neighbourhood || value.bairro;
+    const cidade = addr.city || addr.town || addr.village || unidadeAtual?.cidade || "";
+
     onChange({
       ...value,
-      endereco: addr.road || value.endereco,
-      bairro: addr.suburb || addr.neighbourhood || value.bairro,
-      cep: addr.postcode ? formatCEP(addr.postcode) : value.cep,
+      endereco: road,
+      bairro,
+      cep: cepFromNominatim || value.cep,
       latitude: parseFloat(result.lat),
       longitude: parseFloat(result.lon),
     });
     setShowAddressSuggestions(false);
     setAddressSuggestions([]);
+
+    // Fallback: buscar CEP via ViaCEP se Nominatim não retornou
+    if (!cepFromNominatim && addr.road && cidade) {
+      const cep = await buscarCEPPorEndereco(addr.road, cidade);
+      if (cep) {
+        onChange({
+          ...value,
+          endereco: road,
+          bairro,
+          cep,
+          latitude: parseFloat(result.lat),
+          longitude: parseFloat(result.lon),
+        });
+      }
+    }
   };
 
   const handleFieldChange = (field: keyof CustomerData, fieldValue: string) => {
