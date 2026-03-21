@@ -333,13 +333,29 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     setIsGeocoding(true);
     const result = await geocodeAddress(fullAddress);
     if (result) {
-      onChange({
+      const updatedCep = value.cep || (result.cep ? formatCEP(result.cep) : "");
+      const baseUpdate = {
         ...value,
         latitude: result.latitude,
         longitude: result.longitude,
         bairro: value.bairro || result.bairro || "",
-        cep: value.cep || (result.cep ? formatCEP(result.cep) : ""),
-      });
+        cep: updatedCep,
+      };
+      onChange(baseUpdate);
+
+      // Fallback ViaCEP se ainda sem CEP
+      if (!updatedCep && value.endereco && unidadeAtual?.cidade) {
+        const cep = await buscarCEPPorEndereco(value.endereco, unidadeAtual.cidade);
+        if (cep) {
+          onChange({ ...baseUpdate, cep });
+        }
+      }
+    } else if (!value.cep && value.endereco && unidadeAtual?.cidade) {
+      // Geocoding falhou mas tenta buscar CEP via ViaCEP
+      const cep = await buscarCEPPorEndereco(value.endereco, unidadeAtual.cidade);
+      if (cep) {
+        onChange({ ...value, cep });
+      }
     }
     setIsGeocoding(false);
   };
