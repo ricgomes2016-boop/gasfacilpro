@@ -1047,6 +1047,10 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     </>
   );
 
+  const novaVendaModalElement = (
+    <NovaVendaModal open={showNovaVendaModal} onClose={() => setShowNovaVendaModal(false)} />
+  );
+
   if (embedded) {
     return vendaContent;
   }
