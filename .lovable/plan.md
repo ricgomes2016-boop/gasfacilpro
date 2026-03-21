@@ -1,48 +1,33 @@
 
 
-# Corrigir: Bia nao reconhece audio
+# Melhorias no Campo de Cliente e Endereço na Nova Venda
 
-## Problema
+## Problemas Identificados
 
-A funcao `transcribeAudio` em `bia-core.ts` envia o audio usando o formato `input_audio` do OpenAI, mas o modelo configurado e `google/gemini-3-flash-preview`. O gateway Lovable AI com modelos Gemini **nao suporta o content type `input_audio`** — esse formato e exclusivo dos modelos OpenAI com suporte nativo a audio.
+1. **Nome não grava**: Na `handleFinalizar` (linha 643), o campo `cidade` está sempre `null` (`cidade: customer.bairro ? null : null`). Além disso, o `CustomerSearch` não passa `cidade` no `CustomerData`, então o auto-cadastro nunca salva a cidade do cliente.
 
-Codigo atual (linha 786-790):
-```json
-{
-  "type": "input_audio",
-  "input_audio": { "data": "base64...", "format": "ogg" }
-}
-```
+2. **Campo de busca/nome**: O campo "Nome do Cliente" já funciona como busca e nome ao mesmo tempo — busca enquanto digita, e se não encontrar, usa o texto como nome para auto-cadastro. Vamos manter assim (conforme sua preferência), mas melhorar o feedback visual.
 
-Gemini espera midia inline via `image_url` com data URI, que funciona para qualquer tipo de midia (imagem, audio, video):
-```json
-{
-  "type": "image_url",
-  "image_url": { "url": "data:audio/ogg;base64,..." }
-}
-```
+3. **Endereço sem autocomplete**: O campo endereço atual usa apenas geocoding por coordenadas no blur. Não tem autocomplete com sugestões enquanto digita. A tela de Cadastro de Clientes já tem essa funcionalidade (Nominatim + cidade da unidade como contexto).
 
-## Solucao
+## Alterações Planejadas
 
-**Arquivo:** `supabase/functions/_shared/bia-core.ts` — funcao `transcribeAudio`
+### 1. Corrigir auto-cadastro do cliente (NovaVenda.tsx)
+- Linha 643: trocar `cidade: customer.bairro ? null : null` por `cidade: unidadeAtual?.cidade || null`
+- Garantir que o nome digitado no campo seja salvo corretamente no cadastro
 
-Alterar o formato do content block de `input_audio` para `image_url` com data URI base64, que e o formato compativel com Gemini via API OpenAI-compatible:
+### 2. Adicionar autocomplete de endereço no CustomerSearch
+Replicar o padrão já existente em `CadastroClientes.tsx`:
+- Ao digitar no campo endereço, buscar via Nominatim com a cidade da unidade como contexto padrão
+- Mostrar dropdown com sugestões de endereço
+- Ao selecionar, preencher automaticamente: endereço, bairro, CEP, latitude e longitude
+- Debounce de 500ms para não sobrecarregar a API
 
-```typescript
-content: [
-  {
-    type: "image_url",
-    image_url: { url: `data:${mimeType};base64,${audioBase64}` },
-  },
-  {
-    type: "text",
-    text: "Transcreva EXATAMENTE o que a pessoa disse neste áudio...",
-  },
-],
-```
-
-Tambem adicionar `max_tokens: 2000` para garantir resposta completa.
+### 3. Feedback visual no campo nome/busca
+- Mostrar ícone de loading enquanto busca
+- Mostrar mensagem "Nenhum cliente encontrado — será cadastrado automaticamente" quando a busca não retorna resultados e há texto digitado
 
 ### Arquivos modificados
-- `supabase/functions/_shared/bia-core.ts` — apenas a funcao `transcribeAudio` (~5 linhas)
+- `src/components/vendas/CustomerSearch.tsx` — autocomplete de endereço via Nominatim + feedback no campo nome
+- `src/pages/vendas/NovaVenda.tsx` — corrigir cidade no auto-cadastro (1 linha)
 
