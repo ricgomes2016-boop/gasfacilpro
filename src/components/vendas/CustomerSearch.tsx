@@ -343,6 +343,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
         latitude: result.latitude,
         longitude: result.longitude,
         bairro: value.bairro || result.bairro || "",
+        cep: value.cep || (result.cep ? formatCEP(result.cep) : ""),
       });
     }
     setIsGeocoding(false);
