@@ -104,19 +104,6 @@ export interface MenuItem {
 
 export const menuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  {
-    icon: Megaphone,
-    label: "Marketing",
-    submenu: [
-      { icon: BarChart3, label: "Dashboard", path: "/marketing" },
-      { icon: Sparkles, label: "Criar Conteúdo IA", path: "/clientes/marketing" },
-      { icon: FileText, label: "Biblioteca", path: "/marketing/conteudos" },
-      { icon: CalendarDays, label: "Agendamentos", path: "/marketing/agendamentos" },
-      { icon: Plug, label: "Redes Sociais", path: "/marketing/redes-sociais" },
-      { icon: MessageSquare, label: "Atendimento IA", path: "/marketing/atendimento" },
-      { icon: Megaphone, label: "Campanhas", path: "/clientes/campanhas" },
-    ],
-  },
   { icon: Brain, label: "Assistente IA", path: "/assistente-ia" },
   {
     icon: Phone,
@@ -180,6 +167,19 @@ export const menuItems: MenuItem[] = [
       { icon: Trophy, label: "Ranking dos Clientes", path: "/clientes/ranking" },
       { icon: ShieldAlert, label: "Gestão de Crédito", path: "/clientes/credito" },
       { icon: Smartphone, label: "Aplicativo do Cliente", path: "/clientes/aplicativo" },
+    ],
+  },
+  {
+    icon: Megaphone,
+    label: "Gestão de Marketing",
+    submenu: [
+      { icon: BarChart3, label: "Dashboard", path: "/marketing" },
+      { icon: Sparkles, label: "Criar Conteúdo IA", path: "/clientes/marketing" },
+      { icon: FileText, label: "Biblioteca", path: "/marketing/conteudos" },
+      { icon: CalendarDays, label: "Agendamentos", path: "/marketing/agendamentos" },
+      { icon: Plug, label: "Redes Sociais", path: "/marketing/redes-sociais" },
+      { icon: MessageSquare, label: "Atendimento IA", path: "/marketing/atendimento" },
+      { icon: Megaphone, label: "Campanhas", path: "/clientes/campanhas" },
     ],
   },
   {
