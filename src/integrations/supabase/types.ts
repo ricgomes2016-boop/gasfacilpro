@@ -4701,6 +4701,378 @@ export type Database = {
           },
         ]
       }
+      marketing_agendamentos: {
+        Row: {
+          conteudo_id: string | null
+          created_at: string
+          criado_por: string | null
+          data_agendamento: string
+          empresa_id: string
+          hashtags: string | null
+          id: string
+          midia_url: string | null
+          plataforma: string
+          resultado_publicacao: Json | null
+          social_account_id: string | null
+          status: string
+          texto: string | null
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          conteudo_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_agendamento: string
+          empresa_id: string
+          hashtags?: string | null
+          id?: string
+          midia_url?: string | null
+          plataforma: string
+          resultado_publicacao?: Json | null
+          social_account_id?: string | null
+          status?: string
+          texto?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          conteudo_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_agendamento?: string
+          empresa_id?: string
+          hashtags?: string | null
+          id?: string
+          midia_url?: string | null
+          plataforma?: string
+          resultado_publicacao?: Json | null
+          social_account_id?: string | null
+          status?: string
+          texto?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_agendamentos_conteudo_id_fkey"
+            columns: ["conteudo_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_conteudos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_agendamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_agendamentos_social_account_id_fkey"
+            columns: ["social_account_id"]
+            isOneToOne: false
+            referencedRelation: "social_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_agendamentos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_conteudos: {
+        Row: {
+          conteudo: string | null
+          created_at: string
+          criado_por: string | null
+          empresa_id: string
+          favorito: boolean
+          hashtags: string | null
+          id: string
+          midia_url: string | null
+          plataforma: string | null
+          tipo: string
+          titulo: string | null
+          tom: string | null
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          conteudo?: string | null
+          created_at?: string
+          criado_por?: string | null
+          empresa_id: string
+          favorito?: boolean
+          hashtags?: string | null
+          id?: string
+          midia_url?: string | null
+          plataforma?: string | null
+          tipo?: string
+          titulo?: string | null
+          tom?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          conteudo?: string | null
+          created_at?: string
+          criado_por?: string | null
+          empresa_id?: string
+          favorito?: boolean
+          hashtags?: string | null
+          id?: string
+          midia_url?: string | null
+          plataforma?: string | null
+          tipo?: string
+          titulo?: string | null
+          tom?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_conteudos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_conteudos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_conversas: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          empresa_id: string
+          fluxo_id: string | null
+          id: string
+          intencao_detectada: string | null
+          mensagens: Json | null
+          metadata: Json | null
+          nome_contato: string | null
+          plataforma: string
+          status: string
+          telefone: string | null
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          empresa_id: string
+          fluxo_id?: string | null
+          id?: string
+          intencao_detectada?: string | null
+          mensagens?: Json | null
+          metadata?: Json | null
+          nome_contato?: string | null
+          plataforma?: string
+          status?: string
+          telefone?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          empresa_id?: string
+          fluxo_id?: string | null
+          id?: string
+          intencao_detectada?: string | null
+          mensagens?: Json | null
+          metadata?: Json | null
+          nome_contato?: string | null
+          plataforma?: string
+          status?: string
+          telefone?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_conversas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_conversas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_conversas_fluxo_id_fkey"
+            columns: ["fluxo_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_fluxos_atendimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_conversas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_fluxos_atendimento: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string
+          id: string
+          intencao: string
+          mensagem_inicial: string | null
+          nome: string
+          passos: Json | null
+          transferir_humano: boolean
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id: string
+          id?: string
+          intencao: string
+          mensagem_inicial?: string | null
+          nome: string
+          passos?: Json | null
+          transferir_humano?: boolean
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          intencao?: string
+          mensagem_inicial?: string | null
+          nome?: string
+          passos?: Json | null
+          transferir_humano?: boolean
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_fluxos_atendimento_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_fluxos_atendimento_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_metricas: {
+        Row: {
+          agendamento_id: string | null
+          alcance: number | null
+          cliques: number | null
+          comentarios: number | null
+          compartilhamentos: number | null
+          conversoes: number | null
+          created_at: string
+          curtidas: number | null
+          data_metrica: string
+          empresa_id: string
+          id: string
+          impressoes: number | null
+          pedidos_gerados: number | null
+          plataforma: string
+          social_account_id: string | null
+          unidade_id: string | null
+        }
+        Insert: {
+          agendamento_id?: string | null
+          alcance?: number | null
+          cliques?: number | null
+          comentarios?: number | null
+          compartilhamentos?: number | null
+          conversoes?: number | null
+          created_at?: string
+          curtidas?: number | null
+          data_metrica?: string
+          empresa_id: string
+          id?: string
+          impressoes?: number | null
+          pedidos_gerados?: number | null
+          plataforma: string
+          social_account_id?: string | null
+          unidade_id?: string | null
+        }
+        Update: {
+          agendamento_id?: string | null
+          alcance?: number | null
+          cliques?: number | null
+          comentarios?: number | null
+          compartilhamentos?: number | null
+          conversoes?: number | null
+          created_at?: string
+          curtidas?: number | null
+          data_metrica?: string
+          empresa_id?: string
+          id?: string
+          impressoes?: number | null
+          pedidos_gerados?: number | null
+          plataforma?: string
+          social_account_id?: string | null
+          unidade_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_metricas_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_metricas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_metricas_social_account_id_fkey"
+            columns: ["social_account_id"]
+            isOneToOne: false
+            referencedRelation: "social_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_metricas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mdfe_nfes_vinculadas: {
         Row: {
           chave_acesso: string
@@ -6720,6 +7092,69 @@ export type Database = {
           },
           {
             foreignKeyName: "sla_config_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_accounts: {
+        Row: {
+          ativo: boolean
+          avatar_url: string | null
+          created_at: string
+          empresa_id: string
+          id: string
+          nome_conta: string
+          plataforma: string
+          refresh_token: string | null
+          token: string | null
+          token_expires_at: string | null
+          unidade_id: string | null
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          avatar_url?: string | null
+          created_at?: string
+          empresa_id: string
+          id?: string
+          nome_conta: string
+          plataforma: string
+          refresh_token?: string | null
+          token?: string | null
+          token_expires_at?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          avatar_url?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome_conta?: string
+          plataforma?: string
+          refresh_token?: string | null
+          token?: string | null
+          token_expires_at?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_accounts_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_accounts_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"

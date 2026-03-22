@@ -104,6 +104,19 @@ export interface MenuItem {
 
 export const menuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
+  {
+    icon: Megaphone,
+    label: "Marketing",
+    submenu: [
+      { icon: BarChart3, label: "Dashboard", path: "/marketing" },
+      { icon: Sparkles, label: "Criar Conteúdo IA", path: "/clientes/marketing" },
+      { icon: FileText, label: "Biblioteca", path: "/marketing/conteudos" },
+      { icon: CalendarDays, label: "Agendamentos", path: "/marketing/agendamentos" },
+      { icon: Plug, label: "Redes Sociais", path: "/marketing/redes-sociais" },
+      { icon: MessageSquare, label: "Atendimento IA", path: "/marketing/atendimento" },
+      { icon: Megaphone, label: "Campanhas", path: "/clientes/campanhas" },
+    ],
+  },
   { icon: Brain, label: "Assistente IA", path: "/assistente-ia" },
   {
     icon: Phone,
@@ -159,10 +172,8 @@ export const menuItems: MenuItem[] = [
     label: "Gestão de Clientes",
     submenu: [
       { icon: UserPlus, label: "Clientes", path: "/clientes/cadastro" },
-      { icon: Sparkles, label: "Marketing IA", path: "/clientes/marketing" },
       { icon: RefreshCw, label: "Contratos Recorrentes", path: "/clientes/contratos" },
       { icon: Ticket, label: "Promoções e Cupons", path: "/clientes/promocoes" },
-      { icon: Megaphone, label: "Campanhas", path: "/clientes/campanhas" },
       { icon: Heart, label: "Fidelidade / Indicações", path: "/clientes/fidelidade" },
       { icon: MessageSquare, label: "CRM Avançado", path: "/clientes/crm" },
       { icon: Gift, label: "Programa de Indicação", path: "/clientes/indicacao" },
