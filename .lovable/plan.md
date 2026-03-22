@@ -1,54 +1,113 @@
+# Plataforma de Marketing Inteligente — Plano Incremental
+
+## Estado Atual
+
+O projeto já possui:
+
+- **MarketingIA.tsx** (556 linhas) — geração de posts, calendário de marketing e imagens via IA, com envio WhatsApp e webhook
+- **Campanhas.tsx** — CRUD básico de campanhas (nome, tipo, status)
+- **marketing-ai** edge function — geração de texto e imagem
+- **marketing-dispatch** edge function — envio WhatsApp/webhook
+- Estrutura multi-empresa/multi-unidade já funcional
+
+## Escopo Proposto (Fase 1 — Base Sólida)
+
+Dado o tamanho do pedido, proponho implementar em **3 blocos incrementais** para não quebrar o sistema. Esta Fase 1 entrega a base estrutural completa.
+
+---
+
+### Bloco 1 — Tabelas e Estrutura de Dados
+
+Criar as tabelas necessárias no banco:
 
 
-# Aplicar lógica de endereço com autocomplete + CEP na tela Editar Pedido + atualizar cadastro do cliente
+| Tabela                         | Propósito                                                                          |
+| ------------------------------ | ---------------------------------------------------------------------------------- |
+| `social_accounts`              | Contas de redes sociais por empresa/unidade (Instagram, Facebook, TikTok, YouTube) |
+| `marketing_conteudos`          | Biblioteca de conteúdos gerados (textos, imagens, vídeos)                          |
+| `marketing_agendamentos`       | Posts agendados com data/hora, plataforma, status                                  |
+| `marketing_metricas`           | Métricas de engajamento (alcance, cliques, conversões)                             |
+| `marketing_fluxos_atendimento` | Fluxos de atendimento automático por intenção                                      |
+| `marketing_conversas`          | Histórico de conversas de atendimento                                              |
 
-## Escopo
 
-A tela Editar Pedido (`EditarPedido.tsx`) atualmente tem:
-- Campo de busca de cliente simples (sem autocomplete de endereço, sem ViaCEP)
-- Campo de endereço manual sem sugestões
-- Ao salvar, atualiza apenas o pedido — **não atualiza o cadastro do cliente**
+Todas com `empresa_id`, `unidade_id` e RLS adequado.
 
-Precisa:
-1. Aplicar a mesma lógica de autocomplete de endereço + resolução de CEP via ViaCEP que foi implementada no `CustomerSearch.tsx` da Nova Venda
-2. Permitir edição do nome do cliente diretamente
-3. Ao salvar, se o cliente foi alterado (nome, endereço, bairro, CEP, etc.), atualizar também a tabela `clientes`
+### Bloco 2 — Novas Telas e Navegação
 
-## Alterações
+Criar um novo módulo `/marketing/` com as seguintes páginas:
 
-### Arquivo: `src/pages/vendas/EditarPedido.tsx`
+1. **Dashboard Marketing** (`/marketing`) — KPIs, posts agendados, sugestões da IA, desempenho
+2. **Redes Sociais** (`/marketing/redes-sociais`) — conectar contas, visualizar status por unidade
+3. **Conteúdos** (`/marketing/conteudos`) — biblioteca de textos/imagens gerados, com filtros
+4. **Agendamentos** (`/marketing/agendamentos`) — calendário visual de posts agendados
+5. **Atendimento IA** (`/marketing/atendimento`) — fluxos de atendimento, intenções, histórico
 
-**1. Adicionar campo editável de nome do cliente**
-- Substituir o título estático "Cliente: {nome}" por um `Input` editável com o nome
-- Manter a busca existente abaixo para trocar de cliente
+Adicionar grupo "Marketing" no menu lateral com ícone dedicado.
 
-**2. Adicionar autocomplete de endereço com sugestões Nominatim**
-- Replicar a lógica de `searchAddress` do `CustomerSearch.tsx`:
-  - Debounce 500ms no campo logradouro
-  - Buscar no Nominatim com cidade + estado da unidade como contexto
-  - Mostrar dropdown de sugestões
-  - Ao selecionar, preencher rua, bairro, coordenadas
+A página **MarketingIA** existente será mantida e referenciada como "Criar Conteúdo" dentro do novo módulo.
 
-**3. Adicionar resolução de CEP via ViaCEP**
-- Replicar `resolverCepViaViaCEP` do `CustomerSearch.tsx`
-- Na seleção de sugestão e no blur do endereço: priorizar ViaCEP para CEP, fallback no Nominatim
-- No blur do endereço: incluir cidade/estado da unidade no geocoding
+### Bloco 3 — Agente de IA Proativo
 
-**4. Ao salvar, atualizar cadastro do cliente**
-- Na função `handleSalvar`, após salvar o pedido, se `pedido.cliente_id` existir:
-  ```typescript
-  await supabase.from("clientes").update({
-    nome: pedido.cliente_nome,
-    endereco: enderecoFields.endereco || null,
-    numero: enderecoFields.numero || null,
-    bairro: enderecoFields.bairro || null,
-    cidade: enderecoFields.cidade || null,
-    cep: enderecoFields.cep || null,
-    latitude: coords.lat,
-    longitude: coords.lng,
-  }).eq("id", pedido.cliente_id);
-  ```
+Expandir a edge function `marketing-ai` para:
 
-### Arquivos modificados
-- `src/pages/vendas/EditarPedido.tsx` — todas as alterações acima (autocomplete, ViaCEP, nome editável, salvar cliente)
+- Gerar sugestões proativas baseadas em: datas comemorativas, estoque baixo, clima/região, histórico de vendas
+- Adaptar linguagem por unidade (cidade, bairro, público)
+- Gerar roteiros de vídeos curtos (Reels/Shorts/TikTok)
+- Criar campanhas completas (texto + imagem + hashtags + CTA + agendamento sugerido)
 
+Criar nova edge function `marketing-agent` para sugestões proativas que consulta dados reais do sistema.
+
+---
+
+## Estrutura de Arquivos
+
+```text
+src/pages/marketing/
+├── DashboardMarketing.tsx    — painel principal
+├── RedesSociais.tsx          — gestão de contas conectadas
+├── BibliotecaConteudos.tsx   — biblioteca de conteúdos
+├── AgendamentoPosts.tsx      — calendário de agendamentos
+├── AtendimentoIA.tsx         — fluxos e histórico
+
+src/routes/
+├── marketingRoutes.ts        — rotas do módulo
+
+supabase/functions/
+├── marketing-agent/index.ts  — agente proativo
+```
+
+## Integração com Redes Sociais
+
+Nesta fase, as contas de redes sociais serão **cadastradas** (token, username, plataforma) com interface para configuração. A publicação automática via API oficial será preparada na estrutura mas o envio real será via:
+
+- Webhook (Zapier/n8n) — já funciona
+- WhatsApp direto — já funciona
+- Cópia manual — já funciona
+
+A integração direta com APIs do Instagram/Facebook/TikTok/YouTube será uma Fase 2 futura.
+
+## Arquivos Modificados
+
+
+| Arquivo                               | Ação                                  |
+| ------------------------------------- | ------------------------------------- |
+| `src/components/layout/menuItems.ts`  | Adicionar grupo "Marketing"           |
+| `src/components/layout/Sidebar.tsx`   | Adicionar cor para itens de Marketing |
+| `src/components/layout/MobileNav.tsx` | Adicionar cor para itens de Marketing |
+| `src/routes/marketingRoutes.ts`       | Criar rotas do módulo                 |
+| `src/App.tsx`                         | Importar e renderizar marketingRoutes |
+| 6 migrations                          | Criar tabelas com RLS                 |
+| 5 páginas novas                       | Telas do módulo                       |
+| 1 edge function nova                  | Agente proativo                       |
+
+
+## Garantias
+
+- Zero alteração nas páginas existentes (MarketingIA.tsx e Campanhas.tsx mantidas intactas)
+- Zero alteração em fluxos de vendas, caixa, estoque ou autenticação
+- Multi-empresa/multi-unidade respeitado em todas as tabelas
+- RLS em todas as tabelas novas
+- Mesma stack e padrões do projeto
+
+&nbsp;
