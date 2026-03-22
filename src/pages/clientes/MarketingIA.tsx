@@ -142,12 +142,58 @@ export default function MarketingIA() {
     } catch (e: any) { toast.error(e.message); setIsLoading(false); }
   };
 
+  const parseScenes = (script: string) => {
+    const scenes: { num: number; visual: string }[] = [];
+    const regex = /\*\*Cena\s+(\d+)/gi;
+    let match;
+    while ((match = regex.exec(script)) !== null) {
+      const num = parseInt(match[1]);
+      const start = match.index;
+      const nextMatch = regex.exec(script);
+      const end = nextMatch ? nextMatch.index : script.length;
+      if (nextMatch) regex.lastIndex = nextMatch.index;
+      const block = script.slice(start, end);
+      const visualMatch = block.match(/🎬\s*(?:Ação visual|Visual)[:\s]*(.+)/i);
+      const visual = visualMatch?.[1]?.trim() || `Cena ${num} de vídeo sobre ${videoTopic}`;
+      scenes.push({ num, visual });
+    }
+    return scenes;
+  };
+
+  const generateSceneImage = async (sceneNum: number, prompt: string) => {
+    setLoadingSceneImages(prev => ({ ...prev, [sceneNum]: true }));
+    try {
+      const resp = await fetch(FUNCTION_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ type: "image", imagePrompt: `Imagem para vídeo de marketing de revenda de gás. Cena: ${prompt}. Estilo: fotografia profissional, formato vertical 9:16, cores vibrantes, adequado para Reels/TikTok.` }),
+      });
+      if (!resp.ok) throw new Error("Erro ao gerar imagem");
+      const data = await resp.json();
+      const imgUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      if (imgUrl) setSceneImages(prev => ({ ...prev, [sceneNum]: imgUrl }));
+    } catch { /* silently fail per scene */ }
+    finally { setLoadingSceneImages(prev => ({ ...prev, [sceneNum]: false })); }
+  };
+
   const generateVideo = async () => {
     if (!videoTopic.trim()) { toast.error("Digite um tema para o vídeo"); return; }
-    setIsVideoLoading(true); setVideoContent("");
+    setIsVideoLoading(true); setVideoContent(""); setSceneImages({}); setLoadingSceneImages({});
     let acc = "";
     try {
-      await streamContent({ type: "video_script", platform: videoPlatform, topic: videoTopic, tone: videoTone }, (c) => { acc += c; setVideoContent(acc); }, () => setIsVideoLoading(false));
+      await streamContent(
+        { type: "video_script", platform: videoPlatform, topic: videoTopic, tone: videoTone },
+        (c) => { acc += c; setVideoContent(acc); },
+        () => {
+          setIsVideoLoading(false);
+          // Auto-generate images for each scene
+          const scenes = parseScenes(acc);
+          if (scenes.length > 0) {
+            toast.info(`Gerando imagens para ${scenes.length} cenas...`);
+            scenes.forEach(s => generateSceneImage(s.num, s.visual));
+          }
+        }
+      );
     } catch (e: any) { toast.error(e.message); setIsVideoLoading(false); }
   };
 
