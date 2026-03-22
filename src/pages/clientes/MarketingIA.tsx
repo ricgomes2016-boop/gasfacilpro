@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import {
   Loader2, Copy, Sparkles, Calendar, Image as ImageIcon, MessageSquare,
   Instagram, Facebook, Send, Video, RefreshCw, Download, Webhook, Phone,
-  Film, Save, CalendarPlus,
+  Film, Save, CalendarPlus, Upload,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
