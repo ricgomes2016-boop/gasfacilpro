@@ -159,6 +159,7 @@ export function inferAppFromPath(pathname: string): Exclude<SubdomainApp, null> 
     "/atendimento",
     "/onboarding",
     "/entregas",
+    "/marketing",
     "/assistente",
     "/assistente-ia",
     "/meu-perfil",
