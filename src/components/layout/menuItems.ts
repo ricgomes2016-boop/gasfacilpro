@@ -172,10 +172,8 @@ export const menuItems: MenuItem[] = [
     label: "Gestão de Clientes",
     submenu: [
       { icon: UserPlus, label: "Clientes", path: "/clientes/cadastro" },
-      { icon: Sparkles, label: "Marketing IA", path: "/clientes/marketing" },
       { icon: RefreshCw, label: "Contratos Recorrentes", path: "/clientes/contratos" },
       { icon: Ticket, label: "Promoções e Cupons", path: "/clientes/promocoes" },
-      { icon: Megaphone, label: "Campanhas", path: "/clientes/campanhas" },
       { icon: Heart, label: "Fidelidade / Indicações", path: "/clientes/fidelidade" },
       { icon: MessageSquare, label: "CRM Avançado", path: "/clientes/crm" },
       { icon: Gift, label: "Programa de Indicação", path: "/clientes/indicacao" },
