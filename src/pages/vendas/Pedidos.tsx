@@ -460,17 +460,18 @@ export default function Pedidos() {
       <div className="p-3 md:p-6 space-y-4 md:space-y-6">
 
         {/* Top action */}
-        <div className="flex items-center justify-end gap-2 flex-wrap">
+        <div className="flex items-center justify-end gap-1.5 sm:gap-2 flex-wrap">
           <SmartImportButtons edgeFunctionName="parse-orders-history" onDataExtracted={handleImportData} />
-          <Button variant="outline" onClick={() => { exportarPedidosCSV(pedidosFiltrados); sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`); }}>
-            <Download className="h-4 w-4 mr-2" />
-            Exportar CSV
+          <Button variant="outline" size="sm" onClick={() => { exportarPedidosCSV(pedidosFiltrados); sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`); }}>
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            <span className="hidden sm:inline">Exportar</span> CSV
           </Button>
-          <Button variant="outline" onClick={() => navigate("/operacional/centro")}>
-            <MapIcon className="h-4 w-4 mr-2" />
-            Mapa Operacional
+          <Button variant="outline" size="sm" onClick={() => navigate("/operacional/centro")}>
+            <MapIcon className="h-3.5 w-3.5 mr-1.5" />
+            <span className="hidden md:inline">Mapa Operacional</span>
+            <span className="md:hidden">Mapa</span>
           </Button>
-          <Button onClick={() => navigate("/vendas/nova")}>Nova Venda</Button>
+          <Button size="sm" onClick={() => navigate("/vendas/nova")}>Nova Venda</Button>
         </div>
 
         {/* Alert for old pending orders */}
