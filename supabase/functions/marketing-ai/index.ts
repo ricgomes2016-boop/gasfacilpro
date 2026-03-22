@@ -43,6 +43,54 @@ serve(async (req) => {
       });
     }
 
+    // Video script generation
+    if (type === "video_script") {
+      const videoPlatformGuides: Record<string, string> = {
+        reels: "Instagram Reels: vídeo vertical 9:16, 15 a 60 segundos, ritmo rápido, texto grande na tela.",
+        tiktok: "TikTok: vídeo vertical 9:16, 15 a 60 segundos, tom viral e dinâmico, trends e áudio popular.",
+        shorts: "YouTube Shorts: vídeo vertical 9:16, até 60 segundos, educativo ou impactante, boa thumbnail.",
+      };
+
+      const videoSystemPrompt = `Você é um roteirista profissional de vídeos curtos para revendas de gás (GLP).
+Crie roteiros estruturados seguindo estas regras:
+- ${toneGuides[tone] || "Tom profissional e acessível."}
+- Formato obrigatório para cada cena:
+  **Cena [número] ([duração em segundos]s)**
+  🎬 Ação visual: [o que aparece na tela]
+  🗣️ Fala/Texto: [o que é dito ou mostrado como texto]
+  🎵 Trilha: [sugestão de tipo de música ou efeito sonoro]
+- Sempre incluir: gancho nos primeiros 3 segundos, CTA no final
+- Retorne APENAS o roteiro pronto, sem explicações
+${videoPlatformGuides[platform] || videoPlatformGuides.reels}`;
+
+      const videoResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: videoSystemPrompt },
+            { role: "user", content: `Crie um roteiro de vídeo curto sobre: "${topic}"\nPlataforma: ${platform}` },
+          ],
+          stream: true,
+        }),
+      });
+
+      if (!videoResponse.ok) {
+        const status = videoResponse.status;
+        if (status === 429) return new Response(JSON.stringify({ error: "Limite de requisições atingido." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (status === 402) return new Response(JSON.stringify({ error: "Créditos de IA esgotados." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        throw new Error(`AI gateway error: ${status}`);
+      }
+
+      return new Response(videoResponse.body, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
+
     // Text content generation
     const platformGuides: Record<string, string> = {
       instagram: "Post para Instagram: use emojis moderados, até 2200 caracteres, inclua 5-10 hashtags relevantes do setor de gás/energia. Formato: legenda + hashtags separadas.",
