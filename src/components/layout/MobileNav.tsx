@@ -83,6 +83,9 @@ const subMenuIconColors: Record<string, string> = {
   "Documentos da Empresa": "text-slate-400", "Notificações e Alertas": "text-yellow-400",
   "Personalização Visual": "text-violet-400", "Integrações / Hub": "text-cyan-400",
   "Dashboard": "text-blue-500",
+  "Criar Conteúdo IA": "text-violet-500", "Biblioteca": "text-orange-400",
+  "Agendamentos": "text-emerald-500", "Redes Sociais": "text-blue-500",
+  "Atendimento IA": "text-pink-500",
 };
 
 export function MobileNav() {

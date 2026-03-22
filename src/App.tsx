@@ -131,6 +131,7 @@ const App = () => (
                           {renderRoutes(parceiroRoutes)}
                           {renderRoutes(atendimentoRoutes)}
                           {renderRoutes(integracoesRoutes)}
+                          {renderRoutes(marketingRoutes)}
 
                           {/* Legacy redirects */}
                           <Route path="/admin/dashboard" element={<Navigate to="/admin" replace />} />
