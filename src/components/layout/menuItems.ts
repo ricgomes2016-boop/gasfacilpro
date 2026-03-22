@@ -173,13 +173,11 @@ export const menuItems: MenuItem[] = [
     icon: Megaphone,
     label: "Gestão de Marketing",
     submenu: [
-      { icon: BarChart3, label: "Dashboard", path: "/marketing" },
-      { icon: Sparkles, label: "Criar Conteúdo IA", path: "/clientes/marketing" },
+      { icon: Sparkles, label: "Criar Conteúdo", path: "/clientes/marketing" },
       { icon: FileText, label: "Biblioteca", path: "/marketing/conteudos" },
       { icon: CalendarDays, label: "Agendamentos", path: "/marketing/agendamentos" },
-      { icon: Plug, label: "Redes Sociais", path: "/marketing/redes-sociais" },
-      { icon: MessageSquare, label: "Atendimento IA", path: "/marketing/atendimento" },
-      { icon: Megaphone, label: "Campanhas", path: "/clientes/campanhas" },
+      { icon: Megaphone, label: "Campanhas", path: "/marketing/campanhas" },
+      { icon: Settings, label: "Configurações", path: "/marketing/configuracoes" },
     ],
   },
   {
