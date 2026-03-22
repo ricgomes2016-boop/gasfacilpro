@@ -1,26 +1,16 @@
 
 
-# Mover e Renomear Marketing no Menu
+# Fix: Marketing Dashboard redireciona para Dashboard do sistema
 
-## Alteração
+## Problema
 
-**Arquivo:** `src/components/layout/menuItems.ts`
+O arquivo `src/lib/subdomain.ts` contém uma lista `erpPrefixes` que define quais rotas pertencem ao ERP. O prefixo `/marketing` não está nessa lista, então o `SubdomainGuard` não reconhece a rota e redireciona para o dashboard padrão.
 
-1. **Remover** o bloco "Marketing" da posição atual (logo após Dashboard, linhas 107-119)
-2. **Inserir** o mesmo bloco logo **após** "Gestão de Clientes" (após linha ~185)
-3. **Renomear** o label de `"Marketing"` para `"Gestão de Marketing"`
+## Correção
 
-Ordem final no menu:
-- Dashboard
-- Assistente IA
-- Atendimento
-- Vendas
-- Caixa
-- Gestão Operacional
-- **Gestão de Clientes**
-- **Gestão de Marketing** ← movido para cá
-- Gestão de Estoque
-- ...
+**Arquivo:** `src/lib/subdomain.ts` (linha ~166)
 
-Nenhuma outra alteração necessária — rotas, páginas e submenus permanecem intactos.
+Adicionar `"/marketing"` à lista `erpPrefixes`.
+
+Resultado: ao clicar em "Gestão de Marketing > Dashboard", o sistema vai carregar corretamente `/marketing` (DashboardMarketing) em vez de redirecionar para `/dashboard`.
 
