@@ -44,6 +44,7 @@ const menuIconColors: Record<string, string> = {
   "Gestão de Frota": "text-indigo-500",
   "Gestão de RH": "text-rose-500",
   "Gestão Fiscal": "text-teal-500",
+  "Marketing": "text-fuchsia-500",
   "Configurações": "text-slate-400",
 };
 
