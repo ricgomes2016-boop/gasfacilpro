@@ -427,7 +427,7 @@ export default function MarketingIA() {
                 </div>
                 <Button onClick={generateVideo} disabled={isVideoLoading} className="w-full gap-2">
                   {isVideoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
-                  {isVideoLoading ? "Gerando roteiro..." : "Gerar Roteiro de Vídeo"}
+                  {isVideoLoading ? "Gerando roteiro + imagens..." : "Gerar Roteiro + Imagens"}
                 </Button>
               </CardContent>
             </Card>
