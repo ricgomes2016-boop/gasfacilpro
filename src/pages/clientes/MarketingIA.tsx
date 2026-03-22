@@ -81,6 +81,8 @@ export default function MarketingIA() {
   const [videoTone, setVideoTone] = useState<Tone>("profissional");
   const [videoContent, setVideoContent] = useState("");
   const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [sceneImages, setSceneImages] = useState<Record<number, string>>({});
+  const [loadingSceneImages, setLoadingSceneImages] = useState<Record<number, boolean>>({});
 
   // Calendar state
   const [calendarContent, setCalendarContent] = useState("");
@@ -140,12 +142,58 @@ export default function MarketingIA() {
     } catch (e: any) { toast.error(e.message); setIsLoading(false); }
   };
 
+  const parseScenes = (script: string) => {
+    const scenes: { num: number; visual: string }[] = [];
+    const regex = /\*\*Cena\s+(\d+)/gi;
+    let match;
+    while ((match = regex.exec(script)) !== null) {
+      const num = parseInt(match[1]);
+      const start = match.index;
+      const nextMatch = regex.exec(script);
+      const end = nextMatch ? nextMatch.index : script.length;
+      if (nextMatch) regex.lastIndex = nextMatch.index;
+      const block = script.slice(start, end);
+      const visualMatch = block.match(/🎬\s*(?:Ação visual|Visual)[:\s]*(.+)/i);
+      const visual = visualMatch?.[1]?.trim() || `Cena ${num} de vídeo sobre ${videoTopic}`;
+      scenes.push({ num, visual });
+    }
+    return scenes;
+  };
+
+  const generateSceneImage = async (sceneNum: number, prompt: string) => {
+    setLoadingSceneImages(prev => ({ ...prev, [sceneNum]: true }));
+    try {
+      const resp = await fetch(FUNCTION_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ type: "image", imagePrompt: `Imagem para vídeo de marketing de revenda de gás. Cena: ${prompt}. Estilo: fotografia profissional, formato vertical 9:16, cores vibrantes, adequado para Reels/TikTok.` }),
+      });
+      if (!resp.ok) throw new Error("Erro ao gerar imagem");
+      const data = await resp.json();
+      const imgUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      if (imgUrl) setSceneImages(prev => ({ ...prev, [sceneNum]: imgUrl }));
+    } catch { /* silently fail per scene */ }
+    finally { setLoadingSceneImages(prev => ({ ...prev, [sceneNum]: false })); }
+  };
+
   const generateVideo = async () => {
     if (!videoTopic.trim()) { toast.error("Digite um tema para o vídeo"); return; }
-    setIsVideoLoading(true); setVideoContent("");
+    setIsVideoLoading(true); setVideoContent(""); setSceneImages({}); setLoadingSceneImages({});
     let acc = "";
     try {
-      await streamContent({ type: "video_script", platform: videoPlatform, topic: videoTopic, tone: videoTone }, (c) => { acc += c; setVideoContent(acc); }, () => setIsVideoLoading(false));
+      await streamContent(
+        { type: "video_script", platform: videoPlatform, topic: videoTopic, tone: videoTone },
+        (c) => { acc += c; setVideoContent(acc); },
+        () => {
+          setIsVideoLoading(false);
+          // Auto-generate images for each scene
+          const scenes = parseScenes(acc);
+          if (scenes.length > 0) {
+            toast.info(`Gerando imagens para ${scenes.length} cenas...`);
+            scenes.forEach(s => generateSceneImage(s.num, s.visual));
+          }
+        }
+      );
     } catch (e: any) { toast.error(e.message); setIsVideoLoading(false); }
   };
 
@@ -379,18 +427,51 @@ export default function MarketingIA() {
                 </div>
                 <Button onClick={generateVideo} disabled={isVideoLoading} className="w-full gap-2">
                   {isVideoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
-                  {isVideoLoading ? "Gerando roteiro..." : "Gerar Roteiro de Vídeo"}
+                  {isVideoLoading ? "Gerando roteiro + imagens..." : "Gerar Roteiro + Imagens"}
                 </Button>
               </CardContent>
             </Card>
             {videoContent && (
               <Card>
                 <CardHeader className="flex-row items-center justify-between pb-3">
-                  <CardTitle className="text-base">Roteiro Gerado</CardTitle>
+                  <CardTitle className="text-base">Roteiro + Imagens Geradas</CardTitle>
                   <Button size="sm" variant="outline" onClick={generateVideo} disabled={isVideoLoading}><RefreshCw className="h-3.5 w-3.5 mr-1" /> Refazer</Button>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-4">
                   <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 rounded-lg p-4"><ReactMarkdown>{videoContent}</ReactMarkdown></div>
+                  
+                  {/* Scene Images Grid */}
+                  {(Object.keys(sceneImages).length > 0 || Object.values(loadingSceneImages).some(Boolean)) && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Imagens das Cenas</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        {parseScenes(videoContent).map(scene => (
+                          <div key={scene.num} className="space-y-1.5">
+                            <p className="text-xs font-medium text-muted-foreground">Cena {scene.num}</p>
+                            {loadingSceneImages[scene.num] ? (
+                              <div className="aspect-[9/16] rounded-lg bg-muted/50 flex items-center justify-center">
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                              </div>
+                            ) : sceneImages[scene.num] ? (
+                              <div className="space-y-1">
+                                <img src={sceneImages[scene.num]} alt={`Cena ${scene.num}`} className="w-full rounded-lg border" />
+                                <Button size="sm" variant="ghost" className="w-full text-xs gap-1" onClick={() => downloadImage(sceneImages[scene.num])}>
+                                  <Download className="h-3 w-3" /> Baixar
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="aspect-[9/16] rounded-lg bg-muted/30 border border-dashed flex items-center justify-center">
+                                <Button size="sm" variant="ghost" className="text-xs" onClick={() => generateSceneImage(scene.num, scene.visual)}>
+                                  <ImageIcon className="h-3.5 w-3.5 mr-1" /> Gerar
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   <ActionButtons content={videoContent} tipo="video" />
                 </CardContent>
               </Card>
