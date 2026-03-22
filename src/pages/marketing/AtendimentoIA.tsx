@@ -36,9 +36,9 @@ const intencaoConfig: Record<string, { label: string; icon: any; color: string }
 
 export default function AtendimentoIA() {
   const queryClient = useQueryClient();
-  const { empresaAtual } = useEmpresa();
+  const { empresa } = useEmpresa();
   const { unidadeAtual } = useUnidade();
-  const empresaId = empresaAtual?.id;
+  const empresaId = empresa?.id;
   const [tab, setTab] = useState<"fluxos" | "conversas">("fluxos");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({

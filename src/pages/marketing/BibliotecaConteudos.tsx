@@ -38,8 +38,8 @@ const plataformaIcons: Record<string, string> = {
 export default function BibliotecaConteudos() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { empresaAtual } = useEmpresa();
-  const empresaId = empresaAtual?.id;
+  const { empresa } = useEmpresa();
+  const empresaId = empresa?.id;
   const [busca, setBusca] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroPlataforma, setFiltroPlataforma] = useState("todas");

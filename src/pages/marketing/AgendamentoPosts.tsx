@@ -34,9 +34,9 @@ const plataformaEmoji: Record<string, string> = {
 
 export default function AgendamentoPosts() {
   const queryClient = useQueryClient();
-  const { empresaAtual } = useEmpresa();
+  const { empresa } = useEmpresa();
   const { unidadeAtual } = useUnidade();
-  const empresaId = empresaAtual?.id;
+  const empresaId = empresa?.id;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({
     plataforma: "instagram",

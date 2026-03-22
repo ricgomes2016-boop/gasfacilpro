@@ -16,9 +16,9 @@ import { ptBR } from "date-fns/locale";
 
 export default function DashboardMarketing() {
   const navigate = useNavigate();
-  const { empresaAtual } = useEmpresa();
+  const { empresa } = useEmpresa();
   const { unidadeAtual } = useUnidade();
-  const empresaId = empresaAtual?.id;
+  const empresaId = empresa?.id;
 
   const { data: conteudos = [] } = useQuery({
     queryKey: ["mkt-conteudos-count", empresaId],

@@ -27,9 +27,9 @@ const plataformas = [
 
 export default function RedesSociais() {
   const queryClient = useQueryClient();
-  const { empresaAtual } = useEmpresa();
+  const { empresa } = useEmpresa();
   const { unidadeAtual } = useUnidade();
-  const empresaId = empresaAtual?.id;
+  const empresaId = empresa?.id;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ plataforma: "instagram", nome_conta: "", username: "" });
 
