@@ -8,29 +8,29 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from
+"@/components/ui/table";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from
+"@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog";
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from
+"@/components/ui/dialog";
 import {
-  Popover, PopoverContent, PopoverTrigger,
-} from "@/components/ui/popover";
+  Popover, PopoverContent, PopoverTrigger } from
+"@/components/ui/popover";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuSeparator, DropdownMenuTrigger } from
+"@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import {
   Search, Eye, Truck, CheckCircle, Clock, XCircle, Sparkles,
   User, RefreshCw, MoreHorizontal, Edit, ArrowRightLeft, Printer,
   Share2, DollarSign, Trash2, Lock, MessageCircle, CreditCard,
   ChevronLeft, ChevronRight, CheckSquare, Building2, Pencil, MoveRight, Map as MapIcon,
-  Download,
-} from "lucide-react";
+  Download } from
+"lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { SugestaoEntregador } from "@/components/sugestao/SugestaoEntregador";
@@ -49,19 +49,19 @@ import { format as fnsFormat } from "date-fns";
 
 function exportarPedidosCSV(pedidos: PedidoFormatado[]) {
   const header = ["ID", "Data", "Cliente", "Endereço", "Produtos", "Valor (R$)", "Status", "Pagamento", "Entregador", "Canal"];
-  const rows = pedidos.map(p => [
-    p.id.substring(0, 8).toUpperCase(),
-    p.data,
-    p.cliente,
-    (p.endereco || "").replace(/,/g, " "),
-    (p.produtos || "").replace(/,/g, " |"),
-    p.valor.toFixed(2),
-    p.status,
-    p.forma_pagamento || "",
-    p.entregador || "",
-    p.canal_venda || "",
-  ]);
-  const csv = [header, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
+  const rows = pedidos.map((p) => [
+  p.id.substring(0, 8).toUpperCase(),
+  p.data,
+  p.cliente,
+  (p.endereco || "").replace(/,/g, " "),
+  (p.produtos || "").replace(/,/g, " |"),
+  p.valor.toFixed(2),
+  p.status,
+  p.forma_pagamento || "",
+  p.entregador || "",
+  p.canal_venda || ""]
+  );
+  const csv = [header, ...rows].map((r) => r.map((v) => `"${v}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -82,7 +82,7 @@ const ITEMS_PER_PAGE = 20;
 
 export default function Pedidos() {
   const navigate = useNavigate();
-  const hoje = (() => { const d = getBrasiliaDate(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; })();
+  const hoje = (() => {const d = getBrasiliaDate();return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;})();
   const [dataInicio, setDataInicio] = useState(hoje);
   const [dataFim, setDataFim] = useState(hoje);
   const { pedidos, isLoading, atualizarStatus, atribuirEntregador, excluirPedido, atualizarStatusLote, atribuirEntregadorLote, marcarPortaria, marcarPortariaLote, isUpdating, isDeleting } = usePedidos({ dataInicio, dataFim });
@@ -132,12 +132,12 @@ export default function Pedidos() {
       // Buscar canais de TODAS as unidades da empresa (vale gás pode ser retirado em qualquer unidade)
       const { data } = await query;
       return data || [];
-    },
+    }
   });
 
   // Import history states
   const [importItems, setImportItems] = useState<Array<{
-    cliente_nome: string; data: string; valor_total: number; forma_pagamento: string; observacoes: string;
+    cliente_nome: string;data: string;valor_total: number;forma_pagamento: string;observacoes: string;
   }>>([]);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importSaving, setImportSaving] = useState(false);
@@ -147,7 +147,7 @@ export default function Pedidos() {
     setImportItems(pedidos.map((p: any) => ({
       cliente_nome: p.cliente_nome || "", data: p.data || "", valor_total: p.valor_total || 0,
       forma_pagamento: p.forma_pagamento || "", observacoes: p.observacoes || "",
-      _itens: p.itens || [], _cliente_id: p.cliente_id || null, _endereco: p.endereco || null,
+      _itens: p.itens || [], _cliente_id: p.cliente_id || null, _endereco: p.endereco || null
     })));
     setImportDialogOpen(true);
     sonnerToast.success(`${pedidos.length} pedido(s) identificado(s)!`);
@@ -166,34 +166,34 @@ export default function Pedidos() {
           forma_pagamento: p.forma_pagamento || null, status: "entregue",
           observacoes: p.observacoes || "Importado do sistema anterior",
           created_at: p.data ? new Date(p.data + "T12:00:00-03:00").toISOString() : undefined,
-          unidade_id: unidadeAtual?.id || null,
+          unidade_id: unidadeAtual?.id || null
         }).select("id").single();
-        if (error) { console.error(error); continue; }
+        if (error) {console.error(error);continue;}
         if (pedido && p._itens?.length > 0) {
           await supabase.from("pedido_itens").insert(
             p._itens.map((it: any) => ({
               pedido_id: pedido.id, produto_id: it.produto_id || null,
-              quantidade: it.quantidade || 1, preco_unitario: it.preco_unitario || 0,
+              quantidade: it.quantidade || 1, preco_unitario: it.preco_unitario || 0
             }))
           );
         }
         count++;
       }
       sonnerToast.success(`${count} pedido(s) importado(s)!`);
-      setImportDialogOpen(false); setImportItems([]);
+      setImportDialogOpen(false);setImportItems([]);
     } catch (err: any) {
       sonnerToast.error("Erro ao importar: " + (err.message || "erro"));
-    } finally { setImportSaving(false); }
+    } finally {setImportSaving(false);}
   };
 
   useEffect(() => {
     const fetchEntregadores = async () => {
       setLoadingEntregadores(true);
-      let query = supabase
-        .from("entregadores")
-        .select("id, nome, status")
-        .eq("ativo", true)
-        .order("nome");
+      let query = supabase.
+      from("entregadores").
+      select("id, nome, status").
+      eq("ativo", true).
+      order("nome");
 
       if (unidadeAtual?.id) {
         query = query.eq("unidade_id", unidadeAtual.id);
@@ -207,9 +207,9 @@ export default function Pedidos() {
   }, [unidadeAtual?.id]);
 
   // Reset page when filters change
-  useEffect(() => { setPaginaAtual(1); }, [filtroStatus, filtroEntregador, busca, dataInicio, dataFim]);
+  useEffect(() => {setPaginaAtual(1);}, [filtroStatus, filtroEntregador, busca, dataInicio, dataFim]);
   // Clear selection when data changes
-  useEffect(() => { setSelecionados(new Set()); }, [pedidos]);
+  useEffect(() => {setSelecionados(new Set());}, [pedidos]);
 
   const handleAtribuirEntregador = (pedidoId: string, entregadorId: string, entregadorNome: string) => {
     atribuirEntregador(
@@ -222,7 +222,7 @@ export default function Pedidos() {
         },
         onError: (error) => {
           toast({ title: "Erro ao atribuir entregador", description: error.message, variant: "destructive" });
-        },
+        }
       }
     );
   };
@@ -251,8 +251,8 @@ export default function Pedidos() {
     atualizarStatus(
       { pedidoId, novoStatus },
       {
-        onSuccess: () => { toast({ title: "Status atualizado", description: `Pedido alterado para ${statusLabels[novoStatus]}.` }); },
-        onError: (error) => { toast({ title: "Erro ao atualizar status", description: error.message, variant: "destructive" }); },
+        onSuccess: () => {toast({ title: "Status atualizado", description: `Pedido alterado para ${statusLabels[novoStatus]}.` });},
+        onError: (error) => {toast({ title: "Erro ao atualizar status", description: error.message, variant: "destructive" });}
       }
     );
   };
@@ -263,8 +263,8 @@ export default function Pedidos() {
     marcarPortaria(
       { pedidoId },
       {
-        onSuccess: () => { toast({ title: "Portaria", description: "Pedido marcado como retirado na portaria." }); },
-        onError: (error: any) => { toast({ title: "Erro", description: error.message, variant: "destructive" }); },
+        onSuccess: () => {toast({ title: "Portaria", description: "Pedido marcado como retirado na portaria." });},
+        onError: (error: any) => {toast({ title: "Erro", description: error.message, variant: "destructive" });}
       }
     );
   };
@@ -278,30 +278,30 @@ export default function Pedidos() {
           toast({ title: "Portaria em lote", description: `${ids.length} pedido(s) marcados como portaria.` });
           setSelecionados(new Set());
         },
-        onError: (error: any) => { toast({ title: "Erro", description: error.message, variant: "destructive" }); },
+        onError: (error: any) => {toast({ title: "Erro", description: error.message, variant: "destructive" });}
       }
     );
   };
 
-  const abrirVisualizacao = (pedido: PedidoFormatado) => { setPedidoView(pedido); setViewDialogAberto(true); };
-  const abrirExclusao = (pedido: PedidoFormatado) => { setPedidoExcluir(pedido); setSenhaExclusao(""); setSenhaErro(""); setDeleteDialogAberto(true); };
+  const abrirVisualizacao = (pedido: PedidoFormatado) => {setPedidoView(pedido);setViewDialogAberto(true);};
+  const abrirExclusao = (pedido: PedidoFormatado) => {setPedidoExcluir(pedido);setSenhaExclusao("");setSenhaErro("");setDeleteDialogAberto(true);};
 
   const confirmarExclusao = async () => {
     if (!pedidoExcluir) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) return;
     const { error: authError } = await supabase.auth.signInWithPassword({ email: user.email, password: senhaExclusao });
-    if (authError) { setSenhaErro("Senha incorreta. Tente novamente."); return; }
+    if (authError) {setSenhaErro("Senha incorreta. Tente novamente.");return;}
     excluirPedido(
       { pedidoId: pedidoExcluir.id },
       {
-        onSuccess: () => { toast({ title: "Pedido excluído", description: `Pedido #${getIdCurto(pedidoExcluir.id)} foi excluído permanentemente.` }); setDeleteDialogAberto(false); setPedidoExcluir(null); },
-        onError: (error: any) => { toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" }); },
+        onSuccess: () => {toast({ title: "Pedido excluído", description: `Pedido #${getIdCurto(pedidoExcluir.id)} foi excluído permanentemente.` });setDeleteDialogAberto(false);setPedidoExcluir(null);},
+        onError: (error: any) => {toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });}
       }
     );
   };
 
-  const abrirTransferencia = (pedido: PedidoFormatado) => { setPedidoTransferir(pedido); setTransferDialogAberto(true); };
+  const abrirTransferencia = (pedido: PedidoFormatado) => {setPedidoTransferir(pedido);setTransferDialogAberto(true);};
   const editarPedido = (pedidoId: string) => navigate(`/vendas/pedidos/${pedidoId}/editar`);
 
   const abrirTransferenciaFilial = (pedido: PedidoFormatado) => {
@@ -314,10 +314,10 @@ export default function Pedidos() {
     if (!pedidoTransferirFilial || !filialSelecionadaId) return;
     setTransferindoFilial(true);
     try {
-      const { error } = await supabase
-        .from("pedidos")
-        .update({ unidade_id: filialSelecionadaId, entregador_id: null })
-        .eq("id", pedidoTransferirFilial.id);
+      const { error } = await supabase.
+      from("pedidos").
+      update({ unidade_id: filialSelecionadaId, entregador_id: null }).
+      eq("id", pedidoTransferirFilial.id);
       if (error) throw error;
       const filialNome = unidades.find((u) => u.id === filialSelecionadaId)?.nome || "filial";
       toast({ title: "Pedido transferido!", description: `Pedido #${getIdCurto(pedidoTransferirFilial.id)} transferido para ${filialNome}.` });
@@ -336,7 +336,7 @@ export default function Pedidos() {
     const itensHtml = pedido.itens.map((item) => `<div>${item.quantidade}x ${item.produto?.nome || 'Produto'} - R$ ${(item.preco_unitario * item.quantidade).toFixed(2)}</div>`).join("");
     const printContent = `<html><head><title>Pedido #${idCurto}</title><style>body{font-family:Arial,sans-serif;padding:20px}.header{text-align:center;margin-bottom:20px}.info{margin:8px 0}.label{font-weight:bold}.total{font-size:18px;font-weight:bold;margin-top:20px}.sep{border-top:1px dashed #ccc;margin:15px 0}</style></head><body><div class="header"><h2>PEDIDO #${idCurto}</h2><p>${pedido.data}</p></div><div class="sep"></div><div class="info"><span class="label">Cliente:</span> ${pedido.cliente}</div><div class="info"><span class="label">Endereço:</span> ${pedido.endereco}</div><div class="sep"></div><div class="info"><span class="label">Itens:</span></div>${itensHtml || `<div>${pedido.produtos}</div>`}${pedido.entregador ? `<div class="sep"></div><div class="info"><span class="label">Entregador:</span> ${pedido.entregador}</div>` : ''}${pedido.observacoes ? `<div class="info"><span class="label">Obs:</span> ${pedido.observacoes}</div>` : ''}<div class="sep"></div><div class="total">TOTAL: R$ ${pedido.valor.toFixed(2)}</div></body></html>`;
     const w = window.open('', '_blank');
-    if (w) { w.document.write(printContent); w.document.close(); w.print(); }
+    if (w) {w.document.write(printContent);w.document.close();w.print();}
   };
 
   const enviarWhatsApp = (pedido: PedidoFormatado) => {
@@ -351,7 +351,7 @@ export default function Pedidos() {
   // #6 - unique entregadores from pedidos for filter
   const entregadoresNoPeriodo = useMemo(() => {
     const names = new Set<string>();
-    pedidos.forEach((p) => { if (p.entregador) names.add(p.entregador); });
+    pedidos.forEach((p) => {if (p.entregador) names.add(p.entregador);});
     return Array.from(names).sort();
   }, [pedidos]);
 
@@ -359,13 +359,13 @@ export default function Pedidos() {
   const pedidosFiltrados = useMemo(() => {
     return pedidos.filter((p) => {
       const matchStatus = filtroStatus === "todos" || p.status === filtroStatus;
-      const matchEntregador = filtroEntregador === "todos" || 
-        (filtroEntregador === "sem_entregador" ? !p.entregador : p.entregador === filtroEntregador);
+      const matchEntregador = filtroEntregador === "todos" || (
+      filtroEntregador === "sem_entregador" ? !p.entregador : p.entregador === filtroEntregador);
       const matchBusca = busca === "" ||
-        p.cliente.toLowerCase().includes(busca.toLowerCase()) ||
-        p.endereco.toLowerCase().includes(busca.toLowerCase()) ||
-        p.id.toLowerCase().includes(busca.toLowerCase()) ||
-        (p.entregador && p.entregador.toLowerCase().includes(busca.toLowerCase()));
+      p.cliente.toLowerCase().includes(busca.toLowerCase()) ||
+      p.endereco.toLowerCase().includes(busca.toLowerCase()) ||
+      p.id.toLowerCase().includes(busca.toLowerCase()) ||
+      p.entregador && p.entregador.toLowerCase().includes(busca.toLowerCase());
       return matchStatus && matchEntregador && matchBusca;
     });
   }, [pedidos, filtroStatus, filtroEntregador, busca]);
@@ -382,7 +382,7 @@ export default function Pedidos() {
     em_rota: pedidos.filter((p) => p.status === "em_rota").length,
     entregue: pedidos.filter((p) => p.status === "entregue").length,
     cancelado: pedidos.filter((p) => p.status === "cancelado").length,
-    total: pedidos.filter((p) => p.status !== "cancelado").reduce((acc, p) => acc + p.valor, 0),
+    total: pedidos.filter((p) => p.status !== "cancelado").reduce((acc, p) => acc + p.valor, 0)
   };
 
   // #5 - Payment method breakdown
@@ -399,10 +399,10 @@ export default function Pedidos() {
 
   const getStatusBadgeEntregador = (status: string | null) => {
     switch (status) {
-      case "disponivel": return <Badge variant="default" className="text-[10px] ml-2">Disponível</Badge>;
-      case "em_rota": return <Badge variant="secondary" className="text-[10px] ml-2">Em Rota</Badge>;
-      case "indisponivel": return <Badge variant="destructive" className="text-[10px] ml-2">Indisponível</Badge>;
-      default: return null;
+      case "disponivel":return <Badge variant="default" className="text-[10px] ml-2">Disponível</Badge>;
+      case "em_rota":return <Badge variant="secondary" className="text-[10px] ml-2">Em Rota</Badge>;
+      case "indisponivel":return <Badge variant="destructive" className="text-[10px] ml-2">Indisponível</Badge>;
+      default:return null;
     }
   };
 
@@ -410,7 +410,7 @@ export default function Pedidos() {
   const toggleSelecionado = (id: string) => {
     setSelecionados((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);else next.add(id);
       return next;
     });
   };
@@ -433,7 +433,7 @@ export default function Pedidos() {
           setSelecionados(new Set());
           setBatchDialogAberto(false);
         },
-        onError: (error) => { toast({ title: "Erro", description: error.message, variant: "destructive" }); },
+        onError: (error) => {toast({ title: "Erro", description: error.message, variant: "destructive" });}
       }
     );
   };
@@ -448,7 +448,7 @@ export default function Pedidos() {
           setSelecionados(new Set());
           setBatchDialogAberto(false);
         },
-        onError: (error) => { toast({ title: "Erro", description: error.message, variant: "destructive" }); },
+        onError: (error) => {toast({ title: "Erro", description: error.message, variant: "destructive" });}
       }
     );
   };
@@ -460,18 +460,17 @@ export default function Pedidos() {
       <div className="p-3 md:p-6 space-y-4 md:space-y-6">
 
         {/* Top action */}
-        <div className="flex items-center justify-end gap-1.5 sm:gap-2 flex-wrap">
+        <div className="gap-2 flex-wrap text-center flex items-center justify-center">
           <SmartImportButtons edgeFunctionName="parse-orders-history" onDataExtracted={handleImportData} />
-          <Button variant="outline" size="sm" onClick={() => { exportarPedidosCSV(pedidosFiltrados); sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`); }}>
-            <Download className="h-3.5 w-3.5 mr-1.5" />
-            <span className="hidden sm:inline">Exportar</span> CSV
+          <Button variant="outline" onClick={() => {exportarPedidosCSV(pedidosFiltrados);sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);}}>
+            <Download className="h-4 w-4 mr-2" />
+            Exportar CSV
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate("/operacional/centro")}>
-            <MapIcon className="h-3.5 w-3.5 mr-1.5" />
-            <span className="hidden md:inline">Mapa Operacional</span>
-            <span className="md:hidden">Mapa</span>
+          <Button variant="outline" onClick={() => navigate("/operacional/centro")}>
+            <MapIcon className="h-4 w-4 mr-2" />
+            Mapa Operacional
           </Button>
-          <Button size="sm" onClick={() => navigate("/vendas/nova")}>Nova Venda</Button>
+          <Button onClick={() => navigate("/vendas/nova")}>Nova Venda</Button>
         </div>
 
         {/* Alert for old pending orders */}
@@ -482,7 +481,7 @@ export default function Pedidos() {
             const dataStr = p.data; // "dd/mm/yyyy HH:mm" format
             const parts = dataStr.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
             if (!parts) return false;
-            const createdAt = new Date(+parts[3], +parts[2]-1, +parts[1], +parts[4], +parts[5]);
+            const createdAt = new Date(+parts[3], +parts[2] - 1, +parts[1], +parts[4], +parts[5]);
             const diffHours = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
             return diffHours > 24;
           });
@@ -505,13 +504,13 @@ export default function Pedidos() {
                   </Button>
                 </div>
               </CardContent>
-            </Card>
-          );
+            </Card>);
+
         })()}
 
         {/* AI suggestion for pending orders */}
-        {pedidosPendentes.length > 0 && (
-          <Card className="border-primary/20 bg-primary/5">
+        {pedidosPendentes.length > 0 &&
+        <Card className="border-primary/20 bg-primary/5">
             <CardContent className="pt-4">
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -525,17 +524,17 @@ export default function Pedidos() {
                 </div>
               </div>
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                {pedidosPendentes.slice(0, 3).map((pedido) => (
-                  <Dialog
-                    key={pedido.id}
-                    open={dialogAberto && pedidoSelecionado?.id === pedido.id}
-                    onOpenChange={(open) => { setDialogAberto(open); if (!open) setPedidoSelecionado(null); }}
-                  >
+                {pedidosPendentes.slice(0, 3).map((pedido) =>
+              <Dialog
+                key={pedido.id}
+                open={dialogAberto && pedidoSelecionado?.id === pedido.id}
+                onOpenChange={(open) => {setDialogAberto(open);if (!open) setPedidoSelecionado(null);}}>
+                
                     <DialogTrigger asChild>
                       <div
-                        className="flex items-center gap-3 p-3 bg-background rounded-lg border border-border cursor-pointer hover:shadow-md transition-all"
-                        onClick={() => setPedidoSelecionado(pedido)}
-                      >
+                    className="flex items-center gap-3 p-3 bg-background rounded-lg border border-border cursor-pointer hover:shadow-md transition-all"
+                    onClick={() => setPedidoSelecionado(pedido)}>
+                    
                         <div className="h-8 w-8 rounded-full bg-warning/10 flex items-center justify-center">
                           <User className="h-4 w-4 text-warning" />
                         </div>
@@ -559,17 +558,17 @@ export default function Pedidos() {
                           <p className="text-sm mt-2">{pedido.produtos}</p>
                         </div>
                         <SugestaoEntregador
-                          endereco={pedido.endereco}
-                          onSelecionar={(id, nome) => handleAtribuirEntregador(pedido.id, String(id), nome)}
-                        />
+                      endereco={pedido.endereco}
+                      onSelecionar={(id, nome) => handleAtribuirEntregador(pedido.id, String(id), nome)} />
+                    
                       </div>
                     </DialogContent>
                   </Dialog>
-                ))}
+              )}
               </div>
             </CardContent>
           </Card>
-        )}
+        }
 
         {/* Filters - #6 added entregador filter */}
         <Card>
@@ -581,8 +580,8 @@ export default function Pedidos() {
                   placeholder="Buscar cliente, endereço, ID..."
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
-                  className="h-9 pl-9"
-                />
+                  className="h-9 pl-9" />
+                
               </div>
               <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 items-end">
                 <div className="space-y-1">
@@ -613,12 +612,12 @@ export default function Pedidos() {
                   <SelectContent>
                     <SelectItem value="todos">Todos Entregadores</SelectItem>
                     <SelectItem value="sem_entregador">Sem entregador</SelectItem>
-                    {entregadoresNoPeriodo.map((nome) => (
-                      <SelectItem key={nome} value={nome}>{nome}</SelectItem>
-                    ))}
+                    {entregadoresNoPeriodo.map((nome) =>
+                    <SelectItem key={nome} value={nome}>{nome}</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
-                <Button variant="outline" size="sm" className="h-9 col-span-2 sm:col-span-1" onClick={() => { setBusca(""); setDataInicio(hoje); setDataFim(hoje); setFiltroStatus("todos"); setFiltroEntregador("todos"); }}>
+                <Button variant="outline" size="sm" className="h-9 col-span-2 sm:col-span-1" onClick={() => {setBusca("");setDataInicio(hoje);setDataFim(hoje);setFiltroStatus("todos");setFiltroEntregador("todos");}}>
                   <RefreshCw className="h-3.5 w-3.5 mr-1" /> Limpar
                 </Button>
               </div>
@@ -664,31 +663,31 @@ export default function Pedidos() {
         </div>
 
         {/* #5 - Payment method breakdown */}
-        {pagamentoContadores.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {pagamentoContadores.map(([method, valor]) => (
-              <Badge key={method} variant="outline" className="gap-1.5 py-1.5 px-3 text-xs">
+        {pagamentoContadores.length > 0 &&
+        <div className="flex flex-wrap gap-2">
+            {pagamentoContadores.map(([method, valor]) =>
+          <Badge key={method} variant="outline" className="gap-1.5 py-1.5 px-3 text-xs">
                 <CreditCard className="h-3 w-3" />
                 {method}: R$ {valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 <span className="text-muted-foreground">
-                  ({contadores.total > 0 ? Math.round((valor / contadores.total) * 100) : 0}%)
+                  ({contadores.total > 0 ? Math.round(valor / contadores.total * 100) : 0}%)
                 </span>
               </Badge>
-            ))}
+          )}
           </div>
-        )}
+        }
 
         {/* #7 - Batch actions bar */}
-        {selecionados.size > 0 && (
-          <Card className="border-primary/30 bg-primary/5">
+        {selecionados.size > 0 &&
+        <Card className="border-primary/30 bg-primary/5">
             <CardContent className="flex items-center gap-3 p-3 flex-wrap">
               <CheckSquare className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">{selecionados.size} selecionado(s)</span>
               <div className="flex gap-2 ml-auto flex-wrap">
-                <Button size="sm" variant="outline" onClick={() => { setBatchAction("status"); setBatchDialogAberto(true); }}>
+                <Button size="sm" variant="outline" onClick={() => {setBatchAction("status");setBatchDialogAberto(true);}}>
                   Alterar Status
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => { setBatchAction("entregador"); setBatchDialogAberto(true); }}>
+                <Button size="sm" variant="outline" onClick={() => {setBatchAction("entregador");setBatchDialogAberto(true);}}>
                   Atribuir Entregador
                 </Button>
                 <Button size="sm" variant="outline" className="gap-1" onClick={marcarPortariaLoteHandler}>
@@ -698,7 +697,7 @@ export default function Pedidos() {
               </div>
             </CardContent>
           </Card>
-        )}
+        }
 
         {/* Table - #3 responsive with hidden columns on mobile */}
         <Card className="overflow-hidden">
@@ -712,14 +711,14 @@ export default function Pedidos() {
             </div>
           </CardHeader>
           <CardContent className="overflow-x-auto max-w-full p-0 md:p-6">
-            {isLoading ? (
-              <div className="space-y-3">
+            {isLoading ?
+            <div className="space-y-3">
                 {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
-              </div>
-            ) : pedidosFiltrados.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground"><p>Nenhum pedido encontrado.</p></div>
-            ) : (
-              <>
+              </div> :
+            pedidosFiltrados.length === 0 ?
+            <div className="text-center py-8 text-muted-foreground"><p>Nenhum pedido encontrado.</p></div> :
+
+            <>
               <div className="overflow-x-auto min-w-0">
                 <Table className="min-w-[600px]">
                   <TableHeader>
@@ -728,8 +727,8 @@ export default function Pedidos() {
                       <TableHead className="w-10">
                         <Checkbox
                           checked={selecionados.size === pedidosPaginados.length && pedidosPaginados.length > 0}
-                          onCheckedChange={toggleSelecionarTodos}
-                        />
+                          onCheckedChange={toggleSelecionarTodos} />
+                        
                       </TableHead>
                       <TableHead>Pedido</TableHead>
                       <TableHead>Cliente</TableHead>
@@ -744,13 +743,13 @@ export default function Pedidos() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {pedidosPaginados.map((pedido) => (
-                      <TableRow key={pedido.id} className={pedido.status === "cancelado" ? "opacity-60" : ""}>
+                    {pedidosPaginados.map((pedido) =>
+                    <TableRow key={pedido.id} className={pedido.status === "cancelado" ? "opacity-60" : ""}>
                         <TableCell>
                           <Checkbox
-                            checked={selecionados.has(pedido.id)}
-                            onCheckedChange={() => toggleSelecionado(pedido.id)}
-                          />
+                          checked={selecionados.has(pedido.id)}
+                          onCheckedChange={() => toggleSelecionado(pedido.id)} />
+                        
                         </TableCell>
                         <TableCell>
                           <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs" onClick={() => editarPedido(pedido.id)}>
@@ -761,20 +760,20 @@ export default function Pedidos() {
                         <TableCell className="hidden md:table-cell max-w-[200px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
                         <TableCell className="hidden md:table-cell max-w-[130px] truncate text-xs">{pedido.produtos}</TableCell>
                         <TableCell className="hidden sm:table-cell">
-                          {pedido.entregador ? (
-                            <Badge variant="outline" className="cursor-pointer hover:bg-accent text-xs" onClick={() => abrirTransferencia(pedido)}>
+                          {pedido.entregador ?
+                        <Badge variant="outline" className="cursor-pointer hover:bg-accent text-xs" onClick={() => abrirTransferencia(pedido)}>
                               <Truck className="h-3 w-3 mr-1" />{pedido.entregador}
-                            </Badge>
-                          ) : pedido.status !== "cancelado" && pedido.status !== "entregue" ? (
-                            <div className="flex gap-1">
+                            </Badge> :
+                        pedido.status !== "cancelado" && pedido.status !== "entregue" ?
+                        <div className="flex gap-1">
                               <Button size="sm" variant="ghost" className="text-primary h-6 px-2 text-xs" onClick={() => abrirTransferencia(pedido)}>
                                 <Sparkles className="h-3 w-3 mr-1" /> Atribuir
                               </Button>
                               <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => marcarPortariaHandler(pedido.id)} title="Retirada na portaria">
                                 <Building2 className="h-3 w-3" />
                               </Button>
-                            </div>
-                          ) : <span className="text-muted-foreground text-xs">-</span>}
+                            </div> :
+                        <span className="text-muted-foreground text-xs">-</span>}
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-xs">
                           <Popover open={editandoCanalId === pedido.id} onOpenChange={(open) => setEditandoCanalId(open ? pedido.id : null)}>
@@ -787,15 +786,15 @@ export default function Pedidos() {
                             <PopoverContent className="w-48 p-2 bg-popover border border-border shadow-lg z-50" align="start">
                               <div className="space-y-1">
                                 <p className="text-xs font-medium text-muted-foreground px-1 mb-2">Trocar canal:</p>
-                                {canaisVenda.map((c) => (
-                                  <button
-                                    key={c.id}
-                                    className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors ${pedido.canal_venda === c.nome ? "bg-accent font-medium" : ""}`}
-                                    onClick={() => alterarCanalVenda(pedido.id, c.nome)}
-                                  >
+                                {canaisVenda.map((c) =>
+                              <button
+                                key={c.id}
+                                className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors ${pedido.canal_venda === c.nome ? "bg-accent font-medium" : ""}`}
+                                onClick={() => alterarCanalVenda(pedido.id, c.nome)}>
+                                
                                     {c.nome}
                                   </button>
-                                ))}
+                              )}
                               </div>
                             </PopoverContent>
                           </Popover>
@@ -812,51 +811,51 @@ export default function Pedidos() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
-                              {pedido.status !== "cancelado" && pedido.status !== "entregue" && (
-                                <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
-                              )}
-                              {pedido.status !== "cancelado" && pedido.status !== "entregue" && (
-                                <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>
-                              )}
-              {pedido.status !== "cancelado" && pedido.status !== "entregue" && (
-                                <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria (Retirada)</DropdownMenuItem>
-                              )}
-                              {unidades.length > 1 && (
-                                <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}>
+                              {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
+                            <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
+                            }
+                              {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
+                            <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>
+                            }
+              {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
+                            <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria (Retirada)</DropdownMenuItem>
+                            }
+                              {unidades.length > 1 &&
+                            <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}>
                                   <MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial
                                 </DropdownMenuItem>
-                              )}
+                            }
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
-                              {pedido.status !== "cancelado" && pedido.status !== "entregue" && (
-                                <>
+                              {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
+                            <>
                                   <DropdownMenuSeparator />
-                                  {pedido.status !== "em_rota" && (
-                                    <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "em_rota")}><Truck className="h-4 w-4 mr-2" />Marcar Em Rota</DropdownMenuItem>
-                                  )}
+                                  {pedido.status !== "em_rota" &&
+                              <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "em_rota")}><Truck className="h-4 w-4 mr-2" />Marcar Em Rota</DropdownMenuItem>
+                              }
                                   <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "entregue")}><CheckCircle className="h-4 w-4 mr-2" />Marcar Entregue</DropdownMenuItem>
-                                  {pedido.status !== "pendente" && (
-                                    <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "pendente")}><Clock className="h-4 w-4 mr-2" />Voltar p/ Pendente</DropdownMenuItem>
-                                  )}
+                                  {pedido.status !== "pendente" &&
+                              <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "pendente")}><Clock className="h-4 w-4 mr-2" />Voltar p/ Pendente</DropdownMenuItem>
+                              }
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => cancelarPedido(pedido.id)}><XCircle className="h-4 w-4 mr-2" />Cancelar Pedido</DropdownMenuItem>
                                 </>
-                              )}
+                            }
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => abrirExclusao(pedido)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )}
                   </TableBody>
                 </Table>
               </div>
 
               {/* #4 - Pagination controls */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t px-3 md:px-6 pb-3 md:pb-0">
+              {totalPages > 1 &&
+              <div className="flex items-center justify-between mt-4 pt-4 border-t px-3 md:px-6 pb-3 md:pb-0">
                   <p className="text-xs text-muted-foreground">
                     {(paginaAtual - 1) * ITEMS_PER_PAGE + 1}–{Math.min(paginaAtual * ITEMS_PER_PAGE, pedidosFiltrados.length)} de {pedidosFiltrados.length}
                   </p>
@@ -869,9 +868,9 @@ export default function Pedidos() {
                     </Button>
                   </div>
                 </div>
-              )}
+              }
             </>
-            )}
+            }
           </CardContent>
         </Card>
 
@@ -886,8 +885,8 @@ export default function Pedidos() {
                 {pedidoTransferir?.entregador ? "Transferir Entregador" : "Atribuir Entregador"}
               </DialogTitle>
             </DialogHeader>
-            {pedidoTransferir && (
-              <div className="space-y-4 mt-2">
+            {pedidoTransferir &&
+            <div className="space-y-4 mt-2">
                 <div className="p-4 bg-muted rounded-lg space-y-1">
                   <div className="flex items-center justify-between">
                     <p className="font-medium text-sm">Pedido #{getIdCurto(pedidoTransferir.id)}</p>
@@ -895,9 +894,9 @@ export default function Pedidos() {
                   </div>
                   <p className="text-sm">{pedidoTransferir.cliente}</p>
                   <p className="text-xs text-muted-foreground">{pedidoTransferir.endereco}</p>
-                  {pedidoTransferir.entregador && (
-                    <p className="text-xs text-muted-foreground mt-2">Atual: <span className="font-medium text-foreground">{pedidoTransferir.entregador}</span></p>
-                  )}
+                  {pedidoTransferir.entregador &&
+                <p className="text-xs text-muted-foreground mt-2">Atual: <span className="font-medium text-foreground">{pedidoTransferir.entregador}</span></p>
+                }
                 </div>
                 <div>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2"><Sparkles className="h-3 w-3" />Sugestão inteligente</div>
@@ -906,21 +905,21 @@ export default function Pedidos() {
                 <div>
                   <p className="text-sm font-medium mb-2">Ou selecione manualmente:</p>
                   <Select
-                    onValueChange={(entregadorId) => { const ent = entregadores.find((e) => e.id === entregadorId); if (ent) handleAtribuirEntregador(pedidoTransferir.id, ent.id, ent.nome); }}
-                    disabled={loadingEntregadores}
-                  >
+                  onValueChange={(entregadorId) => {const ent = entregadores.find((e) => e.id === entregadorId);if (ent) handleAtribuirEntregador(pedidoTransferir.id, ent.id, ent.nome);}}
+                  disabled={loadingEntregadores}>
+                  
                     <SelectTrigger><SelectValue placeholder={loadingEntregadores ? "Carregando..." : "Selecione o entregador"} /></SelectTrigger>
                     <SelectContent>
-                      {entregadores.filter((e) => e.id !== pedidoTransferir.entregador_id).map((ent) => (
-                        <SelectItem key={ent.id} value={ent.id}>
+                      {entregadores.filter((e) => e.id !== pedidoTransferir.entregador_id).map((ent) =>
+                    <SelectItem key={ent.id} value={ent.id}>
                           <div className="flex items-center"><span>{ent.nome}</span>{getStatusBadgeEntregador(ent.status)}</div>
                         </SelectItem>
-                      ))}
+                    )}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-            )}
+            }
           </DialogContent>
         </Dialog>
 
@@ -934,15 +933,15 @@ export default function Pedidos() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="space-y-3 py-2">
-              {pedidoExcluir && (
-                <div className="p-3 bg-muted rounded-lg text-sm space-y-1">
+              {pedidoExcluir &&
+              <div className="p-3 bg-muted rounded-lg text-sm space-y-1">
                   <p><span className="font-medium">Cliente:</span> {pedidoExcluir.cliente}</p>
                   <p><span className="font-medium">Valor:</span> R$ {pedidoExcluir.valor.toFixed(2)}</p>
                   <p><span className="font-medium">Data:</span> {pedidoExcluir.data}</p>
                 </div>
-              )}
+              }
               <div>
-                <Input type="password" placeholder="Digite sua senha" value={senhaExclusao} onChange={(e) => { setSenhaExclusao(e.target.value); setSenhaErro(""); }} onKeyDown={(e) => e.key === "Enter" && confirmarExclusao()} />
+                <Input type="password" placeholder="Digite sua senha" value={senhaExclusao} onChange={(e) => {setSenhaExclusao(e.target.value);setSenhaErro("");}} onKeyDown={(e) => e.key === "Enter" && confirmarExclusao()} />
                 {senhaErro && <p className="text-sm text-destructive mt-1">{senhaErro}</p>}
               </div>
             </div>
@@ -961,25 +960,25 @@ export default function Pedidos() {
             </DialogHeader>
             <div className="space-y-3 mt-2">
               <p className="text-sm text-muted-foreground">{selecionados.size} pedido(s) selecionado(s)</p>
-              {batchAction === "status" ? (
-                <div className="grid grid-cols-2 gap-2">
+              {batchAction === "status" ?
+              <div className="grid grid-cols-2 gap-2">
                   <Button variant="outline" className="gap-2" onClick={() => executarAcaoLote("pendente")}><Clock className="h-4 w-4" />Pendente</Button>
                   <Button variant="outline" className="gap-2" onClick={() => executarAcaoLote("em_rota")}><Truck className="h-4 w-4" />Em Rota</Button>
                   <Button variant="outline" className="gap-2" onClick={() => executarAcaoLote("entregue")}><CheckCircle className="h-4 w-4" />Entregue</Button>
                   <Button variant="outline" className="gap-2 text-destructive" onClick={() => executarAcaoLote("cancelado")}><XCircle className="h-4 w-4" />Cancelado</Button>
-                </div>
-              ) : (
-                <Select onValueChange={(id) => { const ent = entregadores.find((e) => e.id === id); if (ent) executarEntregadorLote(ent.id, ent.nome); }}>
+                </div> :
+
+              <Select onValueChange={(id) => {const ent = entregadores.find((e) => e.id === id);if (ent) executarEntregadorLote(ent.id, ent.nome);}}>
                   <SelectTrigger><SelectValue placeholder="Selecione o entregador" /></SelectTrigger>
                   <SelectContent>
-                    {entregadores.map((ent) => (
-                      <SelectItem key={ent.id} value={ent.id}>
+                    {entregadores.map((ent) =>
+                  <SelectItem key={ent.id} value={ent.id}>
                         <div className="flex items-center"><span>{ent.nome}</span>{getStatusBadgeEntregador(ent.status)}</div>
                       </SelectItem>
-                    ))}
+                  )}
                   </SelectContent>
                 </Select>
-              )}
+              }
             </div>
           </DialogContent>
         </Dialog>
@@ -991,17 +990,17 @@ export default function Pedidos() {
         description={`${importItems.length} pedido(s) identificado(s). As datas originais serão preservadas.`}
         items={importItems}
         columns={[
-          { key: "cliente_nome", label: "Cliente", width: "25%" },
-          { key: "data", label: "Data", type: "date", width: "15%" },
-          { key: "valor_total", label: "Valor", type: "number", width: "15%" },
-          { key: "forma_pagamento", label: "Pagamento", width: "15%" },
-          { key: "observacoes", label: "Obs", width: "20%" },
-        ]}
-        onUpdateItem={(i, field, value) => setImportItems(prev => prev.map((p, idx) => idx === i ? { ...p, [field]: value } : p))}
-        onRemoveItem={(i) => setImportItems(prev => prev.filter((_, idx) => idx !== i))}
+        { key: "cliente_nome", label: "Cliente", width: "25%" },
+        { key: "data", label: "Data", type: "date", width: "15%" },
+        { key: "valor_total", label: "Valor", type: "number", width: "15%" },
+        { key: "forma_pagamento", label: "Pagamento", width: "15%" },
+        { key: "observacoes", label: "Obs", width: "20%" }]
+        }
+        onUpdateItem={(i, field, value) => setImportItems((prev) => prev.map((p, idx) => idx === i ? { ...p, [field]: value } : p))}
+        onRemoveItem={(i) => setImportItems((prev) => prev.filter((_, idx) => idx !== i))}
         onConfirm={saveImportedOrders}
-        saving={importSaving}
-      />
+        saving={importSaving} />
+      
 
       {/* Filial transfer dialog */}
       <Dialog open={filialDialogAberto} onOpenChange={setFilialDialogAberto}>
@@ -1012,8 +1011,8 @@ export default function Pedidos() {
               Transferir Pedido para Outra Filial
             </DialogTitle>
           </DialogHeader>
-          {pedidoTransferirFilial && (
-            <div className="space-y-4 mt-2">
+          {pedidoTransferirFilial &&
+          <div className="space-y-4 mt-2">
               <div className="p-4 bg-muted rounded-lg space-y-1">
                 <div className="flex items-center justify-between">
                   <p className="font-medium text-sm">Pedido #{getIdCurto(pedidoTransferirFilial.id)}</p>
@@ -1029,18 +1028,18 @@ export default function Pedidos() {
               <div className="space-y-2">
                 <p className="text-sm font-medium">Selecionar filial de destino:</p>
                 <div className="grid gap-2 max-h-64 overflow-y-auto pr-1">
-                  {unidades
-                    .filter((u) => u.id !== unidadeAtual?.id)
-                    .map((u) => (
-                      <button
-                        key={u.id}
-                        onClick={() => setFilialSelecionadaId(u.id)}
-                        className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
-                          filialSelecionadaId === u.id
-                            ? "border-primary bg-primary/5 shadow-sm"
-                            : "border-border hover:bg-accent"
-                        }`}
-                      >
+                  {unidades.
+                filter((u) => u.id !== unidadeAtual?.id).
+                map((u) =>
+                <button
+                  key={u.id}
+                  onClick={() => setFilialSelecionadaId(u.id)}
+                  className={`flex items-center gap-3 p-3 rounded-lg border text-left transition-all ${
+                  filialSelecionadaId === u.id ?
+                  "border-primary bg-primary/5 shadow-sm" :
+                  "border-border hover:bg-accent"}`
+                  }>
+                  
                         <div className={`h-8 w-8 rounded-full flex items-center justify-center ${filialSelecionadaId === u.id ? "bg-primary/10" : "bg-muted"}`}>
                           <Building2 className={`h-4 w-4 ${filialSelecionadaId === u.id ? "text-primary" : "text-muted-foreground"}`} />
                         </div>
@@ -1048,32 +1047,32 @@ export default function Pedidos() {
                           <p className="font-medium text-sm">{u.nome}</p>
                           <p className="text-xs text-muted-foreground capitalize">{u.tipo}</p>
                         </div>
-                        {filialSelecionadaId === u.id && (
-                          <CheckCircle className="h-4 w-4 text-primary shrink-0" />
-                        )}
+                        {filialSelecionadaId === u.id &&
+                  <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                  }
                       </button>
-                    ))}
-                </div>
-                {unidades.filter((u) => u.id !== unidadeAtual?.id).length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">Nenhuma outra unidade disponível.</p>
                 )}
+                </div>
+                {unidades.filter((u) => u.id !== unidadeAtual?.id).length === 0 &&
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhuma outra unidade disponível.</p>
+              }
               </div>
 
               <div className="pt-2 flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setFilialDialogAberto(false)}>Cancelar</Button>
                 <Button
-                  onClick={confirmarTransferenciaFilial}
-                  disabled={!filialSelecionadaId || transferindoFilial}
-                  className="gap-2"
-                >
+                onClick={confirmarTransferenciaFilial}
+                disabled={!filialSelecionadaId || transferindoFilial}
+                className="gap-2">
+                
                   <MoveRight className="h-4 w-4" />
                   {transferindoFilial ? "Transferindo..." : "Confirmar Transferência"}
                 </Button>
               </div>
             </div>
-          )}
+          }
         </DialogContent>
       </Dialog>
-    </MainLayout>
-  );
+    </MainLayout>);
+
 }
