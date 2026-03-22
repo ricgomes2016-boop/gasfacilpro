@@ -425,10 +425,62 @@ export default function MarketingIA() {
                     <Badge key={s} variant="outline" className="cursor-pointer hover:bg-primary/10 text-xs" onClick={() => setVideoTopic(s)}>{s}</Badge>
                   ))}
                 </div>
-                <Button onClick={generateVideo} disabled={isVideoLoading} className="w-full gap-2">
-                  {isVideoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
-                  {isVideoLoading ? "Gerando roteiro + imagens..." : "Gerar Roteiro + Imagens"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={generateVideo} disabled={isVideoLoading} className="flex-1 gap-2">
+                    {isVideoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
+                    {isVideoLoading ? "Gerando roteiro + imagens..." : "Gerar Roteiro + Imagens"}
+                  </Button>
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="video/*"
+                      multiple
+                      className="hidden"
+                      id="video-upload-input"
+                      onChange={async (e) => {
+                        const files = e.target.files;
+                        if (!files || files.length === 0) return;
+                        e.target.value = "";
+                        const maxSize = 50 * 1024 * 1024;
+                        for (const file of Array.from(files)) {
+                          if (file.size > maxSize) {
+                            toast.error(`"${file.name}" excede 50MB`);
+                            continue;
+                          }
+                          try {
+                            const ext = file.name.split(".").pop() || "mp4";
+                            const path = `videos/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+                            const { error } = await supabase.storage.from("marketing-assets").upload(path, file, { cacheControl: "3600" });
+                            if (error) throw error;
+                            const { data: urlData } = supabase.storage.from("marketing-assets").getPublicUrl(path);
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (user) {
+                              await supabase.from("conteudos_marketing").insert({
+                                user_id: user.id,
+                                tipo: "video",
+                                titulo: file.name.replace(/\.[^.]+$/, ""),
+                                conteudo: urlData.publicUrl,
+                                plataforma: videoPlatform,
+                                unidade_id: unidadeId || null,
+                              });
+                            }
+                            toast.success(`"${file.name}" importado!`);
+                          } catch (err: any) {
+                            console.error("Erro upload vídeo:", err);
+                            toast.error(`Erro ao importar "${file.name}"`);
+                          }
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      onClick={() => document.getElementById("video-upload-input")?.click()}
+                    >
+                      <Upload className="h-4 w-4" /> Importar Vídeo
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
             {videoContent && (
