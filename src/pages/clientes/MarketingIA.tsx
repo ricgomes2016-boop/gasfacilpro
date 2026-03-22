@@ -454,14 +454,14 @@ export default function MarketingIA() {
                             if (error) throw error;
                             const { data: urlData } = supabase.storage.from("marketing-assets").getPublicUrl(path);
                             const { data: { user } } = await supabase.auth.getUser();
-                            if (user) {
-                              await supabase.from("conteudos_marketing").insert({
-                                user_id: user.id,
+                            if (user && empresaId) {
+                              await supabase.from("marketing_conteudos").insert({
+                                empresa_id: empresaId,
+                                unidade_id: unidadeAtual?.id || null,
                                 tipo: "video",
                                 titulo: file.name.replace(/\.[^.]+$/, ""),
                                 conteudo: urlData.publicUrl,
                                 plataforma: videoPlatform,
-                                unidade_id: unidadeId || null,
                               });
                             }
                             toast.success(`"${file.name}" importado!`);
