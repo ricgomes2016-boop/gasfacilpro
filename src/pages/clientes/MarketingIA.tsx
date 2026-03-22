@@ -81,6 +81,8 @@ export default function MarketingIA() {
   const [videoTone, setVideoTone] = useState<Tone>("profissional");
   const [videoContent, setVideoContent] = useState("");
   const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [sceneImages, setSceneImages] = useState<Record<number, string>>({});
+  const [loadingSceneImages, setLoadingSceneImages] = useState<Record<number, boolean>>({});
 
   // Calendar state
   const [calendarContent, setCalendarContent] = useState("");
