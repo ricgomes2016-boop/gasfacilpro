@@ -434,11 +434,44 @@ export default function MarketingIA() {
             {videoContent && (
               <Card>
                 <CardHeader className="flex-row items-center justify-between pb-3">
-                  <CardTitle className="text-base">Roteiro Gerado</CardTitle>
+                  <CardTitle className="text-base">Roteiro + Imagens Geradas</CardTitle>
                   <Button size="sm" variant="outline" onClick={generateVideo} disabled={isVideoLoading}><RefreshCw className="h-3.5 w-3.5 mr-1" /> Refazer</Button>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-4">
                   <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 rounded-lg p-4"><ReactMarkdown>{videoContent}</ReactMarkdown></div>
+                  
+                  {/* Scene Images Grid */}
+                  {(Object.keys(sceneImages).length > 0 || Object.values(loadingSceneImages).some(Boolean)) && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Imagens das Cenas</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        {parseScenes(videoContent).map(scene => (
+                          <div key={scene.num} className="space-y-1.5">
+                            <p className="text-xs font-medium text-muted-foreground">Cena {scene.num}</p>
+                            {loadingSceneImages[scene.num] ? (
+                              <div className="aspect-[9/16] rounded-lg bg-muted/50 flex items-center justify-center">
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                              </div>
+                            ) : sceneImages[scene.num] ? (
+                              <div className="space-y-1">
+                                <img src={sceneImages[scene.num]} alt={`Cena ${scene.num}`} className="w-full rounded-lg border" />
+                                <Button size="sm" variant="ghost" className="w-full text-xs gap-1" onClick={() => downloadImage(sceneImages[scene.num])}>
+                                  <Download className="h-3 w-3" /> Baixar
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="aspect-[9/16] rounded-lg bg-muted/30 border border-dashed flex items-center justify-center">
+                                <Button size="sm" variant="ghost" className="text-xs" onClick={() => generateSceneImage(scene.num, scene.visual)}>
+                                  <ImageIcon className="h-3.5 w-3.5 mr-1" /> Gerar
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   <ActionButtons content={videoContent} tipo="video" />
                 </CardContent>
               </Card>
