@@ -99,11 +99,12 @@ ${videoPlatformGuides[platform] || videoPlatformGuides.reels}`;
       whatsapp: "Mensagem para WhatsApp Business: direta e pessoal, use emojis com moderação, inclua CTA claro (link ou número). Formato: saudação + oferta + CTA. Máximo 500 caracteres.",
     };
 
-    const toneGuide = tone === "informal" 
-      ? "Use linguagem informal, gírias leves e muitos emojis." 
-      : tone === "promocional"
-      ? "Foco em urgência, escassez e call-to-action forte. Use palavras como 'últimas unidades', 'só hoje', 'aproveite'."
-      : "Tom profissional e amigável. Educado mas acessível, sem gírias.";
+    const toneGuides: Record<string, string> = {
+      informal: "Use linguagem informal, gírias leves e muitos emojis.",
+      promocional: "Foco em urgência, escassez e call-to-action forte. Use palavras como 'últimas unidades', 'só hoje', 'aproveite'.",
+      profissional: "Tom profissional e amigável. Educado mas acessível, sem gírias.",
+    };
+    const toneGuide = toneGuides[tone] || toneGuides.profissional;
 
     const systemPrompt = `Você é um especialista em marketing digital para revendas de gás (GLP). 
 Crie conteúdo de marketing de alta qualidade seguindo estas regras:
