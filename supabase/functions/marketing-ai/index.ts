@@ -10,6 +10,12 @@ serve(async (req) => {
 
   try {
     const { type, platform, topic, tone, imagePrompt } = await req.json();
+
+    const toneGuides: Record<string, string> = {
+      informal: "Use linguagem informal, gírias leves e muitos emojis.",
+      promocional: "Foco em urgência, escassez e call-to-action forte. Use palavras como 'últimas unidades', 'só hoje', 'aproveite'.",
+      profissional: "Tom profissional e amigável. Educado mas acessível, sem gírias.",
+    };
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -99,11 +105,6 @@ ${videoPlatformGuides[platform] || videoPlatformGuides.reels}`;
       whatsapp: "Mensagem para WhatsApp Business: direta e pessoal, use emojis com moderação, inclua CTA claro (link ou número). Formato: saudação + oferta + CTA. Máximo 500 caracteres.",
     };
 
-    const toneGuides: Record<string, string> = {
-      informal: "Use linguagem informal, gírias leves e muitos emojis.",
-      promocional: "Foco em urgência, escassez e call-to-action forte. Use palavras como 'últimas unidades', 'só hoje', 'aproveite'.",
-      profissional: "Tom profissional e amigável. Educado mas acessível, sem gírias.",
-    };
     const toneGuide = toneGuides[tone] || toneGuides.profissional;
 
     const systemPrompt = `Você é um especialista em marketing digital para revendas de gás (GLP). 
