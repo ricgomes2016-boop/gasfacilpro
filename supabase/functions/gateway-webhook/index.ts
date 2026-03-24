@@ -83,7 +83,14 @@ serve(async (req) => {
     }
 
     // Post-order shortcut
-    if (await isPostOrderFollowUp(supabase, normalized, messageText)) {
+    const postOrderResult = await isPostOrderFollowUp(supabase, normalized, messageText);
+    if (postOrderResult === "rating") {
+      const reply = "Obrigado pela avaliação! ⭐ Sua opinião é muito importante para nós. Até a próxima! 😊";
+      await saveMessage(supabase, conversationId, "assistant", reply, { source: "gateway-webhook", rating_response: true });
+      await sendMessage(config, phone, reply);
+      return OK({ ok: true });
+    }
+    if (postOrderResult === true) {
       const reply = "Perfeito! Seu pedido já está confirmado ✅\nA entrega segue em andamento (prazo de 30 a 60 minutos).";
       await saveMessage(supabase, conversationId, "assistant", reply, { source: "gateway-webhook", post_order_followup: true });
       await sendMessage(config, phone, reply);

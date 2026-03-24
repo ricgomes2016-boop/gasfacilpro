@@ -617,6 +617,25 @@ REGRAS:
 - Se precisar de algo que você não consegue resolver, oriente a entrar em contato com o escritório.`;
   }
 
+  // Check delivery area
+  let deliveryAreaHint = "";
+  
+  // Detect dissatisfaction from last user message
+  const lastUserMsg = (history || []).filter((m: any) => m.role === "user").pop()?.content || "";
+  const isDissatisfied = detectDissatisfaction(lastUserMsg);
+  let dissatisfactionHint = "";
+  if (isDissatisfied) {
+    dissatisfactionHint = `\n\n⚠️ DETECÇÃO DE INSATISFAÇÃO: O cliente demonstrou frustração ou insatisfação.
+REGRAS OBRIGATÓRIAS:
+- Adote tom EMPÁTICO e ACOLHEDOR imediatamente
+- Peça desculpas sinceramente: "Sinto muito pelo transtorno..."
+- Ofereça solução concreta quando possível
+- NÃO seja defensivo, NÃO minimize o problema
+- Se for reclamação de entrega, ofereça verificar o status
+- Se for reclamação de preço, explique com educação e ofereça o melhor preço disponível
+- Marque internamente como insatisfação para acompanhamento`;
+  }
+
   return `Você é a ${agentName}, assistente virtual de vendas de gás da empresa. Seu atendimento deve ser humano, educado e objetivo.
 
 ANTI-REPETIÇÃO (CRÍTICO — SIGA À RISCA):
@@ -626,7 +645,7 @@ ANTI-REPETIÇÃO (CRÍTICO — SIGA À RISCA):
 - Leia o histórico completo antes de responder — se já perguntou algo, NÃO repita.
 - Se o cliente informou forma de pagamento, NÃO pergunte novamente.
 
-ETAPA ATUAL DA CONVERSA: ${currentStep.label}. NÃO volte a passos anteriores.${collectedSection}${finalizeHint}
+ETAPA ATUAL DA CONVERSA: ${currentStep.label}. NÃO volte a passos anteriores.${collectedSection}${finalizeHint}${dissatisfactionHint}
 
 REGRAS DE OURO:
 1. NÃO FINALIZAR PEDIDOS AUTOMATICAMENTE: Mesmo que o cliente já seja conhecido, NUNCA crie ou confirme um pedido no início da conversa.
@@ -692,7 +711,8 @@ telefone: ${normalized}
 [/PEDIDO_CONFIRMADO]
 
 ${isOffHours ? `FORA DO HORÁRIO (${horarioInfo}): Informe fechamento e ofereça agendamento.` : ""}
-${negotiationHint}`;
+${negotiationHint}
+${deliveryAreaHint}`;
 }
 
 // ========== NEGOTIATION HINT ==========
@@ -770,9 +790,9 @@ export async function isDuplicate(supabase: any, conversationId: string, message
 }
 
 // ========== POST-ORDER FOLLOW-UP CHECK ==========
-export async function isPostOrderFollowUp(supabase: any, phone: string, messageText: string): Promise<boolean> {
+export async function isPostOrderFollowUp(supabase: any, phone: string, messageText: string): Promise<boolean | "rating"> {
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-  const { data } = await supabase.from("pedidos").select("id")
+  const { data } = await supabase.from("pedidos").select("id, cliente_id, entregador_id, status")
     .eq("canal_venda", "whatsapp").gte("created_at", twoHoursAgo)
     .ilike("observacoes", `%(${phone})%`).limit(1);
 
@@ -780,6 +800,30 @@ export async function isPostOrderFollowUp(supabase: any, phone: string, messageT
 
   const trimmed = messageText.trim();
   
+  // Check for rating response (1-5 or star emojis)
+  const ratingMatch = trimmed.match(/^([1-5])$/);
+  const starMatch = trimmed.match(/^(⭐+)$/);
+  const rating = ratingMatch ? parseInt(ratingMatch[1]) : starMatch ? starMatch[1].length : null;
+  
+  if (rating && rating >= 1 && rating <= 5) {
+    // Save rating
+    const pedido = data[0];
+    try {
+      await supabase.from("avaliacoes_entrega").insert({
+        pedido_id: pedido.id,
+        user_id: pedido.cliente_id || "00000000-0000-0000-0000-000000000000",
+        entregador_id: pedido.entregador_id || null,
+        nota_entregador: rating,
+        nota_produto: rating,
+        comentario: `Avaliação via WhatsApp: ${rating}/5`,
+      });
+      console.log("Rating saved:", rating, "for order:", pedido.id);
+    } catch (e) {
+      console.error("Rating save error:", e);
+    }
+    return "rating";
+  }
+
   // Only treat as follow-up if the ENTIRE message is a short acknowledgment (max 3 words)
   const wordCount = trimmed.split(/\s+/).length;
   if (wordCount > 3) return false;
@@ -788,6 +832,24 @@ export async function isPostOrderFollowUp(supabase: any, phone: string, messageT
   const isFollowUp = /^(obrigad[oa]?|valeu|certo|perfeito|show|blz|beleza|tmj|falou|vlw|brigad[oa]?|thanks|thx)$/i.test(trimmed);
 
   return !isNewOrder && isFollowUp;
+}
+
+// ========== CHECK DELIVERY AREA ==========
+export async function getDeliveryAreaBairros(supabase: any, unidadeId: string | null): Promise<string[]> {
+  if (!unidadeId) return [];
+  const { data: rotas } = await supabase.from("rotas_definidas")
+    .select("bairros").eq("ativo", true).eq("unidade_id", unidadeId);
+  if (!rotas?.length) return [];
+  const allBairros: string[] = [];
+  for (const r of rotas) {
+    if (r.bairros?.length) allBairros.push(...r.bairros);
+  }
+  return [...new Set(allBairros)];
+}
+
+// ========== DETECT DISSATISFACTION ==========
+export function detectDissatisfaction(messageText: string): boolean {
+  return /\b(demora|demorou|atraso|atrasad[oa]|ru[ií]m|p[eé]ssim[oa]|horrível|horr[ií]vel|absurdo|falta\s*de\s*respeito|lixo|porcaria|nunca\s*mais|reclamação|reclamar|insatisfeit[oa]|raiva|indignado|vergonha|descaso|caro\s*demais|roubo|enganação)\b/i.test(messageText);
 }
 
 // ========== AI CALL ==========
