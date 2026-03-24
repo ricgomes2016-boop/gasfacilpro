@@ -8,6 +8,7 @@ import {
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall, getEntregadorLocation,
   downloadAudio, transcribeAudio, collectBufferedMessages, getOffHoursMessage,
+  identifyContact,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
@@ -100,11 +101,12 @@ serve(async (req) => {
     sendTyping(config, phone);
 
     // Gather context
-    const [cliente, bh, products, history] = await Promise.all([
+    const [cliente, bh, products, history, contact] = await Promise.all([
       findCliente(supabase, phone, senderName),
       checkBusinessHours(supabase, config.unidadeId),
       getProducts(supabase, config.unidadeId, config),
       loadHistory(supabase, conversationId),
+      identifyContact(supabase, phone),
     ]);
     const [recentOrders, orderStatus] = await Promise.all([
       getRecentOrders(supabase, cliente.id),
@@ -115,7 +117,8 @@ serve(async (req) => {
     await saveMessage(supabase, conversationId, "user", messageText, { 
       source: "evolution-webhook", 
       message_id: messageKey,
-      instance: instanceName
+      instance: instanceName,
+      tipo_contato: contact.tipo, contato_id: contact.id || null,
     });
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`);
 
@@ -141,7 +144,7 @@ serve(async (req) => {
 
     // Build prompt
     const negHint = buildNegotiationHint(history, config, finalMessageText);
-    const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, config, bh.isOffHours, bh.horarioInfo, orderStatus, negHint, { isSunday: bh.isSunday, waterDeliveryAllowed: bh.waterDeliveryAllowed }, history, { entrega: bh.gasDoPovoEntrega ?? false, taxa: bh.gasDoPovoTaxa ?? 15 });
+    const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, config, bh.isOffHours, bh.horarioInfo, orderStatus, negHint, { isSunday: bh.isSunday, waterDeliveryAllowed: bh.waterDeliveryAllowed }, history, { entrega: bh.gasDoPovoEntrega ?? false, taxa: bh.gasDoPovoTaxa ?? 15 }, contact);
 
     // Call AI
     let reply: string;

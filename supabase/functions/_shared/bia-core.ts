@@ -283,6 +283,44 @@ export function getOffHoursMessage(clienteNome: string | null, horarioInfo: stri
   return `${saudacao} 😊\nNo momento estamos *fechados*.\nNosso horário de funcionamento é *${horarioInfo}*.\n\nSe quiser, posso *agendar seu pedido* para quando abrirmos! Basta me dizer o que precisa. 📋`;
 }
 
+// ========== IDENTIFY CONTACT ==========
+export interface ContactIdentity {
+  tipo: "cliente" | "entregador" | "parceiro";
+  id?: string;
+  nome?: string;
+}
+
+export async function identifyContact(supabase: any, phone: string): Promise<ContactIdentity> {
+  const normalized = normalizePhone(phone);
+  const patterns = [normalized, normalized.slice(-10)];
+
+  // Check entregadores
+  const { data: entregador } = await supabase.from("entregadores")
+    .select("id, nome")
+    .eq("ativo", true)
+    .or(patterns.map((p: string) => `telefone.ilike.%${p}%`).join(","))
+    .limit(1);
+
+  if (entregador?.[0]) {
+    console.log("Contact identified as ENTREGADOR:", entregador[0].nome);
+    return { tipo: "entregador", id: entregador[0].id, nome: entregador[0].nome };
+  }
+
+  // Check vale_gas_parceiros
+  const { data: parceiro } = await supabase.from("vale_gas_parceiros")
+    .select("id, nome")
+    .eq("ativo", true)
+    .or(patterns.map((p: string) => `telefone.ilike.%${p}%`).join(","))
+    .limit(1);
+
+  if (parceiro?.[0]) {
+    console.log("Contact identified as PARCEIRO:", parceiro[0].nome);
+    return { tipo: "parceiro", id: parceiro[0].id, nome: parceiro[0].nome };
+  }
+
+  return { tipo: "cliente" };
+}
+
 // ========== NORMALIZE PHONE ==========
 export function normalizePhone(raw: string): string {
   return raw.replace(/\D/g, "").slice(-11);
@@ -515,7 +553,8 @@ export function buildSystemPrompt(
   negotiationHint: string,
   sundayContext?: { isSunday: boolean; waterDeliveryAllowed: boolean },
   history?: any[],
-  gasDoPovoConfig?: { entrega: boolean; taxa: number }
+  gasDoPovoConfig?: { entrega: boolean; taxa: number },
+  contactIdentity?: ContactIdentity
 ): string {
   const agentName = config.agentName || "Bia";
   const now = new Date();
@@ -545,6 +584,37 @@ export function buildSystemPrompt(
   }
   if (collected.skipPagamentoValor && collected.produto && collected.enderecoConfirmado) {
     finalizeHint = "\n\n⚠️ CLIENTE INSTITUCIONAL OU VALE GÁS — TODOS OS DADOS COLETADOS. FINALIZE O PEDIDO IMEDIATAMENTE com pagamento '" + collected.pagamento + "' e valor: 0. Gere a tag [PEDIDO_CONFIRMADO] AGORA.";
+  }
+
+  // If contact is entregador or parceiro, return specialized prompt
+  if (contactIdentity?.tipo === "entregador") {
+    return `Você é a ${agentName}, assistente virtual da empresa de gás.
+
+CONTEXTO: Você está conversando com o ENTREGADOR ${contactIdentity.nome || "da equipe"}. Ele faz parte da equipe de entregas.
+
+REGRAS:
+- Responda de forma DIRETA e OBJETIVA, como colega de trabalho.
+- Pode informar sobre entregas pendentes, horários, rotas e questões operacionais.
+- NÃO tente vender produtos. NÃO siga o fluxo de pedido de clientes.
+- NÃO peça endereço, forma de pagamento ou dados de venda.
+- Se ele perguntar algo que você não sabe, diga para falar com o gerente ou escritório.
+- Seja prestativo e breve nas respostas.
+
+${orderStatus ? `PEDIDOS EM ANDAMENTO:\n- Pedido #${orderStatus.id}: ${orderStatus.status} (R$ ${orderStatus.valor})` : ""}`;
+  }
+
+  if (contactIdentity?.tipo === "parceiro") {
+    return `Você é a ${agentName}, assistente virtual da empresa de gás.
+
+CONTEXTO: Você está conversando com o PARCEIRO INSTITUCIONAL ${contactIdentity.nome || ""}.
+
+REGRAS:
+- Responda de forma EDUCADA e PROFISSIONAL.
+- Pode informar sobre pedidos pendentes da instituição.
+- Se ele quiser fazer um pedido, trate como pedido institucional (sem cobrar valor).
+- NÃO siga o fluxo de venda normal para clientes finais.
+- Seja prestativo e breve nas respostas.
+- Se precisar de algo que você não consegue resolver, oriente a entrar em contato com o escritório.`;
   }
 
   return `Você é a ${agentName}, assistente virtual de vendas de gás da empresa. Seu atendimento deve ser humano, educado e objetivo.
