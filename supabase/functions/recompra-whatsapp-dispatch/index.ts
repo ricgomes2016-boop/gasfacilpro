@@ -26,6 +26,31 @@ serve(async (req) => {
       });
     }
 
+    // Check if recompra is enabled per empresa config
+    const { data: allConfigs } = await supabase
+      .from("configuracoes_empresa")
+      .select("empresa_id, regras_bia");
+
+    const disabledEmpresas = new Set<string>();
+    const customMessages = new Map<string, string>();
+    for (const cfg of allConfigs || []) {
+      const regras = cfg.regras_bia as any;
+      if (regras?.recompra_ativa === false) {
+        disabledEmpresas.add(cfg.empresa_id);
+      }
+      if (regras?.recompra_mensagem_personalizada) {
+        customMessages.set(cfg.empresa_id, regras.recompra_mensagem_personalizada);
+      }
+    }
+
+    // Build unidade -> empresa mapping
+    const { data: unidadesList } = await supabase
+      .from("unidades").select("id, empresa_id");
+    const unidadeEmpresa = new Map<string, string>();
+    for (const u of unidadesList || []) {
+      if (u.empresa_id) unidadeEmpresa.set(u.id, u.empresa_id);
+    }
+
     // Get delivered orders from last 6 months grouped by client
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -86,6 +111,10 @@ serve(async (req) => {
       if (info.datas.length < 2) continue; // Need at least 2 purchases
       if (alreadySent.has(clienteId)) { skipped++; continue; }
 
+      // Check if empresa disabled recompra
+      const empresaId = info.unidade_id ? unidadeEmpresa.get(info.unidade_id) : null;
+      if (empresaId && disabledEmpresas.has(empresaId)) { skipped++; continue; }
+
       // Calculate average interval
       info.datas.sort((a, b) => a.getTime() - b.getTime());
       const intervals: number[] = [];
@@ -136,12 +165,22 @@ serve(async (req) => {
 
       // Build personalized message
       const firstName = cliente.nome.split(" ")[0];
-      const messages = [
-        `Olá ${firstName} 😊\nEstá precisando de gás hoje?`,
-        `Oi ${firstName}! Tudo bem?\nJá está na hora de repor o gás? Posso agendar sua entrega!`,
-        `${firstName}, tudo certo? 😊\nVi que já faz um tempinho desde o último pedido. Quer que eu providencie?`,
-      ];
-      const message = messages[Math.floor(Math.random() * messages.length)];
+      
+      // Check for custom message from empresa config
+      const empresaIdForMsg = info.unidade_id ? unidadeEmpresa.get(info.unidade_id) : null;
+      const customMsg = empresaIdForMsg ? customMessages.get(empresaIdForMsg) : null;
+      
+      let message: string;
+      if (customMsg) {
+        message = customMsg.replace(/\{nome\}/g, firstName);
+      } else {
+        const messages = [
+          `Olá ${firstName} 😊\nEstá precisando de gás hoje?`,
+          `Oi ${firstName}! Tudo bem?\nJá está na hora de repor o gás? Posso agendar sua entrega!`,
+          `${firstName}, tudo certo? 😊\nVi que já faz um tempinho desde o último pedido. Quer que eu providencie?`,
+        ];
+        message = messages[Math.floor(Math.random() * messages.length)];
+      }
 
       // Send message according to provider
       let sendResp: Response | null = null;
