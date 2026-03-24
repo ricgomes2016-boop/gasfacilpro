@@ -283,6 +283,44 @@ export function getOffHoursMessage(clienteNome: string | null, horarioInfo: stri
   return `${saudacao} 😊\nNo momento estamos *fechados*.\nNosso horário de funcionamento é *${horarioInfo}*.\n\nSe quiser, posso *agendar seu pedido* para quando abrirmos! Basta me dizer o que precisa. 📋`;
 }
 
+// ========== IDENTIFY CONTACT ==========
+export interface ContactIdentity {
+  tipo: "cliente" | "entregador" | "parceiro";
+  id?: string;
+  nome?: string;
+}
+
+export async function identifyContact(supabase: any, phone: string): Promise<ContactIdentity> {
+  const normalized = normalizePhone(phone);
+  const patterns = [normalized, normalized.slice(-10)];
+
+  // Check entregadores
+  const { data: entregador } = await supabase.from("entregadores")
+    .select("id, nome")
+    .eq("ativo", true)
+    .or(patterns.map((p: string) => `telefone.ilike.%${p}%`).join(","))
+    .limit(1);
+
+  if (entregador?.[0]) {
+    console.log("Contact identified as ENTREGADOR:", entregador[0].nome);
+    return { tipo: "entregador", id: entregador[0].id, nome: entregador[0].nome };
+  }
+
+  // Check vale_gas_parceiros
+  const { data: parceiro } = await supabase.from("vale_gas_parceiros")
+    .select("id, nome")
+    .eq("ativo", true)
+    .or(patterns.map((p: string) => `telefone.ilike.%${p}%`).join(","))
+    .limit(1);
+
+  if (parceiro?.[0]) {
+    console.log("Contact identified as PARCEIRO:", parceiro[0].nome);
+    return { tipo: "parceiro", id: parceiro[0].id, nome: parceiro[0].nome };
+  }
+
+  return { tipo: "cliente" };
+}
+
 // ========== NORMALIZE PHONE ==========
 export function normalizePhone(raw: string): string {
   return raw.replace(/\D/g, "").slice(-11);
