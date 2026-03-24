@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.vapi-webhook]
 verify_jwt = false
+
+[functions.relatorio-diario]
+verify_jwt = false
