@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Bot, Clock, Package, HandCoins, MessageSquare, Save, Loader2, Droplets, Flame, Container } from "lucide-react";
+import { Bot, Clock, Package, HandCoins, MessageSquare, Save, Loader2, Droplets, Flame, Container, Truck } from "lucide-react";
 
 interface PrecoProduto {
   preco: number;
@@ -32,6 +32,8 @@ interface RegrasBiaConfig {
   desconto_etapa2: number;
   preco_minimo_p13: number | null;
   preco_minimo_p20: number | null;
+  gas_do_povo_entrega: boolean;
+  gas_do_povo_taxa: number;
   tabela_precos: {
     gas_p13: PrecoProduto;
     gas_p20: PrecoProduto;
@@ -53,6 +55,8 @@ const defaultConfig: RegrasBiaConfig = {
   desconto_etapa2: 5,
   preco_minimo_p13: null,
   preco_minimo_p20: null,
+  gas_do_povo_entrega: false,
+  gas_do_povo_taxa: 15,
   tabela_precos: {
     gas_p13: { preco: 125, preco_desconto: 120 },
     gas_p20: { preco: 210, preco_desconto: 200 },
@@ -258,6 +262,55 @@ export default function RegrasBia() {
                 </div>
               );
             })}
+          </CardContent>
+        </Card>
+
+        {/* Gás do Povo */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Truck className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg">Gás do Povo</CardTitle>
+                <CardDescription>Configure se o Gás do Povo pode ser entregue com taxa ou apenas retirada na portaria</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
+              <div>
+                <p className="font-medium text-sm">Somente retirada na portaria</p>
+                <p className="text-xs text-muted-foreground">Padrão: cliente retira na loja sem taxa</p>
+              </div>
+              <Badge variant={!config.gas_do_povo_entrega ? "default" : "secondary"}>
+                {!config.gas_do_povo_entrega ? "Ativo" : "Inativo"}
+              </Badge>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">Permitir entrega com taxa</p>
+                <p className="text-xs text-muted-foreground">Se habilitado, a Bia oferece entrega com taxa adicional</p>
+              </div>
+              <Switch
+                checked={config.gas_do_povo_entrega}
+                onCheckedChange={(v) => setConfig(prev => ({ ...prev, gas_do_povo_entrega: v }))}
+              />
+            </div>
+
+            {config.gas_do_povo_entrega && (
+              <div className="pl-4 border-l-2 border-primary/20 space-y-2">
+                <Label>Valor da Taxa de Entrega (R$)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={config.gas_do_povo_taxa}
+                  onChange={(e) => setConfig(prev => ({ ...prev, gas_do_povo_taxa: Number(e.target.value) }))}
+                />
+                <p className="text-xs text-muted-foreground">A Bia informará: retirada na portaria sem taxa, ou entrega com R$ {config.gas_do_povo_taxa.toFixed(2)} de taxa</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

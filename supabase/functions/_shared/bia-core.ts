@@ -262,12 +262,17 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
     effectiveClosing = fechamentoDomingo;
   }
 
+  const gasDoPovoEntrega = regras.gas_do_povo_entrega ?? false;
+  const gasDoPovoTaxa = regras.gas_do_povo_taxa ?? 15;
+
   return {
     isOffHours: cur < abertura || cur >= effectiveClosing,
     horarioInfo: `das ${abertura} às ${effectiveClosing}${isSunday ? " (horário especial de domingo)" : ""}`,
     isSunday,
     waterDeliveryAllowed: !(isSunday && !aguaEntregaDomingo),
     empresaId: u.empresa_id || null,
+    gasDoPovoEntrega,
+    gasDoPovoTaxa,
   };
 }
 
@@ -509,7 +514,8 @@ export function buildSystemPrompt(
   orderStatus: any | null,
   negotiationHint: string,
   sundayContext?: { isSunday: boolean; waterDeliveryAllowed: boolean },
-  history?: any[]
+  history?: any[],
+  gasDoPovoConfig?: { entrega: boolean; taxa: number }
 ): string {
   const agentName = config.agentName || "Bia";
   const now = new Date();
@@ -566,8 +572,14 @@ Passo 5 – REGISTRAR: Após as confirmações, informe: "Perfeito! Já vou repa
 
 GÁS DO POVO (CRÍTICO — SIGA À RISCA):
 - Se o cliente mencionar "Gás do Povo", "gas do povo", "programa do governo", "voucher do gás", "cartão gás do povo" ou qualquer variação:
-  → Informe IMEDIATAMENTE: "O Gás do Povo é somente para retirada na portaria da loja, não fazemos entrega desse programa. Você pode vir buscar aqui! 😊"
-  → NÃO crie pedido de entrega para Gás do Povo.
+${gasDoPovoConfig?.entrega
+  ? `  → Informe que o Gás do Povo pode ser RETIRADO NA PORTARIA sem taxa, OU ENTREGUE com taxa de R$ ${gasDoPovoConfig.taxa.toFixed(2)}.
+  → Pergunte: "Você prefere retirar na portaria sem taxa ou quer que entregue com taxa de R$ ${gasDoPovoConfig.taxa.toFixed(2)}?"
+  → Se escolher RETIRADA: confirme que pode buscar na portaria no horário de funcionamento. NÃO crie pedido de entrega.
+  → Se escolher ENTREGA: prossiga com o fluxo normal de pedido, adicionando a taxa de R$ ${gasDoPovoConfig.taxa.toFixed(2)} ao valor.
+  → Registre o pagamento como "Gás do Povo" em ambos os casos.`
+  : `  → Informe IMEDIATAMENTE: "O Gás do Povo é somente para retirada na portaria da loja, não fazemos entrega desse programa. Você pode vir buscar aqui! 😊"
+  → NÃO crie pedido de entrega para Gás do Povo.`}
   → Se o cliente quiser comprar gás normal (P13) com entrega, prossiga normalmente com o fluxo de venda.
   → Se o cliente perguntar o endereço/horário da loja, informe que pode retirar no horário de funcionamento.
 
