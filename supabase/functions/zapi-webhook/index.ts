@@ -98,11 +98,12 @@ serve(async (req) => {
     sendTyping(finalConfig, phone);
 
     // Gather context
-    const [cliente, bh, products, history] = await Promise.all([
+    const [cliente, bh, products, history, contact] = await Promise.all([
       findCliente(supabase, phone),
       checkBusinessHours(supabase, finalConfig.unidadeId),
       getProducts(supabase, finalConfig.unidadeId, finalConfig),
       loadHistory(supabase, conversationId),
+      identifyContact(supabase, phone),
     ]);
     const [recentOrders, orderStatus] = await Promise.all([
       getRecentOrders(supabase, cliente.id),
@@ -113,6 +114,7 @@ serve(async (req) => {
     await saveMessage(supabase, conversationId, "user", messageText, {
       source: "zapi-webhook", message_id: messageKey,
       raw_message_id: body.messageId ?? null, moment: body.momment ?? null,
+      tipo_contato: contact.tipo, contato_id: contact.id || null,
     });
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`);
 
@@ -134,7 +136,7 @@ serve(async (req) => {
 
     // Build prompt with negotiation hint
     const negHint = buildNegotiationHint(history, finalConfig, messageText);
-    const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, finalConfig, bh.isOffHours, bh.horarioInfo, orderStatus, negHint, { isSunday: bh.isSunday, waterDeliveryAllowed: bh.waterDeliveryAllowed }, history, { entrega: bh.gasDoPovoEntrega ?? false, taxa: bh.gasDoPovoTaxa ?? 15 });
+    const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, finalConfig, bh.isOffHours, bh.horarioInfo, orderStatus, negHint, { isSunday: bh.isSunday, waterDeliveryAllowed: bh.waterDeliveryAllowed }, history, { entrega: bh.gasDoPovoEntrega ?? false, taxa: bh.gasDoPovoTaxa ?? 15 }, contact);
 
     // Call AI
     let reply: string;
