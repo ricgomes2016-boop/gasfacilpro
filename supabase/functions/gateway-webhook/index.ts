@@ -9,6 +9,7 @@ import {
   createOrder, sendTyping, sendMessage, sendLocation, registerCall,
   getOffHoursMessage,
   getEntregadorLocation,
+  identifyContact,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
