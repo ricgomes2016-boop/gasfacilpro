@@ -553,7 +553,8 @@ export function buildSystemPrompt(
   negotiationHint: string,
   sundayContext?: { isSunday: boolean; waterDeliveryAllowed: boolean },
   history?: any[],
-  gasDoPovoConfig?: { entrega: boolean; taxa: number }
+  gasDoPovoConfig?: { entrega: boolean; taxa: number },
+  contactIdentity?: ContactIdentity
 ): string {
   const agentName = config.agentName || "Bia";
   const now = new Date();
