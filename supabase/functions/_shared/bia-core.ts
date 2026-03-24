@@ -262,12 +262,17 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
     effectiveClosing = fechamentoDomingo;
   }
 
+  const gasDoPovoEntrega = regras.gas_do_povo_entrega ?? false;
+  const gasDoPovoTaxa = regras.gas_do_povo_taxa ?? 15;
+
   return {
     isOffHours: cur < abertura || cur >= effectiveClosing,
     horarioInfo: `das ${abertura} às ${effectiveClosing}${isSunday ? " (horário especial de domingo)" : ""}`,
     isSunday,
     waterDeliveryAllowed: !(isSunday && !aguaEntregaDomingo),
     empresaId: u.empresa_id || null,
+    gasDoPovoEntrega,
+    gasDoPovoTaxa,
   };
 }
 
