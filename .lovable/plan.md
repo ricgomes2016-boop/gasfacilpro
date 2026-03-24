@@ -1,80 +1,102 @@
 
 
-# Bia: Identificar Entregadores e Parceiros no WhatsApp
+# 5 Melhorias Inteligentes para a Bia — Plano Completo
 
-## Problema
+## Resumo
 
-Atualmente, a Bia trata todas as mensagens recebidas como se fossem de clientes. Quando um entregador ou parceiro (vale-gás) entra em contato pelo WhatsApp, a Bia tenta vender gás para ele, o que e inadequado.
+Implementar todas as 5 melhorias sugeridas para a Bia em uma única entrega:
 
-## Solucao
+1. **Pós-entrega automático** — avaliação via WhatsApp
+2. **Lembrete de recompra inteligente** — já existe (`recompra-whatsapp-dispatch`), melhorar
+3. **Detecção de área de entrega** — validar bairros atendidos
+4. **Relatório diário via WhatsApp** — resumo para o gestor
+5. **Detecção de insatisfação** — tom empático + flag para gestor
 
-Adicionar uma etapa de identificacao no fluxo da Bia que cruza o telefone de quem mandou a mensagem com as tabelas `entregadores` e `vale_gas_parceiros`. Dependendo do resultado, o comportamento muda:
+---
 
-### Fluxo de Decisao
+## 1. Pós-Entrega Automático
 
-```text
-Mensagem recebida
-    │
-    ├─ Telefone bate com entregadores? → Modo Entregador
-    ├─ Telefone bate com vale_gas_parceiros? → Modo Parceiro
-    └─ Nenhum match → Modo Cliente (fluxo atual, inalterado)
-```
+**O que faz:** Quando um pedido muda para status "entregue", a Bia envia mensagem pedindo avaliação (1 a 5 estrelas via emoji). O cliente responde com um número e a Bia registra.
 
-### Modo Entregador
-- Bia responde de forma direta e profissional, como colega de trabalho
-- Pode responder duvidas simples (horarios, enderecos de entrega pendentes)
-- Registra a mensagem no chat do sistema (ai_mensagens) com metadata `{ tipo_contato: "entregador", entregador_id: "..." }`
-- NAO tenta vender, NAO pede endereco, NAO segue fluxo de pedido
+**Alterações:**
+- **Nova edge function `pos-entrega-feedback/index.ts`** — Disparada pelo trigger existente `fn_notif_status_pedido`. Adaptar para também invocar essa function quando status = "entregue"
+- Na verdade, mais simples: **adicionar lógica no `bia-core.ts`** para detectar que o cliente respondeu com avaliação (1-5 ou estrelas) após entrega recente
+- **Nova tabela `avaliacoes_entrega`** — `pedido_id`, `cliente_id`, `nota` (1-5), `comentario`, `created_at`
+- **Alterar `notificacoes_status_pedido`** — já existe trigger que gera mensagem de entrega. Adicionar lógica na edge function de envio (`status-whatsapp-dispatch`) para incluir pedido de avaliação na mensagem de entrega
+- **Alterar `bia-core.ts`** — no `isPostOrderFollowUp`, detectar respostas de avaliação (1-5) e salvar na tabela
 
-### Modo Parceiro (Instituicao)
-- Bia responde educadamente, identifica como parceiro institucional
-- Registra com metadata `{ tipo_contato: "parceiro", parceiro_id: "..." }`
-- Pode informar sobre pedidos pendentes da instituicao
-- NAO segue fluxo de venda normal
+**Fluxo:**
+1. Pedido muda para "entregue" → trigger existente gera mensagem "✅ Pedido entregue!"
+2. Mensagem agora inclui: "De 1 a 5, como foi a entrega? 😊"
+3. Cliente responde "5" → Bia detecta, salva avaliação, agradece
 
-### Registro no Chat do Sistema
-Todas as mensagens de entregadores/parceiros ficam visiveis no historico de conversas (ai_conversas + ai_mensagens), permitindo que o gestor veja o que foi conversado.
+## 2. Lembrete de Recompra — Melhorias
 
-## Alteracoes Tecnicas
+**Já existe:** `recompra-whatsapp-dispatch` calcula ciclo médio e envia WhatsApp. `recompra-alerts` gera alertas.
 
-| Arquivo | Acao |
+**Melhorias:**
+- **Adicionar configuração no RegrasBia.tsx** — `recompra_ativa: boolean`, `recompra_mensagem_personalizada: string`
+- **Salvar no `regras_bia`** JSONB
+- **Alterar `recompra-whatsapp-dispatch`** para ler config e respeitar se desabilitado
+
+## 3. Detecção de Área de Entrega
+
+**O que faz:** A Bia verifica se o bairro informado pelo cliente está na lista de bairros das `rotas_definidas` da unidade. Se não estiver, informa educadamente.
+
+**Alterações:**
+- **`bia-core.ts`** — nova função `checkDeliveryArea(supabase, unidadeId, endereco)` que consulta `rotas_definidas.bairros` e valida
+- **`buildSystemPrompt`** — injetar instrução: "Se o endereço do cliente estiver fora da área de entrega, informe educadamente e sugira buscar na loja"
+- **Adicionar configuração no RegrasBia.tsx** — `validar_area_entrega: boolean`
+
+## 4. Relatório Diário via WhatsApp
+
+**O que faz:** Edge function agendada (pg_cron) que roda às 19:00 BRT, consulta pedidos do dia, faturamento, top produtos, e envia resumo via WhatsApp para o número do gestor.
+
+**Alterações:**
+- **Nova edge function `relatorio-diario/index.ts`** — consulta `pedidos`, `movimentacoes_caixa`, calcula KPIs e envia via WhatsApp
+- **Configuração no RegrasBia.tsx** — `relatorio_diario_ativo: boolean`, `relatorio_diario_telefone: string` (telefone do gestor)
+- **pg_cron** — agendar execução diária às 19:00
+
+## 5. Detecção de Insatisfação
+
+**O que faz:** No prompt da Bia, instruir para detectar palavras de frustração (demora, ruim, péssimo, atraso, reclamação) e:
+- Mudar tom para empático
+- Pedir desculpas e oferecer solução
+- Marcar conversa com flag `insatisfacao: true` na metadata
+
+**Alterações:**
+- **`bia-core.ts` / `buildSystemPrompt`** — adicionar bloco de instruções sobre detecção de insatisfação
+- **Metadata nas mensagens** — salvar `{ insatisfacao: true }` quando detectado
+- **Painel de conversas** — filtrar conversas com insatisfação (futuro, não nesta entrega)
+
+---
+
+## Tabelas Novas
+
+| Tabela | Colunas |
 |---|---|
-| `supabase/functions/_shared/bia-core.ts` | Criar funcao `identifyContact(supabase, phone)` que retorna `{ tipo: "cliente" | "entregador" | "parceiro", id, nome }` |
-| `supabase/functions/_shared/bia-core.ts` | Modificar `buildSystemPrompt` para aceitar tipo de contato e injetar instrucoes especificas |
-| Todos os webhooks (5 arquivos) | Chamar `identifyContact` antes do fluxo e passar o tipo para o prompt |
+| `avaliacoes_entrega` | `id`, `pedido_id`, `cliente_id`, `nota` (1-5), `comentario`, `telefone`, `created_at` |
 
-### Nova funcao: `identifyContact`
+## Arquivos Modificados
 
-```text
-1. Consulta entregadores WHERE telefone ILIKE %phone% AND ativo = true
-2. Se encontrou → retorna { tipo: "entregador", id, nome }
-3. Senao, consulta vale_gas_parceiros WHERE telefone ILIKE %phone% AND ativo = true
-4. Se encontrou → retorna { tipo: "parceiro", id, nome }
-5. Senao → retorna { tipo: "cliente" }
-```
+| Arquivo | Ação |
+|---|---|
+| `supabase/functions/_shared/bia-core.ts` | Avaliação pós-entrega, área de entrega, insatisfação no prompt |
+| `src/pages/config/RegrasBia.tsx` | Novas configs: recompra, área de entrega, relatório diário |
+| `supabase/functions/relatorio-diario/index.ts` | **Nova** — relatório diário via WhatsApp |
+| `supabase/functions/recompra-whatsapp-dispatch/index.ts` | Ler config de empresa |
+| `fn_notif_status_pedido` | Incluir pedido de avaliação na mensagem de entrega |
+| Todos os 5 webhooks | Passar nova lógica de avaliação |
+| 1 migration | Criar tabela `avaliacoes_entrega` |
+| 1 pg_cron | Agendar relatório diário |
 
-### Instrucoes injetadas no prompt
+## Ordem de Implementação
 
-**Entregador:**
-- "Voce esta conversando com o ENTREGADOR [nome]. Ele faz parte da equipe."
-- "Responda de forma direta e objetiva. Pode informar sobre entregas pendentes, horarios e rotas."
-- "NAO tente vender produtos. NAO siga o fluxo de pedido."
-
-**Parceiro:**
-- "Voce esta conversando com o PARCEIRO INSTITUCIONAL [nome]."
-- "Responda de forma educada e profissional. Pode informar sobre pedidos da instituicao."
-- "NAO siga o fluxo de venda normal."
-
-### Metadata nas mensagens
-
-As mensagens salvas terao metadata adicional para facilitar filtragem no painel:
-- `tipo_contato: "entregador" | "parceiro" | "cliente"`
-- `contato_id: uuid` (quando aplicavel)
-
-## Garantias
-
-- Zero alteracao no fluxo de clientes (so adiciona uma verificacao antes)
-- Mensagens de entregadores/parceiros ficam no mesmo historico de conversas, visiveis no sistema
-- Nenhuma tabela nova necessaria
-- Nenhuma alteracao de RLS
+1. Migration (tabela `avaliacoes_entrega`)
+2. Config UI (RegrasBia.tsx — todas as novas opções)
+3. Lógica da Bia (bia-core.ts — avaliação, área, insatisfação)
+4. Trigger de entrega (incluir pedido de avaliação)
+5. Edge function relatório diário + pg_cron
+6. Melhorias recompra
+7. Deploy de todos os webhooks
 
