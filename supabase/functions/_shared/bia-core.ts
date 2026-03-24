@@ -514,7 +514,8 @@ export function buildSystemPrompt(
   orderStatus: any | null,
   negotiationHint: string,
   sundayContext?: { isSunday: boolean; waterDeliveryAllowed: boolean },
-  history?: any[]
+  history?: any[],
+  gasDoPovoConfig?: { entrega: boolean; taxa: number }
 ): string {
   const agentName = config.agentName || "Bia";
   const now = new Date();
