@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Bot, Clock, Package, HandCoins, MessageSquare, Save, Loader2, Droplets, Flame, Container } from "lucide-react";
+import { Bot, Clock, Package, HandCoins, MessageSquare, Save, Loader2, Droplets, Flame, Container, Truck } from "lucide-react";
 
 interface PrecoProduto {
   preco: number;
@@ -32,6 +32,8 @@ interface RegrasBiaConfig {
   desconto_etapa2: number;
   preco_minimo_p13: number | null;
   preco_minimo_p20: number | null;
+  gas_do_povo_entrega: boolean;
+  gas_do_povo_taxa: number;
   tabela_precos: {
     gas_p13: PrecoProduto;
     gas_p20: PrecoProduto;
@@ -53,6 +55,8 @@ const defaultConfig: RegrasBiaConfig = {
   desconto_etapa2: 5,
   preco_minimo_p13: null,
   preco_minimo_p20: null,
+  gas_do_povo_entrega: false,
+  gas_do_povo_taxa: 15,
   tabela_precos: {
     gas_p13: { preco: 125, preco_desconto: 120 },
     gas_p20: { preco: 210, preco_desconto: 200 },
