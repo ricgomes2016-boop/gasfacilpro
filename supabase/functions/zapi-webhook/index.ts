@@ -133,7 +133,7 @@ serve(async (req) => {
 
     // Build prompt with negotiation hint
     const negHint = buildNegotiationHint(history, finalConfig, messageText);
-    const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, finalConfig, bh.isOffHours, bh.horarioInfo, orderStatus, negHint, { isSunday: bh.isSunday, waterDeliveryAllowed: bh.waterDeliveryAllowed }, history);
+    const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, finalConfig, bh.isOffHours, bh.horarioInfo, orderStatus, negHint, { isSunday: bh.isSunday, waterDeliveryAllowed: bh.waterDeliveryAllowed }, history, { entrega: bh.gasDoPovoEntrega ?? false, taxa: bh.gasDoPovoTaxa ?? 15 });
 
     // Call AI
     let reply: string;
