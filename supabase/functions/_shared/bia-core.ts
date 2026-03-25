@@ -776,8 +776,11 @@ export async function generateUUIDFromString(input: string): Promise<string> {
 
 // ========== CONVERSATION HISTORY ==========
 export async function loadHistory(supabase: any, conversationId: string) {
+  // Only load messages from the last 2 hours to avoid stale context from old conversations
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
   const { data } = await supabase.from("ai_mensagens")
     .select("role, content, created_at").eq("conversa_id", conversationId)
+    .gte("created_at", twoHoursAgo)
     .order("created_at", { ascending: true }).limit(20);
   return data ? data.map((m: any) => ({ role: m.role, content: m.content })) : [];
 }
