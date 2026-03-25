@@ -36,6 +36,7 @@ interface RegrasBiaConfig {
   gas_do_povo_taxa: number;
   recompra_ativa: boolean;
   recompra_mensagem_personalizada: string;
+  auto_followup_ativo: boolean;
   validar_area_entrega: boolean;
   relatorio_diario_ativo: boolean;
   relatorio_diario_telefone: string;
@@ -64,6 +65,7 @@ const defaultConfig: RegrasBiaConfig = {
   gas_do_povo_taxa: 15,
   recompra_ativa: true,
   recompra_mensagem_personalizada: "",
+  auto_followup_ativo: false,
   validar_area_entrega: false,
   relatorio_diario_ativo: false,
   relatorio_diario_telefone: "",
