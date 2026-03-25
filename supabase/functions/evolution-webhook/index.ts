@@ -213,6 +213,8 @@ serve(async (req) => {
     await sendMessage(config, phone, reply);
 
     // --- AUTO FOLLOW-UP FOR NEGOTIATION (Evolution) ---
+    // Only runs if auto_followup_ativo is enabled in regras_bia
+    if (bh.autoFollowupAtivo) {
     const replyLower = reply.toLowerCase();
     const mentionedMgr = replyLower.includes("verificar com o gerente") || replyLower.includes("falar com o gerente") ||
       replyLower.includes("consultar o gerente") || (replyLower.includes("um momento") && !replyLower.includes("desconto"));
@@ -270,6 +272,7 @@ serve(async (req) => {
         }
       }, 5000);
     }
+    } // end auto_followup_ativo check
 
     return OK({ ok: true, reply: reply.substring(0, 100) });
   } catch (error) {

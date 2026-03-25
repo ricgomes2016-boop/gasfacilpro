@@ -1335,6 +1335,14 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       });
       const respText = await resp.text();
       console.log("Evolution sendMessage response:", resp.status, respText.substring(0, 300));
+      // Auto-deactivate instance on Connection Closed
+      if ((resp.status === 400 || resp.status === 403) && (respText.includes("Connection Closed") || respText.includes("not connected"))) {
+        console.error(`⚠️ Evolution instance ${instance} disconnected — auto-deactivating`);
+        try {
+          const sb = createSupabase();
+          await sb.from("integracoes_whatsapp").update({ ativo: false }).eq("instance_id", instance).eq("provedor", "evolution");
+        } catch (dbErr) { console.error("Failed to auto-deactivate:", dbErr); }
+      }
     } else if (config.provedor === "gateway") {
       // Send via WhatsApp Gateway API
       const url = `${config.gatewayBaseUrl}/instances/${config.gatewayInstanceName}/send-text`;

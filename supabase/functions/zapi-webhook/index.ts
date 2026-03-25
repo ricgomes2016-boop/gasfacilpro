@@ -205,7 +205,8 @@ serve(async (req) => {
 
     await sendMessage(finalConfig, phone, reply);
 
-    // Auto follow-up for negotiation (same logic as before, using deterministic discount)
+    // Auto follow-up for negotiation — only if auto_followup_ativo is enabled
+    if (bh.autoFollowupAtivo) {
     const replyLower = reply.toLowerCase();
     const mentionedMgr = replyLower.includes("verificar com o gerente") || replyLower.includes("falar com o gerente") ||
       replyLower.includes("consultar o gerente") || (replyLower.includes("um momento") && !replyLower.includes("desconto"));
