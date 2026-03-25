@@ -141,6 +141,13 @@ serve(async (req) => {
       return OK({ ok: true, skipped: "post_order_followup" });
     }
 
+    // Rate limit check: max 10 messages per 2 hours per conversation
+    const isRateLimited = await checkRateLimit(supabase, conversationId, 10, 2);
+    if (isRateLimited) {
+      console.warn(`Rate limited conversation ${conversationId} — skipping AI call`);
+      return OK({ ok: true, skipped: "rate_limited" });
+    }
+
     // Build prompt with negotiation hint
     const negHint = buildNegotiationHint(history, finalConfig, messageText);
     const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, finalConfig, bh.isOffHours, bh.horarioInfo, orderStatus, negHint, { isSunday: bh.isSunday, waterDeliveryAllowed: bh.waterDeliveryAllowed }, history, { entrega: bh.gasDoPovoEntrega ?? false, taxa: bh.gasDoPovoTaxa ?? 15 }, contact);
