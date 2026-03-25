@@ -265,6 +265,8 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
   const gasDoPovoEntrega = regras.gas_do_povo_entrega ?? false;
   const gasDoPovoTaxa = regras.gas_do_povo_taxa ?? 15;
 
+  const autoFollowupAtivo = regras.auto_followup_ativo ?? false;
+
   return {
     isOffHours: cur < abertura || cur >= effectiveClosing,
     horarioInfo: `das ${abertura} às ${effectiveClosing}${isSunday ? " (horário especial de domingo)" : ""}`,
@@ -273,6 +275,7 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
     empresaId: u.empresa_id || null,
     gasDoPovoEntrega,
     gasDoPovoTaxa,
+    autoFollowupAtivo,
   };
 }
 
@@ -1297,6 +1300,21 @@ export async function sendTyping(config: BiaConfig, phone: string) {
       });
     }
   } catch (e) { console.error("Typing indicator error:", e); }
+}
+
+// ========== RATE LIMIT CHECK ==========
+export async function checkRateLimit(supabase: any, conversationId: string, maxMessages = 10, windowHours = 2): Promise<boolean> {
+  try {
+    const since = new Date(Date.now() - windowHours * 60 * 60 * 1000).toISOString();
+    const { count } = await supabase.from("ai_mensagens").select("id", { count: "exact", head: true })
+      .eq("conversa_id", conversationId).eq("role", "assistant")
+      .gte("created_at", since);
+    if (count !== null && count >= maxMessages) {
+      console.warn(`Rate limit reached: ${count} msgs in ${windowHours}h for conversation ${conversationId}`);
+      return true; // rate limited
+    }
+    return false;
+  } catch (e) { console.error("Rate limit check error:", e); return false; }
 }
 
 // ========== SEND MESSAGE ==========
