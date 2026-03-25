@@ -362,7 +362,42 @@ export default function RegrasBia() {
           </CardContent>
         </Card>
 
-        {/* Área de Entrega */}
+        {/* Auto Follow-up (Negociação) */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg">Auto Follow-up de Negociação</CardTitle>
+                <CardDescription>Envia automaticamente proposta de desconto simulando consulta ao gerente</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">Auto follow-up ativo</p>
+                <p className="text-xs text-muted-foreground">Quando desativado, a Bia não simula "falar com o gerente" automaticamente</p>
+              </div>
+              <Switch
+                checked={config.auto_followup_ativo}
+                onCheckedChange={(v) => setConfig(prev => ({ ...prev, auto_followup_ativo: v }))}
+              />
+            </div>
+            {config.auto_followup_ativo && (
+              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <p className="text-xs text-yellow-700 dark:text-yellow-400 font-medium">
+                    Atenção: Este recurso pode aumentar o risco de bloqueio pelo WhatsApp por enviar mensagens não solicitadas.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
