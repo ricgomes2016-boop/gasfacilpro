@@ -64,16 +64,46 @@ serve(async (req) => {
       case "status":
         url = `${baseUrl}/instance/connectionState/${instance_id}`;
         break;
-      case "create":
-        url = `${baseUrl}/instance/create`;
-        method = "POST";
-        body = JSON.stringify({ 
-          instanceName: instance_id, 
-          token: apiKey, 
-          qrcode: true,
-          integration: "WHATSAPP-BAILEYS"
+      case "create": {
+        // First try to create
+        const createUrl = `${baseUrl}/instance/create`;
+        console.log(`[EVOLUTION-PROXY] POST ${createUrl}`);
+        const createResp = await fetch(createUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ 
+            instanceName: instance_id, 
+            token: apiKey, 
+            qrcode: true,
+            integration: "WHATSAPP-BAILEYS"
+          }),
         });
-        break;
+        const createData = await createResp.json().catch(() => ({ ok: createResp.ok }));
+        console.log(`[EVOLUTION-PROXY] Create response ${createResp.status}:`, JSON.stringify(createData).substring(0, 500));
+
+        // If instance already exists (403), just connect to get QR code
+        if (createResp.status === 403 || (createData?.response?.message && JSON.stringify(createData.response.message).includes("already in use"))) {
+          console.log(`[EVOLUTION-PROXY] Instance already exists, fetching QR code instead`);
+          const connectUrl = `${baseUrl}/instance/connect/${instance_id}`;
+          console.log(`[EVOLUTION-PROXY] GET ${connectUrl}`);
+          const connectResp = await fetch(connectUrl, { method: "GET", headers });
+          const connectData = await connectResp.json().catch(() => ({ ok: connectResp.ok }));
+          console.log(`[EVOLUTION-PROXY] Connect response ${connectResp.status}:`, JSON.stringify(connectData).substring(0, 500));
+          return new Response(JSON.stringify(connectData), {
+            status: connectResp.status,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Extract generated token
+        if (createData?.hash?.apikey) {
+          createData._generated_token = createData.hash.apikey;
+        }
+        return new Response(JSON.stringify(createData), {
+          status: createResp.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       case "restart":
         url = `${baseUrl}/instance/restart/${instance_id}`;
         method = "PUT";
