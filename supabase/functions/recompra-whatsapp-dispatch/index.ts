@@ -140,6 +140,29 @@ serve(async (req) => {
       const phone = cliente.telefone.replace(/\D/g, "");
       if (phone.length < 10) continue;
 
+      // 24h cooldown: skip if Bia already sent a message to this phone recently
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: recentBiaMsg } = await supabase
+        .from("ai_mensagens")
+        .select("id")
+        .eq("role", "assistant")
+        .gte("created_at", twentyFourHoursAgo)
+        .limit(1);
+      // Check by conversation id pattern
+      const convIdCheck = `whatsapp_${phone.slice(-10)}`;
+      const { count: recentCount } = await supabase
+        .from("ai_mensagens")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "assistant")
+        .ilike("conversa_id", `%${phone.slice(-8)}%`)
+        .gte("created_at", twentyFourHoursAgo);
+      if (recentCount && recentCount > 0) {
+        console.log(`Skipping recompra for ${phone}: ${recentCount} msgs in last 24h`);
+        skipped++;
+        continue;
+      }
+      if (phone.length < 10) continue;
+
       // Find the right WhatsApp integration for this client's unidade
       let integration = integracoes.find((i: any) => i.unidade_id === info.unidade_id);
       if (!integration) integration = integracoes.length === 1 ? integracoes[0] : null;

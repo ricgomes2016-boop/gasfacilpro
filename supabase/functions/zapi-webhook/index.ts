@@ -260,6 +260,7 @@ serve(async (req) => {
       await saveMessage(supabase, conversationId, "assistant", fu, { source: "zapi-webhook", auto_followup_for: messageKey });
       await sendMessage(finalConfig, phone, fu);
     }
+    } // end auto_followup_ativo check
 
     return OK({ ok: true, reply: reply.substring(0, 100) });
   } catch (error) {
