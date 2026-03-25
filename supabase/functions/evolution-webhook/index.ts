@@ -8,7 +8,7 @@ import {
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall, getEntregadorLocation,
   downloadAudio, transcribeAudio, collectBufferedMessages, getOffHoursMessage,
-  identifyContact,
+  identifyContact, checkRateLimit,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
@@ -149,6 +149,13 @@ serve(async (req) => {
       return OK({ ok: true, skipped: "post_order_followup" });
     }
 
+    // Rate limit check: max 10 messages per 2 hours per conversation
+    const isRateLimited = await checkRateLimit(supabase, conversationId, 10, 2);
+    if (isRateLimited) {
+      console.warn(`Rate limited conversation ${conversationId} — skipping AI call`);
+      return OK({ ok: true, skipped: "rate_limited" });
+    }
+
     // Build prompt
     const negHint = buildNegotiationHint(history, config, finalMessageText);
     const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, config, bh.isOffHours, bh.horarioInfo, orderStatus, negHint, { isSunday: bh.isSunday, waterDeliveryAllowed: bh.waterDeliveryAllowed }, history, { entrega: bh.gasDoPovoEntrega ?? false, taxa: bh.gasDoPovoTaxa ?? 15 }, contact);
@@ -213,6 +220,8 @@ serve(async (req) => {
     await sendMessage(config, phone, reply);
 
     // --- AUTO FOLLOW-UP FOR NEGOTIATION (Evolution) ---
+    // Only runs if auto_followup_ativo is enabled in regras_bia
+    if (bh.autoFollowupAtivo) {
     const replyLower = reply.toLowerCase();
     const mentionedMgr = replyLower.includes("verificar com o gerente") || replyLower.includes("falar com o gerente") ||
       replyLower.includes("consultar o gerente") || (replyLower.includes("um momento") && !replyLower.includes("desconto"));
@@ -270,6 +279,7 @@ serve(async (req) => {
         }
       }, 5000);
     }
+    } // end auto_followup_ativo check
 
     return OK({ ok: true, reply: reply.substring(0, 100) });
   } catch (error) {
