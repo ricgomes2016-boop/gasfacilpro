@@ -97,15 +97,20 @@ export default function CaixaDeEntrada() {
   const handleSend = async () => {
     if (!newMsg.trim() || !selectedId) return;
     setSending(true);
-    const { error } = await supabase.from("ai_mensagens").insert({
-      conversa_id: selectedId,
-      role: "human",
-      content: newMsg.trim(),
-    });
-    if (error) {
-      toast({ title: "Erro ao enviar", description: error.message, variant: "destructive" });
-    } else {
-      setNewMsg("");
+    try {
+      const { data, error } = await supabase.functions.invoke("whatsapp-send", {
+        body: { conversa_id: selectedId, content: newMsg.trim(), unidade_id: null },
+      });
+      if (error) {
+        toast({ title: "Erro ao enviar", description: error.message, variant: "destructive" });
+      } else if (data?.error) {
+        toast({ title: "Erro WhatsApp", description: data.error, variant: "destructive" });
+      } else {
+        setNewMsg("");
+        toast({ title: "Mensagem enviada", description: `Via ${data?.provedor || "WhatsApp"}` });
+      }
+    } catch (err: any) {
+      toast({ title: "Erro de conexão", description: err.message || "Falha ao enviar", variant: "destructive" });
     }
     setSending(false);
   };
