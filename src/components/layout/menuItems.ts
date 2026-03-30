@@ -110,7 +110,8 @@ export const menuItems: MenuItem[] = [
     label: "Atendimento",
     submenu: [
       { icon: Phone, label: "Central de Atendimento", path: "/atendimento" },
-      { icon: Smartphone, label: "WhatsApp", path: "/integracoes?open=whatsapp" },
+      { icon: Smartphone, label: "Inbox WhatsApp", path: "/chat" },
+      { icon: Smartphone, label: "Config WhatsApp", path: "/integracoes?open=whatsapp" },
     ],
   },
   {

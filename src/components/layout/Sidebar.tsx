@@ -51,6 +51,8 @@ const menuIconColors: Record<string, string> = {
 const subMenuIconColors: Record<string, string> = {
   // Atendimento
   "Central de Atendimento": "text-green-500",
+  "Inbox WhatsApp": "text-green-400",
+  "Config WhatsApp": "text-green-600",
   // Vendas
   "PDV": "text-emerald-600",
   "Nova Venda": "text-emerald-400",
