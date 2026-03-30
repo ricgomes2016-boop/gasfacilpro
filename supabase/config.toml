@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.relatorio-diario]
 verify_jwt = false
+
+[functions.whatsapp-send]
+verify_jwt = false

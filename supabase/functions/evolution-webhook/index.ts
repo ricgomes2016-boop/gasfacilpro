@@ -120,7 +120,7 @@ serve(async (req) => {
       instance: instanceName,
       tipo_contato: contact.tipo, contato_id: contact.id || null,
     });
-    await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`);
+    await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
 
     // Hard block: off-hours → fixed message, no AI
     if (bh.isOffHours) {
