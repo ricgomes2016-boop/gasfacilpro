@@ -34,6 +34,7 @@ import { configRoutes } from "@/routes/configRoutes";
 import { entregadorRoutes } from "@/routes/entregadorRoutes";
 import { clienteAppRoutes } from "@/routes/clienteAppRoutes";
 import { parceiroRoutes } from "@/routes/parceiroRoutes";
+import { transportadoraRoutes } from "@/routes/transportadoraRoutes";
 import { atendimentoRoutes } from "@/routes/atendimentoRoutes";
 import { integracoesRoutes } from "@/routes/integracoesRoutes";
 import { marketingRoutes } from "@/routes/marketingRoutes";
