@@ -44,6 +44,7 @@ import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 
 // Lazy load one-off pages
+const AuthTransportadora = lazy(() => import("./pages/auth/AuthTransportadora"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OnboardingEmpresa = lazy(() => import("./pages/onboarding/OnboardingEmpresa"));
