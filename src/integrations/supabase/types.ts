@@ -7504,6 +7504,510 @@ export type Database = {
           },
         ]
       }
+      transp_abastecimentos: {
+        Row: {
+          created_at: string
+          custo_logistico: number
+          custo_por_unidade: number
+          data: string
+          destino_unidade_id: string
+          empresa_id: string
+          id: string
+          observacoes: string | null
+          origem_unidade_id: string
+          p13_equivalente: number
+          qtd_p13: number
+          qtd_p20: number
+          qtd_p45: number
+          simulacao_id: string | null
+          updated_at: string
+          veiculo_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          custo_logistico?: number
+          custo_por_unidade?: number
+          data?: string
+          destino_unidade_id: string
+          empresa_id: string
+          id?: string
+          observacoes?: string | null
+          origem_unidade_id: string
+          p13_equivalente?: number
+          qtd_p13?: number
+          qtd_p20?: number
+          qtd_p45?: number
+          simulacao_id?: string | null
+          updated_at?: string
+          veiculo_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          custo_logistico?: number
+          custo_por_unidade?: number
+          data?: string
+          destino_unidade_id?: string
+          empresa_id?: string
+          id?: string
+          observacoes?: string | null
+          origem_unidade_id?: string
+          p13_equivalente?: number
+          qtd_p13?: number
+          qtd_p20?: number
+          qtd_p45?: number
+          simulacao_id?: string | null
+          updated_at?: string
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_abastecimentos_destino_unidade_id_fkey"
+            columns: ["destino_unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_abastecimentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_abastecimentos_origem_unidade_id_fkey"
+            columns: ["origem_unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_abastecimentos_simulacao_id_fkey"
+            columns: ["simulacao_id"]
+            isOneToOne: false
+            referencedRelation: "transp_simulacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_abastecimentos_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "transp_veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_despesas: {
+        Row: {
+          comprovante_url: string | null
+          created_at: string
+          data: string
+          descricao: string | null
+          empresa_id: string
+          id: string
+          mes_referencia: string | null
+          tipo: string
+          updated_at: string
+          valor: number
+          veiculo_id: string | null
+        }
+        Insert: {
+          comprovante_url?: string | null
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          empresa_id: string
+          id?: string
+          mes_referencia?: string | null
+          tipo?: string
+          updated_at?: string
+          valor?: number
+          veiculo_id?: string | null
+        }
+        Update: {
+          comprovante_url?: string | null
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          empresa_id?: string
+          id?: string
+          mes_referencia?: string | null
+          tipo?: string
+          updated_at?: string
+          valor?: number
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_despesas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_despesas_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "transp_veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_entregas: {
+        Row: {
+          created_at: string
+          custo_total: number
+          data: string
+          destino_unidade_id: string | null
+          empresa_id: string
+          id: string
+          km: number
+          margem: number
+          motorista_id: string | null
+          observacoes: string | null
+          p13_equivalente: number
+          qtd_p13: number
+          qtd_p20: number
+          qtd_p45: number
+          tipo: string
+          updated_at: string
+          valor_venda: number
+          veiculo_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          custo_total?: number
+          data?: string
+          destino_unidade_id?: string | null
+          empresa_id: string
+          id?: string
+          km?: number
+          margem?: number
+          motorista_id?: string | null
+          observacoes?: string | null
+          p13_equivalente?: number
+          qtd_p13?: number
+          qtd_p20?: number
+          qtd_p45?: number
+          tipo?: string
+          updated_at?: string
+          valor_venda?: number
+          veiculo_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          custo_total?: number
+          data?: string
+          destino_unidade_id?: string | null
+          empresa_id?: string
+          id?: string
+          km?: number
+          margem?: number
+          motorista_id?: string | null
+          observacoes?: string | null
+          p13_equivalente?: number
+          qtd_p13?: number
+          qtd_p20?: number
+          qtd_p45?: number
+          tipo?: string
+          updated_at?: string
+          valor_venda?: number
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_entregas_destino_unidade_id_fkey"
+            columns: ["destino_unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_entregas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_entregas_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "transp_funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_entregas_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "transp_veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_fechamentos: {
+        Row: {
+          created_at: string
+          custo_real_por_unidade: number
+          empresa_id: string
+          id: string
+          mes_referencia: string
+          observacoes: string | null
+          total_despesas: number
+          total_p13_equivalente: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custo_real_por_unidade?: number
+          empresa_id: string
+          id?: string
+          mes_referencia: string
+          observacoes?: string | null
+          total_despesas?: number
+          total_p13_equivalente?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custo_real_por_unidade?: number
+          empresa_id?: string
+          id?: string
+          mes_referencia?: string
+          observacoes?: string | null
+          total_despesas?: number
+          total_p13_equivalente?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_fechamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_funcionarios: {
+        Row: {
+          ativo: boolean
+          cargo: string
+          created_at: string
+          empresa_id: string
+          id: string
+          nome: string
+          salario_mensal: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cargo?: string
+          created_at?: string
+          empresa_id: string
+          id?: string
+          nome: string
+          salario_mensal?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cargo?: string
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          salario_mensal?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_funcionarios_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_simulacoes: {
+        Row: {
+          ajudante_id: string | null
+          created_at: string
+          custo_ajudante: number
+          custo_combustivel: number
+          custo_motorista: number
+          custo_p13_equiv: number
+          custo_pedagio: number
+          custo_refeicao: number
+          custo_total: number
+          destino: string
+          destino_unidade_id: string | null
+          empresa_id: string
+          id: string
+          ida_volta: boolean
+          km: number
+          motorista_id: string | null
+          origem: string
+          origem_unidade_id: string | null
+          preco_combustivel_litro: number
+          qtd_p13: number
+          qtd_p20: number
+          qtd_p45: number
+          tipo: string
+          updated_at: string
+          veiculo_id: string | null
+        }
+        Insert: {
+          ajudante_id?: string | null
+          created_at?: string
+          custo_ajudante?: number
+          custo_combustivel?: number
+          custo_motorista?: number
+          custo_p13_equiv?: number
+          custo_pedagio?: number
+          custo_refeicao?: number
+          custo_total?: number
+          destino: string
+          destino_unidade_id?: string | null
+          empresa_id: string
+          id?: string
+          ida_volta?: boolean
+          km?: number
+          motorista_id?: string | null
+          origem: string
+          origem_unidade_id?: string | null
+          preco_combustivel_litro?: number
+          qtd_p13?: number
+          qtd_p20?: number
+          qtd_p45?: number
+          tipo?: string
+          updated_at?: string
+          veiculo_id?: string | null
+        }
+        Update: {
+          ajudante_id?: string | null
+          created_at?: string
+          custo_ajudante?: number
+          custo_combustivel?: number
+          custo_motorista?: number
+          custo_p13_equiv?: number
+          custo_pedagio?: number
+          custo_refeicao?: number
+          custo_total?: number
+          destino?: string
+          destino_unidade_id?: string | null
+          empresa_id?: string
+          id?: string
+          ida_volta?: boolean
+          km?: number
+          motorista_id?: string | null
+          origem?: string
+          origem_unidade_id?: string | null
+          preco_combustivel_litro?: number
+          qtd_p13?: number
+          qtd_p20?: number
+          qtd_p45?: number
+          tipo?: string
+          updated_at?: string
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_simulacoes_ajudante_id_fkey"
+            columns: ["ajudante_id"]
+            isOneToOne: false
+            referencedRelation: "transp_funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_simulacoes_destino_unidade_id_fkey"
+            columns: ["destino_unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_simulacoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_simulacoes_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "transp_funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_simulacoes_origem_unidade_id_fkey"
+            columns: ["origem_unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_simulacoes_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "transp_veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_veiculos: {
+        Row: {
+          ativo: boolean
+          capacidade_p13: number
+          capacidade_p20: number
+          capacidade_p45: number
+          consumo_km_litro: number
+          created_at: string
+          empresa_id: string
+          id: string
+          placa: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          capacidade_p13?: number
+          capacidade_p20?: number
+          capacidade_p45?: number
+          consumo_km_litro?: number
+          created_at?: string
+          empresa_id: string
+          id?: string
+          placa: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          capacidade_p13?: number
+          capacidade_p20?: number
+          capacidade_p45?: number
+          consumo_km_litro?: number
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          placa?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_veiculos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unidades: {
         Row: {
           ativo: boolean | null
@@ -8549,6 +9053,7 @@ export type Database = {
         | "parceiro"
         | "contador"
         | "super_admin"
+        | "transportadora"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -8686,6 +9191,7 @@ export const Constants = {
         "parceiro",
         "contador",
         "super_admin",
+        "transportadora",
       ],
     },
   },
