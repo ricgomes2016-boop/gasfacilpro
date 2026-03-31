@@ -185,6 +185,7 @@ export function getSubdomainDefaultRoute(app: SubdomainApp): string {
     case "entregador": return "/entregador";
     case "parceiro": return "/parceiro";
     case "erp": return "/dashboard";
+    case "transportadora": return "/transportadora";
     case "painel": return "/admin";
     case "api": return "/integracoes";
     case "landing": return "/";
