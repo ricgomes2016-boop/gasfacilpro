@@ -206,6 +206,8 @@ export function isRouteAllowedForSubdomain(app: SubdomainApp, pathname: string):
       return matchesRouteSegment(pathname, "/entregador") || pathname === "/auth";
     case "parceiro":
       return matchesRouteSegment(pathname, "/parceiro") || pathname === "/auth";
+    case "transportadora":
+      return matchesRouteSegment(pathname, "/transportadora") || pathname === "/auth";
     case "erp":
       return pathname === "/auth" || matchesRouteSegment(pathname, "/dashboard") || matchesRouteSegment(pathname, "/vendas")
         || matchesRouteSegment(pathname, "/caixa") || matchesRouteSegment(pathname, "/estoque") || matchesRouteSegment(pathname, "/cadastros")
