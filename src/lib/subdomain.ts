@@ -23,6 +23,7 @@ const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
   portal: "parceiro",
   parceiro: "parceiro",
   transportadora: "transportadora",
+  transporte: "transportadora",
   logistica: "transportadora",
   api: "api",
   integracoes: "api",
