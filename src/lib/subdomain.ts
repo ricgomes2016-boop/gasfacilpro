@@ -22,6 +22,8 @@ const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
   admin: "painel",
   portal: "parceiro",
   parceiro: "parceiro",
+  transportadora: "transportadora",
+  logistica: "transportadora",
   api: "api",
   integracoes: "api",
 };
