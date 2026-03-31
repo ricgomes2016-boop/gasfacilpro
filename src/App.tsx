@@ -130,6 +130,7 @@ const App = () => (
                           {renderRoutes(entregadorRoutes)}
                           {renderRoutes(clienteAppRoutes)}
                           {renderRoutes(parceiroRoutes)}
+                          {renderRoutes(transportadoraRoutes)}
                           {renderRoutes(atendimentoRoutes)}
                           {renderRoutes(integracoesRoutes)}
                           {renderRoutes(marketingRoutes)}

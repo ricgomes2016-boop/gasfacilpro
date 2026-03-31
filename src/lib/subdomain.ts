@@ -105,6 +105,8 @@ export function getCanonicalHostnameForApp(
   switch (app) {
     case "erp":
       return `app.${baseDomain}`;
+    case "transportadora":
+      return `transportadora.${baseDomain}`;
     case "painel":
       return `painel.${baseDomain}`;
     case "cliente":

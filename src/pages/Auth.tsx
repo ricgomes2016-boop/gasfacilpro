@@ -28,6 +28,8 @@ export default function Auth() {
       return <AuthEntregador />;
     case "parceiro":
       return <AuthParceiro />;
+    case "transportadora":
+      return <AuthTransportadora />;
     case "api":
       return <AuthApi />;
     default:
