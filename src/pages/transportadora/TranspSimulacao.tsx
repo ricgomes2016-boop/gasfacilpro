@@ -119,7 +119,7 @@ export default function TranspSimulacao() {
   const [form, setForm] = useState({
     tipo: "abastecimento", veiculo_id: "", motorista_id: "", ajudante_id: "",
     qtd_p13: 0, qtd_p20: 0, qtd_p45: 0, ida_volta: false,
-    preco_combustivel_litro: 6.50, custo_pedagio: 0, custo_refeicao: 0,
+    consumo_km_litro: 5, preco_combustivel_litro: 6.50, custo_pedagio: 0, custo_refeicao: 0,
   });
 
   const veiculo = veiculos.find((v: any) => v.id === form.veiculo_id);
