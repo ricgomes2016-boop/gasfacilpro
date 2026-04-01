@@ -124,6 +124,9 @@ export default function TranspSimulacao() {
                 </div>
                 <div className="flex items-end gap-2">
                   <div className="flex-1"><Label>KM</Label><Input type="number" value={form.km} onChange={(e) => setForm({...form, km: +e.target.value})} /></div>
+                  <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => setShowRouteMap(true)} title="Criar rota no mapa">
+                    <Route className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
 
