@@ -328,8 +328,16 @@ export default function TranspSimulacao() {
                   <span className="text-xl font-bold text-foreground">{formatCurrency(result.total)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Custo / P13 equiv.</span>
+                  <span className="text-sm text-muted-foreground">Custo / P13</span>
                   <span className="text-lg font-bold text-primary">{formatCurrency(result.custoPorP13)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Custo / P20</span>
+                  <span className="font-bold text-foreground">{formatCurrency(result.custoPorP20)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Custo / P45</span>
+                  <span className="font-bold text-foreground">{formatCurrency(result.custoPorP45)}</span>
                 </div>
               </div>
 
