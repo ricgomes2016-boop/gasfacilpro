@@ -171,7 +171,7 @@ export default function TranspSimulacao() {
                   <Select value={form.ajudante_id} onValueChange={(v) => setForm({...form, ajudante_id: v})}>
                     <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Nenhum</SelectItem>
+                      <SelectItem value="nenhum">Nenhum</SelectItem>
                       {funcionarios.filter((f: any) => f.cargo === "ajudante").map((f: any) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
                     </SelectContent>
                   </Select>
