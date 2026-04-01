@@ -11,7 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { calcP13Equivalente, calcCustoCombustivel, calcSalarioDiario, calcCustoTotal, calcCustoPorP13Equiv, formatCurrency, formatNumber } from "@/lib/transp-utils";
 import { toast } from "sonner";
-import { Calculator, Save } from "lucide-react";
+import { Calculator, Save, Route } from "lucide-react";
+import { RouteMapDialog } from "@/components/transportadora/RouteMapDialog";
 
 export default function TranspSimulacao() {
   const { user } = useAuth();
