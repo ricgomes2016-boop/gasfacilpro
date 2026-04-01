@@ -119,7 +119,7 @@ export default function TranspSimulacao() {
   const [form, setForm] = useState({
     tipo: "abastecimento", veiculo_id: "", motorista_id: "", ajudante_id: "",
     qtd_p13: 0, qtd_p20: 0, qtd_p45: 0, ida_volta: false,
-    preco_combustivel_litro: 6.50, custo_pedagio: 0, custo_refeicao: 0,
+    consumo_km_litro: 5, preco_combustivel_litro: 6.50, custo_pedagio: 0, custo_refeicao: 0,
   });
 
   const veiculo = veiculos.find((v: any) => v.id === form.veiculo_id);
@@ -129,13 +129,17 @@ export default function TranspSimulacao() {
   const result = useMemo(() => {
     const km = routeKm;
     const p13Equiv = calcP13Equivalente(form.qtd_p13, form.qtd_p20, form.qtd_p45);
-    const custoComb = veiculo ? calcCustoCombustivel(km, veiculo.consumo_km_litro, form.preco_combustivel_litro, form.ida_volta) : 0;
+    const consumo = form.consumo_km_litro > 0 ? form.consumo_km_litro : 1;
+    const custoComb = calcCustoCombustivel(km, consumo, form.preco_combustivel_litro, form.ida_volta);
     const custoMot = motorista ? calcSalarioDiario(motorista.salario_mensal) : 0;
     const custoAjud = ajudante ? calcSalarioDiario(ajudante.salario_mensal) : 0;
     const total = calcCustoTotal({ combustivel: custoComb, pedagio: form.custo_pedagio, refeicao: form.custo_refeicao, motorista: custoMot, ajudante: custoAjud });
     const custoPorP13 = calcCustoPorP13Equiv(total, p13Equiv);
-    return { km, p13Equiv, custoComb, custoMot, custoAjud, total, custoPorP13 };
-  }, [form, veiculo, motorista, ajudante, routeKm]);
+    // Custo por P20 = custoPorP13 * (24/7), por P45 = custoPorP13 * (24/6)
+    const custoPorP20 = custoPorP13 * (24 / 7);
+    const custoPorP45 = custoPorP13 * 4;
+    return { km, p13Equiv, custoComb, custoMot, custoAjud, total, custoPorP13, custoPorP20, custoPorP45 };
+  }, [form, motorista, ajudante, routeKm]);
 
   const salvar = useMutation({
     mutationFn: async () => {
@@ -250,7 +254,10 @@ export default function TranspSimulacao() {
                   </Select>
                 </div>
                 <div><Label>Veículo</Label>
-                  <Select value={form.veiculo_id} onValueChange={v => setForm({ ...form, veiculo_id: v })}>
+                  <Select value={form.veiculo_id} onValueChange={v => {
+                    const vec = veiculos.find((x: any) => x.id === v);
+                    setForm(f => ({ ...f, veiculo_id: v, consumo_km_litro: vec?.consumo_km_litro || f.consumo_km_litro }));
+                  }}>
                     <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       {veiculos.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.placa} ({v.tipo})</SelectItem>)}
@@ -290,8 +297,12 @@ export default function TranspSimulacao() {
                 <Label>Ida + Volta</Label>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Consumo (km/l)</Label><Input type="number" step="0.1" value={form.consumo_km_litro} onChange={e => setForm({ ...form, consumo_km_litro: +e.target.value })} /></div>
                 <div><Label>R$/litro</Label><Input type="number" step="0.01" value={form.preco_combustivel_litro} onChange={e => setForm({ ...form, preco_combustivel_litro: +e.target.value })} /></div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div><Label>Pedágio</Label><Input type="number" step="0.01" value={form.custo_pedagio} onChange={e => setForm({ ...form, custo_pedagio: +e.target.value })} /></div>
                 <div><Label>Refeição</Label><Input type="number" step="0.01" value={form.custo_refeicao} onChange={e => setForm({ ...form, custo_refeicao: +e.target.value })} /></div>
               </div>
@@ -320,8 +331,16 @@ export default function TranspSimulacao() {
                   <span className="text-xl font-bold text-foreground">{formatCurrency(result.total)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Custo / P13 equiv.</span>
+                  <span className="text-sm text-muted-foreground">Custo / P13</span>
                   <span className="text-lg font-bold text-primary">{formatCurrency(result.custoPorP13)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Custo / P20</span>
+                  <span className="font-bold text-foreground">{formatCurrency(result.custoPorP20)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Custo / P45</span>
+                  <span className="font-bold text-foreground">{formatCurrency(result.custoPorP45)}</span>
                 </div>
               </div>
 
