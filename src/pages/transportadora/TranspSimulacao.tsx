@@ -232,6 +232,17 @@ export default function TranspSimulacao() {
             </CardContent>
           </Card>
         </div>
+
+        <RouteMapDialog
+          open={showRouteMap}
+          onOpenChange={setShowRouteMap}
+          onConfirm={(km, summary) => {
+            const parts = summary.split(" → ");
+            const origem = parts[0]?.replace("Origem: ", "") || "";
+            const destino = parts.length > 1 ? parts[parts.length - 1]?.replace(/Total:.*/, "").trim() || "" : "";
+            setForm(prev => ({ ...prev, km, origem, destino }));
+          }}
+        />
       </div>
     </TransportadoraLayout>
   );
