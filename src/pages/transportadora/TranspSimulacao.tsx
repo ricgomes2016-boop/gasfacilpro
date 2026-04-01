@@ -294,8 +294,12 @@ export default function TranspSimulacao() {
                 <Label>Ida + Volta</Label>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Consumo (km/l)</Label><Input type="number" step="0.1" value={form.consumo_km_litro} onChange={e => setForm({ ...form, consumo_km_litro: +e.target.value })} /></div>
                 <div><Label>R$/litro</Label><Input type="number" step="0.01" value={form.preco_combustivel_litro} onChange={e => setForm({ ...form, preco_combustivel_litro: +e.target.value })} /></div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div><Label>Pedágio</Label><Input type="number" step="0.01" value={form.custo_pedagio} onChange={e => setForm({ ...form, custo_pedagio: +e.target.value })} /></div>
                 <div><Label>Refeição</Label><Input type="number" step="0.01" value={form.custo_refeicao} onChange={e => setForm({ ...form, custo_refeicao: +e.target.value })} /></div>
               </div>
