@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Search, MapPin, Loader2, Undo2, Trash2, Route } from "lucide-react";
 import { reverseGeocode, geocodeAddress } from "@/lib/geocoding";
@@ -17,6 +16,7 @@ import { haversineDistance } from "@/lib/haversine";
 import "leaflet/dist/leaflet.css";
 
 const ROAD_FACTOR = 1.3;
+const DEFAULT_CENTER: [number, number] = [-23.1811, -50.6477];
 
 const originIcon = L.divIcon({
   className: "",
@@ -46,36 +46,6 @@ interface RouteMapDialogProps {
   onConfirm: (km: number, summary: string) => void;
 }
 
-function ClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
-  useMapEvents({ click(e) { onMapClick(e.latlng.lat, e.latlng.lng); } });
-  return null;
-}
-
-function MapLifecycle({ open, waypoints }: { open: boolean; waypoints: Waypoint[] }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!open) return;
-
-    const timeout = window.setTimeout(() => {
-      map.invalidateSize();
-
-      if (waypoints.length >= 2) {
-        const bounds = L.latLngBounds(waypoints.map((w) => [w.lat, w.lng]));
-        map.fitBounds(bounds, { padding: [40, 40] });
-      } else if (waypoints.length === 1) {
-        map.flyTo([waypoints[0].lat, waypoints[0].lng], 14, { duration: 0.5 });
-      } else {
-        map.setView([-23.1811, -50.6477], 13);
-      }
-    }, 250);
-
-    return () => window.clearTimeout(timeout);
-  }, [map, open, waypoints]);
-
-  return null;
-}
-
 function calcTotalKm(waypoints: Waypoint[]): number {
   let total = 0;
   for (let i = 1; i < waypoints.length; i++) {
@@ -85,11 +55,14 @@ function calcTotalKm(waypoints: Waypoint[]): number {
 }
 
 export function RouteMapDialog({ open, onOpenChange, onConfirm }: RouteMapDialogProps) {
-  const defaultCenter: [number, number] = [-23.1811, -50.6477];
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const mapElementRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markersLayerRef = useRef<L.LayerGroup | null>(null);
+  const routeLayerRef = useRef<L.Polyline | null>(null);
 
   const totalKm = calcTotalKm(waypoints);
 
@@ -99,37 +72,113 @@ export function RouteMapDialog({ open, onOpenChange, onConfirm }: RouteMapDialog
     const label = result?.endereco
       ? `${result.endereco}${result.bairro ? `, ${result.bairro}` : ""}${result.cidade ? ` - ${result.cidade}` : ""}`
       : `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-    setWaypoints(prev => [...prev, { lat, lng, label }]);
+    setWaypoints((prev) => [...prev, { lat, lng, label }]);
     setIsGeocoding(false);
   }, []);
 
+  useEffect(() => {
+    if (!open || !mapElementRef.current || mapRef.current) return;
+
+    const map = L.map(mapElementRef.current, {
+      zoomControl: true,
+      attributionControl: true,
+    }).setView(DEFAULT_CENTER, 13);
+
+    mapRef.current = map;
+    markersLayerRef.current = L.layerGroup().addTo(map);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(map);
+
+    map.on("click", (e) => {
+      void addWaypoint(e.latlng.lat, e.latlng.lng);
+    });
+
+    const invalidate = () => map.invalidateSize();
+    invalidate();
+    const t1 = window.setTimeout(invalidate, 150);
+    const t2 = window.setTimeout(invalidate, 400);
+
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      routeLayerRef.current = null;
+      markersLayerRef.current = null;
+      map.off();
+      map.remove();
+      mapRef.current = null;
+    };
+  }, [open, addWaypoint]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const markersLayer = markersLayerRef.current;
+
+    if (!map || !markersLayer) return;
+
+    markersLayer.clearLayers();
+
+    waypoints.forEach((w, i) => {
+      L.marker([w.lat, w.lng], { icon: i === 0 ? originIcon : stopIcon(i) }).addTo(markersLayer);
+    });
+
+    if (routeLayerRef.current) {
+      routeLayerRef.current.remove();
+      routeLayerRef.current = null;
+    }
+
+    if (waypoints.length >= 2) {
+      routeLayerRef.current = L.polyline(
+        waypoints.map((w) => [w.lat, w.lng] as [number, number]),
+        { color: "#3b82f6", weight: 4, dashArray: "8 6" },
+      ).addTo(map);
+
+      map.fitBounds(L.latLngBounds(waypoints.map((w) => [w.lat, w.lng])), {
+        padding: [40, 40],
+      });
+    } else if (waypoints.length === 1) {
+      map.flyTo([waypoints[0].lat, waypoints[0].lng], 14, { duration: 0.5 });
+    } else {
+      map.setView(DEFAULT_CENTER, 13);
+    }
+
+    const timeout = window.setTimeout(() => map.invalidateSize(), 50);
+    return () => window.clearTimeout(timeout);
+  }, [waypoints]);
+
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
+
     setIsSearching(true);
     const result = await geocodeAddress(searchQuery);
+
     if (result) {
       const label = result.endereco
         ? `${result.endereco}${result.bairro ? `, ${result.bairro}` : ""}${result.cidade ? ` - ${result.cidade}` : ""}`
         : result.displayName;
-      setWaypoints(prev => [...prev, { lat: result.latitude, lng: result.longitude, label }]);
+
+      setWaypoints((prev) => [
+        ...prev,
+        { lat: result.latitude, lng: result.longitude, label },
+      ]);
       setSearchQuery("");
     }
+
     setIsSearching(false);
   };
 
-  const undoLast = () => setWaypoints(prev => prev.slice(0, -1));
+  const undoLast = () => setWaypoints((prev) => prev.slice(0, -1));
   const clearAll = () => setWaypoints([]);
 
   const handleConfirm = () => {
     const km = Math.round(totalKm * 10) / 10;
-    const lines = waypoints.map((w, i) => i === 0 ? `Origem: ${w.label}` : `Parada ${i}: ${w.label}`);
+    const lines = waypoints.map((w, i) => (i === 0 ? `Origem: ${w.label}` : `Parada ${i}: ${w.label}`));
     lines.push(`Total: ${km} km`);
     onConfirm(km, lines.join(" → "));
     setWaypoints([]);
     onOpenChange(false);
   };
-
-  const polylinePositions = waypoints.map(w => [w.lat, w.lng] as [number, number]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -178,20 +227,7 @@ export function RouteMapDialog({ open, onOpenChange, onConfirm }: RouteMapDialog
         </div>
 
         <div className="h-[400px] rounded-lg overflow-hidden border border-border flex-1 min-h-[300px] bg-muted/20">
-          <MapContainer center={defaultCenter} zoom={13} style={{ height: "100%", width: "100%" }}>
-            <MapLifecycle open={open} waypoints={waypoints} />
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <ClickHandler onMapClick={addWaypoint} />
-            {waypoints.map((w, i) => (
-              <Marker key={i} position={[w.lat, w.lng]} icon={i === 0 ? originIcon : stopIcon(i)} />
-            ))}
-            {polylinePositions.length >= 2 && (
-              <Polyline positions={polylinePositions} color="#3b82f6" weight={4} dashArray="8 6" />
-            )}
-          </MapContainer>
+          <div ref={mapElementRef} className="h-full w-full" />
         </div>
 
         {waypoints.length > 0 && (
