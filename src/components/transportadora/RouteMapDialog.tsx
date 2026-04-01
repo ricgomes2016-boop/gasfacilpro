@@ -59,7 +59,7 @@ export function RouteMapDialog({ open, onOpenChange, onConfirm }: RouteMapDialog
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
-  const mapElementRef = useRef<HTMLDivElement | null>(null);
+  const [mapHost, setMapHost] = useState<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const routeLayerRef = useRef<L.Polyline | null>(null);
@@ -77,9 +77,9 @@ export function RouteMapDialog({ open, onOpenChange, onConfirm }: RouteMapDialog
   }, []);
 
   useEffect(() => {
-    if (!open || !mapElementRef.current || mapRef.current) return;
+    if (!open || !mapHost || mapRef.current) return;
 
-    const map = L.map(mapElementRef.current, {
+    const map = L.map(mapHost, {
       zoomControl: true,
       attributionControl: true,
     }).setView(DEFAULT_CENTER, 13);
@@ -109,7 +109,7 @@ export function RouteMapDialog({ open, onOpenChange, onConfirm }: RouteMapDialog
       map.remove();
       mapRef.current = null;
     };
-  }, [open, addWaypoint]);
+  }, [open, mapHost, addWaypoint]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -212,9 +212,7 @@ export function RouteMapDialog({ open, onOpenChange, onConfirm }: RouteMapDialog
               ? "Clique no mapa para definir a origem"
               : `${waypoints.length} ponto(s) · `}
           </span>
-          {waypoints.length > 0 && (
-            <span className="font-bold text-foreground">{totalKm.toFixed(1)} km</span>
-          )}
+          {waypoints.length > 0 && <span className="font-bold text-foreground">{totalKm.toFixed(1)} km</span>}
           {isGeocoding && <Loader2 className="h-3 w-3 animate-spin" />}
           <div className="ml-auto flex gap-1">
             <Button variant="ghost" size="sm" onClick={undoLast} disabled={waypoints.length === 0}>
@@ -227,7 +225,7 @@ export function RouteMapDialog({ open, onOpenChange, onConfirm }: RouteMapDialog
         </div>
 
         <div className="h-[400px] rounded-lg overflow-hidden border border-border flex-1 min-h-[300px] bg-muted/20">
-          <div ref={mapElementRef} className="h-full w-full" />
+          <div ref={setMapHost} className="h-full w-full" />
         </div>
 
         {waypoints.length > 0 && (
