@@ -118,7 +118,7 @@ export default function TranspLancamento() {
                     <Select value={form.veiculo_id} onValueChange={(v) => setForm({...form, veiculo_id: v})}>
                       <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
+                        <SelectItem value="nenhum">Nenhum</SelectItem>
                         {veiculos.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.placa}</SelectItem>)}
                       </SelectContent>
                     </Select>
