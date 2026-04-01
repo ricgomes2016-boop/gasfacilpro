@@ -113,7 +113,14 @@ export default function TranspEntregas() {
                   <div><Label>P13</Label><Input type="number" value={form.qtd_p13} onChange={(e) => setForm({...form, qtd_p13: +e.target.value})} /></div>
                   <div><Label>P20</Label><Input type="number" value={form.qtd_p20} onChange={(e) => setForm({...form, qtd_p20: +e.target.value})} /></div>
                   <div><Label>P45</Label><Input type="number" value={form.qtd_p45} onChange={(e) => setForm({...form, qtd_p45: +e.target.value})} /></div>
-                  <div><Label>KM</Label><Input type="number" value={form.km} onChange={(e) => setForm({...form, km: +e.target.value})} /></div>
+                  <div><Label>KM</Label>
+                    <div className="flex gap-1">
+                      <Input type="number" value={form.km} onChange={(e) => setForm({...form, km: +e.target.value})} className="flex-1" />
+                      <Button type="button" variant="outline" size="icon" onClick={() => setRouteMapOpen(true)} title="Criar Rota no Mapa">
+                        <Route className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div><Label>Custo Total</Label><Input type="number" step="0.01" value={form.custo_total} onChange={(e) => setForm({...form, custo_total: +e.target.value})} /></div>
