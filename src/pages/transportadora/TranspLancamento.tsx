@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { TransportadoraLayout } from "@/components/transportadora/TransportadoraLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/transp-utils";
 import { toast } from "sonner";
-import { Plus, Receipt, Upload } from "lucide-react";
+import { Plus, Receipt, Camera, Loader2, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 
 const TIPOS_DESPESA = [
@@ -27,7 +27,13 @@ export default function TranspLancamento() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ tipo: "combustivel", descricao: "", valor: 0, data: format(new Date(), "yyyy-MM-dd"), veiculo_id: "", comprovante: null as File | null });
+  const [scanning, setScanning] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const [form, setForm] = useState({
+    tipo: "combustivel", descricao: "", valor: 0,
+    data: format(new Date(), "yyyy-MM-dd"), veiculo_id: "", comprovante: null as File | null,
+  });
 
   const { data: despesas = [], isLoading } = useQuery({
     queryKey: ["transp-despesas"],
@@ -57,6 +63,45 @@ export default function TranspLancamento() {
     enabled: !!user,
   });
 
+  const handlePhotoCapture = async (file: File) => {
+    setForm(f => ({ ...f, comprovante: file }));
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    setScanning(true);
+
+    try {
+      // Convert to base64
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const { data, error } = await supabase.functions.invoke("receipt-ocr", {
+        body: { image_base64: base64 },
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        setForm(f => ({
+          ...f,
+          tipo: data.tipo && TIPOS_DESPESA.some(t => t.value === data.tipo) ? data.tipo : f.tipo,
+          descricao: data.descricao || f.descricao,
+          valor: data.valor != null ? data.valor : f.valor,
+          data: data.data || f.data,
+        }));
+        toast.success("✨ Despesa reconhecida automaticamente!", { description: "Confira os campos e ajuste se necessário." });
+      }
+    } catch (e: any) {
+      console.error("OCR error:", e);
+      toast.error("Não foi possível ler a foto", { description: "Preencha manualmente." });
+    } finally {
+      setScanning(false);
+    }
+  };
+
   const save = useMutation({
     mutationFn: async () => {
       let comprovante_url = null;
@@ -79,10 +124,15 @@ export default function TranspLancamento() {
       qc.invalidateQueries({ queryKey: ["transp-despesas"] });
       toast.success("Despesa registrada!");
       setOpen(false);
-      setForm({ tipo: "combustivel", descricao: "", valor: 0, data: format(new Date(), "yyyy-MM-dd"), veiculo_id: "", comprovante: null });
+      resetForm();
     },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const resetForm = () => {
+    setForm({ tipo: "combustivel", descricao: "", valor: 0, data: format(new Date(), "yyyy-MM-dd"), veiculo_id: "", comprovante: null });
+    setPreviewUrl(null);
+  };
 
   const mesAtual = new Date().toISOString().slice(0, 7);
   const totalMes = despesas.filter((d: any) => d.data?.startsWith(mesAtual)).reduce((acc: number, d: any) => acc + Number(d.valor), 0);
@@ -95,12 +145,68 @@ export default function TranspLancamento() {
             <h1 className="text-2xl font-bold text-foreground">Despesas</h1>
             <p className="text-muted-foreground text-sm">Despesas reais do mês · Total: <strong>{formatCurrency(totalMes)}</strong></p>
           </div>
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
             <DialogTrigger asChild>
               <Button className="gap-2"><Plus className="h-4 w-4" />Nova Despesa</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-md">
               <DialogHeader><DialogTitle>Registrar Despesa</DialogTitle></DialogHeader>
+
+              {/* Camera/AI Scan Area */}
+              <div className="relative">
+                <input
+                  ref={cameraRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handlePhotoCapture(file);
+                    e.target.value = "";
+                  }}
+                />
+
+                {previewUrl ? (
+                  <div className="relative rounded-lg overflow-hidden border border-border">
+                    <img src={previewUrl} alt="Comprovante" className="w-full max-h-48 object-cover" />
+                    {scanning && (
+                      <div className="absolute inset-0 bg-background/80 flex flex-col items-center justify-center gap-2">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="text-sm font-medium text-foreground">Analisando com IA...</p>
+                        <p className="text-xs text-muted-foreground">Reconhecendo dados do comprovante</p>
+                      </div>
+                    )}
+                    {!scanning && (
+                      <div className="absolute top-2 right-2">
+                        <span className="inline-flex items-center gap-1 bg-primary/90 text-primary-foreground text-xs px-2 py-1 rounded-full">
+                          <Sparkles className="h-3 w-3" /> Reconhecido
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => cameraRef.current?.click()}
+                    className="w-full border-2 border-dashed border-primary/40 rounded-lg p-6 flex flex-col items-center gap-2 hover:bg-primary/5 transition-colors"
+                  >
+                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Camera className="h-6 w-6 text-primary" />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">Tirar foto do comprovante</p>
+                    <p className="text-xs text-muted-foreground">A IA preenche automaticamente</p>
+                  </button>
+                )}
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground">ou preencha manualmente</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
               <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div><Label>Tipo</Label>
@@ -124,11 +230,20 @@ export default function TranspLancamento() {
                     </Select>
                   </div>
                 </div>
-                <div>
-                  <Label>Comprovante (foto/nota)</Label>
-                  <Input type="file" accept="image/*,application/pdf" onChange={(e) => setForm({...form, comprovante: e.target.files?.[0] || null})} />
-                </div>
-                <Button type="submit" className="w-full" disabled={save.isPending}>Registrar</Button>
+
+                {!previewUrl && (
+                  <div>
+                    <Label>Comprovante (arquivo)</Label>
+                    <Input type="file" accept="image/*,application/pdf" onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setForm({...form, comprovante: file});
+                    }} />
+                  </div>
+                )}
+
+                <Button type="submit" className="w-full" disabled={save.isPending || scanning}>
+                  {save.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Salvando...</> : "Registrar"}
+                </Button>
               </form>
             </DialogContent>
           </Dialog>
