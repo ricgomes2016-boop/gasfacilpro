@@ -1,18 +1,26 @@
 
 
-## Plano: Adicionar Rota no Mapa à Simulação de Viagem
+## Plano: Simulação de Viagem inspirada no QualP
 
-O componente `RouteMapDialog` já existe e funciona na página de Entregas. Basta reutilizá-lo na página de Simulação.
+### Análise do QualP
 
-### Alteração única: `src/pages/transportadora/TranspSimulacao.tsx`
+O QualP é uma calculadora de rotas e fretes com mapa em tela cheia. Principais diferenças em relação à simulação atual:
 
-1. **Importar** `RouteMapDialog` e o ícone `Route`
-2. **Adicionar estado** `showRouteMap` (boolean)
-3. **Adicionar botão** com ícone de mapa ao lado do campo KM (linha 124)
-4. **Callback `onConfirm`**: preenche `form.km` com o valor calculado e `form.origem`/`form.destino` com o resumo da rota
-5. **Renderizar** `<RouteMapDialog>` no JSX
+1. **Mapa integrado na página** (não em dialog/modal) -- origem e destino são campos de busca diretamente sobre o mapa
+2. **Cálculo de pedágios automático** por rota
+3. **Interface visual com rota desenhada** diretamente na tela principal
 
-### Resultado
+### Problema atual
 
-O campo KM na simulação terá um botão de mapa idêntico ao das Entregas. Ao criar a rota e confirmar, o KM é preenchido automaticamente.
+O mapa dentro do Dialog/modal não renderiza os tiles corretamente (fica em branco). Isso é um problema recorrente do Leaflet dentro de modais Radix UI, onde o container tem dimensões zero no momento da inicialização.
 
+### Solução proposta
+
+**Eliminar o dialog do mapa e embutir o mapa diretamente na página de Simulação**, similar ao QualP. Isso resolve o bug de renderização e melhora a experiência.
+
+### Layout novo da página
+
+```text
+┌─────────────────────────────────────────────┐
+│  Simulação de Viagem                        │
+├──────────────────┬──
