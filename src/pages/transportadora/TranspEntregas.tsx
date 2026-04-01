@@ -11,7 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { calcP13Equivalente, formatCurrency, formatNumber } from "@/lib/transp-utils";
 import { toast } from "sonner";
-import { Plus, Package } from "lucide-react";
+import { Plus, Package, Route } from "lucide-react";
+import { RouteMapDialog } from "@/components/transportadora/RouteMapDialog";
 import { format } from "date-fns";
 
 export default function TranspEntregas() {
