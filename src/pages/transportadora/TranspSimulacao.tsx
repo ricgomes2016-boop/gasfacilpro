@@ -254,7 +254,10 @@ export default function TranspSimulacao() {
                   </Select>
                 </div>
                 <div><Label>Veículo</Label>
-                  <Select value={form.veiculo_id} onValueChange={v => setForm({ ...form, veiculo_id: v })}>
+                  <Select value={form.veiculo_id} onValueChange={v => {
+                    const vec = veiculos.find((x: any) => x.id === v);
+                    setForm(f => ({ ...f, veiculo_id: v, consumo_km_litro: vec?.consumo_km_litro || f.consumo_km_litro }));
+                  }}>
                     <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent>
                       {veiculos.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.placa} ({v.tipo})</SelectItem>)}
