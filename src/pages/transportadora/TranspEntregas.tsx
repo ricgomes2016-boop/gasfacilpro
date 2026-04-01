@@ -19,6 +19,7 @@ export default function TranspEntregas() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [routeMapOpen, setRouteMapOpen] = useState(false);
   const [form, setForm] = useState({
     tipo: "transporte", veiculo_id: "", motorista_id: "", destino_unidade_id: "",
     data: format(new Date(), "yyyy-MM-dd"),
