@@ -70,7 +70,7 @@ export default function TranspLancamento() {
       const { error } = await (supabase as any).from("transp_despesas").insert({
         empresa_id: profile?.empresa_id,
         tipo: form.tipo, descricao: form.descricao || null, valor: form.valor,
-        data: form.data, veiculo_id: form.veiculo_id || null,
+        data: form.data, veiculo_id: form.veiculo_id && form.veiculo_id !== "nenhum" ? form.veiculo_id : null,
         mes_referencia: form.data.slice(0, 7), comprovante_url,
       });
       if (error) throw error;
@@ -118,7 +118,7 @@ export default function TranspLancamento() {
                     <Select value={form.veiculo_id} onValueChange={(v) => setForm({...form, veiculo_id: v})}>
                       <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
+                        <SelectItem value="nenhum">Nenhum</SelectItem>
                         {veiculos.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.placa}</SelectItem>)}
                       </SelectContent>
                     </Select>
