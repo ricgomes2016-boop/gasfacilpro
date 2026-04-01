@@ -158,6 +158,13 @@ export default function TranspEntregas() {
           )}
         </div>
       </div>
+      <RouteMapDialog
+        open={routeMapOpen}
+        onOpenChange={setRouteMapOpen}
+        onConfirm={(km, summary) => {
+          setForm(prev => ({ ...prev, km, observacoes: summary }));
+        }}
+      />
     </TransportadoraLayout>
   );
 }
