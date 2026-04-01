@@ -11,7 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { calcP13Equivalente, calcCustoCombustivel, calcSalarioDiario, calcCustoTotal, calcCustoPorP13Equiv, formatCurrency, formatNumber } from "@/lib/transp-utils";
 import { toast } from "sonner";
-import { Calculator, Save } from "lucide-react";
+import { Calculator, Save, Route } from "lucide-react";
+import { RouteMapDialog } from "@/components/transportadora/RouteMapDialog";
 
 export default function TranspSimulacao() {
   const { user } = useAuth();
@@ -53,6 +54,7 @@ export default function TranspSimulacao() {
     enabled: !!user,
   });
 
+  const [showRouteMap, setShowRouteMap] = useState(false);
   const [form, setForm] = useState({
     origem: "", destino: "", tipo: "abastecimento", km: 0, veiculo_id: "", motorista_id: "", ajudante_id: "",
     qtd_p13: 0, qtd_p20: 0, qtd_p45: 0, ida_volta: false,
@@ -122,6 +124,9 @@ export default function TranspSimulacao() {
                 </div>
                 <div className="flex items-end gap-2">
                   <div className="flex-1"><Label>KM</Label><Input type="number" value={form.km} onChange={(e) => setForm({...form, km: +e.target.value})} /></div>
+                  <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => setShowRouteMap(true)} title="Criar rota no mapa">
+                    <Route className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
 
@@ -227,6 +232,17 @@ export default function TranspSimulacao() {
             </CardContent>
           </Card>
         </div>
+
+        <RouteMapDialog
+          open={showRouteMap}
+          onOpenChange={setShowRouteMap}
+          onConfirm={(km, summary) => {
+            const parts = summary.split(" → ");
+            const origem = parts[0]?.replace("Origem: ", "") || "";
+            const destino = parts.length > 1 ? parts[parts.length - 1]?.replace(/Total:.*/, "").trim() || "" : "";
+            setForm(prev => ({ ...prev, km, origem, destino }));
+          }}
+        />
       </div>
     </TransportadoraLayout>
   );
