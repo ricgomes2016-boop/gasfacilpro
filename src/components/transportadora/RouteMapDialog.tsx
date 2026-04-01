@@ -1,10 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,14 +51,28 @@ function ClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) =
   return null;
 }
 
-function FitBounds({ waypoints }: { waypoints: Waypoint[] }) {
+function MapLifecycle({ open, waypoints }: { open: boolean; waypoints: Waypoint[] }) {
   const map = useMap();
-  if (waypoints.length >= 2) {
-    const bounds = L.latLngBounds(waypoints.map(w => [w.lat, w.lng]));
-    map.fitBounds(bounds, { padding: [40, 40] });
-  } else if (waypoints.length === 1) {
-    map.flyTo([waypoints[0].lat, waypoints[0].lng], 14, { duration: 0.5 });
-  }
+
+  useEffect(() => {
+    if (!open) return;
+
+    const timeout = window.setTimeout(() => {
+      map.invalidateSize();
+
+      if (waypoints.length >= 2) {
+        const bounds = L.latLngBounds(waypoints.map((w) => [w.lat, w.lng]));
+        map.fitBounds(bounds, { padding: [40, 40] });
+      } else if (waypoints.length === 1) {
+        map.flyTo([waypoints[0].lat, waypoints[0].lng], 14, { duration: 0.5 });
+      } else {
+        map.setView([-23.1811, -50.6477], 13);
+      }
+    }, 250);
+
+    return () => window.clearTimeout(timeout);
+  }, [map, open, waypoints]);
+
   return null;
 }
 
@@ -123,6 +138,9 @@ export function RouteMapDialog({ open, onOpenChange, onConfirm }: RouteMapDialog
           <DialogTitle className="flex items-center gap-2">
             <Route className="h-5 w-5" /> Criar Rota no Mapa
           </DialogTitle>
+          <DialogDescription>
+            Defina origem e paradas no mapa para calcular a quilometragem automaticamente.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex gap-2">
@@ -159,14 +177,14 @@ export function RouteMapDialog({ open, onOpenChange, onConfirm }: RouteMapDialog
           </div>
         </div>
 
-        <div className="h-[400px] rounded-lg overflow-hidden border border-border flex-1 min-h-[300px]">
+        <div className="h-[400px] rounded-lg overflow-hidden border border-border flex-1 min-h-[300px] bg-muted/20">
           <MapContainer center={defaultCenter} zoom={13} style={{ height: "100%", width: "100%" }}>
+            <MapLifecycle open={open} waypoints={waypoints} />
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             <ClickHandler onMapClick={addWaypoint} />
-            {waypoints.length >= 1 && <FitBounds waypoints={waypoints} />}
             {waypoints.map((w, i) => (
               <Marker key={i} position={[w.lat, w.lng]} icon={i === 0 ? originIcon : stopIcon(i)} />
             ))}
