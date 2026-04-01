@@ -129,13 +129,17 @@ export default function TranspSimulacao() {
   const result = useMemo(() => {
     const km = routeKm;
     const p13Equiv = calcP13Equivalente(form.qtd_p13, form.qtd_p20, form.qtd_p45);
-    const custoComb = veiculo ? calcCustoCombustivel(km, veiculo.consumo_km_litro, form.preco_combustivel_litro, form.ida_volta) : 0;
+    const consumo = form.consumo_km_litro > 0 ? form.consumo_km_litro : 1;
+    const custoComb = calcCustoCombustivel(km, consumo, form.preco_combustivel_litro, form.ida_volta);
     const custoMot = motorista ? calcSalarioDiario(motorista.salario_mensal) : 0;
     const custoAjud = ajudante ? calcSalarioDiario(ajudante.salario_mensal) : 0;
     const total = calcCustoTotal({ combustivel: custoComb, pedagio: form.custo_pedagio, refeicao: form.custo_refeicao, motorista: custoMot, ajudante: custoAjud });
     const custoPorP13 = calcCustoPorP13Equiv(total, p13Equiv);
-    return { km, p13Equiv, custoComb, custoMot, custoAjud, total, custoPorP13 };
-  }, [form, veiculo, motorista, ajudante, routeKm]);
+    // Custo por P20 = custoPorP13 * (24/7), por P45 = custoPorP13 * (24/6)
+    const custoPorP20 = custoPorP13 * (24 / 7);
+    const custoPorP45 = custoPorP13 * 4;
+    return { km, p13Equiv, custoComb, custoMot, custoAjud, total, custoPorP13, custoPorP20, custoPorP45 };
+  }, [form, motorista, ajudante, routeKm]);
 
   const salvar = useMutation({
     mutationFn: async () => {
