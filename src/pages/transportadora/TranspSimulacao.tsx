@@ -54,6 +54,7 @@ export default function TranspSimulacao() {
     enabled: !!user,
   });
 
+  const [showRouteMap, setShowRouteMap] = useState(false);
   const [form, setForm] = useState({
     origem: "", destino: "", tipo: "abastecimento", km: 0, veiculo_id: "", motorista_id: "", ajudante_id: "",
     qtd_p13: 0, qtd_p20: 0, qtd_p45: 0, ida_volta: false,
