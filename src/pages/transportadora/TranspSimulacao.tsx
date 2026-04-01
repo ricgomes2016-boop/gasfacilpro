@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { calcP13Equivalente, calcCustoCombustivel, calcSalarioDiario, calcCustoTotal, calcCustoPorP13Equiv, formatCurrency, formatNumber } from "@/lib/transp-utils";
 import { toast } from "sonner";
-import { Calculator, Save, Route } from "lucide-react";
+import { Calculator, Save, MapPin } from "lucide-react";
 import { RouteMapDialog } from "@/components/transportadora/RouteMapDialog";
 
 export default function TranspSimulacao() {
@@ -36,15 +36,6 @@ export default function TranspSimulacao() {
     enabled: !!user,
   });
 
-  const { data: unidades = [] } = useQuery({
-    queryKey: ["unidades-transp"],
-    queryFn: async () => {
-      const { data } = await supabase.from("unidades").select("id, nome, tipo").eq("ativo", true).order("nome");
-      return data || [];
-    },
-    enabled: !!user,
-  });
-
   const { data: profile } = useQuery({
     queryKey: ["profile-empresa", user?.id],
     queryFn: async () => {
@@ -59,7 +50,6 @@ export default function TranspSimulacao() {
     origem: "", destino: "", tipo: "abastecimento", km: 0, veiculo_id: "", motorista_id: "", ajudante_id: "",
     qtd_p13: 0, qtd_p20: 0, qtd_p45: 0, ida_volta: false,
     preco_combustivel_litro: 6.50, custo_pedagio: 0, custo_refeicao: 0,
-    origem_unidade_id: "", destino_unidade_id: "",
   });
 
   const veiculo = veiculos.find((v: any) => v.id === form.veiculo_id);
@@ -80,8 +70,8 @@ export default function TranspSimulacao() {
     mutationFn: async () => {
       const { error } = await (supabase as any).from("transp_simulacoes").insert({
         empresa_id: profile?.empresa_id,
-        origem: form.origem || unidades.find((u: any) => u.id === form.origem_unidade_id)?.nome || "N/D",
-        destino: form.destino || unidades.find((u: any) => u.id === form.destino_unidade_id)?.nome || "N/D",
+        origem: form.origem || "N/D",
+        destino: form.destino || "N/D",
         tipo: form.tipo, km: form.km, veiculo_id: form.veiculo_id || null,
         motorista_id: form.motorista_id || null, ajudante_id: form.ajudante_id && form.ajudante_id !== "nenhum" ? form.ajudante_id : null,
         qtd_p13: form.qtd_p13, qtd_p20: form.qtd_p20, qtd_p45: form.qtd_p45,
@@ -90,7 +80,6 @@ export default function TranspSimulacao() {
         custo_refeicao: form.custo_refeicao, custo_motorista: result.custoMot, custo_ajudante: result.custoAjud,
         custo_total: result.total, custo_p13_equiv: result.custoPorP13,
         preco_combustivel_litro: form.preco_combustivel_litro,
-        origem_unidade_id: form.origem_unidade_id || null, destino_unidade_id: form.destino_unidade_id || null,
       });
       if (error) throw error;
     },
@@ -107,7 +96,6 @@ export default function TranspSimulacao() {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
-          {/* Form */}
           <Card className="border-border/40">
             <CardHeader><CardTitle className="text-base">Dados da Viagem</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -125,34 +113,32 @@ export default function TranspSimulacao() {
                 <div className="flex items-end gap-2">
                   <div className="flex-1"><Label>KM</Label><Input type="number" value={form.km} onChange={(e) => setForm({...form, km: +e.target.value})} /></div>
                   <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => setShowRouteMap(true)} title="Criar rota no mapa">
-                    <Route className="h-4 w-4" />
+                    <MapPin className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div><Label>Origem (Unidade)</Label>
-                  <Select value={form.origem_unidade_id} onValueChange={(v) => setForm({...form, origem_unidade_id: v})}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      {unidades.map((u: any) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                <div>
+                  <Label>Origem</Label>
+                  <div className="flex gap-1">
+                    <Input value={form.origem} onChange={(e) => setForm({...form, origem: e.target.value})} placeholder="Endereço de origem" className="flex-1" />
+                  </div>
                 </div>
-                <div><Label>Destino (Unidade)</Label>
-                  <Select value={form.destino_unidade_id} onValueChange={(v) => setForm({...form, destino_unidade_id: v})}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      {unidades.map((u: any) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                <div>
+                  <Label>Destino</Label>
+                  <div className="flex gap-1">
+                    <Input value={form.destino} onChange={(e) => setForm({...form, destino: e.target.value})} placeholder="Endereço de destino" className="flex-1" />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Origem (texto)</Label><Input value={form.origem} onChange={(e) => setForm({...form, origem: e.target.value})} placeholder="Endereço livre" /></div>
-                <div><Label>Destino (texto)</Label><Input value={form.destino} onChange={(e) => setForm({...form, destino: e.target.value})} placeholder="Endereço livre" /></div>
-              </div>
+              {(form.origem || form.destino) && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  Use o botão de mapa ao lado do KM para buscar endereços e calcular a distância automaticamente.
+                </p>
+              )}
 
               <div><Label>Veículo</Label>
                 <Select value={form.veiculo_id} onValueChange={(v) => setForm({...form, veiculo_id: v})}>
@@ -202,7 +188,6 @@ export default function TranspSimulacao() {
             </CardContent>
           </Card>
 
-          {/* Result */}
           <Card className="border-border/40">
             <CardHeader><CardTitle className="text-base flex items-center gap-2"><Calculator className="h-4 w-4" />Resultado</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -233,16 +218,19 @@ export default function TranspSimulacao() {
           </Card>
         </div>
 
-        <RouteMapDialog
-          open={showRouteMap}
-          onOpenChange={setShowRouteMap}
-          onConfirm={(km, summary) => {
-            const parts = summary.split(" → ");
-            const origem = parts[0]?.replace("Origem: ", "") || "";
-            const destino = parts.length > 1 ? parts[parts.length - 1]?.replace(/Total:.*/, "").trim() || "" : "";
-            setForm(prev => ({ ...prev, km, origem, destino }));
-          }}
-        />
+        {showRouteMap && (
+          <RouteMapDialog
+            open={showRouteMap}
+            onOpenChange={setShowRouteMap}
+            onConfirm={(km, summary) => {
+              const parts = summary.split(" → ");
+              const origem = parts[0]?.replace("Origem: ", "") || "";
+              const lastPart = parts.length > 2 ? parts[parts.length - 2] : parts[parts.length - 1] || "";
+              const destino = lastPart.replace(/^Parada \d+: /, "").trim();
+              setForm(prev => ({ ...prev, km, origem, destino }));
+            }}
+          />
+        )}
       </div>
     </TransportadoraLayout>
   );
