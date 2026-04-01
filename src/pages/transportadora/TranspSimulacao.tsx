@@ -62,7 +62,7 @@ export default function TranspSimulacao() {
 
   const veiculo = veiculos.find((v: any) => v.id === form.veiculo_id);
   const motorista = funcionarios.find((f: any) => f.id === form.motorista_id);
-  const ajudante = funcionarios.find((f: any) => f.id === form.ajudante_id);
+  const ajudante = form.ajudante_id && form.ajudante_id !== "nenhum" ? funcionarios.find((f: any) => f.id === form.ajudante_id) : null;
 
   const result = useMemo(() => {
     const p13Equiv = calcP13Equivalente(form.qtd_p13, form.qtd_p20, form.qtd_p45);
@@ -81,7 +81,7 @@ export default function TranspSimulacao() {
         origem: form.origem || unidades.find((u: any) => u.id === form.origem_unidade_id)?.nome || "N/D",
         destino: form.destino || unidades.find((u: any) => u.id === form.destino_unidade_id)?.nome || "N/D",
         tipo: form.tipo, km: form.km, veiculo_id: form.veiculo_id || null,
-        motorista_id: form.motorista_id || null, ajudante_id: form.ajudante_id || null,
+        motorista_id: form.motorista_id || null, ajudante_id: form.ajudante_id && form.ajudante_id !== "nenhum" ? form.ajudante_id : null,
         qtd_p13: form.qtd_p13, qtd_p20: form.qtd_p20, qtd_p45: form.qtd_p45,
         ida_volta: form.ida_volta,
         custo_combustivel: result.custoComb, custo_pedagio: form.custo_pedagio,
@@ -171,7 +171,7 @@ export default function TranspSimulacao() {
                   <Select value={form.ajudante_id} onValueChange={(v) => setForm({...form, ajudante_id: v})}>
                     <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Nenhum</SelectItem>
+                      <SelectItem value="nenhum">Nenhum</SelectItem>
                       {funcionarios.filter((f: any) => f.cargo === "ajudante").map((f: any) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
                     </SelectContent>
                   </Select>
