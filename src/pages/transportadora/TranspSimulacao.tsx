@@ -62,7 +62,7 @@ export default function TranspSimulacao() {
 
   const veiculo = veiculos.find((v: any) => v.id === form.veiculo_id);
   const motorista = funcionarios.find((f: any) => f.id === form.motorista_id);
-  const ajudante = funcionarios.find((f: any) => f.id === form.ajudante_id);
+  const ajudante = form.ajudante_id && form.ajudante_id !== "nenhum" ? funcionarios.find((f: any) => f.id === form.ajudante_id) : null;
 
   const result = useMemo(() => {
     const p13Equiv = calcP13Equivalente(form.qtd_p13, form.qtd_p20, form.qtd_p45);
