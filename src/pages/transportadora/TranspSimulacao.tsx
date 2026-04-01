@@ -81,7 +81,7 @@ export default function TranspSimulacao() {
         origem: form.origem || unidades.find((u: any) => u.id === form.origem_unidade_id)?.nome || "N/D",
         destino: form.destino || unidades.find((u: any) => u.id === form.destino_unidade_id)?.nome || "N/D",
         tipo: form.tipo, km: form.km, veiculo_id: form.veiculo_id || null,
-        motorista_id: form.motorista_id || null, ajudante_id: form.ajudante_id || null,
+        motorista_id: form.motorista_id || null, ajudante_id: form.ajudante_id && form.ajudante_id !== "nenhum" ? form.ajudante_id : null,
         qtd_p13: form.qtd_p13, qtd_p20: form.qtd_p20, qtd_p45: form.qtd_p45,
         ida_volta: form.ida_volta,
         custo_combustivel: result.custoComb, custo_pedagio: form.custo_pedagio,
