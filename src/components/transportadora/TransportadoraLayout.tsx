@@ -14,7 +14,7 @@ const navItems = [
   { to: "/transportadora/funcionarios", icon: Users, label: "Funcionários" },
   { to: "/transportadora/simulacao", icon: Route, label: "Simulação" },
   { to: "/transportadora/abastecimento", icon: ArrowLeftRight, label: "Abastecimento" },
-  { to: "/transportadora/lancamento", icon: Receipt, label: "Lançamento Real" },
+  { to: "/transportadora/lancamento", icon: Receipt, label: "Despesas" },
   { to: "/transportadora/entregas", icon: Package, label: "Entregas & Vendas" },
   { to: "/transportadora/ia", icon: Brain, label: "IA Analista" },
   { to: "/transportadora/relatorios", icon: FileBarChart, label: "Relatórios" },
