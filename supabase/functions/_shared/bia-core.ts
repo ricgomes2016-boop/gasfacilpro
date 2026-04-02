@@ -800,10 +800,8 @@ export async function upsertConversation(supabase: any, conversationId: string, 
     updated_at: new Date().toISOString(),
   };
   if (telefone) payload.telefone = telefone;
-<<<<<<< HEAD
 
-=======
->>>>>>> d40740467ebe81de75e4e2bb8e545d10e44d55ab
+
   await supabase.from("ai_conversas").upsert(payload, { onConflict: "id" });
 }
 
