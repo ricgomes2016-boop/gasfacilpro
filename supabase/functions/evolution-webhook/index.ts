@@ -117,7 +117,7 @@ serve(async (req) => {
       message_id: messageKey,
       instance: instanceName
     });
-    await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`);
+    await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
 
     // Post-order follow-up shortcut
     if (await isPostOrderFollowUp(supabase, normalized, messageText)) {

@@ -1,0 +1,37 @@
+# ============================================================
+# Agente de Migração AteSystem → GasFácil Pro
+# ============================================================
+
+firebird:
+  # Caminho COMPLETO para o arquivo do banco AteSystem
+  # Exemplo Windows: C:/AteSystem/dados/BANCO.fdb
+  database: "C:/AteSystem/dados/BANCO.fdb"
+  
+  # Para modo EMBEDDED (sem servidor rodando) - mais comum em desktops
+  # Deixe host em branco ou como "embedded"
+  host: "embedded"
+  port: 3050
+  
+  # Credenciais - o agente tentará automaticamente:
+  # 1. Embedded (sem senha), 2. SYSDBA/masterkey, 3. SYSDBA sem senha
+  user: "SYSDBA"
+  password: "masterkey"
+  
+  # Charset comum no Brasil: WIN1252, ISO8859_1, UTF8
+  charset: "WIN1252"
+
+supabase:
+  # Encontre em: Supabase Dashboard → Settings → API
+  url: "https://SEU_PROJECT_ID.supabase.co"
+  # Use a service_role_key (não a anon key!) para bypass do RLS
+  service_role_key: "SUA_SERVICE_ROLE_KEY_AQUI"
+
+migracao:
+  # Limite de registros por lote (evita timeout na API)
+  batch_size: 50
+  # Parar ao encontrar primeiro erro? false = continua e loga erros
+  parar_no_erro: false
+  # Gerar arquivo de log da migração
+  gerar_log: true
+  # Diretório para salvar os logs e relatórios
+  output_dir: "./logs"

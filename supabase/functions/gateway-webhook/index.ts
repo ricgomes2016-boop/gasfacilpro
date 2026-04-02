@@ -69,7 +69,7 @@ serve(async (req) => {
 
     // Save inbound
     await saveMessage(supabase, conversationId, "user", messageText, { source: "gateway-webhook", message_id: messageId, instance: instanceName });
-    await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`);
+    await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
 
     // Post-order shortcut
     if (await isPostOrderFollowUp(supabase, normalized, messageText)) {

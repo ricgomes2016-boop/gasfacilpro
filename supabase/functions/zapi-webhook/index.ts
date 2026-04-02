@@ -112,7 +112,7 @@ serve(async (req) => {
       source: "zapi-webhook", message_id: messageKey,
       raw_message_id: body.messageId ?? null, moment: body.momment ?? null,
     });
-    await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`);
+    await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
 
     // Post-order follow-up shortcut
     if (await isPostOrderFollowUp(supabase, normalized, messageText)) {
