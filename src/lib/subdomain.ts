@@ -170,6 +170,7 @@ export function inferAppFromPath(pathname: string): Exclude<SubdomainApp, null> 
     "/assistente-ia",
     "/meu-perfil",
     "/configuracoes",
+    "/chat",
   ];
 
   if (erpPrefixes.some((prefix) => matchesRouteSegment(pathname, prefix))) {
