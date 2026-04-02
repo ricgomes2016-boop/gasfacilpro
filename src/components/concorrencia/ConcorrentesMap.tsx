@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Plus, Search, Trash2, Target, Store, GripVertical } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { MapPin, Plus, Search, Trash2, Store, GripVertical, Handshake, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -30,6 +31,25 @@ interface Concorrente {
   telefone: string | null;
 }
 
+interface Parceiro {
+  id: string;
+  nome: string;
+  telefone: string | null;
+  tipo: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+
+interface ClienteRevenda {
+  id: string;
+  nome: string;
+  telefone: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  tipo: string | null;
+}
+
 const ameacaCores: Record<string, string> = {
   alto: "#ef4444",
   moderado: "#f59e0b",
@@ -42,6 +62,9 @@ const ameacaLabels: Record<string, string> = {
   baixo: "Baixo",
 };
 
+const PARCEIRO_COR = "#0ea5e9";
+const REVENDA_COR = "#8b5cf6";
+
 function createIcon(color: string, isOwn = false) {
   const svg = isOwn
     ? `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40"><path d="M16 0C7.2 0 0 7.2 0 16c0 12 16 24 16 24s16-12 16-24C32 7.2 24.8 0 16 0z" fill="${color}" stroke="#fff" stroke-width="2"/><circle cx="16" cy="15" r="7" fill="#fff"/><text x="16" y="19" text-anchor="middle" font-size="12" font-weight="bold" fill="${color}">★</text></svg>`
@@ -51,6 +74,28 @@ function createIcon(color: string, isOwn = false) {
     iconSize: isOwn ? [32, 40] : [28, 36],
     iconAnchor: isOwn ? [16, 40] : [14, 36],
     popupAnchor: [0, isOwn ? -42 : -38],
+    className: "",
+  });
+}
+
+function createParceiroIcon() {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38"><path d="M15 0C6.7 0 0 6.7 0 15c0 11.3 15 23 15 23s15-11.7 15-23C30 6.7 23.3 0 15 0z" fill="${PARCEIRO_COR}" stroke="#fff" stroke-width="2"/><circle cx="15" cy="14" r="6" fill="#fff" opacity="0.95"/><text x="15" y="18" text-anchor="middle" font-size="11" font-weight="bold" fill="${PARCEIRO_COR}">R</text></svg>`;
+  return L.divIcon({
+    html: svg,
+    iconSize: [30, 38],
+    iconAnchor: [15, 38],
+    popupAnchor: [0, -40],
+    className: "",
+  });
+}
+
+function createRevendaClienteIcon() {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36"><path d="M14 0C6.3 0 0 6.3 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.3 21.7 0 14 0z" fill="${REVENDA_COR}" stroke="#fff" stroke-width="2"/><circle cx="14" cy="13" r="5" fill="#fff" opacity="0.95"/><text x="14" y="17" text-anchor="middle" font-size="9" font-weight="bold" fill="${REVENDA_COR}">C</text></svg>`;
+  return L.divIcon({
+    html: svg,
+    iconSize: [28, 36],
+    iconAnchor: [14, 36],
+    popupAnchor: [0, -38],
     className: "",
   });
 }
@@ -71,10 +116,15 @@ export function ConcorrentesMap() {
   const empresaId = empresa?.id;
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [parceiroDialogOpen, setParceiroDialogOpen] = useState(false);
   const [clickedLat, setClickedLat] = useState<number | null>(null);
   const [clickedLng, setClickedLng] = useState<number | null>(null);
   const [searchAddress, setSearchAddress] = useState("");
   const [searching, setSearching] = useState(false);
+  const [mostrarParceiros, setMostrarParceiros] = useState(true);
+  const [mostrarRevendas, setMostrarRevendas] = useState(true);
+  const [modoParceiro, setModoParceiro] = useState(false);
+  const [parceiroSelecionadoId, setParceiroSelecionadoId] = useState<string>("");
 
   // Form fields
   const [nome, setNome] = useState("");
@@ -123,7 +173,7 @@ export function ConcorrentesMap() {
     onError: () => toast.error("Erro ao atualizar localização"),
   });
 
-  const { data: concorrentes = [], isLoading } = useQuery({
+  const { data: concorrentes = [] } = useQuery({
     queryKey: ["concorrentes", empresaId, unidadeId],
     queryFn: async () => {
       let query = supabase
@@ -139,6 +189,44 @@ export function ConcorrentesMap() {
     },
     enabled: !!empresaId,
   });
+
+  // Query parceiros (filter by unidade_id, include those without unidade)
+  const { data: parceiros = [] } = useQuery({
+    queryKey: ["parceiros-mapa", unidadeId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vale_gas_parceiros")
+        .select("id, nome, telefone, tipo, latitude, longitude")
+        .or(`unidade_id.eq.${unidadeId},unidade_id.is.null`)
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return (data || []) as Parceiro[];
+    },
+    enabled: !!unidadeId,
+  });
+
+  const parceirosNoMapa = parceiros.filter((p) => p.latitude && p.longitude);
+  const parceirosSemLocal = parceiros.filter((p) => !p.latitude || !p.longitude);
+
+  // Query clientes tipo revenda/revendedor
+  const { data: clientesRevenda = [] } = useQuery({
+    queryKey: ["clientes-revenda-mapa", empresaId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("id, nome, telefone, latitude, longitude, tipo")
+        .eq("empresa_id", empresaId!)
+        .in("tipo", ["revenda", "revendedor"])
+        .eq("ativo", true)
+        .order("nome");
+      if (error) throw error;
+      return (data || []) as ClienteRevenda[];
+    },
+    enabled: !!empresaId,
+  });
+
+  const revendasNoMapa = clientesRevenda.filter((c) => c.latitude && c.longitude);
 
   const addMutation = useMutation({
     mutationFn: async (concorrente: Partial<Concorrente>) => {
@@ -168,6 +256,26 @@ export function ConcorrentesMap() {
     },
   });
 
+  const updateParceiroCoords = useMutation({
+    mutationFn: async ({ id, lat, lng }: { id: string; lat: number; lng: number }) => {
+      const { error } = await (supabase as any)
+        .from("vale_gas_parceiros")
+        .update({ latitude: lat, longitude: lng })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["parceiros-mapa"] });
+      toast.success("Localização do parceiro salva!");
+      setParceiroDialogOpen(false);
+      setModoParceiro(false);
+      setParceiroSelecionadoId("");
+      setClickedLat(null);
+      setClickedLng(null);
+    },
+    onError: () => toast.error("Erro ao salvar localização do parceiro"),
+  });
+
   const resetForm = () => {
     setDialogOpen(false);
     setClickedLat(null);
@@ -183,13 +291,18 @@ export function ConcorrentesMap() {
   const handleMapClick = useCallback(async (lat: number, lng: number) => {
     setClickedLat(lat);
     setClickedLng(lng);
+
+    if (modoParceiro) {
+      setParceiroDialogOpen(true);
+      return;
+    }
+
     setDialogOpen(true);
-    // Reverse geocode
     const result = await reverseGeocode(lat, lng);
     if (result?.displayName) {
       setEndereco(result.displayName.split(",").slice(0, 3).join(",").trim());
     }
-  }, []);
+  }, [modoParceiro]);
 
   const handleSearchAddress = async () => {
     if (!searchAddress.trim()) return;
@@ -200,7 +313,11 @@ export function ConcorrentesMap() {
       setClickedLat(result.latitude);
       setClickedLng(result.longitude);
       setEndereco(result.displayName.split(",").slice(0, 3).join(",").trim());
-      setDialogOpen(true);
+      if (modoParceiro) {
+        setParceiroDialogOpen(true);
+      } else {
+        setDialogOpen(true);
+      }
     } else {
       toast.error("Endereço não encontrado. Tente ser mais específico.");
     }
@@ -220,6 +337,15 @@ export function ConcorrentesMap() {
       produtos_precos: [],
     });
   };
+
+  const handleSalvarParceiro = () => {
+    if (!parceiroSelecionadoId) { toast.error("Selecione um parceiro"); return; }
+    if (clickedLat === null || clickedLng === null) { toast.error("Selecione a localização"); return; }
+    updateParceiroCoords.mutate({ id: parceiroSelecionadoId, lat: clickedLat, lng: clickedLng });
+  };
+
+  const parceiroIcon = createParceiroIcon();
+  const revendaIcon = createRevendaClienteIcon();
 
   return (
     <Card>
@@ -243,7 +369,7 @@ export function ConcorrentesMap() {
         {/* Search bar */}
         <div className="flex gap-2 mt-2">
           <Input
-            placeholder="Buscar endereço do concorrente..."
+            placeholder="Buscar endereço..."
             value={searchAddress}
             onChange={(e) => setSearchAddress(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearchAddress()}
@@ -253,9 +379,30 @@ export function ConcorrentesMap() {
             <Search className="h-4 w-4" />
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          Clique no mapa ou busque um endereço para adicionar concorrentes
-        </p>
+        {/* Mode toggle and partner positioning */}
+        <div className="flex items-center justify-between mt-2 flex-wrap gap-2">
+          <p className="text-xs text-muted-foreground">
+            {modoParceiro
+              ? "🟢 Modo Parceiro: clique no mapa para posicionar"
+              : "Clique no mapa ou busque para adicionar concorrentes"}
+          </p>
+          <Button
+            variant={modoParceiro ? "default" : "outline"}
+            size="sm"
+            className="text-xs h-7 gap-1"
+            onClick={() => {
+              setModoParceiro(!modoParceiro);
+              if (modoParceiro) {
+                setParceiroDialogOpen(false);
+                setClickedLat(null);
+                setClickedLng(null);
+              }
+            }}
+          >
+            <Handshake className="h-3.5 w-3.5" />
+            {modoParceiro ? "Cancelar" : "Posicionar Parceiro"}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <div className="h-[450px] rounded-b-lg overflow-hidden relative" style={{ zIndex: 0 }}>
@@ -331,6 +478,71 @@ export function ConcorrentesMap() {
               pathOptions={{ color: "#3b82f6", fillColor: "#3b82f6", fillOpacity: 0.05, weight: 1, dashArray: "5,5" }}
             />
 
+            {/* Partners */}
+            {mostrarParceiros && parceirosNoMapa.map((p) => (
+              <Marker
+                key={`parceiro-${p.id}`}
+                position={[p.latitude!, p.longitude!]}
+                icon={parceiroIcon}
+                draggable={true}
+                eventHandlers={{
+                  dragend: (e) => {
+                    const marker = e.target;
+                    const pos = marker.getLatLng();
+                    updateParceiroCoords.mutate({ id: p.id, lat: pos.lat, lng: pos.lng });
+                  },
+                }}
+              >
+                <Popup>
+                  <div className="min-w-[160px]">
+                    <div className="flex items-center gap-1.5">
+                      <Handshake className="h-3.5 w-3.5" style={{ color: PARCEIRO_COR }} />
+                      <strong className="text-sm">{p.nome}</strong>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] mt-1">{p.tipo}</Badge>
+                    {p.telefone && <p className="text-xs mt-1">📞 {p.telefone}</p>}
+                    <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                      <GripVertical className="h-3 w-3" /> Arraste para corrigir
+                    </p>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+
+            {/* Clientes Revenda */}
+            {mostrarRevendas && revendasNoMapa.map((c) => (
+              <Marker
+                key={`revenda-${c.id}`}
+                position={[c.latitude!, c.longitude!]}
+                icon={revendaIcon}
+                draggable={true}
+                eventHandlers={{
+                  dragend: async (e) => {
+                    const marker = e.target;
+                    const pos = marker.getLatLng();
+                    const { error } = await supabase.from("clientes").update({ latitude: pos.lat, longitude: pos.lng }).eq("id", c.id);
+                    if (error) { toast.error("Erro ao atualizar"); return; }
+                    queryClient.invalidateQueries({ queryKey: ["clientes-revenda-mapa"] });
+                    toast.success("Localização da revenda atualizada!");
+                  },
+                }}
+              >
+                <Popup>
+                  <div className="min-w-[160px]">
+                    <div className="flex items-center gap-1.5">
+                      <Users className="h-3.5 w-3.5" style={{ color: REVENDA_COR }} />
+                      <strong className="text-sm">{c.nome}</strong>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] mt-1">Cliente Revenda</Badge>
+                    {c.telefone && <p className="text-xs mt-1">📞 {c.telefone}</p>}
+                    <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                      <GripVertical className="h-3 w-3" /> Arraste para corrigir
+                    </p>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+
             {/* Competitors */}
             {concorrentes.map((c) => (
               <Marker
@@ -369,10 +581,12 @@ export function ConcorrentesMap() {
             {clickedLat !== null && clickedLng !== null && (
               <Marker
                 position={[clickedLat, clickedLng]}
-                icon={createIcon("#8b5cf6")}
+                icon={modoParceiro ? parceiroIcon : createIcon("#8b5cf6")}
               >
                 <Popup>
-                  <p className="text-xs font-medium">Nova localização selecionada</p>
+                  <p className="text-xs font-medium">
+                    {modoParceiro ? "Posicionar parceiro aqui" : "Nova localização selecionada"}
+                  </p>
                 </Popup>
               </Marker>
             )}
@@ -382,7 +596,7 @@ export function ConcorrentesMap() {
           <div className="absolute bottom-3 left-3 bg-background/90 backdrop-blur-sm rounded-lg p-2 z-[1000] text-xs space-y-1 border">
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-blue-500 border border-white" />
-              <span>Sua unidade (arraste)</span>
+              <span>Sua unidade</span>
             </div>
             {siblingUnidades.length > 0 && (
               <div className="flex items-center gap-1.5">
@@ -402,17 +616,43 @@ export function ConcorrentesMap() {
               <span className="w-3 h-3 rounded-full border border-white" style={{ background: ameacaCores.baixo }} />
               <span>Baixo</span>
             </div>
+            {/* Parceiros toggle */}
+            <div className="flex items-center justify-between gap-2 pt-1 border-t">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full border border-white" style={{ background: PARCEIRO_COR }} />
+                <span>Parceiros ({parceirosNoMapa.length})</span>
+              </div>
+              <Switch checked={mostrarParceiros} onCheckedChange={setMostrarParceiros} className="scale-75" />
+            </div>
+            {/* Clientes Revenda toggle */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full border border-white" style={{ background: REVENDA_COR }} />
+                <span>Clientes Revenda ({revendasNoMapa.length})</span>
+              </div>
+              <Switch checked={mostrarRevendas} onCheckedChange={setMostrarRevendas} className="scale-75" />
+            </div>
           </div>
 
           {/* Counter */}
-          <div className="absolute top-3 right-3 bg-background/90 backdrop-blur-sm rounded-lg px-3 py-1.5 z-[1000] text-xs font-medium border">
-            <Store className="h-3.5 w-3.5 inline mr-1" />
-            {concorrentes.length} concorrente{concorrentes.length !== 1 ? "s" : ""}
+          <div className="absolute top-3 right-3 bg-background/90 backdrop-blur-sm rounded-lg px-3 py-1.5 z-[1000] text-xs font-medium border space-y-0.5">
+            <div>
+              <Store className="h-3.5 w-3.5 inline mr-1" />
+              {concorrentes.length} concorrente{concorrentes.length !== 1 ? "s" : ""}
+            </div>
+            <div>
+              <Handshake className="h-3.5 w-3.5 inline mr-1" />
+              {parceirosNoMapa.length} parceiro{parceirosNoMapa.length !== 1 ? "s" : ""}
+            </div>
+            <div>
+              <Users className="h-3.5 w-3.5 inline mr-1" />
+              {revendasNoMapa.length} revenda{revendasNoMapa.length !== 1 ? "s" : ""}
+            </div>
           </div>
         </div>
       </CardContent>
 
-      {/* Add dialog */}
+      {/* Add concorrente dialog */}
       <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o) resetForm(); else setDialogOpen(o); }}>
         <DialogContent>
           <DialogHeader>
@@ -461,6 +701,68 @@ export function ConcorrentesMap() {
             </div>
             <Button onClick={handleSave} className="w-full" disabled={addMutation.isPending}>
               {addMutation.isPending ? "Salvando..." : "Salvar Concorrente"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Position parceiro dialog */}
+      <Dialog open={parceiroDialogOpen} onOpenChange={(o) => { if (!o) { setParceiroDialogOpen(false); setClickedLat(null); setClickedLng(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Handshake className="h-5 w-5" style={{ color: PARCEIRO_COR }} />
+              Posicionar Parceiro
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Selecione o parceiro</Label>
+              <Select value={parceiroSelecionadoId} onValueChange={setParceiroSelecionadoId}>
+                <SelectTrigger><SelectValue placeholder="Escolha um parceiro..." /></SelectTrigger>
+                <SelectContent>
+                  {parceirosSemLocal.length > 0 && (
+                    <>
+                      <SelectItem value="__divider_sem" disabled className="text-[10px] text-muted-foreground">
+                        Sem localização
+                      </SelectItem>
+                      {parceirosSemLocal.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          📍 {p.nome} ({p.tipo})
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
+                  {parceirosNoMapa.length > 0 && (
+                    <>
+                      <SelectItem value="__divider_com" disabled className="text-[10px] text-muted-foreground">
+                        Já posicionados (reposicionar)
+                      </SelectItem>
+                      {parceirosNoMapa.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          ✅ {p.nome} ({p.tipo})
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
+                  {parceiros.length === 0 && (
+                    <SelectItem value="__none" disabled>Nenhum parceiro cadastrado</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Latitude</Label>
+                <Input value={clickedLat?.toFixed(6) || ""} readOnly className="bg-muted" />
+              </div>
+              <div>
+                <Label>Longitude</Label>
+                <Input value={clickedLng?.toFixed(6) || ""} readOnly className="bg-muted" />
+              </div>
+            </div>
+            <Button onClick={handleSalvarParceiro} className="w-full" disabled={updateParceiroCoords.isPending || !parceiroSelecionadoId}>
+              {updateParceiroCoords.isPending ? "Salvando..." : "Salvar Localização"}
             </Button>
           </div>
         </DialogContent>

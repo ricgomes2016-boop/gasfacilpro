@@ -110,7 +110,8 @@ export const menuItems: MenuItem[] = [
     label: "Atendimento",
     submenu: [
       { icon: Phone, label: "Central de Atendimento", path: "/atendimento" },
-      { icon: Smartphone, label: "WhatsApp", path: "/integracoes?open=whatsapp" },
+      { icon: Smartphone, label: "Inbox WhatsApp", path: "/chat" },
+      { icon: Smartphone, label: "Config WhatsApp", path: "/integracoes?open=whatsapp" },
     ],
   },
   {
@@ -159,16 +160,25 @@ export const menuItems: MenuItem[] = [
     label: "Gestão de Clientes",
     submenu: [
       { icon: UserPlus, label: "Clientes", path: "/clientes/cadastro" },
-      { icon: Sparkles, label: "Marketing IA", path: "/clientes/marketing" },
       { icon: RefreshCw, label: "Contratos Recorrentes", path: "/clientes/contratos" },
       { icon: Ticket, label: "Promoções e Cupons", path: "/clientes/promocoes" },
-      { icon: Megaphone, label: "Campanhas", path: "/clientes/campanhas" },
       { icon: Heart, label: "Fidelidade / Indicações", path: "/clientes/fidelidade" },
       { icon: MessageSquare, label: "CRM Avançado", path: "/clientes/crm" },
       { icon: Gift, label: "Programa de Indicação", path: "/clientes/indicacao" },
       { icon: Trophy, label: "Ranking dos Clientes", path: "/clientes/ranking" },
       { icon: ShieldAlert, label: "Gestão de Crédito", path: "/clientes/credito" },
       { icon: Smartphone, label: "Aplicativo do Cliente", path: "/clientes/aplicativo" },
+    ],
+  },
+  {
+    icon: Megaphone,
+    label: "Gestão de Marketing",
+    submenu: [
+      { icon: Sparkles, label: "Criar Conteúdo", path: "/clientes/marketing" },
+      { icon: FileText, label: "Biblioteca", path: "/marketing/conteudos" },
+      { icon: CalendarDays, label: "Agendamentos", path: "/marketing/agendamentos" },
+      { icon: Megaphone, label: "Campanhas", path: "/marketing/campanhas" },
+      { icon: Settings, label: "Configurações", path: "/marketing/configuracoes" },
     ],
   },
   {

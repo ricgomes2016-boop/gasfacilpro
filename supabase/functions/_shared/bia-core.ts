@@ -262,13 +262,66 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
     effectiveClosing = fechamentoDomingo;
   }
 
+  const gasDoPovoEntrega = regras.gas_do_povo_entrega ?? false;
+  const gasDoPovoTaxa = regras.gas_do_povo_taxa ?? 15;
+
+  const autoFollowupAtivo = regras.auto_followup_ativo ?? false;
+
   return {
     isOffHours: cur < abertura || cur >= effectiveClosing,
     horarioInfo: `das ${abertura} às ${effectiveClosing}${isSunday ? " (horário especial de domingo)" : ""}`,
     isSunday,
     waterDeliveryAllowed: !(isSunday && !aguaEntregaDomingo),
     empresaId: u.empresa_id || null,
+    gasDoPovoEntrega,
+    gasDoPovoTaxa,
+    autoFollowupAtivo,
   };
+}
+
+// ========== OFF-HOURS MESSAGE ==========
+export function getOffHoursMessage(clienteNome: string | null, horarioInfo: string): string {
+  const nome = clienteNome ? clienteNome.split(" ")[0] : "";
+  const saudacao = nome ? `Oi ${nome}!` : "Olá!";
+  return `${saudacao} 😊\nNo momento estamos *fechados*.\nNosso horário de funcionamento é *${horarioInfo}*.\n\nSe quiser, posso *agendar seu pedido* para quando abrirmos! Basta me dizer o que precisa. 📋`;
+}
+
+// ========== IDENTIFY CONTACT ==========
+export interface ContactIdentity {
+  tipo: "cliente" | "entregador" | "parceiro";
+  id?: string;
+  nome?: string;
+}
+
+export async function identifyContact(supabase: any, phone: string): Promise<ContactIdentity> {
+  const normalized = normalizePhone(phone);
+  const patterns = [normalized, normalized.slice(-10)];
+
+  // Check entregadores
+  const { data: entregador } = await supabase.from("entregadores")
+    .select("id, nome")
+    .eq("ativo", true)
+    .or(patterns.map((p: string) => `telefone.ilike.%${p}%`).join(","))
+    .limit(1);
+
+  if (entregador?.[0]) {
+    console.log("Contact identified as ENTREGADOR:", entregador[0].nome);
+    return { tipo: "entregador", id: entregador[0].id, nome: entregador[0].nome };
+  }
+
+  // Check vale_gas_parceiros
+  const { data: parceiro } = await supabase.from("vale_gas_parceiros")
+    .select("id, nome")
+    .eq("ativo", true)
+    .or(patterns.map((p: string) => `telefone.ilike.%${p}%`).join(","))
+    .limit(1);
+
+  if (parceiro?.[0]) {
+    console.log("Contact identified as PARCEIRO:", parceiro[0].nome);
+    return { tipo: "parceiro", id: parceiro[0].id, nome: parceiro[0].nome };
+  }
+
+  return { tipo: "cliente" };
 }
 
 // ========== NORMALIZE PHONE ==========
@@ -277,7 +330,7 @@ export function normalizePhone(raw: string): string {
 }
 
 // ========== FIND CLIENT ==========
-export async function findCliente(supabase: any, phone: string): Promise<ClienteInfo> {
+export async function findCliente(supabase: any, phone: string, senderName?: string): Promise<ClienteInfo> {
   const normalized = normalizePhone(phone);
   const patterns = [normalized, normalized.slice(-10)];
 
@@ -287,6 +340,16 @@ export async function findCliente(supabase: any, phone: string): Promise<Cliente
     .limit(1);
 
   if (data?.[0]) {
+    // Update generic/empty name with WhatsApp pushName
+    if (senderName && senderName.trim().length >= 2) {
+      const currentName = (data[0].nome || "").trim();
+      const isGeneric = !currentName || /^(cliente\s*(whatsapp|vapi|novo)?|unknown|\d+)$/i.test(currentName);
+      if (isGeneric) {
+        await supabase.from("clientes").update({ nome: senderName.trim() }).eq("id", data[0].id);
+        data[0].nome = senderName.trim();
+        console.log("Updated client name:", data[0].id, "→", senderName.trim());
+      }
+    }
     return {
       id: data[0].id,
       nome: data[0].nome,
@@ -294,6 +357,30 @@ export async function findCliente(supabase: any, phone: string): Promise<Cliente
     };
   }
   return { id: null, nome: null, endereco: null };
+}
+
+// ========== MESSAGE DEBOUNCE ==========
+export async function collectBufferedMessages(supabase: any, conversationId: string, currentText: string, delayMs = 3000): Promise<string> {
+  // Wait for more messages to arrive
+  await new Promise(resolve => setTimeout(resolve, delayMs));
+
+  // Fetch all user messages from the last 5 seconds that haven't been processed
+  const fiveSecsAgo = new Date(Date.now() - 5000).toISOString();
+  const { data: recentMsgs } = await supabase.from("ai_mensagens")
+    .select("content, created_at")
+    .eq("conversa_id", conversationId)
+    .eq("role", "user")
+    .gte("created_at", fiveSecsAgo)
+    .order("created_at", { ascending: true });
+
+  if (recentMsgs && recentMsgs.length > 1) {
+    // Combine all recent messages
+    const combined = recentMsgs.map((m: any) => m.content).join("\n");
+    console.log("Debounce: combined", recentMsgs.length, "messages:", combined.substring(0, 100));
+    return combined;
+  }
+
+  return currentText;
 }
 
 // ========== RECENT ORDERS ==========
@@ -379,18 +466,30 @@ export async function getProducts(supabase: any, unidadeId: string | null, confi
 }
 
 // ========== EXTRACT COLLECTED DATA FROM HISTORY ==========
-export function extractCollectedData(history: any[]): { pagamento?: string; produto?: string; enderecoConfirmado?: boolean } {
-  const result: { pagamento?: string; produto?: string; enderecoConfirmado?: boolean } = {};
+export function extractCollectedData(history: any[]): { pagamento?: string; produto?: string; enderecoConfirmado?: boolean; clienteInstitucional?: boolean; skipPagamentoValor?: boolean } {
+  const result: { pagamento?: string; produto?: string; enderecoConfirmado?: boolean; clienteInstitucional?: boolean; skipPagamentoValor?: boolean } = {};
 
-  // Scan user messages for payment method
+  // Scan user messages for payment method and institutional detection
   const userMsgs = history.filter((m: any) => m.role === "user");
   for (const msg of userMsgs) {
     const t = msg.content.toLowerCase();
+
+  // Detect institutional client (expanded keywords)
+    if (!result.clienteInstitucional && /\b(escola|col[eé]gio|creche|emei|emef|ubs|posto\s*de\s*sa[uú]de|pol[ií]cia|secretaria|assist[eê]ncia\s*social|prefeitura|damasco|municipal|estadual)\b/i.test(t)) {
+      result.clienteInstitucional = true;
+      result.pagamento = "institucional";
+      result.skipPagamentoValor = true;
+    }
+
     if (!result.pagamento) {
       if (/\b(dinheiro|em\s*dinheiro)\b/i.test(t)) result.pagamento = "dinheiro";
       else if (/\bpix\b/i.test(t)) result.pagamento = "pix";
       else if (/\b(cart[aã]o|cartao|débito|credito|crédito)\b/i.test(t)) result.pagamento = "cartão";
       else if (/\bfiad[oa]?\b/i.test(t)) result.pagamento = "fiado";
+      else if (/\b(vale\s*g[aá]s|vale)\b/i.test(t)) {
+        result.pagamento = "vale gás";
+        result.skipPagamentoValor = true;
+      }
     }
     if (!result.produto) {
       if (/\bp\s*13\b/i.test(t) || /\bgás\b/i.test(t) || /\bgas\b/i.test(t) || /\bbotij/i.test(t)) result.produto = "Gás P13";
@@ -413,6 +512,37 @@ export function extractCollectedData(history: any[]): { pagamento?: string; prod
   return result;
 }
 
+// ========== DETECT CONVERSATION STEP ==========
+function detectCurrentStep(history: any[], collected: { pagamento?: string; produto?: string; enderecoConfirmado?: boolean; skipPagamentoValor?: boolean }): { step: number; label: string } {
+  if (!history || history.length === 0) return { step: 1, label: "Passo 1 (saudação inicial)" };
+
+  const hasGreeting = history.some((m: any) => m.role === "assistant" && /ol[aá]|bom dia|boa tarde|boa noite|como posso ajudar/i.test(m.content));
+
+  // For institutional/vale gás: skip payment step entirely
+  if (collected.skipPagamentoValor) {
+    if (collected.produto && collected.enderecoConfirmado) {
+      return { step: 5, label: "Passo 5 (registrar pedido — cliente institucional/vale gás, pular pagamento e valor)" };
+    }
+    if (collected.produto) {
+      return { step: 3, label: "Passo 3 (confirmar endereço de entrega — pagamento não necessário)" };
+    }
+  }
+
+  if (collected.enderecoConfirmado && collected.produto && collected.pagamento) {
+    return { step: 5, label: "Passo 5 (registrar pedido — todos os dados confirmados)" };
+  }
+  if (collected.enderecoConfirmado && collected.produto) {
+    return { step: 4, label: "Passo 4 (perguntar forma de pagamento)" };
+  }
+  if (collected.produto) {
+    return { step: 3, label: "Passo 3 (confirmar endereço de entrega)" };
+  }
+  if (hasGreeting) {
+    return { step: 2, label: "Passo 2 (aguardar cliente pedir produto)" };
+  }
+  return { step: 1, label: "Passo 1 (saudação inicial)" };
+}
+
 // ========== BUILD SYSTEM PROMPT (IMPROVED) ==========
 export function buildSystemPrompt(
   productList: string,
@@ -425,7 +555,9 @@ export function buildSystemPrompt(
   orderStatus: any | null,
   negotiationHint: string,
   sundayContext?: { isSunday: boolean; waterDeliveryAllowed: boolean },
-  history?: any[]
+  history?: any[],
+  gasDoPovoConfig?: { entrega: boolean; taxa: number },
+  contactIdentity?: ContactIdentity
 ): string {
   const agentName = config.agentName || "Bia";
   const now = new Date();
@@ -433,21 +565,153 @@ export function buildSystemPrompt(
   const hour = brt.getHours();
   const saudacao = hour >= 5 && hour < 12 ? "Bom dia" : hour >= 12 && hour < 18 ? "Boa tarde" : "Boa noite";
 
-  return `Você é a ${agentName}, assistente virtual de vendas de gás da empresa. Seu atendimento deve ser humano, educado e objetivo.
+  // Extract collected data and detect step
+  const collected = extractCollectedData(history || []);
+  const currentStep = detectCurrentStep(history || [], collected);
+
+  // Build collected data section
+  let collectedSection = "";
+  const collectedItems: string[] = [];
+  if (collected.produto) collectedItems.push(`- Produto: ${collected.produto}`);
+  if (collected.enderecoConfirmado) collectedItems.push(`- Endereço: CONFIRMADO pelo cliente`);
+  if (collected.pagamento) collectedItems.push(`- Pagamento: ${collected.pagamento}`);
+
+  if (collectedItems.length > 0) {
+    collectedSection = `\n\nDADOS JÁ INFORMADOS PELO CLIENTE (NÃO pergunte novamente):\n${collectedItems.join("\n")}`;
+  }
+
+  // Finalize immediately if all data present (or institutional/vale gás skips payment)
+  let finalizeHint = "";
+  if (collected.produto && collected.enderecoConfirmado && collected.pagamento) {
+    finalizeHint = "\n\n⚠️ TODOS OS DADOS FORAM COLETADOS. FINALIZE O PEDIDO IMEDIATAMENTE gerando a tag [PEDIDO_CONFIRMADO]. NÃO faça mais perguntas.";
+  }
+  if (collected.skipPagamentoValor && collected.produto && collected.enderecoConfirmado) {
+    finalizeHint = "\n\n⚠️ CLIENTE INSTITUCIONAL OU VALE GÁS — TODOS OS DADOS COLETADOS. FINALIZE O PEDIDO IMEDIATAMENTE com pagamento '" + collected.pagamento + "' e valor: 0. Gere a tag [PEDIDO_CONFIRMADO] AGORA.";
+  }
+
+  // If contact is entregador or parceiro, return specialized prompt
+  if (contactIdentity?.tipo === "entregador") {
+    return `Você é a ${agentName}, assistente virtual da empresa de gás.
+
+CONTEXTO: Você está conversando com o ENTREGADOR ${contactIdentity.nome || "da equipe"}. Ele faz parte da equipe de entregas.
+
+REGRAS:
+- Responda de forma DIRETA e OBJETIVA, como colega de trabalho.
+- Pode informar sobre entregas pendentes, horários, rotas e questões operacionais.
+- NÃO tente vender produtos. NÃO siga o fluxo de pedido de clientes.
+- NÃO peça endereço, forma de pagamento ou dados de venda.
+- Se ele perguntar algo que você não sabe, diga para falar com o gerente ou escritório.
+- Seja prestativo e breve nas respostas.
+
+${orderStatus ? `PEDIDOS EM ANDAMENTO:\n- Pedido #${orderStatus.id}: ${orderStatus.status} (R$ ${orderStatus.valor})` : ""}`;
+  }
+
+  if (contactIdentity?.tipo === "parceiro") {
+    return `Você é a ${agentName}, assistente virtual da empresa de gás.
+
+CONTEXTO: Você está conversando com o PARCEIRO INSTITUCIONAL ${contactIdentity.nome || ""}.
+
+REGRAS:
+- Responda de forma EDUCADA e PROFISSIONAL.
+- Pode informar sobre pedidos pendentes da instituição.
+- Se ele quiser fazer um pedido, trate como pedido institucional (sem cobrar valor).
+- NÃO siga o fluxo de venda normal para clientes finais.
+- Seja prestativo e breve nas respostas.
+- Se precisar de algo que você não consegue resolver, oriente a entrar em contato com o escritório.`;
+  }
+
+  // Check delivery area
+  let deliveryAreaHint = "";
+  
+  // Detect dissatisfaction from last user message
+  const lastUserMsg = (history || []).filter((m: any) => m.role === "user").pop()?.content || "";
+  const isDissatisfied = detectDissatisfaction(lastUserMsg);
+  let dissatisfactionHint = "";
+  if (isDissatisfied) {
+    dissatisfactionHint = `\n\n⚠️ DETECÇÃO DE INSATISFAÇÃO: O cliente demonstrou frustração ou insatisfação.
+REGRAS OBRIGATÓRIAS:
+- Adote tom EMPÁTICO e ACOLHEDOR imediatamente
+- Peça desculpas sinceramente: "Sinto muito pelo transtorno..."
+- Ofereça solução concreta quando possível
+- NÃO seja defensivo, NÃO minimize o problema
+- Se for reclamação de entrega, ofereça verificar o status
+- Se for reclamação de preço, explique com educação e ofereça o melhor preço disponível
+- Marque internamente como insatisfação para acompanhamento`;
+  }
+
+  return `Você é a ${agentName}, assistente virtual de vendas de gás da empresa. Seu atendimento deve ser CALOROSO, HUMANO e NATURAL — como uma atendente simpática de verdade, não um robô.
+
+PERSONALIDADE:
+- Seja ACOLHEDORA e SIMPÁTICA, use emojis com moderação (1-2 por mensagem)
+- Converse como uma pessoa real: use expressões naturais como "claro!", "com certeza!", "sem problemas!"
+- Demonstre interesse genuíno pelo cliente: "Tudo bem com você?", "Como vai?"
+- Se o cliente fizer conversa casual (Oi, Olá, Bom dia), RESPONDA com calor humano antes de qualquer coisa sobre pedidos
+- NUNCA pule direto para perguntas sobre produto ou endereço na primeira mensagem
+
+ANTI-REPETIÇÃO (CRÍTICO — SIGA À RISCA):
+- Se o histórico já contém sua saudação (Olá, Bom dia, etc.), NÃO cumprimente novamente. Vá direto ao assunto.
+- Se o cliente já disse o que quer (gás, água, etc.), NÃO pergunte "como posso ajudar". Avance para confirmar endereço.
+- NUNCA repita a mesma mensagem ou pergunta duas vezes consecutivas.
+- Leia o histórico completo antes de responder — se já perguntou algo, NÃO repita.
+- Se o cliente informou forma de pagamento, NÃO pergunte novamente.
+
+ETAPA ATUAL DA CONVERSA: ${currentStep.label}. NÃO volte a passos anteriores.${collectedSection}${finalizeHint}${dissatisfactionHint}
 
 REGRAS DE OURO:
 1. NÃO FINALIZAR PEDIDOS AUTOMATICAMENTE: Mesmo que o cliente já seja conhecido, NUNCA crie ou confirme um pedido no início da conversa.
-2. ESPERAR O PEDIDO: Comece apenas saudando pelo nome. Espere o cliente dizer que quer gás ou água antes de seguir para o endereço.
+2. ESPERAR O PEDIDO: Na primeira mensagem, APENAS cumprimente pelo nome de forma calorosa. NÃO mencione endereço, NÃO mencione produto, NÃO pergunte o que deseja. Espere o cliente dizer espontaneamente que quer gás ou água.
 3. PREÇO RÍGIDO: O valor a ser registrado no sistema deve ser EXATAMENTE o valor que você informou ao cliente na conversa.
 
-FLUXO OBRIGATÓRIO (NÃO PULE ETAPAS):
-Passo 1 – SAUDAÇÃO: "Olá [Nome]! 👋 Que bom falar com você. Como posso ajudar hoje?"
-Passo 2 – CLIENTE PEDE PRODUTO: Só após o cliente pedir, você confirma o endereço.
-Passo 3 – CONFIRMAR ENDEREÇO: "A entrega será na [Endereço]?" (Aguarde o "Sim" ou novo endereço).
-Passo 4 – FORMA DE PAGAMENTO: "Qual será a forma de pagamento (Dinheiro, Pix ou Cartão)?"
-Passo 5 – REGISTRAR: Após as confirmações, informe: "Perfeito! Seu pedido foi registrado. Entrega prevista: 20 a 40 minutos."
+⚠️ REGRA CRÍTICA DE SAUDAÇÃO:
+- Quando o cliente diz "Oi", "Olá", "Bom dia", "Boa tarde" ou qualquer saudação SIMPLES (sem pedir produto):
+  → Responda APENAS com saudação calorosa. Exemplo: "${saudacao}, ${cliente.nome ? cliente.nome.split(" ")[0] : ""}! Tudo bem com você? 😊"
+  → NÃO pergunte "o que deseja?", NÃO mencione endereço, NÃO fale de produto.
+  → PARE e espere o cliente falar o que precisa.
+- SOMENTE quando o cliente mencionar gás, água, botijão, pedido ou produto, avance para o Passo 2.
 
-IDENTIFICAÇÃO DE ENDEREÇO: Considere informado se a mensagem tiver Rua/Av/Travessa + número ou pontos de referência claros.
+FLUXO OBRIGATÓRIO (NÃO PULE ETAPAS):
+Passo 1 – SAUDAÇÃO CALOROSA: ${cliente.nome ? `"${saudacao}, ${cliente.nome.split(" ")[0]}! Tudo bem com você? 😊" — PARE AQUI. NÃO pergunte nada sobre pedido. Espere o cliente dizer o que precisa.` : `"${saudacao}! 👋 Aqui é a ${agentName}, tudo bem? Como posso te ajudar?" (SÓ na primeira mensagem, NUNCA repetir)`}
+Passo 2 – CLIENTE PEDE PRODUTO: Só DEPOIS que o cliente pedir gás/água, avance. Responda de forma natural: "Claro! Vou preparar pra você! 😊"
+Passo 3 – CONFIRMAR ENDEREÇO: ${cliente.endereco ? `"Entrego lá na ${cliente.endereco}?" (Aguarde o "Sim" ou novo endereço).` : `Pergunte de forma natural: "Me passa o endereço de entrega? 😊"`}
+Passo 4 – FORMA DE PAGAMENTO: Pergunte de forma natural: "E como você prefere pagar?" — NÃO liste as opções, espere o cliente responder.
+Passo 5 – REGISTRAR: Após as confirmações, informe: "Perfeito! Já vou repassar pro entregador. Chega aí em 20 a 40 minutinhos! 😊"
+
+GÁS DO POVO (CRÍTICO — SIGA À RISCA):
+- Se o cliente mencionar "Gás do Povo", "gas do povo", "programa do governo", "voucher do gás", "cartão gás do povo" ou qualquer variação:
+${gasDoPovoConfig?.entrega
+  ? `  → Informe que o Gás do Povo pode ser RETIRADO NA PORTARIA sem taxa, OU ENTREGUE com taxa de R$ ${gasDoPovoConfig.taxa.toFixed(2)}.
+  → Pergunte: "Você prefere retirar na portaria sem taxa ou quer que entregue com taxa de R$ ${gasDoPovoConfig.taxa.toFixed(2)}?"
+  → Se escolher RETIRADA: confirme que pode buscar na portaria no horário de funcionamento. NÃO crie pedido de entrega.
+  → Se escolher ENTREGA: prossiga com o fluxo normal de pedido, adicionando a taxa de R$ ${gasDoPovoConfig.taxa.toFixed(2)} ao valor.
+  → Registre o pagamento como "Gás do Povo" em ambos os casos.`
+  : `  → Informe IMEDIATAMENTE: "O Gás do Povo é somente para retirada na portaria da loja, não fazemos entrega desse programa. Você pode vir buscar aqui! 😊"
+  → NÃO crie pedido de entrega para Gás do Povo.`}
+  → Se o cliente quiser comprar gás normal (P13) com entrega, prossiga normalmente com o fluxo de venda.
+  → Se o cliente perguntar o endereço/horário da loja, informe que pode retirar no horário de funcionamento.
+
+CLIENTES INSTITUCIONAIS E VALE GÁS (CRÍTICO — SIGA À RISCA):
+- Se o cliente mencionar QUALQUER uma dessas palavras: escola, colégio, creche, EMEI, EMEF, UBS, posto de saúde, polícia, secretaria, assistência social, prefeitura, Damasco, municipal, estadual:
+  → Reconheça IMEDIATAMENTE como cliente institucional.
+  → NÃO pergunte forma de pagamento.
+  → NÃO informe valor/preço do produto.
+  → Se o nome/endereço já está cadastrado, confirme: "Entrego sim, [Nome da instituição], [Endereço cadastrado]? Já vou repassar para o entregador."
+  → Se NÃO está cadastrado, peça só o endereço: "Entrego sim! Me confirme o endereço de entrega."
+  → Registre o pedido com pagamento "institucional" e valor: 0.
+- Se o cliente informar que vai pagar com VALE GÁS:
+  → NÃO informe valor/preço do produto.
+  → Após confirmar endereço, registre o pedido IMEDIATAMENTE com pagamento "vale gás" e valor: 0.
+
+ENDEREÇO FRAGMENTADO (IMPORTANTE):
+- O cliente pode enviar o endereço em VÁRIAS mensagens separadas (ex: "Rua Goiás" numa mensagem, "número 500" na próxima, "bairro Centro" depois).
+- JUNTE todas as informações de localização do histórico para montar o endereço completo.
+- Aceite QUALQUER formato: rua + número, nome de local, ponto de referência, bairro.
+- NÃO exija formato rígido. Se tem rua e número, é suficiente.
+- Se falta apenas o número ou bairro, pergunte de forma natural: "Qual o número?"
+
+RESPOSTAS CURTAS E OBJETIVAS:
+- Responda em no máximo 2-3 linhas.
+- Seja direto e humano, como se fosse uma atendente real.
+- NÃO use listas longas ou textos explicativos desnecessários.
 
 PRODUTOS E PREÇOS DISPONÍVEIS:
 ${productList}
@@ -458,13 +722,14 @@ nome: ${cliente.nome || "Cliente"}
 produto: (Nome EXATO: "Gás P13", "Gás P20", "Gás P45" ou "Água Mineral 20L")
 quantidade: 1
 endereco: Endereço completo
-pagamento: forma escolhida
-valor: (O valor EXATO que você informou ao cliente)
+pagamento: forma escolhida (ou "institucional" / "vale gás")
+valor: (O valor EXATO que você informou ao cliente, ou 0 para institucional/vale gás)
 telefone: ${normalized}
 [/PEDIDO_CONFIRMADO]
 
 ${isOffHours ? `FORA DO HORÁRIO (${horarioInfo}): Informe fechamento e ofereça agendamento.` : ""}
-${negotiationHint}`;
+${negotiationHint}
+${deliveryAreaHint}`;
 }
 
 // ========== NEGOTIATION HINT ==========
@@ -514,8 +779,11 @@ export async function generateUUIDFromString(input: string): Promise<string> {
 
 // ========== CONVERSATION HISTORY ==========
 export async function loadHistory(supabase: any, conversationId: string) {
+  // Only load messages from the last 2 hours to avoid stale context from old conversations
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
   const { data } = await supabase.from("ai_mensagens")
     .select("role, content, created_at").eq("conversa_id", conversationId)
+    .gte("created_at", twoHoursAgo)
     .order("created_at", { ascending: true }).limit(20);
   return data ? data.map((m: any) => ({ role: m.role, content: m.content })) : [];
 }
@@ -532,7 +800,10 @@ export async function upsertConversation(supabase: any, conversationId: string, 
     updated_at: new Date().toISOString(),
   };
   if (telefone) payload.telefone = telefone;
+<<<<<<< HEAD
 
+=======
+>>>>>>> d40740467ebe81de75e4e2bb8e545d10e44d55ab
   await supabase.from("ai_conversas").upsert(payload, { onConflict: "id" });
 }
 
@@ -545,9 +816,9 @@ export async function isDuplicate(supabase: any, conversationId: string, message
 }
 
 // ========== POST-ORDER FOLLOW-UP CHECK ==========
-export async function isPostOrderFollowUp(supabase: any, phone: string, messageText: string): Promise<boolean> {
+export async function isPostOrderFollowUp(supabase: any, phone: string, messageText: string): Promise<boolean | "rating"> {
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-  const { data } = await supabase.from("pedidos").select("id")
+  const { data } = await supabase.from("pedidos").select("id, cliente_id, entregador_id, status")
     .eq("canal_venda", "whatsapp").gte("created_at", twoHoursAgo)
     .ilike("observacoes", `%(${phone})%`).limit(1);
 
@@ -555,6 +826,30 @@ export async function isPostOrderFollowUp(supabase: any, phone: string, messageT
 
   const trimmed = messageText.trim();
   
+  // Check for rating response (1-5 or star emojis)
+  const ratingMatch = trimmed.match(/^([1-5])$/);
+  const starMatch = trimmed.match(/^(⭐+)$/);
+  const rating = ratingMatch ? parseInt(ratingMatch[1]) : starMatch ? starMatch[1].length : null;
+  
+  if (rating && rating >= 1 && rating <= 5) {
+    // Save rating
+    const pedido = data[0];
+    try {
+      await supabase.from("avaliacoes_entrega").insert({
+        pedido_id: pedido.id,
+        user_id: pedido.cliente_id || "00000000-0000-0000-0000-000000000000",
+        entregador_id: pedido.entregador_id || null,
+        nota_entregador: rating,
+        nota_produto: rating,
+        comentario: `Avaliação via WhatsApp: ${rating}/5`,
+      });
+      console.log("Rating saved:", rating, "for order:", pedido.id);
+    } catch (e) {
+      console.error("Rating save error:", e);
+    }
+    return "rating";
+  }
+
   // Only treat as follow-up if the ENTIRE message is a short acknowledgment (max 3 words)
   const wordCount = trimmed.split(/\s+/).length;
   if (wordCount > 3) return false;
@@ -563,6 +858,24 @@ export async function isPostOrderFollowUp(supabase: any, phone: string, messageT
   const isFollowUp = /^(obrigad[oa]?|valeu|certo|perfeito|show|blz|beleza|tmj|falou|vlw|brigad[oa]?|thanks|thx)$/i.test(trimmed);
 
   return !isNewOrder && isFollowUp;
+}
+
+// ========== CHECK DELIVERY AREA ==========
+export async function getDeliveryAreaBairros(supabase: any, unidadeId: string | null): Promise<string[]> {
+  if (!unidadeId) return [];
+  const { data: rotas } = await supabase.from("rotas_definidas")
+    .select("bairros").eq("ativo", true).eq("unidade_id", unidadeId);
+  if (!rotas?.length) return [];
+  const allBairros: string[] = [];
+  for (const r of rotas) {
+    if (r.bairros?.length) allBairros.push(...r.bairros);
+  }
+  return [...new Set(allBairros)];
+}
+
+// ========== DETECT DISSATISFACTION ==========
+export function detectDissatisfaction(messageText: string): boolean {
+  return /\b(demora|demorou|atraso|atrasad[oa]|ru[ií]m|p[eé]ssim[oa]|horrível|horr[ií]vel|absurdo|falta\s*de\s*respeito|lixo|porcaria|nunca\s*mais|reclamação|reclamar|insatisfeit[oa]|raiva|indignado|vergonha|descaso|caro\s*demais|roubo|enganação)\b/i.test(messageText);
 }
 
 // ========== AI CALL ==========
@@ -649,8 +962,8 @@ export async function transcribeAudio(audioBase64: string, mimeType: string): Pr
             role: "user",
             content: [
               {
-                type: "input_audio",
-                input_audio: { data: audioBase64, format: mimeType.includes("ogg") ? "ogg" : "mp3" },
+                type: "image_url",
+                image_url: { url: `data:${mimeType};base64,${audioBase64}` },
               },
               {
                 type: "text",
@@ -659,6 +972,7 @@ export async function transcribeAudio(audioBase64: string, mimeType: string): Pr
             ],
           },
         ],
+        max_tokens: 2000,
       }),
     });
 
@@ -994,6 +1308,21 @@ export async function sendTyping(config: BiaConfig, phone: string) {
   } catch (e) { console.error("Typing indicator error:", e); }
 }
 
+// ========== RATE LIMIT CHECK ==========
+export async function checkRateLimit(supabase: any, conversationId: string, maxMessages = 10, windowHours = 2): Promise<boolean> {
+  try {
+    const since = new Date(Date.now() - windowHours * 60 * 60 * 1000).toISOString();
+    const { count } = await supabase.from("ai_mensagens").select("id", { count: "exact", head: true })
+      .eq("conversa_id", conversationId).eq("role", "assistant")
+      .gte("created_at", since);
+    if (count !== null && count >= maxMessages) {
+      console.warn(`Rate limit reached: ${count} msgs in ${windowHours}h for conversation ${conversationId}`);
+      return true; // rate limited
+    }
+    return false;
+  } catch (e) { console.error("Rate limit check error:", e); return false; }
+}
+
 // ========== SEND MESSAGE ==========
 export async function sendMessage(config: BiaConfig, phone: string, message: string) {
   try {
@@ -1012,6 +1341,14 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       });
       const respText = await resp.text();
       console.log("Evolution sendMessage response:", resp.status, respText.substring(0, 300));
+      // Auto-deactivate instance on Connection Closed
+      if ((resp.status === 400 || resp.status === 403) && (respText.includes("Connection Closed") || respText.includes("not connected"))) {
+        console.error(`⚠️ Evolution instance ${instance} disconnected — auto-deactivating`);
+        try {
+          const sb = createSupabase();
+          await sb.from("integracoes_whatsapp").update({ ativo: false }).eq("instance_id", instance).eq("provedor", "evolution");
+        } catch (dbErr) { console.error("Failed to auto-deactivate:", dbErr); }
+      }
     } else if (config.provedor === "gateway") {
       // Send via WhatsApp Gateway API
       const url = `${config.gatewayBaseUrl}/instances/${config.gatewayInstanceName}/send-text`;

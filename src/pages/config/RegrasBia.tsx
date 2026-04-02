@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Bot, Clock, Package, HandCoins, MessageSquare, Save, Loader2, Droplets, Flame, Container } from "lucide-react";
+import { Bot, Clock, Package, HandCoins, MessageSquare, Save, Loader2, Droplets, Flame, Container, Truck, RefreshCw, MapPin, BarChart3, AlertTriangle } from "lucide-react";
 
 interface PrecoProduto {
   preco: number;
@@ -32,6 +32,14 @@ interface RegrasBiaConfig {
   desconto_etapa2: number;
   preco_minimo_p13: number | null;
   preco_minimo_p20: number | null;
+  gas_do_povo_entrega: boolean;
+  gas_do_povo_taxa: number;
+  recompra_ativa: boolean;
+  recompra_mensagem_personalizada: string;
+  auto_followup_ativo: boolean;
+  validar_area_entrega: boolean;
+  relatorio_diario_ativo: boolean;
+  relatorio_diario_telefone: string;
   tabela_precos: {
     gas_p13: PrecoProduto;
     gas_p20: PrecoProduto;
@@ -53,6 +61,14 @@ const defaultConfig: RegrasBiaConfig = {
   desconto_etapa2: 5,
   preco_minimo_p13: null,
   preco_minimo_p20: null,
+  gas_do_povo_entrega: false,
+  gas_do_povo_taxa: 15,
+  recompra_ativa: true,
+  recompra_mensagem_personalizada: "",
+  auto_followup_ativo: false,
+  validar_area_entrega: false,
+  relatorio_diario_ativo: false,
+  relatorio_diario_telefone: "",
   tabela_precos: {
     gas_p13: { preco: 125, preco_desconto: 120 },
     gas_p20: { preco: 210, preco_desconto: 200 },
@@ -91,9 +107,7 @@ export default function RegrasBia() {
 
       if (data?.regras_bia) {
         const rb = data.regras_bia as any;
-        // Merge with default to ensure new fields (like tabela_precos) exist
         const merged = { ...defaultConfig, ...rb };
-        // Ensure nesting is preserved
         if (rb.tabela_precos) {
           merged.tabela_precos = { ...defaultConfig.tabela_precos, ...rb.tabela_precos };
         }
@@ -258,6 +272,243 @@ export default function RegrasBia() {
                 </div>
               );
             })}
+          </CardContent>
+        </Card>
+
+        {/* Gás do Povo */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Truck className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg">Gás do Povo</CardTitle>
+                <CardDescription>Configure se o Gás do Povo pode ser entregue com taxa ou apenas retirada na portaria</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
+              <div>
+                <p className="font-medium text-sm">Somente retirada na portaria</p>
+                <p className="text-xs text-muted-foreground">Padrão: cliente retira na loja sem taxa</p>
+              </div>
+              <Badge variant={!config.gas_do_povo_entrega ? "default" : "secondary"}>
+                {!config.gas_do_povo_entrega ? "Ativo" : "Inativo"}
+              </Badge>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">Permitir entrega com taxa</p>
+                <p className="text-xs text-muted-foreground">Se habilitado, a Bia oferece entrega com taxa adicional</p>
+              </div>
+              <Switch
+                checked={config.gas_do_povo_entrega}
+                onCheckedChange={(v) => setConfig(prev => ({ ...prev, gas_do_povo_entrega: v }))}
+              />
+            </div>
+
+            {config.gas_do_povo_entrega && (
+              <div className="pl-4 border-l-2 border-primary/20 space-y-2">
+                <Label>Valor da Taxa de Entrega (R$)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={config.gas_do_povo_taxa}
+                  onChange={(e) => setConfig(prev => ({ ...prev, gas_do_povo_taxa: Number(e.target.value) }))}
+                />
+                <p className="text-xs text-muted-foreground">A Bia informará: retirada na portaria sem taxa, ou entrega com R$ {config.gas_do_povo_taxa.toFixed(2)} de taxa</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recompra Inteligente */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <RefreshCw className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg">Lembrete de Recompra</CardTitle>
+                <CardDescription>Envia mensagem automática quando o cliente está perto de precisar de gás novamente</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">Recompra automática ativa</p>
+                <p className="text-xs text-muted-foreground">Calcula o ciclo médio de cada cliente e envia lembrete</p>
+              </div>
+              <Switch
+                checked={config.recompra_ativa}
+                onCheckedChange={(v) => setConfig(prev => ({ ...prev, recompra_ativa: v }))}
+              />
+            </div>
+
+            {config.recompra_ativa && (
+              <div className="pl-4 border-l-2 border-primary/20 space-y-2">
+                <Label>Mensagem personalizada (opcional)</Label>
+                <Textarea
+                  value={config.recompra_mensagem_personalizada}
+                  onChange={(e) => setConfig(prev => ({ ...prev, recompra_mensagem_personalizada: e.target.value }))}
+                  rows={2}
+                  placeholder="Ex: Olá {nome}, já está na hora de repor o gás? 😊 (use {nome} para o nome do cliente)"
+                />
+                <p className="text-xs text-muted-foreground">Deixe em branco para usar as mensagens padrão</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Auto Follow-up (Negociação) */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg">Auto Follow-up de Negociação</CardTitle>
+                <CardDescription>Envia automaticamente proposta de desconto simulando consulta ao gerente</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">Auto follow-up ativo</p>
+                <p className="text-xs text-muted-foreground">Quando desativado, a Bia não simula "falar com o gerente" automaticamente</p>
+              </div>
+              <Switch
+                checked={config.auto_followup_ativo}
+                onCheckedChange={(v) => setConfig(prev => ({ ...prev, auto_followup_ativo: v }))}
+              />
+            </div>
+            {config.auto_followup_ativo && (
+              <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <p className="text-xs text-yellow-700 dark:text-yellow-400 font-medium">
+                    Atenção: Este recurso pode aumentar o risco de bloqueio pelo WhatsApp por enviar mensagens não solicitadas.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <MapPin className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg">Validação de Área de Entrega</CardTitle>
+                <CardDescription>Verifica se o bairro do cliente está na área de cobertura antes de aceitar pedidos</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">Validar área de entrega</p>
+                <p className="text-xs text-muted-foreground">A Bia usará os bairros cadastrados nas rotas definidas</p>
+              </div>
+              <Switch
+                checked={config.validar_area_entrega}
+                onCheckedChange={(v) => setConfig(prev => ({ ...prev, validar_area_entrega: v }))}
+              />
+            </div>
+            {config.validar_area_entrega && (
+              <div className="p-3 rounded-lg border bg-accent/10">
+                <p className="text-xs text-muted-foreground">
+                  💡 Configure os bairros atendidos em <strong>Gestão Operacional → Rotas</strong>. A Bia informará educadamente quando o endereço estiver fora da área.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Relatório Diário */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg">Relatório Diário via WhatsApp</CardTitle>
+                <CardDescription>Receba um resumo do dia com pedidos, faturamento e top produtos</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">Enviar relatório diário</p>
+                <p className="text-xs text-muted-foreground">Enviado automaticamente às 19:00 via WhatsApp</p>
+              </div>
+              <Switch
+                checked={config.relatorio_diario_ativo}
+                onCheckedChange={(v) => setConfig(prev => ({ ...prev, relatorio_diario_ativo: v }))}
+              />
+            </div>
+
+            {config.relatorio_diario_ativo && (
+              <div className="pl-4 border-l-2 border-primary/20 space-y-2">
+                <Label>Telefone do gestor (com DDD)</Label>
+                <Input
+                  type="tel"
+                  placeholder="11999999999"
+                  value={config.relatorio_diario_telefone}
+                  onChange={(e) => setConfig(prev => ({ ...prev, relatorio_diario_telefone: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">O relatório será enviado para este número todos os dias às 19h</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Detecção de Insatisfação */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg">Detecção de Insatisfação</CardTitle>
+                <CardDescription>A Bia detecta automaticamente reclamações e muda para tom empático</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="p-3 rounded-lg border bg-accent/10">
+              <p className="text-sm text-muted-foreground">
+                ✅ <strong>Sempre ativo</strong> — Quando a Bia detecta palavras de frustração (demora, ruim, atraso, reclamação...), ela automaticamente:
+              </p>
+              <ul className="mt-2 text-xs text-muted-foreground space-y-1 ml-4 list-disc">
+                <li>Adota tom empático e acolhedor</li>
+                <li>Pede desculpas e oferece solução</li>
+                <li>Marca a conversa para revisão do gestor</li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Avaliação Pós-Entrega */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg">Avaliação Pós-Entrega</CardTitle>
+                <CardDescription>Solicita avaliação de 1 a 5 estrelas após cada entrega</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="p-3 rounded-lg border bg-accent/10">
+              <p className="text-sm text-muted-foreground">
+                ✅ <strong>Sempre ativo</strong> — Após o pedido ser marcado como entregue, a notificação de status inclui automaticamente o pedido de avaliação. O cliente responde com um número de 1 a 5 e a Bia registra.
+              </p>
+            </div>
           </CardContent>
         </Card>
 

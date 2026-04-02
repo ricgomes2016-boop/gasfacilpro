@@ -29,6 +29,7 @@ const menuIconColors: Record<string, string> = {
   "Gestão de Frota": "text-indigo-500",
   "Gestão de RH": "text-rose-500",
   "Gestão Fiscal": "text-teal-500",
+  "Marketing": "text-fuchsia-500",
   "Configurações": "text-slate-400",
 };
 
@@ -82,6 +83,9 @@ const subMenuIconColors: Record<string, string> = {
   "Documentos da Empresa": "text-slate-400", "Notificações e Alertas": "text-yellow-400",
   "Personalização Visual": "text-violet-400", "Integrações / Hub": "text-cyan-400",
   "Dashboard": "text-blue-500",
+  "Criar Conteúdo IA": "text-violet-500", "Biblioteca": "text-orange-400",
+  "Agendamentos": "text-emerald-500", "Redes Sociais": "text-blue-500",
+  "Atendimento IA": "text-pink-500",
 };
 
 export function MobileNav() {

@@ -23,7 +23,7 @@ serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
 
-      const { data: config, error: dbError } = await supabase
+      const { data: config } = await supabase
         .from("integracoes_whatsapp")
         .select("*")
         .eq("instance_id", instance_id)
@@ -36,8 +36,16 @@ serve(async (req) => {
       }
     }
 
+    // Fallback to global secrets if still missing
     if (!baseUrl) {
-      return new Response(JSON.stringify({ error: "base_url não configurada e não fornecida no corpo" }), {
+      baseUrl = (Deno.env.get("EVOLUTION_BASE_URL") || "").replace(/\/$/, "");
+    }
+    if (!apiKey) {
+      apiKey = Deno.env.get("EVOLUTION_GLOBAL_APIKEY") || "";
+    }
+
+    if (!baseUrl) {
+      return new Response(JSON.stringify({ error: "base_url não configurada. Configure o secret EVOLUTION_BASE_URL." }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -56,16 +64,46 @@ serve(async (req) => {
       case "status":
         url = `${baseUrl}/instance/connectionState/${instance_id}`;
         break;
-      case "create":
-        url = `${baseUrl}/instance/create`;
-        method = "POST";
-        body = JSON.stringify({ 
-          instanceName: instance_id, 
-          token: apiKey, 
-          qrcode: true,
-          integration: "WHATSAPP-BAILEYS"
+      case "create": {
+        // First try to create
+        const createUrl = `${baseUrl}/instance/create`;
+        console.log(`[EVOLUTION-PROXY] POST ${createUrl}`);
+        const createResp = await fetch(createUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ 
+            instanceName: instance_id, 
+            token: apiKey, 
+            qrcode: true,
+            integration: "WHATSAPP-BAILEYS"
+          }),
         });
-        break;
+        const createData = await createResp.json().catch(() => ({ ok: createResp.ok }));
+        console.log(`[EVOLUTION-PROXY] Create response ${createResp.status}:`, JSON.stringify(createData).substring(0, 500));
+
+        // If instance already exists (403), just connect to get QR code
+        if (createResp.status === 403 || (createData?.response?.message && JSON.stringify(createData.response.message).includes("already in use"))) {
+          console.log(`[EVOLUTION-PROXY] Instance already exists, fetching QR code instead`);
+          const connectUrl = `${baseUrl}/instance/connect/${instance_id}`;
+          console.log(`[EVOLUTION-PROXY] GET ${connectUrl}`);
+          const connectResp = await fetch(connectUrl, { method: "GET", headers });
+          const connectData = await connectResp.json().catch(() => ({ ok: connectResp.ok }));
+          console.log(`[EVOLUTION-PROXY] Connect response ${connectResp.status}:`, JSON.stringify(connectData).substring(0, 500));
+          return new Response(JSON.stringify(connectData), {
+            status: connectResp.status,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Extract generated token
+        if (createData?.hash?.apikey) {
+          createData._generated_token = createData.hash.apikey;
+        }
+        return new Response(JSON.stringify(createData), {
+          status: createResp.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       case "restart":
         url = `${baseUrl}/instance/restart/${instance_id}`;
         method = "PUT";
@@ -74,10 +112,17 @@ serve(async (req) => {
         url = `${baseUrl}/instance/logout/${instance_id}`;
         method = "DELETE";
         break;
+      case "delete":
+        url = `${baseUrl}/instance/delete/${instance_id}`;
+        method = "DELETE";
+        break;
+      case "fetchInstances":
+        url = `${baseUrl}/instance/fetchInstances`;
+        break;
       case "webhook":
         url = `${baseUrl}/webhook/set/${instance_id}`;
         method = "POST";
-        body = JSON.stringify(fullBody.body); // Repassamos o corpo que vem do frontend
+        body = JSON.stringify(fullBody.body);
         break;
       default:
         return new Response(JSON.stringify({ error: "Ação inválida" }), {
@@ -95,7 +140,7 @@ serve(async (req) => {
       clearTimeout(timeout);
       console.error(`[EVOLUTION-PROXY] Fetch failed:`, fetchErr.message);
       return new Response(JSON.stringify({ 
-        error: `Não foi possível conectar ao servidor Evolution API em ${baseUrl}. Verifique se o firewall permite conexões externas na porta 8080.`,
+        error: `Não foi possível conectar ao servidor Evolution API em ${baseUrl}. Verifique se o firewall permite conexões externas.`,
         details: fetchErr.message 
       }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -104,6 +149,11 @@ serve(async (req) => {
     clearTimeout(timeout);
     const data = await resp.json().catch(() => ({ ok: resp.ok }));
     console.log(`[EVOLUTION-PROXY] Response ${resp.status}:`, JSON.stringify(data).substring(0, 500));
+
+    // For create action, extract and return the generated token
+    if (action === "create" && data?.hash?.apikey) {
+      data._generated_token = data.hash.apikey;
+    }
 
     return new Response(JSON.stringify(data), {
       status: resp.status,

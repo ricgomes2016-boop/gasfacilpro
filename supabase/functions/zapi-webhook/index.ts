@@ -8,6 +8,8 @@ import {
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall,
   downloadAudio, transcribeAudio, getEntregadorLocation,
+  getOffHoursMessage,
+  identifyContact, checkRateLimit,
   type BiaConfig,
 } from "../_shared/bia-core.ts";
 
@@ -96,11 +98,12 @@ serve(async (req) => {
     sendTyping(finalConfig, phone);
 
     // Gather context
-    const [cliente, bh, products, history] = await Promise.all([
+    const [cliente, bh, products, history, contact] = await Promise.all([
       findCliente(supabase, phone),
       checkBusinessHours(supabase, finalConfig.unidadeId),
       getProducts(supabase, finalConfig.unidadeId, finalConfig),
       loadHistory(supabase, conversationId),
+      identifyContact(supabase, phone),
     ]);
     const [recentOrders, orderStatus] = await Promise.all([
       getRecentOrders(supabase, cliente.id),
@@ -111,20 +114,46 @@ serve(async (req) => {
     await saveMessage(supabase, conversationId, "user", messageText, {
       source: "zapi-webhook", message_id: messageKey,
       raw_message_id: body.messageId ?? null, moment: body.momment ?? null,
+      tipo_contato: contact.tipo, contato_id: contact.id || null,
     });
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
+<<<<<<< HEAD
+=======
+
+    // Hard block: off-hours → fixed message, no AI
+    if (bh.isOffHours) {
+      const reply = getOffHoursMessage(cliente.nome, bh.horarioInfo);
+      await saveMessage(supabase, conversationId, "assistant", reply, { source: "zapi-webhook", off_hours: true });
+      await sendMessage(finalConfig, phone, reply);
+      return OK({ ok: true, skipped: "off_hours" });
+    }
+>>>>>>> d40740467ebe81de75e4e2bb8e545d10e44d55ab
 
     // Post-order follow-up shortcut
-    if (await isPostOrderFollowUp(supabase, normalized, messageText)) {
+    const postOrderResult = await isPostOrderFollowUp(supabase, normalized, messageText);
+    if (postOrderResult === "rating") {
+      const reply = "Obrigado pela avaliação! ⭐ Sua opinião é muito importante para nós. Até a próxima! 😊";
+      await saveMessage(supabase, conversationId, "assistant", reply, { source: "zapi-webhook", rating_response: true });
+      await sendMessage(finalConfig, phone, reply);
+      return OK({ ok: true });
+    }
+    if (postOrderResult === true) {
       const reply = "Perfeito! Seu pedido já está confirmado ✅\nA entrega segue em andamento (prazo de 30 a 60 minutos).";
       await saveMessage(supabase, conversationId, "assistant", reply, { source: "zapi-webhook", post_order_followup: true });
       await sendMessage(finalConfig, phone, reply);
       return OK({ ok: true, skipped: "post_order_followup" });
     }
 
+    // Rate limit check: max 10 messages per 2 hours per conversation
+    const isRateLimited = await checkRateLimit(supabase, conversationId, 10, 2);
+    if (isRateLimited) {
+      console.warn(`Rate limited conversation ${conversationId} — skipping AI call`);
+      return OK({ ok: true, skipped: "rate_limited" });
+    }
+
     // Build prompt with negotiation hint
     const negHint = buildNegotiationHint(history, finalConfig, messageText);
-    const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, finalConfig, bh.isOffHours, bh.horarioInfo, orderStatus, negHint, { isSunday: bh.isSunday, waterDeliveryAllowed: bh.waterDeliveryAllowed }, history);
+    const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, finalConfig, bh.isOffHours, bh.horarioInfo, orderStatus, negHint, { isSunday: bh.isSunday, waterDeliveryAllowed: bh.waterDeliveryAllowed }, history, { entrega: bh.gasDoPovoEntrega ?? false, taxa: bh.gasDoPovoTaxa ?? 15 }, contact);
 
     // Call AI
     let reply: string;
@@ -186,7 +215,8 @@ serve(async (req) => {
 
     await sendMessage(finalConfig, phone, reply);
 
-    // Auto follow-up for negotiation (same logic as before, using deterministic discount)
+    // Auto follow-up for negotiation — only if auto_followup_ativo is enabled
+    if (bh.autoFollowupAtivo) {
     const replyLower = reply.toLowerCase();
     const mentionedMgr = replyLower.includes("verificar com o gerente") || replyLower.includes("falar com o gerente") ||
       replyLower.includes("consultar o gerente") || (replyLower.includes("um momento") && !replyLower.includes("desconto"));
@@ -240,6 +270,7 @@ serve(async (req) => {
       await saveMessage(supabase, conversationId, "assistant", fu, { source: "zapi-webhook", auto_followup_for: messageKey });
       await sendMessage(finalConfig, phone, fu);
     }
+    } // end auto_followup_ativo check
 
     return OK({ ok: true, reply: reply.substring(0, 100) });
   } catch (error) {

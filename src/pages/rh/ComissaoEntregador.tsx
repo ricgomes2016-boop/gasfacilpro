@@ -186,7 +186,7 @@ export default function ComissaoEntregador() {
     });
 
     return Array.from(porEntregador.entries()).map(([id, ent]) => {
-      const linhas: { produto: string; canal: string; quantidade: number; comissaoUnit: number; total: number }[] = [];
+      const linhas: { produtoId: string; produto: string; canal: string; quantidade: number; comissaoUnit: number; total: number }[] = [];
       let totalQtd = 0;
       let totalComissao = 0;
 

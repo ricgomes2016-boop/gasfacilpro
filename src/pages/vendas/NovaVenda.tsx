@@ -18,7 +18,8 @@ import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Calendar, ShoppingBag, Sparkles, Loader2, Send, Mic, MicOff, Camera, ImageIcon, RotateCcw, Check, User, Package as PackageIcon, CreditCard, CheckCircle, CalendarClock } from "lucide-react";
+import { Calendar, ShoppingBag, Sparkles, Loader2, Send, Mic, MicOff, Camera, ImageIcon, PlusCircle, Check, User, Package as PackageIcon, CreditCard, CheckCircle, CalendarClock } from "lucide-react";
+import { NovaVendaModal } from "@/components/vendas/NovaVendaModal";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateReceiptPdf, EmpresaConfig } from "@/services/receiptPdfService";
@@ -543,63 +544,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const totalVenda = itens.reduce((acc, item) => acc + item.total, 0);
 
 
-  // #7 - Repeat last sale
-  const handleRepetirUltimaVenda = async () => {
-    try {
-      const { data: ultimoPedido } = await supabase
-        .from("pedidos")
-        .select(`
-          *,
-          clientes (id, nome, telefone, endereco, bairro, cep),
-          pedido_itens (produto_id, quantidade, preco_unitario, produtos (id, nome))
-        `)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (!ultimoPedido) {
-        toast({ title: "Nenhuma venda anterior", variant: "destructive" });
-        return;
-      }
-
-      const cliente = ultimoPedido.clientes;
-      if (cliente) {
-        setCustomer({
-          id: cliente.id,
-          nome: cliente.nome,
-          telefone: cliente.telefone || "",
-          endereco: cliente.endereco || "",
-          numero: "",
-          complemento: "",
-          bairro: cliente.bairro || "",
-          cep: cliente.cep || "",
-          observacao: ultimoPedido.observacoes || "",
-        });
-      }
-
-      const itensUltimo: ItemVenda[] = (ultimoPedido.pedido_itens || []).map((item: any) => ({
-        id: crypto.randomUUID(),
-        produto_id: item.produto_id,
-        nome: item.produtos?.nome || "Produto",
-        quantidade: item.quantidade,
-        preco_unitario: Number(item.preco_unitario),
-        total: item.quantidade * Number(item.preco_unitario),
-      }));
-      setItens(itensUltimo);
-
-      if (ultimoPedido.forma_pagamento) {
-        const totalItens = itensUltimo.reduce((a, i) => a + i.total, 0);
-        setPagamentos([{ id: crypto.randomUUID(), forma: ultimoPedido.forma_pagamento.split(",")[0].trim(), valor: totalItens }]);
-      }
-
-      if (ultimoPedido.canal_venda) setCanalVenda(ultimoPedido.canal_venda);
-
-      toast({ title: "Última venda carregada!", description: `Dados de ${cliente?.nome || "cliente"} foram preenchidos.` });
-    } catch (error: any) {
-      console.error("Erro ao repetir venda:", error);
-      toast({ title: "Erro ao carregar", description: "Não foi possível carregar a última venda.", variant: "destructive" });
-    }
-  };
+  // Nova Venda modal state
+  const [showNovaVendaModal, setShowNovaVendaModal] = useState(false);
 
   const handleSelecionarEntregador = (id: string, nome: string) => {
     setEntregador({ id, nome });
@@ -640,7 +586,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             endereco: customer.endereco || null,
             numero: customer.numero || null,
             bairro: customer.bairro || null,
-            cidade: customer.bairro ? null : null,
+            cidade: unidadeAtual?.cidade || null,
             cep: customer.cep || null,
             tipo: "residencial",
             ativo: true,
@@ -887,14 +833,14 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         {/* #8 - Progress stepper */}
         <VendaStepper customer={customer} itens={itens} pagamentos={pagamentos} totalVenda={totalVenda} />
 
-        {/* #7 - Repeat last sale button + badge */}
+        {/* Nova Venda button + badge */}
         <div className="flex items-center justify-between">
           <Badge variant="outline" className="text-xs">
             #{new Date().getTime().toString().slice(-6)}
           </Badge>
-          <Button variant="outline" size="sm" onClick={handleRepetirUltimaVenda} className="gap-1.5 text-xs">
-            <RotateCcw className="h-3.5 w-3.5" />
-            Repetir última venda
+          <Button variant="outline" size="sm" onClick={() => setShowNovaVendaModal(true)} className="gap-1.5 text-xs">
+            <PlusCircle className="h-3.5 w-3.5" />
+            Nova Venda
           </Button>
         </div>
 
@@ -1101,14 +1047,19 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     </>
   );
 
+  const novaVendaModalElement = (
+    <NovaVendaModal open={showNovaVendaModal} onClose={() => setShowNovaVendaModal(false)} />
+  );
+
   if (embedded) {
-    return vendaContent;
+    return <>{vendaContent}{novaVendaModalElement}</>;
   }
 
   return (
     <MainLayout>
       <Header title="Nova Venda" subtitle={unidadeAtual?.nome || "Carregando..."} />
       {vendaContent}
+      {novaVendaModalElement}
     </MainLayout>
   );
 }

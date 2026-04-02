@@ -34,14 +34,17 @@ import { configRoutes } from "@/routes/configRoutes";
 import { entregadorRoutes } from "@/routes/entregadorRoutes";
 import { clienteAppRoutes } from "@/routes/clienteAppRoutes";
 import { parceiroRoutes } from "@/routes/parceiroRoutes";
+import { transportadoraRoutes } from "@/routes/transportadoraRoutes";
 import { atendimentoRoutes } from "@/routes/atendimentoRoutes";
 import { integracoesRoutes } from "@/routes/integracoesRoutes";
+import { marketingRoutes } from "@/routes/marketingRoutes";
 
 // Eager load: Auth + Dashboard (critical path)
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 
 // Lazy load one-off pages
+const AuthTransportadora = lazy(() => import("./pages/auth/AuthTransportadora"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const OnboardingEmpresa = lazy(() => import("./pages/onboarding/OnboardingEmpresa"));
@@ -89,6 +92,7 @@ const App = () => (
 
                           {/* Public routes */}
                           <Route path="/auth" element={<Auth />} />
+                          <Route path="/auth/transportadora" element={<AuthTransportadora />} />
                           <Route path="/instalar" element={<Instalar />} />
                           <Route path="/suporte" element={<Suporte />} />
                           <Route path="/vale-gas/comprar/:parceiroId" element={<ComprarValeGas />} />
@@ -128,8 +132,10 @@ const App = () => (
                           {renderRoutes(entregadorRoutes)}
                           {renderRoutes(clienteAppRoutes)}
                           {renderRoutes(parceiroRoutes)}
+                          {renderRoutes(transportadoraRoutes)}
                           {renderRoutes(atendimentoRoutes)}
                           {renderRoutes(integracoesRoutes)}
+                          {renderRoutes(marketingRoutes)}
 
                           {/* Legacy redirects */}
                           <Route path="/admin/dashboard" element={<Navigate to="/admin" replace />} />

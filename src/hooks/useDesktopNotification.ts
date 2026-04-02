@@ -18,32 +18,53 @@ export function useDesktopNotification() {
   }, [isSupported]);
 
   const notify = useCallback(
-    (title: string, body: string, onClick?: () => void) => {
+    async (title: string, body: string, onClick?: () => void) => {
       if (!isSupported || Notification.permission !== "granted") return;
 
       try {
-        const notification = new Notification(title, {
-          body,
-          icon: "/favicon.ico",
-          tag: `novo-pedido-${Date.now()}`,
-          requireInteraction: true,
-        });
+        // Primary: Service Worker notification (works when minimized)
+        if ("serviceWorker" in navigator) {
+          const registration = await navigator.serviceWorker.ready;
+          await registration.showNotification(title, {
+            body,
+            icon: "/favicon.png",
+            badge: "/favicon.png",
+            tag: `pedido-${Date.now()}`,
+            renotify: true,
+            requireInteraction: true,
+            vibrate: [200, 100, 200],
+            data: { url: "/pedidos" },
+          } as NotificationOptions);
+        } else {
+          // Fallback: standard Notification API
+          const notification = new Notification(title, {
+            body,
+            icon: "/favicon.png",
+            tag: `pedido-${Date.now()}`,
+            requireInteraction: true,
+          });
 
-        notification.onclick = () => {
-          window.focus();
-          notification.close();
-          onClick?.();
-        };
+          notification.onclick = () => {
+            window.focus();
+            notification.close();
+            onClick?.();
+          };
 
-        // Vibrate if supported
+          setTimeout(() => notification.close(), 30000);
+        }
+
+        // Complementary vibration
         if (navigator.vibrate) {
           navigator.vibrate([200, 100, 200]);
         }
-
-        // Fallback auto-close after 30s
-        setTimeout(() => notification.close(), 30000);
       } catch (e) {
         console.error("Desktop notification error:", e);
+        // Last resort fallback
+        try {
+          const n = new Notification(title, { body, icon: "/favicon.png" });
+          n.onclick = () => { window.focus(); n.close(); onClick?.(); };
+          setTimeout(() => n.close(), 30000);
+        } catch (_) {}
       }
     },
     [isSupported]

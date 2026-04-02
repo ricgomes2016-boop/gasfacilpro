@@ -1,18 +1,26 @@
 
 
-## Problem
+## Plano: Simulação de Viagem inspirada no QualP
 
-The `check-subscription` edge function returns 500 with "Auth session missing!" because `checkSubscription()` is called as soon as `user` exists, but the auth session token may not be fully ready yet. Also, it runs for ALL users (including clients, drivers) who don't need subscription checks.
+### Análise do QualP
 
-## Plan
+O QualP é uma calculadora de rotas e fretes com mapa em tela cheia. Principais diferenças em relação à simulação atual:
 
-1. **`src/contexts/EmpresaContext.tsx`** — Guard the `checkSubscription` call:
-   - Only call it when `user` exists AND `roles` are loaded (not empty)
-   - Only call it for staff/admin users who actually need subscription info
-   - Add `roles` to the dependency array of the useEffect that triggers the check
-   - This prevents the 500 error for unauthenticated sessions and unnecessary calls for non-staff users
+1. **Mapa integrado na página** (não em dialog/modal) -- origem e destino são campos de busca diretamente sobre o mapa
+2. **Cálculo de pedágios automático** por rota
+3. **Interface visual com rota desenhada** diretamente na tela principal
 
-### Changes
+### Problema atual
 
-In the useEffect at line 184-188, change the condition from `if (user && !authLoading)` to `if (user && !authLoading && isStaff)`, and add `roles` to deps so `isStaff` is evaluated correctly.
+O mapa dentro do Dialog/modal não renderiza os tiles corretamente (fica em branco). Isso é um problema recorrente do Leaflet dentro de modais Radix UI, onde o container tem dimensões zero no momento da inicialização.
 
+### Solução proposta
+
+**Eliminar o dialog do mapa e embutir o mapa diretamente na página de Simulação**, similar ao QualP. Isso resolve o bug de renderização e melhora a experiência.
+
+### Layout novo da página
+
+```text
+┌─────────────────────────────────────────────┐
+│  Simulação de Viagem                        │
+├──────────────────┬──

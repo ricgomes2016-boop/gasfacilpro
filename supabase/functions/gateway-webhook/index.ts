@@ -7,7 +7,9 @@ import {
   loadHistory, saveMessage, upsertConversation, isDuplicate,
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall,
+  getOffHoursMessage,
   getEntregadorLocation,
+  identifyContact,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
@@ -56,11 +58,12 @@ serve(async (req) => {
     sendTyping(config, phone);
 
     // Gather context
-    const [cliente, bh, products, history] = await Promise.all([
+    const [cliente, bh, products, history, contact] = await Promise.all([
       findCliente(supabase, phone),
       checkBusinessHours(supabase, config.unidadeId),
       getProducts(supabase, config.unidadeId, config),
       loadHistory(supabase, conversationId),
+      identifyContact(supabase, phone),
     ]);
     const [recentOrders, orderStatus] = await Promise.all([
       getRecentOrders(supabase, cliente.id),
@@ -68,11 +71,31 @@ serve(async (req) => {
     ]);
 
     // Save inbound
+<<<<<<< HEAD
     await saveMessage(supabase, conversationId, "user", messageText, { source: "gateway-webhook", message_id: messageId, instance: instanceName });
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
+=======
+    await saveMessage(supabase, conversationId, "user", messageText, { source: "gateway-webhook", message_id: messageId, instance: instanceName, tipo_contato: contact.tipo, contato_id: contact.id || null });
+    await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
+
+    // Hard block: off-hours → fixed message, no AI
+    if (bh.isOffHours) {
+      const reply = getOffHoursMessage(cliente.nome, bh.horarioInfo);
+      await saveMessage(supabase, conversationId, "assistant", reply, { source: "gateway-webhook", off_hours: true });
+      await sendMessage(config, phone, reply);
+      return OK({ ok: true, skipped: "off_hours" });
+    }
+>>>>>>> d40740467ebe81de75e4e2bb8e545d10e44d55ab
 
     // Post-order shortcut
-    if (await isPostOrderFollowUp(supabase, normalized, messageText)) {
+    const postOrderResult = await isPostOrderFollowUp(supabase, normalized, messageText);
+    if (postOrderResult === "rating") {
+      const reply = "Obrigado pela avaliação! ⭐ Sua opinião é muito importante para nós. Até a próxima! 😊";
+      await saveMessage(supabase, conversationId, "assistant", reply, { source: "gateway-webhook", rating_response: true });
+      await sendMessage(config, phone, reply);
+      return OK({ ok: true });
+    }
+    if (postOrderResult === true) {
       const reply = "Perfeito! Seu pedido já está confirmado ✅\nA entrega segue em andamento (prazo de 30 a 60 minutos).";
       await saveMessage(supabase, conversationId, "assistant", reply, { source: "gateway-webhook", post_order_followup: true });
       await sendMessage(config, phone, reply);
@@ -81,7 +104,7 @@ serve(async (req) => {
 
     // Build AI prompt
     const negHint = buildNegotiationHint(history, config, messageText);
-    const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, config, bh.isOffHours, bh.horarioInfo, orderStatus, negHint, { isSunday: bh.isSunday, waterDeliveryAllowed: bh.waterDeliveryAllowed }, history);
+    const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, config, bh.isOffHours, bh.horarioInfo, orderStatus, negHint, { isSunday: bh.isSunday, waterDeliveryAllowed: bh.waterDeliveryAllowed }, history, { entrega: bh.gasDoPovoEntrega ?? false, taxa: bh.gasDoPovoTaxa ?? 15 }, contact);
 
     let reply: string;
     try {

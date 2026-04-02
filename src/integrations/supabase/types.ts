@@ -114,6 +114,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          telefone: string | null
           titulo: string
           updated_at: string
           user_id: string
@@ -121,6 +122,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          telefone?: string | null
           titulo?: string
           updated_at?: string
           user_id: string
@@ -128,6 +130,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          telefone?: string | null
           titulo?: string
           updated_at?: string
           user_id?: string
@@ -4340,8 +4343,10 @@ export type Database = {
           desconto_etapa2: number | null
           id: string
           instance_id: string
+          meta_access_token: string | null
           meta_phone_number_id: string | null
           meta_verify_token: string | null
+          meta_waba_id: string | null
           nome_bot: string | null
           preco_minimo_p13: number | null
           preco_minimo_p20: number | null
@@ -4359,8 +4364,10 @@ export type Database = {
           desconto_etapa2?: number | null
           id?: string
           instance_id: string
+          meta_access_token?: string | null
           meta_phone_number_id?: string | null
           meta_verify_token?: string | null
+          meta_waba_id?: string | null
           nome_bot?: string | null
           preco_minimo_p13?: number | null
           preco_minimo_p20?: number | null
@@ -4378,8 +4385,10 @@ export type Database = {
           desconto_etapa2?: number | null
           id?: string
           instance_id?: string
+          meta_access_token?: string | null
           meta_phone_number_id?: string | null
           meta_verify_token?: string | null
+          meta_waba_id?: string | null
           nome_bot?: string | null
           preco_minimo_p13?: number | null
           preco_minimo_p20?: number | null
@@ -4697,6 +4706,378 @@ export type Database = {
             columns: ["veiculo_id"]
             isOneToOne: false
             referencedRelation: "veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_agendamentos: {
+        Row: {
+          conteudo_id: string | null
+          created_at: string
+          criado_por: string | null
+          data_agendamento: string
+          empresa_id: string
+          hashtags: string | null
+          id: string
+          midia_url: string | null
+          plataforma: string
+          resultado_publicacao: Json | null
+          social_account_id: string | null
+          status: string
+          texto: string | null
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          conteudo_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_agendamento: string
+          empresa_id: string
+          hashtags?: string | null
+          id?: string
+          midia_url?: string | null
+          plataforma: string
+          resultado_publicacao?: Json | null
+          social_account_id?: string | null
+          status?: string
+          texto?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          conteudo_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data_agendamento?: string
+          empresa_id?: string
+          hashtags?: string | null
+          id?: string
+          midia_url?: string | null
+          plataforma?: string
+          resultado_publicacao?: Json | null
+          social_account_id?: string | null
+          status?: string
+          texto?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_agendamentos_conteudo_id_fkey"
+            columns: ["conteudo_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_conteudos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_agendamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_agendamentos_social_account_id_fkey"
+            columns: ["social_account_id"]
+            isOneToOne: false
+            referencedRelation: "social_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_agendamentos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_conteudos: {
+        Row: {
+          conteudo: string | null
+          created_at: string
+          criado_por: string | null
+          empresa_id: string
+          favorito: boolean
+          hashtags: string | null
+          id: string
+          midia_url: string | null
+          plataforma: string | null
+          tipo: string
+          titulo: string | null
+          tom: string | null
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          conteudo?: string | null
+          created_at?: string
+          criado_por?: string | null
+          empresa_id: string
+          favorito?: boolean
+          hashtags?: string | null
+          id?: string
+          midia_url?: string | null
+          plataforma?: string | null
+          tipo?: string
+          titulo?: string | null
+          tom?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          conteudo?: string | null
+          created_at?: string
+          criado_por?: string | null
+          empresa_id?: string
+          favorito?: boolean
+          hashtags?: string | null
+          id?: string
+          midia_url?: string | null
+          plataforma?: string | null
+          tipo?: string
+          titulo?: string | null
+          tom?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_conteudos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_conteudos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_conversas: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          empresa_id: string
+          fluxo_id: string | null
+          id: string
+          intencao_detectada: string | null
+          mensagens: Json | null
+          metadata: Json | null
+          nome_contato: string | null
+          plataforma: string
+          status: string
+          telefone: string | null
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          empresa_id: string
+          fluxo_id?: string | null
+          id?: string
+          intencao_detectada?: string | null
+          mensagens?: Json | null
+          metadata?: Json | null
+          nome_contato?: string | null
+          plataforma?: string
+          status?: string
+          telefone?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          empresa_id?: string
+          fluxo_id?: string | null
+          id?: string
+          intencao_detectada?: string | null
+          mensagens?: Json | null
+          metadata?: Json | null
+          nome_contato?: string | null
+          plataforma?: string
+          status?: string
+          telefone?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_conversas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_conversas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_conversas_fluxo_id_fkey"
+            columns: ["fluxo_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_fluxos_atendimento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_conversas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_fluxos_atendimento: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string
+          id: string
+          intencao: string
+          mensagem_inicial: string | null
+          nome: string
+          passos: Json | null
+          transferir_humano: boolean
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id: string
+          id?: string
+          intencao: string
+          mensagem_inicial?: string | null
+          nome: string
+          passos?: Json | null
+          transferir_humano?: boolean
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          intencao?: string
+          mensagem_inicial?: string | null
+          nome?: string
+          passos?: Json | null
+          transferir_humano?: boolean
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_fluxos_atendimento_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_fluxos_atendimento_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_metricas: {
+        Row: {
+          agendamento_id: string | null
+          alcance: number | null
+          cliques: number | null
+          comentarios: number | null
+          compartilhamentos: number | null
+          conversoes: number | null
+          created_at: string
+          curtidas: number | null
+          data_metrica: string
+          empresa_id: string
+          id: string
+          impressoes: number | null
+          pedidos_gerados: number | null
+          plataforma: string
+          social_account_id: string | null
+          unidade_id: string | null
+        }
+        Insert: {
+          agendamento_id?: string | null
+          alcance?: number | null
+          cliques?: number | null
+          comentarios?: number | null
+          compartilhamentos?: number | null
+          conversoes?: number | null
+          created_at?: string
+          curtidas?: number | null
+          data_metrica?: string
+          empresa_id: string
+          id?: string
+          impressoes?: number | null
+          pedidos_gerados?: number | null
+          plataforma: string
+          social_account_id?: string | null
+          unidade_id?: string | null
+        }
+        Update: {
+          agendamento_id?: string | null
+          alcance?: number | null
+          cliques?: number | null
+          comentarios?: number | null
+          compartilhamentos?: number | null
+          conversoes?: number | null
+          created_at?: string
+          curtidas?: number | null
+          data_metrica?: string
+          empresa_id?: string
+          id?: string
+          impressoes?: number | null
+          pedidos_gerados?: number | null
+          plataforma?: string
+          social_account_id?: string | null
+          unidade_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_metricas_agendamento_id_fkey"
+            columns: ["agendamento_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_agendamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_metricas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_metricas_social_account_id_fkey"
+            columns: ["social_account_id"]
+            isOneToOne: false
+            referencedRelation: "social_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_metricas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -6727,6 +7108,69 @@ export type Database = {
           },
         ]
       }
+      social_accounts: {
+        Row: {
+          ativo: boolean
+          avatar_url: string | null
+          created_at: string
+          empresa_id: string
+          id: string
+          nome_conta: string
+          plataforma: string
+          refresh_token: string | null
+          token: string | null
+          token_expires_at: string | null
+          unidade_id: string | null
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          avatar_url?: string | null
+          created_at?: string
+          empresa_id: string
+          id?: string
+          nome_conta: string
+          plataforma: string
+          refresh_token?: string | null
+          token?: string | null
+          token_expires_at?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          avatar_url?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome_conta?: string
+          plataforma?: string
+          refresh_token?: string | null
+          token?: string | null
+          token_expires_at?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_accounts_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_accounts_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       solicitacoes_contador: {
         Row: {
           created_at: string
@@ -7056,6 +7500,510 @@ export type Database = {
             columns: ["unidade_origem_id"]
             isOneToOne: false
             referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_abastecimentos: {
+        Row: {
+          created_at: string
+          custo_logistico: number
+          custo_por_unidade: number
+          data: string
+          destino_unidade_id: string
+          empresa_id: string
+          id: string
+          observacoes: string | null
+          origem_unidade_id: string
+          p13_equivalente: number
+          qtd_p13: number
+          qtd_p20: number
+          qtd_p45: number
+          simulacao_id: string | null
+          updated_at: string
+          veiculo_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          custo_logistico?: number
+          custo_por_unidade?: number
+          data?: string
+          destino_unidade_id: string
+          empresa_id: string
+          id?: string
+          observacoes?: string | null
+          origem_unidade_id: string
+          p13_equivalente?: number
+          qtd_p13?: number
+          qtd_p20?: number
+          qtd_p45?: number
+          simulacao_id?: string | null
+          updated_at?: string
+          veiculo_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          custo_logistico?: number
+          custo_por_unidade?: number
+          data?: string
+          destino_unidade_id?: string
+          empresa_id?: string
+          id?: string
+          observacoes?: string | null
+          origem_unidade_id?: string
+          p13_equivalente?: number
+          qtd_p13?: number
+          qtd_p20?: number
+          qtd_p45?: number
+          simulacao_id?: string | null
+          updated_at?: string
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_abastecimentos_destino_unidade_id_fkey"
+            columns: ["destino_unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_abastecimentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_abastecimentos_origem_unidade_id_fkey"
+            columns: ["origem_unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_abastecimentos_simulacao_id_fkey"
+            columns: ["simulacao_id"]
+            isOneToOne: false
+            referencedRelation: "transp_simulacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_abastecimentos_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "transp_veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_despesas: {
+        Row: {
+          comprovante_url: string | null
+          created_at: string
+          data: string
+          descricao: string | null
+          empresa_id: string
+          id: string
+          mes_referencia: string | null
+          tipo: string
+          updated_at: string
+          valor: number
+          veiculo_id: string | null
+        }
+        Insert: {
+          comprovante_url?: string | null
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          empresa_id: string
+          id?: string
+          mes_referencia?: string | null
+          tipo?: string
+          updated_at?: string
+          valor?: number
+          veiculo_id?: string | null
+        }
+        Update: {
+          comprovante_url?: string | null
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          empresa_id?: string
+          id?: string
+          mes_referencia?: string | null
+          tipo?: string
+          updated_at?: string
+          valor?: number
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_despesas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_despesas_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "transp_veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_entregas: {
+        Row: {
+          created_at: string
+          custo_total: number
+          data: string
+          destino_unidade_id: string | null
+          empresa_id: string
+          id: string
+          km: number
+          margem: number
+          motorista_id: string | null
+          observacoes: string | null
+          p13_equivalente: number
+          qtd_p13: number
+          qtd_p20: number
+          qtd_p45: number
+          tipo: string
+          updated_at: string
+          valor_venda: number
+          veiculo_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          custo_total?: number
+          data?: string
+          destino_unidade_id?: string | null
+          empresa_id: string
+          id?: string
+          km?: number
+          margem?: number
+          motorista_id?: string | null
+          observacoes?: string | null
+          p13_equivalente?: number
+          qtd_p13?: number
+          qtd_p20?: number
+          qtd_p45?: number
+          tipo?: string
+          updated_at?: string
+          valor_venda?: number
+          veiculo_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          custo_total?: number
+          data?: string
+          destino_unidade_id?: string | null
+          empresa_id?: string
+          id?: string
+          km?: number
+          margem?: number
+          motorista_id?: string | null
+          observacoes?: string | null
+          p13_equivalente?: number
+          qtd_p13?: number
+          qtd_p20?: number
+          qtd_p45?: number
+          tipo?: string
+          updated_at?: string
+          valor_venda?: number
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_entregas_destino_unidade_id_fkey"
+            columns: ["destino_unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_entregas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_entregas_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "transp_funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_entregas_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "transp_veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_fechamentos: {
+        Row: {
+          created_at: string
+          custo_real_por_unidade: number
+          empresa_id: string
+          id: string
+          mes_referencia: string
+          observacoes: string | null
+          total_despesas: number
+          total_p13_equivalente: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custo_real_por_unidade?: number
+          empresa_id: string
+          id?: string
+          mes_referencia: string
+          observacoes?: string | null
+          total_despesas?: number
+          total_p13_equivalente?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custo_real_por_unidade?: number
+          empresa_id?: string
+          id?: string
+          mes_referencia?: string
+          observacoes?: string | null
+          total_despesas?: number
+          total_p13_equivalente?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_fechamentos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_funcionarios: {
+        Row: {
+          ativo: boolean
+          cargo: string
+          created_at: string
+          empresa_id: string
+          id: string
+          nome: string
+          salario_mensal: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cargo?: string
+          created_at?: string
+          empresa_id: string
+          id?: string
+          nome: string
+          salario_mensal?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cargo?: string
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          nome?: string
+          salario_mensal?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_funcionarios_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_simulacoes: {
+        Row: {
+          ajudante_id: string | null
+          created_at: string
+          custo_ajudante: number
+          custo_combustivel: number
+          custo_motorista: number
+          custo_p13_equiv: number
+          custo_pedagio: number
+          custo_refeicao: number
+          custo_total: number
+          destino: string
+          destino_unidade_id: string | null
+          empresa_id: string
+          id: string
+          ida_volta: boolean
+          km: number
+          motorista_id: string | null
+          origem: string
+          origem_unidade_id: string | null
+          preco_combustivel_litro: number
+          qtd_p13: number
+          qtd_p20: number
+          qtd_p45: number
+          tipo: string
+          updated_at: string
+          veiculo_id: string | null
+        }
+        Insert: {
+          ajudante_id?: string | null
+          created_at?: string
+          custo_ajudante?: number
+          custo_combustivel?: number
+          custo_motorista?: number
+          custo_p13_equiv?: number
+          custo_pedagio?: number
+          custo_refeicao?: number
+          custo_total?: number
+          destino: string
+          destino_unidade_id?: string | null
+          empresa_id: string
+          id?: string
+          ida_volta?: boolean
+          km?: number
+          motorista_id?: string | null
+          origem: string
+          origem_unidade_id?: string | null
+          preco_combustivel_litro?: number
+          qtd_p13?: number
+          qtd_p20?: number
+          qtd_p45?: number
+          tipo?: string
+          updated_at?: string
+          veiculo_id?: string | null
+        }
+        Update: {
+          ajudante_id?: string | null
+          created_at?: string
+          custo_ajudante?: number
+          custo_combustivel?: number
+          custo_motorista?: number
+          custo_p13_equiv?: number
+          custo_pedagio?: number
+          custo_refeicao?: number
+          custo_total?: number
+          destino?: string
+          destino_unidade_id?: string | null
+          empresa_id?: string
+          id?: string
+          ida_volta?: boolean
+          km?: number
+          motorista_id?: string | null
+          origem?: string
+          origem_unidade_id?: string | null
+          preco_combustivel_litro?: number
+          qtd_p13?: number
+          qtd_p20?: number
+          qtd_p45?: number
+          tipo?: string
+          updated_at?: string
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_simulacoes_ajudante_id_fkey"
+            columns: ["ajudante_id"]
+            isOneToOne: false
+            referencedRelation: "transp_funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_simulacoes_destino_unidade_id_fkey"
+            columns: ["destino_unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_simulacoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_simulacoes_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "transp_funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_simulacoes_origem_unidade_id_fkey"
+            columns: ["origem_unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_simulacoes_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "transp_veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_veiculos: {
+        Row: {
+          ativo: boolean
+          capacidade_p13: number
+          capacidade_p20: number
+          capacidade_p45: number
+          consumo_km_litro: number
+          created_at: string
+          empresa_id: string
+          id: string
+          placa: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          capacidade_p13?: number
+          capacidade_p20?: number
+          capacidade_p45?: number
+          consumo_km_litro?: number
+          created_at?: string
+          empresa_id: string
+          id?: string
+          placa: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          capacidade_p13?: number
+          capacidade_p20?: number
+          capacidade_p45?: number
+          consumo_km_litro?: number
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          placa?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_veiculos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
         ]
@@ -7543,6 +8491,8 @@ export type Database = {
           email: string | null
           endereco: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           nome: string
           telefone: string | null
           tipo: string
@@ -7557,6 +8507,8 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           nome: string
           telefone?: string | null
           tipo?: string
@@ -7571,6 +8523,8 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           nome?: string
           telefone?: string | null
           tipo?: string
@@ -8099,6 +9053,7 @@ export type Database = {
         | "parceiro"
         | "contador"
         | "super_admin"
+        | "transportadora"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -8236,6 +9191,7 @@ export const Constants = {
         "parceiro",
         "contador",
         "super_admin",
+        "transportadora",
       ],
     },
   },

@@ -7,6 +7,7 @@ const AuthPainel = lazy(() => import("./auth/AuthPainel"));
 const AuthCliente = lazy(() => import("./auth/AuthCliente"));
 const AuthEntregador = lazy(() => import("./auth/AuthEntregador"));
 const AuthParceiro = lazy(() => import("./auth/AuthParceiro"));
+const AuthTransportadora = lazy(() => import("./auth/AuthTransportadora"));
 const AuthApi = lazy(() => import("./auth/AuthApi"));
 
 /**
@@ -27,6 +28,8 @@ export default function Auth() {
       return <AuthEntregador />;
     case "parceiro":
       return <AuthParceiro />;
+    case "transportadora":
+      return <AuthTransportadora />;
     case "api":
       return <AuthApi />;
     default:

@@ -19,7 +19,23 @@ import { PedidoStatus } from "@/types/pedido";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { geocodeAddress } from "@/lib/geocoding";
 import { MapPickerDialog } from "@/components/ui/map-picker-dialog";
+import { formatCEP } from "@/hooks/useInputMasks";
 import type { GeocodingResult } from "@/lib/geocoding";
+
+interface NominatimResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+  address?: {
+    road?: string;
+    suburb?: string;
+    neighbourhood?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    postcode?: string;
+  };
+}
 
 interface PedidoData {
   id: string;
@@ -73,6 +89,13 @@ export default function EditarPedido() {
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
 
+  // Address autocomplete state
+  const [addressSuggestions, setAddressSuggestions] = useState<NominatimResult[]>([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const addressRef = useRef<HTMLDivElement>(null);
+  const addressDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
   // Client search
   const [clienteSearch, setClienteSearch] = useState("");
   const [clienteResults, setClienteResults] = useState<Array<{ id: string; nome: string; telefone: string | null; endereco: string | null; numero: string | null; bairro: string | null; cidade: string | null; cep: string | null }>>([]);
@@ -85,9 +108,18 @@ export default function EditarPedido() {
       if (clienteSearchRef.current && !clienteSearchRef.current.contains(event.target as Node)) {
         setShowClienteResults(false);
       }
+      if (addressRef.current && !addressRef.current.contains(event.target as Node)) {
+        setShowAddressSuggestions(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current);
+    };
   }, []);
 
   const searchCliente = useCallback((term: string) => {
@@ -118,6 +150,88 @@ export default function EditarPedido() {
     setShowClienteResults(false);
   };
 
+  // ViaCEP resolver (primary CEP source)
+  const resolverCepViaViaCEP = useCallback(async (logradouro: string, cidade?: string, bairroHint?: string): Promise<string | null> => {
+    const uf = unidadeAtual?.estado || "PR";
+    const cidadeUsar = cidade || unidadeAtual?.cidade || "";
+    if (!logradouro || !cidadeUsar) return null;
+    try {
+      const cleanLogradouro = logradouro.replace(/^(Rua|Avenida|Av\.|Travessa|Tv\.|Alameda|Al\.|Praça|Pc\.)\s+/i, "").trim();
+      const searchTerm = cleanLogradouro.length >= 3 ? cleanLogradouro : logradouro;
+      const response = await fetch(
+        `https://viacep.com.br/ws/${encodeURIComponent(uf)}/${encodeURIComponent(cidadeUsar)}/${encodeURIComponent(searchTerm)}/json/`
+      );
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        if (bairroHint) {
+          const normalize = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          const match = data.find((d: any) => normalize(d.bairro || "").includes(normalize(bairroHint)));
+          if (match?.cep) return formatCEP(match.cep);
+        }
+        if (data[0].cep) return formatCEP(data[0].cep);
+      }
+    } catch (e) {
+      console.error("Erro ao buscar CEP via ViaCEP:", e);
+    }
+    return null;
+  }, [unidadeAtual?.estado, unidadeAtual?.cidade]);
+
+  // Address autocomplete via Nominatim
+  const searchAddress = useCallback(async (term: string) => {
+    if (term.length < 3) { setAddressSuggestions([]); setShowAddressSuggestions(false); return; }
+    setIsSearchingAddress(true);
+    try {
+      const cidade = unidadeAtual?.cidade || "";
+      const estado = unidadeAtual?.estado || "";
+      const query = encodeURIComponent(`${term}, ${cidade}, ${estado}`.trim());
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${query}&countrycodes=br&limit=5&addressdetails=1`,
+        { headers: { "Accept-Language": "pt-BR" } }
+      );
+      const data: NominatimResult[] = await response.json();
+      if (data && data.length > 0) {
+        setAddressSuggestions(data);
+        setShowAddressSuggestions(true);
+      } else {
+        setAddressSuggestions([]);
+        setShowAddressSuggestions(false);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar endereço:", error);
+    } finally {
+      setIsSearchingAddress(false);
+    }
+  }, [unidadeAtual?.cidade, unidadeAtual?.estado]);
+
+  const debouncedAddressSearch = useCallback((term: string) => {
+    if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current);
+    if (term.length < 3) { setAddressSuggestions([]); setShowAddressSuggestions(false); return; }
+    addressDebounceRef.current = setTimeout(() => searchAddress(term), 500);
+  }, [searchAddress]);
+
+  const selectAddress = async (result: NominatimResult) => {
+    const addr = result.address || {};
+    const road = addr.road || enderecoFields.endereco;
+    const bairro = addr.suburb || addr.neighbourhood || enderecoFields.bairro;
+    const cidade = addr.city || addr.town || addr.village || unidadeAtual?.cidade || "";
+
+    setEnderecoFields(prev => ({ ...prev, endereco: road, bairro, cidade }));
+    setCoords({ lat: parseFloat(result.lat), lng: parseFloat(result.lon) });
+    setShowAddressSuggestions(false);
+    setAddressSuggestions([]);
+
+    // Resolve CEP via ViaCEP (primary)
+    const cepViaCEP = await resolverCepViaViaCEP(road, cidade, bairro);
+    if (cepViaCEP) {
+      setEnderecoFields(prev => ({ ...prev, cep: cepViaCEP }));
+    } else {
+      const cepNominatim = addr.postcode ? formatCEP(addr.postcode) : "";
+      if (cepNominatim) {
+        setEnderecoFields(prev => ({ ...prev, cep: cepNominatim }));
+      }
+    }
+  };
+
   useEffect(() => {
     if (id) fetchPedido(id);
   }, [id]);
@@ -145,7 +259,6 @@ export default function EditarPedido() {
 
       const cliente = pedidoData.clientes;
 
-      // Populate separate address fields from pedido columns or fallback to client
       const endFields: EnderecoFields = {
         endereco: pedidoData.endereco_entrega || cliente?.endereco || "",
         numero: pedidoData.numero_entrega || cliente?.numero || "",
@@ -199,20 +312,40 @@ export default function EditarPedido() {
 
   const updateField = (field: keyof EnderecoFields, value: string) => {
     setEnderecoFields((prev) => ({ ...prev, [field]: value }));
+    if (field === "endereco") {
+      setCoords({ lat: null, lng: null });
+      debouncedAddressSearch(value);
+    }
   };
 
   const handleAddressBlur = async () => {
-    const addr = [enderecoFields.endereco, enderecoFields.numero, enderecoFields.bairro, enderecoFields.cidade].filter(Boolean).join(", ");
-    if (addr.length < 5) return;
+    if (!enderecoFields.endereco || enderecoFields.endereco.length < 3) return;
     setIsGeocoding(true);
-    const result = await geocodeAddress(addr);
-    if (result) {
-      setCoords({ lat: result.latitude, lng: result.longitude });
-      setEnderecoFields((prev) => ({
-        ...prev,
-        bairro: prev.bairro || result.bairro || "",
-        cep: prev.cep || result.cep || "",
-      }));
+    try {
+      const cidade = unidadeAtual?.cidade || enderecoFields.cidade;
+      const estado = unidadeAtual?.estado || "";
+      const fullAddress = [enderecoFields.endereco, enderecoFields.numero, enderecoFields.bairro, cidade, estado].filter(Boolean).join(", ");
+
+      if (!coords.lat || !coords.lng) {
+        const result = await geocodeAddress(fullAddress);
+        if (result) {
+          setCoords({ lat: result.latitude, lng: result.longitude });
+          setEnderecoFields(prev => ({
+            ...prev,
+            bairro: prev.bairro || result.bairro || "",
+          }));
+        }
+      }
+
+      // Always resolve CEP via ViaCEP if not set or generic
+      if (!enderecoFields.cep || enderecoFields.cep.replace(/\D/g, "").endsWith("000")) {
+        const cep = await resolverCepViaViaCEP(enderecoFields.endereco, cidade, enderecoFields.bairro);
+        if (cep) {
+          setEnderecoFields(prev => ({ ...prev, cep }));
+        }
+      }
+    } catch (e) {
+      console.error("Erro no blur do endereço:", e);
     }
     setIsGeocoding(false);
   };
@@ -302,6 +435,20 @@ export default function EditarPedido() {
       const { error: insertError } = await supabase.from("pedido_itens").insert(novosItens);
       if (insertError) throw insertError;
 
+      // Sync client data back to clientes table
+      if (pedido.cliente_id) {
+        await supabase.from("clientes").update({
+          nome: pedido.cliente_nome,
+          endereco: enderecoFields.endereco || null,
+          numero: enderecoFields.numero || null,
+          bairro: enderecoFields.bairro || null,
+          cidade: enderecoFields.cidade || null,
+          cep: enderecoFields.cep || null,
+          latitude: coords.lat,
+          longitude: coords.lng,
+        }).eq("id", pedido.cliente_id);
+      }
+
       toast({ title: "Pedido atualizado!", description: `Pedido #${id.slice(0, 6)} foi salvo com sucesso.` });
       navigate("/vendas/pedidos");
     } catch (error: any) {
@@ -382,10 +529,19 @@ export default function EditarPedido() {
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <User className="h-5 w-5" />
-                    Cliente: {pedido.cliente_nome}
+                    Cliente
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-3">
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs">Nome do Cliente</Label>
+                    <Input
+                      value={pedido.cliente_nome}
+                      onChange={(e) => setPedido(prev => prev ? { ...prev, cliente_nome: e.target.value } : prev)}
+                      placeholder="Nome do cliente"
+                      disabled={isDisabled}
+                    />
+                  </div>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -399,12 +555,15 @@ export default function EditarPedido() {
                       disabled={isDisabled}
                     />
                     {showClienteResults && clienteResults.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
+                      <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
                         {clienteResults.map((c) => (
                           <button
                             key={c.id}
                             className="w-full px-4 py-3 text-left hover:bg-accent transition-colors border-b border-border last:border-0"
-                            onClick={() => selectCliente(c)}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              selectCliente(c);
+                            }}
                           >
                             <p className="font-medium text-sm">{c.nome}</p>
                             <p className="text-xs text-muted-foreground">
@@ -428,17 +587,26 @@ export default function EditarPedido() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-4 gap-3">
-                    <div className="col-span-3 grid gap-1.5">
+                    <div className="col-span-3 grid gap-1.5 relative" ref={addressRef}>
                       <Label className="text-xs">Logradouro</Label>
                       <div className="flex gap-1">
-                        <Input
-                          value={enderecoFields.endereco}
-                          onChange={(e) => updateField("endereco", e.target.value)}
-                          onBlur={handleAddressBlur}
-                          placeholder="Rua, Avenida..."
-                          className="flex-1"
-                          disabled={isDisabled}
-                        />
+                        <div className="relative flex-1">
+                          <Input
+                            value={enderecoFields.endereco}
+                            onChange={(e) => updateField("endereco", e.target.value)}
+                            onBlur={() => {
+                              setTimeout(() => {
+                                setShowAddressSuggestions(false);
+                                handleAddressBlur();
+                              }, 200);
+                            }}
+                            placeholder="Rua, Avenida..."
+                            disabled={isDisabled}
+                          />
+                          {isSearchingAddress && (
+                            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                          )}
+                        </div>
                         <Button
                           variant="outline"
                           size="icon"
@@ -449,6 +617,23 @@ export default function EditarPedido() {
                           {isGeocoding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Map className="h-4 w-4" />}
                         </Button>
                       </div>
+                      {/* Address suggestions dropdown */}
+                      {showAddressSuggestions && addressSuggestions.length > 0 && (
+                        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-48 overflow-y-auto">
+                          {addressSuggestions.map((s, i) => (
+                            <button
+                              key={i}
+                              className="w-full px-4 py-2.5 text-left hover:bg-accent transition-colors border-b border-border last:border-0"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                selectAddress(s);
+                              }}
+                            >
+                              <p className="text-sm truncate">{s.display_name}</p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="grid gap-1.5">
                       <Label className="text-xs">Nº</Label>

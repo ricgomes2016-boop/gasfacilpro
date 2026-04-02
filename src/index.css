@@ -123,7 +123,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
     font-optical-sizing: auto;
     letter-spacing: -0.01em;
@@ -194,11 +194,17 @@
   }
 }
 
-/* Leaflet map z-index containment */
+/* Leaflet map fixes */
 .leaflet-container {
   z-index: 0 !important;
+  width: 100%;
+  height: 100%;
+  background: hsl(var(--muted));
 }
-.leaflet-pane,
-.leaflet-control {
-  z-index: auto;
+
+.leaflet-container img,
+.leaflet-container svg,
+.leaflet-container canvas {
+  max-width: none !important;
+  max-height: none !important;
 }

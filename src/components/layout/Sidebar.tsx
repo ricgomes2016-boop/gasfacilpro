@@ -44,12 +44,15 @@ const menuIconColors: Record<string, string> = {
   "Gestão de Frota": "text-indigo-500",
   "Gestão de RH": "text-rose-500",
   "Gestão Fiscal": "text-teal-500",
+  "Marketing": "text-fuchsia-500",
   "Configurações": "text-slate-400",
 };
 
 const subMenuIconColors: Record<string, string> = {
   // Atendimento
   "Central de Atendimento": "text-green-500",
+  "Inbox WhatsApp": "text-green-400",
+  "Config WhatsApp": "text-green-600",
   // Vendas
   "PDV": "text-emerald-600",
   "Nova Venda": "text-emerald-400",
@@ -163,6 +166,12 @@ const subMenuIconColors: Record<string, string> = {
   "Personalização Visual": "text-violet-400",
   "Integrações / Hub": "text-cyan-400",
   "WhatsApp Gateway": "text-green-500",
+  // Marketing
+  "Criar Conteúdo IA": "text-violet-500",
+  "Biblioteca": "text-orange-400",
+  "Agendamentos": "text-emerald-500",
+  "Redes Sociais": "text-blue-500",
+  "Atendimento IA": "text-pink-500",
 };
 
 export function Sidebar() {

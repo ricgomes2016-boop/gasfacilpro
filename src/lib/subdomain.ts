@@ -10,7 +10,7 @@
  * Em ambiente de desenvolvimento (localhost, preview), usa rotas normais.
  */
 
-export type SubdomainApp = "cliente" | "entregador" | "parceiro" | "erp" | "painel" | "api" | "landing" | null;
+export type SubdomainApp = "cliente" | "entregador" | "parceiro" | "erp" | "painel" | "api" | "transportadora" | "landing" | null;
 
 const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
   clientes: "cliente",
@@ -22,6 +22,9 @@ const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
   admin: "painel",
   portal: "parceiro",
   parceiro: "parceiro",
+  transportadora: "transportadora",
+  transporte: "transportadora",
+  logistica: "transportadora",
   api: "api",
   integracoes: "api",
 };
@@ -103,6 +106,8 @@ export function getCanonicalHostnameForApp(
   switch (app) {
     case "erp":
       return `app.${baseDomain}`;
+    case "transportadora":
+      return `transportadora.${baseDomain}`;
     case "painel":
       return `painel.${baseDomain}`;
     case "cliente":
@@ -140,6 +145,7 @@ export function inferAppFromPath(pathname: string): Exclude<SubdomainApp, null> 
   if (matchesRouteSegment(pathname, "/cliente")) return "cliente";
   if (matchesRouteSegment(pathname, "/entregador")) return "entregador";
   if (matchesRouteSegment(pathname, "/parceiro")) return "parceiro";
+  if (matchesRouteSegment(pathname, "/transportadora")) return "transportadora";
   // /integracoes é usado no ERP e no portal API; evita redirecionamento cruzado automático
   if (matchesRouteSegment(pathname, "/integracoes")) return null;
 
@@ -159,6 +165,7 @@ export function inferAppFromPath(pathname: string): Exclude<SubdomainApp, null> 
     "/atendimento",
     "/onboarding",
     "/entregas",
+    "/marketing",
     "/assistente",
     "/assistente-ia",
     "/meu-perfil",
@@ -181,6 +188,7 @@ export function getSubdomainDefaultRoute(app: SubdomainApp): string {
     case "entregador": return "/entregador";
     case "parceiro": return "/parceiro";
     case "erp": return "/dashboard";
+    case "transportadora": return "/transportadora";
     case "painel": return "/admin";
     case "api": return "/integracoes";
     case "landing": return "/";
@@ -201,13 +209,15 @@ export function isRouteAllowedForSubdomain(app: SubdomainApp, pathname: string):
       return matchesRouteSegment(pathname, "/entregador") || pathname === "/auth";
     case "parceiro":
       return matchesRouteSegment(pathname, "/parceiro") || pathname === "/auth";
+    case "transportadora":
+      return matchesRouteSegment(pathname, "/transportadora") || pathname === "/auth";
     case "erp":
       return pathname === "/auth" || matchesRouteSegment(pathname, "/dashboard") || matchesRouteSegment(pathname, "/vendas")
         || matchesRouteSegment(pathname, "/caixa") || matchesRouteSegment(pathname, "/estoque") || matchesRouteSegment(pathname, "/cadastros")
         || matchesRouteSegment(pathname, "/clientes") || matchesRouteSegment(pathname, "/financeiro") || matchesRouteSegment(pathname, "/fiscal")
         || matchesRouteSegment(pathname, "/frota") || matchesRouteSegment(pathname, "/rh") || matchesRouteSegment(pathname, "/config")
         || matchesRouteSegment(pathname, "/operacional") || matchesRouteSegment(pathname, "/atendimento") || matchesRouteSegment(pathname, "/onboarding")
-        || matchesRouteSegment(pathname, "/entregas") || matchesRouteSegment(pathname, "/assistente") || matchesRouteSegment(pathname, "/assistente-ia") || matchesRouteSegment(pathname, "/meu-perfil") || matchesRouteSegment(pathname, "/configuracoes") || matchesRouteSegment(pathname, "/integracoes");
+        || matchesRouteSegment(pathname, "/entregas") || matchesRouteSegment(pathname, "/marketing") || matchesRouteSegment(pathname, "/assistente") || matchesRouteSegment(pathname, "/assistente-ia") || matchesRouteSegment(pathname, "/meu-perfil") || matchesRouteSegment(pathname, "/configuracoes") || matchesRouteSegment(pathname, "/integracoes");
     case "api":
       // api.gasfacilpro.com.br — Hub de Integrações
       return pathname === "/auth" || matchesRouteSegment(pathname, "/integracoes");

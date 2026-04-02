@@ -29,6 +29,12 @@ export default function AuthErp() {
     if (!user || loading) return;
     if (roles.length === 0) return;
     
+    // Super admin should be redirected to admin panel
+    if (roles.includes("super_admin")) {
+      navigate("/admin");
+      return;
+    }
+    
     const hasAccess = ERP_ROLES.some(r => roles.includes(r));
     if (!hasAccess) {
       signOut();
