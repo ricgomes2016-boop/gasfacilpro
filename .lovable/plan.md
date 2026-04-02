@@ -1,26 +1,19 @@
 
 
-## Plano: Simulação de Viagem inspirada no QualP
+## Problema identificado
 
-### Análise do QualP
+A rota `/chat` (Caixa de Entrada / Inbox WhatsApp) **nao esta registrada** nas listas de rotas permitidas para o subdominio ERP em `src/lib/subdomain.ts`.
 
-O QualP é uma calculadora de rotas e fretes com mapa em tela cheia. Principais diferenças em relação à simulação atual:
+Quando o usuario acessa `/chat` no dominio `app.gasfacilpro.com.br`:
+1. `isRouteAllowedForSubdomain("erp", "/chat")` retorna `false`
+2. `SubdomainGuard` redireciona para `/dashboard` (rota padrao do ERP)
 
-1. **Mapa integrado na página** (não em dialog/modal) -- origem e destino são campos de busca diretamente sobre o mapa
-2. **Cálculo de pedágios automático** por rota
-3. **Interface visual com rota desenhada** diretamente na tela principal
+## Correcao
 
-### Problema atual
+**Arquivo:** `src/lib/subdomain.ts`
 
-O mapa dentro do Dialog/modal não renderiza os tiles corretamente (fica em branco). Isso é um problema recorrente do Leaflet dentro de modais Radix UI, onde o container tem dimensões zero no momento da inicialização.
+1. Adicionar `"/chat"` ao array `erpPrefixes` (linha ~152) para que `inferAppFromPath` reconheca a rota como pertencente ao ERP
+2. Adicionar `matchesRouteSegment(pathname, "/chat")` na checagem do case `"erp"` em `isRouteAllowedForSubdomain` (linha ~214)
 
-### Solução proposta
+Sao duas addicoes de uma linha cada, no mesmo arquivo.
 
-**Eliminar o dialog do mapa e embutir o mapa diretamente na página de Simulação**, similar ao QualP. Isso resolve o bug de renderização e melhora a experiência.
-
-### Layout novo da página
-
-```text
-┌─────────────────────────────────────────────┐
-│  Simulação de Viagem                        │
-├──────────────────┬──
