@@ -71,10 +71,6 @@ serve(async (req) => {
     ]);
 
     // Save inbound
-<<<<<<< HEAD
-    await saveMessage(supabase, conversationId, "user", messageText, { source: "gateway-webhook", message_id: messageId, instance: instanceName });
-    await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
-=======
     await saveMessage(supabase, conversationId, "user", messageText, { source: "gateway-webhook", message_id: messageId, instance: instanceName, tipo_contato: contact.tipo, contato_id: contact.id || null });
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
 
@@ -85,7 +81,6 @@ serve(async (req) => {
       await sendMessage(config, phone, reply);
       return OK({ ok: true, skipped: "off_hours" });
     }
->>>>>>> d40740467ebe81de75e4e2bb8e545d10e44d55ab
 
     // Post-order shortcut
     const postOrderResult = await isPostOrderFollowUp(supabase, normalized, messageText);

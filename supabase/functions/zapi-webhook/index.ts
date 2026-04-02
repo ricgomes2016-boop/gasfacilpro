@@ -117,8 +117,6 @@ serve(async (req) => {
       tipo_contato: contact.tipo, contato_id: contact.id || null,
     });
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
-<<<<<<< HEAD
-=======
 
     // Hard block: off-hours → fixed message, no AI
     if (bh.isOffHours) {
@@ -127,7 +125,6 @@ serve(async (req) => {
       await sendMessage(finalConfig, phone, reply);
       return OK({ ok: true, skipped: "off_hours" });
     }
->>>>>>> d40740467ebe81de75e4e2bb8e545d10e44d55ab
 
     // Post-order follow-up shortcut
     const postOrderResult = await isPostOrderFollowUp(supabase, normalized, messageText);

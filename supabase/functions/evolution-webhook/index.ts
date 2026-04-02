@@ -121,8 +121,6 @@ serve(async (req) => {
       tipo_contato: contact.tipo, contato_id: contact.id || null,
     });
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
-<<<<<<< HEAD
-=======
 
     // Hard block: off-hours → fixed message, no AI
     if (bh.isOffHours) {
@@ -135,7 +133,6 @@ serve(async (req) => {
     // Debounce: wait 3s and collect any follow-up messages
     const combinedText = await collectBufferedMessages(supabase, conversationId, messageText);
     const finalMessageText = combinedText || messageText;
->>>>>>> d40740467ebe81de75e4e2bb8e545d10e44d55ab
 
     // Post-order follow-up shortcut
     const postOrderResult = await isPostOrderFollowUp(supabase, normalized, finalMessageText);
