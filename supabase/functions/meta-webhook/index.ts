@@ -152,10 +152,6 @@ serve(async (req) => {
           ]);
 
           // Save inbound
-<<<<<<< HEAD
-          await saveMessage(supabase, conversationId, "user", messageText, { source: "meta-webhook", message_id: messageId });
-          await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
-=======
           await saveMessage(supabase, conversationId, "user", messageText, { source: "meta-webhook", message_id: messageId, tipo_contato: contact.tipo, contato_id: contact.id || null });
           await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
 
@@ -166,7 +162,6 @@ serve(async (req) => {
             await sendMessage(config, phone, reply);
             continue;
           }
->>>>>>> d40740467ebe81de75e4e2bb8e545d10e44d55ab
 
           // Post-order shortcut
           const postOrderResult = await isPostOrderFollowUp(supabase, normalized, messageText);
