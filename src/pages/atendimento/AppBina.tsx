@@ -27,7 +27,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-const WEBHOOK_URL = `https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/bina-webhook`;
+const WEBHOOK_URL = `https://gcrdftnnbgsogoqcmcxo.supabase.co/functions/v1/bina-webhook`;
 
 const steps = [
   {

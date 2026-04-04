@@ -1362,7 +1362,7 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       // Meta WhatsApp Cloud API
       const phoneNumberId = config.metaPhoneNumberId || config.instanceId;
       const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
-      const url = `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`;
+      const url = `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`;
       const resp = await fetch(url, {
         method: "POST",
         headers: {
@@ -1429,7 +1429,7 @@ export async function sendLocation(config: BiaConfig, phone: string, lat: number
     } else if (config.provedor === "meta") {
       const phoneNumberId = config.metaPhoneNumberId || config.instanceId;
       const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
-      await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+      await fetch(`https://graph.facebook.com/v22.0/${phoneNumberId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${config.token}` },
         body: JSON.stringify({

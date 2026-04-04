@@ -21,7 +21,7 @@ import {
   CheckCircle2, Settings, Zap, BarChart3, ScanBarcode,
   Phone, Mail, Loader2, ExternalLink, AlertTriangle, Building2, Shield,
   QrCode, RefreshCw, Smartphone, Plus, Trash2,
-  Signal, Wifi, WifiOff,
+  Signal, Wifi, WifiOff, Copy, CheckCheck, KeyRound,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -206,6 +206,22 @@ const integracoes: Integracao[] = [
     ],
   },
   {
+    id: "whatsapp_meta",
+    nome: "WhatsApp Oficial (Meta Cloud API)",
+    descricao: "Conecte a Assistente BIA ao WhatsApp Oficial via API da Meta — sem QR Code, sem instância, direto pelo número Business verificado",
+    icon: MessageSquare,
+    status: "disponivel",
+    categoria: "comunicacao",
+    beneficios: [
+      "Número de telefone oficial verificado pela Meta",
+      "Sem necessidade de escanear QR Code",
+      "Mensagens via Cloud API com alta confiabilidade",
+      "Suporte a texto, áudio, imagens e interações",
+      "Webhook configurado automaticamente",
+    ],
+    helpUrl: "https://developers.facebook.com/docs/whatsapp/cloud-api",
+  },
+  {
     id: "webhook",
     nome: "Webhooks Customizados",
     descricao: "Envie eventos do sistema (novo pedido, status, pagamento) para qualquer endpoint externo",
@@ -269,6 +285,121 @@ export default function Integracoes() {
   const [qrStatus, setQrStatus] = useState<string | null>(null);
   const [connectionStatuses, setConnectionStatuses] = useState<Record<string, string>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Meta (WhatsApp Oficial) config
+  const [metaDialogOpen, setMetaDialogOpen] = useState(false);
+  const [metaConfigs, setMetaConfigs] = useState<any[]>([]);
+  const [metaUnidadeId, setMetaUnidadeId] = useState("");
+  const [metaAccessToken, setMetaAccessToken] = useState("");
+  const [metaPhoneNumberId, setMetaPhoneNumberId] = useState("");
+  const [metaWabaId, setMetaWabaId] = useState("");
+  const [metaVerifyToken, setMetaVerifyToken] = useState("gasfacil_meta_verify");
+  const [metaSaving, setMetaSaving] = useState(false);
+  const [metaDeletingId, setMetaDeletingId] = useState<string | null>(null);
+  const [metaEditId, setMetaEditId] = useState<string | null>(null);
+  const [copiedWebhook, setCopiedWebhook] = useState(false);
+
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "gcrdftnnbgsogoqcmcxo";
+  const metaWebhookUrl = `https://${projectId}.supabase.co/functions/v1/meta-webhook`;
+
+  const loadMetaConfigs = async () => {
+    const { data } = await supabase
+      .from("integracoes_whatsapp")
+      .select("*, unidades(nome)")
+      .eq("provedor", "meta")
+      .order("created_at");
+    setMetaConfigs(data || []);
+  };
+
+  const handleSaveMeta = async () => {
+    if (!metaUnidadeId || !metaAccessToken || !metaPhoneNumberId) {
+      toast.error("Preencha todos os campos obrigatórios.");
+      return;
+    }
+    setMetaSaving(true);
+    try {
+      if (metaEditId) {
+        const { error } = await supabase.from("integracoes_whatsapp").update({
+          meta_access_token: metaAccessToken,
+          meta_phone_number_id: metaPhoneNumberId,
+          meta_waba_id: metaWabaId || null,
+          meta_verify_token: metaVerifyToken || "gasfacil_meta_verify",
+          token: metaAccessToken,
+          ativo: true,
+          updated_at: new Date().toISOString(),
+        }).eq("id", metaEditId);
+        if (error) throw error;
+        toast.success("Configuração Meta atualizada!");
+      } else {
+        // Check if already exists for this unit
+        const { data: existing } = await supabase.from("integracoes_whatsapp")
+          .select("id").eq("unidade_id", metaUnidadeId).eq("provedor", "meta").maybeSingle();
+        if (existing) {
+          toast.error("Já existe uma configuração Meta para esta unidade. Edite a existente.");
+          setMetaSaving(false);
+          return;
+        }
+        const { error } = await supabase.from("integracoes_whatsapp").insert({
+          unidade_id: metaUnidadeId,
+          instance_id: `meta_${metaPhoneNumberId}`,
+          token: metaAccessToken,
+          provedor: "meta",
+          meta_access_token: metaAccessToken,
+          meta_phone_number_id: metaPhoneNumberId,
+          meta_waba_id: metaWabaId || null,
+          meta_verify_token: metaVerifyToken || "gasfacil_meta_verify",
+          ativo: true,
+        });
+        if (error) throw error;
+        toast.success("WhatsApp Oficial (Meta) configurado com sucesso! ✅");
+      }
+      await loadMetaConfigs();
+      resetMetaForm();
+    } catch (err: any) {
+      console.error("Meta save error:", err);
+      toast.error(err.message || "Erro ao salvar configuração Meta");
+    } finally {
+      setMetaSaving(false);
+    }
+  };
+
+  const handleEditMeta = (cfg: any) => {
+    setMetaEditId(cfg.id);
+    setMetaUnidadeId(cfg.unidade_id);
+    setMetaAccessToken(cfg.meta_access_token || "");
+    setMetaPhoneNumberId(cfg.meta_phone_number_id || "");
+    setMetaWabaId(cfg.meta_waba_id || "");
+    setMetaVerifyToken(cfg.meta_verify_token || "gasfacil_meta_verify");
+  };
+
+  const handleDeleteMeta = async (id: string) => {
+    setMetaDeletingId(id);
+    try {
+      const { error } = await supabase.from("integracoes_whatsapp").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Configuração Meta removida.");
+      await loadMetaConfigs();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao remover");
+    } finally {
+      setMetaDeletingId(null);
+    }
+  };
+
+  const resetMetaForm = () => {
+    setMetaEditId(null);
+    setMetaUnidadeId("");
+    setMetaAccessToken("");
+    setMetaPhoneNumberId("");
+    setMetaWabaId("");
+    setMetaVerifyToken("gasfacil_meta_verify");
+  };
+
+  const copyWebhookUrl = () => {
+    navigator.clipboard.writeText(metaWebhookUrl);
+    setCopiedWebhook(true);
+    setTimeout(() => setCopiedWebhook(false), 2000);
+  };
 
   const handleEvolutionConnect = async (cfg: any) => {
     setQrInstanceName(cfg.instance_id);
@@ -357,6 +488,7 @@ export default function Integracoes() {
   useEffect(() => {
     loadWhatsappConfigs();
     loadGenericConfigs();
+    loadMetaConfigs();
   }, []);
 
   // Auto-open WhatsApp dialog from URL param (?open=whatsapp)
@@ -427,7 +559,7 @@ export default function Integracoes() {
       }
 
       // 4. Configure webhook automatically
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "scqenurznkatvrqxqjmt";
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "gcrdftnnbgsogoqcmcxo";
       const webhookUrl = `https://${projectId}.supabase.co/functions/v1/evolution-webhook?unidade_id=${wpUnidadeId}&instance=${wpInstanceId}`;
       
       await supabase.functions.invoke("evolution-proxy", {
@@ -509,6 +641,10 @@ export default function Integracoes() {
   };
 
   const handleOpenConfig = (integracao: Integracao) => {
+    if (integracao.id === "whatsapp_meta") {
+      setMetaDialogOpen(true);
+      return;
+    }
     if (integracao.isWhatsapp) {
       setWhatsappDialogOpen(true);
       return;
@@ -1012,6 +1148,169 @@ export default function Integracoes() {
 
           <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t">
             <Button variant="ghost" onClick={() => setWhatsappDialogOpen(false)} className="font-semibold">Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog WhatsApp Oficial — Meta Cloud API */}
+      <Dialog open={metaDialogOpen} onOpenChange={(open) => { setMetaDialogOpen(open); if (!open) resetMetaForm(); }}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <KeyRound className="h-6 w-6 text-primary" />
+              WhatsApp Oficial — Meta Cloud API
+            </DialogTitle>
+            <DialogDescription>
+              Configure a API oficial do WhatsApp da Meta para a Assistente BIA responder pelo número verificado da empresa.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Webhook URL */}
+          <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 space-y-2">
+            <p className="text-xs font-bold text-blue-700 uppercase tracking-widest">URL do Webhook (configure no painel Meta)</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-[11px] font-mono bg-muted px-3 py-2 rounded-lg break-all">{metaWebhookUrl}</code>
+              <Button variant="outline" size="sm" className="shrink-0 gap-1" onClick={copyWebhookUrl}>
+                {copiedWebhook ? <CheckCheck className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                {copiedWebhook ? "Copiado!" : "Copiar"}
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Cole esta URL no campo <strong>Webhook URL</strong> no painel do Meta for Developers.
+            </p>
+          </div>
+
+          {/* Existing Configs */}
+          {metaConfigs.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                Configurações Ativas
+              </h3>
+              <div className="grid gap-2">
+                {metaConfigs.map((cfg) => (
+                  <div key={cfg.id} className="p-3 rounded-xl border bg-card/50">
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold">{cfg.unidades?.nome || "Unidade"}</p>
+                        <p className="text-[11px] text-muted-foreground font-mono">
+                          Phone ID: {cfg.meta_phone_number_id || "-"}
+                        </p>
+                      </div>
+                      <Badge variant="default" className="bg-green-500/10 text-green-700 border-green-500/20 text-[10px] gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                        Ativo
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1 px-2" onClick={() => handleEditMeta(cfg)}>
+                        <Settings className="h-3 w-3" />
+                        Editar
+                      </Button>
+                      <Button
+                        variant="ghost" size="sm"
+                        className="h-7 text-[10px] gap-1 px-2 text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteMeta(cfg.id)}
+                        disabled={metaDeletingId === cfg.id}
+                      >
+                        {metaDeletingId === cfg.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                        Remover
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Separator />
+            </div>
+          )}
+
+          {/* Form */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Plus className="h-4 w-4 text-primary" />
+              {metaEditId ? "Editar Configuração" : "Nova Configuração"}
+            </h3>
+            <div className="grid gap-4 bg-muted/20 p-4 rounded-2xl border border-primary/10">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold">Filial / Unidade <span className="text-destructive">*</span></Label>
+                <Select value={metaUnidadeId} onValueChange={setMetaUnidadeId} disabled={!!metaEditId}>
+                  <SelectTrigger className="h-10 text-xs"><SelectValue placeholder="Selecione a unidade..." /></SelectTrigger>
+                  <SelectContent>
+                    {unidades.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold">Access Token (Token de Acesso) <span className="text-destructive">*</span></Label>
+                <Input
+                  className="h-10 text-xs font-mono"
+                  type="password"
+                  value={metaAccessToken}
+                  onChange={(e) => setMetaAccessToken(e.target.value)}
+                  placeholder="EAAxxxxxxx..."
+                />
+                <p className="text-[10px] text-muted-foreground">Token permanente gerado no painel Meta for Developers.</p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold">Phone Number ID <span className="text-destructive">*</span></Label>
+                <Input
+                  className="h-10 text-xs font-mono"
+                  value={metaPhoneNumberId}
+                  onChange={(e) => setMetaPhoneNumberId(e.target.value)}
+                  placeholder="123456789012345"
+                />
+                <p className="text-[10px] text-muted-foreground">ID do número de telefone em WhatsApp &gt; Getting Started.</p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold">WABA ID (WhatsApp Business Account ID)</Label>
+                <Input
+                  className="h-10 text-xs font-mono"
+                  value={metaWabaId}
+                  onChange={(e) => setMetaWabaId(e.target.value)}
+                  placeholder="987654321098765"
+                />
+                <p className="text-[10px] text-muted-foreground">Opcional. Encontrado em WhatsApp &gt; API Setup no painel Meta.</p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold">Verify Token (Token de Verificação)</Label>
+                <Input
+                  className="h-10 text-xs font-mono"
+                  value={metaVerifyToken}
+                  onChange={(e) => setMetaVerifyToken(e.target.value)}
+                  placeholder="gasfacil_meta_verify"
+                />
+                <p className="text-[10px] text-muted-foreground">Use o mesmo valor ao configurar o webhook no painel Meta.</p>
+              </div>
+              <Button
+                onClick={handleSaveMeta}
+                disabled={metaSaving || !metaUnidadeId || !metaAccessToken || !metaPhoneNumberId}
+                className="w-full gap-2 font-bold py-5"
+              >
+                {metaSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                {metaEditId ? "Atualizar Configuração" : "Salvar e Ativar"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Instructions */}
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 space-y-2">
+            <p className="text-xs font-bold text-amber-700 uppercase tracking-widest">Como configurar no painel Meta</p>
+            <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+              <li>Acesse <strong>developers.facebook.com</strong> e abra seu App</li>
+              <li>Vá em <strong>WhatsApp &gt; Configuração</strong> e copie o <strong>Phone Number ID</strong></li>
+              <li>Gere um <strong>Token de Acesso Permanente</strong> em Configurações do Sistema</li>
+              <li>Em <strong>Webhooks</strong>, cole a URL acima e o <strong>Verify Token</strong></li>
+              <li>Assine o campo <strong>messages</strong> no webhook</li>
+            </ol>
+          </div>
+
+          <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t">
+            {metaEditId && (
+              <Button variant="ghost" onClick={resetMetaForm} className="mr-auto">Cancelar edição</Button>
+            )}
+            <Button variant="ghost" onClick={() => { setMetaDialogOpen(false); resetMetaForm(); }}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

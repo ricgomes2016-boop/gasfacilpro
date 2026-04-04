@@ -1,4 +1,4 @@
-project_id = "scqenurznkatvrqxqjmt"
+project_id = "gcrdftnnbgsogoqcmcxo"
 
 [functions.parse-fuel-photo]
 verify_jwt = false
@@ -70,4 +70,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.whatsapp-send]
+verify_jwt = false
+
+[functions.meta-webhook]
 verify_jwt = false
