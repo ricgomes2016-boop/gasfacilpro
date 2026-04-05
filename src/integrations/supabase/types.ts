@@ -4343,16 +4343,25 @@ export type Database = {
           desconto_etapa2: number | null
           id: string
           instance_id: string
+          instancia_nome: string | null
+          instancia_token: string | null
+          instancia_url: string | null
           meta_access_token: string | null
           meta_phone_number_id: string | null
           meta_verify_token: string | null
           meta_waba_id: string | null
           nome_bot: string | null
+          numero_telefone: string | null
           preco_minimo_p13: number | null
           preco_minimo_p20: number | null
           provedor: string
+          provedor_tipo: string | null
+          qr_code_base64: string | null
+          qr_code_expira_em: string | null
           security_token: string | null
+          status_conexao: string | null
           token: string
+          ultima_verificacao: string | null
           unidade_id: string
           updated_at: string | null
         }
@@ -4364,16 +4373,25 @@ export type Database = {
           desconto_etapa2?: number | null
           id?: string
           instance_id: string
+          instancia_nome?: string | null
+          instancia_token?: string | null
+          instancia_url?: string | null
           meta_access_token?: string | null
           meta_phone_number_id?: string | null
           meta_verify_token?: string | null
           meta_waba_id?: string | null
           nome_bot?: string | null
+          numero_telefone?: string | null
           preco_minimo_p13?: number | null
           preco_minimo_p20?: number | null
           provedor?: string
+          provedor_tipo?: string | null
+          qr_code_base64?: string | null
+          qr_code_expira_em?: string | null
           security_token?: string | null
+          status_conexao?: string | null
           token: string
+          ultima_verificacao?: string | null
           unidade_id: string
           updated_at?: string | null
         }
@@ -4385,16 +4403,25 @@ export type Database = {
           desconto_etapa2?: number | null
           id?: string
           instance_id?: string
+          instancia_nome?: string | null
+          instancia_token?: string | null
+          instancia_url?: string | null
           meta_access_token?: string | null
           meta_phone_number_id?: string | null
           meta_verify_token?: string | null
           meta_waba_id?: string | null
           nome_bot?: string | null
+          numero_telefone?: string | null
           preco_minimo_p13?: number | null
           preco_minimo_p20?: number | null
           provedor?: string
+          provedor_tipo?: string | null
+          qr_code_base64?: string | null
+          qr_code_expira_em?: string | null
           security_token?: string | null
+          status_conexao?: string | null
           token?: string
+          ultima_verificacao?: string | null
           unidade_id?: string
           updated_at?: string | null
         }
