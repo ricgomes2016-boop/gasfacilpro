@@ -11,7 +11,7 @@ export interface BiaConfig {
   descontoEtapa2: number;
   precoMinimoP13: number | null;
   precoMinimoP20: number | null;
-  provedor: "zapi" | "uazapi" | "meta" | "gateway" | "evolution";
+  provedor: "zapi" | "uazapi" | "meta" | "meta_coex" | "gateway" | "evolution";
   metaPhoneNumberId?: string | null;
   /** Evolution-specific: Base URL for API calls */
   baseUrl?: string | null;
@@ -50,7 +50,7 @@ export function createSupabase() {
 // ========== RESOLVE CONFIG ==========
 export async function resolveConfig(
   supabase: any,
-  provedor: "zapi" | "uazapi" | "meta" | "gateway" | "evolution",
+  provedor: "zapi" | "uazapi" | "meta" | "meta_coex" | "gateway" | "evolution",
   queryUnidadeId: string | null,
   payloadInstanceId: string | null
 ): Promise<BiaConfig | null> {
@@ -64,20 +64,35 @@ export async function resolveConfig(
     return resolveEvolutionConfig(supabase, queryUnidadeId, payloadInstanceId);
   }
 
+  // meta_coex uses the same logic as meta — both use Graph API for messaging
+  const effectiveProvedor = provedor === "meta_coex" ? "meta" : provedor;
+  const metaProvedores = ["meta", "meta_coex"];
+
   const strategies = [];
 
   if (queryUnidadeId) {
     strategies.push(
       supabase.from("integracoes_whatsapp").select("*")
-        .eq("unidade_id", queryUnidadeId).eq("provedor", provedor).eq("ativo", true).maybeSingle()
+        .eq("unidade_id", queryUnidadeId)
+        .in("provedor", metaProvedores.includes(provedor) ? metaProvedores : [provedor])
+        .eq("ativo", true).maybeSingle()
     );
   }
   if (payloadInstanceId) {
-    // For Meta, search by meta_phone_number_id; for others, by instance_id
-    if (provedor === "meta") {
+    // For Meta (and meta_coex), search by meta_phone_number_id
+    if (metaProvedores.includes(provedor)) {
       strategies.push(
         supabase.from("integracoes_whatsapp").select("*")
-          .eq("meta_phone_number_id", payloadInstanceId).eq("ativo", true).maybeSingle()
+          .eq("meta_phone_number_id", payloadInstanceId)
+          .in("provedor", metaProvedores)
+          .eq("ativo", true).maybeSingle()
+      );
+      // Fallback: search by instance_id as well
+      strategies.push(
+        supabase.from("integracoes_whatsapp").select("*")
+          .eq("instance_id", payloadInstanceId)
+          .in("provedor", metaProvedores)
+          .eq("ativo", true).maybeSingle()
       );
     } else {
       strategies.push(
@@ -86,15 +101,17 @@ export async function resolveConfig(
       );
     }
   }
+  // Final fallback: any active config for this provedor group
   strategies.push(
     supabase.from("integracoes_whatsapp").select("*")
-      .eq("provedor", provedor).eq("ativo", true).limit(2)
+      .in("provedor", metaProvedores.includes(provedor) ? metaProvedores : [provedor])
+      .eq("ativo", true).limit(2)
   );
 
   for (const strategy of strategies) {
     const { data } = await strategy;
     const config = Array.isArray(data) ? (data.length === 1 ? data[0] : null) : data;
-    if (config?.token && (config?.instance_id || provedor === "meta")) {
+    if (config?.token && (config?.instance_id || config?.meta_phone_number_id || metaProvedores.includes(provedor))) {
       return {
         instanceId: config.instance_id || config.meta_phone_number_id || "",
         token: config.token,
@@ -104,7 +121,7 @@ export async function resolveConfig(
         descontoEtapa2: config.desconto_etapa2 ?? 10,
         precoMinimoP13: config.preco_minimo_p13 ?? null,
         precoMinimoP20: config.preco_minimo_p20 ?? null,
-        provedor,
+        provedor: effectiveProvedor as BiaConfig["provedor"],
         baseUrl: config.base_url || null,
         metaPhoneNumberId: config.meta_phone_number_id || config.instance_id || null,
         agentName: config.nome_bot || "Bia",

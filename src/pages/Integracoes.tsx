@@ -208,13 +208,14 @@ const integracoes: Integracao[] = [
   {
     id: "whatsapp_meta",
     nome: "WhatsApp Oficial (Meta Cloud API)",
-    descricao: "Conecte a Assistente BIA ao WhatsApp Oficial via API da Meta — sem QR Code, sem instância, direto pelo número Business verificado",
+    descricao: "Conecte a Assistente BIA ao WhatsApp Oficial via API da Meta — com suporte a Coexistência (QR Code) para usar o mesmo número no celular e na API simultaneamente",
     icon: MessageSquare,
     status: "disponivel",
     categoria: "comunicacao",
     beneficios: [
+      "Coexistência: use o WhatsApp no celular e na API ao mesmo tempo",
+      "Embedded Signup: conecte via Facebook com QR Code",
       "Número de telefone oficial verificado pela Meta",
-      "Sem necessidade de escanear QR Code",
       "Mensagens via Cloud API com alta confiabilidade",
       "Suporte a texto, áudio, imagens e interações",
       "Webhook configurado automaticamente",
@@ -298,6 +299,13 @@ export default function Integracoes() {
   const [metaDeletingId, setMetaDeletingId] = useState<string | null>(null);
   const [metaEditId, setMetaEditId] = useState<string | null>(null);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
+  // Modo de conexão Meta: 'token' (manual) ou 'embedded_signup' (QR Code / Coexistência)
+  const [metaConexaoModo, setMetaConexaoModo] = useState<"token" | "embedded_signup">("token");
+  const [metaAppId, setMetaAppId] = useState("");
+  const [embeddedSignupLoading, setEmbeddedSignupLoading] = useState(false);
+  const [coexQrDialogOpen, setCoexQrDialogOpen] = useState(false);
+  const [coexQrCode, setCoexQrCode] = useState<string | null>(null);
+  const [coexQrCountdown, setCoexQrCountdown] = useState(120);
 
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "gcrdftnnbgsogoqcmcxo";
   const metaWebhookUrl = `https://${projectId}.supabase.co/functions/v1/meta-webhook`;
@@ -306,9 +314,123 @@ export default function Integracoes() {
     const { data } = await supabase
       .from("integracoes_whatsapp")
       .select("*, unidades(nome)")
-      .eq("provedor", "meta")
+      .in("provedor", ["meta", "meta_coex"])
       .order("created_at");
     setMetaConfigs(data || []);
+  };
+
+  const handleEmbeddedSignup = async () => {
+    if (!metaUnidadeId || !metaAppId) {
+      toast.error("Selecione a unidade e informe o App ID da Meta.");
+      return;
+    }
+    setEmbeddedSignupLoading(true);
+    const fbWindow = window as any;
+
+    const doLogin = () => {
+      fbWindow.FB.login(
+        async (response: any) => {
+          if (response.authResponse) {
+            const { code } = response.authResponse;
+            toast.success("Autorização recebida! Processando...");
+            try {
+              const { data: result, error } = await supabase.functions.invoke(
+                "meta-embedded-signup",
+                { body: { code, unidade_id: metaUnidadeId, app_id: metaAppId } }
+              );
+              if (error || result?.error) throw new Error(result?.error || error?.message);
+
+              // Salvar ou atualizar a configuração
+              const { data: existing } = await supabase
+                .from("integracoes_whatsapp")
+                .select("id")
+                .eq("unidade_id", metaUnidadeId)
+                .in("provedor", ["meta", "meta_coex"])
+                .maybeSingle();
+
+              const payload = {
+                meta_access_token: result.access_token,
+                meta_phone_number_id: result.phone_number_id,
+                meta_waba_id: result.waba_id || null,
+                meta_app_id: metaAppId,
+                token: result.access_token,
+                instance_id: result.phone_number_id,
+                provedor: "meta_coex",
+                meta_coexistencia_ativa: true,
+                ativo: true,
+                updated_at: new Date().toISOString(),
+              };
+
+              if (existing) {
+                await supabase.from("integracoes_whatsapp").update(payload).eq("id", existing.id);
+              } else {
+                await supabase.from("integracoes_whatsapp").insert({
+                  ...payload,
+                  unidade_id: metaUnidadeId,
+                  nome_bot: "BIA",
+                  status_conexao: "aguardando",
+                });
+              }
+
+              await loadMetaConfigs();
+              toast.success("WhatsApp autorizado! Agora escaneie o QR Code.");
+              setMetaDialogOpen(false);
+
+              // Abrir QR Code de Coexistência
+              setTimeout(() => {
+                setCoexQrCode(null);
+                setCoexQrCountdown(120);
+                setCoexQrDialogOpen(true);
+                fetchCoexQrCode(result.phone_number_id, result.access_token);
+              }, 500);
+            } catch (err: any) {
+              toast.error("Erro ao processar autorização: " + err.message);
+            } finally {
+              setEmbeddedSignupLoading(false);
+            }
+          } else {
+            toast.error("Autorização cancelada.");
+            setEmbeddedSignupLoading(false);
+          }
+        },
+        {
+          config_id: metaAppId,
+          response_type: "code",
+          override_default_response_type: true,
+          extras: { setup: {}, featureType: "coexistence", sessionInfoVersion: "3" },
+        }
+      );
+    };
+
+    if (fbWindow.FB) {
+      fbWindow.FB.init({ appId: metaAppId, cookie: true, xfbml: true, version: "v21.0" });
+      doLogin();
+    } else {
+      const script = document.createElement("script");
+      script.src = "https://connect.facebook.net/pt_BR/sdk.js";
+      script.onload = () => {
+        fbWindow.FB.init({ appId: metaAppId, cookie: true, xfbml: true, version: "v21.0" });
+        doLogin();
+      };
+      document.body.appendChild(script);
+    }
+  };
+
+  const fetchCoexQrCode = async (phoneNumberId: string, token: string) => {
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/v21.0/${phoneNumberId}/qr_code?access_token=${token}`
+      );
+      const data = await res.json();
+      if (data.qr_image_url) {
+        setCoexQrCode(data.qr_image_url);
+      } else {
+        toast.error("QR Code não disponível. Verifique se o App Review foi aprovado.");
+        setCoexQrDialogOpen(false);
+      }
+    } catch (err: any) {
+      toast.error("Erro ao buscar QR Code: " + err.message);
+    }
   };
 
   const handleSaveMeta = async () => {
@@ -1153,7 +1275,7 @@ export default function Integracoes() {
       </Dialog>
 
       {/* Dialog WhatsApp Oficial — Meta Cloud API */}
-      <Dialog open={metaDialogOpen} onOpenChange={(open) => { setMetaDialogOpen(open); if (!open) resetMetaForm(); }}>
+      <Dialog open={metaDialogOpen} onOpenChange={(open) => { setMetaDialogOpen(open); if (!open) { resetMetaForm(); setMetaConexaoModo("token"); } }}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
@@ -1161,7 +1283,7 @@ export default function Integracoes() {
               WhatsApp Oficial — Meta Cloud API
             </DialogTitle>
             <DialogDescription>
-              Configure a API oficial do WhatsApp da Meta para a Assistente BIA responder pelo número verificado da empresa.
+              Configure a API oficial do WhatsApp da Meta. Escolha entre Token Manual ou Embedded Signup com <strong>Coexistência (QR Code)</strong>.
             </DialogDescription>
           </DialogHeader>
 
@@ -1196,6 +1318,11 @@ export default function Integracoes() {
                         <p className="text-[11px] text-muted-foreground font-mono">
                           Phone ID: {cfg.meta_phone_number_id || "-"}
                         </p>
+                        {cfg.provedor === "meta_coex" && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full mt-1">
+                            <QrCode className="h-2.5 w-2.5" /> Coexistência
+                          </span>
+                        )}
                       </div>
                       <Badge variant="default" className="bg-green-500/10 text-green-700 border-green-500/20 text-[10px] gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
@@ -1207,6 +1334,21 @@ export default function Integracoes() {
                         <Settings className="h-3 w-3" />
                         Editar
                       </Button>
+                      {cfg.provedor === "meta_coex" && cfg.meta_access_token && (
+                        <Button
+                          variant="outline" size="sm"
+                          className="h-7 text-[10px] gap-1 px-2 border-green-500 text-green-700 hover:bg-green-50"
+                          onClick={() => {
+                            setCoexQrCode(null);
+                            setCoexQrCountdown(120);
+                            setCoexQrDialogOpen(true);
+                            fetchCoexQrCode(cfg.meta_phone_number_id, cfg.meta_access_token);
+                          }}
+                        >
+                          <QrCode className="h-3 w-3" />
+                          QR Code
+                        </Button>
+                      )}
                       <Button
                         variant="ghost" size="sm"
                         className="h-7 text-[10px] gap-1 px-2 text-destructive hover:text-destructive"
@@ -1224,74 +1366,153 @@ export default function Integracoes() {
             </div>
           )}
 
-          {/* Form */}
-          <div className="space-y-4">
+          {/* Modo de Conexão */}
+          <div className="space-y-3">
             <h3 className="text-sm font-semibold flex items-center gap-2">
               <Plus className="h-4 w-4 text-primary" />
               {metaEditId ? "Editar Configuração" : "Nova Configuração"}
             </h3>
-            <div className="grid gap-4 bg-muted/20 p-4 rounded-2xl border border-primary/10">
-              <div className="space-y-2">
-                <Label className="text-xs font-bold">Filial / Unidade <span className="text-destructive">*</span></Label>
-                <Select value={metaUnidadeId} onValueChange={setMetaUnidadeId} disabled={!!metaEditId}>
-                  <SelectTrigger className="h-10 text-xs"><SelectValue placeholder="Selecione a unidade..." /></SelectTrigger>
-                  <SelectContent>
-                    {unidades.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-bold">Access Token (Token de Acesso) <span className="text-destructive">*</span></Label>
-                <Input
-                  className="h-10 text-xs font-mono"
-                  type="password"
-                  value={metaAccessToken}
-                  onChange={(e) => setMetaAccessToken(e.target.value)}
-                  placeholder="EAAxxxxxxx..."
-                />
-                <p className="text-[10px] text-muted-foreground">Token permanente gerado no painel Meta for Developers.</p>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-bold">Phone Number ID <span className="text-destructive">*</span></Label>
-                <Input
-                  className="h-10 text-xs font-mono"
-                  value={metaPhoneNumberId}
-                  onChange={(e) => setMetaPhoneNumberId(e.target.value)}
-                  placeholder="123456789012345"
-                />
-                <p className="text-[10px] text-muted-foreground">ID do número de telefone em WhatsApp &gt; Getting Started.</p>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-bold">WABA ID (WhatsApp Business Account ID)</Label>
-                <Input
-                  className="h-10 text-xs font-mono"
-                  value={metaWabaId}
-                  onChange={(e) => setMetaWabaId(e.target.value)}
-                  placeholder="987654321098765"
-                />
-                <p className="text-[10px] text-muted-foreground">Opcional. Encontrado em WhatsApp &gt; API Setup no painel Meta.</p>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-bold">Verify Token (Token de Verificação)</Label>
-                <Input
-                  className="h-10 text-xs font-mono"
-                  value={metaVerifyToken}
-                  onChange={(e) => setMetaVerifyToken(e.target.value)}
-                  placeholder="gasfacil_meta_verify"
-                />
-                <p className="text-[10px] text-muted-foreground">Use o mesmo valor ao configurar o webhook no painel Meta.</p>
-              </div>
-              <Button
-                onClick={handleSaveMeta}
-                disabled={metaSaving || !metaUnidadeId || !metaAccessToken || !metaPhoneNumberId}
-                className="w-full gap-2 font-bold py-5"
+
+            {/* Seletor de modo */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setMetaConexaoModo("token")}
+                className={`flex flex-col items-start gap-2 p-3 rounded-xl border-2 transition-all text-left ${
+                  metaConexaoModo === "token" ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
+                }`}
               >
-                {metaSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                {metaEditId ? "Atualizar Configuração" : "Salvar e Ativar"}
-              </Button>
+                <KeyRound className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-xs font-bold">Token Manual</p>
+                  <p className="text-[10px] text-muted-foreground">Insira credenciais manualmente</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMetaConexaoModo("embedded_signup")}
+                className={`flex flex-col items-start gap-2 p-3 rounded-xl border-2 transition-all text-left ${
+                  metaConexaoModo === "embedded_signup" ? "border-[#1877F2] bg-blue-50 dark:bg-blue-950/20" : "border-border hover:border-blue-400"
+                }`}
+              >
+                <svg className="h-5 w-5 text-[#1877F2]" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                </svg>
+                <div>
+                  <p className="text-xs font-bold">Embedded Signup</p>
+                  <p className="text-[10px] text-muted-foreground">QR Code + Coexistência (recomendado)</p>
+                </div>
+              </button>
             </div>
+
+            {/* Unidade (comum a ambos os modos) */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold">Filial / Unidade <span className="text-destructive">*</span></Label>
+              <Select value={metaUnidadeId} onValueChange={setMetaUnidadeId} disabled={!!metaEditId}>
+                <SelectTrigger className="h-10 text-xs"><SelectValue placeholder="Selecione a unidade..." /></SelectTrigger>
+                <SelectContent>
+                  {unidades.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Modo Token Manual */}
+            {metaConexaoModo === "token" && (
+              <div className="grid gap-4 bg-muted/20 p-4 rounded-2xl border border-primary/10">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold">Access Token <span className="text-destructive">*</span></Label>
+                  <Input
+                    className="h-10 text-xs font-mono"
+                    type="password"
+                    value={metaAccessToken}
+                    onChange={(e) => setMetaAccessToken(e.target.value)}
+                    placeholder="EAAxxxxxxx..."
+                  />
+                  <p className="text-[10px] text-muted-foreground">Token permanente do Sistema de Usuários.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold">Phone Number ID <span className="text-destructive">*</span></Label>
+                  <Input
+                    className="h-10 text-xs font-mono"
+                    value={metaPhoneNumberId}
+                    onChange={(e) => setMetaPhoneNumberId(e.target.value)}
+                    placeholder="123456789012345"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold">WABA ID</Label>
+                  <Input
+                    className="h-10 text-xs font-mono"
+                    value={metaWabaId}
+                    onChange={(e) => setMetaWabaId(e.target.value)}
+                    placeholder="987654321098765"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold">Verify Token</Label>
+                  <Input
+                    className="h-10 text-xs font-mono"
+                    value={metaVerifyToken}
+                    onChange={(e) => setMetaVerifyToken(e.target.value)}
+                    placeholder="gasfacil_meta_verify"
+                  />
+                </div>
+                <Button
+                  onClick={handleSaveMeta}
+                  disabled={metaSaving || !metaUnidadeId || !metaAccessToken || !metaPhoneNumberId}
+                  className="w-full gap-2 font-bold py-5"
+                >
+                  {metaSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  {metaEditId ? "Atualizar Configuração" : "Salvar e Ativar"}
+                </Button>
+              </div>
+            )}
+
+            {/* Modo Embedded Signup */}
+            {metaConexaoModo === "embedded_signup" && (
+              <div className="grid gap-4 bg-blue-50/50 dark:bg-blue-950/10 p-4 rounded-2xl border border-blue-200 dark:border-blue-800">
+                <div className="space-y-1.5">
+                  <p className="text-xs font-bold text-blue-800 dark:text-blue-200">Como funciona a Coexistência:</p>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" /> Continue usando o WhatsApp no celular normalmente</li>
+                    <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" /> A BIA responde automaticamente via API Oficial</li>
+                    <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" /> Mensagens aparecem nos dois lugares</li>
+                    <li className="flex items-center gap-1.5"><AlertTriangle className="h-3 w-3 text-amber-500 shrink-0" /> Requer App Review aprovado na Meta</li>
+                  </ul>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold">App ID da Meta <span className="text-destructive">*</span></Label>
+                  <Input
+                    className="h-10 text-xs font-mono"
+                    value={metaAppId}
+                    onChange={(e) => setMetaAppId(e.target.value)}
+                    placeholder="1695439258558329"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Encontre em{" "}
+                    <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                      developers.facebook.com/apps
+                    </a>
+                  </p>
+                </div>
+                <Button
+                  onClick={handleEmbeddedSignup}
+                  disabled={embeddedSignupLoading || !metaUnidadeId || !metaAppId}
+                  className="w-full gap-2 font-bold py-5 bg-[#1877F2] hover:bg-[#166FE5] text-white"
+                >
+                  {embeddedSignupLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                    </svg>
+                  )}
+                  Continuar com Facebook
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Instructions */}
@@ -1303,6 +1524,7 @@ export default function Integracoes() {
               <li>Gere um <strong>Token de Acesso Permanente</strong> em Configurações do Sistema</li>
               <li>Em <strong>Webhooks</strong>, cole a URL acima e o <strong>Verify Token</strong></li>
               <li>Assine o campo <strong>messages</strong> no webhook</li>
+              <li>Para Coexistência: habilite o recurso no App e solicite App Review</li>
             </ol>
           </div>
 
@@ -1310,8 +1532,54 @@ export default function Integracoes() {
             {metaEditId && (
               <Button variant="ghost" onClick={resetMetaForm} className="mr-auto">Cancelar edição</Button>
             )}
-            <Button variant="ghost" onClick={() => { setMetaDialogOpen(false); resetMetaForm(); }}>Fechar</Button>
+            <Button variant="ghost" onClick={() => { setMetaDialogOpen(false); resetMetaForm(); setMetaConexaoModo("token"); }}>Fechar</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog QR Code Coexistência Meta */}
+      <Dialog open={coexQrDialogOpen} onOpenChange={setCoexQrDialogOpen}>
+        <DialogContent className="max-w-sm text-center">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-center gap-2 text-xl font-bold">
+              <QrCode className="h-6 w-6 text-green-600" />
+              QR Code — Coexistência
+            </DialogTitle>
+            <DialogDescription>
+              Abra o WhatsApp no celular, vá em <strong>Configurações → Aparelhos Conectados</strong> e escaneie o código abaixo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            {coexQrCode ? (
+              <>
+                <div className="relative">
+                  <img
+                    src={coexQrCode}
+                    alt="QR Code Coexistência"
+                    className="w-64 h-64 rounded-xl border-4 border-green-500 shadow-lg"
+                  />
+                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-green-500 text-white text-xs px-3 py-1 rounded-full whitespace-nowrap">
+                    Escaneie com o WhatsApp
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                  Aguardando conexão... expira em {coexQrCountdown}s
+                </div>
+                <p className="text-xs text-muted-foreground text-center max-w-[220px]">
+                  Após escanear, aguarde a confirmação. Não feche esta janela.
+                </p>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-3 py-8">
+                <div className="relative">
+                  <div className="h-16 w-16 rounded-full border-4 border-green-200 border-t-green-500 animate-spin" />
+                  <QrCode className="h-6 w-6 text-green-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                </div>
+                <span className="text-sm text-muted-foreground">Gerando QR Code...</span>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
