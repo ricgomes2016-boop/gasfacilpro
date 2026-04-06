@@ -319,17 +319,28 @@ export default function Integracoes() {
     setMetaConfigs(data || []);
   };
 
-  const handleEmbeddedSignup = async () => {
+  const handleEmbeddedSignup = () => {
     if (!metaUnidadeId || !metaAppId) {
       toast.error("Selecione a unidade e informe o App ID da Meta.");
       return;
     }
     setEmbeddedSignupLoading(true);
-    const fbWindow = window as any;
+    type FBAuthResponse = { authResponse?: { code: string } };
+    type FBInstance = {
+      init: (cfg: Record<string, unknown>) => void;
+      login: (cb: (r: FBAuthResponse) => void, opts: Record<string, unknown>) => void;
+    };
+    const fbWindow = window as Window & { FB?: FBInstance };
 
     const doLogin = () => {
+      if (!fbWindow.FB) {
+        toast.error("SDK do Facebook não carregou. Recarregue a página e tente novamente.");
+        setEmbeddedSignupLoading(false);
+        return;
+      }
+      fbWindow.FB.init({ appId: metaAppId, cookie: true, xfbml: true, version: "v21.0" });
       fbWindow.FB.login(
-        async (response: any) => {
+        async (response: FBAuthResponse) => {
           if (response.authResponse) {
             const { code } = response.authResponse;
             toast.success("Autorização recebida! Processando...");
@@ -403,16 +414,21 @@ export default function Integracoes() {
     };
 
     if (fbWindow.FB) {
-      fbWindow.FB.init({ appId: metaAppId, cookie: true, xfbml: true, version: "v21.0" });
       doLogin();
     } else {
-      const script = document.createElement("script");
-      script.src = "https://connect.facebook.net/pt_BR/sdk.js";
-      script.onload = () => {
-        fbWindow.FB.init({ appId: metaAppId, cookie: true, xfbml: true, version: "v21.0" });
-        doLogin();
-      };
-      document.body.appendChild(script);
+      // SDK ainda não carregou — aguardar até 5s (10 tentativas de 500ms)
+      let attempts = 0;
+      const interval = setInterval(() => {
+        attempts++;
+        if (fbWindow.FB) {
+          clearInterval(interval);
+          doLogin();
+        } else if (attempts >= 10) {
+          clearInterval(interval);
+          toast.error("SDK do Facebook não carregou. Verifique sua conexão e recarregue a página.");
+          setEmbeddedSignupLoading(false);
+        }
+      }, 500);
     }
   };
 
@@ -784,6 +800,23 @@ export default function Integracoes() {
       setWhatsappDialogOpen(true);
     }
   }, [whatsappConfigs.length]);
+
+  // Pré-carrega o SDK do Facebook quando o dialog Meta é aberto no modo embedded_signup
+  useEffect(() => {
+    if (metaDialogOpen && metaConexaoModo === "embedded_signup") {
+      if (typeof (window as Window & { FB?: unknown }).FB === "undefined") {
+        const existingScript = document.getElementById("facebook-jssdk");
+        if (!existingScript) {
+          const script = document.createElement("script");
+          script.id = "facebook-jssdk";
+          script.src = "https://connect.facebook.net/pt_BR/sdk.js";
+          script.async = true;
+          script.defer = true;
+          document.body.appendChild(script);
+        }
+      }
+    }
+  }, [metaDialogOpen, metaConexaoModo]);
 
   // --- Generic integration handlers ---
   const handleSaveGenericConfig = async () => {
