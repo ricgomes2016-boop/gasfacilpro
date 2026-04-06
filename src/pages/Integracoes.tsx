@@ -301,7 +301,7 @@ export default function Integracoes() {
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   // Modo de conexão Meta: 'token' (manual) ou 'embedded_signup' (QR Code / Coexistência)
   const [metaConexaoModo, setMetaConexaoModo] = useState<"token" | "embedded_signup">("token");
-  const [metaAppId, setMetaAppId] = useState("");
+  const [metaAppId, setMetaAppId] = useState("1695439258558329");
   const [embeddedSignupLoading, setEmbeddedSignupLoading] = useState(false);
   const [coexQrDialogOpen, setCoexQrDialogOpen] = useState(false);
   const [coexQrCode, setCoexQrCode] = useState<string | null>(null);
@@ -324,113 +324,100 @@ export default function Integracoes() {
       toast.error("Selecione a unidade e informe o App ID da Meta.");
       return;
     }
-    setEmbeddedSignupLoading(true);
-    type FBAuthResponse = { authResponse?: { code: string } };
-    type FBInstance = {
-      init: (cfg: Record<string, unknown>) => void;
-      login: (cb: (r: FBAuthResponse) => void, opts: Record<string, unknown>) => void;
-    };
-    const fbWindow = window as Window & { FB?: FBInstance };
+    // Salvar estado na sessionStorage para recuperar após o redirecionamento OAuth
+    sessionStorage.setItem("meta_oauth_unidade_id", metaUnidadeId);
+    sessionStorage.setItem("meta_oauth_app_id", metaAppId);
+    // Construir URL de autorização OAuth do Business Login com Coexistência
+    const redirectUri = `${window.location.origin}/integracoes`;
+    const extras = JSON.stringify({ setup: {}, featureType: "coexistence", sessionInfoVersion: "3" });
+    const authUrl =
+      `https://www.facebook.com/v21.0/dialog/oauth` +
+      `?client_id=${encodeURIComponent(metaAppId)}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&scope=${encodeURIComponent("whatsapp_business_management,whatsapp_business_messaging")}` +
+      `&response_type=code` +
+      `&config_id=925541403793729` +
+      `&extras=${encodeURIComponent(extras)}`;
+    window.location.href = authUrl;
+  };
 
-    const doLogin = () => {
-      if (!fbWindow.FB) {
-        toast.error("SDK do Facebook não carregou. Recarregue a página e tente novamente.");
-        setEmbeddedSignupLoading(false);
+  // Processar callback OAuth da Meta após redirecionamento de volta para /integracoes
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const errorParam = params.get("error");
+    if (errorParam) {
+      toast.error("Autorização cancelada ou negada pelo Facebook.");
+      // Limpar params da URL
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
+      return;
+    }
+    if (!code) return;
+    const savedUnidadeId = sessionStorage.getItem("meta_oauth_unidade_id");
+    const savedAppId = sessionStorage.getItem("meta_oauth_app_id");
+    if (!savedUnidadeId || !savedAppId) {
+      toast.error("Sessão OAuth expirada. Tente novamente.");
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
+      return;
+    }
+    // Limpar params da URL e sessionStorage imediatamente
+    sessionStorage.removeItem("meta_oauth_unidade_id");
+    sessionStorage.removeItem("meta_oauth_app_id");
+    window.history.replaceState({}, "", window.location.pathname);
+    // Processar o código OAuth
+    const redirectUri = `${window.location.origin}/integracoes`;
+    toast.loading("Processando autorização do WhatsApp...", { id: "meta-oauth" });
+    supabase.functions.invoke("meta-embedded-signup", {
+      body: { code, unidade_id: savedUnidadeId, app_id: savedAppId, redirect_uri: redirectUri },
+    }).then(async ({ data: result, error }) => {
+      if (error || result?.error) {
+        toast.error("Erro ao processar autorização: " + (result?.error || error?.message), { id: "meta-oauth" });
         return;
       }
-      fbWindow.FB.init({ appId: metaAppId, cookie: true, xfbml: true, version: "v21.0" });
-      fbWindow.FB.login(
-        async (response: FBAuthResponse) => {
-          if (response.authResponse) {
-            const { code } = response.authResponse;
-            toast.success("Autorização recebida! Processando...");
-            try {
-              const { data: result, error } = await supabase.functions.invoke(
-                "meta-embedded-signup",
-                { body: { code, unidade_id: metaUnidadeId, app_id: metaAppId } }
-              );
-              if (error || result?.error) throw new Error(result?.error || error?.message);
-
-              // Salvar ou atualizar a configuração
-              const { data: existing } = await supabase
-                .from("integracoes_whatsapp")
-                .select("id")
-                .eq("unidade_id", metaUnidadeId)
-                .in("provedor", ["meta", "meta_coex"])
-                .maybeSingle();
-
-              const payload = {
-                meta_access_token: result.access_token,
-                meta_phone_number_id: result.phone_number_id,
-                meta_waba_id: result.waba_id || null,
-                meta_app_id: metaAppId,
-                token: result.access_token,
-                instance_id: result.phone_number_id,
-                provedor: "meta_coex",
-                meta_coexistencia_ativa: true,
-                ativo: true,
-                updated_at: new Date().toISOString(),
-              };
-
-              if (existing) {
-                await supabase.from("integracoes_whatsapp").update(payload).eq("id", existing.id);
-              } else {
-                await supabase.from("integracoes_whatsapp").insert({
-                  ...payload,
-                  unidade_id: metaUnidadeId,
-                  nome_bot: "BIA",
-                  status_conexao: "aguardando",
-                });
-              }
-
-              await loadMetaConfigs();
-              toast.success("WhatsApp autorizado! Agora escaneie o QR Code.");
-              setMetaDialogOpen(false);
-
-              // Abrir QR Code de Coexistência
-              setTimeout(() => {
-                setCoexQrCode(null);
-                setCoexQrCountdown(120);
-                setCoexQrDialogOpen(true);
-                fetchCoexQrCode(result.phone_number_id, result.access_token);
-              }, 500);
-            } catch (err: any) {
-              toast.error("Erro ao processar autorização: " + err.message);
-            } finally {
-              setEmbeddedSignupLoading(false);
-            }
-          } else {
-            toast.error("Autorização cancelada.");
-            setEmbeddedSignupLoading(false);
-          }
-        },
-        {
-          config_id: metaAppId,
-          response_type: "code",
-          override_default_response_type: true,
-          extras: { setup: {}, featureType: "coexistence", sessionInfoVersion: "3" },
-        }
-      );
-    };
-
-    if (fbWindow.FB) {
-      doLogin();
-    } else {
-      // SDK ainda não carregou — aguardar até 5s (10 tentativas de 500ms)
-      let attempts = 0;
-      const interval = setInterval(() => {
-        attempts++;
-        if (fbWindow.FB) {
-          clearInterval(interval);
-          doLogin();
-        } else if (attempts >= 10) {
-          clearInterval(interval);
-          toast.error("SDK do Facebook não carregou. Verifique sua conexão e recarregue a página.");
-          setEmbeddedSignupLoading(false);
-        }
-      }, 500);
-    }
-  };
+      const { data: existing } = await supabase
+        .from("integracoes_whatsapp")
+        .select("id")
+        .eq("unidade_id", savedUnidadeId)
+        .in("provedor", ["meta", "meta_coex"])
+        .maybeSingle();
+      const payload = {
+        meta_access_token: result.access_token,
+        meta_phone_number_id: result.phone_number_id,
+        meta_waba_id: result.waba_id || null,
+        meta_app_id: savedAppId,
+        token: result.access_token,
+        instance_id: result.phone_number_id,
+        provedor: "meta_coex",
+        meta_coexistencia_ativa: true,
+        ativo: true,
+        updated_at: new Date().toISOString(),
+      };
+      if (existing) {
+        await supabase.from("integracoes_whatsapp").update(payload).eq("id", existing.id);
+      } else {
+        await supabase.from("integracoes_whatsapp").insert({
+          ...payload,
+          unidade_id: savedUnidadeId,
+          nome_bot: "BIA",
+          status_conexao: "aguardando",
+        });
+      }
+      await loadMetaConfigs();
+      toast.success("WhatsApp autorizado com sucesso! Agora escaneie o QR Code.", { id: "meta-oauth" });
+      setTimeout(() => {
+        setCoexQrCode(null);
+        setCoexQrCountdown(120);
+        setCoexQrDialogOpen(true);
+        fetchCoexQrCode(result.phone_number_id, result.access_token);
+      }, 800);
+    }).catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error("Erro inesperado: " + msg, { id: "meta-oauth" });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchCoexQrCode = async (phoneNumberId: string, token: string) => {
     try {
@@ -1521,7 +1508,7 @@ export default function Integracoes() {
                     className="h-10 text-xs font-mono"
                     value={metaAppId}
                     onChange={(e) => setMetaAppId(e.target.value)}
-                    placeholder="1695439258558329"
+                    placeholder="925541403793729"
                   />
                   <p className="text-[10px] text-muted-foreground">
                     Encontre em{" "}
