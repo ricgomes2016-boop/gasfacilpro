@@ -167,9 +167,9 @@ Deno.serve(async (req) => {
 
     // Step 4: Registro automático
     const numRegistrado = results.find((r) => r.step === "numero_registrado");
-    if (phoneId && numRegistrado?.status === "erro" && results[0]?.status === "ok") {
+    if (resolvedPhoneId && numRegistrado?.status === "erro" && results[0]?.status === "ok") {
       try {
-        const r = await fetch(`${META_API}/${phoneId}/register`, {
+        const r = await fetch(`${META_API}/${resolvedPhoneId}/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ messaging_product: "whatsapp", pin: "123456" }),
@@ -177,7 +177,6 @@ Deno.serve(async (req) => {
         const d = await r.json();
         if (r.ok && d.success) {
           results.push({ step: "registro_api", status: "ok", message: "Número registrado com sucesso via API!", data: d });
-          // Update status
           await supabaseAdmin
             .from("integracoes_whatsapp")
             .update({ status_conexao: "conectado", ultima_verificacao: new Date().toISOString() })
