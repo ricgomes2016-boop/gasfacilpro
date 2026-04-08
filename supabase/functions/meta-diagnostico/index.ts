@@ -232,7 +232,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         config_id: config.id,
         provedor: config.provedor,
-        phone_id: phoneId,
+        phone_id: resolvedPhoneId,
         waba_id: wabaId,
         numero: config.numero_telefone,
         results,
