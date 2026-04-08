@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
     // Step 3: Número registrado?
     if (resolvedPhoneId && results[0]?.status === "ok") {
       try {
-        const r = await fetch(`${META_API}/${resolvedPhoneId}?fields=display_phone_number,verified_name,code_verification_status,quality_rating,platform_type,status&access_control=${token}`);
+        const r = await fetch(`${META_API}/${resolvedPhoneId}?fields=display_phone_number,verified_name,code_verification_status,quality_rating,platform_type,status&access_token=${token}`);
         const d = await r.json();
         if (r.ok && d.display_phone_number) {
           results.push({
