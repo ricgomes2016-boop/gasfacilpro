@@ -6,6 +6,7 @@ const AdminEmpresas = lazy(() => import("@/pages/admin/AdminEmpresas"));
 const AdminUnidades = lazy(() => import("@/pages/admin/AdminUnidades"));
 const AdminAdmins = lazy(() => import("@/pages/admin/AdminAdmins"));
 const AdminWhatsAppConfig = lazy(() => import("@/pages/admin/AdminWhatsAppConfig"));
+const AdminDiagnosticoWhatsApp = lazy(() => import("@/pages/admin/AdminDiagnosticoWhatsApp"));
 
 export const adminRoutes: RouteConfig[] = [
   { path: "/admin", component: AdminDashboard, roles: ["super_admin"] },
@@ -13,4 +14,5 @@ export const adminRoutes: RouteConfig[] = [
   { path: "/admin/unidades", component: AdminUnidades, roles: ["super_admin"] },
   { path: "/admin/admins", component: AdminAdmins, roles: ["super_admin"] },
   { path: "/admin/whatsapp-config", component: AdminWhatsAppConfig, roles: ["super_admin"] },
+  { path: "/admin/diagnostico-whatsapp", component: AdminDiagnosticoWhatsApp, roles: ["super_admin"] },
 ];
