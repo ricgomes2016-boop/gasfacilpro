@@ -108,6 +108,20 @@ Deno.serve(async (req) => {
                   .eq("id", config.id);
               } else if (found) {
                 results.push({ step: "auto_discover_phone", status: "ok", message: `Phone ID já correto: ${found.id}`, data: found });
+              } else if (pnd.data.length === 1) {
+                // Fallback: only one number in WABA, use it
+                const fallback = pnd.data[0];
+                resolvedPhoneId = fallback.id;
+                results.push({
+                  step: "auto_discover_phone",
+                  status: "ok",
+                  message: `Número ${targetPhone} não encontrado, usando único disponível: ${fallback.display_phone_number} (${fallback.id})`,
+                  data: fallback,
+                });
+                await supabaseAdmin
+                  .from("integracoes_whatsapp")
+                  .update({ meta_phone_number_id: fallback.id, instance_id: fallback.id })
+                  .eq("id", config.id);
               } else {
                 results.push({
                   step: "auto_discover_phone",
