@@ -83,56 +83,20 @@ Deno.serve(async (req) => {
         if (r.ok && d.id) {
           results.push({ step: "waba_acessivel", status: "ok", message: `WABA acessível: ${d.name || d.id}`, data: d });
 
-          // Auto-discover phone numbers in WABA
+          // List phone numbers in WABA (informational only, no auto-overwrite)
           try {
             const pnr = await fetch(`${META_API}/${wabaId}/phone_numbers?access_token=${token}`);
             const pnd = await pnr.json();
             if (pnr.ok && pnd.data?.length) {
-              const targetPhone = config.numero_telefone?.replace(/\D/g, "");
-              const found = pnd.data.find((p: any) => {
-                const clean = p.display_phone_number?.replace(/\D/g, "") || "";
-                return clean.endsWith(targetPhone) || targetPhone?.endsWith(clean.slice(-10));
+              results.push({
+                step: "waba_numeros",
+                status: "ok",
+                message: `Números na WABA: ${pnd.data.map((p: any) => `${p.display_phone_number} (${p.id})`).join(", ")}`,
+                data: pnd.data,
               });
-              if (found && found.id !== phoneId) {
-                resolvedPhoneId = found.id;
-                results.push({
-                  step: "auto_discover_phone",
-                  status: "ok",
-                  message: `Phone ID corrigido: ${phoneId} → ${found.id} (${found.display_phone_number})`,
-                  data: found,
-                });
-                // Auto-update DB
-                await supabaseAdmin
-                  .from("integracoes_whatsapp")
-                  .update({ meta_phone_number_id: found.id, instance_id: found.id })
-                  .eq("id", config.id);
-              } else if (found) {
-                results.push({ step: "auto_discover_phone", status: "ok", message: `Phone ID já correto: ${found.id}`, data: found });
-              } else if (pnd.data.length === 1) {
-                // Fallback: only one number in WABA, use it
-                const fallback = pnd.data[0];
-                resolvedPhoneId = fallback.id;
-                results.push({
-                  step: "auto_discover_phone",
-                  status: "ok",
-                  message: `Número ${targetPhone} não encontrado, usando único disponível: ${fallback.display_phone_number} (${fallback.id})`,
-                  data: fallback,
-                });
-                await supabaseAdmin
-                  .from("integracoes_whatsapp")
-                  .update({ meta_phone_number_id: fallback.id, instance_id: fallback.id })
-                  .eq("id", config.id);
-              } else {
-                results.push({
-                  step: "auto_discover_phone",
-                  status: "erro",
-                  message: `Número ${targetPhone} não encontrado na WABA. Números disponíveis: ${pnd.data.map((p: any) => p.display_phone_number).join(", ")}`,
-                  data: pnd.data,
-                });
-              }
             }
           } catch (e) {
-            results.push({ step: "auto_discover_phone", status: "erro", message: `Erro ao listar números: ${e.message}` });
+            results.push({ step: "waba_numeros", status: "erro", message: `Erro ao listar números: ${e.message}` });
           }
         } else {
           results.push({ step: "waba_acessivel", status: "erro", message: d.error?.message || "WABA não acessível", data: d });
