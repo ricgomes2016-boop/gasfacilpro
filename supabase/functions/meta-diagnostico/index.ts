@@ -194,11 +194,11 @@ Deno.serve(async (req) => {
     }
 
     // Step 5: Envio de mensagem teste
-    if (numero_teste && phoneId && results[0]?.status === "ok") {
+    if (numero_teste && resolvedPhoneId && results[0]?.status === "ok") {
       const formattedNumber = numero_teste.replace(/\D/g, "");
       const fullNumber = formattedNumber.startsWith("55") ? formattedNumber : `55${formattedNumber}`;
       try {
-        const r = await fetch(`${META_API}/${phoneId}/messages`, {
+        const r = await fetch(`${META_API}/${resolvedPhoneId}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({
