@@ -50,6 +50,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const OnboardingEmpresa = lazy(() => import("./pages/onboarding/OnboardingEmpresa"));
 const OnboardingSetup = lazy(() => import("./pages/onboarding/OnboardingSetup"));
 const ComprarValeGas = lazy(() => import("./pages/publico/ComprarValeGas"));
+const CentralGasCP = lazy(() => import("./pages/publico/CentralGasCP"));
 const Instalar = lazy(() => import("./pages/Instalar"));
 const Suporte = lazy(() => import("./pages/Suporte"));
 
@@ -96,6 +97,7 @@ const App = () => (
                           <Route path="/instalar" element={<Instalar />} />
                           <Route path="/suporte" element={<Suporte />} />
                           <Route path="/vale-gas/comprar/:parceiroId" element={<ComprarValeGas />} />
+                          <Route path="/centralgascp" element={<CentralGasCP />} />
 
                           {/* Onboarding */}
                           <Route path="/onboarding" element={
