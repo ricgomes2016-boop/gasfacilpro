@@ -74,13 +74,52 @@ Deno.serve(async (req) => {
       results.push({ step: "token_valido", status: "erro", message: `Erro de rede: ${e.message}` });
     }
 
-    // Step 2: WABA acessível?
+    // Step 2: WABA acessível? + auto-discover phone number ID
+    let resolvedPhoneId = phoneId;
     if (wabaId && results[0]?.status === "ok") {
       try {
         const r = await fetch(`${META_API}/${wabaId}?access_token=${token}`);
         const d = await r.json();
         if (r.ok && d.id) {
           results.push({ step: "waba_acessivel", status: "ok", message: `WABA acessível: ${d.name || d.id}`, data: d });
+
+          // Auto-discover phone numbers in WABA
+          try {
+            const pnr = await fetch(`${META_API}/${wabaId}/phone_numbers?access_token=${token}`);
+            const pnd = await pnr.json();
+            if (pnr.ok && pnd.data?.length) {
+              const targetPhone = config.numero_telefone?.replace(/\D/g, "");
+              const found = pnd.data.find((p: any) => {
+                const clean = p.display_phone_number?.replace(/\D/g, "") || "";
+                return clean.endsWith(targetPhone) || targetPhone?.endsWith(clean.slice(-10));
+              });
+              if (found && found.id !== phoneId) {
+                resolvedPhoneId = found.id;
+                results.push({
+                  step: "auto_discover_phone",
+                  status: "ok",
+                  message: `Phone ID corrigido: ${phoneId} → ${found.id} (${found.display_phone_number})`,
+                  data: found,
+                });
+                // Auto-update DB
+                await supabaseAdmin
+                  .from("integracoes_whatsapp")
+                  .update({ meta_phone_number_id: found.id, instance_id: found.id })
+                  .eq("id", config.id);
+              } else if (found) {
+                results.push({ step: "auto_discover_phone", status: "ok", message: `Phone ID já correto: ${found.id}`, data: found });
+              } else {
+                results.push({
+                  step: "auto_discover_phone",
+                  status: "erro",
+                  message: `Número ${targetPhone} não encontrado na WABA. Números disponíveis: ${pnd.data.map((p: any) => p.display_phone_number).join(", ")}`,
+                  data: pnd.data,
+                });
+              }
+            }
+          } catch (e) {
+            results.push({ step: "auto_discover_phone", status: "erro", message: `Erro ao listar números: ${e.message}` });
+          }
         } else {
           results.push({ step: "waba_acessivel", status: "erro", message: d.error?.message || "WABA não acessível", data: d });
         }
@@ -94,9 +133,9 @@ Deno.serve(async (req) => {
     }
 
     // Step 3: Número registrado?
-    if (phoneId && results[0]?.status === "ok") {
+    if (resolvedPhoneId && results[0]?.status === "ok") {
       try {
-        const r = await fetch(`${META_API}/${phoneId}?fields=display_phone_number,verified_name,code_verification_status,quality_rating,platform_type,status&access_token=${token}`);
+        const r = await fetch(`${META_API}/${resolvedPhoneId}?fields=display_phone_number,verified_name,code_verification_status,quality_rating,platform_type,status&access_control=${token}`);
         const d = await r.json();
         if (r.ok && d.display_phone_number) {
           results.push({
@@ -120,7 +159,7 @@ Deno.serve(async (req) => {
       } catch (e) {
         results.push({ step: "numero_registrado", status: "erro", message: `Erro de rede: ${e.message}` });
       }
-    } else if (!phoneId) {
+    } else if (!resolvedPhoneId) {
       results.push({ step: "numero_registrado", status: "skip", message: "Phone Number ID não configurado" });
     } else {
       results.push({ step: "numero_registrado", status: "skip", message: "Pulado (token inválido)" });
