@@ -512,85 +512,123 @@ export default function ContasReceber() {
       ) : filtered.length === 0 ? (
         <p className="text-center py-8 text-muted-foreground">Nenhum recebível nesta categoria</p>
       ) : (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">
-                  <Checkbox
-                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
-                    onCheckedChange={toggleSelectAll}
-                  />
-                </TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead className="hidden md:table-cell">Descrição</TableHead>
-                <TableHead className="hidden sm:table-cell">Forma</TableHead>
-                <TableHead>Vencimento</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right w-12">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map(conta => {
-                const vencida = conta.status === "pendente" && conta.vencimento < hoje;
-                const displayStatus = vencida ? "Vencida" : conta.status === "recebida" ? "Recebida" : "Pendente";
-                return (
-                  <TableRow key={conta.id} data-state={selectedIds.has(conta.id) ? "selected" : undefined}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedIds.has(conta.id)}
-                        onCheckedChange={() => toggleSelect(conta.id)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-medium text-sm">{conta.cliente}</p>
-                      <p className="text-xs text-muted-foreground md:hidden">{conta.descricao}</p>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell text-sm">{conta.descricao}</TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <Badge variant="outline" className="text-xs">{conta.forma_pagamento || "—"}</Badge>
-                    </TableCell>
-                    <TableCell className="text-xs sm:text-sm whitespace-nowrap">
-                      {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}
-                    </TableCell>
-                    <TableCell className="font-medium text-xs sm:text-sm whitespace-nowrap">
-                      R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={displayStatus === "Recebida" ? "default" : displayStatus === "Vencida" ? "destructive" : "secondary"} className="text-[10px] sm:text-xs">
-                        {displayStatus}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50">
-                          {conta.status !== "recebida" && (
-                            <DropdownMenuItem onClick={() => openReceberDialog(conta)}>
-                              <DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem onClick={() => handleEdit(conta)}>
-                            <Pencil className="h-4 w-4 mr-2" />Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(conta.id)}>
-                            <Trash2 className="h-4 w-4 mr-2" />Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-          <div className="px-3 py-2 text-xs text-muted-foreground border-t">
-            {filtered.length} registro{filtered.length !== 1 ? "s" : ""}
+        <>
+          {/* Mobile cards */}
+          <div className="space-y-3 md:hidden">
+            {filtered.map(conta => {
+              const vencida = conta.status === "pendente" && conta.vencimento < hoje;
+              const displayStatus = vencida ? "Vencida" : conta.status === "recebida" ? "Recebida" : "Pendente";
+              return (
+                <div key={conta.id} className="border rounded-lg p-3" data-state={selectedIds.has(conta.id) ? "selected" : undefined}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Checkbox checked={selectedIds.has(conta.id)} onCheckedChange={() => toggleSelect(conta.id)} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{conta.cliente}</p>
+                        <p className="text-xs text-muted-foreground truncate">{conta.descricao}</p>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50">
+                        {conta.status !== "recebida" && <DropdownMenuItem onClick={() => openReceberDialog(conta)}><DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber</DropdownMenuItem>}
+                        <DropdownMenuItem onClick={() => handleEdit(conta)}><Pencil className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(conta.id)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={displayStatus === "Recebida" ? "default" : displayStatus === "Vencida" ? "destructive" : "secondary"} className="text-[10px]">{displayStatus}</Badge>
+                      {conta.forma_pagamento && <Badge variant="outline" className="text-[10px]">{conta.forma_pagamento}</Badge>}
+                    </div>
+                    <span className="font-bold text-sm">R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">Venc: {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</p>
+                </div>
+              );
+            })}
           </div>
-        </div>
+
+          {/* Desktop table */}
+          <div className="overflow-x-auto hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Forma</TableHead>
+                  <TableHead>Vencimento</TableHead>
+                  <TableHead>Valor</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right w-12">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(conta => {
+                  const vencida = conta.status === "pendente" && conta.vencimento < hoje;
+                  const displayStatus = vencida ? "Vencida" : conta.status === "recebida" ? "Recebida" : "Pendente";
+                  return (
+                    <TableRow key={conta.id} data-state={selectedIds.has(conta.id) ? "selected" : undefined}>
+                      <TableCell>
+                        <Checkbox checked={selectedIds.has(conta.id)} onCheckedChange={() => toggleSelect(conta.id)} />
+                      </TableCell>
+                      <TableCell>
+                        <p className="font-medium text-sm">{conta.cliente}</p>
+                      </TableCell>
+                      <TableCell className="text-sm">{conta.descricao}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">{conta.forma_pagamento || "—"}</Badge>
+                      </TableCell>
+                      <TableCell className="text-sm whitespace-nowrap">
+                        {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}
+                      </TableCell>
+                      <TableCell className="font-medium text-sm whitespace-nowrap">
+                        R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={displayStatus === "Recebida" ? "default" : displayStatus === "Vencida" ? "destructive" : "secondary"} className="text-xs">
+                          {displayStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50">
+                            {conta.status !== "recebida" && (
+                              <DropdownMenuItem onClick={() => openReceberDialog(conta)}>
+                                <DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onClick={() => handleEdit(conta)}>
+                              <Pencil className="h-4 w-4 mr-2" />Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(conta.id)}>
+                              <Trash2 className="h-4 w-4 mr-2" />Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            <div className="px-3 py-2 text-xs text-muted-foreground border-t">
+              {filtered.length} registro{filtered.length !== 1 ? "s" : ""}
+            </div>
+          </div>
+        </>
       )}
     </>
   );
@@ -738,28 +776,28 @@ export default function ContasReceber() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50">
             <TabsTrigger value="todos" className="text-xs gap-1">
-              <Wallet className="h-3.5 w-3.5" />Todos
+              <Wallet className="h-3.5 w-3.5" /><span className="hidden sm:inline">Todos</span><span className="sm:hidden">All</span>
             </TabsTrigger>
             <TabsTrigger value="cartoes" className="text-xs gap-1">
-              <CreditCard className="h-3.5 w-3.5" />Cartões{renderTabBadge("cartoes")}
+              <CreditCard className="h-3.5 w-3.5" /><span className="hidden sm:inline">Cartões</span>{renderTabBadge("cartoes")}
             </TabsTrigger>
             <TabsTrigger value="pix_maquininha" className="text-xs gap-1">
-              <Banknote className="h-3.5 w-3.5" />PIX Maq.{renderTabBadge("pix_maquininha")}
+              <Banknote className="h-3.5 w-3.5" /><span className="hidden sm:inline">PIX Maq.</span>{renderTabBadge("pix_maquininha")}
             </TabsTrigger>
             <TabsTrigger value="cheques" className="text-xs gap-1">
-              <FileText className="h-3.5 w-3.5" />Cheques{renderTabBadge("cheques")}
+              <FileText className="h-3.5 w-3.5" /><span className="hidden sm:inline">Cheques</span>{renderTabBadge("cheques")}
             </TabsTrigger>
             <TabsTrigger value="fiado" className="text-xs gap-1">
-              <Handshake className="h-3.5 w-3.5" />Fiado{renderTabBadge("fiado")}
+              <Handshake className="h-3.5 w-3.5" /><span className="hidden sm:inline">Fiado</span>{renderTabBadge("fiado")}
             </TabsTrigger>
             <TabsTrigger value="boletos" className="text-xs gap-1">
-              <Receipt className="h-3.5 w-3.5" />Boletos{renderTabBadge("boletos")}
+              <Receipt className="h-3.5 w-3.5" /><span className="hidden sm:inline">Boletos</span>{renderTabBadge("boletos")}
             </TabsTrigger>
             <TabsTrigger value="vale_gas" className="text-xs gap-1">
-              <Flame className="h-3.5 w-3.5" />Vale Gás{renderTabBadge("vale_gas")}
+              <Flame className="h-3.5 w-3.5" /><span className="hidden sm:inline">Vale Gás</span>{renderTabBadge("vale_gas")}
             </TabsTrigger>
             <TabsTrigger value="conferencia" className="text-xs gap-1">
-              <CreditCard className="h-3.5 w-3.5" />Conferência
+              <CreditCard className="h-3.5 w-3.5" /><span className="hidden sm:inline">Conferência</span>
             </TabsTrigger>
           </TabsList>
 

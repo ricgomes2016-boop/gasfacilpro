@@ -322,14 +322,48 @@ export default function Despesas() {
             ) : despesas.length === 0 ? (
               <p className="text-center py-8 text-muted-foreground">Nenhuma despesa registrada</p>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+                {/* Mobile cards */}
+                <div className="space-y-3 sm:hidden px-3">
+                  {despesas.map(d => (
+                    <div key={d.id} className={`border rounded-lg p-3 ${Number(d.valor) > LIMITE_SANGRIA && d.status === "pendente" ? "bg-amber-500/5" : ""}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            {Number(d.valor) > LIMITE_SANGRIA && d.status === "pendente" && <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
+                            <p className="text-sm font-medium truncate">{d.descricao}</p>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{d.categoria || "Sem categoria"}{d.responsavel ? ` · ${d.responsavel}` : ""}</p>
+                        </div>
+                        {d.status === "pendente" && (
+                          <div className="flex gap-1 shrink-0">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-success hover:text-success" onClick={() => handleAprovar(d.id)}><CheckCircle className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleRejeitar(d.id)}><XCircle className="h-4 w-4" /></Button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={d.status === "aprovada" ? "default" : d.status === "rejeitada" ? "destructive" : "secondary"} className="text-[10px]">
+                            {d.status === "aprovada" ? "Aprovada" : d.status === "rejeitada" ? "Rejeitada" : "Pendente"}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground">{new Date(d.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+                        </div>
+                        <span className="font-bold text-sm text-destructive">- R$ {Number(d.valor).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop table */}
+                <div className="overflow-x-auto hidden sm:block">
                     <Table className="min-w-[560px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-16">Hora</TableHead>
                           <TableHead>Descrição</TableHead>
-                          <TableHead className="hidden sm:table-cell">Categoria</TableHead>
-                          <TableHead className="hidden md:table-cell">Responsável</TableHead>
+                          <TableHead>Categoria</TableHead>
+                          <TableHead>Responsável</TableHead>
                           <TableHead className="text-right">Valor</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead className="w-20">Ações</TableHead>
@@ -344,10 +378,9 @@ export default function Despesas() {
                                 {Number(d.valor) > LIMITE_SANGRIA && d.status === "pendente" && <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />}
                                 {d.descricao}
                               </div>
-                              <div className="sm:hidden text-xs text-muted-foreground mt-0.5">{d.categoria || "—"}{d.responsavel ? ` · ${d.responsavel}` : ""}</div>
                             </TableCell>
-                            <TableCell className="hidden sm:table-cell"><Badge variant="outline">{d.categoria || "—"}</Badge></TableCell>
-                            <TableCell className="hidden md:table-cell text-sm">{d.responsavel || "—"}</TableCell>
+                            <TableCell><Badge variant="outline">{d.categoria || "—"}</Badge></TableCell>
+                            <TableCell className="text-sm">{d.responsavel || "—"}</TableCell>
                             <TableCell className="text-right font-medium text-destructive whitespace-nowrap">- R$ {Number(d.valor).toFixed(2)}</TableCell>
                             <TableCell>
                               <Badge 
@@ -373,7 +406,8 @@ export default function Despesas() {
                         ))}
                       </TableBody>
                     </Table>
-              </div>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

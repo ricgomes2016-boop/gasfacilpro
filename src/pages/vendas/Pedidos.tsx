@@ -719,26 +719,73 @@ export default function Pedidos() {
             <div className="text-center py-8 text-muted-foreground"><p>Nenhum pedido encontrado.</p></div> :
 
             <>
-              <div className="overflow-x-auto min-w-0">
+              {/* Mobile cards */}
+              <div className="space-y-3 md:hidden px-3 pb-3">
+                {pedidosPaginados.map((pedido) => (
+                  <div key={pedido.id} className={`border rounded-lg p-3 space-y-2 ${pedido.status === "cancelado" ? "opacity-60" : ""}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} />
+                        <div className="min-w-0">
+                          <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs" onClick={() => editarPedido(pedido.id)}>
+                            #{getIdCurto(pedido.id)}
+                          </Button>
+                          <p className="text-sm font-medium truncate">{pedido.cliente}</p>
+                        </div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
+                          {pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>}
+                          {pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
+                          {pedido.status !== "cancelado" && pedido.status !== "entregue" && <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive" onClick={() => cancelarPedido(pedido.id)}><XCircle className="h-4 w-4 mr-2" />Cancelar</DropdownMenuItem>
+                          </>}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive" onClick={() => abrirExclusao(pedido)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{pedido.endereco}</p>
+                    <p className="text-xs truncate">{pedido.produtos}</p>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
+                        {pedido.entregador && <Badge variant="outline" className="text-[10px]"><Truck className="h-3 w-3 mr-1" />{pedido.entregador}</Badge>}
+                      </div>
+                      <span className="font-bold text-sm">R$ {pedido.valor.toFixed(2)}</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">{pedido.data}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table */}
+              <div className="overflow-x-auto min-w-0 hidden md:block">
                 <Table className="min-w-[600px]">
                   <TableHeader>
                     <TableRow>
-                      {/* #7 - Checkbox column */}
                       <TableHead className="w-10">
                         <Checkbox
                           checked={selecionados.size === pedidosPaginados.length && pedidosPaginados.length > 0}
                           onCheckedChange={toggleSelecionarTodos} />
-                        
                       </TableHead>
                       <TableHead>Pedido</TableHead>
                       <TableHead>Cliente</TableHead>
-                      <TableHead className="hidden md:table-cell">Endereço</TableHead>
-                      <TableHead className="hidden md:table-cell">Produtos</TableHead>
-                      <TableHead className="hidden sm:table-cell">Entregador</TableHead>
-                      <TableHead className="hidden md:table-cell">Canal</TableHead>
+                      <TableHead>Endereço</TableHead>
+                      <TableHead>Produtos</TableHead>
+                      <TableHead>Entregador</TableHead>
+                      <TableHead>Canal</TableHead>
                       <TableHead>Valor</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="hidden md:table-cell">Data</TableHead>
+                      <TableHead>Data</TableHead>
                       <TableHead className="w-12">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -746,10 +793,7 @@ export default function Pedidos() {
                     {pedidosPaginados.map((pedido) =>
                     <TableRow key={pedido.id} className={pedido.status === "cancelado" ? "opacity-60" : ""}>
                         <TableCell>
-                          <Checkbox
-                          checked={selecionados.has(pedido.id)}
-                          onCheckedChange={() => toggleSelecionado(pedido.id)} />
-                        
+                          <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} />
                         </TableCell>
                         <TableCell>
                           <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs" onClick={() => editarPedido(pedido.id)}>
@@ -757,9 +801,9 @@ export default function Pedidos() {
                           </Button>
                         </TableCell>
                         <TableCell className="font-medium text-sm max-w-[120px] truncate">{pedido.cliente}</TableCell>
-                        <TableCell className="hidden md:table-cell max-w-[200px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
-                        <TableCell className="hidden md:table-cell max-w-[130px] truncate text-xs">{pedido.produtos}</TableCell>
-                        <TableCell className="hidden sm:table-cell">
+                        <TableCell className="max-w-[200px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
+                        <TableCell className="max-w-[130px] truncate text-xs">{pedido.produtos}</TableCell>
+                        <TableCell>
                           {pedido.entregador ?
                         <Badge variant="outline" className="cursor-pointer hover:bg-accent text-xs" onClick={() => abrirTransferencia(pedido)}>
                               <Truck className="h-3 w-3 mr-1" />{pedido.entregador}
@@ -775,7 +819,7 @@ export default function Pedidos() {
                             </div> :
                         <span className="text-muted-foreground text-xs">-</span>}
                         </TableCell>
-                        <TableCell className="hidden md:table-cell text-xs">
+                        <TableCell className="text-xs">
                           <Popover open={editandoCanalId === pedido.id} onOpenChange={(open) => setEditandoCanalId(open ? pedido.id : null)}>
                             <PopoverTrigger asChild>
                               <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity">
@@ -791,7 +835,6 @@ export default function Pedidos() {
                                 key={c.id}
                                 className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors ${pedido.canal_venda === c.nome ? "bg-accent font-medium" : ""}`}
                                 onClick={() => alterarCanalVenda(pedido.id, c.nome)}>
-                                
                                     {c.nome}
                                   </button>
                               )}
@@ -803,7 +846,7 @@ export default function Pedidos() {
                         <TableCell>
                           <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
                         </TableCell>
-                        <TableCell className="hidden md:table-cell text-muted-foreground text-xs">{pedido.data}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">{pedido.data}</TableCell>
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
