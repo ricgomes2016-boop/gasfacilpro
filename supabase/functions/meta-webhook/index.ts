@@ -73,16 +73,20 @@ serve(async (req) => {
           // Skip status updates
           if (!msg.from || !msg.type) continue;
 
-          // Loop protection: ignore system messages and messages from our own number
+          // COEXISTENCE LOOP PROTECTION
+          // Ignora mensagens do tipo system (notificações internas da Meta)
           if (msg.type === "system") {
-            console.log("Meta: skipping system message");
+            console.log("Meta: skipping system/internal message (coexistence)");
             continue;
           }
-          const ownNumbers = ["554335241094"];
-          if (ownNumbers.includes(msg.from.replace(/\D/g, ""))) {
-            console.log("Meta: skipping own number message from", msg.from);
+          // Ignora mensagens enviadas pelo próprio número do negócio (eco do App WhatsApp Business)
+          const BUSINESS_PHONE_LAST10 = "4335241094"; // +55 43 3524-1094
+          const senderLast10 = (msg.from || "").replace(/\D/g, "").slice(-10);
+          if (senderLast10 === BUSINESS_PHONE_LAST10) {
+            console.log("Meta: skipping echo from business number (coexistence):", msg.from);
             continue;
           }
+          // END COEXISTENCE LOOP PROTECTION
 
           const phone = msg.from; // Already in international format without +
           const senderName = value.contacts?.[0]?.profile?.name || "";
