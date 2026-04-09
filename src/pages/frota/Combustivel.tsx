@@ -307,7 +307,7 @@ export default function Combustivel() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Gasto Mensal</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader>
             <CardContent><div className="text-2xl font-bold">R$ {gastoMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="text-xs text-muted-foreground">Este mês</p></CardContent>
@@ -334,113 +334,127 @@ export default function Combustivel() {
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <CardTitle>Histórico de Abastecimentos</CardTitle>
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground whitespace-nowrap">De:</Label>
-                  <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="w-[140px] h-9" />
-                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Até:</Label>
-                  <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="w-[140px] h-9" />
+              <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full sm:w-auto">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">De:</Label>
+                    <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="h-9" />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Até:</Label>
+                    <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="h-9" />
+                  </div>
                 </div>
-                <Select value={filtroStatus} onValueChange={(v: any) => setFiltroStatus(v)}>
-                  <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    <SelectItem value="pendente">Pendentes</SelectItem>
-                    <SelectItem value="acertado">Acertados</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input placeholder="Buscar..." className="pl-10 w-[200px]" value={busca} onChange={(e) => setBusca(e.target.value)} />
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Select value={filtroStatus} onValueChange={(v: any) => setFiltroStatus(v)}>
+                    <SelectTrigger className="w-full sm:w-[150px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos</SelectItem>
+                      <SelectItem value="pendente">Pendentes</SelectItem>
+                      <SelectItem value="acertado">Acertados</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="relative flex-1 sm:flex-none">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input placeholder="Buscar..." className="pl-10 w-full sm:w-[200px]" value={busca} onChange={(e) => setBusca(e.target.value)} />
+                  </div>
+                  <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={gerarPDF}>
+                    <FileText className="h-4 w-4" /> PDF
+                  </Button>
                 </div>
-                <Button variant="outline" size="sm" className="gap-2" onClick={gerarPDF}>
-                  <FileText className="h-4 w-4" /> PDF
-                </Button>
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Origem</TableHead>
-                  <TableHead>Veículo</TableHead>
-                  <TableHead>Motorista</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Posto</TableHead>
-                  <TableHead>NF</TableHead>
-                  <TableHead>KM</TableHead>
-                  <TableHead>Litros</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Caixa</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.length === 0 && (
-                  <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground">Nenhum abastecimento encontrado</TableCell></TableRow>
-                )}
-                {filtered.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell>
-                      <Badge variant={a.status === "acertado" ? "default" : "secondary"}>
-                        {a.status === "acertado" ? "Acertado" : "Pendente"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {a.entregador_id ? (
-                        <Badge variant="outline" className="text-primary border-primary">
-                          📱 {(a.entregadores as any)?.nome || "Entregador"}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Gestão</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-medium">{(a.veiculos as any)?.placa || "-"}</TableCell>
-                    <TableCell>{a.motorista}</TableCell>
-                    <TableCell>{parseLocalDate(a.data).toLocaleDateString("pt-BR")}</TableCell>
-                    <TableCell>{a.posto || "-"}</TableCell>
-                    <TableCell>{a.nota_fiscal || "-"}</TableCell>
-                    <TableCell>{Number(a.km).toLocaleString("pt-BR")} km</TableCell>
-                    <TableCell>{Number(a.litros)} L</TableCell>
-                    <TableCell><Badge variant="outline">{a.tipo}</Badge></TableCell>
-                    <TableCell className="font-medium">R$ {Number(a.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                    <TableCell>
-                      {a.sem_saida_caixa ? (
-                        <Badge variant="outline" className="text-muted-foreground">Sem saída</Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Normal</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Excluir abastecimento?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Deseja excluir o abastecimento de {Number(a.litros)}L ({(a.veiculos as any)?.placa || "-"}) em {parseLocalDate(a.data).toLocaleDateString("pt-BR")}? Esta ação não pode ser desfeita.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => handleDelete(a.id)}>
-                              Excluir
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </TableCell>
+          <CardContent className="px-3 sm:px-6">
+            {/* Mobile cards */}
+            <div className="space-y-3 md:hidden">
+              {filtered.length === 0 && <p className="text-center py-8 text-muted-foreground">Nenhum abastecimento encontrado</p>}
+              {filtered.map((a) => (
+                <div key={a.id} className="border rounded-lg p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{(a.veiculos as any)?.placa || "-"} <span className="text-muted-foreground font-normal">• {a.motorista}</span></p>
+                      <p className="text-xs text-muted-foreground">{a.posto || "—"} • {parseLocalDate(a.data).toLocaleDateString("pt-BR")}</p>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir abastecimento?</AlertDialogTitle>
+                          <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={() => handleDelete(a.id)}>Excluir</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={a.status === "acertado" ? "default" : "secondary"} className="text-xs">{a.status === "acertado" ? "Acertado" : "Pendente"}</Badge>
+                      <Badge variant="outline" className="text-xs">{a.tipo}</Badge>
+                      <span className="text-xs text-muted-foreground">{Number(a.litros)}L</span>
+                    </div>
+                    <span className="font-bold text-sm">R$ {Number(a.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Origem</TableHead>
+                    <TableHead>Veículo</TableHead>
+                    <TableHead>Motorista</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Posto</TableHead>
+                    <TableHead>NF</TableHead>
+                    <TableHead>KM</TableHead>
+                    <TableHead>Litros</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Caixa</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filtered.length === 0 && (
+                    <TableRow><TableCell colSpan={13} className="text-center text-muted-foreground">Nenhum abastecimento encontrado</TableCell></TableRow>
+                  )}
+                  {filtered.map((a) => (
+                    <TableRow key={a.id}>
+                      <TableCell><Badge variant={a.status === "acertado" ? "default" : "secondary"}>{a.status === "acertado" ? "Acertado" : "Pendente"}</Badge></TableCell>
+                      <TableCell>{a.entregador_id ? <Badge variant="outline" className="text-primary border-primary">📱 {(a.entregadores as any)?.nome || "Entregador"}</Badge> : <span className="text-xs text-muted-foreground">Gestão</span>}</TableCell>
+                      <TableCell className="font-medium">{(a.veiculos as any)?.placa || "-"}</TableCell>
+                      <TableCell>{a.motorista}</TableCell>
+                      <TableCell>{parseLocalDate(a.data).toLocaleDateString("pt-BR")}</TableCell>
+                      <TableCell>{a.posto || "-"}</TableCell>
+                      <TableCell>{a.nota_fiscal || "-"}</TableCell>
+                      <TableCell>{Number(a.km).toLocaleString("pt-BR")} km</TableCell>
+                      <TableCell>{Number(a.litros)} L</TableCell>
+                      <TableCell><Badge variant="outline">{a.tipo}</Badge></TableCell>
+                      <TableCell className="font-medium">R$ {Number(a.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                      <TableCell>{a.sem_saida_caixa ? <Badge variant="outline" className="text-muted-foreground">Sem saída</Badge> : <span className="text-xs text-muted-foreground">Normal</span>}</TableCell>
+                      <TableCell>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader><AlertDialogTitle>Excluir abastecimento?</AlertDialogTitle><AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
+                            <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={() => handleDelete(a.id)}>Excluir</AlertDialogAction></AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

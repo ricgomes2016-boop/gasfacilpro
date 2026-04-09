@@ -178,7 +178,7 @@ export default function Comodatos() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="grid gap-2">
                     <Label>Quantidade</Label>
                     <Input type="number" min="1" value={form.quantidade} onChange={(e) => setForm({ ...form, quantidade: e.target.value })} />
@@ -220,8 +220,37 @@ export default function Comodatos() {
         {/* Tabela */}
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-base">Comodatos ({filtrados.length})</CardTitle></CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
+          <CardContent className="px-3 sm:px-6">
+            {/* Mobile cards */}
+            <div className="space-y-3 md:hidden">
+              {filtrados.length === 0 && <p className="text-center py-8 text-muted-foreground">Nenhum comodato encontrado</p>}
+              {filtrados.map((c: any) => {
+                const vencido = c.status === "ativo" && c.prazo_devolucao && parseLocalDate(c.prazo_devolucao) < new Date();
+                const diasRestantes = c.prazo_devolucao ? differenceInDays(parseLocalDate(c.prazo_devolucao), new Date()) : null;
+                return (
+                  <div key={c.id} className={`border rounded-lg p-3 ${vencido ? "border-destructive/30 bg-destructive/5" : ""}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{c.clientes?.nome || "—"}</p>
+                        <p className="text-xs text-muted-foreground">{c.produtos?.nome || "—"} • Qtd: {c.quantidade}</p>
+                      </div>
+                      {c.status === "ativo" ? (vencido ? <Badge variant="destructive" className="text-xs shrink-0">Vencido</Badge> : <Badge className="text-xs shrink-0">Ativo</Badge>) : <Badge variant="secondary" className="text-xs shrink-0">Devolvido</Badge>}
+                    </div>
+                    <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                      <span>Depósito: R$ {(c.deposito || 0).toFixed(2)}</span>
+                      <span>Prazo: {c.prazo_devolucao ? format(parseLocalDate(c.prazo_devolucao), "dd/MM/yy") : "—"}{diasRestantes !== null && c.status === "ativo" && ` (${diasRestantes > 0 ? `${diasRestantes}d` : `${Math.abs(diasRestantes)}d atrás`})`}</span>
+                    </div>
+                    {c.status === "ativo" && (
+                      <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => devolverComodato.mutate(c.id)} disabled={devolverComodato.isPending}>
+                        <RotateCcw className="h-3.5 w-3.5 mr-1" /> Devolver
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
@@ -259,11 +288,7 @@ export default function Comodatos() {
                           ) : "—"}
                         </TableCell>
                         <TableCell className="text-center">
-                          {c.status === "ativo" ? (
-                            vencido ? <Badge variant="destructive">Vencido</Badge> : <Badge>Ativo</Badge>
-                          ) : (
-                            <Badge variant="secondary">Devolvido</Badge>
-                          )}
+                          {c.status === "ativo" ? (vencido ? <Badge variant="destructive">Vencido</Badge> : <Badge>Ativo</Badge>) : <Badge variant="secondary">Devolvido</Badge>}
                         </TableCell>
                         <TableCell className="text-center">
                           {c.status === "ativo" && (

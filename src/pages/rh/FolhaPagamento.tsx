@@ -378,7 +378,7 @@ export default function FolhaPagamento() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total Bruto</CardTitle>
@@ -441,148 +441,138 @@ export default function FolhaPagamento() {
               <Badge variant={isFechada ? "secondary" : "default"}>{isFechada ? "Fechada" : "Em aberto"}</Badge>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 sm:px-6">
             {isLoading ? (
               <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
             ) : dadosFolha.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">Nenhum funcionário ativo cadastrado</p>
             ) : (
-              <div className="overflow-x-auto">
-                <TooltipProvider>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Funcionário</TableHead>
-                        <TableHead>Cargo</TableHead>
-                        <TableHead className="text-right">Salário</TableHead>
-                        <TableHead className="text-right">
-                          <span className="flex items-center justify-end gap-1">
-                            Periculosidade
-                            <Tooltip>
-                              <TooltipTrigger><Info className="h-3 w-3 text-muted-foreground" /></TooltipTrigger>
-                              <TooltipContent>30% do salário base</TooltipContent>
-                            </Tooltip>
-                          </span>
-                        </TableHead>
-                        <TableHead className="text-right">H. Extras</TableHead>
-                        <TableHead className="text-right">Comissão</TableHead>
-                        <TableHead className="text-right">Bônus</TableHead>
-                        <TableHead className="text-right">Bruto</TableHead>
-                        <TableHead className="text-right">
-                          <span className="flex items-center justify-end gap-1">
-                            INSS
-                            <Tooltip>
-                              <TooltipTrigger><Info className="h-3 w-3 text-muted-foreground" /></TooltipTrigger>
-                              <TooltipContent>Editável. Padrão: 8,09% sobre salário + periculosidade</TooltipContent>
-                            </Tooltip>
-                          </span>
-                        </TableHead>
-                        <TableHead className="text-right">IR</TableHead>
-                        <TableHead className="text-right">Vales</TableHead>
-                        <TableHead className="text-right">Outros</TableHead>
-                        <TableHead className="text-right font-bold">Líquido</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {dadosFolha.map((func) => (
-                        <TableRow key={func.id}>
-                          <TableCell className="font-medium">{func.funcionario}</TableCell>
-                          <TableCell>{func.cargo}</TableCell>
-                          <TableCell className="text-right">R$ {fmt(func.salarioBase)}</TableCell>
-                          <TableCell className="text-right text-success">
-                            {func.periculosidade > 0 ? `+ R$ ${fmt(func.periculosidade)}` : "-"}
-                          </TableCell>
-                          <TableCell className="text-right text-success">
-                            {func.horasExtras > 0 ? `+ R$ ${fmt(func.horasExtras)}` : "-"}
-                          </TableCell>
-                          <TableCell className="text-right text-success">
-                            {func.comissao > 0 ? `+ R$ ${fmt(func.comissao)}` : "-"}
-                          </TableCell>
-                          <TableCell className="text-right text-success">
-                            {func.bonusVal > 0 ? `+ R$ ${fmt(func.bonusVal)}` : "-"}
-                          </TableCell>
-                          <TableCell className="text-right font-medium">R$ {fmt(func.bruto)}</TableCell>
-                          <TableCell className="text-right">
-                            {isFechada ? (
-                              <span className="text-sm">R$ {fmt(func.inss)}</span>
-                            ) : (
-                              <Input
-                                type="number"
-                                className="w-20 h-7 text-xs text-right ml-auto"
-                                placeholder={String(Math.round((func.salarioBase + func.periculosidade) * 0.0809 * 100) / 100)}
-                                value={descontosEdit[func.id]?.inss ?? ""}
-                                onChange={e => updateDesconto(func.id, "inss", e.target.value)}
-                              />
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {isFechada ? (
-                              <span className="text-sm">R$ {fmt(func.ir)}</span>
-                            ) : (
-                              <Input
-                                type="number"
-                                className="w-20 h-7 text-xs text-right ml-auto"
-                                placeholder="0"
-                                value={descontosEdit[func.id]?.ir ?? ""}
-                                onChange={e => updateDesconto(func.id, "ir", e.target.value)}
-                              />
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right text-destructive">
-                            {func.valesDesconto > 0 ? (
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <span className="cursor-help underline decoration-dotted">- R$ {fmt(func.valesDesconto)}</span>
-                                </TooltipTrigger>
-                                <TooltipContent>Vales/adiantamentos pendentes do mês</TooltipContent>
-                              </Tooltip>
-                            ) : "-"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {isFechada ? (
-                              <span className="text-sm">R$ {fmt(func.outros)}</span>
-                            ) : (
-                              <Input
-                                type="number"
-                                className="w-20 h-7 text-xs text-right ml-auto"
-                                placeholder="0"
-                                value={descontosEdit[func.id]?.outros ?? ""}
-                                onChange={e => updateDesconto(func.id, "outros", e.target.value)}
-                              />
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right font-bold text-primary">
-                            R$ {fmt(func.liquido)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" className="gap-1" onClick={() => handlePrintRecibo(func)}>
-                              <Printer className="h-3 w-3" />
-                            </Button>
-                          </TableCell>
+              <>
+                {/* Mobile cards */}
+                <div className="space-y-3 md:hidden">
+                  {dadosFolha.map((func) => (
+                    <div key={func.id} className="border rounded-lg p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{func.funcionario}</p>
+                          <p className="text-xs text-muted-foreground">{func.cargo}</p>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handlePrintRecibo(func)}>
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs">
+                        <div className="flex justify-between"><span className="text-muted-foreground">Salário</span><span>R$ {fmt(func.salarioBase)}</span></div>
+                        <div className="flex justify-between"><span className="text-muted-foreground">Bruto</span><span className="font-medium">R$ {fmt(func.bruto)}</span></div>
+                        {func.comissao > 0 && <div className="flex justify-between text-success"><span>Comissão</span><span>+ R$ {fmt(func.comissao)}</span></div>}
+                        {func.horasExtras > 0 && <div className="flex justify-between text-success"><span>H. Extras</span><span>+ R$ {fmt(func.horasExtras)}</span></div>}
+                        <div className="flex justify-between text-destructive"><span>Descontos</span><span>- R$ {fmt(func.totalDescontos)}</span></div>
+                      </div>
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t">
+                        <span className="text-xs text-muted-foreground">Líquido</span>
+                        <span className="font-bold text-primary">R$ {fmt(func.liquido)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {/* Mobile total */}
+                  <div className="border rounded-lg p-3 bg-muted/50">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold">Total Líquido ({dadosFolha.length} func.)</span>
+                      <span className="text-lg font-bold text-primary">R$ {fmt(totalLiquido)}</span>
+                    </div>
+                  </div>
+                </div>
+                {/* Desktop table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <TooltipProvider>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Funcionário</TableHead>
+                          <TableHead>Cargo</TableHead>
+                          <TableHead className="text-right">Salário</TableHead>
+                          <TableHead className="text-right">
+                            <span className="flex items-center justify-end gap-1">
+                              Periculosidade
+                              <Tooltip><TooltipTrigger><Info className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent>30% do salário base</TooltipContent></Tooltip>
+                            </span>
+                          </TableHead>
+                          <TableHead className="text-right">H. Extras</TableHead>
+                          <TableHead className="text-right">Comissão</TableHead>
+                          <TableHead className="text-right">Bônus</TableHead>
+                          <TableHead className="text-right">Bruto</TableHead>
+                          <TableHead className="text-right">
+                            <span className="flex items-center justify-end gap-1">
+                              INSS
+                              <Tooltip><TooltipTrigger><Info className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent>Editável. Padrão: 8,09% sobre salário + periculosidade</TooltipContent></Tooltip>
+                            </span>
+                          </TableHead>
+                          <TableHead className="text-right">IR</TableHead>
+                          <TableHead className="text-right">Vales</TableHead>
+                          <TableHead className="text-right">Outros</TableHead>
+                          <TableHead className="text-right font-bold">Líquido</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                    <TableFooter>
-                      <TableRow className="bg-muted/50 font-bold">
-                        <TableCell colSpan={2}>Total</TableCell>
-                        <TableCell className="text-right">R$ {fmt(dadosFolha.reduce((a, f) => a + f.salarioBase, 0))}</TableCell>
-                        <TableCell className="text-right text-success">R$ {fmt(dadosFolha.reduce((a, f) => a + f.periculosidade, 0))}</TableCell>
-                        <TableCell className="text-right text-success">R$ {fmt(dadosFolha.reduce((a, f) => a + f.horasExtras, 0))}</TableCell>
-                        <TableCell className="text-right text-success">R$ {fmt(totalComissoes)}</TableCell>
-                        <TableCell className="text-right text-success">R$ {fmt(dadosFolha.reduce((a, f) => a + f.bonusVal, 0))}</TableCell>
-                        <TableCell className="text-right">R$ {fmt(totalBruto)}</TableCell>
-                        <TableCell className="text-right text-destructive">R$ {fmt(dadosFolha.reduce((a, f) => a + f.inss, 0))}</TableCell>
-                        <TableCell className="text-right text-destructive">R$ {fmt(dadosFolha.reduce((a, f) => a + f.ir, 0))}</TableCell>
-                        <TableCell className="text-right text-destructive">R$ {fmt(dadosFolha.reduce((a, f) => a + f.valesDesconto, 0))}</TableCell>
-                        <TableCell className="text-right text-destructive">R$ {fmt(dadosFolha.reduce((a, f) => a + f.outros, 0))}</TableCell>
-                        <TableCell className="text-right text-primary">R$ {fmt(totalLiquido)}</TableCell>
-                        <TableCell />
-                      </TableRow>
-                    </TableFooter>
-                  </Table>
-                </TooltipProvider>
-              </div>
+                      </TableHeader>
+                      <TableBody>
+                        {dadosFolha.map((func) => (
+                          <TableRow key={func.id}>
+                            <TableCell className="font-medium">{func.funcionario}</TableCell>
+                            <TableCell>{func.cargo}</TableCell>
+                            <TableCell className="text-right">R$ {fmt(func.salarioBase)}</TableCell>
+                            <TableCell className="text-right text-success">{func.periculosidade > 0 ? `+ R$ ${fmt(func.periculosidade)}` : "-"}</TableCell>
+                            <TableCell className="text-right text-success">{func.horasExtras > 0 ? `+ R$ ${fmt(func.horasExtras)}` : "-"}</TableCell>
+                            <TableCell className="text-right text-success">{func.comissao > 0 ? `+ R$ ${fmt(func.comissao)}` : "-"}</TableCell>
+                            <TableCell className="text-right text-success">{func.bonusVal > 0 ? `+ R$ ${fmt(func.bonusVal)}` : "-"}</TableCell>
+                            <TableCell className="text-right font-medium">R$ {fmt(func.bruto)}</TableCell>
+                            <TableCell className="text-right">
+                              {isFechada ? <span className="text-sm">R$ {fmt(func.inss)}</span> : (
+                                <Input type="number" className="w-20 h-7 text-xs text-right ml-auto" placeholder={String(Math.round((func.salarioBase + func.periculosidade) * 0.0809 * 100) / 100)} value={descontosEdit[func.id]?.inss ?? ""} onChange={e => updateDesconto(func.id, "inss", e.target.value)} />
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {isFechada ? <span className="text-sm">R$ {fmt(func.ir)}</span> : (
+                                <Input type="number" className="w-20 h-7 text-xs text-right ml-auto" placeholder="0" value={descontosEdit[func.id]?.ir ?? ""} onChange={e => updateDesconto(func.id, "ir", e.target.value)} />
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right text-destructive">
+                              {func.valesDesconto > 0 ? (
+                                <Tooltip><TooltipTrigger><span className="cursor-help underline decoration-dotted">- R$ {fmt(func.valesDesconto)}</span></TooltipTrigger><TooltipContent>Vales/adiantamentos pendentes do mês</TooltipContent></Tooltip>
+                              ) : "-"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {isFechada ? <span className="text-sm">R$ {fmt(func.outros)}</span> : (
+                                <Input type="number" className="w-20 h-7 text-xs text-right ml-auto" placeholder="0" value={descontosEdit[func.id]?.outros ?? ""} onChange={e => updateDesconto(func.id, "outros", e.target.value)} />
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right font-bold text-primary">R$ {fmt(func.liquido)}</TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="sm" className="gap-1" onClick={() => handlePrintRecibo(func)}><Printer className="h-3 w-3" /></Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                      <TableFooter>
+                        <TableRow className="bg-muted/50 font-bold">
+                          <TableCell colSpan={2}>Total</TableCell>
+                          <TableCell className="text-right">R$ {fmt(dadosFolha.reduce((a, f) => a + f.salarioBase, 0))}</TableCell>
+                          <TableCell className="text-right text-success">R$ {fmt(dadosFolha.reduce((a, f) => a + f.periculosidade, 0))}</TableCell>
+                          <TableCell className="text-right text-success">R$ {fmt(dadosFolha.reduce((a, f) => a + f.horasExtras, 0))}</TableCell>
+                          <TableCell className="text-right text-success">R$ {fmt(totalComissoes)}</TableCell>
+                          <TableCell className="text-right text-success">R$ {fmt(dadosFolha.reduce((a, f) => a + f.bonusVal, 0))}</TableCell>
+                          <TableCell className="text-right">R$ {fmt(totalBruto)}</TableCell>
+                          <TableCell className="text-right text-destructive">R$ {fmt(dadosFolha.reduce((a, f) => a + f.inss, 0))}</TableCell>
+                          <TableCell className="text-right text-destructive">R$ {fmt(dadosFolha.reduce((a, f) => a + f.ir, 0))}</TableCell>
+                          <TableCell className="text-right text-destructive">R$ {fmt(dadosFolha.reduce((a, f) => a + f.valesDesconto, 0))}</TableCell>
+                          <TableCell className="text-right text-destructive">R$ {fmt(dadosFolha.reduce((a, f) => a + f.outros, 0))}</TableCell>
+                          <TableCell className="text-right text-primary">R$ {fmt(totalLiquido)}</TableCell>
+                          <TableCell />
+                        </TableRow>
+                      </TableFooter>
+                    </Table>
+                  </TooltipProvider>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
