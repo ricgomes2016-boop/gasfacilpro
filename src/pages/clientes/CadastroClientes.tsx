@@ -160,25 +160,6 @@ export default function CadastroClientesCad() {
     fetchClientes();
   }, [empresa?.id, unidadeAtual?.id]);
 
-  const fetchAllPaginated = async (table: string, column: string, filterCol: string, filterVal: string) => {
-    const allRows: any[] = [];
-    const pageSize = 1000;
-    let from = 0;
-    let hasMore = true;
-    while (hasMore) {
-      const { data, error } = await supabase
-        .from(table)
-        .select(column)
-        .eq(filterCol, filterVal)
-        .range(from, from + pageSize - 1);
-      if (error) throw error;
-      allRows.push(...(data || []));
-      hasMore = (data?.length || 0) === pageSize;
-      from += pageSize;
-    }
-    return allRows;
-  };
-
   const fetchClientes = async () => {
     if (!empresa?.id) {
       setClientes([]);
