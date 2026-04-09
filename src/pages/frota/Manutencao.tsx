@@ -423,7 +423,7 @@ export default function Manutencao() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Gasto Total</CardTitle>
@@ -489,64 +489,80 @@ export default function Manutencao() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Veículo</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Oficina</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>KM</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.length === 0 && (
-                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">Nenhuma manutenção registrada</TableCell></TableRow>
-                )}
-                {filtered.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {m.status === "Concluída" && <CheckCircle2 className="h-3 w-3 text-green-600" />}
-                        {m.status === "Em andamento" && <Wrench className="h-3 w-3 text-orange-600" />}
-                        {m.status === "Agendada" && <Clock className="h-3 w-3 text-blue-600" />}
-                        {m.status === "Paga" && <DollarSign className="h-3 w-3 text-muted-foreground" />}
-                        <Badge variant={
-                          m.status === "Concluída" ? "default" :
-                          m.status === "Em andamento" ? "secondary" :
-                          m.status === "Paga" ? "outline" : "outline"
-                        }>{m.status}</Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{(m.veiculos as any)?.placa || "-"}</TableCell>
-                    <TableCell>
-                      <Badge variant={m.tipo === "Preventiva" ? "secondary" : "destructive"}>{m.tipo}</Badge>
-                    </TableCell>
-                    <TableCell className="max-w-[250px] truncate">{m.descricao}</TableCell>
-                    <TableCell>{m.oficina}</TableCell>
-                    <TableCell>{parseLocalDate(m.data).toLocaleDateString("pt-BR")}</TableCell>
-                    <TableCell className="font-medium">R$ {Number(m.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(m)} title="Editar">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        {m.status !== "Paga" && (
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(m.id)} title="Excluir">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
+          <CardContent className="px-3 sm:px-6">
+            {/* Mobile cards */}
+            <div className="space-y-3 md:hidden">
+              {filtered.length === 0 && <p className="text-center py-8 text-muted-foreground">Nenhuma manutenção registrada</p>}
+              {filtered.map((m) => (
+                <div key={m.id} className="border rounded-lg p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{m.descricao}</p>
+                      <p className="text-xs text-muted-foreground">{(m.veiculos as any)?.placa || "-"} • {m.oficina}</p>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(m)}><Edit className="h-4 w-4" /></Button>
+                      {m.status !== "Paga" && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(m.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={m.status === "Concluída" ? "default" : m.status === "Em andamento" ? "secondary" : "outline"} className="text-xs">{m.status}</Badge>
+                      <Badge variant={m.tipo === "Preventiva" ? "secondary" : "destructive"} className="text-xs">{m.tipo}</Badge>
+                    </div>
+                    <span className="font-bold text-sm">R$ {Number(m.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{parseLocalDate(m.data).toLocaleDateString("pt-BR")}</p>
+                </div>
+              ))}
+            </div>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Veículo</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Oficina</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filtered.length === 0 && (
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">Nenhuma manutenção registrada</TableCell></TableRow>
+                  )}
+                  {filtered.map((m) => (
+                    <TableRow key={m.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {m.status === "Concluída" && <CheckCircle2 className="h-3 w-3 text-green-600" />}
+                          {m.status === "Em andamento" && <Wrench className="h-3 w-3 text-orange-600" />}
+                          {m.status === "Agendada" && <Clock className="h-3 w-3 text-blue-600" />}
+                          {m.status === "Paga" && <DollarSign className="h-3 w-3 text-muted-foreground" />}
+                          <Badge variant={m.status === "Concluída" ? "default" : m.status === "Em andamento" ? "secondary" : m.status === "Paga" ? "outline" : "outline"}>{m.status}</Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">{(m.veiculos as any)?.placa || "-"}</TableCell>
+                      <TableCell><Badge variant={m.tipo === "Preventiva" ? "secondary" : "destructive"}>{m.tipo}</Badge></TableCell>
+                      <TableCell className="max-w-[250px] truncate">{m.descricao}</TableCell>
+                      <TableCell>{m.oficina}</TableCell>
+                      <TableCell>{parseLocalDate(m.data).toLocaleDateString("pt-BR")}</TableCell>
+                      <TableCell className="font-medium">R$ {Number(m.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => handleEdit(m)}><Edit className="h-4 w-4" /></Button>
+                          {m.status !== "Paga" && <Button variant="ghost" size="icon" onClick={() => handleDelete(m.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
