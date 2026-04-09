@@ -73,6 +73,17 @@ serve(async (req) => {
           // Skip status updates
           if (!msg.from || !msg.type) continue;
 
+          // Loop protection: ignore system messages and messages from our own number
+          if (msg.type === "system") {
+            console.log("Meta: skipping system message");
+            continue;
+          }
+          const ownNumbers = ["554335241094"];
+          if (ownNumbers.includes(msg.from.replace(/\D/g, ""))) {
+            console.log("Meta: skipping own number message from", msg.from);
+            continue;
+          }
+
           const phone = msg.from; // Already in international format without +
           const senderName = value.contacts?.[0]?.profile?.name || "";
           const messageId = msg.id || `meta_${phone}_${Date.now()}`;
