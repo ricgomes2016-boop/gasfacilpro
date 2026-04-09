@@ -160,6 +160,25 @@ export default function CadastroClientesCad() {
     fetchClientes();
   }, [empresa?.id, unidadeAtual?.id]);
 
+  const fetchAllPaginated = async (table: string, column: string, filterCol: string, filterVal: string) => {
+    const allRows: any[] = [];
+    const pageSize = 1000;
+    let from = 0;
+    let hasMore = true;
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from(table)
+        .select(column)
+        .eq(filterCol, filterVal)
+        .range(from, from + pageSize - 1);
+      if (error) throw error;
+      allRows.push(...(data || []));
+      hasMore = (data?.length || 0) === pageSize;
+      from += pageSize;
+    }
+    return allRows;
+  };
+
   const fetchClientes = async () => {
     if (!empresa?.id) {
       setClientes([]);
@@ -169,17 +188,11 @@ export default function CadastroClientesCad() {
     }
 
     try {
-      // If unidade is selected, filter by cliente_unidades
+      // If unidade is selected, filter by cliente_unidades (paginated)
       let clienteIds: string[] | null = null;
       if (unidadeAtual?.id) {
-        const { data: cuData, error: cuError } = await supabase
-          .from("cliente_unidades")
-          .select("cliente_id")
-          .eq("unidade_id", unidadeAtual.id);
-
-        if (cuError) throw cuError;
-
-        clienteIds = (cuData || []).map((cu: any) => cu.cliente_id);
+        const cuData = await fetchAllPaginated("cliente_unidades", "cliente_id", "unidade_id", unidadeAtual.id);
+        clienteIds = cuData.map((cu: any) => cu.cliente_id);
 
         if (clienteIds.length === 0) {
           setClientes([]);
@@ -189,22 +202,48 @@ export default function CadastroClientesCad() {
         }
       }
 
-      let query = supabase
-        .from("clientes")
-        .select("*")
-        .eq("empresa_id", empresa.id)
-        .order("created_at", { ascending: false });
+      // Fetch all clientes paginated
+      const allClientes: any[] = [];
+      const pageSize = 1000;
+      let from = 0;
+      let hasMore = true;
 
-      if (clienteIds) {
-        query = query.in("id", clienteIds);
+      while (hasMore) {
+        let query = supabase
+          .from("clientes")
+          .select("*")
+          .eq("empresa_id", empresa.id)
+          .order("created_at", { ascending: false })
+          .range(from, from + pageSize - 1);
+
+        if (clienteIds) {
+          // Split large IN queries into batches to avoid URL size limits
+          const batchIds = clienteIds.slice(from, from + pageSize);
+          if (batchIds.length === 0) break;
+          query = supabase
+            .from("clientes")
+            .select("*")
+            .eq("empresa_id", empresa.id)
+            .in("id", batchIds)
+            .order("created_at", { ascending: false });
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        allClientes.push(...(data || []));
+        
+        if (clienteIds) {
+          // When using IN batching, check if we've processed all IDs
+          from += pageSize;
+          hasMore = from < clienteIds.length;
+        } else {
+          hasMore = (data?.length || 0) === pageSize;
+          from += pageSize;
+        }
       }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
-
       // Check which clients have app accounts by matching emails with profiles
-      const clientEmails = (data || []).filter(c => c.email).map(c => c.email!);
+      const clientEmails = allClientes.filter(c => c.email).map(c => c.email!);
       const appEmailSet = new Set<string>();
       if (clientEmails.length > 0) {
         const batchSize = 50;
@@ -220,7 +259,7 @@ export default function CadastroClientesCad() {
         }
       }
 
-      const enriched = (data || []).map(c => ({
+      const enriched = allClientes.map(c => ({
         ...c,
         cadastro_app: !!(c.email && appEmailSet.has(c.email.toLowerCase())),
       }));
