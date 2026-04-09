@@ -172,8 +172,23 @@ export default function CadastroClientesCad() {
       // If unidade is selected, filter by cliente_unidades (paginated)
       let clienteIds: string[] | null = null;
       if (unidadeAtual?.id) {
-        const cuData = await fetchAllPaginated("cliente_unidades", "cliente_id", "unidade_id", unidadeAtual.id);
-        clienteIds = cuData.map((cu: any) => cu.cliente_id);
+        // Paginate to get all cliente_unidades (Supabase default limit is 1000)
+        const allCu: any[] = [];
+        let cuFrom = 0;
+        const cuPageSize = 1000;
+        let cuHasMore = true;
+        while (cuHasMore) {
+          const { data: cuPage, error: cuError } = await supabase
+            .from("cliente_unidades")
+            .select("cliente_id")
+            .eq("unidade_id", unidadeAtual.id)
+            .range(cuFrom, cuFrom + cuPageSize - 1);
+          if (cuError) throw cuError;
+          allCu.push(...(cuPage || []));
+          cuHasMore = (cuPage?.length || 0) === cuPageSize;
+          cuFrom += cuPageSize;
+        }
+        clienteIds = allCu.map((cu: any) => cu.cliente_id);
 
         if (clienteIds.length === 0) {
           setClientes([]);
