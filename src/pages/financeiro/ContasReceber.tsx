@@ -776,28 +776,28 @@ export default function ContasReceber() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50">
             <TabsTrigger value="todos" className="text-xs gap-1">
-              <Wallet className="h-3.5 w-3.5" />Todos
+              <Wallet className="h-3.5 w-3.5" /><span className="hidden sm:inline">Todos</span><span className="sm:hidden">All</span>
             </TabsTrigger>
             <TabsTrigger value="cartoes" className="text-xs gap-1">
-              <CreditCard className="h-3.5 w-3.5" />Cartões{renderTabBadge("cartoes")}
+              <CreditCard className="h-3.5 w-3.5" /><span className="hidden sm:inline">Cartões</span>{renderTabBadge("cartoes")}
             </TabsTrigger>
             <TabsTrigger value="pix_maquininha" className="text-xs gap-1">
-              <Banknote className="h-3.5 w-3.5" />PIX Maq.{renderTabBadge("pix_maquininha")}
+              <Banknote className="h-3.5 w-3.5" /><span className="hidden sm:inline">PIX Maq.</span>{renderTabBadge("pix_maquininha")}
             </TabsTrigger>
             <TabsTrigger value="cheques" className="text-xs gap-1">
-              <FileText className="h-3.5 w-3.5" />Cheques{renderTabBadge("cheques")}
+              <FileText className="h-3.5 w-3.5" /><span className="hidden sm:inline">Cheques</span>{renderTabBadge("cheques")}
             </TabsTrigger>
             <TabsTrigger value="fiado" className="text-xs gap-1">
-              <Handshake className="h-3.5 w-3.5" />Fiado{renderTabBadge("fiado")}
+              <Handshake className="h-3.5 w-3.5" /><span className="hidden sm:inline">Fiado</span>{renderTabBadge("fiado")}
             </TabsTrigger>
             <TabsTrigger value="boletos" className="text-xs gap-1">
-              <Receipt className="h-3.5 w-3.5" />Boletos{renderTabBadge("boletos")}
+              <Receipt className="h-3.5 w-3.5" /><span className="hidden sm:inline">Boletos</span>{renderTabBadge("boletos")}
             </TabsTrigger>
             <TabsTrigger value="vale_gas" className="text-xs gap-1">
-              <Flame className="h-3.5 w-3.5" />Vale Gás{renderTabBadge("vale_gas")}
+              <Flame className="h-3.5 w-3.5" /><span className="hidden sm:inline">Vale Gás</span>{renderTabBadge("vale_gas")}
             </TabsTrigger>
             <TabsTrigger value="conferencia" className="text-xs gap-1">
-              <CreditCard className="h-3.5 w-3.5" />Conferência
+              <CreditCard className="h-3.5 w-3.5" /><span className="hidden sm:inline">Conferência</span>
             </TabsTrigger>
           </TabsList>
 
