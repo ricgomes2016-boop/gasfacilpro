@@ -162,7 +162,32 @@ export default function HistoricoMovimentacoes() {
             <CardTitle className="text-base">{filtradas.length} movimentações encontradas</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+           {/* Mobile cards */}
+            <div className="space-y-3 md:hidden px-3 pb-3">
+              {filtradas.length === 0 ? (
+                <p className="text-center py-8 text-muted-foreground">Nenhuma movimentação encontrada</p>
+              ) : filtradas.map((m: any) => (
+                <div key={m.id} className="border rounded-lg p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {tipoIcon(m.tipo)}
+                      <p className="text-sm font-medium truncate">{m.produtos?.nome || "—"}</p>
+                    </div>
+                    <span className={`font-bold text-sm ${m.tipo === "entrada" ? "text-green-600" : "text-destructive"}`}>
+                      {m.tipo === "entrada" ? "+" : "-"}{m.quantidade}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between mt-1.5">
+                    {tipoBadge(m.tipo)}
+                    <span className="text-[10px] text-muted-foreground">{format(new Date(m.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}</span>
+                  </div>
+                  {m.observacoes && <p className="text-xs text-muted-foreground mt-1 truncate">{m.observacoes}</p>}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="overflow-x-auto hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
