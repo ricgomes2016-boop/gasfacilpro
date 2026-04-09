@@ -1,34 +1,26 @@
 
 
-## Plano: Site Institucional Central Gás em `/centralgascp`
+## Plano: Importar 6.475 clientes para Japa Gas - Maria Madalena
 
-### O que será criado
+### Contexto
+- **Empresa**: Japa Gas - Maria Madalena de Moura (`fb256438-...`)
+- **Unidade**: Matriz (`36e09f4a-...`)
+- **CSV**: 6.475 registros com id, nome, cpf, telefone, email, endereço, etc.
+- **Clientes atuais no banco**: 985
 
-Uma página pública institucional para a **Central Gás** acessível em `/centralgascp`, com design moderno e responsivo.
+### O que será feito
 
-### Estrutura da página
-
-1. **Header** — Logo/nome "Central Gás", navegação âncora (Sobre, Serviços, Contato)
-2. **Hero** — Título chamativo, subtítulo sobre entrega de gás em Cornélio Procópio, botão CTA para WhatsApp
-3. **Sobre** — Breve apresentação da empresa
-4. **Serviços** — Cards com serviços oferecidos (Gás P13, P45, água, entrega rápida, etc.)
-5. **Diferenciais** — Entrega rápida, atendimento 24h, pagamento facilitado
-6. **Contato** — Telefone (43 3524-1094), WhatsApp, endereço, horário de funcionamento
-7. **Footer** — Copyright e links
-
-### Arquivos
-
-| Arquivo | Ação |
-|---------|------|
-| `src/pages/publico/CentralGasCP.tsx` | Criar — página institucional completa |
-| `src/App.tsx` | Editar — adicionar rota pública `/centralgascp` |
+1. **Script Python** para ler o CSV e inserir os clientes via Supabase API em lotes de 50
+2. Para cada cliente:
+   - Definir `empresa_id` = `fb256438-642d-42a3-ba8f-b3183aa13162`
+   - Inserir na tabela `clientes`
+   - Criar vínculo na tabela `cliente_unidades` com a unidade Matriz
+3. Os IDs do CSV serão preservados (campo `id` já preenchido)
+4. Campos importados: nome, cpf, telefone, email, endereco, bairro, cidade, cep, latitude, longitude, tipo, numero, ativo
+5. Ao final, relatório com total importado e eventuais erros
 
 ### Detalhes técnicos
-
-- Página pública, sem autenticação necessária
-- Rota adicionada junto às demais rotas públicas no App.tsx
-- Design standalone (não usa MainLayout/TransportadoraLayout)
-- Cores em tons de azul/laranja alinhadas à identidade visual de gás
-- Totalmente responsivo (mobile-first)
-- Botão WhatsApp flutuante com link direto para o número 43 3524-1094
+- Inserção via `supabase-py` ou chamadas REST diretas em lotes de 50
+- Upsert pelo `id` para evitar duplicatas caso algum já exista
+- Associação em `cliente_unidades` com `ON CONFLICT DO NOTHING`
 
