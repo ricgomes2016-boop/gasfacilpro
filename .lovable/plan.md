@@ -1,49 +1,32 @@
 
-Diagnóstico
-- Verifiquei a rota real do sistema publicado: `/clientes/cadastro` carrega `src/pages/clientes/CadastroClientes.tsx` via `src/routes/clientesRoutes.ts`.
-- Existe um segundo formulário em `src/components/clientes/ClienteFormDialog.tsx`, mas ele é usado por `src/pages/Clientes.tsx`, que não é a rota principal publicada do ERP. Então o modal que realmente importa para `app.gasfacilpro.com.br` é o inline de `CadastroClientes.tsx`.
-- Não há sinal de diferença de banco causando isso. Esse problema é de interface/CSS; os dados do banco não controlam largura nem responsividade do modal.
-- O ponto mais provável está no componente base `src/components/ui/dialog.tsx`, que ainda tem classes móveis conflitantes:
-```text
-base do DialogContent: w-[95vw] max-w-lg
-modal da página:       max-w-[95vw] sm:max-w-2xl
-```
-Essas regras de `max-width` ficam no mesmo elemento. No preview uma pode “ganhar”; no build publicado outra pode prevalecer. Isso explica o comportamento “preview certo / publicado diferente”.
 
-Plano de correção
-1. Corrigir o `DialogContent` global
-- Atualizar `src/components/ui/dialog.tsx` para o padrão mobile do ERP, removendo o conflito de largura no mobile.
-- Deixar o mobile resolvido no componente base e usar sobrescrita apenas a partir de `sm`.
+## Historico de Percurso no Mapa Operacional
 
-2. Ajustar o modal real da rota publicada
-- Em `src/pages/clientes/CadastroClientes.tsx`, manter somente o ajuste de desktop (`sm:max-w-2xl`) e parar de disputar `max-width` no mobile com o componente base.
-- Preservar `overflow-x-hidden`, `min-w-0`, grids empilhando em telas pequenas e botões em coluna no celular.
+### Problema
+O `MapaOperacional.tsx` ja tem `showPercurso` no state e passa as props `percurso` e `showPercurso` ao `DeliveryRoutesMap`, porem `percurso` esta sempre `[]` -- nunca busca dados. A logica completa ja existe no `MapaEntregadores.tsx` (linhas 98-129).
 
-3. Sincronizar o segundo cadastro de cliente
-- Aplicar o mesmo padrão em `src/components/clientes/ClienteFormDialog.tsx` para evitar nova divergência entre os dois formulários.
+### Plano
 
-4. Garantia de funcionamento
-- Gerar build para validar o CSS de produção.
-- Publicar novamente.
-- Validar especificamente em largura de 384px:
-  - abrir `/clientes/cadastro`
-  - clicar em “Novo Cliente”
-  - confirmar que não existe scroll horizontal
-  - confirmar que todos os campos e botões ficam dentro da tela
+**1. Adicionar fetch de percurso em `MapaOperacional.tsx`**
+- Importar `PercursoPonto` de `DeliveryRoutesMap`
+- Adicionar state `percurso` (useState)
+- Copiar o useEffect de fetch do `MapaEntregadores.tsx` que consulta `rotas` (rota ativa do entregador) e depois `rota_historico` (pontos GPS)
+- Ativar `showPercurso` automaticamente quando um entregador e selecionado
+- Passar o state `percurso` real no lugar de `[]`
 
-5. Se ainda houver diferença após isso
-- Comparar a versão publicada no domínio Lovable com `app.gasfacilpro.com.br` para verificar propagação/caching do domínio customizado.
-- Mas primeiro vou eliminar o conflito de classes, porque hoje ele é a causa mais provável e está no código.
+**2. Adicionar botao "Ver Percurso" no painel lateral de entregadores**
+- Ao clicar em um entregador, mostrar um botao/toggle "Trajeto do dia" com icone `Route`
+- Toggle alterna `showPercurso` e dispara o fetch
 
-Detalhe técnico
-- A correção principal não é no banco.
-- A correção principal também não é no conteúdo dos campos.
-- A correção principal é tornar o `DialogContent` determinístico em produção, por exemplo neste padrão:
-```text
-Dialog base:
-w-[calc(100vw-1rem)] max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto
+**3. Nenhuma alteracao de banco necessaria**
+- As tabelas `rotas` e `rota_historico` ja existem com as colunas corretas (latitude, longitude, timestamp)
+- O componente `DeliveryRoutesMap` ja renderiza Polyline e marcadores de percurso
 
-Modal de clientes:
-sm:max-w-2xl overflow-x-hidden
-```
-Assim o mobile deixa de depender de duas classes concorrendo pelo mesmo `max-width`, o que é exatamente o tipo de diferença que pode aparecer entre preview e publicado.
+### Arquivos editados
+| Arquivo | Alteracao |
+|---------|-----------|
+| `src/pages/operacional/MapaOperacional.tsx` | Adicionar state `percurso`, useEffect de fetch, botao toggle, passar props reais |
+
+### Resultado
+Ao selecionar um entregador no mapa operacional e ativar "Trajeto do dia", o mapa mostrara a linha do percurso completo com pontos numerados e horarios, usando os dados reais de `rota_historico`.
+
