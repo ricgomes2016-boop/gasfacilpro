@@ -95,77 +95,80 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="w-[95vw] sm:max-w-lg p-3 sm:p-6">
           <DialogHeader>
-            <DialogTitle>{editId ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">{editId ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               {editId ? "Atualize os dados do cliente" : "Preencha os dados do novo cliente"}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-2 max-h-[60vh] overflow-y-auto pr-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="sm:col-span-2 grid gap-1.5">
-                <Label>Nome *</Label>
-                <Input value={form.nome} onChange={(e) => update("nome", e.target.value)} placeholder="Nome completo" />
+          <div className="grid gap-3 py-1 max-h-[65vh] overflow-y-auto -mx-1 px-1">
+            <div className="grid gap-2.5">
+              <div className="grid gap-1">
+                <Label className="text-xs sm:text-sm">Nome *</Label>
+                <Input value={form.nome} onChange={(e) => update("nome", e.target.value)} placeholder="Nome completo" className="h-9 text-sm" />
               </div>
-              <div className="grid gap-1.5">
-                <Label>Telefone</Label>
-                <Input value={form.telefone} onChange={(e) => update("telefone", e.target.value)} placeholder="(11) 99999-9999" />
+              <div className="grid gap-1">
+                <Label className="text-xs sm:text-sm">CPF/CNPJ</Label>
+                <Input value={form.cpf} onChange={(e) => update("cpf", e.target.value)} placeholder="000.000.000-00 ou 00.000.00" className="h-9 text-sm" />
               </div>
-              <div className="grid gap-1.5">
-                <Label>CPF</Label>
-                <Input value={form.cpf} onChange={(e) => update("cpf", e.target.value)} placeholder="000.000.000-00" />
+              <div className="grid gap-1">
+                <Label className="text-xs sm:text-sm">Telefone *</Label>
+                <Input value={form.telefone} onChange={(e) => update("telefone", e.target.value)} placeholder="(11) 99999-9999" className="h-9 text-sm" />
               </div>
-              <div className="sm:col-span-2 grid gap-1.5">
-                <Label>E-mail</Label>
-                <Input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="email@exemplo.com" />
+              <div className="grid gap-1">
+                <Label className="text-xs sm:text-sm">Email</Label>
+                <Input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="email@example.com" className="h-9 text-sm" />
               </div>
             </div>
 
-            <div className="border-t pt-3 grid gap-3">
-              <Label className="text-sm font-semibold flex items-center gap-1.5">
-                <MapPin className="h-4 w-4" /> Endereço
+            <div className="border-t pt-2.5 grid gap-2.5">
+              <Label className="text-xs sm:text-sm font-semibold flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5" /> Endereço
               </Label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                <div className="col-span-2 sm:col-span-3 grid gap-1.5">
-                  <Label className="text-xs">Logradouro</Label>
-                  <div className="flex gap-1">
-                    <Input
-                      value={form.endereco}
-                      onChange={(e) => update("endereco", e.target.value)}
-                      onBlur={handleAddressBlur}
-                      placeholder="Rua, Avenida..."
-                      className="flex-1"
-                    />
-                    <Button variant="outline" size="icon" className="shrink-0" onClick={() => setMapPickerOpen(true)}>
-                      {isGeocoding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Map className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-                <div className="grid gap-1.5">
-                  <Label className="text-xs">Nº</Label>
-                  <Input value={form.numero} onChange={(e) => update("numero", e.target.value)} placeholder="123" />
+              <div className="grid gap-1">
+                <Label className="text-xs">CEP</Label>
+                <div className="flex gap-2">
+                  <Input value={form.cep} onChange={(e) => update("cep", e.target.value)} onBlur={handleCepBlur} placeholder="00000-000" className="h-9 text-sm flex-1" />
+                  <Button variant="outline" size="sm" className="shrink-0 h-9 text-xs px-3" onClick={handleCepBlur} disabled={isGeocoding}>
+                    {isGeocoding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Buscar"}
+                  </Button>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="grid gap-1.5">
+              <div className="grid gap-1">
+                <Label className="text-xs">Endereço</Label>
+                <div className="flex gap-1.5">
+                  <Input
+                    value={form.endereco}
+                    onChange={(e) => update("endereco", e.target.value)}
+                    onBlur={handleAddressBlur}
+                    placeholder="Digite a rua para buscar..."
+                    className="h-9 text-sm flex-1"
+                  />
+                  <Button variant="outline" size="icon" className="shrink-0 h-9 w-9" onClick={() => setMapPickerOpen(true)}>
+                    <Map className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="grid gap-1">
+                  <Label className="text-xs">Número</Label>
+                  <Input value={form.numero} onChange={(e) => update("numero", e.target.value)} placeholder="Nº" className="h-9 text-sm" />
+                </div>
+                <div className="grid gap-1">
                   <Label className="text-xs">Bairro</Label>
-                  <Input value={form.bairro} onChange={(e) => update("bairro", e.target.value)} placeholder="Bairro" />
-                </div>
-                <div className="grid gap-1.5">
-                  <Label className="text-xs">Cidade</Label>
-                  <Input value={form.cidade} onChange={(e) => update("cidade", e.target.value)} placeholder="Cidade" />
+                  <Input value={form.bairro} onChange={(e) => update("bairro", e.target.value)} placeholder="Bairro" className="h-9 text-sm" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div className="grid gap-1.5">
-                  <Label className="text-xs">CEP</Label>
-                  <Input value={form.cep} onChange={(e) => update("cep", e.target.value)} onBlur={handleCepBlur} placeholder="00000-000" />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="grid gap-1">
+                  <Label className="text-xs">Cidade</Label>
+                  <Input value={form.cidade} onChange={(e) => update("cidade", e.target.value)} placeholder="Cidade" className="h-9 text-sm" />
                 </div>
-                <div className="grid gap-1.5">
+                <div className="grid gap-1">
                   <Label className="text-xs">Tipo</Label>
                   <Select value={form.tipo} onValueChange={(v) => update("tipo", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="residencial">Residencial</SelectItem>
                       <SelectItem value="comercial">Comercial</SelectItem>
@@ -178,19 +181,17 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-end col-span-2 sm:col-span-1">
-                  {form.latitude && form.longitude && (
-                    <p className="text-[10px] text-muted-foreground pb-2">
-                      📍 {form.latitude.toFixed(4)}, {form.longitude.toFixed(4)}
-                    </p>
-                  )}
-                </div>
               </div>
+              {form.latitude && form.longitude && (
+                <p className="text-[10px] text-muted-foreground">
+                  📍 {form.latitude.toFixed(4)}, {form.longitude.toFixed(4)}
+                </p>
+              )}
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={handleSubmit} disabled={saving || !form.nome.trim()}>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleSubmit} disabled={saving || !form.nome.trim()}>
               {saving ? "Salvando..." : editId ? "Atualizar" : "Salvar"}
             </Button>
           </DialogFooter>
