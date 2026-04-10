@@ -1320,7 +1320,7 @@ export default function CadastroClientesCad() {
 
       {/* Modal para criar/editar cliente */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-2xl p-3 sm:p-6">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl p-3 sm:p-6 overflow-x-hidden">
           <DialogHeader className="pr-6">
             <DialogTitle className="text-base sm:text-lg">
               {editingCliente ? "Editar Cliente" : "Novo Cliente"}
