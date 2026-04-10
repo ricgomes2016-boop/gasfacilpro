@@ -96,7 +96,7 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="w-[95vw] sm:max-w-lg p-3 sm:p-6">
-          <DialogHeader>
+          <DialogHeader className="pr-6">
             <DialogTitle className="text-base sm:text-lg">{editId ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
               {editId ? "Atualize os dados do cliente" : "Preencha os dados do novo cliente"}
@@ -110,7 +110,7 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
               </div>
               <div className="grid gap-1">
                 <Label className="text-xs sm:text-sm">CPF/CNPJ</Label>
-                <Input value={form.cpf} onChange={(e) => update("cpf", e.target.value)} placeholder="000.000.000-00 ou 00.000.00" className="h-9 text-sm" />
+                <Input value={form.cpf} onChange={(e) => update("cpf", e.target.value)} placeholder="CPF ou CNPJ" className="h-9 w-full min-w-0 text-sm" />
               </div>
               <div className="grid gap-1">
                 <Label className="text-xs sm:text-sm">Telefone *</Label>
@@ -128,29 +128,29 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
               </Label>
               <div className="grid gap-1">
                 <Label className="text-xs">CEP</Label>
-                <div className="flex gap-2">
-                  <Input value={form.cep} onChange={(e) => update("cep", e.target.value)} onBlur={handleCepBlur} placeholder="00000-000" className="h-9 text-sm flex-1" />
-                  <Button variant="outline" size="sm" className="shrink-0 h-9 text-xs px-3" onClick={handleCepBlur} disabled={isGeocoding}>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input value={form.cep} onChange={(e) => update("cep", e.target.value)} onBlur={handleCepBlur} placeholder="00000-000" className="h-9 min-w-0 flex-1 text-sm" />
+                  <Button variant="outline" size="sm" className="h-9 w-full shrink-0 px-3 text-xs sm:w-auto" onClick={handleCepBlur} disabled={isGeocoding}>
                     {isGeocoding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Buscar"}
                   </Button>
                 </div>
               </div>
               <div className="grid gap-1">
                 <Label className="text-xs">Endereço</Label>
-                <div className="flex gap-1.5">
+                <div className="flex min-w-0 gap-1.5">
                   <Input
                     value={form.endereco}
                     onChange={(e) => update("endereco", e.target.value)}
                     onBlur={handleAddressBlur}
                     placeholder="Digite a rua para buscar..."
-                    className="h-9 text-sm flex-1"
+                    className="h-9 min-w-0 flex-1 text-sm"
                   />
                   <Button variant="outline" size="icon" className="shrink-0 h-9 w-9" onClick={() => setMapPickerOpen(true)}>
                     <Map className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="grid gap-1">
                   <Label className="text-xs">Número</Label>
                   <Input value={form.numero} onChange={(e) => update("numero", e.target.value)} placeholder="Nº" className="h-9 text-sm" />
@@ -160,7 +160,7 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
                   <Input value={form.bairro} onChange={(e) => update("bairro", e.target.value)} placeholder="Bairro" className="h-9 text-sm" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="grid gap-1">
                   <Label className="text-xs">Cidade</Label>
                   <Input value={form.cidade} onChange={(e) => update("cidade", e.target.value)} placeholder="Cidade" className="h-9 text-sm" />
@@ -190,8 +190,8 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button size="sm" onClick={handleSubmit} disabled={saving || !form.nome.trim()}>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button size="sm" className="w-full sm:w-auto" onClick={handleSubmit} disabled={saving || !form.nome.trim()}>
               {saving ? "Salvando..." : editId ? "Atualizar" : "Salvar"}
             </Button>
           </DialogFooter>

@@ -1320,37 +1320,40 @@ export default function CadastroClientesCad() {
 
       {/* Modal para criar/editar cliente */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
+        <DialogContent className="w-[95vw] sm:max-w-2xl p-3 sm:p-6">
+          <DialogHeader className="pr-6">
+            <DialogTitle className="text-base sm:text-lg">
               {editingCliente ? "Editar Cliente" : "Novo Cliente"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Nome *</Label>
+          <div className="space-y-3 sm:space-y-4">
+            <div className="min-w-0">
+              <Label className="text-xs sm:text-sm">Nome *</Label>
               <Input
                 value={formData.nome}
                 onChange={(e) => handleChange("nome", e.target.value)}
                 placeholder="Nome completo"
+                className="h-9 text-sm"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label>CPF/CNPJ</Label>
-                <div className="flex gap-2">
-                  <div className="flex-1">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+              <div className="min-w-0">
+                <Label className="text-xs sm:text-sm">CPF/CNPJ</Label>
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
                     <CpfCnpjInput
                       value={formData.cpf}
                       onChange={(value) => handleChange("cpf", value)}
+                      placeholder="CPF ou CNPJ"
+                      className="h-9 min-w-0 text-sm"
                     />
                   </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="shrink-0 mt-0"
+                    className="mt-0 h-9 w-9 shrink-0"
                     disabled={isLookingUpCpfCnpj || formData.cpf.replace(/\D/g, "").length !== 14}
                     onClick={() => buscarCpfCnpj(formData.cpf)}
                     title="Buscar dados na Receita Federal (CNPJ)"
@@ -1362,49 +1365,52 @@ export default function CadastroClientesCad() {
                   <p className="text-[10px] text-muted-foreground mt-1">Clique em 🔍 para buscar dados na Receita</p>
                 )}
               </div>
-              <div>
-                <Label>Telefone *</Label>
+              <div className="min-w-0">
+                <Label className="text-xs sm:text-sm">Telefone *</Label>
                 <Input
                   value={formData.telefone}
                   onChange={(e) => handleChange("telefone", e.target.value)}
                   placeholder="(11) 99999-9999"
+                  className="h-9 text-sm"
                 />
               </div>
             </div>
 
-            <div>
-              <Label>Email</Label>
+            <div className="min-w-0">
+              <Label className="text-xs sm:text-sm">Email</Label>
               <Input
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleChange("email", e.target.value)}
                 placeholder="email@example.com"
+                className="h-9 text-sm"
               />
             </div>
 
-            <div>
-              <Label>CEP</Label>
-              <div className="flex gap-2">
+            <div className="min-w-0">
+              <Label className="text-xs sm:text-sm">CEP</Label>
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   value={formatCEP(formData.cep)}
                   onChange={(e) => handleChange("cep", e.target.value)}
                   placeholder="00000-000"
-                  className="flex-1"
+                  className="h-9 flex-1 text-sm"
                 />
                 <Button
                   type="button"
                   variant="outline"
                   onClick={buscarCEP}
                   disabled={formData.cep.replace(/\D/g, "").length !== 8}
+                  className="h-9 w-full sm:w-auto"
                 >
                   Buscar
                 </Button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-              <div className="sm:col-span-3 relative">
-                <Label>Endereço</Label>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-4 sm:gap-4">
+              <div className="relative min-w-0 sm:col-span-3">
+                <Label className="text-xs sm:text-sm">Endereço</Label>
                 <div className="relative">
                   <Input
                     value={formData.endereco}
@@ -1412,13 +1418,14 @@ export default function CadastroClientesCad() {
                     onFocus={() => addressSuggestions.length > 0 && setShowSuggestions(true)}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                     placeholder="Digite a rua para buscar..."
+                    className="h-9 pr-9 text-sm"
                   />
                   {isSearchingAddress && (
                     <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
                   )}
                 </div>
                 {showSuggestions && addressSuggestions.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border bg-background shadow-lg">
                     {addressSuggestions.map((s, idx) => (
                       <button
                         key={idx}
@@ -1435,48 +1442,52 @@ export default function CadastroClientesCad() {
                   </div>
                 )}
               </div>
-              <div>
-                <Label>Número</Label>
+              <div className="min-w-0">
+                <Label className="text-xs sm:text-sm">Número</Label>
                 <Input
                   value={formData.numero}
                   onChange={(e) => handleChange("numero", e.target.value)}
                   placeholder="Nº"
+                  className="h-9 text-sm"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label>Complemento</Label>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+              <div className="min-w-0">
+                <Label className="text-xs sm:text-sm">Complemento</Label>
                 <Input
                   value={formData.complemento}
                   onChange={(e) => handleChange("complemento", e.target.value)}
                   placeholder="Apto, bloco, sala..."
+                  className="h-9 text-sm"
                 />
               </div>
-              <div>
-                <Label>Bairro</Label>
+              <div className="min-w-0">
+                <Label className="text-xs sm:text-sm">Bairro</Label>
                 <Input
                   value={formData.bairro}
                   onChange={(e) => handleChange("bairro", e.target.value)}
                   placeholder="Bairro"
+                  className="h-9 text-sm"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label>Cidade</Label>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+              <div className="min-w-0">
+                <Label className="text-xs sm:text-sm">Cidade</Label>
                 <Input
                   value={formData.cidade}
                   onChange={(e) => handleChange("cidade", e.target.value)}
                   placeholder="Cidade"
+                  className="h-9 text-sm"
                 />
               </div>
-              <div>
-                <Label>Tipo</Label>
+              <div className="min-w-0">
+                <Label className="text-xs sm:text-sm">Tipo</Label>
                 <Select value={formData.tipo} onValueChange={(value) => handleChange("tipo", value)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1517,11 +1528,11 @@ export default function CadastroClientesCad() {
               </Button>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4">
-              <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+            <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end sm:gap-3 sm:pt-4">
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => setIsModalOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleSubmit} disabled={isSaving}>
+              <Button className="w-full sm:w-auto" onClick={handleSubmit} disabled={isSaving}>
                 {isSaving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
