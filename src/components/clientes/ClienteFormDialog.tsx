@@ -106,19 +106,19 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
             <div className="grid gap-2.5">
               <div className="grid gap-1">
                 <Label className="text-xs sm:text-sm">Nome *</Label>
-                <Input value={form.nome} onChange={(e) => update("nome", e.target.value)} placeholder="Nome completo" className="h-9 text-sm" />
+                <Input value={form.nome} onChange={(e) => update("nome", e.target.value)} placeholder="Nome completo" className="h-9 text-base md:text-sm" />
               </div>
               <div className="grid gap-1">
                 <Label className="text-xs sm:text-sm">CPF/CNPJ</Label>
-                <Input value={form.cpf} onChange={(e) => update("cpf", e.target.value)} placeholder="CPF ou CNPJ" className="h-9 w-full min-w-0 text-sm" />
+                <Input value={form.cpf} onChange={(e) => update("cpf", e.target.value)} placeholder="CPF ou CNPJ" className="h-9 w-full min-w-0 text-base md:text-sm" />
               </div>
               <div className="grid gap-1">
                 <Label className="text-xs sm:text-sm">Telefone *</Label>
-                <Input value={form.telefone} onChange={(e) => update("telefone", e.target.value)} placeholder="(11) 99999-9999" className="h-9 text-sm" />
+                <Input value={form.telefone} onChange={(e) => update("telefone", e.target.value)} placeholder="(11) 99999-9999" className="h-9 text-base md:text-sm" />
               </div>
               <div className="grid gap-1">
                 <Label className="text-xs sm:text-sm">Email</Label>
-                <Input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="email@example.com" className="h-9 text-sm" />
+                <Input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="email@example.com" className="h-9 text-base md:text-sm" />
               </div>
             </div>
 
@@ -129,7 +129,7 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
               <div className="grid gap-1">
                 <Label className="text-xs">CEP</Label>
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <Input value={form.cep} onChange={(e) => update("cep", e.target.value)} onBlur={handleCepBlur} placeholder="00000-000" className="h-9 min-w-0 flex-1 text-sm" />
+                  <Input value={form.cep} onChange={(e) => update("cep", e.target.value)} onBlur={handleCepBlur} placeholder="00000-000" className="h-9 min-w-0 flex-1 text-base md:text-sm" />
                   <Button variant="outline" size="sm" className="h-9 w-full shrink-0 px-3 text-xs sm:w-auto" onClick={handleCepBlur} disabled={isGeocoding}>
                     {isGeocoding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Buscar"}
                   </Button>
@@ -143,7 +143,7 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
                     onChange={(e) => update("endereco", e.target.value)}
                     onBlur={handleAddressBlur}
                     placeholder="Digite a rua para buscar..."
-                    className="h-9 min-w-0 flex-1 text-sm"
+                    className="h-9 min-w-0 flex-1 text-base md:text-sm"
                   />
                   <Button variant="outline" size="icon" className="shrink-0 h-9 w-9" onClick={() => setMapPickerOpen(true)}>
                     <Map className="h-3.5 w-3.5" />
@@ -153,22 +153,22 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="grid gap-1">
                   <Label className="text-xs">Número</Label>
-                  <Input value={form.numero} onChange={(e) => update("numero", e.target.value)} placeholder="Nº" className="h-9 text-sm" />
+                  <Input value={form.numero} onChange={(e) => update("numero", e.target.value)} placeholder="Nº" className="h-9 text-base md:text-sm" />
                 </div>
                 <div className="grid gap-1">
                   <Label className="text-xs">Bairro</Label>
-                  <Input value={form.bairro} onChange={(e) => update("bairro", e.target.value)} placeholder="Bairro" className="h-9 text-sm" />
+                  <Input value={form.bairro} onChange={(e) => update("bairro", e.target.value)} placeholder="Bairro" className="h-9 text-base md:text-sm" />
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div className="grid gap-1">
                   <Label className="text-xs">Cidade</Label>
-                  <Input value={form.cidade} onChange={(e) => update("cidade", e.target.value)} placeholder="Cidade" className="h-9 text-sm" />
+                  <Input value={form.cidade} onChange={(e) => update("cidade", e.target.value)} placeholder="Cidade" className="h-9 text-base md:text-sm" />
                 </div>
                 <div className="grid gap-1">
                   <Label className="text-xs">Tipo</Label>
                   <Select value={form.tipo} onValueChange={(v) => update("tipo", v)}>
-                    <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-9 text-base md:text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="residencial">Residencial</SelectItem>
                       <SelectItem value="comercial">Comercial</SelectItem>

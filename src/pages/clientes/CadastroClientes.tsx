@@ -1333,7 +1333,7 @@ export default function CadastroClientesCad() {
                 value={formData.nome}
                 onChange={(e) => handleChange("nome", e.target.value)}
                 placeholder="Nome completo"
-                className="h-9 text-sm"
+                className="h-9 text-base md:text-sm"
               />
             </div>
 
@@ -1346,7 +1346,7 @@ export default function CadastroClientesCad() {
                       value={formData.cpf}
                       onChange={(value) => handleChange("cpf", value)}
                       placeholder="CPF ou CNPJ"
-                      className="h-9 min-w-0 text-sm"
+                      className="h-9 min-w-0 text-base md:text-sm"
                     />
                   </div>
                   <Button
@@ -1371,7 +1371,7 @@ export default function CadastroClientesCad() {
                   value={formData.telefone}
                   onChange={(e) => handleChange("telefone", e.target.value)}
                   placeholder="(11) 99999-9999"
-                  className="h-9 text-sm"
+                  className="h-9 text-base md:text-sm"
                 />
               </div>
             </div>
@@ -1383,7 +1383,7 @@ export default function CadastroClientesCad() {
                 value={formData.email}
                 onChange={(e) => handleChange("email", e.target.value)}
                 placeholder="email@example.com"
-                className="h-9 text-sm"
+                className="h-9 text-base md:text-sm"
               />
             </div>
 
@@ -1394,7 +1394,7 @@ export default function CadastroClientesCad() {
                   value={formatCEP(formData.cep)}
                   onChange={(e) => handleChange("cep", e.target.value)}
                   placeholder="00000-000"
-                  className="h-9 flex-1 text-sm"
+                  className="h-9 flex-1 text-base md:text-sm"
                 />
                 <Button
                   type="button"
@@ -1418,7 +1418,7 @@ export default function CadastroClientesCad() {
                     onFocus={() => addressSuggestions.length > 0 && setShowSuggestions(true)}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                     placeholder="Digite a rua para buscar..."
-                    className="h-9 pr-9 text-sm"
+                    className="h-9 pr-9 text-base md:text-sm"
                   />
                   {isSearchingAddress && (
                     <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
@@ -1448,7 +1448,7 @@ export default function CadastroClientesCad() {
                   value={formData.numero}
                   onChange={(e) => handleChange("numero", e.target.value)}
                   placeholder="Nº"
-                  className="h-9 text-sm"
+                  className="h-9 text-base md:text-sm"
                 />
               </div>
             </div>
@@ -1460,7 +1460,7 @@ export default function CadastroClientesCad() {
                   value={formData.complemento}
                   onChange={(e) => handleChange("complemento", e.target.value)}
                   placeholder="Apto, bloco, sala..."
-                  className="h-9 text-sm"
+                  className="h-9 text-base md:text-sm"
                 />
               </div>
               <div className="min-w-0">
@@ -1469,7 +1469,7 @@ export default function CadastroClientesCad() {
                   value={formData.bairro}
                   onChange={(e) => handleChange("bairro", e.target.value)}
                   placeholder="Bairro"
-                  className="h-9 text-sm"
+                  className="h-9 text-base md:text-sm"
                 />
               </div>
             </div>
@@ -1481,13 +1481,13 @@ export default function CadastroClientesCad() {
                   value={formData.cidade}
                   onChange={(e) => handleChange("cidade", e.target.value)}
                   placeholder="Cidade"
-                  className="h-9 text-sm"
+                  className="h-9 text-base md:text-sm"
                 />
               </div>
               <div className="min-w-0">
                 <Label className="text-xs sm:text-sm">Tipo</Label>
                 <Select value={formData.tipo} onValueChange={(value) => handleChange("tipo", value)}>
-                  <SelectTrigger className="h-9 text-sm">
+                  <SelectTrigger className="h-9 text-base md:text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
