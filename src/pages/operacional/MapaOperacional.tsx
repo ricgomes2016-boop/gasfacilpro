@@ -25,6 +25,7 @@ export default function MapaOperacional() {
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   const [selectedCliente, setSelectedCliente] = useState<ClienteEntrega | null>(null);
   const [routeToClienteLine, setRouteToClienteLine] = useState<[number, number][]>([]);
+  const [percurso, setPercurso] = useState<PercursoPonto[]>([]);
 
   // Buscar coordenadas da unidade para centralizar o mapa
   useEffect(() => {
