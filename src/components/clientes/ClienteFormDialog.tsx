@@ -95,7 +95,7 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg p-3 sm:p-6 overflow-x-hidden">
+        <DialogContent className="sm:max-w-lg p-3 sm:p-6 overflow-x-hidden">
           <DialogHeader className="pr-6">
             <DialogTitle className="text-base sm:text-lg">{editId ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
