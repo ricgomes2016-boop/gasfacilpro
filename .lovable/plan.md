@@ -1,32 +1,18 @@
 
 
-## Historico de Percurso no Mapa Operacional
+## Corrigir campo de digitação do Chat com Entregadores
 
 ### Problema
-O `MapaOperacional.tsx` ja tem `showPercurso` no state e passa as props `percurso` e `showPercurso` ao `DeliveryRoutesMap`, porem `percurso` esta sempre `[]` -- nunca busca dados. A logica completa ja existe no `MapaEntregadores.tsx` (linhas 98-129).
+O painel de chat usa `bottom-0` no mobile e `md:bottom-6` no desktop, mas a `MobileBottomBar` (altura ~52px, z-40) fica por cima do campo de input. No desktop, o rodapé também cobre parcialmente.
 
-### Plano
+### Solução
 
-**1. Adicionar fetch de percurso em `MapaOperacional.tsx`**
-- Importar `PercursoPonto` de `DeliveryRoutesMap`
-- Adicionar state `percurso` (useState)
-- Copiar o useEffect de fetch do `MapaEntregadores.tsx` que consulta `rotas` (rota ativa do entregador) e depois `rota_historico` (pontos GPS)
-- Ativar `showPercurso` automaticamente quando um entregador e selecionado
-- Passar o state `percurso` real no lugar de `[]`
+**Arquivo: `src/components/chat/ChatOperador.tsx`**
 
-**2. Adicionar botao "Ver Percurso" no painel lateral de entregadores**
-- Ao clicar em um entregador, mostrar um botao/toggle "Trajeto do dia" com icone `Route`
-- Toggle alterna `showPercurso` e dispara o fetch
+1. **Mobile**: Elevar o painel acima da barra inferior — mudar de `bottom-0` para `bottom-[52px]` e reduzir altura de `h-[80vh]` para `h-[calc(80vh-52px)]` para não ultrapassar o topo da tela
+2. **Desktop**: Aumentar `md:bottom-6` para `md:bottom-16` para ficar acima do rodapé desktop
+3. **Z-index**: Subir para `z-50` para garantir que fique acima da `MobileBottomBar` (z-40)
+4. Adicionar `pb-safe` (safe-area) no container do input para dispositivos com notch
 
-**3. Nenhuma alteracao de banco necessaria**
-- As tabelas `rotas` e `rota_historico` ja existem com as colunas corretas (latitude, longitude, timestamp)
-- O componente `DeliveryRoutesMap` ja renderiza Polyline e marcadores de percurso
-
-### Arquivos editados
-| Arquivo | Alteracao |
-|---------|-----------|
-| `src/pages/operacional/MapaOperacional.tsx` | Adicionar state `percurso`, useEffect de fetch, botao toggle, passar props reais |
-
-### Resultado
-Ao selecionar um entregador no mapa operacional e ativar "Trajeto do dia", o mapa mostrara a linha do percurso completo com pontos numerados e horarios, usando os dados reais de `rota_historico`.
+Alteração em 1 arquivo, ~3 linhas modificadas na classe CSS do container principal (linha 183).
 
