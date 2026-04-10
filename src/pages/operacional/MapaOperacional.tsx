@@ -309,48 +309,65 @@ export default function MapaOperacional() {
                     ? (Date.now() - new Date(e.updated_at).getTime() > GPS_OFFLINE_MS)
                     : false;
                   return (
-                  <button
-                    key={e.id}
-                    onClick={() => {
-                      if (e.latitude && e.longitude) {
-                        setSelectedEntregador(selectedEntregador === e.id ? null : e.id);
-                      }
-                    }}
-                    className={cn(
-                      "flex items-center justify-between p-2 rounded-lg border text-sm w-full text-left transition-colors hover:bg-accent/50",
-                      selectedEntregador === e.id && "bg-primary/10 border-primary/30",
-                      gpsOff && "border-destructive/30 bg-destructive/5"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className={cn(
-                        "h-2.5 w-2.5 rounded-full",
-                        gpsOff ? "bg-destructive" : e.status === "em_rota" ? "bg-chart-3 animate-pulse" : "bg-primary"
-                      )} />
-                      <div>
-                        <span className="font-medium block">{e.nome}</span>
-                        {!e.latitude && <span className="text-[10px] text-muted-foreground">Sem localização</span>}
+                  <div key={e.id} className="space-y-1">
+                    <button
+                      onClick={() => {
+                        if (e.latitude && e.longitude) {
+                          const newId = selectedEntregador === e.id ? null : e.id;
+                          setSelectedEntregador(newId);
+                          if (!newId) setShowPercurso(false);
+                        }
+                      }}
+                      className={cn(
+                        "flex items-center justify-between p-2 rounded-lg border text-sm w-full text-left transition-colors hover:bg-accent/50",
+                        selectedEntregador === e.id && "bg-primary/10 border-primary/30",
+                        gpsOff && "border-destructive/30 bg-destructive/5"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={cn(
+                          "h-2.5 w-2.5 rounded-full",
+                          gpsOff ? "bg-destructive" : e.status === "em_rota" ? "bg-chart-3 animate-pulse" : "bg-primary"
+                        )} />
+                        <div>
+                          <span className="font-medium block">{e.nome}</span>
+                          {!e.latitude && <span className="text-[10px] text-muted-foreground">Sem localização</span>}
+                          {gpsOff && (
+                            <span className="text-[10px] text-destructive flex items-center gap-0.5">
+                              <WifiOff className="h-2.5 w-2.5" /> GPS Offline
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
                         {gpsOff && (
-                          <span className="text-[10px] text-destructive flex items-center gap-0.5">
-                            <WifiOff className="h-2.5 w-2.5" /> GPS Offline
-                          </span>
+                          <Badge variant="destructive" className="text-[10px]">Offline</Badge>
+                        )}
+                        <Badge variant={e.status === "em_rota" ? "default" : "secondary"} className="text-[10px]">
+                          {e.status === "em_rota" ? "Em Rota" : "Livre"}
+                        </Badge>
+                        {e.telefone && (
+                          <a href={`tel:${e.telefone}`} onClick={(ev) => ev.stopPropagation()} className="text-muted-foreground hover:text-primary">
+                            <Phone className="h-3.5 w-3.5" />
+                          </a>
                         )}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {gpsOff && (
-                        <Badge variant="destructive" className="text-[10px]">Offline</Badge>
-                      )}
-                      <Badge variant={e.status === "em_rota" ? "default" : "secondary"} className="text-[10px]">
-                        {e.status === "em_rota" ? "Em Rota" : "Livre"}
-                      </Badge>
-                      {e.telefone && (
-                        <a href={`tel:${e.telefone}`} onClick={(ev) => ev.stopPropagation()} className="text-muted-foreground hover:text-primary">
-                          <Phone className="h-3.5 w-3.5" />
-                        </a>
-                      )}
-                    </div>
-                  </button>
+                    </button>
+                    {selectedEntregador === e.id && e.latitude && (
+                      <Button
+                        size="sm"
+                        variant={showPercurso ? "default" : "outline"}
+                        className="w-full h-7 text-[10px]"
+                        onClick={() => setShowPercurso(!showPercurso)}
+                      >
+                        {showPercurso ? (
+                          <><EyeOff className="h-3 w-3 mr-1" />Ocultar Trajeto</>
+                        ) : (
+                          <><Route className="h-3 w-3 mr-1" />Trajeto do Dia</>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                   );
                 })}
               </CardContent>
