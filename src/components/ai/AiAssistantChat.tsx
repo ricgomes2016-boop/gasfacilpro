@@ -392,9 +392,9 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
   }
 
   return (
-    <div className={cn("flex flex-col border rounded-xl bg-card overflow-hidden", fullPage ? "h-[calc(100vh-120px)]" : "h-full")}>
+    <div className={cn("flex flex-col overflow-hidden", fullPage ? "border rounded-xl bg-card h-[calc(100vh-120px)]" : "h-full min-h-0")}>
       {/* Messages */}
-      <div ref={scrollRef} className={cn("flex-1 overflow-y-auto p-4 space-y-4", !fullPage && "max-h-[400px]")}>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
         {messages.length === 0 && (
           <div className="space-y-4">
             <div className="text-center text-muted-foreground text-sm">
