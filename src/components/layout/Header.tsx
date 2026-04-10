@@ -50,7 +50,7 @@ export function Header({ title, subtitle }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 md:h-16 items-center justify-between border-b border-border bg-background/95 px-3 md:px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-30 flex h-14 md:h-16 items-center justify-between border-b border-border bg-background/95 px-3 md:px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60 overflow-hidden">
       <div className="flex items-center gap-3">
         {/* Mobile menu */}
         <MobileNav />
@@ -65,9 +65,11 @@ export function Header({ title, subtitle }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 md:gap-4">
+      <div className="flex items-center gap-1 md:gap-4 shrink-0">
         {/* Unidade Selector */}
-        <UnidadeSelector />
+        <div className="hidden sm:block">
+          <UnidadeSelector />
+        </div>
 
         {/* Command Palette (⌘K) */}
         <CommandPalette />
