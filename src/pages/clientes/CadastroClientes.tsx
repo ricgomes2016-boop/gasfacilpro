@@ -1320,13 +1320,13 @@ export default function CadastroClientesCad() {
 
       {/* Modal para criar/editar cliente */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-2xl p-3 sm:p-6 overflow-x-hidden">
+        <DialogContent className="sm:max-w-2xl p-3 sm:p-6 overflow-x-hidden max-h-[85vh] flex flex-col">
           <DialogHeader className="pr-6">
             <DialogTitle className="text-base sm:text-lg">
               {editingCliente ? "Editar Cliente" : "Novo Cliente"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 sm:space-y-4">
+          <div className="space-y-3 sm:space-y-4 flex-1 overflow-y-auto min-h-0 pr-1">
             <div className="min-w-0">
               <Label className="text-xs sm:text-sm">Nome *</Label>
               <Input
@@ -1549,7 +1549,7 @@ export default function CadastroClientesCad() {
 
       {/* Modal para importar por foto */}
       <Dialog open={isPhotoModalOpen} onOpenChange={setIsPhotoModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto p-3 sm:p-6">
           <DialogHeader>
             <DialogTitle>Importar Clientes da Foto</DialogTitle>
           </DialogHeader>
