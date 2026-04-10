@@ -55,7 +55,7 @@ export function AiFloatingButton({ externalOpen, onExternalClose }: AiFloatingBu
               </Button>
             </div>
           </div>
-          <AiAssistantChat />
+          <AiAssistantChat enableVoice />
         </Card>
       )}
     </>
