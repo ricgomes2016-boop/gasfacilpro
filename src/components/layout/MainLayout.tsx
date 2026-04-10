@@ -1,4 +1,5 @@
-import { ReactNode, useState, useCallback } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { SidebarProvider, useSidebarContext } from "@/contexts/SidebarContext";
 import { cn } from "@/lib/utils";
@@ -12,9 +13,15 @@ interface MainLayoutProps {
 
 function MainLayoutContent({ children }: MainLayoutProps) {
   const { collapsed } = useSidebarContext();
+  const location = useLocation();
+  const isAiPage = location.pathname === "/assistente-ia";
   const [aiOpen, setAiOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
+
+  useEffect(() => {
+    if (isAiPage) setAiOpen(false);
+  }, [isAiPage]);
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -27,10 +34,10 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       >
         {children}
       </main>
-      <AiFloatingButton externalOpen={aiOpen} onExternalClose={() => setAiOpen(false)} />
+      {!isAiPage && <AiFloatingButton externalOpen={aiOpen} onExternalClose={() => setAiOpen(false)} />}
       <ChatOperador externalOpen={chatOpen} onExternalClose={() => setChatOpen(false)} onUnreadChange={setChatUnread} />
       <MobileBottomBar
-        onOpenAi={() => setAiOpen(true)}
+        onOpenAi={() => { if (!isAiPage) setAiOpen(true); }}
         onOpenChat={() => setChatOpen(true)}
         chatUnread={chatUnread}
         sidebarCollapsed={collapsed}
