@@ -95,7 +95,7 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{editId ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
             <DialogDescription>
@@ -103,8 +103,8 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-2 max-h-[60vh] overflow-y-auto pr-1">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2 grid gap-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="sm:col-span-2 grid gap-1.5">
                 <Label>Nome *</Label>
                 <Input value={form.nome} onChange={(e) => update("nome", e.target.value)} placeholder="Nome completo" />
               </div>
@@ -116,7 +116,7 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
                 <Label>CPF</Label>
                 <Input value={form.cpf} onChange={(e) => update("cpf", e.target.value)} placeholder="000.000.000-00" />
               </div>
-              <div className="col-span-2 grid gap-1.5">
+              <div className="sm:col-span-2 grid gap-1.5">
                 <Label>E-mail</Label>
                 <Input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="email@exemplo.com" />
               </div>
@@ -126,8 +126,8 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
               <Label className="text-sm font-semibold flex items-center gap-1.5">
                 <MapPin className="h-4 w-4" /> Endereço
               </Label>
-              <div className="grid grid-cols-4 gap-3">
-                <div className="col-span-3 grid gap-1.5">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                <div className="col-span-2 sm:col-span-3 grid gap-1.5">
                   <Label className="text-xs">Logradouro</Label>
                   <div className="flex gap-1">
                     <Input
@@ -147,7 +147,7 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
                   <Input value={form.numero} onChange={(e) => update("numero", e.target.value)} placeholder="123" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="grid gap-1.5">
                   <Label className="text-xs">Bairro</Label>
                   <Input value={form.bairro} onChange={(e) => update("bairro", e.target.value)} placeholder="Bairro" />
@@ -157,7 +157,7 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
                   <Input value={form.cidade} onChange={(e) => update("cidade", e.target.value)} placeholder="Cidade" />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div className="grid gap-1.5">
                   <Label className="text-xs">CEP</Label>
                   <Input value={form.cep} onChange={(e) => update("cep", e.target.value)} onBlur={handleCepBlur} placeholder="00000-000" />
@@ -178,7 +178,7 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-end">
+                <div className="flex items-end col-span-2 sm:col-span-1">
                   {form.latitude && form.longitude && (
                     <p className="text-[10px] text-muted-foreground pb-2">
                       📍 {form.latitude.toFixed(4)}, {form.longitude.toFixed(4)}
