@@ -40,13 +40,14 @@ export function CpfCnpjInput({
   const showStatus = showValidation && numbers.length > 0;
 
   return (
-    <div className="space-y-1">
-      <div className="relative">
+    <div className="space-y-1 min-w-0">
+      <div className="relative min-w-0">
         <Input
           value={value}
           onChange={handleChange}
           placeholder={placeholder}
           className={cn(
+            "w-full min-w-0",
             showStatus && isComplete && validation.valid && "border-success focus-visible:ring-success",
             showStatus && isComplete && !validation.valid && "border-destructive focus-visible:ring-destructive",
             className
@@ -66,7 +67,7 @@ export function CpfCnpjInput({
       {showStatus && (
         <p
           className={cn(
-            "text-xs flex items-center gap-1",
+            "flex items-start gap-1 break-words text-xs leading-snug",
             validation.valid ? "text-success" : "text-destructive"
           )}
         >
