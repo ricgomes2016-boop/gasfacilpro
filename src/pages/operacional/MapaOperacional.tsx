@@ -269,7 +269,7 @@ export default function MapaOperacional() {
                 <DeliveryRoutesMap
                   entregadores={entregadoresMapa}
                   clientes={clientesMapa}
-                  percurso={[]}
+                  percurso={percurso}
                   selectedEntregador={selectedEntregador}
                   onSelectEntregador={setSelectedEntregador}
                   showPercurso={showPercurso}
