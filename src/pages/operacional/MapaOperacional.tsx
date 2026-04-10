@@ -77,6 +77,38 @@ export default function MapaOperacional() {
 
   useEffect(() => { fetchData(); const interval = setInterval(fetchData, 30000); return () => clearInterval(interval); }, [fetchData]);
 
+  // Fetch percurso do entregador selecionado
+  useEffect(() => {
+    if (!selectedEntregador || !showPercurso) {
+      setPercurso([]);
+      return;
+    }
+    const fetchPercurso = async () => {
+      const { data: rota } = await supabase
+        .from("rotas")
+        .select("id")
+        .eq("entregador_id", selectedEntregador)
+        .eq("status", "em_andamento")
+        .maybeSingle();
+      if (!rota) { setPercurso([]); return; }
+
+      const { data: historico } = await supabase
+        .from("rota_historico")
+        .select("latitude, longitude, timestamp")
+        .eq("rota_id", rota.id)
+        .order("timestamp", { ascending: true });
+
+      setPercurso(
+        (historico || []).map(h => ({
+          lat: h.latitude,
+          lng: h.longitude,
+          hora: new Date(h.timestamp).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+        }))
+      );
+    };
+    fetchPercurso();
+  }, [selectedEntregador, showPercurso]);
+
   const GPS_OFFLINE_MS = 5 * 60 * 1000;
 
   const entregadoresMapa: Entregador[] = entregadoresData.filter(e => e.latitude && e.longitude).map((e) => {
