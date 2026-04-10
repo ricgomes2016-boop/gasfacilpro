@@ -213,6 +213,10 @@ export function ChatBase() {
             onKeyDown={(e) => e.key === "Enter" && sendMessage()}
             className="rounded-full"
           />
+          <VoiceInputButton
+            onResult={(text) => setInput((prev) => (prev ? prev + " " + text : text))}
+            disabled={sending}
+          />
           <Button
             size="icon"
             onClick={sendMessage}
