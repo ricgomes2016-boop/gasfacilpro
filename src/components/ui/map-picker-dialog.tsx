@@ -115,57 +115,59 @@ export function MapPickerDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Search bar */}
-        <div className="flex gap-2">
-          <Input
-            placeholder="Buscar endereço..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            className="flex-1"
-          />
-          <Button variant="outline" size="icon" onClick={handleSearch} disabled={isSearching}>
-            {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-          </Button>
-        </div>
-
-        {/* Map */}
-        <div className="h-[400px] rounded-lg overflow-hidden border border-border">
-          <MapContainer
-            center={center}
-            zoom={markerPos ? 16 : 14}
-            style={{ height: "100%", width: "100%" }}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        <div className="flex-1 overflow-y-auto space-y-3 min-h-0">
+          {/* Search bar */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="Buscar endereço..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              className="flex-1"
             />
-            <ClickHandler onLocationSelect={handleLocationSelect} />
-            {markerPos && (
-              <>
-                <Marker position={markerPos} icon={defaultIcon} />
-                <FlyToPosition position={markerPos} />
-              </>
-            )}
-          </MapContainer>
-        </div>
-
-        {/* Selected address info */}
-        {isReversing && (
-          <p className="text-sm text-muted-foreground flex items-center gap-2">
-            <Loader2 className="h-3 w-3 animate-spin" /> Buscando endereço...
-          </p>
-        )}
-        {geocodeResult && !isReversing && (
-          <div className="text-sm bg-muted/50 rounded-lg p-3 space-y-1">
-            <p className="font-medium">📍 {geocodeResult.endereco || geocodeResult.displayName}</p>
-            {geocodeResult.bairro && <p className="text-muted-foreground">Bairro: {geocodeResult.bairro}</p>}
-            {geocodeResult.cidade && <p className="text-muted-foreground">Cidade: {geocodeResult.cidade}</p>}
-            <p className="text-xs text-muted-foreground">
-              Lat: {geocodeResult.latitude.toFixed(6)} | Lng: {geocodeResult.longitude.toFixed(6)}
-            </p>
+            <Button variant="outline" size="icon" onClick={handleSearch} disabled={isSearching}>
+              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            </Button>
           </div>
-        )}
+
+          {/* Map */}
+          <div className="h-[350px] rounded-lg overflow-hidden border border-border">
+            <MapContainer
+              center={center}
+              zoom={markerPos ? 16 : 14}
+              style={{ height: "100%", width: "100%" }}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <ClickHandler onLocationSelect={handleLocationSelect} />
+              {markerPos && (
+                <>
+                  <Marker position={markerPos} icon={defaultIcon} />
+                  <FlyToPosition position={markerPos} />
+                </>
+              )}
+            </MapContainer>
+          </div>
+
+          {/* Selected address info */}
+          {isReversing && (
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <Loader2 className="h-3 w-3 animate-spin" /> Buscando endereço...
+            </p>
+          )}
+          {geocodeResult && !isReversing && (
+            <div className="text-sm bg-muted/50 rounded-lg p-3 space-y-1">
+              <p className="font-medium">📍 {geocodeResult.endereco || geocodeResult.displayName}</p>
+              {geocodeResult.bairro && <p className="text-muted-foreground">Bairro: {geocodeResult.bairro}</p>}
+              {geocodeResult.cidade && <p className="text-muted-foreground">Cidade: {geocodeResult.cidade}</p>}
+              <p className="text-xs text-muted-foreground">
+                Lat: {geocodeResult.latitude.toFixed(6)} | Lng: {geocodeResult.longitude.toFixed(6)}
+              </p>
+            </div>
+          )}
+        </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
