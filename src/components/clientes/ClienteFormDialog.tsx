@@ -188,7 +188,6 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
               </div>
             </div>
           </div>
-          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button onClick={handleSubmit} disabled={saving || !form.nome.trim()}>
