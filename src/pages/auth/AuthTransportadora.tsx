@@ -71,7 +71,7 @@ export default function AuthTransportadora() {
               <Input
                 id="transp-email"
                 type="email"
-                placeholder="transportadora@empresa.com"
+                placeholder="Digite seu email"
                 value={form.loginEmail}
                 onChange={(e) => form.setLoginEmail(e.target.value)}
                 disabled={form.isLoading}
@@ -85,7 +85,7 @@ export default function AuthTransportadora() {
                 <Input
                   id="transp-password"
                   type={form.showPassword ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder="Digite sua senha"
                   value={form.loginPassword}
                   onChange={(e) => form.setLoginPassword(e.target.value)}
                   disabled={form.isLoading}

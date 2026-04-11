@@ -72,7 +72,7 @@ export default function AuthApi() {
               <Input
                 id="api-email"
                 type="email"
-                placeholder="Digite seu e-mail"
+                placeholder="Digite seu email"
                 value={form.loginEmail}
                 onChange={(e) => form.setLoginEmail(e.target.value)}
                 disabled={form.isLoading}
@@ -86,7 +86,7 @@ export default function AuthApi() {
                 <Input
                   id="api-password"
                   type={form.showPassword ? "text" : "password"}
-                  placeholder="Coloque sua senha"
+                  placeholder="Digite sua senha"
                   value={form.loginPassword}
                   onChange={(e) => form.setLoginPassword(e.target.value)}
                   disabled={form.isLoading}

@@ -76,7 +76,7 @@ export default function AuthEntregador() {
               <Input
                 id="entregador-email"
                 type="email"
-                placeholder="entregador@distribuidora.com"
+                placeholder="Digite seu email"
                 value={form.loginEmail}
                 onChange={(e) => form.setLoginEmail(e.target.value)}
                 disabled={form.isLoading}
@@ -90,7 +90,7 @@ export default function AuthEntregador() {
                 <Input
                   id="entregador-password"
                   type={form.showPassword ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder="Digite sua senha"
                   value={form.loginPassword}
                   onChange={(e) => form.setLoginPassword(e.target.value)}
                   disabled={form.isLoading}
