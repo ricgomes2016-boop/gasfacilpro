@@ -30,6 +30,7 @@ export function useGeoTracking() {
   const lastStateRef = useRef<{ lat: number, lng: number, time: number } | null>(null);
   const statusRef = useRef<string>("offline");
   const wakeLockRef = useRef<any>(null);
+  const activeRotaIdRef = useRef<string | null>(null);
 
   // --- WAKELOCK FOR PWA FALLBACK ---
   const requestWakeLock = async () => {
@@ -49,6 +50,35 @@ export function useGeoTracking() {
       wakeLockRef.current = null;
     }
   };
+
+  // --- FETCH ACTIVE ROTA ID ---
+  const fetchActiveRotaId = async () => {
+    if (!entregadorIdRef.current) return;
+    try {
+      const { data } = await supabase.from("carregamentos_rota")
+        .select("id")
+        .eq("entregador_id", entregadorIdRef.current)
+        .eq("status", "em_rota")
+        .order("data_saida", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      activeRotaIdRef.current = data?.id || null;
+    } catch (err) {
+      console.warn("Erro ao buscar rota ativa:", err);
+    }
+  };
+
+  // --- STOP TRACKING (reusable) ---
+  const stopTracking = useCallback(() => {
+    if (watchIdRef.current !== null) {
+      if (isCapacitorWatcherRef.current) {
+        BackgroundGeolocation.removeWatcher({ id: watchIdRef.current });
+      } else if (navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+      watchIdRef.current = null;
+    }
+  }, []);
 
   const updateLocation = useCallback(async (lat: number, lng: number) => {
     if (!entregadorIdRef.current) return;
@@ -71,11 +101,22 @@ export function useGeoTracking() {
     if (shouldUpdate) {
       lastStateRef.current = { lat, lng, time: now };
       try {
+        // Update current position
         await supabase.from("entregadores")
           .update({ latitude: lat, longitude: lng })
           .eq("id", entregadorIdRef.current);
+
+        // Insert route history if there's an active route
+        if (activeRotaIdRef.current) {
+          await supabase.from("rota_historico").insert({
+            rota_id: activeRotaIdRef.current,
+            latitude: lat,
+            longitude: lng,
+            timestamp: new Date().toISOString(),
+          });
+        }
       } catch (err) {
-        console.error("Erro ao atualizar banco:", err);
+        console.error("Erro ao atualizar localização:", err);
       }
     }
   }, []);
@@ -89,6 +130,9 @@ export function useGeoTracking() {
     const startWebTracking = () => {
       if (!navigator.geolocation) return;
       if (statusRef.current === "offline") return;
+      
+      // Prevent duplicate watchers
+      stopTracking();
       
       watchIdRef.current = navigator.geolocation.watchPosition(
         (position) => updateLocation(position.coords.latitude, position.coords.longitude),
@@ -105,6 +149,9 @@ export function useGeoTracking() {
     };
 
     const startCapacitorTracking = () => {
+      // Prevent duplicate watchers
+      stopTracking();
+      
       BackgroundGeolocation.addWatcher(
         {
           backgroundMessage: "Rastreando rota de entrega. Desligue se pausar.",
@@ -123,6 +170,14 @@ export function useGeoTracking() {
       });
     };
 
+    const startTrackingForPlatform = () => {
+      if (Capacitor.isNativePlatform()) {
+        startCapacitorTracking();
+      } else {
+        startWebTracking();
+      }
+    };
+
     const init = async () => {
       const { data } = await supabase.from("entregadores")
         .select("id, status")
@@ -132,18 +187,35 @@ export function useGeoTracking() {
       entregadorIdRef.current = data.id;
       statusRef.current = data.status || "offline";
 
+      // Fetch active rota for history tracking
+      await fetchActiveRotaId();
+
       channel = supabase.channel('entregador_status_changes').on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'entregadores', filter: `id=eq.${data.id}` },
-        (payload) => {
+        async (payload) => {
           const newStatus = payload.new.status;
+          const oldStatus = statusRef.current;
           statusRef.current = newStatus;
-          if (newStatus === "offline") releaseWakeLock();
-          else requestWakeLock();
+
+          if (newStatus === "offline") {
+            // Going offline: stop GPS and release wake lock
+            stopTracking();
+            releaseWakeLock();
+            activeRotaIdRef.current = null;
+          } else if (oldStatus === "offline" && newStatus !== "offline") {
+            // Coming online: start GPS and request wake lock
+            await fetchActiveRotaId();
+            requestWakeLock();
+            startTrackingForPlatform();
+          }
         }
       ).subscribe();
 
-      if (statusRef.current !== "offline") requestWakeLock();
+      if (statusRef.current !== "offline") {
+        requestWakeLock();
+        startTrackingForPlatform();
+      }
 
       handleVisibilityChange = () => {
         if (document.visibilityState === 'visible' && statusRef.current !== "offline") {
@@ -154,30 +226,15 @@ export function useGeoTracking() {
       if (!Capacitor.isNativePlatform()) {
         document.addEventListener('visibilitychange', handleVisibilityChange);
       }
-
-      if (statusRef.current !== "offline") {
-        if (Capacitor.isNativePlatform()) {
-          startCapacitorTracking();
-        } else {
-          startWebTracking();
-        }
-      }
     };
 
     init();
 
     return () => {
-      if (watchIdRef.current !== null) {
-        if (isCapacitorWatcherRef.current) {
-          BackgroundGeolocation.removeWatcher({ id: watchIdRef.current });
-        } else if (navigator.geolocation) {
-          navigator.geolocation.clearWatch(watchIdRef.current);
-        }
-        watchIdRef.current = null;
-      }
+      stopTracking();
       releaseWakeLock();
       if (channel) supabase.removeChannel(channel);
       if (handleVisibilityChange) document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [user, updateLocation]);
+  }, [user, updateLocation, stopTracking]);
 }
