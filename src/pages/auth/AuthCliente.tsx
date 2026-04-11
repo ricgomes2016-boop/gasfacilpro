@@ -43,7 +43,7 @@ function SimpleLoginForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
           <Input
             id="cliente-login-password"
             type={form.showPassword ? "text" : "password"}
-            placeholder="••••••••"
+            placeholder="Digite sua senha"
             value={form.loginPassword}
             onChange={(e) => form.setLoginPassword(e.target.value)}
             disabled={form.isLoading}
