@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { ResponsiveDialog as Dialog, ResponsiveDialogContent as DialogContent } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { X, ShoppingCart } from "lucide-react";
 import { Loader2 } from "lucide-react";
