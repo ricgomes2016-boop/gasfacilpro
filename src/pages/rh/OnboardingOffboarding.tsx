@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
+  ResponsiveDialog as Dialog, ResponsiveDialogContent as DialogContent, ResponsiveDialogHeader as DialogHeader, ResponsiveDialogTitle as DialogTitle, ResponsiveDialogFooter as DialogFooter,
+} from "@/components/ui/responsive-dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveDialog as Dialog, ResponsiveDialogContent as DialogContent, ResponsiveDialogDescription as DialogDescription, ResponsiveDialogFooter as DialogFooter, ResponsiveDialogHeader as DialogHeader, ResponsiveDialogTitle as DialogTitle,
+} from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
