@@ -1,50 +1,36 @@
 
 
-## Plano: Dialog → Drawer responsivo no mobile
+## Análise: Localização em Tempo Real no APK do Entregador
 
-### Abordagem
+### Problemas Encontrados
 
-Criar um componente wrapper `ResponsiveDialog` que detecta mobile via `useIsMobile()` e renderiza **Drawer** (vaul) no mobile ou **Dialog** (radix) no desktop. Isso evita alterar 121 arquivos individualmente — basta trocar os imports nos arquivos prioritários.
+**1. Bug crítico: GPS não inicia ao mudar status**
+Quando o entregador muda de "offline" para "disponível" (via painel ou jornada), o listener de realtime atualiza `statusRef` mas **não inicia o tracking GPS**. O GPS só funciona se o entregador já estiver "disponível" no momento do carregamento do app. Isso significa que na maioria dos casos de uso real, o GPS nunca liga.
 
-### Arquivos a criar
+**2. Sem histórico de rota (`rota_historico`)**
+O hook `useGeoTracking` atualiza apenas `entregadores.latitude/longitude` (posição atual), mas nunca insere registros em `rota_historico`. Isso significa que o "Trajeto do Dia" no Mapa Operacional fica sempre vazio.
 
-**1. `src/components/ui/responsive-dialog.tsx`** — Componente wrapper que exporta:
-- `ResponsiveDialog` — usa `Drawer` no mobile, `Dialog` no desktop
-- `ResponsiveDialogContent` — `DrawerContent` (com max-h-[85vh] e scroll) ou `DialogContent`
-- `ResponsiveDialogHeader` → `DrawerHeader` / `DialogHeader`
-- `ResponsiveDialogFooter` → `DrawerFooter` (sticky) / `DialogFooter`
-- `ResponsiveDialogTitle` → `DrawerTitle` / `DialogTitle`
-- `ResponsiveDialogDescription` → `DrawerDescription` / `DialogDescription`
-- `ResponsiveDialogClose` → `DrawerClose` / `DialogClose`
-- `ResponsiveDialogTrigger` → `DrawerTrigger` / `DialogTrigger`
+**3. GPS não para ao ficar offline**
+Quando o status muda para "offline", o watcher do GPS continua rodando em background — desperdiçando bateria e enviando dados desnecessários.
 
-O footer no Drawer terá `sticky bottom-0 bg-background border-t` para botões sempre visíveis.
+### Correções Propostas
 
-### Arquivos a modificar (troca de imports)
+**Arquivo: `src/hooks/useGeoTracking.ts`**
 
-Os seguintes arquivos terão `Dialog*` substituído por `ResponsiveDialog*`:
+1. **Iniciar/parar GPS ao mudar status** — No listener de realtime (`postgres_changes`), chamar `startCapacitorTracking()` ou `startWebTracking()` quando status sai de "offline", e `stopTracking()` quando entra em "offline".
 
-1. **`src/components/clientes/ClienteFormDialog.tsx`** — Cadastro de Clientes
-2. **`src/components/clientes/ClienteUnidadesDialog.tsx`** — Unidades do Cliente
-3. **`src/components/vendas/NovaVendaModal.tsx`** — Nova Venda / Pedidos
-4. **`src/components/entregador/IniciarRotaModal.tsx`** — Iniciar Rota
-5. **`src/pages/financeiro/ContasBancarias.tsx`** — Contas Bancárias
-6. **`src/pages/financeiro/EmailTransacional.tsx`** — Email Transacional
-7. **`src/pages/config/DocumentosEmpresa.tsx`** — Documentos
-8. **`src/pages/rh/OnboardingOffboarding.tsx`** — Onboarding RH
+2. **Inserir em `rota_historico`** — Dentro de `updateLocation`, após atualizar `entregadores`, inserir também um registro na tabela `rota_historico` com `entregador_id`, `latitude`, `longitude` e `timestamp`, vinculado à rota ativa (se houver).
 
-Em cada arquivo a mudança é mecânica: trocar o import de `@/components/ui/dialog` para `@/components/ui/responsive-dialog` e renomear os componentes (prefixo `Responsive`).
+3. **Extrair função `stopTracking()`** — Criar uma função reutilizável que remove o watcher (Capacitor ou Web) para poder parar o GPS sem desmontar o componente.
 
 ### Detalhes técnicos
 
-- `useIsMobile()` já existe com breakpoint 768px
-- `vaul` (Drawer) já está instalado e configurado
-- O `ResponsiveDialogContent` no mobile terá `max-h-[85vh]` com conteúdo rolável via `overflow-y-auto`
-- O `ResponsiveDialogFooter` no mobile terá `sticky bottom-0` com borda superior para manter botões visíveis durante scroll
+- A função `startCapacitorTracking` e `startWebTracking` precisam ser estáveis (extraídas para refs ou com cleanup antes de reiniciar) para evitar watchers duplicados
+- A inserção em `rota_historico` requer buscar a `rota_id` ativa do entregador; será feita uma query inicial e cacheada em ref
+- Nenhuma mudança no AndroidManifest, permissões ou Capacitor config — já estão corretos
+- Nenhuma mudança no workflow de build do GitHub
 
 ### Escopo
-
-- ~9 arquivos modificados/criados
-- Sem mudanças no `dialog.tsx` ou `drawer.tsx` originais
-- Sem breaking changes — arquivos que continuam usando `Dialog` direto funcionam normalmente
+- 1 arquivo modificado: `src/hooks/useGeoTracking.ts`
+- Zero mudanças de banco (tabelas já existem)
 
