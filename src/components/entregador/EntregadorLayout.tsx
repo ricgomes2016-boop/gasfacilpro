@@ -18,6 +18,8 @@ import {
   ShoppingBag,
   GraduationCap,
   LogOut,
+  HandCoins,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -39,11 +41,13 @@ const menuItems = [
   { path: "/entregador", icon: Home, label: "Início" },
   { path: "/entregador/jornada", icon: Flame, label: "Jornada" },
   { path: "/entregador/entregas", icon: Package, label: "Entregas" },
+  { path: "/entregador/nova-venda", icon: PlusCircle, label: "Nova Venda" },
   { path: "/entregador/produtividade", icon: TrendingUp, label: "Produtividade" },
   { path: "/entregador/vendas", icon: ShoppingBag, label: "Qtd Vendida" },
   { path: "/entregador/financeiro", icon: Receipt, label: "Financeiro" },
+  { path: "/entregador/contas-prazo", icon: HandCoins, label: "Contas a Prazo" },
+  { path: "/entregador/devolucoes", icon: RotateCcw, label: "Devoluções/Trocas" },
   { path: "/entregador/treinamento", icon: GraduationCap, label: "Treinamento" },
-  { path: "/entregador/nova-venda", icon: PlusCircle, label: "Nova Venda" },
   { path: "/entregador/estoque", icon: BoxesIcon, label: "Estoque" },
   { path: "/entregador/transferencia", icon: ArrowRightLeft, label: "Transferir" },
   { path: "/entregador/despesas", icon: Receipt, label: "Despesas" },
