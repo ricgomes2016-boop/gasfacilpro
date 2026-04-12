@@ -203,8 +203,8 @@ export function Sidebar() {
 
   const isSubmenuOpen = (label: string) => openMenus.includes(label);
   const isActive = (path?: string) => path && location.pathname === path;
-  const isSubmenuActive = (submenu?: { label: string; path: string }[]) =>
-    submenu?.some((item) => location.pathname === item.path);
+  const isSubmenuActive = (submenu?: { label: string; path?: string }[]) =>
+    submenu?.some((item) => item.path && location.pathname === item.path);
 
   const handleSignOut = async () => {
     await signOut();
