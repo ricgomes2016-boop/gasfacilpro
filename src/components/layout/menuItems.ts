@@ -258,7 +258,7 @@ export const menuItems: MenuItem[] = [
       { icon: UserCheckIcon, label: "Onboarding / Offboarding", path: "/rh/onboarding" },
       { icon: ShieldAlert, label: "Prevenção Trabalhista - IA", path: "/rh/prevencao-ia" },
       { icon: Zap, label: "Produtividade - IA", path: "/rh/produtividade-ia" },
-      { icon: Download, label: "APK Entregador", externalUrl: "https://github.com/ricgomes2016-boop/gasfacilpro/actions/runs/24307174544/artifacts/6392760448" },
+      { icon: Download, label: "APK Entregador", externalUrl: "https://github.com/ricgomes2016-boop/gasfacilpro/releases/latest" },
     ],
   },
   {
