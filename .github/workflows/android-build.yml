@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch: # Permite rodar o build manualmente se quiser
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build Android APK
@@ -49,9 +52,25 @@ jobs:
         chmod +x gradlew
         ./gradlew assembleDebug -Dorg.gradle.java.home=$JAVA_HOME
 
-    - name: Disponibilizar o APK para Download
+    - name: Disponibilizar o APK para Download (Artifact)
       uses: actions/upload-artifact@v4
       with:
         name: GasFacilPro_Entregador.apk
         path: android/app/build/outputs/apk/debug/app-debug.apk
         retention-days: 7
+
+    - name: Gerar tag com data/hora
+      id: tag
+      run: echo "tag=apk-$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+
+    - name: Renomear APK
+      run: cp android/app/build/outputs/apk/debug/app-debug.apk ./GasFacilPro_Entregador.apk
+
+    - name: Criar Release com APK
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.tag.outputs.tag }}
+        name: "APK Entregador - ${{ steps.tag.outputs.tag }}"
+        body: "Build automático do APK do Entregador. Clique no arquivo `.apk` abaixo para baixar diretamente."
+        files: GasFacilPro_Entregador.apk
+        make_latest: true
