@@ -18,6 +18,8 @@ const EntregadorProdutividade = lazy(() => import("@/pages/entregador/Entregador
 const EntregadorFinanceiro = lazy(() => import("@/pages/entregador/EntregadorFinanceiro"));
 const EntregadorVendas = lazy(() => import("@/pages/entregador/EntregadorVendas"));
 const EntregadorTreinamento = lazy(() => import("@/pages/entregador/EntregadorTreinamento"));
+const EntregadorContasPrazo = lazy(() => import("@/pages/entregador/EntregadorContasPrazo"));
+const EntregadorDevolucoes = lazy(() => import("@/pages/entregador/EntregadorDevolucoes"));
 
 const DRIVER_ROLES: ("admin" | "gestor" | "entregador")[] = ["admin", "gestor", "entregador"];
 
@@ -39,4 +41,6 @@ export const entregadorRoutes: RouteConfig[] = [
   { path: "/entregador/financeiro", component: EntregadorFinanceiro, roles: DRIVER_ROLES },
   { path: "/entregador/vendas", component: EntregadorVendas, roles: DRIVER_ROLES },
   { path: "/entregador/treinamento", component: EntregadorTreinamento, roles: DRIVER_ROLES },
+  { path: "/entregador/contas-prazo", component: EntregadorContasPrazo, roles: DRIVER_ROLES },
+  { path: "/entregador/devolucoes", component: EntregadorDevolucoes, roles: DRIVER_ROLES },
 ];
