@@ -92,7 +92,8 @@ import {
 export interface SubMenuItem {
   icon: LucideIcon;
   label: string;
-  path: string;
+  path?: string;
+  externalUrl?: string;
 }
 
 export interface MenuItem {
@@ -257,6 +258,7 @@ export const menuItems: MenuItem[] = [
       { icon: UserCheckIcon, label: "Onboarding / Offboarding", path: "/rh/onboarding" },
       { icon: ShieldAlert, label: "Prevenção Trabalhista - IA", path: "/rh/prevencao-ia" },
       { icon: Zap, label: "Produtividade - IA", path: "/rh/produtividade-ia" },
+      { icon: Download, label: "APK Entregador", externalUrl: "https://github.com/ricgomes2016-boop/gasfacilpro/actions/workflows/android-build.yml" },
     ],
   },
   {

@@ -476,22 +476,38 @@ export function Sidebar() {
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: subIdx * 0.02, duration: 0.15 }}
                               >
-                                <Link
-                                  to={subItem.path}
-                                  className={cn(
-                                    "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
-                                    subActive
-                                      ? "bg-primary text-primary-foreground shadow-sm"
-                                      : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
-                                  )}
-                                >
-                                  <SubIcon className={cn(
-                                    "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
-                                    subActive ? "" : subMenuIconColors[subItem.label] || menuIconColors[item.label] || "",
-                                    !subActive && "group-hover:scale-110"
-                                  )} />
-                                  <span className="truncate">{subItem.label}</span>
-                                </Link>
+                                {subItem.externalUrl ? (
+                                  <a
+                                    href={subItem.externalUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200 text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                                  >
+                                    <SubIcon className={cn(
+                                      "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
+                                      subMenuIconColors[subItem.label] || menuIconColors[item.label] || "",
+                                      "group-hover:scale-110"
+                                    )} />
+                                    <span className="truncate">{subItem.label}</span>
+                                  </a>
+                                ) : (
+                                  <Link
+                                    to={subItem.path!}
+                                    className={cn(
+                                      "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
+                                      subActive
+                                        ? "bg-primary text-primary-foreground shadow-sm"
+                                        : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                                    )}
+                                  >
+                                    <SubIcon className={cn(
+                                      "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
+                                      subActive ? "" : subMenuIconColors[subItem.label] || menuIconColors[item.label] || "",
+                                      !subActive && "group-hover:scale-110"
+                                    )} />
+                                    <span className="truncate">{subItem.label}</span>
+                                  </Link>
+                                )}
                               </motion.div>
                             );
                           })}
