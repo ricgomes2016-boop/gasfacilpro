@@ -481,17 +481,7 @@ export default function EntregadorNovaVenda() {
     },
   });
 
-  const canaisFixos = [
-    { value: "telefone", label: "📞 Telefone" },
-    { value: "whatsapp", label: "💬 WhatsApp" },
-    { value: "portaria", label: "🏢 Portaria" },
-  ];
-
-  const canaisDinamicos = canaisVenda
-    .filter((c) => !canaisFixos.some((f) => f.value === c.nome.toLowerCase()))
-    .map((c) => ({ value: c.nome, label: `🏷️ ${c.nome}` }));
-
-  const todosCanais = [...canaisFixos, ...canaisDinamicos];
+  const todosCanais = canaisVenda.map((c) => ({ value: c.nome, label: c.nome }));
 
   const clientesFiltrados = clientes.filter(
     (c) =>
