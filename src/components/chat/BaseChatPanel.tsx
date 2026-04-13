@@ -68,6 +68,15 @@ export function BaseChatPanel() {
 
   const loadThreads = useCallback(async () => {
     if (unidadeIds.length === 0) return;
+
+    // Fetch all active entregadores for the user's unidades
+    const { data: allEntregadores } = await supabase
+      .from("entregadores")
+      .select("id, nome, unidade_id")
+      .eq("ativo", true)
+      .in("unidade_id", unidadeIds)
+      .order("nome");
+
     const orFilter = unidadeIds
       .map((uid) => `and(destinatario_tipo.eq.base,destinatario_id.eq.${uid}),and(remetente_tipo.eq.base,remetente_id.eq.${uid})`)
       .join(",");
@@ -79,12 +88,11 @@ export function BaseChatPanel() {
       .order("created_at", { ascending: false })
       .limit(500);
 
-    if (!data) return;
-
     const threadMap: Record<string, EntregadorThread> = {};
     let totalUn = 0;
 
-    data.forEach((msg) => {
+    // Build threads from messages
+    (data || []).forEach((msg) => {
       let eId: string;
       let eName: string;
       let uId: string;
@@ -118,11 +126,29 @@ export function BaseChatPanel() {
       }
     });
 
-    setThreads(
-      Object.values(threadMap).sort(
-        (a, b) => new Date(b.last_time).getTime() - new Date(a.last_time).getTime()
-      )
-    );
+    // Merge entregadores without conversations
+    (allEntregadores || []).forEach((e) => {
+      if (!threadMap[e.id]) {
+        threadMap[e.id] = {
+          entregador_id: e.id,
+          entregador_nome: e.nome,
+          unidade_id: e.unidade_id || unidadeIds[0],
+          last_message: "",
+          last_time: "",
+          unread: 0,
+        };
+      }
+    });
+
+    // Sort: threads with messages first (by time), then entregadores without messages (alphabetical)
+    const sorted = Object.values(threadMap).sort((a, b) => {
+      if (a.last_time && b.last_time) return new Date(b.last_time).getTime() - new Date(a.last_time).getTime();
+      if (a.last_time) return -1;
+      if (b.last_time) return 1;
+      return a.entregador_nome.localeCompare(b.entregador_nome);
+    });
+
+    setThreads(sorted);
     setTotalUnread(totalUn);
   }, [unidadeIds]);
 
@@ -297,11 +323,15 @@ export function BaseChatPanel() {
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-center">
                           <p className="font-medium text-sm truncate">{t.entregador_nome}</p>
-                          <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
-                            {format(new Date(t.last_time), "HH:mm")}
-                          </span>
+                          {t.last_time && (
+                            <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
+                              {format(new Date(t.last_time), "HH:mm")}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-xs text-muted-foreground truncate">{t.last_message}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {t.last_message || "Iniciar conversa..."}
+                        </p>
                       </div>
                       {t.unread > 0 && (
                         <span className="h-5 min-w-5 px-1 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center shrink-0">
