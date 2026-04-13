@@ -118,8 +118,17 @@ export function ChatOperador({ externalOpen, onExternalClose, onUnreadChange }: 
       .update({ lida: true })
       .eq("remetente_id", entregadorId)
       .eq("remetente_tipo", "entregador")
+      .eq("destinatario_tipo", "base")
       .eq("lida", false);
-    fetchEntregadores();
+    // Update local state immediately
+    setEntregadores((prev) =>
+      prev.map((e) => (e.id === entregadorId ? { ...e, unread: 0 } : e))
+    );
+    setTotalUnread((prev) => {
+      const ent = entregadores.find((e) => e.id === entregadorId);
+      return Math.max(0, prev - (ent?.unread || 0));
+    });
+    onUnreadChange?.(Math.max(0, totalUnread - (entregadores.find((e) => e.id === entregadorId)?.unread || 0)));
   };
 
   const selectEntregador = async (e: Entregador) => {
