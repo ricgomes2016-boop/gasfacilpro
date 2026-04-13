@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Send, Bot, User, Lightbulb, ArrowLeft, Check, CheckCheck, Building2 } from "lucide-react";
+import { MessagesSquare, Send, Sparkles, User, Lightbulb, ArrowLeft, Check, CheckCheck, Building2 } from "lucide-react";
 import { VoiceInputButton } from "@/components/ai/VoiceButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
