@@ -440,7 +440,7 @@ export function ChatBase() {
 
         {!selectedPeer && (
           <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-1 min-h-0">
-            <TabsList className="mx-4 mt-2 shrink-0">
+            <TabsList className="mx-4 mt-1 mb-0 shrink-0">
               <TabsTrigger value="ia" className="flex-1 gap-1">
                 <Sparkles className="h-4 w-4" /> Assistente IA
               </TabsTrigger>
@@ -520,10 +520,10 @@ export function ChatBase() {
             </TabsContent>
 
             {/* === Conversas Tab (list) === */}
-            <TabsContent value="conversas" className="flex-1 flex flex-col min-h-0 mt-0">
+            <TabsContent value="conversas" className="flex-1 flex flex-col min-h-0 mt-0 pt-0">
               <ScrollArea className="flex-1">
                 {peers.length === 0 ? (
-                  <div className="p-8 text-center text-muted-foreground text-sm">
+                  <div className="p-6 text-center text-muted-foreground text-sm">
                     Nenhum contato disponível.
                   </div>
                 ) : (
@@ -532,7 +532,7 @@ export function ChatBase() {
                       <button
                         key={p.id}
                         onClick={() => { setSelectedPeer(p); setTab("conversas"); }}
-                        className="w-full flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors text-left"
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left"
                       >
                         <div className={cn(
                           "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
