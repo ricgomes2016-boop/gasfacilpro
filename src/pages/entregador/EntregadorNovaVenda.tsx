@@ -456,6 +456,38 @@ export default function EntregadorNovaVenda() {
         }
       }
 
+      // Update carregamento_rota_itens (quantidade_vendida) for active route
+      if (entregadorId) {
+        const { data: carregAtivo } = await supabase
+          .from("carregamentos_rota")
+          .select("id")
+          .eq("entregador_id", entregadorId)
+          .eq("status", "em_rota")
+          .order("data_saida", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (carregAtivo) {
+          for (const item of itens) {
+            const { data: carregItem } = await supabase
+              .from("carregamento_rota_itens")
+              .select("id, quantidade_vendida")
+              .eq("carregamento_id", carregAtivo.id)
+              .eq("produto_id", item.produtoId)
+              .maybeSingle();
+
+            if (carregItem) {
+              await supabase
+                .from("carregamento_rota_itens")
+                .update({
+                  quantidade_vendida: (carregItem.quantidade_vendida || 0) + item.quantidade,
+                })
+                .eq("id", carregItem.id);
+            }
+          }
+        }
+      }
+
       toast({ title: "Venda registrada! ✅", description: `Pedido #${pedido.id.slice(0, 6)} criado com sucesso.` });
       navigate("/entregador/entregas");
     } catch (err: any) {
