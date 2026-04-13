@@ -1,36 +1,61 @@
 
 
-## Plano: Corrigir Chat do Header — Espaço, Leitura e Modernização
+## Plano: Atualização automática do cadastro de clientes no app do entregador
 
-### Problemas identificados
-
-1. **Botão "Chat Entregadores" ocupa espaço demais** — usa `variant="outline" size="sm"` com texto visível, empurrando os botões de perfil e tema para fora da tela
-2. **Badge de não lidas não limpa ao visualizar** — o `markAsRead` no `ChatOperador` não filtra por `destinatario_tipo=base`, marcando mensagens erradas; no `BaseChatPanel` a lógica está correta mas o `loadThreads` pode não atualizar o state local do thread selecionado
-3. **Visual datado** — sem indicadores de leitura (check/double-check), sem busca de entregador, design básico
+### Problema
+No app do entregador (`EntregadorNovaVenda.tsx`), a lista de clientes é carregada uma vez ao abrir a tela (`fetchData`), com limite de 500 registros. Quando um cliente novo é cadastrado (pelo sistema ou pelo próprio app via IA), a lista local não atualiza automaticamente.
 
 ### Alterações
 
-**Arquivo: `src/components/chat/BaseChatPanel.tsx`**
+**Arquivo: `src/pages/entregador/EntregadorNovaVenda.tsx`**
 
-1. **Trigger compacto** — trocar de `Button variant="outline" size="sm"` com texto para `Button variant="ghost" size="icon" className="h-9 w-9"` (apenas ícone), igual aos outros botões do header. Badge de unread fica como bolinha sobreposta.
+1. **Realtime subscription na tabela `clientes`** -- Adicionar um listener Supabase Realtime que escuta INSERT/UPDATE na tabela `clientes` filtrado pelo `empresa_id` do entregador. Quando um novo cliente é inserido, ele e automaticamente adicionado a lista local `clientes` sem precisar recarregar a pagina.
 
-2. **Busca de entregador** — adicionar um campo de busca no topo da lista de threads para filtrar por nome, permitindo escolher rapidamente o entregador desejado.
+2. **Atualizar lista local apos cadastro via IA** -- Apos o bloco que cria um novo cliente (linha ~262), tambem adicionar o cliente criado ao state local `clientes` imediatamente, para que ele apareca na busca sem precisar do realtime.
 
-3. **Corrigir leitura (badge persistente)** — após `markAsRead` + `loadThreads`, também atualizar o `selectedThread` local para `unread: 0`, garantindo que a badge suma imediatamente sem esperar re-fetch.
+3. **Remover limite de 500** -- Trocar o `.limit(500)` por busca paginada ou pelo menos aumentar o limite, considerando que a busca no dialog ja filtra localmente.
 
-4. **Visual moderno** — adicionar ícones de check/double-check nas mensagens enviadas (já existe no código mas confirmar funcionamento), avatar com iniciais coloridas na lista, timestamp mais elegante.
+### Detalhes tecnicos
 
-5. **Header do Sheet** — redesenhar com gradiente primário, ícone moderno (MessagesSquare), e visual consistente com o resto do app.
+```typescript
+// Realtime subscription para novos clientes
+useEffect(() => {
+  if (!empresa?.id) return;
+  const channel = supabase
+    .channel("clientes-entregador")
+    .on("postgres_changes", {
+      event: "INSERT",
+      schema: "public",
+      table: "clientes",
+      filter: `empresa_id=eq.${empresa.id}`,
+    }, (payload) => {
+      const novo = payload.new as ClienteDB;
+      setClientes(prev => {
+        if (prev.find(c => c.id === novo.id)) return prev;
+        return [...prev, novo].sort((a, b) => a.nome.localeCompare(b.nome));
+      });
+    })
+    .subscribe();
+  return () => { supabase.removeChannel(channel); };
+}, [empresa?.id]);
+```
 
-**Arquivo: `src/components/chat/ChatOperador.tsx`**
-
-6. **Corrigir markAsRead** — adicionar filtro `destinatario_tipo.eq.base` na query de update para não marcar mensagens de outros contextos como lidas.
-
-7. **Atualizar estado local** — após marcar como lido, atualizar o entregador selecionado e a lista local imediatamente.
+```typescript
+// Apos criar cliente via IA, atualizar lista local
+if (criado) {
+  setClientes(prev => [...prev, {
+    id: criado.id, nome: data.cliente_nome,
+    telefone: data.cliente_telefone || null,
+    endereco: data.endereco || null,
+    bairro: data.bairro || null,
+    cep: data.cep || null,
+    cidade: data.cidade || null,
+  }]);
+}
+```
 
 ### Resultado esperado
-- Botões de perfil e tema sempre visíveis no header
-- Badge de não lidas desaparece ao abrir conversa
-- Busca rápida de entregador no painel
-- Visual moderno e consistente
+- Clientes cadastrados no sistema aparecem automaticamente no app do entregador em tempo real
+- Clientes cadastrados pelo proprio entregador (via IA ou manual) aparecem na lista imediatamente
+- Sem necessidade de recarregar a pagina
 
