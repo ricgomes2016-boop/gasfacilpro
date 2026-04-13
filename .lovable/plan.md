@@ -1,63 +1,27 @@
 
 
-## Plano: Chat entre Entregadores (estilo WhatsApp) + manter Chat IA
+## Plano: Abater transferências entre filiais do total P13 na Rota Atacado
 
-### Contexto
-Atualmente o `ChatBase.tsx` funciona apenas como assistente IA. A tabela `chat_mensagens` ja existe com campos `remetente_id`, `remetente_tipo`, `destinatario_tipo`, `destinatario_id`, `mensagem`, `lida` -- perfeita para mensagens humanas. O pedido e transformar o chat do entregador numa experiencia completa com duas abas: **IA** e **Conversas** (entregador-entregador).
+### O que muda
+Na aba "Rota Atacado" da Gestão de Rotas, o resumo de "Total Saída" e os totais de P13 devem descontar as quantidades que foram transferidas para filiais (registradas na tabela `transp_abastecimentos`).
 
-### Alteracoes
+### Como funciona hoje
+- O resumo soma `quantidade_saida` de todos os `carregamento_rota_itens` no período filtrado
+- Não considera transferências entre filiais
 
-**1. Reescrever `src/components/entregador/ChatBase.tsx`**
-- Adicionar sistema de abas no Sheet: **"Assistente IA"** (funcionalidade atual) e **"Conversas"** (mensagens humanas)
-- Aba Conversas:
-  - Lista de entregadores da mesma unidade (query `entregadores` filtrada por `unidade_id`)
-  - Ao selecionar um entregador, abre conversa 1:1
-  - Mensagens persistidas na tabela `chat_mensagens` com `remetente_tipo = 'entregador'` e `destinatario_tipo = 'entregador'`
-  - Realtime via canal Supabase (`postgres_changes` na tabela `chat_mensagens`)
-  - Indicador de mensagens nao lidas (badge no botao flutuante)
-  - Marcar como lida ao abrir conversa
-  - Input com voz (`VoiceInputButton`) e texto
-- Aba IA: manter funcionalidade atual (streaming SSE com edge function)
+### Implementacao
 
-**2. Nenhuma alteracao no banco de dados**
-- A tabela `chat_mensagens` ja suporta `remetente_tipo = 'entregador'` e `destinatario_tipo = 'entregador'` com `destinatario_id`
-- RLS ja esta habilitada
+**Arquivo: `src/pages/operacional/GestaoRotas.tsx`**
 
-**3. Nenhuma alteracao na edge function**
-- `entregador-chat-ia` permanece inalterada
+1. Adicionar query para buscar `transp_abastecimentos` no mesmo período de datas filtrado, filtrando pela `unidade_id` atual (como origem)
+2. Somar `qtd_p13` das transferências no período
+3. No card de resumo, adicionar um novo card "Transferido Filiais" mostrando o total transferido
+4. Criar um campo calculado "Saldo Líquido" = Total Saída - Transferido para Filiais
+5. Exibir esse saldo no resumo para dar visibilidade clara
 
-### Estrutura da UI (aba Conversas)
-
-```text
-+----------------------------+
-| [Assistente IA] [Conversas]|
-+----------------------------+
-| Lista de entregadores      |
-| > Joao (2 nao lidas)       |
-| > Maria                    |
-| > Pedro (1 nao lida)       |
-+----------------------------+
-
-Ao clicar num entregador:
-+----------------------------+
-| < Voltar    Joao           |
-+----------------------------+
-| [mensagens em bolhas]      |
-| Estilo WhatsApp            |
-| Baloes verdes (eu)         |
-| Baloes cinza (outro)       |
-+----------------------------+
-| [input] [mic] [enviar]     |
-+----------------------------+
-```
-
-### Escopo
-- 1 arquivo modificado (`ChatBase.tsx`)
-- 0 mudancas de banco
-- 0 edge functions novas
-
-### Detalhes Tecnicos
-- Realtime: `supabase.channel('chat-entregador-{id}').on('postgres_changes', ...)` filtrando INSERT na `chat_mensagens`
-- Query conversas: `chat_mensagens` onde `(remetente_id = meu_id AND destinatario_id = outro_id) OR (remetente_id = outro_id AND destinatario_id = meu_id)` ordenado por `created_at`
-- Badge nao lidas: count de `chat_mensagens` onde `destinatario_id = meu_entregador_id AND lida = false AND remetente_tipo = 'entregador'`
+### Detalhes
+- A query filtra `transp_abastecimentos` onde `origem_unidade_id = unidadeAtual.id` e `data` entre as datas do filtro
+- Soma apenas `qtd_p13` (campo inteiro direto na tabela)
+- Grid de resumo passa de 5 para 6 cards (ou substitui conforme layout)
+- Sem alterações de banco de dados
 
