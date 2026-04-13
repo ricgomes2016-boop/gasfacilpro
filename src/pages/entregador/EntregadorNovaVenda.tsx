@@ -116,7 +116,7 @@ export default function EntregadorNovaVenda() {
   });
   const [itens, setItens] = useState<ItemVenda[]>([]);
   const [formaPagamento, setFormaPagamento] = useState("");
-  const [canalVenda, setCanalVenda] = useState("entregador");
+  const [canalVenda, setCanalVenda] = useState("");
   const [observacao, setObservacao] = useState("");
   const [dialogClienteAberto, setDialogClienteAberto] = useState(false);
   const [buscaCliente, setBuscaCliente] = useState("");
@@ -393,6 +393,10 @@ export default function EntregadorNovaVenda() {
   };
 
   const finalizarVenda = async () => {
+    if (!canalVenda) {
+      toast({ title: "Canal de venda obrigatório", description: "Selecione o canal de venda antes de finalizar.", variant: "destructive" });
+      return;
+    }
     if (!cliente.nome || !cliente.endereco) {
       toast({ title: "Dados incompletos", description: "Preencha nome e endereço do cliente.", variant: "destructive" });
       return;
@@ -772,7 +776,7 @@ export default function EntregadorNovaVenda() {
               <span className="text-sm font-medium shrink-0">Canal de Venda:</span>
               <Select value={canalVenda} onValueChange={setCanalVenda}>
                 <SelectTrigger className="w-auto min-w-[160px] h-9 text-sm">
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione o canal *" />
                 </SelectTrigger>
                 <SelectContent>
                   {todosCanais.map((c) => (
@@ -788,7 +792,7 @@ export default function EntregadorNovaVenda() {
         <Button
           onClick={finalizarVenda}
           className="w-full h-14 text-lg gradient-primary text-white shadow-lg"
-          disabled={itens.length === 0 || !cliente.nome || !formaPagamento || isSubmitting}
+          disabled={itens.length === 0 || !cliente.nome || !formaPagamento || !canalVenda || isSubmitting}
         >
           {isSubmitting ? (
             <Loader2 className="h-5 w-5 mr-2 animate-spin" />
