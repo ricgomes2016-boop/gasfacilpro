@@ -472,7 +472,7 @@ export default function EntregadorNovaVenda() {
   const { data: canaisVenda = [] } = useQuery({
     queryKey: ["canais-venda-entregador"],
     queryFn: async () => {
-      const { data } = await supabase.from("canais_venda").select("id, nome").eq("ativo", true).order("nome");
+      const { data } = await supabase.from("canais_venda").select("id, nome, tipo").eq("ativo", true).order("nome");
       return data || [];
     },
   });
@@ -481,8 +481,13 @@ export default function EntregadorNovaVenda() {
     { value: "telefone", label: "📞 Telefone" },
     { value: "whatsapp", label: "💬 WhatsApp" },
     { value: "portaria", label: "🏢 Portaria" },
-    { value: "entregador", label: "🛵 Entregador" },
   ];
+
+  const canaisDinamicos = canaisVenda
+    .filter((c) => !canaisFixos.some((f) => f.value === c.nome.toLowerCase()))
+    .map((c) => ({ value: c.nome, label: `🏷️ ${c.nome}` }));
+
+  const todosCanais = [...canaisFixos, ...canaisDinamicos];
 
   const clientesFiltrados = clientes.filter(
     (c) =>
