@@ -520,10 +520,10 @@ export function ChatBase() {
             </TabsContent>
 
             {/* === Conversas Tab (list) === */}
-            <TabsContent value="conversas" className="flex-1 flex flex-col min-h-0 mt-0">
+            <TabsContent value="conversas" className="flex-1 flex flex-col min-h-0 mt-0 pt-0">
               <ScrollArea className="flex-1">
                 {peers.length === 0 ? (
-                  <div className="p-8 text-center text-muted-foreground text-sm">
+                  <div className="p-6 text-center text-muted-foreground text-sm">
                     Nenhum contato disponível.
                   </div>
                 ) : (
@@ -532,7 +532,7 @@ export function ChatBase() {
                       <button
                         key={p.id}
                         onClick={() => { setSelectedPeer(p); setTab("conversas"); }}
-                        className="w-full flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors text-left"
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left"
                       >
                         <div className={cn(
                           "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
