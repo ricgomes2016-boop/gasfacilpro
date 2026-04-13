@@ -540,6 +540,11 @@ export default function EntregadorNovaVenda() {
               <CardTitle className="text-base flex items-center gap-2">
                 <User className="h-5 w-5 text-primary" />
                 Cliente
+                {cliente.id && cliente.tipo && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getTipoBadge(cliente.tipo).className}`}>
+                    {getTipoBadge(cliente.tipo).label}
+                  </span>
+                )}
               </CardTitle>
               <Dialog open={dialogClienteAberto} onOpenChange={setDialogClienteAberto}>
                 <DialogTrigger asChild>
