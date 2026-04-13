@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessagesSquare, Send, Sparkles, User, Lightbulb, ArrowLeft, Check, CheckCheck, Building2 } from "lucide-react";
+import { Phone, Send, Sparkles, User, Lightbulb, ArrowLeft, Check, CheckCheck, Building2 } from "lucide-react";
 import { VoiceInputButton } from "@/components/ai/VoiceButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -401,7 +401,7 @@ export function ChatBase() {
           size="icon"
           className="fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full shadow-xl gradient-primary text-white ring-4 ring-primary/20 hover:scale-105 transition-transform"
         >
-          <Sparkles className="h-6 w-6 drop-shadow" />
+          <Phone className="h-6 w-6 drop-shadow" />
           {totalUnread > 0 && (
             <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-white text-xs flex items-center justify-center animate-pulse">
               {totalUnread > 9 ? "9+" : totalUnread}
@@ -427,7 +427,7 @@ export function ChatBase() {
                 </>
               ) : (
                 <>
-                  <MessagesSquare className="h-5 w-5 text-primary" />
+                  <Phone className="h-5 w-5 text-primary" />
                   Chat
                 </>
               )}
@@ -445,7 +445,7 @@ export function ChatBase() {
                 <Sparkles className="h-4 w-4" /> Assistente IA
               </TabsTrigger>
               <TabsTrigger value="conversas" className="flex-1 gap-1">
-                <MessagesSquare className="h-4 w-4" /> Conversas
+                <Phone className="h-4 w-4" /> Conversas
                 {totalUnread > 0 && (
                   <span className="ml-1 h-5 w-5 rounded-full bg-destructive text-white text-xs flex items-center justify-center">
                     {totalUnread}
