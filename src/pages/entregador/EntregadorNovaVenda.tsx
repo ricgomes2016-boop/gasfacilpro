@@ -133,6 +133,27 @@ export default function EntregadorNovaVenda() {
     fetchData();
   }, [user]);
 
+  // Realtime subscription for new clients
+  useEffect(() => {
+    if (!empresa?.id) return;
+    const channel = supabase
+      .channel("clientes-entregador")
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "clientes",
+        filter: `empresa_id=eq.${empresa.id}`,
+      }, (payload) => {
+        const novo = payload.new as ClienteDB;
+        setClientes(prev => {
+          if (prev.find(c => c.id === novo.id)) return prev;
+          return [...prev, novo].sort((a, b) => a.nome.localeCompare(b.nome));
+        });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [empresa?.id]);
+
   const fetchData = async () => {
     let unidadeId: string | null = null;
 
@@ -170,7 +191,7 @@ export default function EntregadorNovaVenda() {
     }
 
     // Filter clientes by empresa
-    let clientesQuery = supabase.from("clientes").select("id, nome, telefone, endereco, bairro, cep, cidade").eq("ativo", true).order("nome").limit(500);
+    let clientesQuery = supabase.from("clientes").select("id, nome, telefone, endereco, bairro, cep, cidade").eq("ativo", true).order("nome");
     if (empresa?.id) clientesQuery = clientesQuery.eq("empresa_id", empresa.id);
 
     const [produtosRes, clientesRes] = await Promise.all([
@@ -270,6 +291,19 @@ export default function EntregadorNovaVenda() {
           complemento: data.complemento || "",
         });
         if (criado) {
+          // Update local state immediately
+          setClientes(prev => {
+            if (prev.find(c => c.id === criado.id)) return prev;
+            return [...prev, {
+              id: criado.id,
+              nome: data.cliente_nome,
+              telefone: data.cliente_telefone || null,
+              endereco: data.endereco || null,
+              bairro: data.bairro || null,
+              cep: data.cep || null,
+              cidade: data.cidade || null,
+            }].sort((a, b) => a.nome.localeCompare(b.nome));
+          });
           // Associate with entregador's unidade
           const { data: entData } = await supabase
             .from("entregadores")
