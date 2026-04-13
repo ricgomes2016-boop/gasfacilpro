@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { AiFloatingButton } from "@/components/ai/AiFloatingButton";
 import { ChatOperador } from "@/components/chat/ChatOperador";
 import { MobileBottomBar } from "@/components/layout/MobileBottomBar";
+import { TransferenciaPendentePopup } from "@/components/estoque/TransferenciaPendentePopup";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -36,6 +37,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       </main>
       {!isAiPage && <AiFloatingButton externalOpen={aiOpen} onExternalClose={() => setAiOpen(false)} />}
       <ChatOperador externalOpen={chatOpen} onExternalClose={() => setChatOpen(false)} onUnreadChange={setChatUnread} />
+      <TransferenciaPendentePopup />
       <MobileBottomBar
         onOpenAi={() => { if (!isAiPage) setAiOpen(true); }}
         onOpenChat={() => setChatOpen(true)}
