@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MessagesSquare, Send, ArrowLeft, Check, CheckCheck, User, Search } from "lucide-react";
+import { Phone, Send, ArrowLeft, Check, CheckCheck, User, Search, MessagesSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
