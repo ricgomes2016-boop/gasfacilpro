@@ -1,47 +1,63 @@
 
 
-## Plano: Chat Inteligente do Entregador com IA
+## Plano: Chat entre Entregadores (estilo WhatsApp) + manter Chat IA
 
-### Problema Atual
-O `ChatBase.tsx` é apenas um chat humano-para-humano (entregador ↔ base). O entregador não consegue dar comandos por voz/texto como "lança um gás na rua central, 20" ou "transfira 20 gás para a filial ABMF".
+### Contexto
+Atualmente o `ChatBase.tsx` funciona apenas como assistente IA. A tabela `chat_mensagens` ja existe com campos `remetente_id`, `remetente_tipo`, `destinatario_tipo`, `destinatario_id`, `mensagem`, `lida` -- perfeita para mensagens humanas. O pedido e transformar o chat do entregador numa experiencia completa com duas abas: **IA** e **Conversas** (entregador-entregador).
 
-### Solução
-Transformar o chat do entregador em um chat com IA que entende comandos em linguagem natural, usando a mesma edge function `ai-assistant` (que já tem tools de `criar_pedido`, `registrar_movimentacao_estoque`, etc.), adicionando a tool de transferência de estoque que falta.
+### Alteracoes
 
-### Alterações
+**1. Reescrever `src/components/entregador/ChatBase.tsx`**
+- Adicionar sistema de abas no Sheet: **"Assistente IA"** (funcionalidade atual) e **"Conversas"** (mensagens humanas)
+- Aba Conversas:
+  - Lista de entregadores da mesma unidade (query `entregadores` filtrada por `unidade_id`)
+  - Ao selecionar um entregador, abre conversa 1:1
+  - Mensagens persistidas na tabela `chat_mensagens` com `remetente_tipo = 'entregador'` e `destinatario_tipo = 'entregador'`
+  - Realtime via canal Supabase (`postgres_changes` na tabela `chat_mensagens`)
+  - Indicador de mensagens nao lidas (badge no botao flutuante)
+  - Marcar como lida ao abrir conversa
+  - Input com voz (`VoiceInputButton`) e texto
+- Aba IA: manter funcionalidade atual (streaming SSE com edge function)
 
-**1. Nova Edge Function: `entregador-chat-ia/index.ts`**
-- Edge function dedicada para o contexto do entregador
-- Reutiliza a lógica do `ai-assistant` mas com system prompt adaptado para o entregador
-- Entende comandos coloquiais: "lança um gás", "transfira 20 gás", "quanto tem de P13?"
-- Inclui tool `criar_transferencia_estoque` (cria registro em `transferencias_estoque` + itens)
-- Inclui tools existentes: `criar_pedido`, `registrar_movimentacao_estoque`, consultas SQL
-- Recebe `entregador_id` e `unidade_id` no body para contexto
-- System prompt instruindo: "Você é o assistente do entregador. Entenda comandos rápidos como 'lança 1 gás na rua X, 20' (criar pedido), 'transfira 20 P13 pra filial Y' (transferir estoque)"
+**2. Nenhuma alteracao no banco de dados**
+- A tabela `chat_mensagens` ja suporta `remetente_tipo = 'entregador'` e `destinatario_tipo = 'entregador'` com `destinatario_id`
+- RLS ja esta habilitada
 
-**2. Reescrever `src/components/entregador/ChatBase.tsx`**
-- Substituir o chat humano por chat com IA (streaming SSE, igual `AiAssistantChat`)
-- Manter o botão flutuante e Sheet existentes
-- Enviar mensagens para a edge function `entregador-chat-ia` em vez de `chat_mensagens`
-- Manter `VoiceInputButton` para entrada por voz
-- Renderizar respostas com `ReactMarkdown`
-- Sugestões rápidas: "Lançar venda", "Consultar estoque", "Transferir gás"
+**3. Nenhuma alteracao na edge function**
+- `entregador-chat-ia` permanece inalterada
 
-**3. Tool `criar_transferencia_estoque` (na edge function)**
-- Parâmetros: `unidade_destino_nome`, `itens` (array de produto_nome + quantidade)
-- Busca `unidade_destino_id` por nome (ilike)
-- Cria registro em `transferencias_estoque` com status "pendente"
-- Cria itens em `transferencia_estoque_itens`
+### Estrutura da UI (aba Conversas)
+
+```text
++----------------------------+
+| [Assistente IA] [Conversas]|
++----------------------------+
+| Lista de entregadores      |
+| > Joao (2 nao lidas)       |
+| > Maria                    |
+| > Pedro (1 nao lida)       |
++----------------------------+
+
+Ao clicar num entregador:
++----------------------------+
+| < Voltar    Joao           |
++----------------------------+
+| [mensagens em bolhas]      |
+| Estilo WhatsApp            |
+| Baloes verdes (eu)         |
+| Baloes cinza (outro)       |
++----------------------------+
+| [input] [mic] [enviar]     |
++----------------------------+
+```
 
 ### Escopo
-- 1 edge function criada (`entregador-chat-ia`)
-- 1 componente reescrito (`ChatBase.tsx`)
-- Zero mudanças de banco (tabelas já existem)
-- O chat antigo com a base humana será substituído pelo chat IA
+- 1 arquivo modificado (`ChatBase.tsx`)
+- 0 mudancas de banco
+- 0 edge functions novas
 
-### Detalhes Técnicos
-- Streaming SSE igual ao padrão `ai-assistant`
-- Autenticação via Bearer token do Supabase
-- Usa `LOVABLE_API_KEY` (já configurada) e Lovable AI Gateway
-- Model: `google/gemini-3-flash-preview`
+### Detalhes Tecnicos
+- Realtime: `supabase.channel('chat-entregador-{id}').on('postgres_changes', ...)` filtrando INSERT na `chat_mensagens`
+- Query conversas: `chat_mensagens` onde `(remetente_id = meu_id AND destinatario_id = outro_id) OR (remetente_id = outro_id AND destinatario_id = meu_id)` ordenado por `created_at`
+- Badge nao lidas: count de `chat_mensagens` onde `destinatario_id = meu_entregador_id AND lida = false AND remetente_tipo = 'entregador'`
 
