@@ -37,6 +37,7 @@ import { CadastrarCarregamentoModal } from "@/components/operacional/CadastrarCa
 import { atualizarEstoqueVenda } from "@/services/estoqueService";
 import { format } from "date-fns";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useNavigate } from "react-router-dom";
 
 interface RotaDefinida {
   id: string;
@@ -109,13 +110,34 @@ export default function GestaoRotas() {
 
   const fetchTransferencias = async () => {
     if (!unidadeAtual?.id) { setTransferidoFiliais(0); return; }
-    const { data } = await (supabase as any)
-      .from("transp_abastecimentos")
-      .select("qtd_p13")
-      .eq("origem_unidade_id", unidadeAtual.id)
-      .gte("data", filtroDataInicio)
-      .lte("data", filtroDataFim);
-    const total = (data || []).reduce((sum: number, r: any) => sum + (r.qtd_p13 || 0), 0);
+    // Buscar transferências de estoque onde a unidade atual é a origem
+    const { data: transferencias } = await supabase
+      .from("transferencias_estoque")
+      .select("id")
+      .eq("unidade_origem_id", unidadeAtual.id)
+      .eq("status", "recebido")
+      .gte("data_transferencia", filtroDataInicio)
+      .lte("data_transferencia", filtroDataFim);
+    
+    if (!transferencias || transferencias.length === 0) {
+      setTransferidoFiliais(0);
+      return;
+    }
+
+    const transferIds = transferencias.map((t: any) => t.id);
+    // Buscar itens dessas transferências que são P13 (nome contém "P13" e não "Vazio")
+    const { data: itens } = await supabase
+      .from("transferencia_estoque_itens")
+      .select("quantidade, produtos(nome)")
+      .in("transferencia_id", transferIds);
+    
+    const total = (itens || []).reduce((sum: number, item: any) => {
+      const nome = item.produtos?.nome || "";
+      if (nome.toLowerCase().includes("p13") && !nome.toLowerCase().includes("vazio")) {
+        return sum + (item.quantidade || 0);
+      }
+      return sum;
+    }, 0);
     setTransferidoFiliais(total);
   };
 
