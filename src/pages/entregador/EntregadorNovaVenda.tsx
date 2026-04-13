@@ -474,9 +474,17 @@ export default function EntregadorNovaVenda() {
 
   // Fetch canais de venda
   const { data: canaisVenda = [] } = useQuery({
-    queryKey: ["canais-venda-entregador"],
+    queryKey: ["canais-venda-entregador", user?.id],
+    enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.from("canais_venda").select("id, nome, tipo").eq("ativo", true).order("nome");
+      const { data, error } = await supabase
+        .from("canais_venda")
+        .select("id, nome, tipo")
+        .eq("ativo", true)
+        .order("nome");
+
+      if (error) throw error;
+
       return data || [];
     },
   });
