@@ -419,6 +419,7 @@ export default function EntregadorNovaVenda() {
         .insert({
           cliente_id: cliente.id,
           entregador_id: entregadorId,
+          unidade_id: entregadorUnidadeId,
           endereco_entrega: enderecoCompleto,
           valor_total: total,
           forma_pagamento: formaPagamento,
@@ -669,49 +670,49 @@ export default function EntregadorNovaVenda() {
             ) : (
               <div className="space-y-3">
                 {itens.map((item, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{item.nome}</p>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-muted-foreground">R$</span>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={item.precoUnitario}
-                          onChange={(e) => alterarPreco(index, Number(e.target.value))}
-                          className="w-20 h-6 text-xs px-1"
-                        />
-                        <span className="text-xs text-muted-foreground">/ un</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => alterarQuantidade(index, -1)}>
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={item.quantidade}
-                        onChange={(e) => {
-                          const newQtd = parseInt(e.target.value) || 1;
-                          if (newQtd >= 1) alterarQuantidade(index, newQtd - item.quantidade);
-                        }}
-                        className="w-14 h-8 text-center text-base font-medium"
-                      />
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => alterarQuantidade(index, 1)}>
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="text-right min-w-[4rem]">
-                      <p className="font-bold text-primary text-sm">
-                        R$ {(item.quantidade * item.precoUnitario).toFixed(2)}
-                      </p>
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removerItem(index)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <div key={index} className="p-3 bg-muted/50 rounded-lg space-y-2">
+                     <div className="flex items-center justify-between gap-2">
+                       <p className="font-medium text-sm truncate flex-1">{item.nome}</p>
+                       <p className="font-bold text-primary text-sm whitespace-nowrap">
+                         R$ {(item.quantidade * item.precoUnitario).toFixed(2)}
+                       </p>
+                       <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive shrink-0" onClick={() => removerItem(index)}>
+                         <Trash2 className="h-3.5 w-3.5" />
+                       </Button>
+                     </div>
+                     <div className="flex items-center justify-between gap-2">
+                       <div className="flex items-center gap-1">
+                         <span className="text-xs text-muted-foreground">R$</span>
+                         <Input
+                           type="number"
+                           step="0.01"
+                           min="0"
+                           value={item.precoUnitario}
+                           onChange={(e) => alterarPreco(index, Number(e.target.value))}
+                           className="w-20 h-7 text-xs px-1"
+                         />
+                         <span className="text-xs text-muted-foreground">/ un</span>
+                       </div>
+                       <div className="flex items-center gap-1">
+                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => alterarQuantidade(index, -1)}>
+                           <Minus className="h-4 w-4" />
+                         </Button>
+                         <Input
+                           type="number"
+                           min="1"
+                           value={item.quantidade}
+                           onChange={(e) => {
+                             const newQtd = parseInt(e.target.value) || 1;
+                             if (newQtd >= 1) alterarQuantidade(index, newQtd - item.quantidade);
+                           }}
+                           className="w-12 h-8 text-center text-base font-medium"
+                         />
+                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => alterarQuantidade(index, 1)}>
+                           <Plus className="h-4 w-4" />
+                         </Button>
+                       </div>
+                     </div>
+                   </div>
                 ))}
                 <div className="flex justify-between pt-3 border-t border-border">
                   <span className="font-medium">Total:</span>
