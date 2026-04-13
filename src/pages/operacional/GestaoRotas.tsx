@@ -96,6 +96,7 @@ export default function GestaoRotas() {
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
   const [transferidoFiliais, setTransferidoFiliais] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchRotas();
@@ -445,6 +446,10 @@ export default function GestaoRotas() {
                   <Button onClick={() => setCarregModalOpen(true)}>
                     <Truck className="h-4 w-4 mr-2" />
                     Cadastrar Rota
+                  </Button>
+                  <Button variant="secondary" onClick={() => navigate("/estoque/transferencia")}>
+                    <ArrowRightLeft className="h-4 w-4 mr-2" />
+                    Transferência
                   </Button>
                 </div>
               </CardContent>
