@@ -94,12 +94,30 @@ export default function GestaoRotas() {
 
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
+  const [transferidoFiliais, setTransferidoFiliais] = useState(0);
 
   useEffect(() => {
     fetchRotas();
     fetchCarregamentos();
     fetchFilters();
+    fetchTransferencias();
   }, [unidadeAtual?.id]);
+
+  useEffect(() => {
+    fetchTransferencias();
+  }, [filtroDataInicio, filtroDataFim]);
+
+  const fetchTransferencias = async () => {
+    if (!unidadeAtual?.id) { setTransferidoFiliais(0); return; }
+    const { data } = await (supabase as any)
+      .from("transp_abastecimentos")
+      .select("qtd_p13")
+      .eq("origem_unidade_id", unidadeAtual.id)
+      .gte("data", filtroDataInicio)
+      .lte("data", filtroDataFim);
+    const total = (data || []).reduce((sum: number, r: any) => sum + (r.qtd_p13 || 0), 0);
+    setTransferidoFiliais(total);
+  };
 
   const fetchFilters = async () => {
     let entQuery = supabase.from("entregadores").select("id, nome").eq("ativo", true).order("nome");
