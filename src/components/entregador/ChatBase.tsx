@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Send, Bot, User, Lightbulb, ArrowLeft, Check, CheckCheck } from "lucide-react";
+import { MessageCircle, Send, Bot, User, Lightbulb, ArrowLeft, Check, CheckCheck, Building2 } from "lucide-react";
 import { VoiceInputButton } from "@/components/ai/VoiceButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,12 +26,14 @@ interface ChatMsg {
   mensagem: string;
   created_at: string;
   lida: boolean;
+  remetente_nome?: string | null;
 }
 
-interface Entregador {
+interface Peer {
   id: string;
   nome: string;
   telefone?: string | null;
+  tipo: "entregador" | "base";
 }
 
 const SUGESTOES = [
@@ -58,8 +60,8 @@ export function ChatBase() {
   const [aiLoading, setAiLoading] = useState(false);
 
   // Conversas state
-  const [entregadores, setEntregadores] = useState<Entregador[]>([]);
-  const [selectedPeer, setSelectedPeer] = useState<Entregador | null>(null);
+  const [peers, setPeers] = useState<Peer[]>([]);
+  const [selectedPeer, setSelectedPeer] = useState<Peer | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
@@ -88,39 +90,75 @@ export function ChatBase() {
     init();
   }, [user]);
 
-  // Load entregadores list
+  // Load peers list (entregadores + base)
   useEffect(() => {
     if (!unidadeId || !entregadorId) return;
     const load = async () => {
-      const { data } = await supabase
+      // Load other entregadores
+      const { data: entregadores } = await supabase
         .from("entregadores")
         .select("id, nome, telefone")
         .eq("unidade_id", unidadeId)
         .neq("id", entregadorId)
         .eq("ativo", true);
-      if (data) setEntregadores(data);
+
+      // Get unidade name for "Base" label
+      const { data: unidade } = await supabase
+        .from("unidades")
+        .select("nome")
+        .eq("id", unidadeId)
+        .maybeSingle();
+
+      const peerList: Peer[] = [
+        {
+          id: `base-${unidadeId}`,
+          nome: `Base ${unidade?.nome || ""}`.trim(),
+          tipo: "base",
+        },
+        ...(entregadores || []).map((e) => ({
+          id: e.id,
+          nome: e.nome,
+          telefone: e.telefone,
+          tipo: "entregador" as const,
+        })),
+      ];
+      setPeers(peerList);
     };
     load();
   }, [unidadeId, entregadorId]);
 
   // Load unread counts
   const loadUnread = useCallback(async () => {
-    if (!entregadorId) return;
-    const { data } = await supabase
+    if (!entregadorId || !unidadeId) return;
+    // Unread from entregadores
+    const { data: entregadorUnread } = await supabase
       .from("chat_mensagens")
       .select("remetente_id")
       .eq("destinatario_id", entregadorId)
       .eq("destinatario_tipo", "entregador")
       .eq("remetente_tipo", "entregador")
       .eq("lida", false);
-    if (data) {
-      const counts: Record<string, number> = {};
-      data.forEach((m) => {
+    
+    // Unread from base
+    const { data: baseUnread } = await supabase
+      .from("chat_mensagens")
+      .select("id")
+      .eq("destinatario_id", entregadorId)
+      .eq("destinatario_tipo", "entregador")
+      .eq("remetente_tipo", "base")
+      .eq("lida", false);
+
+    const counts: Record<string, number> = {};
+    if (entregadorUnread) {
+      entregadorUnread.forEach((m) => {
         counts[m.remetente_id] = (counts[m.remetente_id] || 0) + 1;
       });
-      setUnreadCounts(counts);
     }
-  }, [entregadorId]);
+    if (baseUnread && baseUnread.length > 0) {
+      counts[`base-${unidadeId}`] = baseUnread.length;
+    }
+    setUnreadCounts(counts);
+  }, [entregadorId, unidadeId]);
 
   useEffect(() => {
     loadUnread();
@@ -136,65 +174,95 @@ export function ChatBase() {
         { event: "INSERT", schema: "public", table: "chat_mensagens" },
         (payload) => {
           const msg = payload.new as any;
-          if (
-            msg.remetente_tipo === "entregador" &&
-            msg.destinatario_tipo === "entregador" &&
-            (msg.destinatario_id === entregadorId || msg.remetente_id === entregadorId)
-          ) {
-            // If in active conversation with this peer
-            if (
-              selectedPeer &&
-              (msg.remetente_id === selectedPeer.id || msg.destinatario_id === selectedPeer.id)
-            ) {
-              setChatMessages((prev) => [...prev, msg as ChatMsg]);
-              // Mark as read if I'm the recipient
-              if (msg.destinatario_id === entregadorId && !msg.lida) {
-                supabase
-                  .from("chat_mensagens")
-                  .update({ lida: true })
-                  .eq("id", msg.id)
-                  .then();
-              }
-            } else if (msg.destinatario_id === entregadorId) {
-              // Update unread
-              setUnreadCounts((prev) => ({
-                ...prev,
-                [msg.remetente_id]: (prev[msg.remetente_id] || 0) + 1,
-              }));
+          // Messages where I'm involved
+          const isForMe = msg.destinatario_id === entregadorId;
+          const isFromMe = msg.remetente_id === entregadorId;
+          
+          if (!isForMe && !isFromMe) return;
+
+          // Check if it's a base conversation
+          const isBaseMsg = msg.remetente_tipo === "base" || msg.destinatario_tipo === "base";
+          const isEntregadorMsg = msg.remetente_tipo === "entregador" && msg.destinatario_tipo === "entregador";
+
+          if (!isBaseMsg && !isEntregadorMsg) return;
+
+          // Determine peer key for this message
+          let peerKey: string | null = null;
+          if (isBaseMsg) {
+            peerKey = `base-${unidadeId}`;
+          } else if (isEntregadorMsg) {
+            peerKey = isFromMe ? msg.destinatario_id : msg.remetente_id;
+          }
+
+          // If in active conversation with this peer
+          if (selectedPeer && peerKey === selectedPeer.id) {
+            setChatMessages((prev) => [...prev, msg as ChatMsg]);
+            if (isForMe && !msg.lida) {
+              supabase.from("chat_mensagens").update({ lida: true }).eq("id", msg.id).then();
             }
+          } else if (isForMe && peerKey) {
+            setUnreadCounts((prev) => ({
+              ...prev,
+              [peerKey!]: (prev[peerKey!] || 0) + 1,
+            }));
           }
         }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [entregadorId, selectedPeer]);
+  }, [entregadorId, selectedPeer, unidadeId]);
 
   // Load conversation when selecting peer
   useEffect(() => {
     if (!selectedPeer || !entregadorId) return;
     const load = async () => {
       setChatLoading(true);
-      const { data } = await supabase
-        .from("chat_mensagens")
-        .select("id, remetente_id, destinatario_id, mensagem, created_at, lida")
-        .eq("remetente_tipo", "entregador")
-        .eq("destinatario_tipo", "entregador")
-        .or(
-          `and(remetente_id.eq.${entregadorId},destinatario_id.eq.${selectedPeer.id}),and(remetente_id.eq.${selectedPeer.id},destinatario_id.eq.${entregadorId})`
-        )
-        .order("created_at", { ascending: true })
-        .limit(200);
+
+      let query;
+      if (selectedPeer.tipo === "base") {
+        // Messages between me (entregador) and base for my unidade
+        query = supabase
+          .from("chat_mensagens")
+          .select("id, remetente_id, destinatario_id, mensagem, created_at, lida, remetente_nome")
+          .or(
+            `and(remetente_id.eq.${entregadorId},destinatario_tipo.eq.base,destinatario_id.eq.${unidadeId}),and(destinatario_id.eq.${entregadorId},remetente_tipo.eq.base)`
+          )
+          .order("created_at", { ascending: true })
+          .limit(200);
+      } else {
+        query = supabase
+          .from("chat_mensagens")
+          .select("id, remetente_id, destinatario_id, mensagem, created_at, lida, remetente_nome")
+          .eq("remetente_tipo", "entregador")
+          .eq("destinatario_tipo", "entregador")
+          .or(
+            `and(remetente_id.eq.${entregadorId},destinatario_id.eq.${selectedPeer.id}),and(remetente_id.eq.${selectedPeer.id},destinatario_id.eq.${entregadorId})`
+          )
+          .order("created_at", { ascending: true })
+          .limit(200);
+      }
+
+      const { data } = await query;
       if (data) setChatMessages(data as ChatMsg[]);
       setChatLoading(false);
 
       // Mark all as read
-      await supabase
-        .from("chat_mensagens")
-        .update({ lida: true })
-        .eq("destinatario_id", entregadorId)
-        .eq("remetente_id", selectedPeer.id)
-        .eq("remetente_tipo", "entregador")
-        .eq("lida", false);
+      if (selectedPeer.tipo === "base") {
+        await supabase
+          .from("chat_mensagens")
+          .update({ lida: true })
+          .eq("destinatario_id", entregadorId)
+          .eq("remetente_tipo", "base")
+          .eq("lida", false);
+      } else {
+        await supabase
+          .from("chat_mensagens")
+          .update({ lida: true })
+          .eq("destinatario_id", entregadorId)
+          .eq("remetente_id", selectedPeer.id)
+          .eq("remetente_tipo", "entregador")
+          .eq("lida", false);
+      }
       setUnreadCounts((prev) => {
         const next = { ...prev };
         delete next[selectedPeer.id];
@@ -202,7 +270,7 @@ export function ChatBase() {
       });
     };
     load();
-  }, [selectedPeer, entregadorId]);
+  }, [selectedPeer, entregadorId, unidadeId]);
 
   // Auto scroll
   useEffect(() => {
@@ -296,12 +364,14 @@ export function ChatBase() {
       .maybeSingle();
     const nome = entregadorData.data?.nome || "Entregador";
 
+    const isBase = selectedPeer.tipo === "base";
+
     const { error } = await supabase.from("chat_mensagens").insert({
       remetente_id: entregadorId,
       remetente_tipo: "entregador",
       remetente_nome: nome,
-      destinatario_id: selectedPeer.id,
-      destinatario_tipo: "entregador",
+      destinatario_id: isBase ? unidadeId : selectedPeer.id,
+      destinatario_tipo: isBase ? "base" : "entregador",
       mensagem: text,
       lida: false,
     });
@@ -309,6 +379,16 @@ export function ChatBase() {
       toast.error("Erro ao enviar mensagem.");
       return;
     }
+
+    // Create notification for base admins/gestores
+    if (isBase && unidadeId) {
+      supabase.rpc("notify_base_chat" as any, {
+        _unidade_id: unidadeId,
+        _entregador_nome: nome,
+        _mensagem: text.substring(0, 100),
+      }).then();
+    }
+
     setChatInput("");
   };
 
@@ -338,7 +418,12 @@ export function ChatBase() {
                   <button onClick={() => setSelectedPeer(null)} className="mr-1">
                     <ArrowLeft className="h-5 w-5" />
                   </button>
-                  {selectedPeer.nome}
+                  {selectedPeer.tipo === "base" ? (
+                    <span className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-primary" />
+                      {selectedPeer.nome}
+                    </span>
+                  ) : selectedPeer.nome}
                 </>
               ) : (
                 <>
@@ -437,28 +522,37 @@ export function ChatBase() {
             {/* === Conversas Tab (list) === */}
             <TabsContent value="conversas" className="flex-1 flex flex-col min-h-0 mt-0">
               <ScrollArea className="flex-1">
-                {entregadores.length === 0 ? (
+                {peers.length === 0 ? (
                   <div className="p-8 text-center text-muted-foreground text-sm">
-                    Nenhum outro entregador na sua unidade.
+                    Nenhum contato disponível.
                   </div>
                 ) : (
                   <div className="divide-y">
-                    {entregadores.map((e) => (
+                    {peers.map((p) => (
                       <button
-                        key={e.id}
-                        onClick={() => { setSelectedPeer(e); setTab("conversas"); }}
+                        key={p.id}
+                        onClick={() => { setSelectedPeer(p); setTab("conversas"); }}
                         className="w-full flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors text-left"
                       >
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <User className="h-5 w-5 text-primary" />
+                        <div className={cn(
+                          "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
+                          p.tipo === "base" ? "bg-amber-100 dark:bg-amber-900/30" : "bg-primary/10"
+                        )}>
+                          {p.tipo === "base" ? (
+                            <Building2 className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                          ) : (
+                            <User className="h-5 w-5 text-primary" />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{e.nome}</p>
-                          <p className="text-xs text-muted-foreground truncate">{e.telefone || "Entregador"}</p>
+                          <p className="font-medium text-sm truncate">{p.nome}</p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {p.tipo === "base" ? "Fale com a administração" : (p.telefone || "Entregador")}
+                          </p>
                         </div>
-                        {(unreadCounts[e.id] || 0) > 0 && (
+                        {(unreadCounts[p.id] || 0) > 0 && (
                           <span className="h-5 min-w-5 px-1 rounded-full bg-destructive text-white text-xs flex items-center justify-center">
-                            {unreadCounts[e.id]}
+                            {unreadCounts[p.id]}
                           </span>
                         )}
                       </button>
@@ -488,6 +582,9 @@ export function ChatBase() {
                           ? "bg-[hsl(var(--primary))] text-primary-foreground rounded-br-sm"
                           : "bg-muted rounded-bl-sm"
                       )}>
+                        {!isMe && selectedPeer.tipo === "base" && msg.remetente_nome && (
+                          <p className="text-[10px] font-semibold text-primary mb-0.5">{msg.remetente_nome}</p>
+                        )}
                         <p className="whitespace-pre-wrap break-words">{msg.mensagem}</p>
                         <div className={cn("flex items-center gap-1 mt-0.5", isMe ? "justify-end" : "justify-start")}>
                           <span className="text-[10px] opacity-70">

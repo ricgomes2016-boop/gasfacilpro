@@ -1,6 +1,7 @@
 import { User, LogOut, Settings, UserCircle, Moon, Sun } from "lucide-react";
 import { CommandPalette } from "./CommandPalette";
 import { NotificationCenter } from "./NotificationCenter";
+import { BaseChatPanel } from "@/components/chat/BaseChatPanel";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -73,6 +74,9 @@ export function Header({ title, subtitle }: HeaderProps) {
 
         {/* Command Palette (⌘K) */}
         <CommandPalette />
+
+        {/* Chat with Entregadores */}
+        <BaseChatPanel />
 
         {/* Notifications */}
         <NotificationCenter />
