@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Send, Bot, User, Lightbulb, ArrowLeft, Check, CheckCheck, Building2 } from "lucide-react";
+import { MessagesSquare, Send, Sparkles, User, Lightbulb, ArrowLeft, Check, CheckCheck, Building2 } from "lucide-react";
 import { VoiceInputButton } from "@/components/ai/VoiceButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -399,11 +399,11 @@ export function ChatBase() {
       <SheetTrigger asChild>
         <Button
           size="icon"
-          className="fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full shadow-lg gradient-primary text-white"
+          className="fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full shadow-xl gradient-primary text-white ring-4 ring-primary/20 hover:scale-105 transition-transform"
         >
-          <Bot className="h-6 w-6" />
+          <Sparkles className="h-6 w-6 drop-shadow" />
           {totalUnread > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-white text-xs flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-white text-xs flex items-center justify-center animate-pulse">
               {totalUnread > 9 ? "9+" : totalUnread}
             </span>
           )}
@@ -427,7 +427,7 @@ export function ChatBase() {
                 </>
               ) : (
                 <>
-                  <MessageCircle className="h-5 w-5 text-primary" />
+                  <MessagesSquare className="h-5 w-5 text-primary" />
                   Chat
                 </>
               )}
@@ -442,10 +442,10 @@ export function ChatBase() {
           <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-1 min-h-0">
             <TabsList className="mx-4 mt-2 shrink-0">
               <TabsTrigger value="ia" className="flex-1 gap-1">
-                <Bot className="h-4 w-4" /> Assistente IA
+                <Sparkles className="h-4 w-4" /> Assistente IA
               </TabsTrigger>
               <TabsTrigger value="conversas" className="flex-1 gap-1">
-                <MessageCircle className="h-4 w-4" /> Conversas
+                <MessagesSquare className="h-4 w-4" /> Conversas
                 {totalUnread > 0 && (
                   <span className="ml-1 h-5 w-5 rounded-full bg-destructive text-white text-xs flex items-center justify-center">
                     {totalUnread}
@@ -481,7 +481,7 @@ export function ChatBase() {
                     return (
                       <div key={i} className={cn("flex gap-2", isMe ? "flex-row-reverse" : "flex-row")}>
                         <div className={cn("h-8 w-8 rounded-full flex items-center justify-center shrink-0", isMe ? "bg-muted" : "bg-primary text-primary-foreground")}>
-                          {isMe ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                          {isMe ? <User className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
                         </div>
                         <div className={cn("max-w-[80%] rounded-2xl px-4 py-2.5 text-sm shadow-sm", isMe ? "bg-primary text-primary-foreground rounded-tr-sm" : "bg-muted rounded-tl-sm")}>
                           {isMe ? <p>{msg.content}</p> : (
@@ -496,7 +496,7 @@ export function ChatBase() {
                   {aiLoading && aiMessages[aiMessages.length - 1]?.content === "" && (
                     <div className="flex gap-2">
                       <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                        <Bot className="h-4 w-4 text-primary-foreground" />
+                        <Sparkles className="h-4 w-4 text-primary-foreground" />
                       </div>
                       <div className="bg-muted rounded-2xl rounded-tl-sm px-4 py-3">
                         <div className="flex gap-1">
