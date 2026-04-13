@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, Send, ArrowLeft, Check, CheckCheck, User, Building2 } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { MessagesSquare, Send, ArrowLeft, Check, CheckCheck, User, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ export function BaseChatPanel() {
   const [selectedThread, setSelectedThread] = useState<EntregadorThread | null>(null);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [totalUnread, setTotalUnread] = useState(0);
   const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -43,7 +45,6 @@ export function BaseChatPanel() {
   const [unidadeIds, setUnidadeIds] = useState<string[]>([]);
   const [userName, setUserName] = useState<string>("");
 
-  // Get user's unidades
   useEffect(() => {
     if (!user) return;
     const init = async () => {
@@ -65,11 +66,8 @@ export function BaseChatPanel() {
     init();
   }, [user]);
 
-  // Load threads
   const loadThreads = useCallback(async () => {
     if (unidadeIds.length === 0) return;
-
-    // Build OR filter for all unidades
     const orFilter = unidadeIds
       .map((uid) => `and(destinatario_tipo.eq.base,destinatario_id.eq.${uid}),and(remetente_tipo.eq.base,remetente_id.eq.${uid})`)
       .join(",");
@@ -132,7 +130,6 @@ export function BaseChatPanel() {
     loadThreads();
   }, [loadThreads]);
 
-  // Realtime
   useEffect(() => {
     if (unidadeIds.length === 0) return;
     const channel = supabase
@@ -161,7 +158,6 @@ export function BaseChatPanel() {
     };
   }, [unidadeIds, selectedThread, loadThreads]);
 
-  // Load conversation
   useEffect(() => {
     if (!selectedThread) return;
     const load = async () => {
@@ -189,10 +185,15 @@ export function BaseChatPanel() {
         .eq("destinatario_id", uId)
         .eq("lida", false);
 
-      loadThreads();
+      // Update local state immediately
+      setSelectedThread((prev) => prev ? { ...prev, unread: 0 } : null);
+      setThreads((prev) =>
+        prev.map((t) => (t.entregador_id === eId ? { ...t, unread: 0 } : t))
+      );
+      setTotalUnread((prev) => Math.max(0, prev - (selectedThread.unread || 0)));
     };
     load();
-  }, [selectedThread, loadThreads]);
+  }, [selectedThread?.entregador_id]);
 
   useEffect(() => {
     chatScrollRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -200,7 +201,6 @@ export function BaseChatPanel() {
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || !selectedThread) return;
-
     const { error } = await supabase.from("chat_mensagens").insert({
       remetente_id: selectedThread.unidade_id,
       remetente_tipo: "base",
@@ -210,7 +210,6 @@ export function BaseChatPanel() {
       mensagem: text,
       lida: false,
     });
-
     if (error) {
       toast.error("Erro ao enviar mensagem.");
       return;
@@ -218,75 +217,103 @@ export function BaseChatPanel() {
     setInput("");
   };
 
+  const initials = (nome: string) =>
+    nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
+
+  const filteredThreads = threads.filter((t) =>
+    t.entregador_nome.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="relative gap-2">
-          <MessageCircle className="h-4 w-4" />
-          <span className="hidden sm:inline">Chat Entregadores</span>
+        <Button variant="ghost" size="icon" className="relative h-9 w-9">
+          <MessagesSquare className="h-5 w-5" />
           {totalUnread > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-white text-xs flex items-center justify-center">
+            <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
               {totalUnread > 9 ? "9+" : totalUnread}
             </span>
           )}
         </Button>
       </SheetTrigger>
       <SheetContent side="right" className="w-[400px] sm:w-[450px] p-0 flex flex-col">
-        <SheetHeader className="p-4 border-b shrink-0">
-          <SheetTitle className="flex items-center gap-2">
-            {selectedThread ? (
-              <>
-                <button onClick={() => setSelectedThread(null)} className="mr-1">
-                  <ArrowLeft className="h-5 w-5" />
-                </button>
-                <User className="h-4 w-4 text-primary" />
-                {selectedThread.entregador_nome}
-              </>
-            ) : (
-              <>
-                <Building2 className="h-5 w-5 text-primary" />
-                Chat com Entregadores
-              </>
-            )}
-          </SheetTitle>
-        </SheetHeader>
+        {/* Header */}
+        <div className="px-4 py-3 border-b bg-primary text-primary-foreground flex items-center gap-3">
+          {selectedThread ? (
+            <>
+              <button onClick={() => setSelectedThread(null)} className="hover:opacity-80">
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-primary-foreground/20 text-primary-foreground text-xs font-bold">
+                  {initials(selectedThread.entregador_nome)}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-semibold text-sm leading-tight">{selectedThread.entregador_nome}</p>
+                <p className="text-[10px] opacity-70">Entregador</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <MessagesSquare className="h-5 w-5" />
+              <p className="font-semibold text-sm">Chat com Entregadores</p>
+            </>
+          )}
+        </div>
 
         {!selectedThread ? (
-          <ScrollArea className="flex-1">
-            {threads.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground text-sm">
-                Nenhuma conversa ainda. Os entregadores podem iniciar uma conversa pelo app.
+          <div className="flex-1 flex flex-col min-h-0">
+            {/* Search */}
+            <div className="p-3 border-b">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar entregador..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 rounded-full h-9 text-sm"
+                />
               </div>
-            ) : (
-              <div className="divide-y">
-                {threads.map((t) => (
-                  <button
-                    key={t.entregador_id}
-                    onClick={() => setSelectedThread(t)}
-                    className="w-full flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors text-left"
-                  >
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <User className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center">
-                        <p className="font-medium text-sm truncate">{t.entregador_nome}</p>
-                        <span className="text-[10px] text-muted-foreground shrink-0">
-                          {format(new Date(t.last_time), "HH:mm")}
-                        </span>
+            </div>
+            <ScrollArea className="flex-1">
+              {filteredThreads.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  {search ? "Nenhum resultado." : "Nenhuma conversa ainda."}
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {filteredThreads.map((t) => (
+                    <button
+                      key={t.entregador_id}
+                      onClick={() => setSelectedThread(t)}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors text-left"
+                    >
+                      <Avatar className="h-10 w-10 shrink-0">
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                          {initials(t.entregador_nome)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center">
+                          <p className="font-medium text-sm truncate">{t.entregador_nome}</p>
+                          <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
+                            {format(new Date(t.last_time), "HH:mm")}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{t.last_message}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">{t.last_message}</p>
-                    </div>
-                    {t.unread > 0 && (
-                      <span className="h-5 min-w-5 px-1 rounded-full bg-destructive text-white text-xs flex items-center justify-center shrink-0">
-                        {t.unread}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
+                      {t.unread > 0 && (
+                        <span className="h-5 min-w-5 px-1 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center shrink-0">
+                          {t.unread}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
         ) : (
           <div className="flex-1 flex flex-col min-h-0">
             <ScrollArea className="flex-1 p-4">
