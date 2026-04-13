@@ -1,61 +1,59 @@
 
 
-## Plano: Atualização automática do cadastro de clientes no app do entregador
+## Plano: Edição de preço, canal de venda e detecção de perfil no app do entregador
 
-### Problema
-No app do entregador (`EntregadorNovaVenda.tsx`), a lista de clientes é carregada uma vez ao abrir a tela (`fetchData`), com limite de 500 registros. Quando um cliente novo é cadastrado (pelo sistema ou pelo próprio app via IA), a lista local não atualiza automaticamente.
+### Problemas atuais
+
+1. **Preço fixo** — O item na lista mostra `R$ X.XX un.` mas não permite editar o valor unitário. No sistema (`NovaVenda.tsx` e `PDVProductList.tsx`), o preço é editável via Input.
+2. **Canal de venda fixo** — Está hardcoded como `"entregador"` (linha 408). No sistema, existe um Select com canais fixos + dinâmicos da tabela `canais_venda`.
+3. **Sem detecção de perfil** — Ao selecionar um cliente, não há indicação se ele é `revenda`, `comercial` ou `residencial`. A tabela `clientes` já possui a coluna `tipo` com esses valores.
 
 ### Alterações
 
 **Arquivo: `src/pages/entregador/EntregadorNovaVenda.tsx`**
 
-1. **Realtime subscription na tabela `clientes`** -- Adicionar um listener Supabase Realtime que escuta INSERT/UPDATE na tabela `clientes` filtrado pelo `empresa_id` do entregador. Quando um novo cliente é inserido, ele e automaticamente adicionado a lista local `clientes` sem precisar recarregar a pagina.
+1. **Edição de preço unitário nos itens**
+   - No bloco de renderização dos itens (linhas 615-634), adicionar um Input editável no preço unitário, igual ao `PDVProductList`
+   - Criar função `alterarPreco(index, novoPreco)` que atualiza `precoUnitario` no state
 
-2. **Atualizar lista local apos cadastro via IA** -- Apos o bloco que cria um novo cliente (linha ~262), tambem adicionar o cliente criado ao state local `clientes` imediatamente, para que ele apareca na busca sem precisar do realtime.
+2. **Canal de venda editável**
+   - Adicionar state `canalVenda` (default `"entregador"`)
+   - Fetch da tabela `canais_venda` (ativo=true) igual ao sistema
+   - Substituir o card estático "Canal: Entregador" (linhas 689-697) por um Select com canais fixos (Telefone, WhatsApp, Portaria, Entregador) + dinâmicos
+   - Usar `canalVenda` no insert do pedido (linha 408)
 
-3. **Remover limite de 500** -- Trocar o `.limit(500)` por busca paginada ou pelo menos aumentar o limite, considerando que a busca no dialog ja filtra localmente.
+3. **Detecção de perfil do cliente**
+   - Expandir `ClienteDB` para incluir `tipo: string | null`
+   - No fetch de clientes, adicionar `tipo` no select
+   - Ao selecionar um cliente, exibir um Badge colorido indicando o tipo: `revenda` (laranja), `comercial` (azul), `residencial` (cinza)
+   - Mostrar o badge no card do cliente e na lista de busca
 
-### Detalhes tecnicos
-
-```typescript
-// Realtime subscription para novos clientes
-useEffect(() => {
-  if (!empresa?.id) return;
-  const channel = supabase
-    .channel("clientes-entregador")
-    .on("postgres_changes", {
-      event: "INSERT",
-      schema: "public",
-      table: "clientes",
-      filter: `empresa_id=eq.${empresa.id}`,
-    }, (payload) => {
-      const novo = payload.new as ClienteDB;
-      setClientes(prev => {
-        if (prev.find(c => c.id === novo.id)) return prev;
-        return [...prev, novo].sort((a, b) => a.nome.localeCompare(b.nome));
-      });
-    })
-    .subscribe();
-  return () => { supabase.removeChannel(channel); };
-}, [empresa?.id]);
-```
+### Detalhes técnicos
 
 ```typescript
-// Apos criar cliente via IA, atualizar lista local
-if (criado) {
-  setClientes(prev => [...prev, {
-    id: criado.id, nome: data.cliente_nome,
-    telefone: data.cliente_telefone || null,
-    endereco: data.endereco || null,
-    bairro: data.bairro || null,
-    cep: data.cep || null,
-    cidade: data.cidade || null,
-  }]);
-}
+// Novo state
+const [canalVenda, setCanalVenda] = useState("entregador");
+
+// Fetch canais
+const { data: canaisVenda = [] } = useQuery({
+  queryKey: ["canais-venda"],
+  queryFn: async () => {
+    const { data } = await supabase.from("canais_venda").select("id, nome").eq("ativo", true).order("nome");
+    return data || [];
+  },
+});
+
+// Editar preço
+const alterarPreco = (index: number, novoPreco: number) => {
+  setItens(prev => prev.map((item, i) => i === index ? { ...item, precoUnitario: novoPreco } : item));
+};
+
+// Badge de tipo do cliente
+const tipoBadge = { revenda: "bg-orange-100 text-orange-800", comercial: "bg-blue-100 text-blue-800", residencial: "bg-gray-100 text-gray-800" };
 ```
 
 ### Resultado esperado
-- Clientes cadastrados no sistema aparecem automaticamente no app do entregador em tempo real
-- Clientes cadastrados pelo proprio entregador (via IA ou manual) aparecem na lista imediatamente
-- Sem necessidade de recarregar a pagina
+- Entregador pode alterar o preço de qualquer produto na venda
+- Entregador pode escolher o canal de venda (telefone, whatsapp, entregador, etc.)
+- Ao buscar/selecionar cliente, aparece badge indicando se é revenda, comercial ou residencial
 
