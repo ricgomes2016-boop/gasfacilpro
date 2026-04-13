@@ -37,6 +37,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       </main>
       {!isAiPage && <AiFloatingButton externalOpen={aiOpen} onExternalClose={() => setAiOpen(false)} />}
       <ChatOperador externalOpen={chatOpen} onExternalClose={() => setChatOpen(false)} onUnreadChange={setChatUnread} />
+      <TransferenciaPendentePopup />
       <MobileBottomBar
         onOpenAi={() => { if (!isAiPage) setAiOpen(true); }}
         onOpenChat={() => setChatOpen(true)}
