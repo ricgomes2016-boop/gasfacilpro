@@ -63,6 +63,7 @@ interface ClienteDB {
   bairro: string | null;
   cep: string | null;
   cidade: string | null;
+  tipo: string | null;
 }
 
 const formasPagamento = [
@@ -113,6 +114,7 @@ export default function EntregadorNovaVenda() {
   });
   const [itens, setItens] = useState<ItemVenda[]>([]);
   const [formaPagamento, setFormaPagamento] = useState("");
+  const [canalVenda, setCanalVenda] = useState("entregador");
   const [observacao, setObservacao] = useState("");
   const [dialogClienteAberto, setDialogClienteAberto] = useState(false);
   const [buscaCliente, setBuscaCliente] = useState("");
@@ -192,7 +194,7 @@ export default function EntregadorNovaVenda() {
     }
 
     // Filter clientes by empresa
-    let clientesQuery = supabase.from("clientes").select("id, nome, telefone, endereco, bairro, cep, cidade").eq("ativo", true).order("nome");
+    let clientesQuery = supabase.from("clientes").select("id, nome, telefone, endereco, bairro, cep, cidade, tipo").eq("ativo", true).order("nome");
     if (empresa?.id) clientesQuery = clientesQuery.eq("empresa_id", empresa.id);
 
     const [produtosRes, clientesRes] = await Promise.all([
@@ -303,6 +305,7 @@ export default function EntregadorNovaVenda() {
               bairro: data.bairro || null,
               cep: data.cep || null,
               cidade: data.cidade || null,
+              tipo: null,
             }].sort((a, b) => a.nome.localeCompare(b.nome));
           });
           // Associate with entregador's unidade
@@ -363,6 +366,10 @@ export default function EntregadorNovaVenda() {
     setItens((prev) => prev.map((item, i) => i === index ? { ...item, quantidade: Math.max(1, item.quantidade + delta) } : item));
   };
 
+  const alterarPreco = (index: number, novoPreco: number) => {
+    setItens((prev) => prev.map((item, i) => i === index ? { ...item, precoUnitario: novoPreco } : item));
+  };
+
   const removerItem = (index: number) => {
     setItens((prev) => prev.filter((_, i) => i !== index));
   };
@@ -406,7 +413,7 @@ export default function EntregadorNovaVenda() {
           endereco_entrega: enderecoCompleto,
           valor_total: total,
           forma_pagamento: formaPagamento,
-          canal_venda: "entregador",
+          canal_venda: canalVenda,
           observacoes: observacao || null,
           status: "em_rota",
         })
