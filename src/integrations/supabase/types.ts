@@ -9052,6 +9052,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      notify_base_chat: {
+        Args: {
+          _entregador_nome: string
+          _mensagem: string
+          _unidade_id: string
+        }
+        Returns: undefined
+      }
       unidade_belongs_to_user_empresa: {
         Args: { _unidade_id: string }
         Returns: boolean
