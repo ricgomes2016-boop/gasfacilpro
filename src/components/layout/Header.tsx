@@ -75,6 +75,9 @@ export function Header({ title, subtitle }: HeaderProps) {
         {/* Command Palette (⌘K) */}
         <CommandPalette />
 
+        {/* Chat with Entregadores */}
+        <BaseChatPanel />
+
         {/* Notifications */}
         <NotificationCenter />
 
