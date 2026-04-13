@@ -90,6 +90,7 @@ interface Cliente {
   numero: string;
   bairro: string;
   complemento: string;
+  tipo: string | null;
 }
 
 export default function EntregadorNovaVenda() {
@@ -111,6 +112,7 @@ export default function EntregadorNovaVenda() {
     numero: "",
     bairro: "",
     complemento: "",
+    tipo: null,
   });
   const [itens, setItens] = useState<ItemVenda[]>([]);
   const [formaPagamento, setFormaPagamento] = useState("");
@@ -383,6 +385,7 @@ export default function EntregadorNovaVenda() {
       numero: "",
       bairro: c.bairro || "",
       complemento: "",
+      tipo: c.tipo,
     });
     setDialogClienteAberto(false);
   };
