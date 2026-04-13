@@ -382,7 +382,7 @@ export function ChatBase() {
 
     // Create notification for base admins/gestores
     if (isBase && unidadeId) {
-      supabase.rpc("notify_base_chat", {
+      supabase.rpc("notify_base_chat" as any, {
         _unidade_id: unidadeId,
         _entregador_nome: nome,
         _mensagem: text.substring(0, 100),
