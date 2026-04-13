@@ -40,10 +40,10 @@ export function BaseChatPanel() {
   const [totalUnread, setTotalUnread] = useState(0);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
-  const [userUnidadeId, setUserUnidadeId] = useState<string | null>(null);
+  const [userUnidadeIds, setUserUnidadeIds] = useState<string[]>([]);
   const [userName, setUserName] = useState<string>("");
 
-  // Get user's unidade
+  // Get user's unidades
   useEffect(() => {
     if (!user) return;
     const init = async () => {
@@ -55,16 +55,13 @@ export function BaseChatPanel() {
       
       if (profile?.full_name) setUserName(profile.full_name);
 
-      // Get first unidade of the empresa
       if (profile?.empresa_id) {
-        const { data: unidade } = await supabase
+        const { data: unidades } = await supabase
           .from("unidades")
           .select("id")
           .eq("empresa_id", profile.empresa_id)
-          .eq("ativo", true)
-          .limit(1)
-          .maybeSingle();
-        if (unidade) setUserUnidadeId(unidade.id);
+          .eq("ativo", true);
+        if (unidades) setUserUnidadeIds(unidades.map(u => u.id));
       }
     };
     init();
