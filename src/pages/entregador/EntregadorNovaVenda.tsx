@@ -425,7 +425,7 @@ export default function EntregadorNovaVenda() {
           forma_pagamento: formaPagamento,
           canal_venda: canalVenda,
           observacoes: observacao || null,
-          status: "em_rota",
+          status: "finalizado",
         })
         .select("id")
         .single();
