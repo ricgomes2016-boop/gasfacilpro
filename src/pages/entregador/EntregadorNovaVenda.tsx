@@ -272,6 +272,7 @@ export default function EntregadorNovaVenda() {
           numero: data.numero || "",
           bairro: data.bairro || "",
           complemento: data.complemento || "",
+          tipo: null,
         });
       } else if (data.cliente_nome) {
         // Auto-register new client
@@ -294,6 +295,7 @@ export default function EntregadorNovaVenda() {
           numero: data.numero || "",
           bairro: data.bairro || "",
           complemento: data.complemento || "",
+          tipo: null,
         });
         if (criado) {
           // Update local state immediately
