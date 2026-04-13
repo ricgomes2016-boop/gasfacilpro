@@ -455,6 +455,30 @@ export default function EntregadorNovaVenda() {
     }
   };
 
+  const getTipoBadge = (tipo: string | null) => {
+    switch (tipo) {
+      case "revenda": return { label: "Revenda", className: "bg-orange-100 text-orange-800 border-orange-200" };
+      case "comercial": return { label: "Comercial", className: "bg-blue-100 text-blue-800 border-blue-200" };
+      default: return { label: "Residencial", className: "bg-gray-100 text-gray-800 border-gray-200" };
+    }
+  };
+
+  // Fetch canais de venda
+  const { data: canaisVenda = [] } = useQuery({
+    queryKey: ["canais-venda-entregador"],
+    queryFn: async () => {
+      const { data } = await supabase.from("canais_venda").select("id, nome").eq("ativo", true).order("nome");
+      return data || [];
+    },
+  });
+
+  const canaisFixos = [
+    { value: "telefone", label: "📞 Telefone" },
+    { value: "whatsapp", label: "💬 WhatsApp" },
+    { value: "portaria", label: "🏢 Portaria" },
+    { value: "entregador", label: "🛵 Entregador" },
+  ];
+
   const clientesFiltrados = clientes.filter(
     (c) =>
       c.nome.toLowerCase().includes(buscaCliente.toLowerCase()) ||
@@ -536,7 +560,14 @@ export default function EntregadorNovaVenda() {
                           onClick={() => selecionarCliente(c)}
                           className="p-3 rounded-lg border border-border hover:bg-muted cursor-pointer transition-colors"
                         >
-                          <p className="font-medium">{c.nome}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{c.nome}</p>
+                            {c.tipo && (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getTipoBadge(c.tipo).className}`}>
+                                {getTipoBadge(c.tipo).label}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">{c.telefone || "Sem telefone"}</p>
                           <p className="text-xs text-muted-foreground">{c.endereco || "Sem endereço"}</p>
                         </div>
@@ -621,23 +652,48 @@ export default function EntregadorNovaVenda() {
             ) : (
               <div className="space-y-3">
                 {itens.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{item.nome}</p>
-                      <p className="text-xs text-muted-foreground">R$ {item.precoUnitario.toFixed(2)} un.</p>
+                  <div key={index} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{item.nome}</p>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground">R$</span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={item.precoUnitario}
+                          onChange={(e) => alterarPreco(index, Number(e.target.value))}
+                          className="w-20 h-6 text-xs px-1"
+                        />
+                        <span className="text-xs text-muted-foreground">/ un</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => alterarQuantidade(index, -1)}>
                         <Minus className="h-4 w-4" />
                       </Button>
-                      <span className="w-8 text-center font-bold">{item.quantidade}</span>
+                      <Input
+                        type="number"
+                        min="1"
+                        value={item.quantidade}
+                        onChange={(e) => {
+                          const newQtd = parseInt(e.target.value) || 1;
+                          if (newQtd >= 1) alterarQuantidade(index, newQtd - item.quantidade);
+                        }}
+                        className="w-14 h-8 text-center text-base font-medium"
+                      />
                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => alterarQuantidade(index, 1)}>
                         <Plus className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removerItem(index)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </div>
+                    <div className="text-right min-w-[4rem]">
+                      <p className="font-bold text-primary text-sm">
+                        R$ {(item.quantidade * item.precoUnitario).toFixed(2)}
+                      </p>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removerItem(index)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
                 <div className="flex justify-between pt-3 border-t border-border">
@@ -695,11 +751,23 @@ export default function EntregadorNovaVenda() {
         </Card>
 
         {/* Canal */}
-        <Card className="border-none shadow-md bg-primary/5">
+        <Card className="border-none shadow-md">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Canal de Venda:</span>
-              <Badge className="gradient-primary text-white">🛵 Entregador</Badge>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium shrink-0">Canal de Venda:</span>
+              <Select value={canalVenda} onValueChange={setCanalVenda}>
+                <SelectTrigger className="w-auto min-w-[160px] h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {canaisFixos.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                  {canaisVenda.filter(cv => !canaisFixos.some(cf => cf.value === cv.nome.toLowerCase())).map((cv) => (
+                    <SelectItem key={cv.id} value={cv.nome.toLowerCase()}>{cv.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
