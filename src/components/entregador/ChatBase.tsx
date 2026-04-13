@@ -440,7 +440,7 @@ export function ChatBase() {
 
         {!selectedPeer && (
           <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-1 min-h-0">
-            <TabsList className="mx-4 mt-2 shrink-0">
+            <TabsList className="mx-4 mt-1 mb-0 shrink-0">
               <TabsTrigger value="ia" className="flex-1 gap-1">
                 <Sparkles className="h-4 w-4" /> Assistente IA
               </TabsTrigger>
