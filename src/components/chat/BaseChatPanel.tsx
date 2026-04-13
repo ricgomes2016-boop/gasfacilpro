@@ -68,6 +68,15 @@ export function BaseChatPanel() {
 
   const loadThreads = useCallback(async () => {
     if (unidadeIds.length === 0) return;
+
+    // Fetch all active entregadores for the user's unidades
+    const { data: allEntregadores } = await supabase
+      .from("entregadores")
+      .select("id, nome, unidade_id")
+      .eq("ativo", true)
+      .in("unidade_id", unidadeIds)
+      .order("nome");
+
     const orFilter = unidadeIds
       .map((uid) => `and(destinatario_tipo.eq.base,destinatario_id.eq.${uid}),and(remetente_tipo.eq.base,remetente_id.eq.${uid})`)
       .join(",");
@@ -79,12 +88,11 @@ export function BaseChatPanel() {
       .order("created_at", { ascending: false })
       .limit(500);
 
-    if (!data) return;
-
     const threadMap: Record<string, EntregadorThread> = {};
     let totalUn = 0;
 
-    data.forEach((msg) => {
+    // Build threads from messages
+    (data || []).forEach((msg) => {
       let eId: string;
       let eName: string;
       let uId: string;
@@ -118,11 +126,29 @@ export function BaseChatPanel() {
       }
     });
 
-    setThreads(
-      Object.values(threadMap).sort(
-        (a, b) => new Date(b.last_time).getTime() - new Date(a.last_time).getTime()
-      )
-    );
+    // Merge entregadores without conversations
+    (allEntregadores || []).forEach((e) => {
+      if (!threadMap[e.id]) {
+        threadMap[e.id] = {
+          entregador_id: e.id,
+          entregador_nome: e.nome,
+          unidade_id: e.unidade_id || unidadeIds[0],
+          last_message: "",
+          last_time: "",
+          unread: 0,
+        };
+      }
+    });
+
+    // Sort: threads with messages first (by time), then entregadores without messages (alphabetical)
+    const sorted = Object.values(threadMap).sort((a, b) => {
+      if (a.last_time && b.last_time) return new Date(b.last_time).getTime() - new Date(a.last_time).getTime();
+      if (a.last_time) return -1;
+      if (b.last_time) return 1;
+      return a.entregador_nome.localeCompare(b.entregador_nome);
+    });
+
+    setThreads(sorted);
     setTotalUnread(totalUn);
   }, [unidadeIds]);
 
