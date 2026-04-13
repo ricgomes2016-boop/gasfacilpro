@@ -775,11 +775,8 @@ export default function EntregadorNovaVenda() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {canaisFixos.map((c) => (
+                  {todosCanais.map((c) => (
                     <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                  ))}
-                  {canaisVenda.filter(cv => !canaisFixos.some(cf => cf.value === cv.nome.toLowerCase())).map((cv) => (
-                    <SelectItem key={cv.id} value={cv.nome.toLowerCase()}>{cv.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
