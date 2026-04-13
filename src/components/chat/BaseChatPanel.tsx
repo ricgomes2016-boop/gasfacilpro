@@ -323,11 +323,15 @@ export function BaseChatPanel() {
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-center">
                           <p className="font-medium text-sm truncate">{t.entregador_nome}</p>
-                          <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
-                            {format(new Date(t.last_time), "HH:mm")}
-                          </span>
+                          {t.last_time && (
+                            <span className="text-[10px] text-muted-foreground shrink-0 ml-2">
+                              {format(new Date(t.last_time), "HH:mm")}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-xs text-muted-foreground truncate">{t.last_message}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {t.last_message || "Iniciar conversa..."}
+                        </p>
                       </div>
                       {t.unread > 0 && (
                         <span className="h-5 min-w-5 px-1 rounded-full bg-destructive text-destructive-foreground text-xs font-bold flex items-center justify-center shrink-0">
