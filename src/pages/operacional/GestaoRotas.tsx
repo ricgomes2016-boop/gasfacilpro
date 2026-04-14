@@ -37,6 +37,7 @@ import { CadastrarCarregamentoModal } from "@/components/operacional/CadastrarCa
 import { atualizarEstoqueVenda } from "@/services/estoqueService";
 import { format } from "date-fns";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useNavigate } from "react-router-dom";
 import { RotaAtacadoDinamica } from "@/components/operacional/RotaAtacadoDinamica";
 
