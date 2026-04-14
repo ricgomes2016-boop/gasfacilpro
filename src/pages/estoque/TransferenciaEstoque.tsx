@@ -363,7 +363,10 @@ export default function TransferenciaEstoque() {
         </div>
 
         {/* Nova Transferência */}
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => navigate("/operacional/rotas")}>
+            <Route className="h-4 w-4 mr-2" />Rota de Entrega
+          </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4 mr-2" />Nova Transferência</Button>
