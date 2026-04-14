@@ -459,11 +459,17 @@ export default function GestaoRotas() {
             </Card>
 
             {/* Resumo */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
               <Card>
                 <CardContent className="p-3 text-center">
                   <p className="text-xs text-muted-foreground">Total Saída</p>
                   <p className="text-2xl font-bold text-primary">{resumo.totalSaida}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Transferido (Rota)</p>
+                  <p className="text-2xl font-bold text-orange-500">{resumo.totalTransferido}</p>
                 </CardContent>
               </Card>
               <Card>
@@ -475,7 +481,7 @@ export default function GestaoRotas() {
               <Card className="border-primary/30 bg-primary/5">
                 <CardContent className="p-3 text-center">
                   <p className="text-xs text-muted-foreground font-medium">Saldo Líquido</p>
-                  <p className="text-2xl font-bold text-primary">{resumo.totalSaida - transferidoFiliais}</p>
+                  <p className="text-2xl font-bold text-primary">{resumo.totalSaida - resumo.totalTransferido - transferidoFiliais}</p>
                 </CardContent>
               </Card>
               <Card>

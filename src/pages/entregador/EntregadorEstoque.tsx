@@ -104,6 +104,7 @@ export default function EntregadorEstoque() {
 
   const totalSaida = itens.reduce((acc, i) => acc + i.quantidade_saida, 0);
   const totalVendido = itens.reduce((acc, i) => acc + i.quantidade_vendida, 0);
+  const totalTransferido = itens.reduce((acc, i) => acc + i.quantidade_transferida, 0);
   const totalRestante = itens.reduce((acc, i) => acc + i.quantidade_restante, 0);
 
   return (
