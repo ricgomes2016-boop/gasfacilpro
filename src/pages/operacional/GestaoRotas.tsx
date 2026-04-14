@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MapPin, Plus, Pencil, Trash2, Loader2, Truck, Package, ArrowLeftRight, CheckCircle, Printer, BarChart3, ArrowRightLeft } from "lucide-react";
+import { MapPin, Plus, Pencil, Trash2, Loader2, Truck, Package, ArrowLeftRight, CheckCircle, Printer, BarChart3, ArrowRightLeft, Route } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { CadastrarCarregamentoModal } from "@/components/operacional/CadastrarCarregamentoModal";
