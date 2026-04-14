@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Capacitor, registerPlugin } from '@capacitor/core';
@@ -22,7 +22,14 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   return R * c;
 }
 
-export function useGeoTracking() {
+export interface GeoTrackingState {
+  lat: number | null;
+  lng: number | null;
+  accuracy: number | null;
+  isTracking: boolean;
+}
+
+export function useGeoTracking(): GeoTrackingState {
   const { user } = useAuth();
   const watchIdRef = useRef<any>(null);
   const isCapacitorWatcherRef = useRef<boolean>(false);
@@ -31,6 +38,13 @@ export function useGeoTracking() {
   const statusRef = useRef<string>("offline");
   const wakeLockRef = useRef<any>(null);
   const activeRotaIdRef = useRef<string | null>(null);
+
+  const [trackingState, setTrackingState] = useState<GeoTrackingState>({
+    lat: null,
+    lng: null,
+    accuracy: null,
+    isTracking: false,
+  });
 
   // --- WAKELOCK FOR PWA FALLBACK ---
   const requestWakeLock = async () => {
@@ -78,11 +92,15 @@ export function useGeoTracking() {
       }
       watchIdRef.current = null;
     }
+    setTrackingState(prev => ({ ...prev, isTracking: false }));
   }, []);
 
-  const updateLocation = useCallback(async (lat: number, lng: number) => {
+  const updateLocation = useCallback(async (lat: number, lng: number, accuracy?: number) => {
     if (!entregadorIdRef.current) return;
     if (statusRef.current === "offline") return;
+
+    // Always update reactive state for UI
+    setTrackingState({ lat, lng, accuracy: accuracy ?? null, isTracking: true });
 
     const now = Date.now();
     const last = lastStateRef.current;
@@ -101,12 +119,10 @@ export function useGeoTracking() {
     if (shouldUpdate) {
       lastStateRef.current = { lat, lng, time: now };
       try {
-        // Update current position
         await supabase.from("entregadores")
           .update({ latitude: lat, longitude: lng })
           .eq("id", entregadorIdRef.current);
 
-        // Insert route history if there's an active route
         if (activeRotaIdRef.current) {
           await supabase.from("rota_historico").insert({
             rota_id: activeRotaIdRef.current,
@@ -131,25 +147,24 @@ export function useGeoTracking() {
       if (!navigator.geolocation) return;
       if (statusRef.current === "offline") return;
       
-      // Prevent duplicate watchers
       stopTracking();
       
       watchIdRef.current = navigator.geolocation.watchPosition(
-        (position) => updateLocation(position.coords.latitude, position.coords.longitude),
+        (position) => updateLocation(position.coords.latitude, position.coords.longitude, position.coords.accuracy),
         (err) => console.warn("Erro de watchPosition:", err.message),
         { enableHighAccuracy: true, maximumAge: 10_000, timeout: 10_000 }
       );
       isCapacitorWatcherRef.current = false;
+      setTrackingState(prev => ({ ...prev, isTracking: true }));
       
       navigator.geolocation.getCurrentPosition(
-        (position) => updateLocation(position.coords.latitude, position.coords.longitude),
+        (position) => updateLocation(position.coords.latitude, position.coords.longitude, position.coords.accuracy),
         () => {},
         { enableHighAccuracy: true, timeout: 5_000 }
       );
     };
 
     const startCapacitorTracking = () => {
-      // Prevent duplicate watchers
       stopTracking();
       
       BackgroundGeolocation.addWatcher(
@@ -162,11 +177,12 @@ export function useGeoTracking() {
         },
         function callback(location, error) {
           if (error) return console.error("Background GPS Error:", error);
-          if (location) updateLocation(location.latitude, location.longitude);
+          if (location) updateLocation(location.latitude, location.longitude, location.accuracy);
         }
       ).then((watcherId) => {
         watchIdRef.current = watcherId;
         isCapacitorWatcherRef.current = true;
+        setTrackingState(prev => ({ ...prev, isTracking: true }));
       });
     };
 
@@ -187,7 +203,6 @@ export function useGeoTracking() {
       entregadorIdRef.current = data.id;
       statusRef.current = data.status || "offline";
 
-      // Fetch active rota for history tracking
       await fetchActiveRotaId();
 
       channel = supabase.channel('entregador_status_changes').on(
@@ -199,12 +214,10 @@ export function useGeoTracking() {
           statusRef.current = newStatus;
 
           if (newStatus === "offline") {
-            // Going offline: stop GPS and release wake lock
             stopTracking();
             releaseWakeLock();
             activeRotaIdRef.current = null;
           } else if (oldStatus === "offline" && newStatus !== "offline") {
-            // Coming online: start GPS and request wake lock
             await fetchActiveRotaId();
             requestWakeLock();
             startTrackingForPlatform();
@@ -237,4 +250,6 @@ export function useGeoTracking() {
       if (handleVisibilityChange) document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [user, updateLocation, stopTracking]);
+
+  return trackingState;
 }
