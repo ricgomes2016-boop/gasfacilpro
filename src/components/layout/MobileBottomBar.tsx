@@ -6,10 +6,9 @@ interface MobileBottomBarProps {
   onOpenAi: () => void;
   onOpenChat: () => void;
   chatUnread?: number;
-  sidebarCollapsed?: boolean;
 }
 
-export function MobileBottomBar({ onOpenAi, onOpenChat, chatUnread = 0, sidebarCollapsed }: MobileBottomBarProps) {
+export function MobileBottomBar({ onOpenAi, onOpenChat, chatUnread = 0 }: MobileBottomBarProps) {
   return (
     <div className="fixed bottom-0 right-0 left-0 z-40 flex border-t border-border/50 bg-background/80 backdrop-blur-xl md:hidden">
       <motion.button
