@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { TransportadoraLayout } from "@/components/transportadora/TransportadoraLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Save, Plus, Loader2, Route, Trash2, List } from "lucide-react";
-import { RotaAtacadoMap, type Parada } from "@/components/transportadora/rota-atacado/RotaAtacadoMap";
+import { Save, Loader2, Route, Trash2, List } from "lucide-react";
+import { RotaAtacadoMap, getDefaultsByTipo, type Parada, type TipoParada } from "@/components/transportadora/rota-atacado/RotaAtacadoMap";
 import { ParadaForm } from "@/components/transportadora/rota-atacado/ParadaForm";
 import { CargaTimeline } from "@/components/transportadora/rota-atacado/CargaTimeline";
 import { RotaOptimizer } from "@/components/transportadora/rota-atacado/RotaOptimizer";
@@ -54,11 +54,7 @@ export default function TranspRotaAtacado() {
   const { data: veiculos = [] } = useQuery({
     queryKey: ["transp-veiculos", empresaId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("transp_veiculos")
-        .select("*")
-        .eq("empresa_id", empresaId!)
-        .eq("ativo", true);
+      const { data } = await supabase.from("transp_veiculos").select("*").eq("empresa_id", empresaId!).eq("ativo", true);
       return data || [];
     },
     enabled: !!empresaId,
@@ -67,11 +63,7 @@ export default function TranspRotaAtacado() {
   const { data: funcionarios = [] } = useQuery({
     queryKey: ["transp-funcionarios", empresaId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("transp_funcionarios")
-        .select("*")
-        .eq("empresa_id", empresaId!)
-        .eq("ativo", true);
+      const { data } = await supabase.from("transp_funcionarios").select("*").eq("empresa_id", empresaId!).eq("ativo", true);
       return data || [];
     },
     enabled: !!empresaId,
@@ -80,12 +72,36 @@ export default function TranspRotaAtacado() {
   const { data: rotasSalvas = [], isLoading: loadingRotas } = useQuery({
     queryKey: ["transp-rotas-atacado", empresaId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("transp_rotas_atacado")
-        .select("*")
-        .eq("empresa_id", empresaId!)
-        .order("created_at", { ascending: false });
+      const { data } = await supabase.from("transp_rotas_atacado").select("*").eq("empresa_id", empresaId!).order("created_at", { ascending: false });
       return data || [];
+    },
+    enabled: !!empresaId,
+  });
+
+  // Entidades para vincular nas paradas
+  const { data: fornecedores = [] } = useQuery({
+    queryKey: ["fornecedores-distribuidoras", empresaId],
+    queryFn: async () => {
+      const { data } = await supabase.from("fornecedores").select("id, nome").eq("empresa_id", empresaId!).eq("ativo", true);
+      return (data || []).map((f: any) => ({ id: f.id, nome: f.nome }));
+    },
+    enabled: !!empresaId,
+  });
+
+  const { data: unidadesList = [] } = useQuery({
+    queryKey: ["unidades-filiais", empresaId],
+    queryFn: async () => {
+      const { data } = await supabase.from("unidades").select("id, nome").eq("empresa_id", empresaId!).eq("ativo", true);
+      return (data || []).map((u: any) => ({ id: u.id, nome: u.nome }));
+    },
+    enabled: !!empresaId,
+  });
+
+  const { data: clientesList = [] } = useQuery({
+    queryKey: ["clientes-rota-atacado", empresaId],
+    queryFn: async () => {
+      const { data } = await supabase.from("clientes").select("id, nome").eq("empresa_id", empresaId!).eq("ativo", true).limit(500);
+      return (data || []).map((c: any) => ({ id: c.id, nome: c.nome }));
     },
     enabled: !!empresaId,
   });
@@ -102,10 +118,13 @@ export default function TranspRotaAtacado() {
 
   // Handlers
   const addParada = useCallback((lat: number, lng: number, endereco: string, cidade: string) => {
+    const isFirst = paradas.length === 0;
+    const tipo: TipoParada = isFirst ? "saida" : "venda";
+    const defaults = getDefaultsByTipo(tipo);
     const newParada: Parada = {
       id: crypto.randomUUID(),
       ordem: paradas.length,
-      tipo_parada: paradas.length === 0 ? "saida" : "venda",
+      tipo_parada: tipo,
       cidade,
       endereco,
       lat,
@@ -113,7 +132,11 @@ export default function TranspRotaAtacado() {
       qtd_p13: 0,
       qtd_p20: 0,
       qtd_p45: 0,
-      operacao: paradas.length === 0 ? "saida" : "saida",
+      impacto_estoque: defaults.impacto_estoque,
+      impacto_financeiro: defaults.impacto_financeiro,
+      entidade_id: "",
+      entidade_tipo: "",
+      entidade_nome: "",
       observacoes: "",
     };
     setParadas((prev) => [...prev, newParada]);
@@ -152,8 +175,8 @@ export default function TranspRotaAtacado() {
       kmTotal *= ROAD_FACTOR;
       const tempoMin = Math.round((kmTotal / 60) * 60);
       const custoComb = consumo > 0 ? (kmTotal / consumo) * precoComb : 0;
-      const motDiario = motoristaSel?.salario_mensal ? motoristaSel.salario_mensal / 30 : 0;
-      const ajDiario = ajudanteSel?.salario_mensal ? ajudanteSel.salario_mensal / 30 : 0;
+      const motDiario = motoristaSel?.salario_mensal ? Number(motoristaSel.salario_mensal) / 30 : 0;
+      const ajDiario = ajudanteSel?.salario_mensal ? Number(ajudanteSel.salario_mensal) / 30 : 0;
       const custoTotal = custoComb + pedagio + refeicao + motDiario + ajDiario;
 
       const { data: rota, error } = await supabase
@@ -192,7 +215,12 @@ export default function TranspRotaAtacado() {
         qtd_p13: p.qtd_p13,
         qtd_p20: p.qtd_p20,
         qtd_p45: p.qtd_p45,
-        operacao: p.operacao,
+        operacao: p.impacto_estoque === "entrada" ? "entrada" : "saida",
+        impacto_estoque: p.impacto_estoque,
+        impacto_financeiro: p.impacto_financeiro,
+        entidade_id: p.entidade_id || null,
+        entidade_tipo: p.entidade_tipo || null,
+        entidade_nome: p.entidade_nome || null,
         observacoes: p.observacoes,
       }));
 
@@ -209,7 +237,6 @@ export default function TranspRotaAtacado() {
     }
   };
 
-  // Deletar rota
   const deleteMut = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("transp_rotas_atacado").delete().eq("id", id);
@@ -342,7 +369,7 @@ export default function TranspRotaAtacado() {
                     <CardTitle className="text-sm">Paradas ({paradas.length})</CardTitle>
                     <RotaOptimizer paradas={paradas} onOptimize={setParadas} />
                   </CardHeader>
-                  <CardContent className="space-y-2 max-h-[400px] overflow-y-auto">
+                  <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
                     {paradas.length === 0 && (
                       <p className="text-xs text-muted-foreground text-center py-4">
                         Clique no mapa ou busque um endereço para adicionar paradas.
@@ -359,6 +386,9 @@ export default function TranspRotaAtacado() {
                         onMoveDown={(idx) => moveParada(idx, idx + 1)}
                         isFirst={i === 0}
                         isLast={i === paradas.length - 1}
+                        distribuidoras={fornecedores}
+                        unidades={unidadesList}
+                        clientes={clientesList}
                       />
                     ))}
                   </CardContent>
@@ -385,8 +415,8 @@ export default function TranspRotaAtacado() {
                   precoCombustivel={precoComb}
                   custoPedagio={pedagio}
                   custoRefeicao={refeicao}
-                  salarioMotorista={motoristaSel?.salario_mensal || 0}
-                  salarioAjudante={ajudanteSel?.salario_mensal || 0}
+                  salarioMotorista={motoristaSel?.salario_mensal ? Number(motoristaSel.salario_mensal) : 0}
+                  salarioAjudante={ajudanteSel?.salario_mensal ? Number(ajudanteSel.salario_mensal) : 0}
                   cargaInicial={{ p13: cargaP13, p20: cargaP20, p45: cargaP45 }}
                 />
 

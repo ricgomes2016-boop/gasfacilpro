@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { AlertTriangle, ArrowDown, ArrowUp, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, CheckCircle2, Minus, DollarSign } from "lucide-react";
 import { calcP13Equivalente } from "@/lib/transp-utils";
 import type { Parada } from "./RotaAtacadoMap";
 
@@ -18,6 +18,14 @@ interface TimelineStep {
   excedeu: boolean;
 }
 
+const TIPO_LABELS: Record<string, string> = {
+  saida: "Saída",
+  coleta: "Coleta",
+  transferencia: "Transf.",
+  venda: "Venda",
+  retorno: "Retorno",
+};
+
 export function CargaTimeline({ paradas, cargaInicial, capacidade }: Props) {
   const capacidadeP13Equiv = calcP13Equivalente(capacidade.p13, capacidade.p20, capacidade.p45);
 
@@ -27,11 +35,11 @@ export function CargaTimeline({ paradas, cargaInicial, capacidade }: Props) {
     let p45 = cargaInicial.p45;
 
     return paradas.map((parada) => {
-      if (parada.operacao === "entrada") {
+      if (parada.impacto_estoque === "entrada") {
         p13 += parada.qtd_p13;
         p20 += parada.qtd_p20;
         p45 += parada.qtd_p45;
-      } else {
+      } else if (parada.impacto_estoque === "saida") {
         p13 -= parada.qtd_p13;
         p20 -= parada.qtd_p20;
         p45 -= parada.qtd_p45;
@@ -67,7 +75,11 @@ export function CargaTimeline({ paradas, cargaInicial, capacidade }: Props) {
       </div>
 
       {steps.map((step, i) => {
-        const isEntrada = step.parada.operacao === "entrada";
+        const impacto = step.parada.impacto_estoque;
+        const isEntrada = impacto === "entrada";
+        const isSaida = impacto === "saida";
+        const tipoLabel = TIPO_LABELS[step.parada.tipo_parada] || step.parada.tipo_parada;
+
         return (
           <div
             key={step.parada.id}
@@ -79,21 +91,36 @@ export function CargaTimeline({ paradas, cargaInicial, capacidade }: Props) {
               <div className="w-px h-2 bg-border" />
               {isEntrada ? (
                 <ArrowDown className="h-4 w-4 text-primary" />
+              ) : isSaida ? (
+                <ArrowUp className="h-4 w-4 text-accent-foreground" />
               ) : (
-                <ArrowUp className="h-4 w-4 text-orange-500" />
+                <Minus className="h-4 w-4 text-muted-foreground" />
               )}
             </div>
 
             <div className="flex-1 min-w-0">
-              <span className="font-medium truncate block">
-                #{i + 1} {step.parada.cidade || step.parada.endereco}
-              </span>
-              <span className="text-muted-foreground">
-                {isEntrada ? "+" : "-"}{step.parada.qtd_p13}P13 {isEntrada ? "+" : "-"}{step.parada.qtd_p20}P20 {isEntrada ? "+" : "-"}{step.parada.qtd_p45}P45
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium truncate">
+                  #{i + 1} {step.parada.entidade_nome || step.parada.cidade || step.parada.endereco}
+                </span>
+                <span className="shrink-0 px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-[10px] font-medium">
+                  {tipoLabel}
+                </span>
+                {step.parada.impacto_financeiro && (
+                  <DollarSign className="h-3 w-3 text-primary shrink-0" />
+                )}
+              </div>
+              {(isEntrada || isSaida) && (
+                <span className="text-muted-foreground">
+                  {isEntrada ? "+" : "-"}{step.parada.qtd_p13}P13 {isEntrada ? "+" : "-"}{step.parada.qtd_p20}P20 {isEntrada ? "+" : "-"}{step.parada.qtd_p45}P45
+                </span>
+              )}
             </div>
 
             <div className="text-right shrink-0">
+              <div className="text-muted-foreground text-[10px]">
+                {step.cargaP13}P13 {step.cargaP20}P20 {step.cargaP45}P45
+              </div>
               <span className={`font-bold ${step.excedeu ? "text-destructive" : "text-foreground"}`}>
                 {step.cargaP13Equiv.toFixed(0)} eq
               </span>
