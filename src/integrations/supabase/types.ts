@@ -992,6 +992,7 @@ export type Database = {
           produto_id: string
           quantidade_retorno: number | null
           quantidade_saida: number
+          quantidade_transferida: number | null
           quantidade_vendida: number | null
         }
         Insert: {
@@ -1001,6 +1002,7 @@ export type Database = {
           produto_id: string
           quantidade_retorno?: number | null
           quantidade_saida?: number
+          quantidade_transferida?: number | null
           quantidade_vendida?: number | null
         }
         Update: {
@@ -1010,6 +1012,7 @@ export type Database = {
           produto_id?: string
           quantidade_retorno?: number | null
           quantidade_saida?: number
+          quantidade_transferida?: number | null
           quantidade_vendida?: number | null
         }
         Relationships: [
