@@ -7868,7 +7868,12 @@ export type Database = {
           concluida_em: string | null
           created_at: string | null
           endereco: string | null
+          entidade_id: string | null
+          entidade_nome: string | null
+          entidade_tipo: string | null
           id: string
+          impacto_estoque: string
+          impacto_financeiro: boolean
           lat: number | null
           lng: number | null
           observacoes: string | null
@@ -7886,7 +7891,12 @@ export type Database = {
           concluida_em?: string | null
           created_at?: string | null
           endereco?: string | null
+          entidade_id?: string | null
+          entidade_nome?: string | null
+          entidade_tipo?: string | null
           id?: string
+          impacto_estoque?: string
+          impacto_financeiro?: boolean
           lat?: number | null
           lng?: number | null
           observacoes?: string | null
@@ -7904,7 +7914,12 @@ export type Database = {
           concluida_em?: string | null
           created_at?: string | null
           endereco?: string | null
+          entidade_id?: string | null
+          entidade_nome?: string | null
+          entidade_tipo?: string | null
           id?: string
+          impacto_estoque?: string
+          impacto_financeiro?: boolean
           lat?: number | null
           lng?: number | null
           observacoes?: string | null
