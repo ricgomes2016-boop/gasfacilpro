@@ -30,14 +30,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MapPin, Plus, Pencil, Trash2, Loader2, Truck, Package, ArrowLeftRight, CheckCircle, Printer, BarChart3, ArrowRightLeft } from "lucide-react";
+import { MapPin, Plus, Pencil, Trash2, Loader2, Truck, Package, ArrowLeftRight, CheckCircle, Printer, BarChart3, ArrowRightLeft, Route } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { CadastrarCarregamentoModal } from "@/components/operacional/CadastrarCarregamentoModal";
 import { atualizarEstoqueVenda } from "@/services/estoqueService";
 import { format } from "date-fns";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useNavigate } from "react-router-dom";
+import { RotaAtacadoDinamica } from "@/components/operacional/RotaAtacadoDinamica";
 
 interface RotaDefinida {
   id: string;
@@ -96,6 +98,7 @@ export default function GestaoRotas() {
 
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
   const [transferidoFiliais, setTransferidoFiliais] = useState(0);
   const navigate = useNavigate();
 
@@ -402,6 +405,10 @@ export default function GestaoRotas() {
               <MapPin className="h-4 w-4 mr-2" />
               Rotas Cidade
             </TabsTrigger>
+            <TabsTrigger value="rota-dinamica">
+              <Route className="h-4 w-4 mr-2" />
+              Rota Dinâmica
+            </TabsTrigger>
           </TabsList>
 
           {/* ===== TAB: CARREGAMENTOS ATACADO ===== */}
@@ -660,6 +667,15 @@ export default function GestaoRotas() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* ===== TAB: ROTA DINÂMICA ===== */}
+          <TabsContent value="rota-dinamica" className="space-y-4 mt-4">
+            {empresa?.id ? (
+              <RotaAtacadoDinamica empresaId={empresa.id} />
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-6">Selecione uma unidade para usar a Rota Dinâmica.</p>
+            )}
           </TabsContent>
         </Tabs>
       </div>
