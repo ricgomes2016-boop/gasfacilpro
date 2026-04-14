@@ -10,6 +10,7 @@ const TranspLancamento = lazy(() => import("@/pages/transportadora/TranspLancame
 const TranspEntregas = lazy(() => import("@/pages/transportadora/TranspEntregas"));
 const TranspIA = lazy(() => import("@/pages/transportadora/TranspIA"));
 const TranspRelatorios = lazy(() => import("@/pages/transportadora/TranspRelatorios"));
+const TranspRotaAtacado = lazy(() => import("@/pages/transportadora/TranspRotaAtacado"));
 
 const TRANSP_ROLES: ("admin" | "gestor" | "transportadora")[] = ["admin", "gestor", "transportadora"];
 
@@ -18,6 +19,7 @@ export const transportadoraRoutes: RouteConfig[] = [
   { path: "/transportadora/veiculos", component: TranspVeiculos, roles: TRANSP_ROLES },
   { path: "/transportadora/funcionarios", component: TranspFuncionarios, roles: TRANSP_ROLES },
   { path: "/transportadora/simulacao", component: TranspSimulacao, roles: TRANSP_ROLES },
+  { path: "/transportadora/rota-atacado", component: TranspRotaAtacado, roles: TRANSP_ROLES },
   { path: "/transportadora/abastecimento", component: TranspAbastecimento, roles: TRANSP_ROLES },
   { path: "/transportadora/lancamento", component: TranspLancamento, roles: TRANSP_ROLES },
   { path: "/transportadora/entregas", component: TranspEntregas, roles: TRANSP_ROLES },

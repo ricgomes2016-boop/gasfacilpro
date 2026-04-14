@@ -22,9 +22,18 @@ import { formatCurrency } from "@/lib/transp-utils";
 const ROAD_FACTOR = 1.3;
 
 export default function TranspRotaAtacado() {
-  const { profile } = useAuth();
-  const empresaId = profile?.empresa_id;
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  const { data: profileData } = useQuery({
+    queryKey: ["profile-empresa", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("empresa_id").eq("user_id", user!.id).single();
+      return data;
+    },
+    enabled: !!user,
+  });
+  const empresaId = profileData?.empresa_id;
 
   const [activeTab, setActiveTab] = useState("criar");
   const [nome, setNome] = useState("Nova Rota Atacado");
