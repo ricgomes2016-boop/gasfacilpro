@@ -666,6 +666,15 @@ export default function GestaoRotas() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* ===== TAB: ROTA DINÂMICA ===== */}
+          <TabsContent value="rota-dinamica" className="space-y-4 mt-4">
+            {unidadeAtual?.empresa_id ? (
+              <RotaAtacadoDinamica empresaId={unidadeAtual.empresa_id} />
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-6">Selecione uma unidade para usar a Rota Dinâmica.</p>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
 
