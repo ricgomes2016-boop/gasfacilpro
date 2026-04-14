@@ -13,6 +13,7 @@ interface EstoqueItem {
   produto_nome: string;
   quantidade_saida: number;
   quantidade_vendida: number;
+  quantidade_transferida: number;
   quantidade_restante: number;
 }
 
@@ -62,7 +63,7 @@ export default function EntregadorEstoque() {
       // Get items for this carregamento
       const { data: carregItens } = await supabase
         .from("carregamento_rota_itens")
-        .select("produto_id, quantidade_saida, quantidade_vendida, produtos:produto_id(nome)")
+        .select("produto_id, quantidade_saida, quantidade_vendida, quantidade_transferida, produtos:produto_id(nome)")
         .eq("carregamento_id", carregamento.id);
 
       if (carregItens) {
@@ -72,7 +73,8 @@ export default function EntregadorEstoque() {
             produto_nome: item.produtos?.nome || "Produto",
             quantidade_saida: item.quantidade_saida || 0,
             quantidade_vendida: item.quantidade_vendida || 0,
-            quantidade_restante: (item.quantidade_saida || 0) - (item.quantidade_vendida || 0),
+            quantidade_transferida: item.quantidade_transferida || 0,
+            quantidade_restante: (item.quantidade_saida || 0) - (item.quantidade_vendida || 0) - (item.quantidade_transferida || 0),
           }))
         );
       }
@@ -102,6 +104,7 @@ export default function EntregadorEstoque() {
 
   const totalSaida = itens.reduce((acc, i) => acc + i.quantidade_saida, 0);
   const totalVendido = itens.reduce((acc, i) => acc + i.quantidade_vendida, 0);
+  const totalTransferido = itens.reduce((acc, i) => acc + i.quantidade_transferida, 0);
   const totalRestante = itens.reduce((acc, i) => acc + i.quantidade_restante, 0);
 
   return (
@@ -129,7 +132,7 @@ export default function EntregadorEstoque() {
         ) : (
           <>
             {/* Summary cards */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               <Card className="border-none shadow-md">
                 <CardContent className="p-3 text-center">
                   <p className="text-2xl font-bold text-primary">{totalSaida}</p>
@@ -140,6 +143,12 @@ export default function EntregadorEstoque() {
                 <CardContent className="p-3 text-center">
                   <p className="text-2xl font-bold text-orange-500">{totalVendido}</p>
                   <p className="text-xs text-muted-foreground">Vendido</p>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-md">
+                <CardContent className="p-3 text-center">
+                  <p className="text-2xl font-bold text-blue-500">{totalTransferido}</p>
+                  <p className="text-xs text-muted-foreground">Transf.</p>
                 </CardContent>
               </Card>
               <Card className="border-none shadow-md">
@@ -180,8 +189,13 @@ export default function EntregadorEstoque() {
                             Saída: {item.quantidade_saida}
                           </span>
                           <span className="text-xs text-orange-500">
-                            Vendido: {item.quantidade_vendida}
+                            Vend: {item.quantidade_vendida}
                           </span>
+                          {item.quantidade_transferida > 0 && (
+                            <span className="text-xs text-blue-500">
+                              Transf: {item.quantidade_transferida}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <Badge

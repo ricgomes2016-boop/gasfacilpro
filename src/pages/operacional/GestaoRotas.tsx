@@ -66,6 +66,7 @@ interface CarregamentoItem {
   quantidade_saida: number;
   quantidade_retorno: number | null;
   quantidade_vendida: number | null;
+  quantidade_transferida: number | null;
 }
 
 export default function GestaoRotas() {
@@ -193,6 +194,7 @@ export default function GestaoRotas() {
             quantidade_saida: i.quantidade_saida,
             quantidade_retorno: i.quantidade_retorno,
             quantidade_vendida: i.quantidade_vendida,
+            quantidade_transferida: i.quantidade_transferida,
           })),
         });
       }
@@ -331,12 +333,13 @@ export default function GestaoRotas() {
         acc.totalSaida += i.quantidade_saida;
         acc.totalVendido += i.quantidade_vendida || 0;
         acc.totalRetorno += i.quantidade_retorno || 0;
+        acc.totalTransferido += i.quantidade_transferida || 0;
       });
       if (c.status === "em_rota") acc.emRota++;
       if (c.status === "finalizado") acc.finalizados++;
       return acc;
     },
-    { totalSaida: 0, totalVendido: 0, totalRetorno: 0, emRota: 0, finalizados: 0 }
+    { totalSaida: 0, totalVendido: 0, totalRetorno: 0, totalTransferido: 0, emRota: 0, finalizados: 0 }
   );
 
   const handlePrintManifesto = (carreg: Carregamento) => {
@@ -456,11 +459,17 @@ export default function GestaoRotas() {
             </Card>
 
             {/* Resumo */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
               <Card>
                 <CardContent className="p-3 text-center">
                   <p className="text-xs text-muted-foreground">Total Saída</p>
                   <p className="text-2xl font-bold text-primary">{resumo.totalSaida}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Transferido (Rota)</p>
+                  <p className="text-2xl font-bold text-orange-500">{resumo.totalTransferido}</p>
                 </CardContent>
               </Card>
               <Card>
@@ -472,7 +481,7 @@ export default function GestaoRotas() {
               <Card className="border-primary/30 bg-primary/5">
                 <CardContent className="p-3 text-center">
                   <p className="text-xs text-muted-foreground font-medium">Saldo Líquido</p>
-                  <p className="text-2xl font-bold text-primary">{resumo.totalSaida - transferidoFiliais}</p>
+                  <p className="text-2xl font-bold text-primary">{resumo.totalSaida - resumo.totalTransferido - transferidoFiliais}</p>
                 </CardContent>
               </Card>
               <Card>
@@ -538,8 +547,11 @@ export default function GestaoRotas() {
                                 {c.itens.map((i) => (
                                   <Badge key={i.id} variant="outline" className="text-xs">
                                     {i.produto_nome} x{i.quantidade_saida}
-                                    {i.quantidade_vendida != null && (
-                                      <span className="ml-1 text-primary">({i.quantidade_vendida} vend.)</span>
+                                    {(i.quantidade_vendida != null && i.quantidade_vendida > 0) && (
+                                      <span className="ml-1 text-green-600">({i.quantidade_vendida} vend.)</span>
+                                    )}
+                                    {(i.quantidade_transferida != null && i.quantidade_transferida > 0) && (
+                                      <span className="ml-1 text-orange-500">({i.quantidade_transferida} transf.)</span>
                                     )}
                                   </Badge>
                                 ))}
