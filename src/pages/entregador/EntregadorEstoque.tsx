@@ -63,7 +63,7 @@ export default function EntregadorEstoque() {
       // Get items for this carregamento
       const { data: carregItens } = await supabase
         .from("carregamento_rota_itens")
-        .select("produto_id, quantidade_saida, quantidade_vendida, produtos:produto_id(nome)")
+        .select("produto_id, quantidade_saida, quantidade_vendida, quantidade_transferida, produtos:produto_id(nome)")
         .eq("carregamento_id", carregamento.id);
 
       if (carregItens) {
