@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import { MobileNav } from "./MobileNav";
 import { UnidadeSelector } from "./UnidadeSelector";
 import { useTheme } from "@/hooks/useTheme";
+import { forceAppUpdate } from "@/lib/force-app-update";
+import { BuildVersionBadge } from "@/components/shared/BuildVersionBadge";
 
 interface HeaderProps {
   title: string;
@@ -39,15 +41,9 @@ export function Header({ title, subtitle }: HeaderProps) {
   };
 
   const handleUpdateApp = async () => {
-    toast.info("Verificando atualizações...");
+    toast.info("Atualizando sistema para a versão mais recente...");
     try {
-      if ('serviceWorker' in navigator) {
-        const reg = await navigator.serviceWorker.getRegistration();
-        if (reg) await reg.update();
-      }
-      const keys = await caches.keys();
-      await Promise.all(keys.map(k => caches.delete(k)));
-      window.location.reload();
+      await forceAppUpdate();
     } catch (e) {
       console.error(e);
       window.location.reload();
@@ -74,7 +70,10 @@ export function Header({ title, subtitle }: HeaderProps) {
         <MobileNav />
         
         <div className="min-w-0">
-          <h1 className="text-lg md:text-xl font-bold text-foreground truncate">{title}</h1>
+          <div className="flex items-center gap-2 min-w-0">
+            <h1 className="text-lg md:text-xl font-bold text-foreground truncate">{title}</h1>
+            <BuildVersionBadge className="hidden md:inline-flex shrink-0" />
+          </div>
           <p className="text-xs md:text-sm text-muted-foreground truncate hidden sm:block">
             {empresa && <span className="font-medium">{empresa.nome}</span>}
             {subtitle && <span>{empresa ? " — " : ""}{subtitle}</span>}
@@ -132,6 +131,7 @@ export function Header({ title, subtitle }: HeaderProps) {
                     </Badge>
                   ))}
                 </div>
+                <BuildVersionBadge className="w-fit" prefix="Versão" />
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

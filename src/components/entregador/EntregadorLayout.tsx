@@ -31,6 +31,7 @@ import { ChatBase } from "./ChatBase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import logoImg from "@/assets/logo.png";
+import { BuildVersionBadge } from "@/components/shared/BuildVersionBadge";
 
 interface EntregadorLayoutProps {
   children: ReactNode;
@@ -82,6 +83,7 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
                     <div>
                       <h2 className="font-bold text-white text-lg">App Entregador</h2>
                       <p className="text-sm text-white/70">Revenda de Gás</p>
+                      <BuildVersionBadge tone="on-primary" prefix="Versão" className="mt-2 w-fit" />
                     </div>
                   </div>
                   <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
@@ -123,9 +125,12 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
                 </div>
               </SheetContent>
             </Sheet>
-           <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <img src={logoImg} alt="Nacional Gás" className="h-7 w-7 object-contain" />
-              <span className="font-bold text-lg">{title || "Entregador"}</span>
+               <div className="min-w-0">
+                 <span className="block font-bold text-lg truncate">{title || "Entregador"}</span>
+                 <BuildVersionBadge tone="on-primary" className="mt-1 w-fit" />
+               </div>
             </div>
           </div>
           <NotificationToggle className="text-primary-foreground hover:bg-white/20" />
