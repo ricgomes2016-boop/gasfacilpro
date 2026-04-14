@@ -15,6 +15,7 @@ import {
   Settings,
   ChevronRight,
   Camera,
+  RefreshCw,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -140,6 +141,22 @@ export default function EntregadorPerfil() {
     navigate("/auth");
   };
 
+  const handleUpdateApp = async () => {
+    toast.info("Verificando atualizações...");
+    try {
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) await reg.update();
+      }
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+      window.location.reload();
+    }
+  };
+
   const initials = (entregador?.nome || profile?.full_name || "")
     .split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
 
@@ -258,6 +275,16 @@ export default function EntregadorPerfil() {
             })}
           </CardContent>
         </Card>
+
+        {/* Botão Atualizar */}
+        <Button
+          variant="outline"
+          className="w-full h-12"
+          onClick={handleUpdateApp}
+        >
+          <RefreshCw className="h-5 w-5 mr-2" />
+          Atualizar App
+        </Button>
 
         {/* Botão Sair */}
         <Button
