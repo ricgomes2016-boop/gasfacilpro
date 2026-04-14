@@ -55,6 +55,7 @@ interface Transferencia {
 export default function TransferenciaEstoque() {
   const { unidades, unidadeAtual } = useUnidade();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [transferencias, setTransferencias] = useState<Transferencia[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
