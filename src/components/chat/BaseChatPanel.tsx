@@ -168,7 +168,7 @@ export function BaseChatPanel() {
           if (msg.destinatario_tipo === "base" && unidadeIds.includes(msg.destinatario_id)) {
             if (selectedThread && msg.remetente_id === selectedThread.entregador_id) {
               setMessages((prev) => [...prev, msg as ChatMsg]);
-              supabase.from("chat_mensagens").update({ lida: true }).eq("id", msg.id).then();
+              supabase.rpc("marcar_msg_lida" as any, { _msg_id: msg.id }).then();
             } else {
               loadThreads();
             }
@@ -203,13 +203,11 @@ export function BaseChatPanel() {
       if (data) setMessages(data as ChatMsg[]);
       setLoading(false);
 
-      await supabase
-        .from("chat_mensagens")
-        .update({ lida: true })
-        .eq("remetente_id", eId)
-        .eq("destinatario_tipo", "base")
-        .eq("destinatario_id", uId)
-        .eq("lida", false);
+      const { error } = await supabase.rpc("marcar_chat_lido_base" as any, {
+        _remetente_id: eId,
+        _destinatario_id: uId,
+      });
+      if (error) console.error("Erro ao marcar como lida:", error);
 
       // Update local state immediately
       setSelectedThread((prev) => prev ? { ...prev, unread: 0 } : null);

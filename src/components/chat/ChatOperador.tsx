@@ -112,23 +112,33 @@ export function ChatOperador({ externalOpen, onExternalClose, onUnreadChange }: 
     if (data) setMessages(data as ChatMessage[]);
   };
 
-  const markAsRead = async (entregadorId: string) => {
-    await supabase
-      .from("chat_mensagens")
-      .update({ lida: true })
-      .eq("remetente_id", entregadorId)
-      .eq("remetente_tipo", "entregador")
-      .eq("destinatario_tipo", "base")
-      .eq("lida", false);
+  const markAsRead = async (entregadorIdToMark: string) => {
+    // Find the unidade_id for this entregador to use as destinatario_id
+    const { data: entData } = await supabase
+      .from("entregadores")
+      .select("unidade_id")
+      .eq("id", entregadorIdToMark)
+      .maybeSingle();
+
+    if (entData?.unidade_id) {
+      const { error } = await supabase.rpc("marcar_chat_lido_base" as any, {
+        _remetente_id: entregadorIdToMark,
+        _destinatario_id: entData.unidade_id,
+      });
+      if (error) console.error("Erro ao marcar como lida:", error);
+    }
+
     // Update local state immediately
+    const ent = entregadores.find((e) => e.id === entregadorIdToMark);
+    const unreadToRemove = ent?.unread || 0;
     setEntregadores((prev) =>
-      prev.map((e) => (e.id === entregadorId ? { ...e, unread: 0 } : e))
+      prev.map((e) => (e.id === entregadorIdToMark ? { ...e, unread: 0 } : e))
     );
-    setTotalUnread((prev) => {
-      const ent = entregadores.find((e) => e.id === entregadorId);
-      return Math.max(0, prev - (ent?.unread || 0));
-    });
-    onUnreadChange?.(Math.max(0, totalUnread - (entregadores.find((e) => e.id === entregadorId)?.unread || 0)));
+    setTotalUnread((prev) => Math.max(0, prev - unreadToRemove));
+    onUnreadChange?.(Math.max(0, totalUnread - unreadToRemove));
+
+    // Re-fetch to confirm server state
+    setTimeout(() => fetchEntregadores(), 500);
   };
 
   const selectEntregador = async (e: Entregador) => {
