@@ -333,12 +333,13 @@ export default function GestaoRotas() {
         acc.totalSaida += i.quantidade_saida;
         acc.totalVendido += i.quantidade_vendida || 0;
         acc.totalRetorno += i.quantidade_retorno || 0;
+        acc.totalTransferido += i.quantidade_transferida || 0;
       });
       if (c.status === "em_rota") acc.emRota++;
       if (c.status === "finalizado") acc.finalizados++;
       return acc;
     },
-    { totalSaida: 0, totalVendido: 0, totalRetorno: 0, emRota: 0, finalizados: 0 }
+    { totalSaida: 0, totalVendido: 0, totalRetorno: 0, totalTransferido: 0, emRota: 0, finalizados: 0 }
   );
 
   const handlePrintManifesto = (carreg: Carregamento) => {
@@ -540,8 +541,11 @@ export default function GestaoRotas() {
                                 {c.itens.map((i) => (
                                   <Badge key={i.id} variant="outline" className="text-xs">
                                     {i.produto_nome} x{i.quantidade_saida}
-                                    {i.quantidade_vendida != null && (
-                                      <span className="ml-1 text-primary">({i.quantidade_vendida} vend.)</span>
+                                    {(i.quantidade_vendida != null && i.quantidade_vendida > 0) && (
+                                      <span className="ml-1 text-green-600">({i.quantidade_vendida} vend.)</span>
+                                    )}
+                                    {(i.quantidade_transferida != null && i.quantidade_transferida > 0) && (
+                                      <span className="ml-1 text-orange-500">({i.quantidade_transferida} transf.)</span>
                                     )}
                                   </Badge>
                                 ))}
