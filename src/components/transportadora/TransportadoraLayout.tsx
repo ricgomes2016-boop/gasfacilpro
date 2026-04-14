@@ -13,6 +13,7 @@ const navItems = [
   { to: "/transportadora/veiculos", icon: CarFront, label: "Veículos" },
   { to: "/transportadora/funcionarios", icon: Users, label: "Funcionários" },
   { to: "/transportadora/simulacao", icon: Route, label: "Simulação" },
+  { to: "/transportadora/rota-atacado", icon: Route, label: "Rota Atacado" },
   { to: "/transportadora/abastecimento", icon: ArrowLeftRight, label: "Abastecimento" },
   { to: "/transportadora/lancamento", icon: Receipt, label: "Despesas" },
   { to: "/transportadora/entregas", icon: Package, label: "Entregas & Vendas" },

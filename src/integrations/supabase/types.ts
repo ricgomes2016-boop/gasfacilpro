@@ -7861,6 +7861,175 @@ export type Database = {
           },
         ]
       }
+      transp_rota_paradas: {
+        Row: {
+          cidade: string | null
+          concluida: boolean | null
+          concluida_em: string | null
+          created_at: string | null
+          endereco: string | null
+          id: string
+          lat: number | null
+          lng: number | null
+          observacoes: string | null
+          operacao: string | null
+          ordem: number
+          qtd_p13: number | null
+          qtd_p20: number | null
+          qtd_p45: number | null
+          rota_id: string
+          tipo_parada: string
+        }
+        Insert: {
+          cidade?: string | null
+          concluida?: boolean | null
+          concluida_em?: string | null
+          created_at?: string | null
+          endereco?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          observacoes?: string | null
+          operacao?: string | null
+          ordem?: number
+          qtd_p13?: number | null
+          qtd_p20?: number | null
+          qtd_p45?: number | null
+          rota_id: string
+          tipo_parada?: string
+        }
+        Update: {
+          cidade?: string | null
+          concluida?: boolean | null
+          concluida_em?: string | null
+          created_at?: string | null
+          endereco?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          observacoes?: string | null
+          operacao?: string | null
+          ordem?: number
+          qtd_p13?: number | null
+          qtd_p20?: number | null
+          qtd_p45?: number | null
+          rota_id?: string
+          tipo_parada?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_rota_paradas_rota_id_fkey"
+            columns: ["rota_id"]
+            isOneToOne: false
+            referencedRelation: "transp_rotas_atacado"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_rotas_atacado: {
+        Row: {
+          ajudante_id: string | null
+          carga_inicial_p13: number | null
+          carga_inicial_p20: number | null
+          carga_inicial_p45: number | null
+          consumo_km_litro: number | null
+          created_at: string | null
+          custo_pedagio: number | null
+          custo_refeicao: number | null
+          custo_total: number | null
+          data_prevista: string | null
+          empresa_id: string
+          id: string
+          km_total: number | null
+          motorista_id: string | null
+          nome: string
+          observacoes: string | null
+          preco_combustivel: number | null
+          status: string
+          tempo_total_min: number | null
+          tipo: string
+          updated_at: string | null
+          veiculo_id: string | null
+        }
+        Insert: {
+          ajudante_id?: string | null
+          carga_inicial_p13?: number | null
+          carga_inicial_p20?: number | null
+          carga_inicial_p45?: number | null
+          consumo_km_litro?: number | null
+          created_at?: string | null
+          custo_pedagio?: number | null
+          custo_refeicao?: number | null
+          custo_total?: number | null
+          data_prevista?: string | null
+          empresa_id: string
+          id?: string
+          km_total?: number | null
+          motorista_id?: string | null
+          nome: string
+          observacoes?: string | null
+          preco_combustivel?: number | null
+          status?: string
+          tempo_total_min?: number | null
+          tipo?: string
+          updated_at?: string | null
+          veiculo_id?: string | null
+        }
+        Update: {
+          ajudante_id?: string | null
+          carga_inicial_p13?: number | null
+          carga_inicial_p20?: number | null
+          carga_inicial_p45?: number | null
+          consumo_km_litro?: number | null
+          created_at?: string | null
+          custo_pedagio?: number | null
+          custo_refeicao?: number | null
+          custo_total?: number | null
+          data_prevista?: string | null
+          empresa_id?: string
+          id?: string
+          km_total?: number | null
+          motorista_id?: string | null
+          nome?: string
+          observacoes?: string | null
+          preco_combustivel?: number | null
+          status?: string
+          tempo_total_min?: number | null
+          tipo?: string
+          updated_at?: string | null
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_rotas_atacado_ajudante_id_fkey"
+            columns: ["ajudante_id"]
+            isOneToOne: false
+            referencedRelation: "transp_funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_rotas_atacado_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_rotas_atacado_motorista_id_fkey"
+            columns: ["motorista_id"]
+            isOneToOne: false
+            referencedRelation: "transp_funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_rotas_atacado_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "transp_veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transp_simulacoes: {
         Row: {
           ajudante_id: string | null
