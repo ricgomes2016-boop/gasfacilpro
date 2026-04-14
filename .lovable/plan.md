@@ -1,111 +1,37 @@
 
 
-## Plano: Módulo "Rota Atacado Dinâmica" — Transportadora
+## Plano: Mover Rota Atacado Dinâmica para Gestão Operacional / Rotas de Entrega
 
-### Resumo
-Criar uma nova página `/transportadora/rota-atacado` com um sistema completo de planejamento de rotas atacado com múltiplas paradas tipadas, mapa interativo, controle de carga em tempo real, timeline visual e otimização automática de ordem.
+### Objetivo
+Integrar o módulo de Rota Atacado Dinâmica (atualmente em `/transportadora/rota-atacado`) como uma nova aba dentro da página existente `/operacional/rotas` (GestaoRotas), mantendo as abas já existentes ("Rota Atacado" e "Rotas Cidade").
 
-### Banco de Dados — Nova Tabela
+### Mudanças
 
-```sql
-CREATE TABLE public.transp_rotas_atacado (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  empresa_id uuid REFERENCES public.empresas(id) ON DELETE CASCADE NOT NULL,
-  nome text NOT NULL,
-  tipo text NOT NULL DEFAULT 'atacado', -- 'urbana' | 'atacado'
-  veiculo_id uuid REFERENCES public.transp_veiculos(id),
-  motorista_id uuid REFERENCES public.transp_funcionarios(id),
-  ajudante_id uuid REFERENCES public.transp_funcionarios(id),
-  status text NOT NULL DEFAULT 'rascunho', -- rascunho, planejada, em_andamento, concluida
-  data_prevista date,
-  km_total numeric(10,2) DEFAULT 0,
-  tempo_total_min integer DEFAULT 0,
-  custo_total numeric(10,2) DEFAULT 0,
-  carga_inicial_p13 integer DEFAULT 0,
-  carga_inicial_p20 integer DEFAULT 0,
-  carga_inicial_p45 integer DEFAULT 0,
-  consumo_km_litro numeric(6,2) DEFAULT 5.0,
-  preco_combustivel numeric(6,2) DEFAULT 6.50,
-  custo_pedagio numeric(10,2) DEFAULT 0,
-  custo_refeicao numeric(10,2) DEFAULT 0,
-  observacoes text,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
+**1. Adicionar nova aba "Rota Atacado Dinâmica" em `GestaoRotas.tsx`**
+- Adicionar uma terceira tab `rota-dinamica` ao TabsList existente
+- Dentro dessa tab, renderizar os componentes já criados: `RotaAtacadoMap`, `ParadaForm`, `CargaTimeline`, `RotaOptimizer`, `RotaSummaryCard`
+- Adaptar o contexto de autenticação: substituir `useAuth` + `empresa_id` via profile por `useUnidade` (padrão do operacional)
+- Manter as queries de veículos, funcionários, distribuidoras, clientes, unidades
 
-CREATE TABLE public.transp_rota_paradas (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  rota_id uuid REFERENCES public.transp_rotas_atacado(id) ON DELETE CASCADE NOT NULL,
-  ordem integer NOT NULL DEFAULT 0,
-  tipo_parada text NOT NULL DEFAULT 'venda', -- saida, coleta, transferencia, venda, retorno
-  cidade text,
-  endereco text,
-  lat numeric(10,7),
-  lng numeric(10,7),
-  qtd_p13 integer DEFAULT 0,
-  qtd_p20 integer DEFAULT 0,
-  qtd_p45 integer DEFAULT 0,
-  operacao text DEFAULT 'saida', -- 'entrada' | 'saida' (carga entra ou sai do caminhão)
-  observacoes text,
-  concluida boolean DEFAULT false,
-  concluida_em timestamptz,
-  created_at timestamptz DEFAULT now()
-);
-```
+**2. Criar componente wrapper `RotaAtacadoDinamica.tsx`**
+- Novo arquivo: `src/components/operacional/RotaAtacadoDinamica.tsx`
+- Extrair toda a lógica de `TranspRotaAtacado.tsx` (estado, queries, save, paradas) em um componente reutilizável que não depende do `TransportadoraLayout`
+- Usar `useUnidade` para obter `empresa_id` via unidade atual
 
-Com RLS por `empresa_id`, triggers de `updated_at`, e policies CRUD para authenticated.
+**3. Manter a página da Transportadora funcionando**
+- `TranspRotaAtacado.tsx` passa a importar o mesmo componente wrapper, sem duplicação de código
 
-### Frontend — Arquivos
+**4. Arquivos modificados**
 
 | Arquivo | Ação |
 |---|---|
-| `src/pages/transportadora/TranspRotaAtacado.tsx` | **Novo** — Página principal |
-| `src/components/transportadora/rota-atacado/RotaAtacadoMap.tsx` | **Novo** — Mapa interativo Leaflet |
-| `src/components/transportadora/rota-atacado/ParadaForm.tsx` | **Novo** — Formulário de parada |
-| `src/components/transportadora/rota-atacado/CargaTimeline.tsx` | **Novo** — Timeline visual com evolução de carga |
-| `src/components/transportadora/rota-atacado/RotaOptimizer.tsx` | **Novo** — Botão de otimização (nearest-neighbor) |
-| `src/components/transportadora/rota-atacado/RotaSummaryCard.tsx` | **Novo** — Resumo com KM, tempo, custo |
-| `src/routes/transportadoraRoutes.ts` | Adicionar rota `/transportadora/rota-atacado` |
-| `src/components/transportadora/TransportadoraLayout.tsx` | Adicionar nav item "Rota Atacado" |
+| `src/components/operacional/RotaAtacadoDinamica.tsx` | **Novo** — Componente wrapper com toda a lógica |
+| `src/pages/operacional/GestaoRotas.tsx` | Adicionar aba "Rota Dinâmica" importando o wrapper |
+| `src/pages/transportadora/TranspRotaAtacado.tsx` | Simplificar para usar o wrapper |
 
-### Funcionalidades por Componente
-
-**Página Principal (`TranspRotaAtacado.tsx`)**:
-- Tabs: "Criar Rota" e "Rotas Salvas"
-- Seleção de veículo (puxa capacidade), motorista, ajudante
-- Carga inicial (P13/P20/P45)
-- Custos (combustível, pedágio, refeição)
-- Salvar/editar rotas no banco
-
-**Mapa (`RotaAtacadoMap.tsx`)**:
-- Clique no mapa adiciona parada com geocodificação reversa (Nominatim)
-- Busca por endereço
-- Marcadores coloridos por tipo de parada (saída=verde, coleta=azul, venda=laranja, transferência=roxo, retorno=vermelho)
-- Polyline conectando paradas na ordem
-- Drag & drop para reordenar (via lista lateral, não no mapa)
-
-**Timeline de Carga (`CargaTimeline.tsx`)**:
-- Lista vertical mostrando cada parada em ordem
-- Carga acumulada atualizada a cada ponto (entrada soma, saída subtrai)
-- Alerta visual (vermelho) se carga exceder capacidade do veículo
-- Badge com tipo de operação
-
-**Otimização (`RotaOptimizer.tsx`)**:
-- Algoritmo nearest-neighbor (vizinho mais próximo) usando Haversine
-- Botão "Otimizar Ordem" que reorganiza as paradas mantendo Saída como primeira e Retorno como última
-- Exibe KM antes vs depois da otimização
-
-**Resumo (`RotaSummaryCard.tsx`)**:
-- KM total (Haversine × 1.3)
-- Tempo estimado (velocidade média 60km/h)
-- Custo combustível + pedágio + refeição + motorista + ajudante
-- Custo por P13 equivalente
-
-### Detalhes Técnicos
-
-- Reutiliza `haversineDistance`, `reverseGeocode`, `geocodeAddress`, `calcP13Equivalente` e demais utils já existentes
-- Marcadores Leaflet customizados por tipo de parada com `L.divIcon`
-- Otimização nearest-neighbor é client-side, sem API externa
-- Velocidade média de 60km/h para estimativa de tempo (configurável)
-- Capacidade do veículo vem de `transp_veiculos.capacidade_p13/p20/p45`
+### Detalhes técnicos
+- O wrapper recebe `empresaId` como prop, tornando-o agnóstico ao layout
+- Na página operacional, `empresaId` vem de `unidadeAtual?.empresa_id` (via `useUnidade`)
+- Na página transportadora, continua vindo do profile
+- Todos os componentes existentes (mapa, timeline, otimizador, resumo, formulário de parada) são reutilizados sem alteração
 
