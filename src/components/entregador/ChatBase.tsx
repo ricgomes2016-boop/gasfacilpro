@@ -582,7 +582,7 @@ export function ChatBase() {
             </TabsList>
 
             {/* === IA Tab === */}
-            <TabsContent value="ia" className="flex-1 flex flex-col min-h-0 m-0 p-0" style={{ marginTop: 0 }}>
+            <TabsContent value="ia" className="flex-1 flex flex-col min-h-0 m-0 p-0 data-[state=active]:flex" style={{ marginTop: 0 }}>
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-3">
                   {aiMessages.length <= 1 && (
