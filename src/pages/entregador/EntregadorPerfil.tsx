@@ -22,6 +22,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getBrasiliaDate } from "@/lib/utils";
+import { forceAppUpdate } from "@/lib/force-app-update";
+import { BuildVersionBadge } from "@/components/shared/BuildVersionBadge";
 
 interface EntregadorData {
   id: string;
@@ -142,15 +144,9 @@ export default function EntregadorPerfil() {
   };
 
   const handleUpdateApp = async () => {
-    toast.info("Verificando atualizações...");
+    toast.info("Atualizando app para a versão mais recente...");
     try {
-      if ('serviceWorker' in navigator) {
-        const reg = await navigator.serviceWorker.getRegistration();
-        if (reg) await reg.update();
-      }
-      const keys = await caches.keys();
-      await Promise.all(keys.map(k => caches.delete(k)));
-      window.location.reload();
+      await forceAppUpdate();
     } catch (e) {
       console.error(e);
       window.location.reload();
@@ -275,6 +271,11 @@ export default function EntregadorPerfil() {
             })}
           </CardContent>
         </Card>
+
+        <div className="flex items-center justify-between rounded-lg border bg-card px-4 py-3 shadow-sm">
+          <span className="text-sm text-muted-foreground">Versão instalada</span>
+          <BuildVersionBadge prefix="Build" />
+        </div>
 
         {/* Botão Atualizar */}
         <Button

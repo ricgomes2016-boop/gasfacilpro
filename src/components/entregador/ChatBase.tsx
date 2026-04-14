@@ -582,7 +582,7 @@ export function ChatBase() {
             </TabsList>
 
             {/* === IA Tab === */}
-            <TabsContent value="ia" className="flex-1 flex flex-col min-h-0 m-0 p-0 data-[state=active]:flex" style={{ marginTop: 0 }}>
+            <TabsContent value="ia" className="hidden flex-1 min-h-0 flex-col m-0 p-0 data-[state=active]:flex">
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-3">
                   {aiMessages.length <= 1 && (
@@ -647,7 +647,7 @@ export function ChatBase() {
             </TabsContent>
 
             {/* === Conversas Tab (WhatsApp-style list) === */}
-            <TabsContent value="conversas" className="flex-1 flex flex-col min-h-0 m-0 p-0 data-[state=active]:flex" style={{ marginTop: 0 }}>
+            <TabsContent value="conversas" className="hidden flex-1 min-h-0 flex-col m-0 p-0 data-[state=active]:flex">
               {/* Search bar */}
               <div className="px-3 py-2 border-b shrink-0">
                 <div className="relative">
