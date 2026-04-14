@@ -9,10 +9,13 @@ import "leaflet/dist/leaflet.css";
 
 const DEFAULT_CENTER: [number, number] = [-23.1811, -50.6477];
 
+export type TipoParada = "saida" | "coleta" | "transferencia" | "venda" | "retorno";
+export type ImpactoEstoque = "entrada" | "saida" | "nenhum";
+
 export interface Parada {
   id: string;
   ordem: number;
-  tipo_parada: "saida" | "coleta" | "transferencia" | "venda" | "retorno";
+  tipo_parada: TipoParada;
   cidade: string;
   endereco: string;
   lat: number;
@@ -20,8 +23,24 @@ export interface Parada {
   qtd_p13: number;
   qtd_p20: number;
   qtd_p45: number;
-  operacao: "entrada" | "saida";
+  impacto_estoque: ImpactoEstoque;
+  impacto_financeiro: boolean;
+  entidade_id: string;
+  entidade_tipo: string;
+  entidade_nome: string;
   observacoes: string;
+}
+
+/** Defaults automáticos por tipo de parada */
+export function getDefaultsByTipo(tipo: TipoParada): Pick<Parada, "impacto_estoque" | "impacto_financeiro"> {
+  switch (tipo) {
+    case "saida": return { impacto_estoque: "nenhum", impacto_financeiro: false };
+    case "coleta": return { impacto_estoque: "entrada", impacto_financeiro: true };
+    case "venda": return { impacto_estoque: "saida", impacto_financeiro: true };
+    case "transferencia": return { impacto_estoque: "saida", impacto_financeiro: false };
+    case "retorno": return { impacto_estoque: "nenhum", impacto_financeiro: false };
+    default: return { impacto_estoque: "nenhum", impacto_financeiro: false };
+  }
 }
 
 const PARADA_COLORS: Record<string, string> = {
