@@ -1,4 +1,4 @@
-import { User, LogOut, Settings, UserCircle, Moon, Sun } from "lucide-react";
+import { User, LogOut, Settings, UserCircle, Moon, Sun, RefreshCw } from "lucide-react";
 import { CommandPalette } from "./CommandPalette";
 import { NotificationCenter } from "./NotificationCenter";
 import { BaseChatPanel } from "@/components/chat/BaseChatPanel";
@@ -16,6 +16,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import { MobileNav } from "./MobileNav";
 import { UnidadeSelector } from "./UnidadeSelector";
 import { useTheme } from "@/hooks/useTheme";
@@ -35,6 +36,22 @@ export function Header({ title, subtitle }: HeaderProps) {
   const handleSignOut = async () => {
     await signOut();
     navigate("/auth");
+  };
+
+  const handleUpdateApp = async () => {
+    toast.info("Verificando atualizações...");
+    try {
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) await reg.update();
+      }
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+      window.location.reload();
+    }
   };
 
   const getRoleBadgeVariant = (role: string) => {
@@ -125,6 +142,10 @@ export function Header({ title, subtitle }: HeaderProps) {
             <DropdownMenuItem onClick={() => navigate("/config/auditoria")}>
               <Settings className="mr-2 h-4 w-4" />
               Configurações
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleUpdateApp}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Atualizar Sistema
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive" onClick={handleSignOut}>
