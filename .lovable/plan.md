@@ -1,22 +1,41 @@
+<final-text>Diagnóstico
 
+- O badge vermelho da imagem é o contador do `MobileBottomBar`, alimentado por `ChatOperador`.
+- O problema não é só visual: há mensagens em `chat_mensagens` ainda com `lida = false`, então o contador volta após novo carregamento.
+- A causa raiz é dupla:
+  1. As ações de “marcar como lida” no chat ignoram erro e fazem apenas atualização local.
+  2. A regra atual de acesso do backend não garante a atualização correta do campo `lida` para quem está recebendo as mensagens no contexto da base.
+- Além disso, o chat mobile da base (`ChatOperador`) está divergente do chat desktop (`BaseChatPanel`) e usa modelagem frágil, o que aumenta a chance de o badge voltar.
 
-## Plano: Canal de venda obrigatório no app do entregador
+Plano de correção definitiva
 
-### Problema
-1. O default do canal é `"entregador"` (linha 119), que não existe na lista de canais disponíveis
-2. O botão "Finalizar Venda" (linha 791) não verifica se o canal foi selecionado — permite venda sem canal
+1. Corrigir o backend de leitura do chat
+- Criar uma forma segura de persistir “mensagem lida” para a base e para o entregador.
+- Preferência: usar uma função de backend específica para marcar mensagens como lidas, em vez de depender de updates diretos frágeis.
+- Garantir que apenas o destinatário correto consiga marcar a mensagem como lida.
 
-### Alterações
+2. Unificar a lógica do chat da base
+- Ajustar `ChatOperador` para seguir o mesmo padrão de conversa do `BaseChatPanel`.
+- Corrigir o escopo das consultas de não lidas para contar apenas mensagens realmente destinadas à base daquela empresa/unidade.
+- Remover a divergência que hoje permite o contador voltar mesmo depois do acesso.
 
-**Arquivo: `src/pages/entregador/EntregadorNovaVenda.tsx`**
+3. Endurecer o frontend
+- Em `ChatOperador`, `BaseChatPanel` e `ChatBase`, tratar erro ao marcar como lida.
+- Ao abrir a conversa, zerar o contador localmente e depois refazer a leitura do backend para confirmar sincronização real.
+- Evitar que o badge reapareça por cache local ou refetch com dados antigos.
 
-1. **Default vazio** — Trocar `useState("entregador")` para `useState("")` (linha 119)
-2. **Validação no botão** — Adicionar `!canalVenda` na condição de `disabled` do botão Finalizar (linha 791)
-3. **Placeholder no Select** — Adicionar placeholder "Selecione o canal" no SelectValue para indicar que é obrigatório
-4. **Validação no submit** — Adicionar check no `finalizarVenda` para bloquear se `canalVenda` estiver vazio, com toast de erro
+4. Validar ponta a ponta
+- Testar com mensagem nova de entregador para base.
+- Abrir a conversa no mobile e confirmar que o badge some e não volta ao atualizar a página.
+- Repetir no desktop.
+- Validar que mensagens entre entregadores não entrem no contador da base.
 
-### Resultado
-- Todos os canais da empresa aparecem (já funciona)
-- O entregador é obrigado a selecionar um canal antes de finalizar
-- Feedback visual claro quando o canal não foi selecionado
+Detalhes técnicos
 
+- Arquivos mais prováveis:
+  - `src/components/chat/ChatOperador.tsx`
+  - `src/components/chat/BaseChatPanel.tsx`
+  - `src/components/entregador/ChatBase.tsx`
+  - nova migration/função no backend para leitura do chat
+- Vou corrigir a causa raiz, não apenas esconder o número do badge.
+- Também vou revisar o fluxo para que o chat publicado fique consistente entre mobile e desktop.</final-text>
