@@ -38,6 +38,7 @@ import { atualizarEstoqueVenda } from "@/services/estoqueService";
 import { format } from "date-fns";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useNavigate } from "react-router-dom";
+import { RotaAtacadoDinamica } from "@/components/operacional/RotaAtacadoDinamica";
 
 interface RotaDefinida {
   id: string;
@@ -401,6 +402,10 @@ export default function GestaoRotas() {
             <TabsTrigger value="rotas">
               <MapPin className="h-4 w-4 mr-2" />
               Rotas Cidade
+            </TabsTrigger>
+            <TabsTrigger value="rota-dinamica">
+              <Route className="h-4 w-4 mr-2" />
+              Rota Dinâmica
             </TabsTrigger>
           </TabsList>
 
