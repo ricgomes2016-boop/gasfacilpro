@@ -1,21 +1,37 @@
 
 
-## Plano: Adicionar botão de navegação para Rota de Entrega na tela de Transferência entre Filiais
+## Plano: Separar vendas e transferências no carregamento e atualizar coluna Produtos
 
-### Contexto
-A tela de Transferência de Estoque (`/estoque/transferencia`) não possui um atalho direto para a Gestão de Rotas. O usuário precisa navegar manualmente.
+### Problema
+Quando o entregador transfere produtos (ex: 210 para ABMF, 74 para Morumbi) e vende 54, a tabela **Gestão de Rotas** continua mostrando "0 vend." porque:
+1. A tabela `carregamento_rota_itens` **não tem** coluna `quantidade_transferida`
+2. O código de transferência (`EntregadorTransferencia.tsx`) **não atualiza** o carregamento ativo do entregador
+3. A UI só mostra vendas, ignorando transferências
 
-### Alteração
+### Alterações
 
-**Arquivo:** `src/pages/estoque/TransferenciaEstoque.tsx`
+**1. Migration — Adicionar coluna `quantidade_transferida`**
+```sql
+ALTER TABLE carregamento_rota_itens 
+  ADD COLUMN quantidade_transferida integer DEFAULT 0;
+```
 
-- Adicionar um botão "Ir para Rota de Entrega" no topo da página (próximo ao título ou ao lado do botão de nova transferência)
-- O botão navega para `/operacional/rotas` usando `useNavigate`
-- Ícone: `Truck` ou `Route` do Lucide
-- Estilo: `variant="outline"` para não competir com ações principais
+**2. EntregadorTransferencia.tsx — Atualizar carregamento ao transferir**
+- Após inserir a transferência com sucesso, buscar o carregamento ativo do entregador
+- Para cada item transferido, incrementar `quantidade_transferida` no `carregamento_rota_itens` correspondente
 
-### Detalhes técnicos
-- Importar `useNavigate` do React Router e ícone `Truck` do Lucide
-- Posicionar o botão no header da página, alinhado à direita
-- Um único arquivo modificado
+**3. GestaoRotas.tsx — Exibir vendas e transferências separadamente**
+- Adicionar `quantidade_transferida` na interface `CarregamentoItem`
+- Na coluna Produtos, exibir: `Gás P13 x600 (54 vend. | 284 transf.)`
+- No resumo, adicionar card "Transferido" e ajustar "Saldo Líquido" = saída - vendido - transferido
+
+**4. EntregadorEstoque.tsx — Considerar transferências no restante**
+- Calcular: `restante = saída - vendida - transferida`
+- Mostrar transferências separadamente na UI
+
+### Arquivos modificados
+- Nova migration SQL
+- `src/pages/entregador/EntregadorTransferencia.tsx`
+- `src/pages/operacional/GestaoRotas.tsx`
+- `src/pages/entregador/EntregadorEstoque.tsx`
 
