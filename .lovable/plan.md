@@ -1,37 +1,41 @@
 
 
-## Plano: Separar vendas e transferências no carregamento e atualizar coluna Produtos
+## Plano: Botão "Atualizar App" no app do entregador e no sistema administrativo
 
-### Problema
-Quando o entregador transfere produtos (ex: 210 para ABMF, 74 para Morumbi) e vende 54, a tabela **Gestão de Rotas** continua mostrando "0 vend." porque:
-1. A tabela `carregamento_rota_itens` **não tem** coluna `quantidade_transferida`
-2. O código de transferência (`EntregadorTransferencia.tsx`) **não atualiza** o carregamento ativo do entregador
-3. A UI só mostra vendas, ignorando transferências
+### O que será feito
 
-### Alterações
+Adicionar uma opção de **atualizar o app** em dois lugares:
 
-**1. Migration — Adicionar coluna `quantidade_transferida`**
-```sql
-ALTER TABLE carregamento_rota_itens 
-  ADD COLUMN quantidade_transferida integer DEFAULT 0;
-```
+1. **App do Entregador** — No menu do perfil (`EntregadorPerfil.tsx`), adicionar um item "Atualizar App" que força a atualização do Service Worker e recarrega a página
+2. **Sistema Administrativo** — No dropdown do usuário no header (`Header.tsx`), adicionar um item "Atualizar Sistema" com a mesma lógica
 
-**2. EntregadorTransferencia.tsx — Atualizar carregamento ao transferir**
-- Após inserir a transferência com sucesso, buscar o carregamento ativo do entregador
-- Para cada item transferido, incrementar `quantidade_transferida` no `carregamento_rota_itens` correspondente
+### Como funciona
 
-**3. GestaoRotas.tsx — Exibir vendas e transferências separadamente**
-- Adicionar `quantidade_transferida` na interface `CarregamentoItem`
-- Na coluna Produtos, exibir: `Gás P13 x600 (54 vend. | 284 transf.)`
-- No resumo, adicionar card "Transferido" e ajustar "Saldo Líquido" = saída - vendido - transferido
-
-**4. EntregadorEstoque.tsx — Considerar transferências no restante**
-- Calcular: `restante = saída - vendida - transferida`
-- Mostrar transferências separadamente na UI
+A função de atualização vai:
+- Verificar se há um Service Worker registrado
+- Chamar `registration.update()` para buscar nova versão
+- Limpar caches antigos do navegador (`caches.delete`)
+- Recarregar a página com `window.location.reload()`
+- Exibir um toast "Verificando atualizações..." durante o processo
 
 ### Arquivos modificados
-- Nova migration SQL
-- `src/pages/entregador/EntregadorTransferencia.tsx`
-- `src/pages/operacional/GestaoRotas.tsx`
-- `src/pages/entregador/EntregadorEstoque.tsx`
+
+1. **`src/pages/entregador/EntregadorPerfil.tsx`** — Adicionar item "Atualizar App" com ícone `RefreshCw` no menu, antes do botão "Sair"
+2. **`src/components/layout/Header.tsx`** — Adicionar item "Atualizar Sistema" com ícone `RefreshCw` no dropdown do usuário, antes de "Sair"
+
+### Detalhes técnicos
+
+```typescript
+// Função reutilizada nos dois locais
+const handleUpdateApp = async () => {
+  toast.info("Verificando atualizações...");
+  if ('serviceWorker' in navigator) {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg) await reg.update();
+  }
+  const keys = await caches.keys();
+  await Promise.all(keys.map(k => caches.delete(k)));
+  window.location.reload();
+};
+```
 
