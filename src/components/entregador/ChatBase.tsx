@@ -198,7 +198,7 @@ export function ChatBase() {
           if (selectedPeer && peerKey === selectedPeer.id) {
             setChatMessages((prev) => [...prev, msg as ChatMsg]);
             if (isForMe && !msg.lida) {
-              supabase.from("chat_mensagens").update({ lida: true }).eq("id", msg.id).then();
+              supabase.rpc("marcar_msg_lida" as any, { _msg_id: msg.id }).then();
             }
           } else if (isForMe && peerKey) {
             setUnreadCounts((prev) => ({
@@ -246,22 +246,19 @@ export function ChatBase() {
       if (data) setChatMessages(data as ChatMsg[]);
       setChatLoading(false);
 
-      // Mark all as read
+      // Mark all as read using secure RPC
       if (selectedPeer.tipo === "base") {
-        await supabase
-          .from("chat_mensagens")
-          .update({ lida: true })
-          .eq("destinatario_id", entregadorId)
-          .eq("remetente_tipo", "base")
-          .eq("lida", false);
+        await supabase.rpc("marcar_chat_lido_entregador" as any, {
+          _entregador_id: entregadorId,
+          _remetente_id: unidadeId,
+          _remetente_tipo: "base",
+        });
       } else {
-        await supabase
-          .from("chat_mensagens")
-          .update({ lida: true })
-          .eq("destinatario_id", entregadorId)
-          .eq("remetente_id", selectedPeer.id)
-          .eq("remetente_tipo", "entregador")
-          .eq("lida", false);
+        await supabase.rpc("marcar_chat_lido_entregador" as any, {
+          _entregador_id: entregadorId,
+          _remetente_id: selectedPeer.id,
+          _remetente_tipo: "entregador",
+        });
       }
       setUnreadCounts((prev) => {
         const next = { ...prev };
