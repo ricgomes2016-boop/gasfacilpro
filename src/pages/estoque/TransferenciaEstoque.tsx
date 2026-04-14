@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowRightLeft, Plus, Trash2, Loader2, Check, X, Truck, CalendarIcon } from "lucide-react";
+import { ArrowRightLeft, Plus, Trash2, Loader2, Check, X, Truck, CalendarIcon, Route } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDateString } from "@/lib/utils";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -54,6 +55,7 @@ interface Transferencia {
 export default function TransferenciaEstoque() {
   const { unidades, unidadeAtual } = useUnidade();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [transferencias, setTransferencias] = useState<Transferencia[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -361,7 +363,10 @@ export default function TransferenciaEstoque() {
         </div>
 
         {/* Nova Transferência */}
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => navigate("/operacional/rotas")}>
+            <Route className="h-4 w-4 mr-2" />Rota de Entrega
+          </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4 mr-2" />Nova Transferência</Button>
