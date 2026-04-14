@@ -9052,6 +9052,19 @@ export type Database = {
         }
         Returns: boolean
       }
+      marcar_chat_lido_base: {
+        Args: { _destinatario_id: string; _remetente_id: string }
+        Returns: undefined
+      }
+      marcar_chat_lido_entregador: {
+        Args: {
+          _entregador_id: string
+          _remetente_id: string
+          _remetente_tipo: string
+        }
+        Returns: undefined
+      }
+      marcar_msg_lida: { Args: { _msg_id: string }; Returns: undefined }
       notify_base_chat: {
         Args: {
           _entregador_nome: string
