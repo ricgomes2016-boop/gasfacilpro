@@ -68,9 +68,7 @@ export function Header({ title, subtitle }: HeaderProps) {
 
       <div className="flex items-center gap-1 md:gap-4 shrink-0">
         {/* Unidade Selector */}
-        <div className="hidden sm:block">
-          <UnidadeSelector />
-        </div>
+        <UnidadeSelector />
 
         {/* Command Palette (⌘K) */}
         <CommandPalette />
