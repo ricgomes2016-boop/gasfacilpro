@@ -5,14 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Phone, Send, Sparkles, User, Lightbulb, ArrowLeft, Check, CheckCheck, Building2 } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Phone, Send, Sparkles, User, Lightbulb, ArrowLeft, Check, CheckCheck, Building2, Search, X } from "lucide-react";
 import { VoiceInputButton } from "@/components/ai/VoiceButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
-import { format } from "date-fns";
+import { format, isToday, isYesterday } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Message {
   role: "user" | "assistant";
@@ -36,6 +38,11 @@ interface Peer {
   tipo: "entregador" | "base";
 }
 
+interface PeerWithPreview extends Peer {
+  lastMessage: string;
+  lastMessageTime: string;
+}
+
 const SUGESTOES = [
   "Lança 1 gás na rua Central, 50",
   "Quanto tem de P13?",
@@ -44,6 +51,41 @@ const SUGESTOES = [
 ];
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/entregador-chat-ia`;
+
+// Avatar color palette
+const AVATAR_COLORS = [
+  "bg-emerald-500", "bg-blue-500", "bg-purple-500", "bg-orange-500",
+  "bg-pink-500", "bg-teal-500", "bg-indigo-500", "bg-rose-500",
+];
+
+function getAvatarColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function getInitials(nome: string) {
+  return nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
+}
+
+function formatMessageTime(dateStr: string) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isToday(d)) return format(d, "HH:mm");
+  if (isYesterday(d)) return "Ontem";
+  return format(d, "dd/MM", { locale: ptBR });
+}
+
+function formatDateSeparator(dateStr: string) {
+  const d = new Date(dateStr);
+  if (isToday(d)) return "Hoje";
+  if (isYesterday(d)) return "Ontem";
+  return format(d, "dd 'de' MMMM", { locale: ptBR });
+}
+
+function getDateKey(dateStr: string) {
+  return format(new Date(dateStr), "yyyy-MM-dd");
+}
 
 export function ChatBase() {
   const [open, setOpen] = useState(false);
@@ -60,12 +102,13 @@ export function ChatBase() {
   const [aiLoading, setAiLoading] = useState(false);
 
   // Conversas state
-  const [peers, setPeers] = useState<Peer[]>([]);
+  const [peers, setPeers] = useState<PeerWithPreview[]>([]);
   const [selectedPeer, setSelectedPeer] = useState<Peer | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [entregadorId, setEntregadorId] = useState<string | null>(null);
   const [unidadeId, setUnidadeId] = useState<string | null>(null);
@@ -90,47 +133,96 @@ export function ChatBase() {
     init();
   }, [user]);
 
-  // Load peers list (entregadores + base)
-  useEffect(() => {
+  // Load peers list with last message preview
+  const loadPeers = useCallback(async () => {
     if (!unidadeId || !entregadorId) return;
-    const load = async () => {
-      // Load other entregadores
-      const { data: entregadores } = await supabase
-        .from("entregadores")
-        .select("id, nome, telefone")
-        .eq("unidade_id", unidadeId)
-        .neq("id", entregadorId)
-        .eq("ativo", true);
 
-      // Get unidade name for "Base" label
-      const { data: unidade } = await supabase
-        .from("unidades")
-        .select("nome")
-        .eq("id", unidadeId)
-        .maybeSingle();
+    // Load other entregadores
+    const { data: entregadores } = await supabase
+      .from("entregadores")
+      .select("id, nome, telefone")
+      .eq("unidade_id", unidadeId)
+      .neq("id", entregadorId)
+      .eq("ativo", true);
 
-      const peerList: Peer[] = [
-        {
-          id: `base-${unidadeId}`,
-          nome: `Base ${unidade?.nome || ""}`.trim(),
-          tipo: "base",
-        },
-        ...(entregadores || []).map((e) => ({
-          id: e.id,
-          nome: e.nome,
-          telefone: e.telefone,
-          tipo: "entregador" as const,
-        })),
-      ];
-      setPeers(peerList);
+    // Get unidade name for "Base" label
+    const { data: unidade } = await supabase
+      .from("unidades")
+      .select("nome")
+      .eq("id", unidadeId)
+      .maybeSingle();
+
+    const basePeer: Peer = {
+      id: `base-${unidadeId}`,
+      nome: `Base ${unidade?.nome || ""}`.trim(),
+      tipo: "base",
     };
-    load();
+
+    const allPeers: Peer[] = [
+      basePeer,
+      ...(entregadores || []).map((e) => ({
+        id: e.id,
+        nome: e.nome,
+        telefone: e.telefone,
+        tipo: "entregador" as const,
+      })),
+    ];
+
+    // Fetch last message for each peer in parallel
+    const peersWithPreview = await Promise.all(
+      allPeers.map(async (p) => {
+        let query;
+        if (p.tipo === "base") {
+          query = supabase
+            .from("chat_mensagens")
+            .select("mensagem, created_at")
+            .or(
+              `and(remetente_id.eq.${entregadorId},destinatario_tipo.eq.base,destinatario_id.eq.${unidadeId}),and(destinatario_id.eq.${entregadorId},remetente_tipo.eq.base)`
+            )
+            .order("created_at", { ascending: false })
+            .limit(1);
+        } else {
+          query = supabase
+            .from("chat_mensagens")
+            .select("mensagem, created_at")
+            .eq("remetente_tipo", "entregador")
+            .eq("destinatario_tipo", "entregador")
+            .or(
+              `and(remetente_id.eq.${entregadorId},destinatario_id.eq.${p.id}),and(remetente_id.eq.${p.id},destinatario_id.eq.${entregadorId})`
+            )
+            .order("created_at", { ascending: false })
+            .limit(1);
+        }
+
+        const { data } = await query;
+        const last = data?.[0];
+        return {
+          ...p,
+          lastMessage: last?.mensagem || "",
+          lastMessageTime: last?.created_at || "",
+        } as PeerWithPreview;
+      })
+    );
+
+    // Sort: peers with messages first (by time desc), then without (alphabetical)
+    peersWithPreview.sort((a, b) => {
+      if (a.lastMessageTime && b.lastMessageTime)
+        return new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime();
+      if (a.lastMessageTime) return -1;
+      if (b.lastMessageTime) return 1;
+      return a.nome.localeCompare(b.nome);
+    });
+
+    setPeers(peersWithPreview);
   }, [unidadeId, entregadorId]);
+
+  useEffect(() => {
+    loadPeers();
+  }, [loadPeers]);
 
   // Load unread counts
   const loadUnread = useCallback(async () => {
     if (!entregadorId || !unidadeId) return;
-    // Unread from entregadores
     const { data: entregadorUnread } = await supabase
       .from("chat_mensagens")
       .select("remetente_id")
@@ -139,7 +231,6 @@ export function ChatBase() {
       .eq("remetente_tipo", "entregador")
       .eq("lida", false);
     
-    // Unread from base
     const { data: baseUnread } = await supabase
       .from("chat_mensagens")
       .select("id")
@@ -174,19 +265,16 @@ export function ChatBase() {
         { event: "INSERT", schema: "public", table: "chat_mensagens" },
         (payload) => {
           const msg = payload.new as any;
-          // Messages where I'm involved
           const isForMe = msg.destinatario_id === entregadorId;
           const isFromMe = msg.remetente_id === entregadorId;
           
           if (!isForMe && !isFromMe) return;
 
-          // Check if it's a base conversation
           const isBaseMsg = msg.remetente_tipo === "base" || msg.destinatario_tipo === "base";
           const isEntregadorMsg = msg.remetente_tipo === "entregador" && msg.destinatario_tipo === "entregador";
 
           if (!isBaseMsg && !isEntregadorMsg) return;
 
-          // Determine peer key for this message
           let peerKey: string | null = null;
           if (isBaseMsg) {
             peerKey = `base-${unidadeId}`;
@@ -194,7 +282,26 @@ export function ChatBase() {
             peerKey = isFromMe ? msg.destinatario_id : msg.remetente_id;
           }
 
-          // If in active conversation with this peer
+          // Update last message preview in peers list
+          if (peerKey) {
+            setPeers((prev) => {
+              const updated = prev.map((p) =>
+                p.id === peerKey
+                  ? { ...p, lastMessage: msg.mensagem, lastMessageTime: msg.created_at }
+                  : p
+              );
+              // Re-sort
+              updated.sort((a, b) => {
+                if (a.lastMessageTime && b.lastMessageTime)
+                  return new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime();
+                if (a.lastMessageTime) return -1;
+                if (b.lastMessageTime) return 1;
+                return a.nome.localeCompare(b.nome);
+              });
+              return updated;
+            });
+          }
+
           if (selectedPeer && peerKey === selectedPeer.id) {
             setChatMessages((prev) => [...prev, msg as ChatMsg]);
             if (isForMe && !msg.lida) {
@@ -220,7 +327,6 @@ export function ChatBase() {
 
       let query;
       if (selectedPeer.tipo === "base") {
-        // Messages between me (entregador) and base for my unidade
         query = supabase
           .from("chat_mensagens")
           .select("id, remetente_id, destinatario_id, mensagem, created_at, lida, remetente_nome")
@@ -246,7 +352,6 @@ export function ChatBase() {
       if (data) setChatMessages(data as ChatMsg[]);
       setChatLoading(false);
 
-      // Mark all as read using secure RPC
       if (selectedPeer.tipo === "base") {
         await supabase.rpc("marcar_chat_lido_entregador" as any, {
           _entregador_id: entregadorId,
@@ -377,7 +482,6 @@ export function ChatBase() {
       return;
     }
 
-    // Create notification for base admins/gestores
     if (isBase && unidadeId) {
       supabase.rpc("notify_base_chat" as any, {
         _unidade_id: unidadeId,
@@ -390,6 +494,25 @@ export function ChatBase() {
   };
 
   const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
+
+  const filteredPeers = peers.filter((p) =>
+    p.nome.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Group messages by date for separators
+  const getMessagesWithSeparators = () => {
+    const result: Array<{ type: "separator"; date: string } | { type: "message"; msg: ChatMsg }> = [];
+    let lastDateKey = "";
+    chatMessages.forEach((msg) => {
+      const dateKey = getDateKey(msg.created_at);
+      if (dateKey !== lastDateKey) {
+        result.push({ type: "separator", date: msg.created_at });
+        lastDateKey = dateKey;
+      }
+      result.push({ type: "message", msg });
+    });
+    return result;
+  };
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -407,33 +530,40 @@ export function ChatBase() {
         </Button>
       </SheetTrigger>
       <SheetContent side="bottom" className="h-[85vh] p-0 rounded-t-2xl flex flex-col">
-        <SheetHeader className="p-4 border-b shrink-0">
-          <div className="flex items-center justify-between">
-            <SheetTitle className="flex items-center gap-2">
-              {selectedPeer ? (
-                <>
-                  <button onClick={() => setSelectedPeer(null)} className="mr-1">
-                    <ArrowLeft className="h-5 w-5" />
-                  </button>
-                  {selectedPeer.tipo === "base" ? (
-                    <span className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-primary" />
-                      {selectedPeer.nome}
-                    </span>
-                  ) : selectedPeer.nome}
-                </>
-              ) : (
-                <>
-                  <Phone className="h-5 w-5 text-primary" />
-                  Chat
-                </>
-              )}
-            </SheetTitle>
-            <Badge className="bg-primary/10 text-primary border-none text-xs">
-              {tab === "ia" ? "IA" : "P2P"}
-            </Badge>
-          </div>
-        </SheetHeader>
+        {/* Header */}
+        <div className="shrink-0">
+          {selectedPeer ? (
+            <div className="px-4 py-3 bg-primary text-primary-foreground flex items-center gap-3">
+              <button onClick={() => setSelectedPeer(null)} className="hover:opacity-80">
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <Avatar className="h-9 w-9">
+                <AvatarFallback className={cn(
+                  "text-white text-xs font-bold",
+                  selectedPeer.tipo === "base" ? "bg-amber-600" : getAvatarColor(selectedPeer.nome)
+                )}>
+                  {selectedPeer.tipo === "base" ? <Building2 className="h-4 w-4" /> : getInitials(selectedPeer.nome)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm leading-tight truncate">{selectedPeer.nome}</p>
+                <p className="text-[10px] opacity-70">
+                  {selectedPeer.tipo === "base" ? "Administração" : "Entregador"}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="px-4 py-3 border-b flex items-center justify-between">
+              <SheetTitle className="flex items-center gap-2">
+                <Phone className="h-5 w-5 text-primary" />
+                Chat
+              </SheetTitle>
+              <Badge className="bg-primary/10 text-primary border-none text-xs">
+                {tab === "ia" ? "IA" : "P2P"}
+              </Badge>
+            </div>
+          )}
+        </div>
 
         {!selectedPeer && (
           <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-1 min-h-0">
@@ -516,39 +646,70 @@ export function ChatBase() {
               </div>
             </TabsContent>
 
-            {/* === Conversas Tab (list) === */}
+            {/* === Conversas Tab (WhatsApp-style list) === */}
             <TabsContent value="conversas" className="flex-1 flex flex-col min-h-0 m-0 p-0" style={{ marginTop: 0 }}>
+              {/* Search bar */}
+              <div className="px-3 py-2 border-b shrink-0">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar conversa..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 pr-8 rounded-full h-9 text-sm"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                    >
+                      <X className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <ScrollArea className="flex-1">
-                {peers.length === 0 ? (
+                {filteredPeers.length === 0 ? (
                   <div className="p-6 text-center text-muted-foreground text-sm">
-                    Nenhum contato disponível.
+                    {searchQuery ? "Nenhum resultado." : "Nenhum contato disponível."}
                   </div>
                 ) : (
                   <div className="divide-y">
-                    {peers.map((p) => (
+                    {filteredPeers.map((p) => (
                       <button
                         key={p.id}
                         onClick={() => { setSelectedPeer(p); setTab("conversas"); }}
                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-left"
                       >
-                        <div className={cn(
-                          "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
-                          p.tipo === "base" ? "bg-amber-100 dark:bg-amber-900/30" : "bg-primary/10"
-                        )}>
-                          {p.tipo === "base" ? (
-                            <Building2 className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                          ) : (
-                            <User className="h-5 w-5 text-primary" />
-                          )}
-                        </div>
+                        <Avatar className="h-12 w-12 shrink-0">
+                          <AvatarFallback className={cn(
+                            "text-white text-sm font-bold",
+                            p.tipo === "base" ? "bg-amber-600" : getAvatarColor(p.nome)
+                          )}>
+                            {p.tipo === "base" ? <Building2 className="h-5 w-5" /> : getInitials(p.nome)}
+                          </AvatarFallback>
+                        </Avatar>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{p.nome}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {p.tipo === "base" ? "Fale com a administração" : (p.telefone || "Entregador")}
+                          <div className="flex justify-between items-baseline">
+                            <p className="font-medium text-sm truncate">{p.nome}</p>
+                            {p.lastMessageTime && (
+                              <span className={cn(
+                                "text-[11px] shrink-0 ml-2",
+                                (unreadCounts[p.id] || 0) > 0 ? "text-primary font-semibold" : "text-muted-foreground"
+                              )}>
+                                {formatMessageTime(p.lastMessageTime)}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">
+                            {p.lastMessage
+                              ? (p.lastMessage.length > 40 ? p.lastMessage.substring(0, 40) + "..." : p.lastMessage)
+                              : (p.tipo === "base" ? "Fale com a administração" : "Iniciar conversa...")}
                           </p>
                         </div>
                         {(unreadCounts[p.id] || 0) > 0 && (
-                          <span className="h-5 min-w-5 px-1 rounded-full bg-destructive text-white text-xs flex items-center justify-center">
+                          <span className="h-5 min-w-5 px-1.5 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center shrink-0">
                             {unreadCounts[p.id]}
                           </span>
                         )}
@@ -561,36 +722,50 @@ export function ChatBase() {
           </Tabs>
         )}
 
-        {/* === Active conversation === */}
+        {/* === Active conversation (WhatsApp-style) === */}
         {selectedPeer && (
           <div className="flex-1 flex flex-col min-h-0">
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-2">
+            {/* Chat background pattern */}
+            <ScrollArea className="flex-1 bg-[hsl(var(--muted))]/30">
+              <div className="p-3 space-y-1">
                 {chatLoading && (
                   <p className="text-center text-xs text-muted-foreground py-4">Carregando...</p>
                 )}
-                {chatMessages.map((msg) => {
+                {getMessagesWithSeparators().map((item, idx) => {
+                  if (item.type === "separator") {
+                    return (
+                      <div key={`sep-${idx}`} className="flex justify-center py-2">
+                        <span className="bg-muted text-muted-foreground text-[11px] px-3 py-1 rounded-full shadow-sm font-medium">
+                          {formatDateSeparator(item.date)}
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  const msg = item.msg;
                   const isMe = msg.remetente_id === entregadorId;
                   return (
                     <div key={msg.id} className={cn("flex", isMe ? "justify-end" : "justify-start")}>
-                      <div className={cn(
-                        "max-w-[80%] rounded-2xl px-3 py-2 text-sm shadow-sm",
-                        isMe
-                          ? "bg-[hsl(var(--primary))] text-primary-foreground rounded-br-sm"
-                          : "bg-muted rounded-bl-sm"
-                      )}>
+                      <div
+                        className={cn(
+                          "max-w-[82%] rounded-lg px-3 py-1.5 text-sm shadow-sm relative",
+                          isMe
+                            ? "bg-primary text-primary-foreground rounded-tr-none"
+                            : "bg-card border border-border rounded-tl-none"
+                        )}
+                      >
                         {!isMe && selectedPeer.tipo === "base" && msg.remetente_nome && (
-                          <p className="text-[10px] font-semibold text-primary mb-0.5">{msg.remetente_nome}</p>
+                          <p className="text-[11px] font-semibold text-primary mb-0.5">{msg.remetente_nome}</p>
                         )}
                         <p className="whitespace-pre-wrap break-words">{msg.mensagem}</p>
                         <div className={cn("flex items-center gap-1 mt-0.5", isMe ? "justify-end" : "justify-start")}>
-                          <span className="text-[10px] opacity-70">
+                          <span className={cn("text-[10px]", isMe ? "opacity-70" : "text-muted-foreground")}>
                             {format(new Date(msg.created_at), "HH:mm")}
                           </span>
                           {isMe && (
                             msg.lida
-                              ? <CheckCheck className="h-3 w-3 opacity-70" />
-                              : <Check className="h-3 w-3 opacity-50" />
+                              ? <CheckCheck className="h-3 w-3 text-blue-300" />
+                              : <Check className="h-3 w-3 opacity-60" />
                           )}
                         </div>
                       </div>
@@ -600,7 +775,7 @@ export function ChatBase() {
                 <div ref={chatScrollRef} />
               </div>
             </ScrollArea>
-            <div className="p-3 border-t flex gap-2 shrink-0">
+            <div className="p-2 border-t flex gap-2 shrink-0 bg-background">
               <Input
                 placeholder="Mensagem..."
                 value={chatInput}
