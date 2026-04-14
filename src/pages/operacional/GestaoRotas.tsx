@@ -98,6 +98,7 @@ export default function GestaoRotas() {
 
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
   const [transferidoFiliais, setTransferidoFiliais] = useState(0);
   const navigate = useNavigate();
 
@@ -670,8 +671,8 @@ export default function GestaoRotas() {
 
           {/* ===== TAB: ROTA DINÂMICA ===== */}
           <TabsContent value="rota-dinamica" className="space-y-4 mt-4">
-            {unidadeAtual?.empresa_id ? (
-              <RotaAtacadoDinamica empresaId={unidadeAtual.empresa_id} />
+            {empresa?.id ? (
+              <RotaAtacadoDinamica empresaId={empresa.id} />
             ) : (
               <p className="text-sm text-muted-foreground text-center py-6">Selecione uma unidade para usar a Rota Dinâmica.</p>
             )}
