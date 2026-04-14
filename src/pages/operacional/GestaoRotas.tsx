@@ -194,6 +194,7 @@ export default function GestaoRotas() {
             quantidade_saida: i.quantidade_saida,
             quantidade_retorno: i.quantidade_retorno,
             quantidade_vendida: i.quantidade_vendida,
+            quantidade_transferida: i.quantidade_transferida,
           })),
         });
       }

@@ -73,7 +73,8 @@ export default function EntregadorEstoque() {
             produto_nome: item.produtos?.nome || "Produto",
             quantidade_saida: item.quantidade_saida || 0,
             quantidade_vendida: item.quantidade_vendida || 0,
-            quantidade_restante: (item.quantidade_saida || 0) - (item.quantidade_vendida || 0),
+            quantidade_transferida: item.quantidade_transferida || 0,
+            quantidade_restante: (item.quantidade_saida || 0) - (item.quantidade_vendida || 0) - (item.quantidade_transferida || 0),
           }))
         );
       }
