@@ -88,36 +88,53 @@ export function BaseChatPanel() {
       .order("created_at", { ascending: false })
       .limit(500);
 
+    const entregadorLookup = new Map(
+      (allEntregadores || []).map((entregador) => [entregador.id, entregador] as const)
+    );
+
     const threadMap: Record<string, EntregadorThread> = {};
     let totalUn = 0;
 
     // Build threads from messages
     (data || []).forEach((msg) => {
-      let eId: string;
-      let eName: string;
-      let uId: string;
+      let eId = "";
+      let eName = "";
+      let uId = "";
 
       if (msg.remetente_tipo === "entregador") {
         eId = msg.remetente_id;
-        eName = msg.remetente_nome || "Entregador";
+        eName = msg.remetente_nome || "";
         uId = msg.destinatario_id || "";
       } else {
         eId = msg.destinatario_id || "";
-        eName = threadMap[eId]?.entregador_nome || "Entregador";
-        uId = msg.remetente_id;
+        eName = threadMap[eId]?.entregador_nome || "";
+        uId = msg.remetente_id || "";
       }
 
       if (!eId) return;
 
-      if (!threadMap[eId]) {
+      const entregador = entregadorLookup.get(eId);
+      const currentThread = threadMap[eId];
+      const resolvedName = entregador?.nome || eName || currentThread?.entregador_nome || "Entregador";
+      const resolvedUnidadeId = uId || entregador?.unidade_id || currentThread?.unidade_id || "";
+
+      if (!currentThread) {
         threadMap[eId] = {
           entregador_id: eId,
-          entregador_nome: eName,
-          unidade_id: uId,
+          entregador_nome: resolvedName,
+          unidade_id: resolvedUnidadeId,
           last_message: msg.mensagem,
           last_time: msg.created_at,
           unread: 0,
         };
+      } else {
+        if (currentThread.entregador_nome === "Entregador" && resolvedName !== "Entregador") {
+          currentThread.entregador_nome = resolvedName;
+        }
+
+        if (!currentThread.unidade_id && resolvedUnidadeId) {
+          currentThread.unidade_id = resolvedUnidadeId;
+        }
       }
 
       if (msg.remetente_tipo === "entregador" && msg.destinatario_tipo === "base" && !msg.lida) {
@@ -137,6 +154,14 @@ export function BaseChatPanel() {
           last_time: "",
           unread: 0,
         };
+      } else {
+        if (threadMap[e.id].entregador_nome === "Entregador") {
+          threadMap[e.id].entregador_nome = e.nome;
+        }
+
+        if (!threadMap[e.id].unidade_id) {
+          threadMap[e.id].unidade_id = e.unidade_id || unidadeIds[0];
+        }
       }
     });
 
@@ -150,6 +175,9 @@ export function BaseChatPanel() {
 
     setThreads(sorted);
     setTotalUnread(totalUn);
+    setSelectedThread((prev) =>
+      prev ? sorted.find((thread) => thread.entregador_id === prev.entregador_id) ?? prev : null
+    );
   }, [unidadeIds]);
 
   useEffect(() => {
