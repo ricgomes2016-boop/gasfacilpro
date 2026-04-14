@@ -647,7 +647,7 @@ export function ChatBase() {
             </TabsContent>
 
             {/* === Conversas Tab (WhatsApp-style list) === */}
-            <TabsContent value="conversas" className="flex-1 flex flex-col min-h-0 m-0 p-0" style={{ marginTop: 0 }}>
+            <TabsContent value="conversas" className="flex-1 flex flex-col min-h-0 m-0 p-0 data-[state=active]:flex" style={{ marginTop: 0 }}>
               {/* Search bar */}
               <div className="px-3 py-2 border-b shrink-0">
                 <div className="relative">
