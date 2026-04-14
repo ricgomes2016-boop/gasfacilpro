@@ -24,8 +24,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationToggle } from "./NotificationToggle";
-import { useGeoTracking } from "@/hooks/useGeoTracking";
+import { useGeoTracking, GeoTrackingState } from "@/hooks/useGeoTracking";
 import { GpsPermissionBanner } from "./GpsPermissionBanner";
+import { TrackingStatusCard } from "./TrackingStatusCard";
 import { PendingDeliveriesBanner } from "./PendingDeliveriesBanner";
 import { ChatBase } from "./ChatBase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -64,8 +65,8 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
   const { signOut } = useAuth();
   const navigate = useNavigate();
 
-  // Track driver GPS and update DB every 30s
-  useGeoTracking();
+  // Track driver GPS and update DB
+  const trackingState = useGeoTracking();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -141,6 +142,11 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
       <main className="flex-1 overflow-auto pb-20">
         <GpsPermissionBanner />
         <PendingDeliveriesBanner />
+        {trackingState.isTracking && (
+          <div className="px-4 mt-3">
+            <TrackingStatusCard tracking={trackingState} />
+          </div>
+        )}
         {children}
       </main>
 
