@@ -440,7 +440,7 @@ export function ChatBase() {
 
         {!selectedPeer && (
           <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-1 min-h-0">
-            <TabsList className="mx-4 mt-0 mb-0 shrink-0">
+            <TabsList className="mx-4 mt-2 mb-1 shrink-0">
               <TabsTrigger value="ia" className="flex-1 gap-1">
                 <Sparkles className="h-4 w-4" /> Assistente IA
               </TabsTrigger>
@@ -455,7 +455,7 @@ export function ChatBase() {
             </TabsList>
 
             {/* === IA Tab === */}
-            <TabsContent value="ia" className="flex-1 flex flex-col min-h-0 mt-0">
+            <TabsContent value="ia" className="flex-1 flex flex-col min-h-0 m-0 p-0" style={{ marginTop: 0 }}>
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-3">
                   {aiMessages.length <= 1 && (
@@ -520,7 +520,7 @@ export function ChatBase() {
             </TabsContent>
 
             {/* === Conversas Tab (list) === */}
-            <TabsContent value="conversas" className="flex-1 flex flex-col min-h-0 mt-0 pt-0">
+            <TabsContent value="conversas" className="flex-1 flex flex-col min-h-0 m-0 p-0" style={{ marginTop: 0 }}>
               <ScrollArea className="flex-1">
                 {peers.length === 0 ? (
                   <div className="p-6 text-center text-muted-foreground text-sm">
