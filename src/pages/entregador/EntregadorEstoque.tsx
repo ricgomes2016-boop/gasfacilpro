@@ -132,7 +132,7 @@ export default function EntregadorEstoque() {
         ) : (
           <>
             {/* Summary cards */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               <Card className="border-none shadow-md">
                 <CardContent className="p-3 text-center">
                   <p className="text-2xl font-bold text-primary">{totalSaida}</p>
@@ -143,6 +143,12 @@ export default function EntregadorEstoque() {
                 <CardContent className="p-3 text-center">
                   <p className="text-2xl font-bold text-orange-500">{totalVendido}</p>
                   <p className="text-xs text-muted-foreground">Vendido</p>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-md">
+                <CardContent className="p-3 text-center">
+                  <p className="text-2xl font-bold text-blue-500">{totalTransferido}</p>
+                  <p className="text-xs text-muted-foreground">Transf.</p>
                 </CardContent>
               </Card>
               <Card className="border-none shadow-md">
@@ -183,8 +189,13 @@ export default function EntregadorEstoque() {
                             Saída: {item.quantidade_saida}
                           </span>
                           <span className="text-xs text-orange-500">
-                            Vendido: {item.quantidade_vendida}
+                            Vend: {item.quantidade_vendida}
                           </span>
+                          {item.quantidade_transferida > 0 && (
+                            <span className="text-xs text-blue-500">
+                              Transf: {item.quantidade_transferida}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <Badge
