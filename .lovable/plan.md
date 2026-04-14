@@ -1,49 +1,70 @@
 
 
-## Plano: Redesign do Chat do Entregador estilo WhatsApp
+## Plano: Painel de Status do Rastreamento no App do Entregador
 
-### Resumo
-Redesenhar o componente `ChatBase.tsx` para ter visual e UX idênticos ao WhatsApp, com última mensagem na lista de contatos, busca de conversas e indicadores de leitura aprimorados.
+Adicionar um card informativo no Dashboard e na Jornada do entregador que exibe em tempo real:
+- Endereço da localização atual (geocodificação reversa)
+- Qualidade do sinal de internet
+- Nível de bateria do dispositivo
+- Precisão da localização GPS
 
-### Alterações
+### Arquitetura
 
-**Arquivo: `src/components/entregador/ChatBase.tsx` (reescrita significativa)**
+**Novo componente**: `src/components/entregador/TrackingStatusCard.tsx`
 
-**1. Lista de conversas estilo WhatsApp**
-- Cada contato mostra: avatar com iniciais coloridas, nome, preview da última mensagem (truncada), horário da última mensagem, badge de não lidas
-- Ordenar contatos por última mensagem (mais recente primeiro)
-- Query adicional para buscar a última mensagem de cada peer ao carregar a lista
-- Campo de busca no topo para filtrar contatos por nome
+Um card que aparece quando o entregador está online, mostrando os 4 indicadores:
 
-**2. Tela de conversa estilo WhatsApp**
-- Header com avatar, nome do contato e botão voltar
-- Fundo com padrão sutil (WhatsApp-style background)
-- Bolhas: verde/teal para minhas mensagens (lado direito), branco/cinza para recebidas (lado esquerdo)
-- Caudas nas bolhas (rounded corners diferenciados: `rounded-br-sm` / `rounded-bl-sm`)
-- Horário dentro da bolha, alinhado à direita
-- Ticks: ✓ cinza (enviado), ✓✓ cinza (entregue), ✓✓ azul (lido)
-- Separadores de data entre mensagens de dias diferentes ("Hoje", "Ontem", data)
+1. **Endereço atual** — Usa a API gratuita do Nominatim (OpenStreetMap) para geocodificação reversa das coordenadas já capturadas pelo `useGeoTracking`
+2. **Qualidade do sinal** — Usa `navigator.connection` (Network Information API) para exibir tipo de conexão (4G/WiFi) e qualidade estimada
+3. **Nível de bateria** — Usa `navigator.getBattery()` (Battery Status API) para exibir percentual e se está carregando
+4. **Precisão GPS** — Usa `position.coords.accuracy` já disponível no watchPosition para mostrar precisão em metros
 
-**3. Busca de contatos**
-- Input de busca no topo da lista de conversas
-- Filtro local por nome do peer
-- Ícone de lupa, limpar com X
+### Mudanças no hook `useGeoTracking`
 
-**4. Última mensagem na lista**
-- Ao carregar peers, buscar a última `chat_mensagem` de cada conversa
-- Exibir texto truncado (max 40 chars) e horário formatado ("10:45", "Ontem", "12/04")
-- Ordenar lista por horário da última mensagem
+Refatorar para expor estado reativo (lat, lng, accuracy) via retorno do hook, em vez de apenas gravar no banco silenciosamente. Isso permite que componentes consumam a posição atual.
+
+### Arquivos a criar/modificar
+
+| Arquivo | Ação |
+|---|---|
+| `src/hooks/useGeoTracking.ts` | Refatorar para retornar `{ lat, lng, accuracy, isTracking }` como estado |
+| `src/components/entregador/TrackingStatusCard.tsx` | **Novo** — Card com os 4 indicadores |
+| `src/components/entregador/EntregadorLayout.tsx` | Passar dados do hook para children |
+| `src/pages/entregador/EntregadorDashboard.tsx` | Integrar o `TrackingStatusCard` no card "Online e Rastreando" |
 
 ### Detalhes técnicos
 
-- Nova query ao carregar peers: para cada peer, buscar a última mensagem via `supabase.from("chat_mensagens").select(...).order("created_at", {ascending: false}).limit(1)`
-- Batch com Promise.all para performance
-- Interface `PeerWithLastMsg` extends `Peer` com `lastMessage`, `lastMessageTime`
-- Separadores de data: agrupar mensagens por dia, inserir divider com label
-- Realtime: ao receber nova mensagem, atualizar também o preview na lista
-- Manter toda a lógica existente de IA (aba Assistente) sem alterações
-- CSS: cores WhatsApp adaptadas ao tema do app (usar variáveis CSS existentes)
+**Geocodificação reversa** — Chamada ao Nominatim com debounce de 30s (respeitando rate limit):
+```typescript
+const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`);
+```
 
-### Arquivos modificados
-- `src/components/entregador/ChatBase.tsx` — redesign completo da UI de conversas
+**Battery API**:
+```typescript
+const battery = await (navigator as any).getBattery();
+// battery.level (0-1), battery.charging (boolean)
+```
+
+**Network Information API**:
+```typescript
+const conn = (navigator as any).connection;
+// conn.effectiveType ("4g", "3g", "2g", "slow-2g")
+// conn.downlink (Mbps)
+```
+
+**GPS Accuracy**: Já disponível em `position.coords.accuracy` (metros).
+
+### Visual
+
+O card aparece logo abaixo do banner "Online e Rastreando" no Dashboard, com layout em grid 2x2:
+
+```text
+┌─────────────────────────────────────┐
+│ 📍 Rua Example, 123 - Centro       │
+├──────────────┬──────────────────────┤
+│ 📶 4G Forte  │ 🔋 87% Carregando   │
+├──────────────┴──────────────────────┤
+│ 🎯 Precisão: 8m                    │
+└─────────────────────────────────────┘
+```
 
