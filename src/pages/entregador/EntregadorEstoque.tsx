@@ -13,6 +13,7 @@ interface EstoqueItem {
   produto_nome: string;
   quantidade_saida: number;
   quantidade_vendida: number;
+  quantidade_transferida: number;
   quantidade_restante: number;
 }
 

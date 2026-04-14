@@ -66,6 +66,7 @@ interface CarregamentoItem {
   quantidade_saida: number;
   quantidade_retorno: number | null;
   quantidade_vendida: number | null;
+  quantidade_transferida: number | null;
 }
 
 export default function GestaoRotas() {
