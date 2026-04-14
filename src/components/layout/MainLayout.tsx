@@ -29,7 +29,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       <Sidebar />
       <main
         className={cn(
-          "transition-all duration-300 ml-0 pb-14",
+          "transition-all duration-300 ml-0 pb-12 md:pb-0",
           collapsed ? "md:ml-16" : "md:ml-[260px]"
         )}
       >
@@ -42,7 +42,6 @@ function MainLayoutContent({ children }: MainLayoutProps) {
         onOpenAi={() => { if (!isAiPage) setAiOpen(true); }}
         onOpenChat={() => setChatOpen(true)}
         chatUnread={chatUnread}
-        sidebarCollapsed={collapsed}
       />
     </div>
   );
