@@ -821,6 +821,14 @@ export default function GestaoRotas() {
         </DialogContent>
       </Dialog>
 
+      {/* Modal Editar Carregamento */}
+      <EditarCarregamentoModal
+        open={editCarregModalOpen}
+        onOpenChange={setEditCarregModalOpen}
+        carregamento={editingCarreg}
+        onSaved={fetchCarregamentos}
+      />
+
       {/* Modal Cadastrar Carregamento */}
       <CadastrarCarregamentoModal
         open={carregModalOpen}
