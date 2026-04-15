@@ -45,7 +45,7 @@ serve(async (req) => {
     const { data: profile } = await sb
       .from("profiles")
       .select("empresa_id")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .single();
 
     const empresaId = profile?.empresa_id;
