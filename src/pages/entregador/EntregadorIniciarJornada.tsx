@@ -164,7 +164,7 @@ export default function EntregadorIniciarJornada() {
 
       // Fetch vehicles, routes, products in parallel
       let vQ = supabase.from("veiculos").select("id, placa, modelo, marca, km_atual").eq("ativo", true);
-      let rQ = supabase.from("rotas_definidas").select("id, nome, bairros, distancia_km, tempo_estimado").eq("ativo", true);
+      let rQ = supabase.from("rotas_definidas").select("id, nome, bairros, distancia_km, tempo_estimado, tipo, cidades").eq("ativo", true);
       let pQ = supabase.from("produtos").select("id, nome, estoque, categoria").eq("ativo", true).order("nome");
       if (entregador?.unidade_id) {
         vQ = vQ.eq("unidade_id", entregador.unidade_id);
