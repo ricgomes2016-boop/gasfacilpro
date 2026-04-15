@@ -278,7 +278,7 @@ export default function AuthCliente() {
               />
             ) : (
               <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg">
-                <Flame className="h-10 w-10 text-white" />
+                <img src={logoImg} alt="Gás Fácil" className="h-12 w-12 object-contain" />
               </div>
             )}
           </div>

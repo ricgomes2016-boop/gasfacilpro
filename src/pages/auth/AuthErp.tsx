@@ -59,7 +59,7 @@ export default function AuthErp() {
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
             <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Flame className="h-8 w-8 text-primary" />
+              <img src={logoImg} alt="Gás Fácil" className="h-10 w-10 object-contain" />
             </div>
           </div>
           <div className="flex items-center justify-center gap-2">
