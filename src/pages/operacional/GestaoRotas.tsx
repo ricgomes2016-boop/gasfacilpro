@@ -34,6 +34,7 @@ import { MapPin, Plus, Pencil, Trash2, Loader2, Truck, ArrowLeftRight, CheckCirc
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { CadastrarCarregamentoModal } from "@/components/operacional/CadastrarCarregamentoModal";
+import { EditarCarregamentoModal } from "@/components/operacional/EditarCarregamentoModal";
 import { atualizarEstoqueVenda } from "@/services/estoqueService";
 import { format } from "date-fns";
 import { useUnidade } from "@/contexts/UnidadeContext";
