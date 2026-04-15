@@ -40,6 +40,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { useNavigate } from "react-router-dom";
 import { haversineDistance } from "@/lib/haversine";
 import { geocodeAddress } from "@/lib/geocoding";
+import { RotaAtacadoMapPicker } from "@/components/operacional/RotaAtacadoMapPicker";
 
 interface CidadeRota {
   nome: string;
