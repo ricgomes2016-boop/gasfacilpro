@@ -93,6 +93,8 @@ export default function GestaoRotas() {
   const [retornoModalOpen, setRetornoModalOpen] = useState(false);
   const [editingRota, setEditingRota] = useState<RotaDefinida | null>(null);
   const [selectedCarreg, setSelectedCarreg] = useState<Carregamento | null>(null);
+  const [editingCarreg, setEditingCarreg] = useState<Carregamento | null>(null);
+  const [editCarregModalOpen, setEditCarregModalOpen] = useState(false);
   const [retornoItens, setRetornoItens] = useState<{ id: string; qtd_retorno: number }[]>([]);
 
   // Form fields
