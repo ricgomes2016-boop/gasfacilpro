@@ -95,6 +95,7 @@ export default function EntregadorIniciarJornada() {
   const [rotaAtivaId, setRotaAtivaId] = useState<string | null>(null);
   const [rotaAtivaKmInicial, setRotaAtivaKmInicial] = useState<number | null>(null);
   const [kmFinal, setKmFinal] = useState("");
+  const [cidadesSelecionadas, setCidadesSelecionadas] = useState<string[]>([]);
 
   const { toast } = useToast();
   const { user } = useAuth();
