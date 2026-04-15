@@ -1,41 +1,56 @@
 
 
-## Plano: Mesclar abas Rota Atacado + Rota Dinâmica e melhorias
+## Plano: Simplificar abas — Rotas Cidade + Carregamentos (com tipo atacado)
 
-### Mudanças
+### Problema atual
+Existem 3 abas confusas: "Rota Atacado" (RotaAtacadoDinamica com mapa/paradas), "Rotas Cidade" (CRUD de rotas definidas), e "Carregamentos" (controle de saída/retorno/venda). A "Rota Atacado" e "Carregamentos" se sobrepõem.
 
-**1. Mesclar abas em `GestaoRotas.tsx`**
-- Remover a aba "Rota Atacado" (carregamentos) separada e a aba "Rota Dinâmica" separada
-- Criar uma única aba "Rota Atacado" que renderiza o `RotaAtacadoDinamica` (com mapa, paradas, timeline, etc.)
-- Manter a aba "Rotas Cidade" intacta
+### Solução proposta
+Manter **2 abas** apenas:
 
-**2. Cálculo de retorno na `CargaTimeline` e `RotaAtacadoDinamica`**
-- Quando o tipo de parada mudar para "retorno", calcular automaticamente o gás restante no caminhão (carga inicial - todas as saídas + todas as entradas até aquele ponto)
-- Preencher automaticamente os campos `qtd_p13`, `qtd_p20`, `qtd_p45` da parada de retorno com o saldo atual
-- Exibir na timeline a quantidade que está retornando ao ponto de origem
+1. **Rotas de Entrega** — o CRUD de rotas (atual "Rotas Cidade"), mas com um campo **Tipo** ("cidade" ou "atacado"). Rotas atacado incluem cidades com KM calculado automaticamente via geocoding (Haversine × 1.3).
 
-**3. Rotas Salvas — expandir detalhes ao clicar**
-- Na aba "Rotas Salvas" dentro do `RotaAtacadoDinamica`, ao clicar em uma rota salva, buscar as paradas (`transp_rota_paradas`) e exibir:
-  - Mapa com as paradas e polyline
-  - Resumo de custos (KM, tempo, custo total)
-  - Timeline de carga recalculada
-- Usar um estado `selectedRotaId` e um Dialog/expandable card
+2. **Carregamentos** — o controle de carregamentos existente (saída, retorno, venda, transferência), que já funciona bem.
 
-**4. Motorista e Ajudante — mostrar todos os funcionários**
-- Remover os filtros `.filter(f.cargo === "motorista")` e `.filter(f.cargo === "ajudante")` no `RotaAtacadoDinamica.tsx`
-- Listar todos os funcionários ativos em ambos os selects
+### Mudanças detalhadas
+
+**1. Adicionar campo `tipo` na tabela `rotas_definidas`**
+- Migration: `ALTER TABLE rotas_definidas ADD COLUMN tipo text NOT NULL DEFAULT 'cidade';`
+- Valores: `'cidade'` (bairros) ou `'atacado'` (cidades com KM)
+
+**2. Adicionar campo `cidades` na tabela `rotas_definidas`**
+- Migration: `ALTER TABLE rotas_definidas ADD COLUMN cidades jsonb DEFAULT '[]';`
+- Estrutura: `[{ "nome": "Londrina", "lat": -23.31, "lng": -51.16, "km": 45 }]`
+- Para rotas atacado, o campo `bairros` fica vazio e `cidades` contém os pontos com KM
+
+**3. Atualizar modal "Nova Rota" em `GestaoRotas.tsx`**
+- Adicionar Select de tipo (cidade/atacado) no topo do formulário
+- Se **cidade**: mostrar campo de bairros + distância manual (como hoje)
+- Se **atacado**: mostrar campo para adicionar cidades (input + botão). Ao digitar uma cidade e confirmar, geocodificar via Nominatim, calcular KM entre cada cidade usando Haversine × 1.3, e exibir lista com KM acumulado
+- O KM total é calculado automaticamente pela soma dos trechos
+
+**4. Remover aba "Rota Atacado" (RotaAtacadoDinamica)**
+- Remover a aba e o import de `RotaAtacadoDinamica` em `GestaoRotas.tsx`
+- O componente permanece disponível para a página da Transportadora
+
+**5. Renomear abas**
+- "Rotas de Entrega" (todas as rotas, com badge de tipo)
+- "Carregamentos" (controle de saída/retorno — mantém como está)
+
+**6. Na listagem de rotas, mostrar tipo**
+- Badge "Cidade" (azul) ou "Atacado" (laranja)
+- Para atacado: mostrar cidades ao invés de bairros, e KM calculado
 
 ### Arquivos modificados
 
 | Arquivo | Ação |
 |---|---|
-| `src/pages/operacional/GestaoRotas.tsx` | Remover aba "Rota Dinâmica" separada, renomear aba "carregamentos" para conter o `RotaAtacadoDinamica` |
-| `src/components/operacional/RotaAtacadoDinamica.tsx` | Remover filtro de cargo nos selects de motorista/ajudante; adicionar lógica de auto-preenchimento ao mudar para "retorno"; adicionar visualização expandida de rota salva com query de paradas |
-| `src/components/transportadora/rota-atacado/ParadaForm.tsx` | Suportar callback ao mudar tipo para "retorno" que calcula saldo restante |
+| `src/pages/operacional/GestaoRotas.tsx` | Remover aba "Rota Atacado"; renomear "Rotas Cidade" → "Rotas de Entrega"; adicionar campo tipo no modal; lógica de geocoding e KM para atacado |
+| Migration SQL | Adicionar colunas `tipo` e `cidades` em `rotas_definidas` |
 
 ### Detalhes técnicos
-
-- O cálculo de retorno percorre as paradas anteriores somando entradas e subtraindo saídas, e preenche os campos da parada de retorno com o saldo
-- A visualização de rota salva faz `supabase.from("transp_rota_paradas").select("*").eq("rota_id", id).order("ordem")` e renderiza `RotaAtacadoMap` + `CargaTimeline` + `RotaSummaryCard` em modo read-only
-- Os selects de funcionários passam a não filtrar por `cargo`, exibindo nome + cargo como label (ex: "João — motorista")
+- Geocoding usa Nominatim (já utilizado no projeto): `https://nominatim.openstreetmap.org/search?q=${cidade}&format=json`
+- KM entre cidades: `haversineDistance(lat1, lng1, lat2, lng2) * 1.3` (fator rodoviário)
+- A primeira cidade é o ponto de partida (sede); KM acumulado a partir dela
+- O campo `distancia_km` da rota é preenchido automaticamente com o total calculado
 
