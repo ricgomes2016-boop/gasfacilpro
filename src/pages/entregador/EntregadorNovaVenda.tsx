@@ -105,18 +105,9 @@ export default function EntregadorNovaVenda() {
     tipo: null,
   });
   const [itens, setItens] = useState<ItemVenda[]>([]);
-  const [formaPagamento, setFormaPagamento] = useState("");
+  const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [canalVenda, setCanalVenda] = useState("");
   const [observacao, setObservacao] = useState("");
-  const [dialogClienteAberto, setDialogClienteAberto] = useState(false);
-  const [buscaCliente, setBuscaCliente] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  // Payment provider modals
-  const [pixModalOpen, setPixModalOpen] = useState(false);
-  const [cardModalOpen, setCardModalOpen] = useState(false);
-  const [cardModalTipo, setCardModalTipo] = useState<"credito" | "debito" | "pix_maquininha">("credito");
-  const [selectedPaymentInfo, setSelectedPaymentInfo] = useState<string | null>(null);
-  const [selectedPaymentExtras, setSelectedPaymentExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string }>({});
 
   // Voice / AI command state
   const [aiCommand, setAiCommand] = useState("");
@@ -329,9 +320,12 @@ export default function EntregadorNovaVenda() {
         setItens(newItens);
       }
 
-      // Fill payment
       if (data.forma_pagamento) {
-        setFormaPagamento(data.forma_pagamento);
+        setPagamentos([{
+          id: crypto.randomUUID(),
+          forma: data.forma_pagamento,
+          valor: total || 0,
+        }]);
       }
 
       setAiCommand("");
@@ -395,8 +389,9 @@ export default function EntregadorNovaVenda() {
       toast({ title: "Carrinho vazio", description: "Adicione pelo menos um produto.", variant: "destructive" });
       return;
     }
-    if (!formaPagamento) {
-      toast({ title: "Pagamento", description: "Selecione uma forma de pagamento.", variant: "destructive" });
+    const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
+    if (pagamentos.length === 0 || totalPago < total) {
+      toast({ title: "Pagamento", description: "O total pago deve cobrir o valor da venda.", variant: "destructive" });
       return;
     }
 
@@ -412,7 +407,7 @@ export default function EntregadorNovaVenda() {
           unidade_id: entregadorUnidadeId,
           endereco_entrega: enderecoCompleto,
           valor_total: total,
-          forma_pagamento: formaPagamento,
+          forma_pagamento: pagamentos.map(p => p.forma).filter((v, i, a) => a.indexOf(v) === i).join(", "),
           canal_venda: canalVenda,
           observacoes: observacao || null,
           status: "finalizado",
