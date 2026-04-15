@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getBrasiliaDateString } from "@/lib/utils";
 import { EntregadorLayout } from "@/components/entregador/EntregadorLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +30,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { TerminalQRScanner } from "@/components/entregador/TerminalQRScanner";
+import { Checkbox } from "@/components/ui/checkbox";
+
+interface CidadeRota {
+  nome: string;
+  lat: number;
+  lng: number;
+  km: number;
+  opcional?: boolean;
+}
 
 interface Veiculo {
   id: string;
@@ -45,6 +54,8 @@ interface RotaDefinida {
   bairros: string[];
   distancia_km: number | null;
   tempo_estimado: string | null;
+  tipo?: string;
+  cidades?: CidadeRota[];
 }
 
 interface Escala {
@@ -84,6 +95,7 @@ export default function EntregadorIniciarJornada() {
   const [rotaAtivaId, setRotaAtivaId] = useState<string | null>(null);
   const [rotaAtivaKmInicial, setRotaAtivaKmInicial] = useState<number | null>(null);
   const [kmFinal, setKmFinal] = useState("");
+  const [cidadesSelecionadas, setCidadesSelecionadas] = useState<string[]>([]);
 
   const { toast } = useToast();
   const { user } = useAuth();
@@ -136,7 +148,7 @@ export default function EntregadorIniciarJornada() {
           .from("escalas_entregador")
           .select(`
             id, data, turno_inicio, turno_fim, status, rota_definida_id,
-            rotas_definidas:rota_definida_id (id, nome, bairros, distancia_km, tempo_estimado)
+            rotas_definidas:rota_definida_id (id, nome, bairros, distancia_km, tempo_estimado, tipo, cidades)
           `)
           .eq("entregador_id", entregador.id)
           .eq("data", hoje)
@@ -152,7 +164,7 @@ export default function EntregadorIniciarJornada() {
 
       // Fetch vehicles, routes, products in parallel
       let vQ = supabase.from("veiculos").select("id, placa, modelo, marca, km_atual").eq("ativo", true);
-      let rQ = supabase.from("rotas_definidas").select("id, nome, bairros, distancia_km, tempo_estimado").eq("ativo", true);
+      let rQ = supabase.from("rotas_definidas").select("id, nome, bairros, distancia_km, tempo_estimado, tipo, cidades").eq("ativo", true);
       let pQ = supabase.from("produtos").select("id, nome, estoque, categoria").eq("ativo", true).order("nome");
       if (entregador?.unidade_id) {
         vQ = vQ.eq("unidade_id", entregador.unidade_id);
@@ -178,6 +190,29 @@ export default function EntregadorIniciarJornada() {
   const veiculoInfo = veiculos.find((v) => v.id === veiculoSelecionado);
   const rotaInfo = rotasDefinidas.find((r) => r.id === rotaSelecionada);
 
+  // When route changes, pre-select cities (fixed = always, optional = unchecked)
+  useEffect(() => {
+    if (rotaInfo?.tipo === "atacado" && rotaInfo.cidades) {
+      const fixas = (rotaInfo.cidades as CidadeRota[])
+        .filter((c) => !c.opcional)
+        .map((c) => c.nome);
+      setCidadesSelecionadas(fixas);
+    } else {
+      setCidadesSelecionadas([]);
+    }
+  }, [rotaSelecionada]);
+
+  const cidadesRota = useMemo(() => {
+    if (!rotaInfo?.cidades || rotaInfo.tipo !== "atacado") return [];
+    return [...(rotaInfo.cidades as CidadeRota[])].sort((a, b) => a.km - b.km);
+  }, [rotaInfo]);
+
+  const toggleCidade = (nome: string) => {
+    setCidadesSelecionadas((prev) =>
+      prev.includes(nome) ? prev.filter((c) => c !== nome) : [...prev, nome]
+    );
+  };
+
   const handleIniciarJornada = async () => {
     if (!entregadorId) {
       toast({ title: "Erro", description: "Você não está cadastrado como entregador.", variant: "destructive" });
@@ -194,12 +229,18 @@ export default function EntregadorIniciarJornada() {
 
     setIsIniciando(true);
     try {
+      // Build observacoes with selected cities for atacado routes
+      const obsData = rotaInfo?.tipo === "atacado" && cidadesSelecionadas.length > 0
+        ? JSON.stringify({ cidades_selecionadas: cidadesSelecionadas })
+        : null;
+
       // Create route record
       const { error: rotaError } = await supabase.from("rotas").insert({
         entregador_id: entregadorId,
         veiculo_id: veiculoSelecionado,
         km_inicial: parseInt(kmInicial),
         status: "em_andamento",
+        observacoes: obsData,
       });
 
       if (rotaError) throw rotaError;
@@ -510,7 +551,12 @@ export default function EntregadorIniciarJornada() {
             </Select>
             {rotaInfo && (
               <div className="p-3 bg-primary/5 rounded-lg space-y-2">
-                <p className="font-medium text-sm">{rotaInfo.nome}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-sm">{rotaInfo.nome}</p>
+                  {rotaInfo.tipo === "atacado" && (
+                    <Badge className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/30">Atacado</Badge>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-1">
                   {(rotaInfo.bairros as string[]).map((b) => (
                     <Badge key={b} variant="outline" className="text-xs">{b}</Badge>
@@ -523,6 +569,52 @@ export default function EntregadorIniciarJornada() {
                   {rotaInfo.tempo_estimado && (
                     <span>{rotaInfo.tempo_estimado}</span>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* City selection for atacado routes */}
+            {rotaInfo?.tipo === "atacado" && cidadesRota.length > 0 && (
+              <div className="p-3 border rounded-lg space-y-2">
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  Cidades da rota
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Selecione as cidades que você irá percorrer hoje
+                </p>
+                <div className="space-y-1.5 mt-2">
+                  {cidadesRota.map((cidade) => {
+                    const isFixed = !cidade.opcional;
+                    const isChecked = cidadesSelecionadas.includes(cidade.nome);
+                    return (
+                      <div
+                        key={cidade.nome}
+                        className={`flex items-center gap-3 p-2 rounded-lg ${
+                          isChecked ? "bg-primary/5" : "bg-muted/30"
+                        }`}
+                      >
+                        <Checkbox
+                          checked={isChecked}
+                          disabled={isFixed}
+                          onCheckedChange={() => toggleCidade(cidade.nome)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium truncate">{cidade.nome}</span>
+                            {cidade.opcional && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-dashed">
+                                Opcional
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {cidade.km} km
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
