@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Flame, Loader2, Eye, EyeOff, ShoppingBag, AlertTriangle } from "lucide-react";
+import { Loader2, Eye, EyeOff, ShoppingBag, AlertTriangle } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 import { detectSubdomainApp } from "@/lib/subdomain";
 
 interface EmpresaInfo {
@@ -277,7 +278,7 @@ export default function AuthCliente() {
               />
             ) : (
               <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg">
-                <Flame className="h-10 w-10 text-white" />
+                <img src={logoImg} alt="Gás Fácil" className="h-12 w-12 object-contain" />
               </div>
             )}
           </div>

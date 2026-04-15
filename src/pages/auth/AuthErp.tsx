@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Flame, Loader2, Eye, EyeOff, BarChart3 } from "lucide-react";
+import { Loader2, Eye, EyeOff, BarChart3 } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 
 const ERP_ROLES: AppRole[] = ["admin", "gestor", "financeiro", "operacional"];
 
@@ -58,7 +59,7 @@ export default function AuthErp() {
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
             <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Flame className="h-8 w-8 text-primary" />
+              <img src={logoImg} alt="Gás Fácil" className="h-10 w-10 object-contain" />
             </div>
           </div>
           <div className="flex items-center justify-center gap-2">
