@@ -1,37 +1,41 @@
 
 
-## Plano: Mover Rota Atacado Dinâmica para Gestão Operacional / Rotas de Entrega
-
-### Objetivo
-Integrar o módulo de Rota Atacado Dinâmica (atualmente em `/transportadora/rota-atacado`) como uma nova aba dentro da página existente `/operacional/rotas` (GestaoRotas), mantendo as abas já existentes ("Rota Atacado" e "Rotas Cidade").
+## Plano: Mesclar abas Rota Atacado + Rota Dinâmica e melhorias
 
 ### Mudanças
 
-**1. Adicionar nova aba "Rota Atacado Dinâmica" em `GestaoRotas.tsx`**
-- Adicionar uma terceira tab `rota-dinamica` ao TabsList existente
-- Dentro dessa tab, renderizar os componentes já criados: `RotaAtacadoMap`, `ParadaForm`, `CargaTimeline`, `RotaOptimizer`, `RotaSummaryCard`
-- Adaptar o contexto de autenticação: substituir `useAuth` + `empresa_id` via profile por `useUnidade` (padrão do operacional)
-- Manter as queries de veículos, funcionários, distribuidoras, clientes, unidades
+**1. Mesclar abas em `GestaoRotas.tsx`**
+- Remover a aba "Rota Atacado" (carregamentos) separada e a aba "Rota Dinâmica" separada
+- Criar uma única aba "Rota Atacado" que renderiza o `RotaAtacadoDinamica` (com mapa, paradas, timeline, etc.)
+- Manter a aba "Rotas Cidade" intacta
 
-**2. Criar componente wrapper `RotaAtacadoDinamica.tsx`**
-- Novo arquivo: `src/components/operacional/RotaAtacadoDinamica.tsx`
-- Extrair toda a lógica de `TranspRotaAtacado.tsx` (estado, queries, save, paradas) em um componente reutilizável que não depende do `TransportadoraLayout`
-- Usar `useUnidade` para obter `empresa_id` via unidade atual
+**2. Cálculo de retorno na `CargaTimeline` e `RotaAtacadoDinamica`**
+- Quando o tipo de parada mudar para "retorno", calcular automaticamente o gás restante no caminhão (carga inicial - todas as saídas + todas as entradas até aquele ponto)
+- Preencher automaticamente os campos `qtd_p13`, `qtd_p20`, `qtd_p45` da parada de retorno com o saldo atual
+- Exibir na timeline a quantidade que está retornando ao ponto de origem
 
-**3. Manter a página da Transportadora funcionando**
-- `TranspRotaAtacado.tsx` passa a importar o mesmo componente wrapper, sem duplicação de código
+**3. Rotas Salvas — expandir detalhes ao clicar**
+- Na aba "Rotas Salvas" dentro do `RotaAtacadoDinamica`, ao clicar em uma rota salva, buscar as paradas (`transp_rota_paradas`) e exibir:
+  - Mapa com as paradas e polyline
+  - Resumo de custos (KM, tempo, custo total)
+  - Timeline de carga recalculada
+- Usar um estado `selectedRotaId` e um Dialog/expandable card
 
-**4. Arquivos modificados**
+**4. Motorista e Ajudante — mostrar todos os funcionários**
+- Remover os filtros `.filter(f.cargo === "motorista")` e `.filter(f.cargo === "ajudante")` no `RotaAtacadoDinamica.tsx`
+- Listar todos os funcionários ativos em ambos os selects
+
+### Arquivos modificados
 
 | Arquivo | Ação |
 |---|---|
-| `src/components/operacional/RotaAtacadoDinamica.tsx` | **Novo** — Componente wrapper com toda a lógica |
-| `src/pages/operacional/GestaoRotas.tsx` | Adicionar aba "Rota Dinâmica" importando o wrapper |
-| `src/pages/transportadora/TranspRotaAtacado.tsx` | Simplificar para usar o wrapper |
+| `src/pages/operacional/GestaoRotas.tsx` | Remover aba "Rota Dinâmica" separada, renomear aba "carregamentos" para conter o `RotaAtacadoDinamica` |
+| `src/components/operacional/RotaAtacadoDinamica.tsx` | Remover filtro de cargo nos selects de motorista/ajudante; adicionar lógica de auto-preenchimento ao mudar para "retorno"; adicionar visualização expandida de rota salva com query de paradas |
+| `src/components/transportadora/rota-atacado/ParadaForm.tsx` | Suportar callback ao mudar tipo para "retorno" que calcula saldo restante |
 
 ### Detalhes técnicos
-- O wrapper recebe `empresaId` como prop, tornando-o agnóstico ao layout
-- Na página operacional, `empresaId` vem de `unidadeAtual?.empresa_id` (via `useUnidade`)
-- Na página transportadora, continua vindo do profile
-- Todos os componentes existentes (mapa, timeline, otimizador, resumo, formulário de parada) são reutilizados sem alteração
+
+- O cálculo de retorno percorre as paradas anteriores somando entradas e subtraindo saídas, e preenche os campos da parada de retorno com o saldo
+- A visualização de rota salva faz `supabase.from("transp_rota_paradas").select("*").eq("rota_id", id).order("ordem")` e renderiza `RotaAtacadoMap` + `CargaTimeline` + `RotaSummaryCard` em modo read-only
+- Os selects de funcionários passam a não filtrar por `cargo`, exibindo nome + cargo como label (ex: "João — motorista")
 
