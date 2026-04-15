@@ -34,6 +34,7 @@ import { MapPin, Plus, Pencil, Trash2, Loader2, Truck, ArrowLeftRight, CheckCirc
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { CadastrarCarregamentoModal } from "@/components/operacional/CadastrarCarregamentoModal";
+import { EditarCarregamentoModal } from "@/components/operacional/EditarCarregamentoModal";
 import { atualizarEstoqueVenda } from "@/services/estoqueService";
 import { format } from "date-fns";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -92,6 +93,8 @@ export default function GestaoRotas() {
   const [retornoModalOpen, setRetornoModalOpen] = useState(false);
   const [editingRota, setEditingRota] = useState<RotaDefinida | null>(null);
   const [selectedCarreg, setSelectedCarreg] = useState<Carregamento | null>(null);
+  const [editingCarreg, setEditingCarreg] = useState<Carregamento | null>(null);
+  const [editCarregModalOpen, setEditCarregModalOpen] = useState(false);
   const [retornoItens, setRetornoItens] = useState<{ id: string; qtd_retorno: number }[]>([]);
 
   // Form fields
@@ -714,10 +717,15 @@ export default function GestaoRotas() {
                                 <Printer className="h-4 w-4" />
                               </Button>
                               {c.status === "em_rota" && (
-                                <Button size="sm" variant="outline" onClick={() => openRetorno(c)}>
-                                  <ArrowLeftRight className="h-4 w-4 mr-1" />
-                                  Retorno
-                                </Button>
+                                <>
+                                  <Button size="sm" variant="ghost" onClick={() => { setEditingCarreg(c); setEditCarregModalOpen(true); }} title="Editar carregamento">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => openRetorno(c)}>
+                                    <ArrowLeftRight className="h-4 w-4 mr-1" />
+                                    Retorno
+                                  </Button>
+                                </>
                               )}
                             </TableCell>
                           </TableRow>
@@ -812,6 +820,14 @@ export default function GestaoRotas() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Editar Carregamento */}
+      <EditarCarregamentoModal
+        open={editCarregModalOpen}
+        onOpenChange={setEditCarregModalOpen}
+        carregamento={editingCarreg}
+        onSaved={fetchCarregamentos}
+      />
 
       {/* Modal Cadastrar Carregamento */}
       <CadastrarCarregamentoModal
