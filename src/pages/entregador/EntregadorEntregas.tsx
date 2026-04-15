@@ -160,7 +160,7 @@ export default function EntregadorEntregas() {
   const pendentes = entregas.filter(e => e.status === "pendente");
   const emRota = entregas.filter(e => e.status === "em_rota");
   const todayStart = useMemo(() => startOfDay(getBrasiliaDate()).getTime(), []);
-  const finalizadas = entregas.filter(e => e.status === "entregue" && new Date(e.created_at).getTime() >= todayStart);
+  const finalizadas = entregas.filter(e => (e.status === "entregue" || e.status === "finalizado") && new Date(e.created_at).getTime() >= todayStart);
 
   // Count deliveries per bairro for grouped indicator
   const bairroCountMap = useMemo(() => {
