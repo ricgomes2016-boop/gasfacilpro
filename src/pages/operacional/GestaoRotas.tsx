@@ -786,48 +786,11 @@ export default function GestaoRotas() {
               </>
             ) : (
               <>
-                {/* Atacado: adicionar cidades */}
-                <div className="space-y-2">
-                  <Label>Adicionar Cidade</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={cidadeInput}
-                      onChange={(e) => setCidadeInput(e.target.value)}
-                      placeholder="Ex: Londrina"
-                      onKeyDown={(e) => e.key === "Enter" && handleAddCidade()}
-                    />
-                    <Button variant="outline" size="icon" onClick={handleAddCidade} disabled={isGeocodingCidade || !cidadeInput.trim()}>
-                      {isGeocodingCidade ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-
-                {cidadesRota.length > 0 && (
-                  <div className="space-y-2">
-                    <Label>Cidades na rota</Label>
-                    <div className="space-y-1 max-h-40 overflow-y-auto">
-                      {cidadesRota.map((c, i) => (
-                        <div key={i} className="flex items-center justify-between bg-muted/50 rounded px-3 py-1.5 text-sm">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-muted-foreground text-xs w-5">{i + 1}.</span>
-                            <span>{c.nome}</span>
-                            {c.km > 0 && (
-                              <Badge variant="outline" className="text-xs">{c.km} km</Badge>
-                            )}
-                          </div>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeCidade(i)}>
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex items-center justify-between pt-1 border-t">
-                      <span className="text-sm font-medium">KM Total (estimado)</span>
-                      <Badge className="bg-primary text-primary-foreground">{Math.round(totalKmAtacado * 10) / 10} km</Badge>
-                    </div>
-                  </div>
-                )}
-
+                <RotaAtacadoMapPicker
+                  cidades={cidadesRota}
+                  onCidadesChange={setCidadesRota}
+                  totalKm={totalKmAtacado}
+                />
                 <div className="space-y-2">
                   <Label>Tempo estimado</Label>
                   <Input value={tempoEstimado} onChange={(e) => setTempoEstimado(e.target.value)} placeholder="6h" />
