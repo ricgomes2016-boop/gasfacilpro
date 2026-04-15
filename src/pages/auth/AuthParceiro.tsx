@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Handshake, Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
+import iconParceiro from "@/assets/icons/icon-parceiro.png";
 
 export default function AuthParceiro() {
   const navigate = useNavigate();
@@ -43,8 +44,8 @@ export default function AuthParceiro() {
       <Card className="w-full max-w-md border-blue-200/50 dark:border-blue-500/20">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-              <Handshake className="h-10 w-10 text-white" />
+            <div className="h-16 w-16 rounded-2xl overflow-hidden shadow-lg">
+              <img src={iconParceiro} alt="Parceiro" className="h-16 w-16 object-cover" />
             </div>
           </div>
           <CardTitle className="text-2xl font-bold">GásFácil Pro — Parceiro</CardTitle>
