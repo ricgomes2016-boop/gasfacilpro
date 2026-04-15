@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Flame, Loader2, Eye, EyeOff, ShoppingBag, AlertTriangle } from "lucide-react";
+import { Loader2, Eye, EyeOff, ShoppingBag, AlertTriangle } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 import { detectSubdomainApp } from "@/lib/subdomain";
 
 interface EmpresaInfo {

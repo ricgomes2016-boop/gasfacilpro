@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Flame, Loader2, Eye, EyeOff, BarChart3 } from "lucide-react";
+import { Loader2, Eye, EyeOff, BarChart3 } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 
 const ERP_ROLES: AppRole[] = ["admin", "gestor", "financeiro", "operacional"];
 
