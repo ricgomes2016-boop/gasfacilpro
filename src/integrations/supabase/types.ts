@@ -6987,6 +6987,7 @@ export type Database = {
           id: string
           km_final: number | null
           km_inicial: number
+          observacoes: string | null
           status: string | null
           veiculo_id: string | null
         }
@@ -6998,6 +6999,7 @@ export type Database = {
           id?: string
           km_final?: number | null
           km_inicial: number
+          observacoes?: string | null
           status?: string | null
           veiculo_id?: string | null
         }
@@ -7009,6 +7011,7 @@ export type Database = {
           id?: string
           km_final?: number | null
           km_inicial?: number
+          observacoes?: string | null
           status?: string | null
           veiculo_id?: string | null
         }

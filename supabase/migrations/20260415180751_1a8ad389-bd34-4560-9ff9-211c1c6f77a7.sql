@@ -1,0 +1,1 @@
+ALTER TABLE public.rotas ADD COLUMN IF NOT EXISTS observacoes text;
