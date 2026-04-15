@@ -77,7 +77,7 @@ async function getOSRMDistance(coords: { lat: number; lng: number }[]): Promise<
   }
 }
 
-export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm }: RotaAtacadoMapPickerProps) {
+export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem }: RotaAtacadoMapPickerProps) {
   const { toast } = useToast();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
