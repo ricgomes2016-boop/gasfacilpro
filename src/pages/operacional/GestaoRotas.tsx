@@ -790,6 +790,11 @@ export default function GestaoRotas() {
                   cidades={cidadesRota}
                   onCidadesChange={setCidadesRota}
                   totalKm={totalKmAtacado}
+                  origem={unidadeAtual?.latitude && unidadeAtual?.longitude ? {
+                    nome: unidadeAtual.cidade || unidadeAtual.nome,
+                    lat: unidadeAtual.latitude,
+                    lng: unidadeAtual.longitude,
+                  } : null}
                 />
                 <div className="space-y-2">
                   <Label>Tempo estimado</Label>

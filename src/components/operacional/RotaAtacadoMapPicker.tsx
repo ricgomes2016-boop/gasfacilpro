@@ -22,10 +22,17 @@ interface SearchResult {
   lng: number;
 }
 
+interface OrigemInfo {
+  nome: string;
+  lat: number;
+  lng: number;
+}
+
 interface RotaAtacadoMapPickerProps {
   cidades: CidadeRota[];
   onCidadesChange: (cidades: CidadeRota[]) => void;
   totalKm: number;
+  origem?: OrigemInfo | null;
 }
 
 async function searchCidades(query: string): Promise<SearchResult[]> {
@@ -70,7 +77,7 @@ async function getOSRMDistance(coords: { lat: number; lng: number }[]): Promise<
   }
 }
 
-export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm }: RotaAtacadoMapPickerProps) {
+export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem }: RotaAtacadoMapPickerProps) {
   const { toast } = useToast();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -112,9 +119,28 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm }: Rota
       polylineRef.current = null;
     }
 
-    if (cidades.length === 0) return;
-
     const bounds: L.LatLngExpression[] = [];
+
+    // Show origin marker
+    if (origem) {
+      const originMarker = L.circleMarker([origem.lat, origem.lng], {
+        radius: 10,
+        fillColor: "#ef4444",
+        color: "#fff",
+        weight: 2,
+        fillOpacity: 0.9,
+      })
+        .bindTooltip(`🏭 ${origem.nome} (Origem)`, { permanent: false })
+        .addTo(map);
+      markersRef.current.push(originMarker);
+      bounds.push([origem.lat, origem.lng]);
+    }
+
+    if (cidades.length === 0 && bounds.length > 0) {
+      map.setView([origem!.lat, origem!.lng], 9);
+      return;
+    }
+
     cidades.forEach((c, i) => {
       const color = i === 0 ? "#22c55e" : "#3b82f6";
       const marker = L.circleMarker([c.lat, c.lng], {
@@ -130,17 +156,21 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm }: Rota
       bounds.push([c.lat, c.lng]);
     });
 
-    if (cidades.length >= 2) {
-      polylineRef.current = L.polyline(
-        cidades.map((c) => [c.lat, c.lng] as L.LatLngExpression),
-        { color: "#3b82f6", weight: 3, opacity: 0.7, dashArray: "8,6" }
-      ).addTo(map);
+    // Draw polyline including origin
+    const polyCoords: L.LatLngExpression[] = [];
+    if (origem) polyCoords.push([origem.lat, origem.lng]);
+    cidades.forEach(c => polyCoords.push([c.lat, c.lng]));
+    
+    if (polyCoords.length >= 2) {
+      polylineRef.current = L.polyline(polyCoords, {
+        color: "#3b82f6", weight: 3, opacity: 0.7, dashArray: "8,6"
+      }).addTo(map);
     }
 
     if (bounds.length > 0) {
       map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [30, 30], maxZoom: 12 });
     }
-  }, [cidades]);
+  }, [cidades, origem]);
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) return;
@@ -164,10 +194,18 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm }: Rota
       const newCidade: CidadeRota = { nome: result.nome, lat: result.lat, lng: result.lng, km: 0 };
       const updated = [...cidades, newCidade];
 
-      // Calculate distances via OSRM
-      if (updated.length >= 2) {
-        const kms = await getOSRMDistance(updated);
-        const withKm = updated.map((c, i) => ({ ...c, km: kms[i] || 0 }));
+      // Build coords with origin as first point for distance calculation
+      const allCoords: { lat: number; lng: number }[] = [];
+      if (origem) {
+        allCoords.push({ lat: origem.lat, lng: origem.lng });
+      }
+      allCoords.push(...updated.map(c => ({ lat: c.lat, lng: c.lng })));
+
+      if (allCoords.length >= 2) {
+        const kms = await getOSRMDistance(allCoords);
+        // If we prepended origin, skip the first km (origin itself = 0)
+        const offset = origem ? 1 : 0;
+        const withKm = updated.map((c, i) => ({ ...c, km: kms[i + offset] || 0 }));
         onCidadesChange(withKm);
       } else {
         onCidadesChange(updated);
@@ -176,20 +214,28 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm }: Rota
       setSearchResults([]);
       setSearchQuery("");
     },
-    [cidades, onCidadesChange]
+    [cidades, onCidadesChange, origem]
   );
 
   const handleRemoveCidade = useCallback(
     async (index: number) => {
       const updated = cidades.filter((_, i) => i !== index);
-      if (updated.length >= 2) {
+      if (updated.length >= 1 && origem) {
+        const allCoords: { lat: number; lng: number }[] = [{ lat: origem.lat, lng: origem.lng }, ...updated.map(c => ({ lat: c.lat, lng: c.lng }))];
+        if (allCoords.length >= 2) {
+          const kms = await getOSRMDistance(allCoords);
+          onCidadesChange(updated.map((c, i) => ({ ...c, km: kms[i + 1] || 0 })));
+        } else {
+          onCidadesChange(updated.map((c) => ({ ...c, km: 0 })));
+        }
+      } else if (updated.length >= 2) {
         const kms = await getOSRMDistance(updated);
         onCidadesChange(updated.map((c, i) => ({ ...c, km: kms[i] || 0 })));
       } else {
         onCidadesChange(updated.map((c) => ({ ...c, km: 0 })));
       }
     },
-    [cidades, onCidadesChange]
+    [cidades, onCidadesChange, origem]
   );
 
   return (
