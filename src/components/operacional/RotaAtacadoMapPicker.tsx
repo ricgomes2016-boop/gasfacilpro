@@ -171,10 +171,18 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
       const newCidade: CidadeRota = { nome: result.nome, lat: result.lat, lng: result.lng, km: 0 };
       const updated = [...cidades, newCidade];
 
-      // Calculate distances via OSRM
-      if (updated.length >= 2) {
-        const kms = await getOSRMDistance(updated);
-        const withKm = updated.map((c, i) => ({ ...c, km: kms[i] || 0 }));
+      // Build coords with origin as first point for distance calculation
+      const allCoords: { lat: number; lng: number }[] = [];
+      if (origem) {
+        allCoords.push({ lat: origem.lat, lng: origem.lng });
+      }
+      allCoords.push(...updated.map(c => ({ lat: c.lat, lng: c.lng })));
+
+      if (allCoords.length >= 2) {
+        const kms = await getOSRMDistance(allCoords);
+        // If we prepended origin, skip the first km (origin itself = 0)
+        const offset = origem ? 1 : 0;
+        const withKm = updated.map((c, i) => ({ ...c, km: kms[i + offset] || 0 }));
         onCidadesChange(withKm);
       } else {
         onCidadesChange(updated);
@@ -183,7 +191,7 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
       setSearchResults([]);
       setSearchQuery("");
     },
-    [cidades, onCidadesChange]
+    [cidades, onCidadesChange, origem]
   );
 
   const handleRemoveCidade = useCallback(
