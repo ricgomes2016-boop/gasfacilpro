@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Phone, Send, Sparkles, User, Lightbulb, ArrowLeft, Check, CheckCheck, Building2, Search, X } from "lucide-react";
 import { VoiceInputButton } from "@/components/ai/VoiceButton";
 import { supabase } from "@/integrations/supabase/client";
+import { useChatNotification } from "@/hooks/useChatNotification";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -90,6 +91,7 @@ function getDateKey(dateStr: string) {
 export function ChatBase() {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState("ia");
+  const { notify } = useChatNotification();
 
   // IA state
   const [aiMessages, setAiMessages] = useState<Message[]>([
@@ -308,6 +310,8 @@ export function ChatBase() {
               supabase.rpc("marcar_msg_lida" as any, { _msg_id: msg.id }).then();
             }
           } else if (isForMe && peerKey) {
+            // Notify with sound + native notification when not viewing this thread
+            notify(msg.remetente_nome || "Mensagem", msg.mensagem || "Nova mensagem");
             setUnreadCounts((prev) => ({
               ...prev,
               [peerKey!]: (prev[peerKey!] || 0) + 1,

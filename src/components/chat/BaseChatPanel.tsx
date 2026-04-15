@@ -196,8 +196,11 @@ export function BaseChatPanel() {
         (payload) => {
           const msg = payload.new as any;
           if (msg.remetente_tipo === "entregador" && msg.destinatario_tipo === "base" && unidadeIds.includes(msg.destinatario_id)) {
-            // Notify with sound + browser notification
-            notify(msg.remetente_nome || "Entregador", msg.mensagem || "Nova mensagem");
+            // Only skip notification if chat is open AND viewing this exact thread
+            const isViewingThisThread = open && selectedThread && msg.remetente_id === selectedThread.entregador_id;
+            if (!isViewingThisThread) {
+              notify(msg.remetente_nome || "Entregador", msg.mensagem || "Nova mensagem");
+            }
             if (selectedThread && msg.remetente_id === selectedThread.entregador_id) {
               setMessages((prev) => [...prev, msg as ChatMsg]);
               supabase.rpc("marcar_msg_lida" as any, { _msg_id: msg.id }).then();
@@ -214,7 +217,7 @@ export function BaseChatPanel() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [unidadeIds, selectedThread, loadThreads]);
+  }, [unidadeIds, selectedThread, loadThreads, open]);
 
   useEffect(() => {
     if (!selectedThread) return;
