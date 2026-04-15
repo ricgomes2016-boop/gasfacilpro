@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Search, Loader2, X, MapPin, Navigation } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import L from "leaflet";
@@ -13,6 +14,7 @@ interface CidadeRota {
   lat: number;
   lng: number;
   km: number;
+  opcional?: boolean;
 }
 
 interface SearchResult {
@@ -56,35 +58,48 @@ async function searchCidades(query: string): Promise<SearchResult[]> {
   });
 }
 
-interface OSRMResult {
-  kms: number[];
-  totalDurationMin: number;
-}
-
-async function getOSRMDistanceCumulative(coords: { lat: number; lng: number }[]): Promise<OSRMResult> {
-  if (coords.length < 2) return { kms: coords.map(() => 0), totalDurationMin: 0 };
-  const coordStr = coords.map((c) => `${c.lng},${c.lat}`).join(";");
+async function getIndividualKm(origem: OrigemInfo, cidade: { lat: number; lng: number }): Promise<number> {
   try {
     const res = await fetch(
-      `https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=false&steps=false&annotations=false`
+      `https://router.project-osrm.org/route/v1/driving/${origem.lng},${origem.lat};${cidade.lng},${cidade.lat}?overview=false`
     );
     const data = await res.json();
-    if (data.code !== "Ok" || !data.routes?.[0]?.legs) {
-      return { kms: coords.map(() => 0), totalDurationMin: 0 };
+    if (data.code === "Ok" && data.routes?.[0]?.distance) {
+      return Math.round((data.routes[0].distance / 1000) * 10) / 10;
     }
-    const legs = data.routes[0].legs;
-    const kms: number[] = [0];
-    let cumKm = 0;
-    let totalSec = 0;
-    for (const leg of legs) {
-      cumKm += leg.distance / 1000;
-      totalSec += leg.duration || 0;
-      kms.push(Math.round(cumKm * 10) / 10);
-    }
-    return { kms, totalDurationMin: Math.round(totalSec / 60) };
+    return 0;
   } catch {
-    return { kms: coords.map(() => 0), totalDurationMin: 0 };
+    return 0;
   }
+}
+
+async function getFullRouteTime(origem: OrigemInfo, cidades: CidadeRota[]): Promise<number> {
+  if (cidades.length === 0) return 0;
+  // Sort by km ascending, build round trip: origin → cities sorted by distance → origin
+  const sorted = [...cidades].sort((a, b) => a.km - b.km);
+  const coords = [
+    `${origem.lng},${origem.lat}`,
+    ...sorted.map(c => `${c.lng},${c.lat}`),
+    `${origem.lng},${origem.lat}`,
+  ].join(";");
+  try {
+    const res = await fetch(
+      `https://router.project-osrm.org/route/v1/driving/${coords}?overview=false`
+    );
+    const data = await res.json();
+    if (data.code === "Ok" && data.routes?.[0]?.duration) {
+      return Math.round(data.routes[0].duration / 60);
+    }
+    return 0;
+  } catch {
+    return 0;
+  }
+}
+
+function formatDuration(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h > 0 ? `${h}h${m > 0 ? `${m}min` : ""}` : `${m}min`;
 }
 
 export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem, onTempoEstimadoChange }: RotaAtacadoMapPickerProps) {
@@ -131,7 +146,6 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
 
     const bounds: L.LatLngExpression[] = [];
 
-    // Show origin marker
     if (origem) {
       const originMarker = L.circleMarker([origem.lat, origem.lng], {
         radius: 10,
@@ -151,36 +165,53 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
       return;
     }
 
-    cidades.forEach((c, i) => {
-      const color = i === 0 ? "#22c55e" : "#3b82f6";
+    // Sort by km for display
+    const sorted = [...cidades].sort((a, b) => a.km - b.km);
+
+    sorted.forEach((c, i) => {
+      const color = c.opcional ? "#f59e0b" : "#3b82f6";
       const marker = L.circleMarker([c.lat, c.lng], {
         radius: 8,
         fillColor: color,
         color: "#fff",
         weight: 2,
-        fillOpacity: 0.9,
+        fillOpacity: c.opcional ? 0.6 : 0.9,
       })
-        .bindTooltip(`${i + 1}. ${c.nome}${c.km > 0 ? ` (${c.km} km)` : ""}`, { permanent: false })
+        .bindTooltip(`${c.nome} (${c.km} km)${c.opcional ? " [Opcional]" : ""}`, { permanent: false })
         .addTo(map);
       markersRef.current.push(marker);
       bounds.push([c.lat, c.lng]);
     });
 
-    // Draw polyline including origin
-    const polyCoords: L.LatLngExpression[] = [];
-    if (origem) polyCoords.push([origem.lat, origem.lng]);
-    cidades.forEach(c => polyCoords.push([c.lat, c.lng]));
-    
-    if (polyCoords.length >= 2) {
-      polylineRef.current = L.polyline(polyCoords, {
-        color: "#3b82f6", weight: 3, opacity: 0.7, dashArray: "8,6"
-      }).addTo(map);
+    // Draw lines from origin to each city
+    if (origem) {
+      sorted.forEach(c => {
+        const line = L.polyline([[origem.lat, origem.lng], [c.lat, c.lng]], {
+          color: c.opcional ? "#f59e0b" : "#3b82f6",
+          weight: 2,
+          opacity: c.opcional ? 0.4 : 0.6,
+          dashArray: c.opcional ? "4,8" : "8,6",
+        }).addTo(map);
+        // Store ref for cleanup (using markersRef hack - they all get removed)
+      });
     }
 
     if (bounds.length > 0) {
       map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [30, 30], maxZoom: 12 });
     }
   }, [cidades, origem]);
+
+  const recalcAllKms = useCallback(async (cities: CidadeRota[]): Promise<CidadeRota[]> => {
+    if (!origem || cities.length === 0) return cities.map(c => ({ ...c, km: 0 }));
+    const kms = await Promise.all(cities.map(c => getIndividualKm(origem, c)));
+    const updated = cities.map((c, i) => ({ ...c, km: kms[i] }));
+    // Sort by km
+    updated.sort((a, b) => a.km - b.km);
+    // Calculate full route time
+    const totalMin = await getFullRouteTime(origem, updated);
+    onTempoEstimadoChange?.(totalMin > 0 ? formatDuration(totalMin) : "");
+    return updated;
+  }, [origem, onTempoEstimadoChange]);
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) return;
@@ -199,63 +230,53 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
     setIsSearching(false);
   }, [searchQuery, toast]);
 
-  const formatDuration = (minutes: number): string => {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return h > 0 ? `${h}h${m > 0 ? `${m}min` : ""}` : `${m}min`;
-  };
-
   const handleSelectResult = useCallback(
     async (result: SearchResult) => {
-      const newCidade: CidadeRota = { nome: result.nome, lat: result.lat, lng: result.lng, km: 0 };
-      const updated = [...cidades, newCidade];
-
-      const allCoords: { lat: number; lng: number }[] = [];
-      if (origem) {
-        allCoords.push({ lat: origem.lat, lng: origem.lng });
-      }
-      allCoords.push(...updated.map(c => ({ lat: c.lat, lng: c.lng })));
-
-      if (allCoords.length >= 2) {
-        const { kms, totalDurationMin } = await getOSRMDistanceCumulative(allCoords);
-        const offset = origem ? 1 : 0;
-        const withKm = updated.map((c, i) => ({ ...c, km: kms[i + offset] || 0 }));
-        onCidadesChange(withKm);
-        onTempoEstimadoChange?.(formatDuration(totalDurationMin));
-      } else {
-        onCidadesChange(updated);
-      }
-
+      const newCidade: CidadeRota = { nome: result.nome, lat: result.lat, lng: result.lng, km: 0, opcional: false };
+      const updated = await recalcAllKms([...cidades, newCidade]);
+      onCidadesChange(updated);
       setSearchResults([]);
       setSearchQuery("");
     },
-    [cidades, onCidadesChange, origem, onTempoEstimadoChange]
+    [cidades, onCidadesChange, recalcAllKms]
   );
 
   const handleRemoveCidade = useCallback(
     async (index: number) => {
-      const updated = cidades.filter((_, i) => i !== index);
-      if (updated.length >= 1 && origem) {
-        const allCoords: { lat: number; lng: number }[] = [{ lat: origem.lat, lng: origem.lng }, ...updated.map(c => ({ lat: c.lat, lng: c.lng }))];
-        if (allCoords.length >= 2) {
-          const { kms, totalDurationMin } = await getOSRMDistanceCumulative(allCoords);
-          onCidadesChange(updated.map((c, i) => ({ ...c, km: kms[i + 1] || 0 })));
-          onTempoEstimadoChange?.(formatDuration(totalDurationMin));
-        } else {
-          onCidadesChange(updated.map((c) => ({ ...c, km: 0 })));
-          onTempoEstimadoChange?.("");
-        }
-      } else if (updated.length >= 2) {
-        const { kms, totalDurationMin } = await getOSRMDistanceCumulative(updated);
-        onCidadesChange(updated.map((c, i) => ({ ...c, km: kms[i] || 0 })));
-        onTempoEstimadoChange?.(formatDuration(totalDurationMin));
-      } else {
-        onCidadesChange(updated.map((c) => ({ ...c, km: 0 })));
-        onTempoEstimadoChange?.(updated.length === 0 ? "" : "");
+      // Find the city in sorted order by index
+      const sorted = [...cidades].sort((a, b) => a.km - b.km);
+      const cityToRemove = sorted[index];
+      const remaining = cidades.filter(c => c !== cityToRemove);
+      if (remaining.length === 0) {
+        onCidadesChange([]);
+        onTempoEstimadoChange?.("");
+        return;
       }
+      const updated = await recalcAllKms(remaining);
+      onCidadesChange(updated);
+    },
+    [cidades, onCidadesChange, recalcAllKms, onTempoEstimadoChange]
+  );
+
+  const handleToggleOpcional = useCallback(
+    async (index: number) => {
+      const sorted = [...cidades].sort((a, b) => a.km - b.km);
+      const city = sorted[index];
+      const updated = cidades.map(c =>
+        c === city ? { ...c, opcional: !c.opcional } : c
+      );
+      // Recalc time since optional cities affect the route
+      if (origem) {
+        const totalMin = await getFullRouteTime(origem, updated);
+        onTempoEstimadoChange?.(totalMin > 0 ? formatDuration(totalMin) : "");
+      }
+      onCidadesChange(updated);
     },
     [cidades, onCidadesChange, origem, onTempoEstimadoChange]
   );
+
+  // Sort for display
+  const sortedCidades = [...cidades].sort((a, b) => a.km - b.km);
 
   return (
     <div className="space-y-3">
@@ -272,7 +293,6 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
         </Button>
       </div>
 
-      {/* Search results dropdown */}
       {searchResults.length > 0 && (
         <div className="border rounded-lg bg-card shadow-md max-h-40 overflow-y-auto">
           {searchResults.map((r, i) => (
@@ -291,27 +311,30 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
         </div>
       )}
 
-      {/* Mini map */}
       <div
         ref={mapContainerRef}
         className="h-48 w-full rounded-lg border overflow-hidden"
         style={{ zIndex: 0 }}
       />
 
-      {/* City list */}
-      {cidades.length > 0 && (
+      {sortedCidades.length > 0 && (
         <div className="space-y-1.5">
           <Label className="flex items-center gap-1.5">
             <Navigation className="h-3.5 w-3.5" />
-            Cidades na rota
+            Cidades na rota (ordenadas por distância)
           </Label>
           <div className="space-y-1 max-h-36 overflow-y-auto">
-            {cidades.map((c, i) => (
-              <div key={i} className="flex items-center justify-between bg-muted/50 rounded px-3 py-1.5 text-sm">
+            {sortedCidades.map((c, i) => (
+              <div key={`${c.nome}-${c.lat}`} className={`flex items-center justify-between rounded px-3 py-1.5 text-sm ${c.opcional ? "bg-muted/30 opacity-75" : "bg-muted/50"}`}>
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-muted-foreground text-xs w-5">{i + 1}.</span>
-                  <span>{c.nome}</span>
-                  {c.km > 0 && <Badge variant="outline" className="text-xs">{c.km} km</Badge>}
+                  <Checkbox
+                    checked={!c.opcional}
+                    onCheckedChange={() => handleToggleOpcional(i)}
+                    className="h-3.5 w-3.5"
+                  />
+                  <span className={c.opcional ? "line-through text-muted-foreground" : ""}>{c.nome}</span>
+                  <Badge variant="outline" className="text-xs">{c.km} km</Badge>
+                  {c.opcional && <Badge variant="secondary" className="text-xs">Opcional</Badge>}
                 </div>
                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveCidade(i)}>
                   <X className="h-3 w-3" />
@@ -320,7 +343,7 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
             ))}
           </div>
           <div className="flex items-center justify-between pt-1 border-t">
-            <span className="text-sm font-medium">KM Total (rodoviário)</span>
+            <span className="text-sm font-medium">KM Total (cidade mais distante)</span>
             <Badge className="bg-primary text-primary-foreground">{Math.round(totalKm * 10) / 10} km</Badge>
           </div>
         </div>

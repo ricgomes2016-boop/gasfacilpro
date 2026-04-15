@@ -47,6 +47,7 @@ interface CidadeRota {
   lat: number;
   lng: number;
   km: number;
+  opcional?: boolean;
 }
 
 interface RotaDefinida {
@@ -281,7 +282,7 @@ export default function GestaoRotas() {
     setCidadesRota((prev) => recalcKm(prev.filter((_, i) => i !== index)));
   };
 
-  const totalKmAtacado = cidadesRota.length > 0 ? cidadesRota[cidadesRota.length - 1].km : 0;
+  const totalKmAtacado = cidadesRota.length > 0 ? Math.max(...cidadesRota.map(c => c.km)) : 0;
 
   const handleSave = async () => {
     if (!nome.trim()) {
