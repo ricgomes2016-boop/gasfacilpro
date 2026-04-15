@@ -736,47 +736,18 @@ export default function EntregadorNovaVenda() {
         </Card>
 
         {/* Pagamento */}
+        <PaymentSection
+          pagamentos={pagamentos}
+          onChange={setPagamentos}
+          totalVenda={total}
+          unidadeId={entregadorUnidadeId || undefined}
+        />
+
+        {/* Observação */}
         <Card className="border-none shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-primary" />
-              Pagamento
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <Label className="text-xs">Forma de Pagamento *</Label>
-              <Select value={formaPagamento} onValueChange={(v) => {
-                setFormaPagamento(v);
-                setSelectedPaymentInfo(null);
-                setSelectedPaymentExtras({});
-                if (v === "pix") {
-                  setPixModalOpen(true);
-                } else if (v === "cartao_credito" || v === "cartao_debito" || v === "pix_maquininha") {
-                  const tipo = v === "cartao_credito" ? "credito" : v === "pix_maquininha" ? "pix_maquininha" : "debito";
-                  setCardModalTipo(tipo);
-                  setCardModalOpen(true);
-                }
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formasPagamento.map((f) => (
-                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {selectedPaymentInfo && (
-              <div className="p-3 rounded-lg bg-success/10 text-success text-sm text-center font-medium">
-                {selectedPaymentInfo}
-              </div>
-            )}
-            <div>
-              <Label className="text-xs">Observação</Label>
-              <Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Observações..." rows={2} />
-            </div>
+          <CardContent className="p-4">
+            <Label className="text-xs">Observação</Label>
+            <Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Observações..." rows={2} />
           </CardContent>
         </Card>
 
@@ -803,7 +774,7 @@ export default function EntregadorNovaVenda() {
         <Button
           onClick={finalizarVenda}
           className="w-full h-14 text-lg gradient-primary text-white shadow-lg"
-          disabled={itens.length === 0 || !cliente.nome || !formaPagamento || !canalVenda || isSubmitting}
+          disabled={itens.length === 0 || !cliente.nome || pagamentos.length === 0 || !canalVenda || isSubmitting}
         >
           {isSubmitting ? (
             <Loader2 className="h-5 w-5 mr-2 animate-spin" />
@@ -813,31 +784,6 @@ export default function EntregadorNovaVenda() {
           Finalizar Venda • R$ {total.toFixed(2)}
         </Button>
       </div>
-
-      {/* PIX Key Selector */}
-      <PixKeySelectorModal
-        open={pixModalOpen}
-        onClose={() => setPixModalOpen(false)}
-        valor={total}
-        unidadeId={entregadorUnidadeId || undefined}
-        onSelect={(chavePix, contaBancariaId) => {
-          setSelectedPaymentExtras({ conta_bancaria_id: contaBancariaId });
-          setSelectedPaymentInfo("PIX via conta selecionada");
-        }}
-      />
-
-      {/* Card Operator Selector */}
-      <CardOperatorSelectorModal
-        open={cardModalOpen}
-        onClose={() => setCardModalOpen(false)}
-        valor={total}
-        tipoCartao={cardModalTipo}
-        unidadeId={entregadorUnidadeId || undefined}
-        onSelect={(op) => {
-          setSelectedPaymentExtras({ operadora_id: op.id });
-          setSelectedPaymentInfo(`${op.nome} • Taxa ${op.taxa.toFixed(2)}% • D+${op.prazo} • Líq. R$ ${op.valorLiquido.toFixed(2)}`);
-        }}
-      />
     </EntregadorLayout>
   );
 }
