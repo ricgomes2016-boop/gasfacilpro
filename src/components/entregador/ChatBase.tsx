@@ -310,6 +310,8 @@ export function ChatBase() {
               supabase.rpc("marcar_msg_lida" as any, { _msg_id: msg.id }).then();
             }
           } else if (isForMe && peerKey) {
+            // Notify with sound + native notification when not viewing this thread
+            notify(msg.remetente_nome || "Mensagem", msg.mensagem || "Nova mensagem");
             setUnreadCounts((prev) => ({
               ...prev,
               [peerKey!]: (prev[peerKey!] || 0) + 1,
