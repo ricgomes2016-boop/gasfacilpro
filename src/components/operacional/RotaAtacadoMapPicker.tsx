@@ -55,7 +55,8 @@ async function searchCidades(query: string): Promise<SearchResult[]> {
   });
 }
 
-async function getOSRMDistance(coords: { lat: number; lng: number }[]): Promise<number[]> {
+// Returns cumulative KM from origin for each coordinate
+async function getOSRMDistanceCumulative(coords: { lat: number; lng: number }[]): Promise<number[]> {
   if (coords.length < 2) return coords.map(() => 0);
   const coordStr = coords.map((c) => `${c.lng},${c.lat}`).join(";");
   try {
@@ -68,8 +69,10 @@ async function getOSRMDistance(coords: { lat: number; lng: number }[]): Promise<
     }
     const legs = data.routes[0].legs;
     const kms: number[] = [0];
+    let cumulative = 0;
     for (const leg of legs) {
-      kms.push(Math.round((leg.distance / 1000) * 10) / 10);
+      cumulative += leg.distance / 1000;
+      kms.push(Math.round(cumulative * 10) / 10);
     }
     return kms;
   } catch {
