@@ -36,6 +36,7 @@ interface PaymentSectionProps {
   pagamentos: Pagamento[];
   onChange: (pagamentos: Pagamento[]) => void;
   totalVenda: number;
+  unidadeId?: string;
 }
 
 const formasPagamento = [
@@ -51,7 +52,7 @@ const formasPagamento = [
   
 ];
 
-export function PaymentSection({ pagamentos, onChange, totalVenda }: PaymentSectionProps) {
+export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: PaymentSectionProps) {
   const [forma, setForma] = useState("");
   const [valorDisplay, setValorDisplay] = useState("");
   const [chequeNumero, setChequeNumero] = useState("");
@@ -71,6 +72,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda }: PaymentSect
   const [pendingCardInfo, setPendingCardInfo] = useState<string | null>(null);
 
   const { unidadeAtual } = useUnidade();
+  const effectiveUnidadeNome = unidadeId ? undefined : unidadeAtual?.nome;
 
   const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
   const diferenca = totalVenda - totalPago;
@@ -401,7 +403,8 @@ export function PaymentSection({ pagamentos, onChange, totalVenda }: PaymentSect
         open={pixModalOpen}
         onClose={() => setPixModalOpen(false)}
         valor={parseCurrency(valorDisplay) || diferenca}
-        beneficiario={unidadeAtual?.nome}
+        beneficiario={effectiveUnidadeNome}
+        unidadeId={unidadeId}
         onSelect={(chavePix, contaBancariaId) => {
           setPendingContaBancaria(contaBancariaId);
           setPendingCardInfo(`Chave PIX selecionada ✓`);
@@ -414,6 +417,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda }: PaymentSect
         onClose={() => setCardModalOpen(false)}
         valor={parseCurrency(valorDisplay) || diferenca}
         tipoCartao={cardTipoMap[forma] || "debito"}
+        unidadeId={unidadeId}
         onSelect={(op) => {
           setPendingOperadora({ id: op.id, nome: op.nome });
           setPendingCardInfo(`${op.nome} • Taxa ${op.taxa.toFixed(2)}% • D+${op.prazo} • Líq. R$ ${op.valorLiquido.toFixed(2)}`);

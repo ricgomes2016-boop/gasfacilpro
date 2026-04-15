@@ -31,7 +31,6 @@ import {
   Plus,
   Minus,
   Trash2,
-  CreditCard,
   CheckCircle,
   Search,
   Sparkles,
@@ -43,8 +42,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { PixKeySelectorModal } from "@/components/pagamento/PixKeySelectorModal";
-import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
+import { PaymentSection, Pagamento } from "@/components/vendas/PaymentSection";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 
 interface ProdutoDB {
@@ -66,14 +64,6 @@ interface ClienteDB {
   tipo: string | null;
 }
 
-const formasPagamento = [
-  { value: "dinheiro", label: "Dinheiro" },
-  { value: "pix", label: "PIX" },
-  { value: "pix_maquininha", label: "PIX Maquininha" },
-  { value: "cartao_credito", label: "Cartão Crédito" },
-  { value: "cartao_debito", label: "Cartão Débito" },
-  { value: "fiado", label: "Fiado" },
-];
 
 interface ItemVenda {
   produtoId: string;
@@ -115,18 +105,12 @@ export default function EntregadorNovaVenda() {
     tipo: null,
   });
   const [itens, setItens] = useState<ItemVenda[]>([]);
-  const [formaPagamento, setFormaPagamento] = useState("");
+  const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [canalVenda, setCanalVenda] = useState("");
   const [observacao, setObservacao] = useState("");
   const [dialogClienteAberto, setDialogClienteAberto] = useState(false);
   const [buscaCliente, setBuscaCliente] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // Payment provider modals
-  const [pixModalOpen, setPixModalOpen] = useState(false);
-  const [cardModalOpen, setCardModalOpen] = useState(false);
-  const [cardModalTipo, setCardModalTipo] = useState<"credito" | "debito" | "pix_maquininha">("credito");
-  const [selectedPaymentInfo, setSelectedPaymentInfo] = useState<string | null>(null);
-  const [selectedPaymentExtras, setSelectedPaymentExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string }>({});
 
   // Voice / AI command state
   const [aiCommand, setAiCommand] = useState("");
@@ -173,14 +157,6 @@ export default function EntregadorNovaVenda() {
         unidadeId = entregador.unidade_id;
         setEntregadorUnidadeId(entregador.unidade_id);
         
-        // Auto-detect active terminal's operadora for card payments
-        const activeTerminalId = entregador.terminal_ativo_id || entregador.terminal_id;
-        if (activeTerminalId) {
-          const { data: terminal } = await (supabase.from("terminais_cartao" as any).select("operadora_id").eq("id", activeTerminalId).maybeSingle() as any);
-          if (terminal?.operadora_id) {
-            setSelectedPaymentExtras(prev => ({ ...prev, operadora_id: terminal.operadora_id }));
-          }
-        }
       }
     }
 
@@ -339,9 +315,12 @@ export default function EntregadorNovaVenda() {
         setItens(newItens);
       }
 
-      // Fill payment
       if (data.forma_pagamento) {
-        setFormaPagamento(data.forma_pagamento);
+        setPagamentos([{
+          id: crypto.randomUUID(),
+          forma: data.forma_pagamento,
+          valor: total || 0,
+        }]);
       }
 
       setAiCommand("");
@@ -405,8 +384,9 @@ export default function EntregadorNovaVenda() {
       toast({ title: "Carrinho vazio", description: "Adicione pelo menos um produto.", variant: "destructive" });
       return;
     }
-    if (!formaPagamento) {
-      toast({ title: "Pagamento", description: "Selecione uma forma de pagamento.", variant: "destructive" });
+    const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
+    if (pagamentos.length === 0 || totalPago < total) {
+      toast({ title: "Pagamento", description: "O total pago deve cobrir o valor da venda.", variant: "destructive" });
       return;
     }
 
@@ -422,7 +402,7 @@ export default function EntregadorNovaVenda() {
           unidade_id: entregadorUnidadeId,
           endereco_entrega: enderecoCompleto,
           valor_total: total,
-          forma_pagamento: formaPagamento,
+          forma_pagamento: pagamentos.map(p => p.forma).filter((v, i, a) => a.indexOf(v) === i).join(", "),
           canal_venda: canalVenda,
           observacoes: observacao || null,
           status: "finalizado",
@@ -756,47 +736,18 @@ export default function EntregadorNovaVenda() {
         </Card>
 
         {/* Pagamento */}
+        <PaymentSection
+          pagamentos={pagamentos}
+          onChange={setPagamentos}
+          totalVenda={total}
+          unidadeId={entregadorUnidadeId || undefined}
+        />
+
+        {/* Observação */}
         <Card className="border-none shadow-md">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-primary" />
-              Pagamento
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <Label className="text-xs">Forma de Pagamento *</Label>
-              <Select value={formaPagamento} onValueChange={(v) => {
-                setFormaPagamento(v);
-                setSelectedPaymentInfo(null);
-                setSelectedPaymentExtras({});
-                if (v === "pix") {
-                  setPixModalOpen(true);
-                } else if (v === "cartao_credito" || v === "cartao_debito" || v === "pix_maquininha") {
-                  const tipo = v === "cartao_credito" ? "credito" : v === "pix_maquininha" ? "pix_maquininha" : "debito";
-                  setCardModalTipo(tipo);
-                  setCardModalOpen(true);
-                }
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {formasPagamento.map((f) => (
-                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {selectedPaymentInfo && (
-              <div className="p-3 rounded-lg bg-success/10 text-success text-sm text-center font-medium">
-                {selectedPaymentInfo}
-              </div>
-            )}
-            <div>
-              <Label className="text-xs">Observação</Label>
-              <Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Observações..." rows={2} />
-            </div>
+          <CardContent className="p-4">
+            <Label className="text-xs">Observação</Label>
+            <Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Observações..." rows={2} />
           </CardContent>
         </Card>
 
@@ -823,7 +774,7 @@ export default function EntregadorNovaVenda() {
         <Button
           onClick={finalizarVenda}
           className="w-full h-14 text-lg gradient-primary text-white shadow-lg"
-          disabled={itens.length === 0 || !cliente.nome || !formaPagamento || !canalVenda || isSubmitting}
+          disabled={itens.length === 0 || !cliente.nome || pagamentos.length === 0 || !canalVenda || isSubmitting}
         >
           {isSubmitting ? (
             <Loader2 className="h-5 w-5 mr-2 animate-spin" />
@@ -833,31 +784,6 @@ export default function EntregadorNovaVenda() {
           Finalizar Venda • R$ {total.toFixed(2)}
         </Button>
       </div>
-
-      {/* PIX Key Selector */}
-      <PixKeySelectorModal
-        open={pixModalOpen}
-        onClose={() => setPixModalOpen(false)}
-        valor={total}
-        unidadeId={entregadorUnidadeId || undefined}
-        onSelect={(chavePix, contaBancariaId) => {
-          setSelectedPaymentExtras({ conta_bancaria_id: contaBancariaId });
-          setSelectedPaymentInfo("PIX via conta selecionada");
-        }}
-      />
-
-      {/* Card Operator Selector */}
-      <CardOperatorSelectorModal
-        open={cardModalOpen}
-        onClose={() => setCardModalOpen(false)}
-        valor={total}
-        tipoCartao={cardModalTipo}
-        unidadeId={entregadorUnidadeId || undefined}
-        onSelect={(op) => {
-          setSelectedPaymentExtras({ operadora_id: op.id });
-          setSelectedPaymentInfo(`${op.nome} • Taxa ${op.taxa.toFixed(2)}% • D+${op.prazo} • Líq. R$ ${op.valorLiquido.toFixed(2)}`);
-        }}
-      />
     </EntregadorLayout>
   );
 }

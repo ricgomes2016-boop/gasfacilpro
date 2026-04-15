@@ -83,7 +83,7 @@ export default function EntregadorHistorico() {
           )
         `)
         .eq("entregador_id", entregador.id)
-        .eq("status", "entregue")
+        .in("status", ["entregue", "finalizado"])
         .gte("created_at", startOfDay(dataInicio).toISOString())
         .lte("created_at", endOfDay(dataFim).toISOString())
         .order("created_at", { ascending: false })
