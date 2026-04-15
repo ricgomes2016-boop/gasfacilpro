@@ -54,6 +54,8 @@ interface RotaDefinida {
   bairros: string[];
   distancia_km: number | null;
   tempo_estimado: string | null;
+  tipo?: string;
+  cidades?: CidadeRota[];
 }
 
 interface Escala {
