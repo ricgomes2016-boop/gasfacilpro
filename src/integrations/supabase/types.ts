@@ -7047,33 +7047,39 @@ export type Database = {
         Row: {
           ativo: boolean | null
           bairros: string[]
+          cidades: Json | null
           created_at: string
           distancia_km: number | null
           id: string
           nome: string
           tempo_estimado: string | null
+          tipo: string
           unidade_id: string | null
           updated_at: string
         }
         Insert: {
           ativo?: boolean | null
           bairros?: string[]
+          cidades?: Json | null
           created_at?: string
           distancia_km?: number | null
           id?: string
           nome: string
           tempo_estimado?: string | null
+          tipo?: string
           unidade_id?: string | null
           updated_at?: string
         }
         Update: {
           ativo?: boolean | null
           bairros?: string[]
+          cidades?: Json | null
           created_at?: string
           distancia_km?: number | null
           id?: string
           nome?: string
           tempo_estimado?: string | null
+          tipo?: string
           unidade_id?: string | null
           updated_at?: string
         }

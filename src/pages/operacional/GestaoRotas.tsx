@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,16 +30,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { MapPin, Plus, Pencil, Trash2, Loader2, Truck, Package, ArrowLeftRight, CheckCircle, Printer, BarChart3, ArrowRightLeft, Route } from "lucide-react";
+import { MapPin, Plus, Pencil, Trash2, Loader2, Truck, ArrowLeftRight, CheckCircle, Printer, ArrowRightLeft, Search, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { CadastrarCarregamentoModal } from "@/components/operacional/CadastrarCarregamentoModal";
 import { atualizarEstoqueVenda } from "@/services/estoqueService";
 import { format } from "date-fns";
 import { useUnidade } from "@/contexts/UnidadeContext";
-import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useNavigate } from "react-router-dom";
-import { RotaAtacadoDinamica } from "@/components/operacional/RotaAtacadoDinamica";
+import { haversineDistance } from "@/lib/haversine";
+import { geocodeAddress } from "@/lib/geocoding";
+
+interface CidadeRota {
+  nome: string;
+  lat: number;
+  lng: number;
+  km: number;
+}
 
 interface RotaDefinida {
   id: string;
@@ -48,6 +55,8 @@ interface RotaDefinida {
   distancia_km: number | null;
   tempo_estimado: string | null;
   ativo: boolean;
+  tipo: string;
+  cidades: CidadeRota[];
 }
 
 interface Carregamento {
@@ -83,10 +92,15 @@ export default function GestaoRotas() {
   const [selectedCarreg, setSelectedCarreg] = useState<Carregamento | null>(null);
   const [retornoItens, setRetornoItens] = useState<{ id: string; qtd_retorno: number }[]>([]);
 
+  // Form fields
   const [nome, setNome] = useState("");
   const [bairrosText, setBairrosText] = useState("");
   const [distanciaKm, setDistanciaKm] = useState("");
   const [tempoEstimado, setTempoEstimado] = useState("");
+  const [tipoRota, setTipoRota] = useState<"cidade" | "atacado">("cidade");
+  const [cidadesRota, setCidadesRota] = useState<CidadeRota[]>([]);
+  const [cidadeInput, setCidadeInput] = useState("");
+  const [isGeocodingCidade, setIsGeocodingCidade] = useState(false);
 
   // Filters
   const [filtroEntregador, setFiltroEntregador] = useState("all");
@@ -98,7 +112,6 @@ export default function GestaoRotas() {
 
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
-  const { empresa } = useEmpresa();
   const [transferidoFiliais, setTransferidoFiliais] = useState(0);
   const navigate = useNavigate();
 
@@ -115,7 +128,6 @@ export default function GestaoRotas() {
 
   const fetchTransferencias = async () => {
     if (!unidadeAtual?.id) { setTransferidoFiliais(0); return; }
-    // Buscar transferências de estoque onde a unidade atual é a origem
     const { data: transferencias } = await supabase
       .from("transferencias_estoque")
       .select("id")
@@ -130,7 +142,6 @@ export default function GestaoRotas() {
     }
 
     const transferIds = transferencias.map((t: any) => t.id);
-    // Buscar itens dessas transferências que são P13 (nome contém "P13" e não "Vazio")
     const { data: itens } = await supabase
       .from("transferencia_estoque_itens")
       .select("quantidade, produtos(nome)")
@@ -209,29 +220,83 @@ export default function GestaoRotas() {
   const openNew = () => {
     setEditingRota(null);
     setNome(""); setBairrosText(""); setDistanciaKm(""); setTempoEstimado("");
+    setTipoRota("cidade");
+    setCidadesRota([]);
+    setCidadeInput("");
     setModalOpen(true);
   };
 
   const openEdit = (rota: RotaDefinida) => {
     setEditingRota(rota);
     setNome(rota.nome);
-    setBairrosText((rota.bairros as string[]).join(", "));
+    setBairrosText((rota.bairros || []).join(", "));
     setDistanciaKm(rota.distancia_km?.toString() || "");
     setTempoEstimado(rota.tempo_estimado || "");
+    setTipoRota((rota.tipo as "cidade" | "atacado") || "cidade");
+    setCidadesRota(rota.cidades || []);
+    setCidadeInput("");
     setModalOpen(true);
   };
+
+  const handleAddCidade = useCallback(async () => {
+    const cidadeNome = cidadeInput.trim();
+    if (!cidadeNome) return;
+    setIsGeocodingCidade(true);
+    try {
+      const result = await geocodeAddress(cidadeNome + ", Brasil");
+      if (!result) {
+        toast({ title: "Cidade não encontrada", description: "Tente outro nome ou mais detalhes.", variant: "destructive" });
+        setIsGeocodingCidade(false);
+        return;
+      }
+      const newCidade: CidadeRota = {
+        nome: result.cidade || cidadeNome,
+        lat: result.latitude,
+        lng: result.longitude,
+        km: 0,
+      };
+      setCidadesRota((prev) => {
+        const updated = [...prev, newCidade];
+        // Recalculate KMs
+        return recalcKm(updated);
+      });
+      setCidadeInput("");
+    } catch {
+      toast({ title: "Erro ao geocodificar", variant: "destructive" });
+    }
+    setIsGeocodingCidade(false);
+  }, [cidadeInput, toast]);
+
+  const recalcKm = (cidades: CidadeRota[]): CidadeRota[] => {
+    return cidades.map((c, i) => {
+      if (i === 0) return { ...c, km: 0 };
+      const prev = cidades[i - 1];
+      const dist = haversineDistance(prev.lat, prev.lng, c.lat, c.lng) * 1.3;
+      return { ...c, km: Math.round(dist * 10) / 10 };
+    });
+  };
+
+  const removeCidade = (index: number) => {
+    setCidadesRota((prev) => recalcKm(prev.filter((_, i) => i !== index)));
+  };
+
+  const totalKmAtacado = cidadesRota.reduce((sum, c) => sum + c.km, 0);
 
   const handleSave = async () => {
     if (!nome.trim()) {
       toast({ title: "Informe o nome da rota", variant: "destructive" });
       return;
     }
-    const bairros = bairrosText.split(",").map((b) => b.trim()).filter(Boolean);
-    const payload = {
+    const bairros = tipoRota === "cidade"
+      ? bairrosText.split(",").map((b) => b.trim()).filter(Boolean)
+      : [];
+    const payload: any = {
       nome: nome.trim(),
       bairros,
-      distancia_km: distanciaKm ? parseFloat(distanciaKm) : null,
+      distancia_km: tipoRota === "atacado" ? Math.round(totalKmAtacado * 10) / 10 : (distanciaKm ? parseFloat(distanciaKm) : null),
       tempo_estimado: tempoEstimado || null,
+      tipo: tipoRota,
+      cidades: tipoRota === "atacado" ? cidadesRota : [],
       ...(editingRota ? {} : { unidade_id: unidadeAtual?.id || null }),
     };
 
@@ -278,7 +343,6 @@ export default function GestaoRotas() {
         const item = selectedCarreg.itens.find((i) => i.id === ri.id);
         const vendido = (item?.quantidade_saida || 0) - ri.qtd_retorno;
 
-        // Get produto_id from carregamento_rota_itens
         const { data: itemData } = await supabase
           .from("carregamento_rota_itens")
           .select("produto_id")
@@ -298,14 +362,12 @@ export default function GestaoRotas() {
         }
       }
 
-      // Get unidade_id from carregamento
       const { data: carregData } = await supabase
         .from("carregamentos_rota")
         .select("unidade_id")
         .eq("id", selectedCarreg.id)
         .single();
 
-      // Baixa automática de estoque
       if (itensVendidos.length > 0) {
         await atualizarEstoqueVenda(itensVendidos, carregData?.unidade_id);
       }
@@ -329,7 +391,6 @@ export default function GestaoRotas() {
     return true;
   });
 
-  // Resumo dos carregamentos
   const resumo = filteredCarregamentos.reduce(
     (acc, c) => {
       c.itens.forEach((i) => {
@@ -393,17 +454,13 @@ export default function GestaoRotas() {
 
   return (
     <MainLayout>
-      <Header title="Gestão de Rotas" subtitle="Rotas de entrega e carregamentos atacado" />
+      <Header title="Gestão de Rotas" subtitle="Rotas de entrega e carregamentos" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        <Tabs defaultValue="rota-atacado">
+        <Tabs defaultValue="rotas">
           <TabsList>
-            <TabsTrigger value="rota-atacado">
-              <Route className="h-4 w-4 mr-2" />
-              Rota Atacado
-            </TabsTrigger>
             <TabsTrigger value="rotas">
               <MapPin className="h-4 w-4 mr-2" />
-              Rotas Cidade
+              Rotas de Entrega
             </TabsTrigger>
             <TabsTrigger value="carregamentos">
               <Truck className="h-4 w-4 mr-2" />
@@ -411,16 +468,87 @@ export default function GestaoRotas() {
             </TabsTrigger>
           </TabsList>
 
-          {/* ===== TAB: ROTA ATACADO DINÂMICA ===== */}
-          <TabsContent value="rota-atacado" className="mt-4">
-            {empresa?.id ? (
-              <RotaAtacadoDinamica empresaId={empresa.id} />
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-6">Carregando...</p>
-            )}
+          {/* ===== TAB: ROTAS DE ENTREGA ===== */}
+          <TabsContent value="rotas" className="space-y-4 mt-4">
+            <div className="flex items-center justify-between">
+              <Button onClick={openNew}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Rota
+              </Button>
+            </div>
+
+            <Card>
+              <CardContent className="p-0">
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Bairros / Cidades</TableHead>
+                        <TableHead>Distância</TableHead>
+                        <TableHead>Tempo Est.</TableHead>
+                        <TableHead>Ativa</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rotas.map((rota) => (
+                        <TableRow key={rota.id}>
+                          <TableCell className="font-medium">{rota.nome}</TableCell>
+                          <TableCell>
+                            <Badge className={rota.tipo === "atacado" ? "bg-orange-500 text-white" : "bg-blue-500 text-white"}>
+                              {rota.tipo === "atacado" ? "Atacado" : "Cidade"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {rota.tipo === "atacado" && rota.cidades?.length > 0
+                                ? rota.cidades.map((c, i) => (
+                                    <Badge key={i} variant="outline" className="text-xs">
+                                      {c.nome} {c.km > 0 && `(${c.km}km)`}
+                                    </Badge>
+                                  ))
+                                : (rota.bairros || []).map((b) => (
+                                    <Badge key={b} variant="outline" className="text-xs">{b}</Badge>
+                                  ))
+                              }
+                            </div>
+                          </TableCell>
+                          <TableCell>{rota.distancia_km ? `${rota.distancia_km} km` : "—"}</TableCell>
+                          <TableCell>{rota.tempo_estimado || "—"}</TableCell>
+                          <TableCell>
+                            <Switch checked={rota.ativo} onCheckedChange={() => toggleAtivo(rota)} />
+                          </TableCell>
+                          <TableCell className="text-right space-x-1">
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(rota)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(rota.id)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {rotas.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                            Nenhuma rota cadastrada
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
-          {/* ===== TAB: CARREGAMENTOS ATACADO ===== */}
+          {/* ===== TAB: CARREGAMENTOS ===== */}
           <TabsContent value="carregamentos" className="space-y-4 mt-4">
             {/* Filtros */}
             <Card>
@@ -458,13 +586,9 @@ export default function GestaoRotas() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button variant="outline" onClick={openNew}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nova Rota
-                  </Button>
                   <Button onClick={() => setCarregModalOpen(true)}>
                     <Truck className="h-4 w-4 mr-2" />
-                    Cadastrar Rota
+                    Cadastrar Carregamento
                   </Button>
                   <Button variant="secondary" onClick={() => navigate("/estoque/transferencia")}>
                     <ArrowRightLeft className="h-4 w-4 mr-2" />
@@ -611,105 +735,105 @@ export default function GestaoRotas() {
             </Card>
           </TabsContent>
 
-          {/* ===== TAB: ROTAS CIDADE ===== */}
-          <TabsContent value="rotas" className="space-y-4 mt-4">
-            <div className="flex items-center justify-between">
-              <Button onClick={openNew}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Rota
-              </Button>
-            </div>
-
-            <Card>
-              <CardContent className="p-0">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Bairros</TableHead>
-                        <TableHead>Distância</TableHead>
-                        <TableHead>Tempo Est.</TableHead>
-                        <TableHead>Ativa</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {rotas.map((rota) => (
-                        <TableRow key={rota.id}>
-                          <TableCell className="font-medium">{rota.nome}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {(rota.bairros as string[]).map((b) => (
-                                <Badge key={b} variant="outline" className="text-xs">{b}</Badge>
-                              ))}
-                            </div>
-                          </TableCell>
-                          <TableCell>{rota.distancia_km ? `${rota.distancia_km} km` : "—"}</TableCell>
-                          <TableCell>{rota.tempo_estimado || "—"}</TableCell>
-                          <TableCell>
-                            <Switch checked={rota.ativo} onCheckedChange={() => toggleAtivo(rota)} />
-                          </TableCell>
-                          <TableCell className="text-right space-x-1">
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(rota)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(rota.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {rotas.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                            Nenhuma rota cadastrada
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
         </Tabs>
       </div>
 
-      {/* Modal Nova/Editar Rota Cidade */}
+      {/* Modal Nova/Editar Rota */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5 text-primary" />
               {editingRota ? "Editar Rota" : "Nova Rota"}
             </DialogTitle>
-            <DialogDescription>Defina os bairros e informações da rota.</DialogDescription>
+            <DialogDescription>Defina as informações da rota.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
+            {/* Tipo */}
+            <div className="space-y-2">
+              <Label>Tipo de Rota *</Label>
+              <Select value={tipoRota} onValueChange={(v) => setTipoRota(v as "cidade" | "atacado")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cidade">🏘️ Cidade (bairros)</SelectItem>
+                  <SelectItem value="atacado">🚛 Atacado (cidades)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <Label>Nome da Rota *</Label>
               <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Rota Centro" />
             </div>
-            <div className="space-y-2">
-              <Label>Bairros (separados por vírgula)</Label>
-              <Input value={bairrosText} onChange={(e) => setBairrosText(e.target.value)} placeholder="Centro, Vila Nova, Jardim Europa" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Distância (km)</Label>
-                <Input type="number" value={distanciaKm} onChange={(e) => setDistanciaKm(e.target.value)} placeholder="12" />
-              </div>
-              <div className="space-y-2">
-                <Label>Tempo estimado</Label>
-                <Input value={tempoEstimado} onChange={(e) => setTempoEstimado(e.target.value)} placeholder="4h" />
-              </div>
-            </div>
+
+            {tipoRota === "cidade" ? (
+              <>
+                <div className="space-y-2">
+                  <Label>Bairros (separados por vírgula)</Label>
+                  <Input value={bairrosText} onChange={(e) => setBairrosText(e.target.value)} placeholder="Centro, Vila Nova, Jardim Europa" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Distância (km)</Label>
+                    <Input type="number" value={distanciaKm} onChange={(e) => setDistanciaKm(e.target.value)} placeholder="12" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tempo estimado</Label>
+                    <Input value={tempoEstimado} onChange={(e) => setTempoEstimado(e.target.value)} placeholder="4h" />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Atacado: adicionar cidades */}
+                <div className="space-y-2">
+                  <Label>Adicionar Cidade</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={cidadeInput}
+                      onChange={(e) => setCidadeInput(e.target.value)}
+                      placeholder="Ex: Londrina"
+                      onKeyDown={(e) => e.key === "Enter" && handleAddCidade()}
+                    />
+                    <Button variant="outline" size="icon" onClick={handleAddCidade} disabled={isGeocodingCidade || !cidadeInput.trim()}>
+                      {isGeocodingCidade ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+
+                {cidadesRota.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Cidades na rota</Label>
+                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                      {cidadesRota.map((c, i) => (
+                        <div key={i} className="flex items-center justify-between bg-muted/50 rounded px-3 py-1.5 text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-muted-foreground text-xs w-5">{i + 1}.</span>
+                            <span>{c.nome}</span>
+                            {c.km > 0 && (
+                              <Badge variant="outline" className="text-xs">{c.km} km</Badge>
+                            )}
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeCidade(i)}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t">
+                      <span className="text-sm font-medium">KM Total (estimado)</span>
+                      <Badge className="bg-primary text-primary-foreground">{Math.round(totalKmAtacado * 10) / 10} km</Badge>
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label>Tempo estimado</Label>
+                  <Input value={tempoEstimado} onChange={(e) => setTempoEstimado(e.target.value)} placeholder="6h" />
+                </div>
+              </>
+            )}
+
             <div className="flex gap-3 pt-2">
               <Button variant="outline" onClick={() => setModalOpen(false)} className="flex-1">Cancelar</Button>
               <Button onClick={handleSave} className="flex-1">Salvar</Button>
@@ -718,7 +842,7 @@ export default function GestaoRotas() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal Cadastrar Carregamento Atacado */}
+      {/* Modal Cadastrar Carregamento */}
       <CadastrarCarregamentoModal
         open={carregModalOpen}
         onOpenChange={setCarregModalOpen}
