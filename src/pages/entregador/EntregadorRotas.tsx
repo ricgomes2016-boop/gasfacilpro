@@ -1,262 +1,295 @@
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { EntregadorLayout } from "@/components/entregador/EntregadorLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   MapPin,
   Users,
   Package,
   Clock,
-  CheckCircle,
   Navigation,
-  TrendingUp,
+  RefreshCw,
+  Truck,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
-interface Rota {
-  id: number;
-  nome: string;
-  bairros: string[];
-  entregasPrevistas: number;
-  distanciaKm: number;
-  tempoEstimado: string;
-  status: "disponivel" | "ocupada" | "selecionada";
-  entregadorAtual?: string;
+interface CargaItem {
+  produto_nome: string;
+  quantidade_saida: number;
+  quantidade_vendida: number;
+  quantidade_transferida: number;
+  quantidade_restante: number;
 }
 
-const rotasDisponiveis: Rota[] = [
-  {
-    id: 1,
-    nome: "Rota Centro",
-    bairros: ["Centro", "Vila Nova", "Jardim Europa"],
-    entregasPrevistas: 15,
-    distanciaKm: 12,
-    tempoEstimado: "4h",
-    status: "disponivel",
-  },
-  {
-    id: 2,
-    nome: "Rota Zona Norte",
-    bairros: ["Santana", "Tucuruvi", "Tremembé"],
-    entregasPrevistas: 12,
-    distanciaKm: 18,
-    tempoEstimado: "5h",
-    status: "disponivel",
-  },
-  {
-    id: 3,
-    nome: "Rota Zona Sul",
-    bairros: ["Moema", "Itaim Bibi", "Brooklin"],
-    entregasPrevistas: 18,
-    distanciaKm: 15,
-    tempoEstimado: "5h30",
-    status: "ocupada",
-    entregadorAtual: "Pedro Santos",
-  },
-  {
-    id: 4,
-    nome: "Rota Zona Leste",
-    bairros: ["Tatuapé", "Penha", "Mooca"],
-    entregasPrevistas: 20,
-    distanciaKm: 22,
-    tempoEstimado: "6h",
-    status: "selecionada",
-  },
-  {
-    id: 5,
-    nome: "Rota Zona Oeste",
-    bairros: ["Pinheiros", "Perdizes", "Lapa"],
-    entregasPrevistas: 14,
-    distanciaKm: 14,
-    tempoEstimado: "4h30",
-    status: "disponivel",
-  },
-];
+interface RotaAtiva {
+  carregamento_id: string;
+  rota_nome: string;
+  bairros: string[];
+  distancia_km: number;
+  tempo_estimado: string | null;
+  data_saida: string;
+  itens: CargaItem[];
+}
 
 export default function EntregadorRotas() {
-  const [rotas, setRotas] = useState<Rota[]>(rotasDisponiveis);
-  const [rotaSelecionada, setRotaSelecionada] = useState<number | null>(4);
-  const { toast } = useToast();
+  const { user } = useAuth();
+  const [rotaAtiva, setRotaAtiva] = useState<RotaAtiva | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const selecionarRota = (rotaId: number) => {
-    const rota = rotas.find((r) => r.id === rotaId);
-    if (rota?.status === "ocupada") {
-      toast({
-        title: "Rota indisponível",
-        description: "Esta rota já está sendo atendida por outro entregador.",
-        variant: "destructive",
+  const fetchRotaAtiva = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { data: entregador } = await supabase
+        .from("entregadores")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!entregador) {
+        setIsLoading(false);
+        return;
+      }
+
+      // Get active carregamento with rota info
+      const { data: carregamento } = await supabase
+        .from("carregamentos_rota")
+        .select("id, data_saida, rota_definida_id, status")
+        .eq("entregador_id", entregador.id)
+        .eq("status", "em_rota")
+        .order("data_saida", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!carregamento) {
+        setRotaAtiva(null);
+        setIsLoading(false);
+        return;
+      }
+
+      // Get rota info
+      let rotaNome = "Rota sem nome";
+      let bairros: string[] = [];
+      let distanciaKm = 0;
+      let tempoEstimado: string | null = null;
+
+      if (carregamento.rota_definida_id) {
+        const { data: rota } = await supabase
+          .from("rotas_definidas")
+          .select("nome, bairros, distancia_km, tempo_estimado")
+          .eq("id", carregamento.rota_definida_id)
+          .maybeSingle();
+
+        if (rota) {
+          rotaNome = rota.nome || "Rota sem nome";
+          bairros = (rota.bairros as string[]) || [];
+          distanciaKm = Number(rota.distancia_km) || 0;
+          tempoEstimado = rota.tempo_estimado;
+        }
+      }
+
+      // Get cargo items
+      const { data: carregItens } = await supabase
+        .from("carregamento_rota_itens")
+        .select("quantidade_saida, quantidade_vendida, quantidade_transferida, produtos:produto_id(nome)")
+        .eq("carregamento_id", carregamento.id);
+
+      const itens: CargaItem[] = (carregItens || []).map((item: any) => ({
+        produto_nome: item.produtos?.nome || "Produto",
+        quantidade_saida: item.quantidade_saida || 0,
+        quantidade_vendida: item.quantidade_vendida || 0,
+        quantidade_transferida: item.quantidade_transferida || 0,
+        quantidade_restante:
+          (item.quantidade_saida || 0) -
+          (item.quantidade_vendida || 0) -
+          (item.quantidade_transferida || 0),
+      }));
+
+      setRotaAtiva({
+        carregamento_id: carregamento.id,
+        rota_nome: rotaNome,
+        bairros,
+        distancia_km: distanciaKm,
+        tempo_estimado: tempoEstimado,
+        data_saida: carregamento.data_saida,
+        itens,
       });
-      return;
+    } catch (err) {
+      console.error("Erro ao buscar rota:", err);
+    } finally {
+      setIsLoading(false);
     }
+  }, [user]);
 
-    setRotas((prev) =>
-      prev.map((r) => ({
-        ...r,
-        status:
-          r.id === rotaId
-            ? "selecionada"
-            : r.status === "selecionada"
-            ? "disponivel"
-            : r.status,
-      }))
-    );
-    setRotaSelecionada(rotaId);
-    toast({
-      title: "Rota selecionada!",
-      description: `Você selecionou a ${rota?.nome}.`,
-    });
-  };
+  useEffect(() => {
+    fetchRotaAtiva();
+  }, [fetchRotaAtiva]);
 
-  const rotaAtual = rotas.find((r) => r.status === "selecionada");
+  // Realtime
+  useEffect(() => {
+    const channel = supabase
+      .channel("rota-entregador")
+      .on("postgres_changes", { event: "*", schema: "public", table: "carregamentos_rota" }, () => fetchRotaAtiva())
+      .on("postgres_changes", { event: "*", schema: "public", table: "carregamento_rota_itens" }, () => fetchRotaAtiva())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchRotaAtiva]);
+
+  const totalSaida = rotaAtiva?.itens.reduce((acc, i) => acc + i.quantidade_saida, 0) || 0;
+  const totalVendido = rotaAtiva?.itens.reduce((acc, i) => acc + i.quantidade_vendida, 0) || 0;
+  const totalRestante = rotaAtiva?.itens.reduce((acc, i) => acc + i.quantidade_restante, 0) || 0;
 
   return (
     <EntregadorLayout title="Rotas">
       <div className="p-4 space-y-4">
-        {/* Rota atual */}
-        {rotaAtual && (
-          <Card className="border-none shadow-md gradient-primary text-white">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2 text-white">
-                <Navigation className="h-5 w-5" />
-                Sua Rota de Hoje
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <h3 className="text-xl font-bold mb-3">{rotaAtual.nome}</h3>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {rotaAtual.bairros.map((bairro) => (
-                  <Badge
-                    key={bairro}
-                    className="bg-white/20 text-white border-none"
-                  >
-                    {bairro}
-                  </Badge>
-                ))}
-              </div>
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <Package className="h-5 w-5 mx-auto mb-1 text-white/80" />
-                  <p className="text-lg font-bold">{rotaAtual.entregasPrevistas}</p>
-                  <p className="text-xs text-white/70">Entregas</p>
-                </div>
-                <div>
-                  <MapPin className="h-5 w-5 mx-auto mb-1 text-white/80" />
-                  <p className="text-lg font-bold">{rotaAtual.distanciaKm} km</p>
-                  <p className="text-xs text-white/70">Distância</p>
-                </div>
-                <div>
-                  <Clock className="h-5 w-5 mx-auto mb-1 text-white/80" />
-                  <p className="text-lg font-bold">{rotaAtual.tempoEstimado}</p>
-                  <p className="text-xs text-white/70">Tempo est.</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <div className="flex justify-end">
+          <Button variant="ghost" size="sm" onClick={() => { setIsLoading(true); fetchRotaAtiva(); }}>
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Atualizar
+          </Button>
+        </div>
 
-        {/* Lista de rotas */}
-        <Card className="border-none shadow-md">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-primary" />
-              Escolher Rota de Trabalho
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RadioGroup
-              value={String(rotaSelecionada)}
-              onValueChange={(value) => selecionarRota(Number(value))}
-            >
-              <div className="space-y-3">
-                {rotas.map((rota) => (
-                  <div
-                    key={rota.id}
-                    className={`relative p-4 rounded-lg border-2 transition-all ${
-                      rota.status === "selecionada"
-                        ? "border-primary bg-primary/5"
-                        : rota.status === "ocupada"
-                        ? "border-muted bg-muted/50 opacity-60"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <RadioGroupItem
-                        value={String(rota.id)}
-                        id={`rota-${rota.id}`}
-                        disabled={rota.status === "ocupada"}
-                        className="mt-1"
-                      />
-                      <Label
-                        htmlFor={`rota-${rota.id}`}
-                        className="flex-1 cursor-pointer"
+        {isLoading ? (
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full" />
+            ))}
+          </div>
+        ) : !rotaAtiva ? (
+          <div className="text-center py-16 text-muted-foreground">
+            <Truck className="h-16 w-16 mx-auto mb-4 opacity-40" />
+            <p className="text-lg font-medium">Nenhuma rota ativa</p>
+            <p className="text-sm mt-1">Sua rota aparecerá aqui quando o gestor cadastrar um carregamento para você.</p>
+          </div>
+        ) : (
+          <>
+            {/* Rota atual */}
+            <Card className="border-none shadow-md gradient-primary text-white">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2 text-white">
+                  <Navigation className="h-5 w-5" />
+                  Sua Rota de Hoje
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <h3 className="text-xl font-bold mb-3">{rotaAtiva.rota_nome}</h3>
+                {rotaAtiva.bairros.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {rotaAtiva.bairros.map((bairro, idx) => (
+                      <Badge
+                        key={idx}
+                        className="bg-white/20 text-white border-none"
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-semibold">{rota.nome}</span>
-                          {rota.status === "selecionada" && (
-                            <Badge className="bg-primary text-white">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Selecionada
-                            </Badge>
-                          )}
-                          {rota.status === "ocupada" && (
-                            <Badge variant="secondary">
-                              <Users className="h-3 w-3 mr-1" />
-                              {rota.entregadorAtual}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          {rota.bairros.map((bairro) => (
-                            <Badge
-                              key={bairro}
-                              variant="outline"
-                              className="text-xs"
-                            >
-                              {bairro}
-                            </Badge>
-                          ))}
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Package className="h-4 w-4" />
-                            {rota.entregasPrevistas} entregas
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-4 w-4" />
-                            {rota.distanciaKm} km
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            {rota.tempoEstimado}
-                          </span>
-                        </div>
-                      </Label>
-                    </div>
+                        {bairro}
+                      </Badge>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </RadioGroup>
-          </CardContent>
-        </Card>
+                )}
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <Package className="h-5 w-5 mx-auto mb-1 text-white/80" />
+                    <p className="text-lg font-bold">{totalSaida}</p>
+                    <p className="text-xs text-white/70">Carregado</p>
+                  </div>
+                  <div>
+                    <MapPin className="h-5 w-5 mx-auto mb-1 text-white/80" />
+                    <p className="text-lg font-bold">{rotaAtiva.distancia_km} km</p>
+                    <p className="text-xs text-white/70">Distância</p>
+                  </div>
+                  <div>
+                    <Clock className="h-5 w-5 mx-auto mb-1 text-white/80" />
+                    <p className="text-lg font-bold">{rotaAtiva.tempo_estimado || "-"}</p>
+                    <p className="text-xs text-white/70">Tempo est.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Dica */}
-        <Card className="border-none shadow-md bg-info/5 border-info/20">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <TrendingUp className="h-5 w-5 text-info mt-0.5" />
-              <div>
-                <p className="font-medium text-sm">Dica de performance</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Rotas com mais entregas rendem mais pontos no ranking. A Rota
-                  Zona Leste tem o maior número de entregas previstas hoje!
-                </p>
-              </div>
+            {/* Summary cards */}
+            <div className="grid grid-cols-3 gap-3">
+              <Card className="border-none shadow-md">
+                <CardContent className="p-3 text-center">
+                  <p className="text-2xl font-bold text-primary">{totalSaida}</p>
+                  <p className="text-xs text-muted-foreground">Carregado</p>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-md">
+                <CardContent className="p-3 text-center">
+                  <p className="text-2xl font-bold text-orange-500">{totalVendido}</p>
+                  <p className="text-xs text-muted-foreground">Vendido</p>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-md">
+                <CardContent className="p-3 text-center">
+                  <p className="text-2xl font-bold text-green-600">{totalRestante}</p>
+                  <p className="text-xs text-muted-foreground">Restante</p>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
+
+            {rotaAtiva.data_saida && (
+              <p className="text-xs text-muted-foreground text-center">
+                Rota iniciada em {new Date(rotaAtiva.data_saida).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+              </p>
+            )}
+
+            {/* Item list */}
+            <Card className="border-none shadow-md">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Package className="h-5 w-5 text-primary" />
+                  Carga da Rota
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {rotaAtiva.itens.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-4">Nenhum produto carregado</p>
+                ) : (
+                  rotaAtiva.itens.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{item.produto_nome}</p>
+                        <div className="flex gap-2 mt-1">
+                          <span className="text-xs text-muted-foreground">
+                            Saída: {item.quantidade_saida}
+                          </span>
+                          <span className="text-xs text-orange-500">
+                            Vend: {item.quantidade_vendida}
+                          </span>
+                          {item.quantidade_transferida > 0 && (
+                            <span className="text-xs text-blue-500">
+                              Transf: {item.quantidade_transferida}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <Badge
+                        className={
+                          item.quantidade_restante <= 0
+                            ? "bg-destructive text-destructive-foreground"
+                            : item.quantidade_restante <= 2
+                            ? "bg-orange-500 text-white"
+                            : "bg-green-600 text-white"
+                        }
+                      >
+                        {item.quantidade_restante}
+                      </Badge>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </EntregadorLayout>
   );
