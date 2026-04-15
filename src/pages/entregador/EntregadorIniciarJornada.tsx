@@ -551,7 +551,12 @@ export default function EntregadorIniciarJornada() {
             </Select>
             {rotaInfo && (
               <div className="p-3 bg-primary/5 rounded-lg space-y-2">
-                <p className="font-medium text-sm">{rotaInfo.nome}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-sm">{rotaInfo.nome}</p>
+                  {rotaInfo.tipo === "atacado" && (
+                    <Badge className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/30">Atacado</Badge>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-1">
                   {(rotaInfo.bairros as string[]).map((b) => (
                     <Badge key={b} variant="outline" className="text-xs">{b}</Badge>
@@ -564,6 +569,52 @@ export default function EntregadorIniciarJornada() {
                   {rotaInfo.tempo_estimado && (
                     <span>{rotaInfo.tempo_estimado}</span>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* City selection for atacado routes */}
+            {rotaInfo?.tipo === "atacado" && cidadesRota.length > 0 && (
+              <div className="p-3 border rounded-lg space-y-2">
+                <p className="text-sm font-medium flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  Cidades da rota
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Selecione as cidades que você irá percorrer hoje
+                </p>
+                <div className="space-y-1.5 mt-2">
+                  {cidadesRota.map((cidade) => {
+                    const isFixed = !cidade.opcional;
+                    const isChecked = cidadesSelecionadas.includes(cidade.nome);
+                    return (
+                      <div
+                        key={cidade.nome}
+                        className={`flex items-center gap-3 p-2 rounded-lg ${
+                          isChecked ? "bg-primary/5" : "bg-muted/30"
+                        }`}
+                      >
+                        <Checkbox
+                          checked={isChecked}
+                          disabled={isFixed}
+                          onCheckedChange={() => toggleCidade(cidade.nome)}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium truncate">{cidade.nome}</span>
+                            {cidade.opcional && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-dashed">
+                                Opcional
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {cidade.km} km
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
