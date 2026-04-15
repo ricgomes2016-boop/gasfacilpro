@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Eye, EyeOff, ShoppingBag, AlertTriangle } from "lucide-react";
-import logoImg from "@/assets/logo.png";
+import iconCliente from "@/assets/icons/icon-cliente.png";
 import { detectSubdomainApp } from "@/lib/subdomain";
 
 interface EmpresaInfo {
@@ -277,8 +277,8 @@ export default function AuthCliente() {
                 className="h-16 w-16 rounded-2xl object-cover shadow-lg"
               />
             ) : (
-              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg">
-                <img src={logoImg} alt="Gás Fácil" className="h-12 w-12 object-contain" />
+              <div className="h-16 w-16 rounded-2xl overflow-hidden shadow-lg">
+                <img src={iconCliente} alt="Cliente" className="h-16 w-16 object-cover" />
               </div>
             )}
           </div>
