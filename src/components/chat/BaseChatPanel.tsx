@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useChatNotification } from "@/hooks/useChatNotification";
 
 interface ChatMsg {
   id: string;
@@ -44,6 +45,7 @@ export function BaseChatPanel() {
   const { user } = useAuth();
   const [unidadeIds, setUnidadeIds] = useState<string[]>([]);
   const [userName, setUserName] = useState<string>("");
+  const { notify } = useChatNotification();
 
   useEffect(() => {
     if (!user) return;
@@ -193,7 +195,9 @@ export function BaseChatPanel() {
         { event: "INSERT", schema: "public", table: "chat_mensagens" },
         (payload) => {
           const msg = payload.new as any;
-          if (msg.destinatario_tipo === "base" && unidadeIds.includes(msg.destinatario_id)) {
+          if (msg.remetente_tipo === "entregador" && msg.destinatario_tipo === "base" && unidadeIds.includes(msg.destinatario_id)) {
+            // Notify with sound + browser notification
+            notify(msg.remetente_nome || "Entregador", msg.mensagem || "Nova mensagem");
             if (selectedThread && msg.remetente_id === selectedThread.entregador_id) {
               setMessages((prev) => [...prev, msg as ChatMsg]);
               supabase.rpc("marcar_msg_lida" as any, { _msg_id: msg.id }).then();
