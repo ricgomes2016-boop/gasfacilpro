@@ -1,39 +1,48 @@
 
 
-## Plano: Seleção de cidades no app do entregador para rotas atacado
+## Plano: Notificacoes de Chat com som e alerta nativo (ERP + App Entregador)
 
-### Problema
-Quando o entregador seleciona uma rota do tipo "atacado" no app, ele não pode escolher quais cidades vai percorrer naquele dia. Algumas cidades são opcionais e ele precisa marcar quais visitará.
+### Problemas identificados
 
-### Solução
-Ao selecionar uma rota atacado na tela de Iniciar Jornada, exibir a lista de cidades da rota com checkboxes. Cidades fixas ficam marcadas e desabilitadas. Cidades opcionais podem ser marcadas/desmarcadas pelo entregador.
+1. **ERP (BaseChatPanel)**: A notificacao via `useChatNotification` so dispara quando o painel esta fechado, mas nao solicita permissao de forma proativa. O som pode falhar se o navegador bloquear autoplay. Nao notifica quando o usuario esta em outras telas com o chat fechado.
 
-### Mudanças técnicas
+2. **App Entregador (ChatBase)**: Nao tem NENHUM som nem notificacao nativa quando a base envia mensagem. Apenas atualiza o contador de nao-lidas silenciosamente.
 
-| Arquivo | Mudança |
+### Solucao
+
+**1. ERP - Melhorar notificacao no BaseChatPanel**
+- Solicitar permissao de notificacao ao montar o componente (proativo)
+- Garantir que o som toca mesmo com o painel aberto em outra thread
+- Usar `requireInteraction: true` para a notificacao persistir no Windows
+- Adicionar fallback: tocar som via interacao do usuario para desbloquear autoplay
+
+**2. App Entregador - Adicionar som + notificacao nativa no ChatBase**
+- Importar e usar `useChatNotification` no `ChatBase.tsx`
+- No handler de realtime, quando `isForMe && !selectedPeer` (mensagem recebida e nao esta na conversa), disparar `notify(remetente_nome, mensagem)`
+- Tambem disparar quando esta na conversa mas em outra thread
+- Solicitar permissao de notificacao ao abrir o app do entregador
+
+**3. Melhorar useChatNotification**
+- Adicionar solicitacao de permissao mais agressiva (retry)
+- Usar Service Worker notification quando disponivel (funciona mesmo minimizado)
+- Garantir que o som pre-carregado funciona cross-browser
+
+### Mudancas tecnicas
+
+| Arquivo | Mudanca |
 |---|---|
-| `EntregadorIniciarJornada.tsx` | Buscar `tipo` e `cidades` da `rotas_definidas`. Quando rota atacado selecionada, exibir lista de cidades com checkboxes. Cidades não-opcionais = sempre marcadas. Cidades opcionais = toggle. Salvar seleção junto com a jornada. |
+| `src/hooks/useChatNotification.ts` | Melhorar: SW notification, retry de permissao, som mais robusto |
+| `src/components/chat/BaseChatPanel.tsx` | Solicitar permissao proativamente, notificar em qualquer thread |
+| `src/components/entregador/ChatBase.tsx` | Importar `useChatNotification`, disparar notify no realtime para mensagens recebidas |
 
-### Interface atualizada `RotaDefinida`
-```text
-interface RotaDefinida {
-  id: string;
-  nome: string;
-  bairros: string[];
-  distancia_km: number | null;
-  tempo_estimado: string | null;
-  tipo?: string;
-  cidades?: CidadeRota[];
-}
-```
+### Logica de notificacao
 
-### UI no app entregador
-- Após selecionar rota atacado, aparece card com lista de cidades
-- Cada cidade mostra: checkbox + nome + KM + badge "Opcional" (se aplicável)
-- Cidades fixas (`opcional: false`): checkbox marcado e desabilitado
-- Cidades opcionais (`opcional: true`): checkbox editável pelo entregador
-- Visual compacto, integrado ao card de rota existente (seção 3)
+**ERP**: Quando chega mensagem de entregador:
+- Se chat fechado: som + notificacao nativa
+- Se chat aberto mas em outra thread: som + notificacao nativa
+- Se chat aberto na mesma thread: sem som (usuario ja esta vendo)
 
-### Dados salvos
-- As cidades selecionadas são salvas no registro da rota (`rotas` table) em campo `observacoes` ou similar como JSON, para rastreabilidade de quais cidades o entregador escolheu naquele dia
+**Entregador**: Quando chega mensagem da base ou outro entregador:
+- Se nao esta na conversa do remetente: som + notificacao nativa
+- Se esta na conversa: sem som
 
