@@ -705,7 +705,7 @@ export default function EntregadorIniciarJornada() {
           </CardContent>
         </Card>
 
-        {/* Estoque / Carga */}
+        {/* Estoque / Carga - espelho real do carregamento */}
         <Card className="border-none shadow-md">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -714,34 +714,76 @@ export default function EntregadorIniciarJornada() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground mb-3">
-              Informe a quantidade de cada produto que está levando (opcional)
-            </p>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {produtos.filter(p => p.categoria === "Gás" || p.categoria === "Água").map((p) => (
-                <div key={p.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{p.nome}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Estoque: {p.estoque ?? 0}
-                    </p>
-                  </div>
-                  <Input
-                    type="number"
-                    className="w-20 h-8 text-center"
-                    placeholder="0"
-                    min={0}
-                    value={estoqueCarga[p.id] || ""}
-                    onChange={(e) => handleEstoqueChange(p.id, parseInt(e.target.value) || 0)}
-                  />
-                </div>
-              ))}
-              {produtos.filter(p => p.categoria === "Gás" || p.categoria === "Água").length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Nenhum produto de Gás/Água cadastrado.
+            {!rotaSelecionada ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Selecione uma rota para ver a carga disponível.
+              </p>
+            ) : isLoadingCarga ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <span className="ml-2 text-sm text-muted-foreground">Carregando carga...</span>
+              </div>
+            ) : cargaReal.length === 0 ? (
+              <div className="text-center py-4">
+                <Package className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma carga iniciada para esta rota.
                 </p>
-              )}
-            </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  O gestor precisa criar um carregamento no ERP.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Summary */}
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  <div className="text-center p-2 bg-muted/50 rounded-lg">
+                    <p className="text-lg font-bold text-primary">{cargaReal.reduce((a, i) => a + i.quantidade_saida, 0)}</p>
+                    <p className="text-[10px] text-muted-foreground">Carregado</p>
+                  </div>
+                  <div className="text-center p-2 bg-muted/50 rounded-lg">
+                    <p className="text-lg font-bold text-orange-500">{cargaReal.reduce((a, i) => a + i.quantidade_vendida, 0)}</p>
+                    <p className="text-[10px] text-muted-foreground">Vendido</p>
+                  </div>
+                  <div className="text-center p-2 bg-muted/50 rounded-lg">
+                    <p className="text-lg font-bold text-blue-500">{cargaReal.reduce((a, i) => a + i.quantidade_transferida, 0)}</p>
+                    <p className="text-[10px] text-muted-foreground">Transf.</p>
+                  </div>
+                  <div className="text-center p-2 bg-muted/50 rounded-lg">
+                    <p className="text-lg font-bold text-green-600">{cargaReal.reduce((a, i) => a + i.quantidade_restante, 0)}</p>
+                    <p className="text-[10px] text-muted-foreground">Restante</p>
+                  </div>
+                </div>
+                {/* Item list */}
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {cargaReal.map((item) => (
+                    <div key={item.produto_id} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{item.produto_nome}</p>
+                        <div className="flex gap-2 mt-0.5">
+                          <span className="text-xs text-muted-foreground">Saída: {item.quantidade_saida}</span>
+                          <span className="text-xs text-orange-500">Vend: {item.quantidade_vendida}</span>
+                          {item.quantidade_transferida > 0 && (
+                            <span className="text-xs text-blue-500">Transf: {item.quantidade_transferida}</span>
+                          )}
+                        </div>
+                      </div>
+                      <Badge
+                        className={
+                          item.quantidade_restante <= 0
+                            ? "bg-destructive text-destructive-foreground"
+                            : item.quantidade_restante <= 2
+                            ? "bg-orange-500 text-white"
+                            : "bg-green-600 text-white"
+                        }
+                      >
+                        {item.quantidade_restante}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
