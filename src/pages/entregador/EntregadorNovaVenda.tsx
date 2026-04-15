@@ -108,6 +108,9 @@ export default function EntregadorNovaVenda() {
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [canalVenda, setCanalVenda] = useState("");
   const [observacao, setObservacao] = useState("");
+  const [dialogClienteAberto, setDialogClienteAberto] = useState(false);
+  const [buscaCliente, setBuscaCliente] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Voice / AI command state
   const [aiCommand, setAiCommand] = useState("");
