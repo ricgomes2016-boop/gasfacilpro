@@ -148,7 +148,7 @@ export default function EntregadorIniciarJornada() {
           .from("escalas_entregador")
           .select(`
             id, data, turno_inicio, turno_fim, status, rota_definida_id,
-            rotas_definidas:rota_definida_id (id, nome, bairros, distancia_km, tempo_estimado)
+            rotas_definidas:rota_definida_id (id, nome, bairros, distancia_km, tempo_estimado, tipo, cidades)
           `)
           .eq("entregador_id", entregador.id)
           .eq("data", hoje)
