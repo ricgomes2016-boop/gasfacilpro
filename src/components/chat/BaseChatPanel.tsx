@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useChatNotification } from "@/hooks/useChatNotification";
 
 interface ChatMsg {
   id: string;
