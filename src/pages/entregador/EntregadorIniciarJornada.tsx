@@ -194,14 +194,76 @@ export default function EntregadorIniciarJornada() {
     }
   };
 
-  const handleEstoqueChange = (produtoId: string, qtd: number) => {
-    setEstoqueCarga((prev) => ({ ...prev, [produtoId]: qtd }));
+  // Fetch real cargo when route changes
+  const fetchCargaReal = useCallback(async (rotaDefId: string) => {
+    if (!entregadorId) return;
+    setIsLoadingCarga(true);
+    setCargaReal([]);
+    setCarregamentoId(null);
+    try {
+      // Find active carregamento for this entregador + rota
+      const { data: carreg } = await supabase
+        .from("carregamentos_rota")
+        .select("id")
+        .eq("entregador_id", entregadorId)
+        .eq("status", "em_rota")
+        .eq("rota_definida_id", rotaDefId)
+        .order("data_saida", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!carreg) {
+        // Fallback: any active carregamento for this entregador
+        const { data: carregFallback } = await supabase
+          .from("carregamentos_rota")
+          .select("id")
+          .eq("entregador_id", entregadorId)
+          .eq("status", "em_rota")
+          .order("data_saida", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!carregFallback) {
+          setIsLoadingCarga(false);
+          return;
+        }
+        setCarregamentoId(carregFallback.id);
+        await loadCargaItens(carregFallback.id);
+      } else {
+        setCarregamentoId(carreg.id);
+        await loadCargaItens(carreg.id);
+      }
+    } catch (err) {
+      console.error("Erro ao buscar carga:", err);
+    } finally {
+      setIsLoadingCarga(false);
+    }
+  }, [entregadorId]);
+
+  const loadCargaItens = async (carregId: string) => {
+    const { data: itens } = await supabase
+      .from("carregamento_rota_itens")
+      .select("produto_id, quantidade_saida, quantidade_vendida, quantidade_transferida, produtos:produto_id(nome)")
+      .eq("carregamento_id", carregId);
+
+    if (itens) {
+      setCargaReal(
+        itens.map((item: any) => ({
+          produto_id: item.produto_id,
+          produto_nome: item.produtos?.nome || "Produto",
+          quantidade_saida: item.quantidade_saida || 0,
+          quantidade_vendida: item.quantidade_vendida || 0,
+          quantidade_transferida: item.quantidade_transferida || 0,
+          quantidade_restante: (item.quantidade_saida || 0) - (item.quantidade_vendida || 0) - (item.quantidade_transferida || 0),
+        }))
+      );
+    }
   };
 
   const veiculoInfo = veiculos.find((v) => v.id === veiculoSelecionado);
   const rotaInfo = rotasDefinidas.find((r) => r.id === rotaSelecionada);
 
-  // When route changes, pre-select cities (fixed = always, optional = unchecked)
+  // When route changes, pre-select cities and fetch cargo
   useEffect(() => {
     if (rotaInfo?.tipo === "atacado" && rotaInfo.cidades) {
       const fixas = (rotaInfo.cidades as CidadeRota[])
@@ -210,6 +272,13 @@ export default function EntregadorIniciarJornada() {
       setCidadesSelecionadas(fixas);
     } else {
       setCidadesSelecionadas([]);
+    }
+    // Fetch real cargo for this route
+    if (rotaSelecionada) {
+      fetchCargaReal(rotaSelecionada);
+    } else {
+      setCargaReal([]);
+      setCarregamentoId(null);
     }
   }, [rotaSelecionada]);
 
@@ -240,10 +309,14 @@ export default function EntregadorIniciarJornada() {
 
     setIsIniciando(true);
     try {
-      // Build observacoes with selected cities for atacado routes
-      const obsData = rotaInfo?.tipo === "atacado" && cidadesSelecionadas.length > 0
-        ? JSON.stringify({ cidades_selecionadas: cidadesSelecionadas })
-        : null;
+      // Build observacoes with route/cargo/cities info
+      const obsPayload: Record<string, any> = {};
+      if (rotaSelecionada) obsPayload.rota_definida_id = rotaSelecionada;
+      if (carregamentoId) obsPayload.carregamento_id = carregamentoId;
+      if (rotaInfo?.tipo === "atacado" && cidadesSelecionadas.length > 0) {
+        obsPayload.cidades_selecionadas = cidadesSelecionadas;
+      }
+      const obsData = Object.keys(obsPayload).length > 0 ? JSON.stringify(obsPayload) : null;
 
       // Create route record
       const { error: rotaError } = await supabase.from("rotas").insert({
