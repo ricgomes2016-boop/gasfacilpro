@@ -31,7 +31,6 @@ import {
   Plus,
   Minus,
   Trash2,
-  CreditCard,
   CheckCircle,
   Search,
   Sparkles,
@@ -43,8 +42,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { PixKeySelectorModal } from "@/components/pagamento/PixKeySelectorModal";
-import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
+import { PaymentSection, Pagamento } from "@/components/vendas/PaymentSection";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 
 interface ProdutoDB {
