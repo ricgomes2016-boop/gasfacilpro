@@ -1,48 +1,31 @@
 
 
-## Plano: Notificacoes de Chat com som e alerta nativo (ERP + App Entregador)
+## Diagnostico: Estoque do entregador nao aparecendo
 
-### Problemas identificados
+### Causa raiz identificada
 
-1. **ERP (BaseChatPanel)**: A notificacao via `useChatNotification` so dispara quando o painel esta fechado, mas nao solicita permissao de forma proativa. O som pode falhar se o navegador bloquear autoplay. Nao notifica quando o usuario esta em outras telas com o chat fechado.
+Verifiquei todos os dados no banco:
+- O carregamento do Flavio Henrique **existe** com status `em_rota` e 600 P13
+- O `user_id` esta vinculado corretamente
+- As politicas RLS estao corretas
+- O produto existe e e acessivel
 
-2. **App Entregador (ChatBase)**: Nao tem NENHUM som nem notificacao nativa quando a base envia mensagem. Apenas atualiza o contador de nao-lidas silenciosamente.
+O problema esta no **Realtime do componente `EntregadorEstoque.tsx`**: ele escuta mudancas nas tabelas `carregamento_rota_itens` e `pedidos`, mas **NAO escuta a tabela `carregamentos_rota`**. Quando um novo carregamento e criado no ERP (mudanca na tabela `carregamentos_rota`), o app do entregador nao detecta e continua mostrando "Nenhuma rota ativa".
+
+O entregador so veria o estoque se:
+1. Fizesse refresh manual (botao Atualizar)
+2. Navegasse para outra tela e voltasse
+3. Recarregasse o app
 
 ### Solucao
 
-**1. ERP - Melhorar notificacao no BaseChatPanel**
-- Solicitar permissao de notificacao ao montar o componente (proativo)
-- Garantir que o som toca mesmo com o painel aberto em outra thread
-- Usar `requireInteraction: true` para a notificacao persistir no Windows
-- Adicionar fallback: tocar som via interacao do usuario para desbloquear autoplay
-
-**2. App Entregador - Adicionar som + notificacao nativa no ChatBase**
-- Importar e usar `useChatNotification` no `ChatBase.tsx`
-- No handler de realtime, quando `isForMe && !selectedPeer` (mensagem recebida e nao esta na conversa), disparar `notify(remetente_nome, mensagem)`
-- Tambem disparar quando esta na conversa mas em outra thread
-- Solicitar permissao de notificacao ao abrir o app do entregador
-
-**3. Melhorar useChatNotification**
-- Adicionar solicitacao de permissao mais agressiva (retry)
-- Usar Service Worker notification quando disponivel (funciona mesmo minimizado)
-- Garantir que o som pre-carregado funciona cross-browser
+Adicionar a tabela `carregamentos_rota` ao listener de Realtime no `EntregadorEstoque.tsx`, para que quando um novo carregamento for criado ou atualizado, o estoque atualize automaticamente.
 
 ### Mudancas tecnicas
 
 | Arquivo | Mudanca |
 |---|---|
-| `src/hooks/useChatNotification.ts` | Melhorar: SW notification, retry de permissao, som mais robusto |
-| `src/components/chat/BaseChatPanel.tsx` | Solicitar permissao proativamente, notificar em qualquer thread |
-| `src/components/entregador/ChatBase.tsx` | Importar `useChatNotification`, disparar notify no realtime para mensagens recebidas |
+| `EntregadorEstoque.tsx` | Adicionar `.on("postgres_changes", { event: "*", schema: "public", table: "carregamentos_rota" }, () => fetchEstoque())` ao canal Realtime existente |
 
-### Logica de notificacao
-
-**ERP**: Quando chega mensagem de entregador:
-- Se chat fechado: som + notificacao nativa
-- Se chat aberto mas em outra thread: som + notificacao nativa
-- Se chat aberto na mesma thread: sem som (usuario ja esta vendo)
-
-**Entregador**: Quando chega mensagem da base ou outro entregador:
-- Se nao esta na conversa do remetente: som + notificacao nativa
-- Se esta na conversa: sem som
+Mudanca de 1 linha no useEffect do Realtime (linha 94-98).
 
