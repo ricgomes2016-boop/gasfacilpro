@@ -33,6 +33,7 @@ interface RotaAtacadoMapPickerProps {
   onCidadesChange: (cidades: CidadeRota[]) => void;
   totalKm: number;
   origem?: OrigemInfo | null;
+  onTempoEstimadoChange?: (tempo: string) => void;
 }
 
 async function searchCidades(query: string): Promise<SearchResult[]> {
@@ -55,9 +56,13 @@ async function searchCidades(query: string): Promise<SearchResult[]> {
   });
 }
 
-// Returns cumulative KM from origin for each coordinate
-async function getOSRMDistanceCumulative(coords: { lat: number; lng: number }[]): Promise<number[]> {
-  if (coords.length < 2) return coords.map(() => 0);
+interface OSRMResult {
+  kms: number[];
+  totalDurationMin: number;
+}
+
+async function getOSRMDistanceCumulative(coords: { lat: number; lng: number }[]): Promise<OSRMResult> {
+  if (coords.length < 2) return { kms: coords.map(() => 0), totalDurationMin: 0 };
   const coordStr = coords.map((c) => `${c.lng},${c.lat}`).join(";");
   try {
     const res = await fetch(
@@ -65,18 +70,20 @@ async function getOSRMDistanceCumulative(coords: { lat: number; lng: number }[])
     );
     const data = await res.json();
     if (data.code !== "Ok" || !data.routes?.[0]?.legs) {
-      return coords.map(() => 0);
+      return { kms: coords.map(() => 0), totalDurationMin: 0 };
     }
     const legs = data.routes[0].legs;
     const kms: number[] = [0];
-    let cumulative = 0;
+    let cumKm = 0;
+    let totalSec = 0;
     for (const leg of legs) {
-      cumulative += leg.distance / 1000;
-      kms.push(Math.round(cumulative * 10) / 10);
+      cumKm += leg.distance / 1000;
+      totalSec += leg.duration || 0;
+      kms.push(Math.round(cumKm * 10) / 10);
     }
-    return kms;
+    return { kms, totalDurationMin: Math.round(totalSec / 60) };
   } catch {
-    return coords.map(() => 0);
+    return { kms: coords.map(() => 0), totalDurationMin: 0 };
   }
 }
 
