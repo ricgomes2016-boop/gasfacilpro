@@ -30,6 +30,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { TerminalQRScanner } from "@/components/entregador/TerminalQRScanner";
+import { Checkbox } from "@/components/ui/checkbox";
+
+interface CidadeRota {
+  nome: string;
+  lat: number;
+  lng: number;
+  km: number;
+  opcional?: boolean;
+}
 
 interface Veiculo {
   id: string;
