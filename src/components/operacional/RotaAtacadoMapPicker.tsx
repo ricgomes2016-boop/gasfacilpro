@@ -119,9 +119,28 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
       polylineRef.current = null;
     }
 
-    if (cidades.length === 0) return;
-
     const bounds: L.LatLngExpression[] = [];
+
+    // Show origin marker
+    if (origem) {
+      const originMarker = L.circleMarker([origem.lat, origem.lng], {
+        radius: 10,
+        fillColor: "#ef4444",
+        color: "#fff",
+        weight: 2,
+        fillOpacity: 0.9,
+      })
+        .bindTooltip(`🏭 ${origem.nome} (Origem)`, { permanent: false })
+        .addTo(map);
+      markersRef.current.push(originMarker);
+      bounds.push([origem.lat, origem.lng]);
+    }
+
+    if (cidades.length === 0 && bounds.length > 0) {
+      map.setView([origem!.lat, origem!.lng], 9);
+      return;
+    }
+
     cidades.forEach((c, i) => {
       const color = i === 0 ? "#22c55e" : "#3b82f6";
       const marker = L.circleMarker([c.lat, c.lng], {
@@ -137,17 +156,21 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
       bounds.push([c.lat, c.lng]);
     });
 
-    if (cidades.length >= 2) {
-      polylineRef.current = L.polyline(
-        cidades.map((c) => [c.lat, c.lng] as L.LatLngExpression),
-        { color: "#3b82f6", weight: 3, opacity: 0.7, dashArray: "8,6" }
-      ).addTo(map);
+    // Draw polyline including origin
+    const polyCoords: L.LatLngExpression[] = [];
+    if (origem) polyCoords.push([origem.lat, origem.lng]);
+    cidades.forEach(c => polyCoords.push([c.lat, c.lng]));
+    
+    if (polyCoords.length >= 2) {
+      polylineRef.current = L.polyline(polyCoords, {
+        color: "#3b82f6", weight: 3, opacity: 0.7, dashArray: "8,6"
+      }).addTo(map);
     }
 
     if (bounds.length > 0) {
       map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [30, 30], maxZoom: 12 });
     }
-  }, [cidades]);
+  }, [cidades, origem]);
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) return;
