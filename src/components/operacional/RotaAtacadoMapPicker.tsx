@@ -22,10 +22,17 @@ interface SearchResult {
   lng: number;
 }
 
+interface OrigemInfo {
+  nome: string;
+  lat: number;
+  lng: number;
+}
+
 interface RotaAtacadoMapPickerProps {
   cidades: CidadeRota[];
   onCidadesChange: (cidades: CidadeRota[]) => void;
   totalKm: number;
+  origem?: OrigemInfo | null;
 }
 
 async function searchCidades(query: string): Promise<SearchResult[]> {
