@@ -1,35 +1,38 @@
 
 
-## Plano: Atualizar `quantidade_transferida` no carregamento ao fazer transferência pelo ERP
+## Plano: Corrigir histórico do app entregador + Permitir múltiplas formas de pagamento
 
-### Problema
-Quando uma transferência de estoque é feita pelo ERP (página Estoque > Transferência), o sistema **não atualiza** o campo `quantidade_transferida` na tabela `carregamento_rota_itens`. Isso faz com que:
-- O app do entregador continue mostrando 672 (sem descontar a transferência)
-- A aba Carregamento em Gestão Operacional também não reflita a saída
+### Problema 1: Vendas não aparecem no histórico do app
 
-Apenas transferências feitas pelo **app do entregador** atualizam corretamente esse campo.
+A página `EntregadorHistorico.tsx` filtra pedidos com `.eq("status", "entregue")` (linha 86), mas a `EntregadorNovaVenda.tsx` insere pedidos com `status: "finalizado"` (linha 428). Por isso as vendas feitas pelo app nunca aparecem no histórico.
 
-### Solução
-Adicionar a mesma lógica de atualização de `carregamento_rota_itens.quantidade_transferida` na página de transferência do ERP (`TransferenciaEstoque.tsx`), similar ao que já existe no `EntregadorTransferencia.tsx`.
+**Correção**: Alterar o filtro do histórico para incluir ambos os status: `.in("status", ["entregue", "finalizado"])`.
 
-### Alterações
+### Problema 2: Pagamento único no app do entregador
 
-**1. `src/pages/estoque/TransferenciaEstoque.tsx`**
-- Após criar a transferência com sucesso (status `pendente` ou `em_transito`), verificar se a `unidade_origem_id` tem algum carregamento ativo (`status = "em_rota"`)
-- Se existir, para cada item transferido, buscar o `carregamento_rota_itens` correspondente (mesmo `produto_id`) e somar a quantidade ao `quantidade_transferida`
-- Usar a mesma lógica já existente no `EntregadorTransferencia.tsx` (linhas 167-195)
+Hoje o app usa um Select simples para uma única forma de pagamento. O ERP já possui o componente `PaymentSection` que permite múltiplas formas (dinheiro + pix, por exemplo).
 
-**2. `src/pages/operacional/GestaoRotas.tsx`**
-- Na aba Carregamento, ao exibir cada item, mostrar o saldo real: `quantidade_saida - quantidade_vendida - quantidade_transferida`
-- Adicionar coluna ou badge de "Transferido" quando `quantidade_transferida > 0`
-- O badge na listagem deve mostrar o saldo restante, não apenas `quantidade_saida`
+**Solução**: Substituir o Select de pagamento único por uma versão adaptada do `PaymentSection` existente no app do entregador. Isso requer:
+
+1. **Adaptar o `PaymentSection`** para funcionar no contexto do entregador (aceita `unidadeId` como prop em vez de usar `useUnidade`)
+2. **Atualizar `EntregadorNovaVenda.tsx`**:
+   - Trocar `formaPagamento` (string) por `pagamentos` (array de `Pagamento[]`)
+   - Usar o `PaymentSection` no lugar do Select atual
+   - Ao salvar o pedido, gravar `forma_pagamento` como a lista concatenada (ex: "dinheiro, pix") ou a forma principal
+   - Validar que o total pago cobre o total da venda
+3. **Remover** os modais PIX/Card avulsos que estão duplicados no EntregadorNovaVenda (já existem dentro do PaymentSection)
+
+### Arquivos envolvidos
+
+| Arquivo | Mudança |
+|---|---|
+| `src/pages/entregador/EntregadorHistorico.tsx` | Filtro `.eq("status", "entregue")` → `.in("status", ["entregue", "finalizado"])` |
+| `src/pages/entregador/EntregadorNovaVenda.tsx` | Substituir Select de pagamento por `PaymentSection`, adaptar estado e lógica de finalização |
+| `src/components/vendas/PaymentSection.tsx` | Adicionar prop opcional `unidadeId` para uso fora do contexto `UnidadeContext` |
 
 ### Detalhes técnicos
-- A busca do carregamento ativo usa: `carregamentos_rota` filtrado por `unidade_id` (da unidade de origem) e `status = "em_rota"`, ou alternativamente pelo `entregador_id` vinculado à unidade
-- Se houver múltiplos entregadores/carregamentos na mesma unidade, o match é feito por `produto_id` no `carregamento_rota_itens`
-- Não requer migration: o campo `quantidade_transferida` já existe na tabela
 
-### Arquivos
-- `src/pages/estoque/TransferenciaEstoque.tsx`
-- `src/pages/operacional/GestaoRotas.tsx`
+- O `PaymentSection` hoje usa `useUnidade()` para obter o ID da unidade. Será adicionada uma prop `unidadeId?: string` que, quando presente, é passada diretamente aos modais PIX/Card, evitando dependência do contexto.
+- A `forma_pagamento` salva no pedido será a lista das formas usadas (ex: `"dinheiro, pix"`) para manter compatibilidade com o histórico e relatórios.
+- A validação de finalização verificará `totalPago >= total` em vez de apenas verificar se `formaPagamento` não está vazio.
 
