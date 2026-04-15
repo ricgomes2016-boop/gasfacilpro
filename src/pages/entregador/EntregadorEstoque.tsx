@@ -93,6 +93,7 @@ export default function EntregadorEstoque() {
   useEffect(() => {
     const channel = supabase
       .channel("estoque-entregador")
+      .on("postgres_changes", { event: "*", schema: "public", table: "carregamentos_rota" }, () => fetchEstoque())
       .on("postgres_changes", { event: "*", schema: "public", table: "carregamento_rota_itens" }, () => fetchEstoque())
       .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => fetchEstoque())
       .subscribe();
