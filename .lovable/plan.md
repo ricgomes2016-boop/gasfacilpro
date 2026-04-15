@@ -1,31 +1,53 @@
 
+## Plano para fazer a opção 4 (Estoque/Carga) espelhar a rota escolhida
 
-## Diagnostico: Estoque do entregador nao aparecendo
+### Diagnóstico
+Hoje a tela de jornada está desconectada da carga real:
+- Em `EntregadorIniciarJornada.tsx`, a etapa **4. Estoque / Carga** usa um estado local (`estoqueCarga`) e lista produtos gerais, em vez de ler a carga real de `carregamentos_rota`.
+- A rota escolhida na etapa **3. Rota de Trabalho** não é persistida de forma útil para o restante do app, então o menu **Estoque** não consegue garantir que mostre exatamente a mesma carga escolhida na jornada.
+- O cálculo correto já existe no app: o estoque real do entregador vem de `carregamentos_rota` + `carregamento_rota_itens`, com saldo = **saída - vendido - transferido**.
 
-### Causa raiz identificada
+### O que vou ajustar
+1. **Trocar a etapa 4 da jornada para usar a carga real**
+   - Em `src/pages/entregador/EntregadorIniciarJornada.tsx`, a opção 4 deixará de mostrar inputs manuais.
+   - Ao selecionar a rota na opção 3, a tela vai buscar o `carregamento_rota` ativo (`status = "em_rota"`) daquele entregador para aquela `rota_definida_id`.
+   - Em seguida, vai carregar os itens de `carregamento_rota_itens` e mostrar o mesmo resumo:
+     - Carregado
+     - Vendido
+     - Transferido
+     - Restante
 
-Verifiquei todos os dados no banco:
-- O carregamento do Flavio Henrique **existe** com status `em_rota` e 600 P13
-- O `user_id` esta vinculado corretamente
-- As politicas RLS estao corretas
-- O produto existe e e acessivel
+2. **Fazer a etapa 4 ser o espelho do menu Estoque**
+   - Vou reutilizar a mesma regra de leitura e o mesmo cálculo que já existem em `src/pages/entregador/EntregadorEstoque.tsx`.
+   - O visual da opção 4 vai seguir o mesmo padrão de cards/lista do menu Estoque, para os dois ficarem sincronizados.
 
-O problema esta no **Realtime do componente `EntregadorEstoque.tsx`**: ele escuta mudancas nas tabelas `carregamento_rota_itens` e `pedidos`, mas **NAO escuta a tabela `carregamentos_rota`**. Quando um novo carregamento e criado no ERP (mudanca na tabela `carregamentos_rota`), o app do entregador nao detecta e continua mostrando "Nenhuma rota ativa".
+3. **Persistir a rota/carga escolhida ao iniciar a jornada**
+   - No `handleIniciarJornada`, vou salvar no campo `observacoes` da jornada ativa (`rotas`) um JSON com:
+     - `rota_definida_id`
+     - `carregamento_id`
+     - `cidades_selecionadas` quando existir
+   - Assim, o app passa a saber exatamente qual carga foi escolhida ao iniciar a jornada, sem precisar de mudança de banco.
 
-O entregador so veria o estoque se:
-1. Fizesse refresh manual (botao Atualizar)
-2. Navegasse para outra tela e voltasse
-3. Recarregasse o app
+4. **Alinhar o menu Estoque com a jornada ativa**
+   - Em `src/pages/entregador/EntregadorEstoque.tsx`, a busca vai priorizar o `carregamento_id`/`rota_definida_id` salvo na jornada ativa.
+   - Se não existir esse vínculo (compatibilidade com jornadas antigas), o código mantém fallback para o carregamento ativo mais recente do entregador.
 
-### Solucao
+5. **Ajustar a regra da rota na jornada**
+   - A seleção da rota passará a ser tratada como parte obrigatória do fluxo da jornada, porque a carga depende dela.
+   - Se a rota selecionada não tiver carga iniciada, a etapa 4 mostrará um estado vazio claro em vez de produtos genéricos.
 
-Adicionar a tabela `carregamentos_rota` ao listener de Realtime no `EntregadorEstoque.tsx`, para que quando um novo carregamento for criado ou atualizado, o estoque atualize automaticamente.
+### Arquivos envolvidos
+- `src/pages/entregador/EntregadorIniciarJornada.tsx`
+- `src/pages/entregador/EntregadorEstoque.tsx`
 
-### Mudancas tecnicas
+### Detalhes técnicos
+- Não precisa migration: as tabelas e permissões já existem e o entregador já pode ler a própria carga via RLS.
+- A correção será feita reaproveitando `carregamentos_rota` e `carregamento_rota_itens`, que já são a fonte oficial da carga real.
+- Também elimina a inconsistência atual da etapa 4, que hoje usa categorias locais e dados não persistidos.
 
-| Arquivo | Mudanca |
-|---|---|
-| `EntregadorEstoque.tsx` | Adicionar `.on("postgres_changes", { event: "*", schema: "public", table: "carregamentos_rota" }, () => fetchEstoque())` ao canal Realtime existente |
-
-Mudanca de 1 linha no useEffect do Realtime (linha 94-98).
-
+### Validação
+Vou validar estes cenários após implementar:
+1. Selecionar uma rota com carga iniciada e ver a opção 4 preencher imediatamente.
+2. Iniciar a jornada e abrir o menu **Estoque** para confirmar que os itens e totais são idênticos.
+3. Fazer uma venda/transferência e confirmar atualização correta do saldo restante.
+4. Selecionar uma rota sem carga iniciada e confirmar exibição de estado vazio apropriado.
