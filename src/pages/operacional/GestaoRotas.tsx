@@ -689,17 +689,22 @@ export default function GestaoRotas() {
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-wrap gap-1">
-                                {c.itens.map((i) => (
-                                  <Badge key={i.id} variant="outline" className="text-xs">
-                                    {i.produto_nome} x{i.quantidade_saida}
-                                    {(i.quantidade_vendida != null && i.quantidade_vendida > 0) && (
-                                      <span className="ml-1 text-green-600">({i.quantidade_vendida} vend.)</span>
-                                    )}
-                                    {(i.quantidade_transferida != null && i.quantidade_transferida > 0) && (
-                                      <span className="ml-1 text-orange-500">({i.quantidade_transferida} transf.)</span>
-                                    )}
-                                  </Badge>
-                                ))}
+                                {c.itens.map((i) => {
+                                  const saldo = (i.quantidade_saida || 0) - (i.quantidade_vendida || 0) - (i.quantidade_transferida || 0);
+                                  return (
+                                    <Badge key={i.id} variant="outline" className="text-xs">
+                                      {i.produto_nome}: <span className="font-bold ml-0.5">{saldo}</span>
+                                      <span className="ml-1 text-muted-foreground">({i.quantidade_saida} saída</span>
+                                      {(i.quantidade_vendida != null && i.quantidade_vendida > 0) && (
+                                        <span className="text-green-600"> - {i.quantidade_vendida} vend.</span>
+                                      )}
+                                      {(i.quantidade_transferida != null && i.quantidade_transferida > 0) && (
+                                        <span className="text-orange-500"> - {i.quantidade_transferida} transf.</span>
+                                      )}
+                                      <span>)</span>
+                                    </Badge>
+                                  );
+                                })}
                               </div>
                             </TableCell>
                             <TableCell>

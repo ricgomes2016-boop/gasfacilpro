@@ -191,6 +191,36 @@ export default function TransferenciaEstoque() {
 
       if (iErr) throw iErr;
 
+      // Atualizar quantidade_transferida no carregamento ativo da unidade de origem
+      const { data: carregAtivo } = await supabase
+        .from("carregamentos_rota")
+        .select("id")
+        .eq("unidade_id", unidadeAtual.id)
+        .eq("status", "em_rota")
+        .order("data_saida", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (carregAtivo) {
+        for (const item of itens) {
+          const { data: cItem } = await supabase
+            .from("carregamento_rota_itens")
+            .select("id, quantidade_transferida")
+            .eq("carregamento_id", carregAtivo.id)
+            .eq("produto_id", item.produto_id)
+            .maybeSingle();
+
+          if (cItem) {
+            await supabase
+              .from("carregamento_rota_itens")
+              .update({
+                quantidade_transferida: (cItem.quantidade_transferida || 0) + item.quantidade,
+              } as any)
+              .eq("id", cItem.id);
+          }
+        }
+      }
+
       toast.success("Transferência criada com sucesso!");
       setDialogOpen(false);
       setItens([]);
