@@ -395,21 +395,30 @@ export default function GestaoRotas() {
     <MainLayout>
       <Header title="Gestão de Rotas" subtitle="Rotas de entrega e carregamentos atacado" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        <Tabs defaultValue="carregamentos">
+        <Tabs defaultValue="rota-atacado">
           <TabsList>
-            <TabsTrigger value="carregamentos">
-              <Truck className="h-4 w-4 mr-2" />
+            <TabsTrigger value="rota-atacado">
+              <Route className="h-4 w-4 mr-2" />
               Rota Atacado
             </TabsTrigger>
             <TabsTrigger value="rotas">
               <MapPin className="h-4 w-4 mr-2" />
               Rotas Cidade
             </TabsTrigger>
-            <TabsTrigger value="rota-dinamica">
-              <Route className="h-4 w-4 mr-2" />
-              Rota Dinâmica
+            <TabsTrigger value="carregamentos">
+              <Truck className="h-4 w-4 mr-2" />
+              Carregamentos
             </TabsTrigger>
           </TabsList>
+
+          {/* ===== TAB: ROTA ATACADO DINÂMICA ===== */}
+          <TabsContent value="rota-atacado" className="mt-4">
+            {empresa?.id ? (
+              <RotaAtacadoDinamica empresaId={empresa.id} />
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-6">Carregando...</p>
+            )}
+          </TabsContent>
 
           {/* ===== TAB: CARREGAMENTOS ATACADO ===== */}
           <TabsContent value="carregamentos" className="space-y-4 mt-4">
@@ -669,14 +678,6 @@ export default function GestaoRotas() {
             </Card>
           </TabsContent>
 
-          {/* ===== TAB: ROTA DINÂMICA ===== */}
-          <TabsContent value="rota-dinamica" className="space-y-4 mt-4">
-            {empresa?.id ? (
-              <RotaAtacadoDinamica empresaId={empresa.id} />
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-6">Selecione uma unidade para usar a Rota Dinâmica.</p>
-            )}
-          </TabsContent>
         </Tabs>
       </div>
 

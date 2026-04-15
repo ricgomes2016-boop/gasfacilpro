@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Save, Loader2, Trash2, List } from "lucide-react";
+import { Save, Loader2, Trash2, List, Eye } from "lucide-react";
 import { RotaAtacadoMap, getDefaultsByTipo, type Parada, type TipoParada } from "@/components/transportadora/rota-atacado/RotaAtacadoMap";
 import { ParadaForm } from "@/components/transportadora/rota-atacado/ParadaForm";
 import { CargaTimeline } from "@/components/transportadora/rota-atacado/CargaTimeline";
@@ -40,6 +41,9 @@ export function RotaAtacadoDinamica({ empresaId }: RotaAtacadoDinamicaProps) {
   const [refeicao, setRefeicao] = useState(0);
   const [paradas, setParadas] = useState<Parada[]>([]);
   const [saving, setSaving] = useState(false);
+
+  // Saved route detail view
+  const [selectedRotaId, setSelectedRotaId] = useState<string | null>(null);
 
   const { data: veiculos = [] } = useQuery({
     queryKey: ["transp-veiculos", empresaId],
@@ -95,6 +99,17 @@ export function RotaAtacadoDinamica({ empresaId }: RotaAtacadoDinamicaProps) {
     enabled: !!empresaId,
   });
 
+  // Query for saved route details
+  const { data: selectedRotaData } = useQuery({
+    queryKey: ["transp-rota-detail", selectedRotaId],
+    queryFn: async () => {
+      const { data: rota } = await supabase.from("transp_rotas_atacado").select("*").eq("id", selectedRotaId!).single();
+      const { data: paradasData } = await supabase.from("transp_rota_paradas").select("*").eq("rota_id", selectedRotaId!).order("ordem");
+      return { rota, paradas: paradasData || [] };
+    },
+    enabled: !!selectedRotaId,
+  });
+
   const veiculoSel = veiculos.find((v: any) => v.id === veiculoId);
   const motoristaSel = funcionarios.find((f: any) => f.id === motoristaId);
   const ajudanteSel = funcionarios.find((f: any) => f.id === ajudanteId);
@@ -104,6 +119,22 @@ export function RotaAtacadoDinamica({ empresaId }: RotaAtacadoDinamicaProps) {
     p20: veiculoSel?.capacidade_p20 || 0,
     p45: veiculoSel?.capacidade_p45 || 0,
   };
+
+  // Calculate current cargo balance for auto-fill on "retorno"
+  const calcSaldoAtual = useCallback((paradaIndex: number) => {
+    let p13 = cargaP13;
+    let p20 = cargaP20;
+    let p45 = cargaP45;
+    for (let i = 0; i < paradaIndex; i++) {
+      const p = paradas[i];
+      if (p.impacto_estoque === "entrada") {
+        p13 += p.qtd_p13; p20 += p.qtd_p20; p45 += p.qtd_p45;
+      } else if (p.impacto_estoque === "saida") {
+        p13 -= p.qtd_p13; p20 -= p.qtd_p20; p45 -= p.qtd_p45;
+      }
+    }
+    return { p13: Math.max(0, p13), p20: Math.max(0, p20), p45: Math.max(0, p45) };
+  }, [paradas, cargaP13, cargaP20, cargaP45]);
 
   const addParada = useCallback((lat: number, lng: number, endereco: string, cidade: string) => {
     const isFirst = paradas.length === 0;
@@ -131,8 +162,34 @@ export function RotaAtacadoDinamica({ empresaId }: RotaAtacadoDinamicaProps) {
   }, [paradas.length]);
 
   const updateParada = useCallback((id: string, field: string, value: any) => {
-    setParadas((prev) => prev.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
-  }, []);
+    setParadas((prev) => {
+      const updated = prev.map((p) => (p.id === id ? { ...p, [field]: value } : p));
+      // Auto-fill retorno quantities
+      if (field === "tipo_parada" && value === "retorno") {
+        const idx = updated.findIndex((p) => p.id === id);
+        if (idx >= 0) {
+          let p13 = cargaP13, p20 = cargaP20, p45 = cargaP45;
+          for (let i = 0; i < idx; i++) {
+            const pp = updated[i];
+            if (pp.impacto_estoque === "entrada") {
+              p13 += pp.qtd_p13; p20 += pp.qtd_p20; p45 += pp.qtd_p45;
+            } else if (pp.impacto_estoque === "saida") {
+              p13 -= pp.qtd_p13; p20 -= pp.qtd_p20; p45 -= pp.qtd_p45;
+            }
+          }
+          updated[idx] = {
+            ...updated[idx],
+            qtd_p13: Math.max(0, p13),
+            qtd_p20: Math.max(0, p20),
+            qtd_p45: Math.max(0, p45),
+            impacto_estoque: "saida" as const,
+            impacto_financeiro: false,
+          };
+        }
+      }
+      return updated;
+    });
+  }, [cargaP13, cargaP20, cargaP45]);
 
   const removeParada = useCallback((id: string) => {
     setParadas((prev) => prev.filter((p) => p.id !== id).map((p, i) => ({ ...p, ordem: i })));
@@ -235,6 +292,27 @@ export function RotaAtacadoDinamica({ empresaId }: RotaAtacadoDinamicaProps) {
     },
   });
 
+  // Build paradas for saved route detail view
+  const detailParadas: Parada[] = (selectedRotaData?.paradas || []).map((p: any) => ({
+    id: p.id,
+    ordem: p.ordem,
+    tipo_parada: p.tipo_parada,
+    cidade: p.cidade || "",
+    endereco: p.endereco || "",
+    lat: Number(p.lat),
+    lng: Number(p.lng),
+    qtd_p13: p.qtd_p13 || 0,
+    qtd_p20: p.qtd_p20 || 0,
+    qtd_p45: p.qtd_p45 || 0,
+    impacto_estoque: p.impacto_estoque || "nenhum",
+    impacto_financeiro: p.impacto_financeiro || false,
+    entidade_id: p.entidade_id || "",
+    entidade_tipo: p.entidade_tipo || "",
+    entidade_nome: p.entidade_nome || "",
+    observacoes: p.observacoes || "",
+  }));
+  const detailRota = selectedRotaData?.rota;
+
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -279,8 +357,8 @@ export function RotaAtacadoDinamica({ empresaId }: RotaAtacadoDinamicaProps) {
                       <Select value={motoristaId} onValueChange={setMotoristaId}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Sel." /></SelectTrigger>
                         <SelectContent>
-                          {funcionarios.filter((f: any) => f.cargo === "motorista").map((f: any) => (
-                            <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                          {funcionarios.map((f: any) => (
+                            <SelectItem key={f.id} value={f.id}>{f.nome} — {f.cargo}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -290,8 +368,8 @@ export function RotaAtacadoDinamica({ empresaId }: RotaAtacadoDinamicaProps) {
                       <Select value={ajudanteId} onValueChange={setAjudanteId}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Sel." /></SelectTrigger>
                         <SelectContent>
-                          {funcionarios.filter((f: any) => f.cargo === "ajudante").map((f: any) => (
-                            <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                          {funcionarios.map((f: any) => (
+                            <SelectItem key={f.id} value={f.id}>{f.nome} — {f.cargo}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -435,7 +513,8 @@ export function RotaAtacadoDinamica({ empresaId }: RotaAtacadoDinamicaProps) {
               )}
               <div className="space-y-2">
                 {rotasSalvas.map((r: any) => (
-                  <div key={r.id} className="flex items-center gap-3 p-3 border border-border rounded-lg">
+                  <div key={r.id} className="flex items-center gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => setSelectedRotaId(r.id)}>
                     <div className="flex-1">
                       <p className="text-sm font-medium">{r.nome}</p>
                       <p className="text-xs text-muted-foreground">
@@ -443,8 +522,11 @@ export function RotaAtacadoDinamica({ empresaId }: RotaAtacadoDinamicaProps) {
                         <span className="ml-2 capitalize">{r.status}</span>
                       </p>
                     </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setSelectedRotaId(r.id); }}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" className="text-destructive h-8 w-8"
-                      onClick={() => deleteMut.mutate(r.id)}>
+                      onClick={(e) => { e.stopPropagation(); deleteMut.mutate(r.id); }}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -454,6 +536,58 @@ export function RotaAtacadoDinamica({ empresaId }: RotaAtacadoDinamicaProps) {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Dialog de detalhes da rota salva */}
+      <Dialog open={!!selectedRotaId} onOpenChange={(open) => { if (!open) setSelectedRotaId(null); }}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{detailRota?.nome || "Detalhes da Rota"}</DialogTitle>
+          </DialogHeader>
+          {detailParadas.length > 0 && detailRota ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <RotaAtacadoMap paradas={detailParadas} onAddParada={() => {}} />
+              </div>
+              <div className="space-y-4">
+                <RotaSummaryCard
+                  paradas={detailParadas}
+                  consumoKmLitro={Number(detailRota.consumo_km_litro) || 5}
+                  precoCombustivel={Number(detailRota.preco_combustivel) || 6.5}
+                  custoPedagio={Number(detailRota.custo_pedagio) || 0}
+                  custoRefeicao={Number(detailRota.custo_refeicao) || 0}
+                  salarioMotorista={0}
+                  salarioAjudante={0}
+                  cargaInicial={{
+                    p13: detailRota.carga_inicial_p13 || 0,
+                    p20: detailRota.carga_inicial_p20 || 0,
+                    p45: detailRota.carga_inicial_p45 || 0,
+                  }}
+                />
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Timeline de Carga</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CargaTimeline
+                      paradas={detailParadas}
+                      cargaInicial={{
+                        p13: detailRota.carga_inicial_p13 || 0,
+                        p20: detailRota.carga_inicial_p20 || 0,
+                        p45: detailRota.carga_inicial_p45 || 0,
+                      }}
+                      capacidade={{ p13: 0, p20: 0, p45: 0 }}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
