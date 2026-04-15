@@ -38,7 +38,6 @@ export function useChatNotification() {
         body: mensagem.length > 80 ? mensagem.substring(0, 80) + "…" : mensagem,
         icon: "/favicon.ico",
         tag: "chat-entregador",
-        renotify: true,
       });
       // Auto-close after 5s
       setTimeout(() => notification.close(), 5000);
