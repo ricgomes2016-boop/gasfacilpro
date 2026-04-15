@@ -7636,6 +7636,108 @@ export type Database = {
           },
         ]
       }
+      transp_compras: {
+        Row: {
+          cidade_fornecedor: string | null
+          created_at: string | null
+          custo_combustivel: number | null
+          custo_logistico_total: number | null
+          custo_outros: number | null
+          custo_pedagio: number | null
+          custo_refeicao: number | null
+          custo_total: number | null
+          custo_unit_agua: number | null
+          custo_unit_p13: number | null
+          custo_unit_p20: number | null
+          custo_unit_p45: number | null
+          data: string
+          distancia_ida_km: number | null
+          empresa_id: string
+          fornecedor: string
+          id: string
+          mes_referencia: string | null
+          observacoes: string | null
+          qtd_agua: number | null
+          qtd_p13: number | null
+          qtd_p20: number | null
+          qtd_p45: number | null
+          updated_at: string | null
+          valor_compra: number | null
+          veiculo_id: string | null
+        }
+        Insert: {
+          cidade_fornecedor?: string | null
+          created_at?: string | null
+          custo_combustivel?: number | null
+          custo_logistico_total?: number | null
+          custo_outros?: number | null
+          custo_pedagio?: number | null
+          custo_refeicao?: number | null
+          custo_total?: number | null
+          custo_unit_agua?: number | null
+          custo_unit_p13?: number | null
+          custo_unit_p20?: number | null
+          custo_unit_p45?: number | null
+          data: string
+          distancia_ida_km?: number | null
+          empresa_id: string
+          fornecedor: string
+          id?: string
+          mes_referencia?: string | null
+          observacoes?: string | null
+          qtd_agua?: number | null
+          qtd_p13?: number | null
+          qtd_p20?: number | null
+          qtd_p45?: number | null
+          updated_at?: string | null
+          valor_compra?: number | null
+          veiculo_id?: string | null
+        }
+        Update: {
+          cidade_fornecedor?: string | null
+          created_at?: string | null
+          custo_combustivel?: number | null
+          custo_logistico_total?: number | null
+          custo_outros?: number | null
+          custo_pedagio?: number | null
+          custo_refeicao?: number | null
+          custo_total?: number | null
+          custo_unit_agua?: number | null
+          custo_unit_p13?: number | null
+          custo_unit_p20?: number | null
+          custo_unit_p45?: number | null
+          data?: string
+          distancia_ida_km?: number | null
+          empresa_id?: string
+          fornecedor?: string
+          id?: string
+          mes_referencia?: string | null
+          observacoes?: string | null
+          qtd_agua?: number | null
+          qtd_p13?: number | null
+          qtd_p20?: number | null
+          qtd_p45?: number | null
+          updated_at?: string | null
+          valor_compra?: number | null
+          veiculo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_compras_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_compras_veiculo_id_fkey"
+            columns: ["veiculo_id"]
+            isOneToOne: false
+            referencedRelation: "transp_veiculos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transp_despesas: {
         Row: {
           comprovante_url: string | null

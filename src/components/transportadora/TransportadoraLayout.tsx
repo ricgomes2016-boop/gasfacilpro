@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
   Truck, LayoutDashboard, CarFront, Users, Route, ArrowLeftRight,
-  Receipt, Package, Brain, FileBarChart, LogOut, Menu, X,
+  Receipt, Package, Brain, FileBarChart, LogOut, Menu, X, ShoppingCart,
 } from "lucide-react";
 
 const navItems = [
@@ -14,7 +14,8 @@ const navItems = [
   { to: "/transportadora/funcionarios", icon: Users, label: "Funcionários" },
   { to: "/transportadora/simulacao", icon: Route, label: "Simulação" },
   { to: "/transportadora/rota-atacado", icon: Route, label: "Rota Atacado" },
-  { to: "/transportadora/abastecimento", icon: ArrowLeftRight, label: "Abastecimento" },
+  { to: "/transportadora/compras", icon: ShoppingCart, label: "Compras" },
+  { to: "/transportadora/abastecimento", icon: ArrowLeftRight, label: "Transferência" },
   { to: "/transportadora/lancamento", icon: Receipt, label: "Despesas" },
   { to: "/transportadora/entregas", icon: Package, label: "Entregas & Vendas" },
   { to: "/transportadora/ia", icon: Brain, label: "IA Analista" },
