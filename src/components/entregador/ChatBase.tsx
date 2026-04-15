@@ -91,6 +91,7 @@ function getDateKey(dateStr: string) {
 export function ChatBase() {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState("ia");
+  const { notify } = useChatNotification();
 
   // IA state
   const [aiMessages, setAiMessages] = useState<Message[]>([
