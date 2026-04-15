@@ -1,97 +1,35 @@
 
 
-## Plano: Renomear Abastecimento → Transferência + Nova página Compras
+## Plano: Atualizar `quantidade_transferida` no carregamento ao fazer transferência pelo ERP
 
-### 1. Renomear labels (sem mudar tabela/rota)
+### Problema
+Quando uma transferência de estoque é feita pelo ERP (página Estoque > Transferência), o sistema **não atualiza** o campo `quantidade_transferida` na tabela `carregamento_rota_itens`. Isso faz com que:
+- O app do entregador continue mostrando 672 (sem descontar a transferência)
+- A aba Carregamento em Gestão Operacional também não reflita a saída
 
-| Arquivo | Mudança |
-|---|---|
-| `TransportadoraLayout.tsx` | Label "Abastecimento" → "Transferência" |
-| `TranspAbastecimento.tsx` | Títulos: "Transferência entre Filiais", "Nova Transferência", toast atualizado |
-| `TranspRelatorios.tsx` | Labels "abastecimento" → "transferência" |
+Apenas transferências feitas pelo **app do entregador** atualizam corretamente esse campo.
 
-### 2. Nova tabela `transp_compras`
+### Solução
+Adicionar a mesma lógica de atualização de `carregamento_rota_itens.quantidade_transferida` na página de transferência do ERP (`TransferenciaEstoque.tsx`), similar ao que já existe no `EntregadorTransferencia.tsx`.
 
-```sql
-CREATE TABLE public.transp_compras (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  empresa_id uuid NOT NULL REFERENCES empresas(id),
-  data date NOT NULL,
-  fornecedor text NOT NULL,
-  cidade_fornecedor text,
-  distancia_ida_km numeric DEFAULT 0,
-  veiculo_id uuid REFERENCES transp_veiculos(id),
-  -- Quantidades
-  qtd_p13 integer DEFAULT 0,
-  qtd_p20 integer DEFAULT 0,
-  qtd_p45 integer DEFAULT 0,
-  qtd_agua integer DEFAULT 0,
-  -- Custo de compra (pago ao fornecedor)
-  valor_compra numeric DEFAULT 0,
-  -- Logística
-  custo_combustivel numeric DEFAULT 0,
-  custo_pedagio numeric DEFAULT 0,
-  custo_refeicao numeric DEFAULT 0,
-  custo_outros numeric DEFAULT 0,
-  custo_logistico_total numeric DEFAULT 0,
-  custo_total numeric DEFAULT 0,
-  -- Custo unitário calculado (rateio proporcional P13-equiv)
-  custo_unit_p13 numeric DEFAULT 0,
-  custo_unit_p20 numeric DEFAULT 0,
-  custo_unit_p45 numeric DEFAULT 0,
-  custo_unit_agua numeric DEFAULT 0,
-  mes_referencia text,
-  observacoes text,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-ALTER TABLE public.transp_compras ENABLE ROW LEVEL SECURITY;
--- RLS policies (same pattern as other transp_* tables)
-```
+### Alterações
 
-### 3. Nova página `TranspCompras.tsx`
+**1. `src/pages/estoque/TransferenciaEstoque.tsx`**
+- Após criar a transferência com sucesso (status `pendente` ou `em_transito`), verificar se a `unidade_origem_id` tem algum carregamento ativo (`status = "em_rota"`)
+- Se existir, para cada item transferido, buscar o `carregamento_rota_itens` correspondente (mesmo `produto_id`) e somar a quantidade ao `quantidade_transferida`
+- Usar a mesma lógica já existente no `EntregadorTransferencia.tsx` (linhas 167-195)
 
-**Formulário de registro** com:
-- Data, Fornecedor, Cidade, Distância ida (km)
-- Veículo (ao selecionar, preenche consumo km/l automaticamente)
-- Quantidades: P13, P20, P45, Água
-- Valor total da compra (pago ao fornecedor)
-- Custos logísticos: Combustível (calcula auto: `dist × 2 / consumo × preço_litro`), Pedágio, Refeição, Outros
-- Preço do litro de diesel (input com default 7.50)
+**2. `src/pages/operacional/GestaoRotas.tsx`**
+- Na aba Carregamento, ao exibir cada item, mostrar o saldo real: `quantidade_saida - quantidade_vendida - quantidade_transferida`
+- Adicionar coluna ou badge de "Transferido" quando `quantidade_transferida > 0`
+- O badge na listagem deve mostrar o saldo restante, não apenas `quantidade_saida`
 
-**Cálculo automático do custo unitário** (rateio por P13-equivalente):
-- P13-equiv total = P13 + P20×3.4286 + P45×4 + Água×1
-- Custo logístico por P13-equiv = custo_logistico_total / P13-equiv total
-- Custo compra por P13-equiv = valor_compra / P13-equiv total
-- `custo_unit_p13` = custo_compra_p13eq + custo_logistico_p13eq
-- `custo_unit_p20` = (custo_compra_p13eq + custo_logistico_p13eq) × 3.4286
-- `custo_unit_p45` = (custo_compra_p13eq + custo_logistico_p13eq) × 4
-- `custo_unit_agua` = custo_compra_p13eq + custo_logistico_p13eq
+### Detalhes técnicos
+- A busca do carregamento ativo usa: `carregamentos_rota` filtrado por `unidade_id` (da unidade de origem) e `status = "em_rota"`, ou alternativamente pelo `entregador_id` vinculado à unidade
+- Se houver múltiplos entregadores/carregamentos na mesma unidade, o match é feito por `produto_id` no `carregamento_rota_itens`
+- Não requer migration: o campo `quantidade_transferida` já existe na tabela
 
-**Resumo mensal** (cards no topo):
-- Custo médio P13, P20, P45, Água no mês selecionado
-- Total gasto em compras + logística
-- Total de unidades compradas
-
-**Lista de compras** com cards mostrando fornecedor, data, quantidades, custos.
-
-### 4. Menu e rotas
-
-- Adicionar `ShoppingCart` icon + "Compras" no menu após "Transferência"
-- Nova rota `/transportadora/compras` → `TranspCompras`
-
-### Lógica de custo mensal
-
-A página de **Relatórios** será atualizada para incluir:
-- Custo médio mensal por produto (média ponderada de todas as compras do mês)
-- Total de despesas logísticas (compras + transferências)
-- Custo real por unidade considerando compra + transferência
-
-### Arquivos envolvidos
-- `TransportadoraLayout.tsx` — renomear + novo item menu
-- `transportadoraRoutes.ts` — nova rota
-- `TranspAbastecimento.tsx` — renomear textos
-- `TranspRelatorios.tsx` — renomear textos + seção custo mensal por produto
-- `TranspCompras.tsx` — **novo**
-- Migration SQL — criar `transp_compras` com RLS
+### Arquivos
+- `src/pages/estoque/TransferenciaEstoque.tsx`
+- `src/pages/operacional/GestaoRotas.tsx`
 
