@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { getBrasiliaDateString } from "@/lib/utils";
 import { EntregadorLayout } from "@/components/entregador/EntregadorLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,6 +75,15 @@ interface ProdutoEstoque {
   categoria: string | null;
 }
 
+interface CargaRealItem {
+  produto_id: string;
+  produto_nome: string;
+  quantidade_saida: number;
+  quantidade_vendida: number;
+  quantidade_transferida: number;
+  quantidade_restante: number;
+}
+
 export default function EntregadorIniciarJornada() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const [rotasDefinidas, setRotasDefinidas] = useState<RotaDefinida[]>([]);
@@ -87,7 +96,6 @@ export default function EntregadorIniciarJornada() {
   const [veiculoSelecionado, setVeiculoSelecionado] = useState("");
   const [kmInicial, setKmInicial] = useState("");
   const [rotaSelecionada, setRotaSelecionada] = useState("");
-  const [estoqueCarga, setEstoqueCarga] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isIniciando, setIsIniciando] = useState(false);
   const [isEncerrando, setIsEncerrando] = useState(false);
@@ -95,6 +103,9 @@ export default function EntregadorIniciarJornada() {
   const [rotaAtivaId, setRotaAtivaId] = useState<string | null>(null);
   const [rotaAtivaKmInicial, setRotaAtivaKmInicial] = useState<number | null>(null);
   const [kmFinal, setKmFinal] = useState("");
+  const [cargaReal, setCargaReal] = useState<CargaRealItem[]>([]);
+  const [carregamentoId, setCarregamentoId] = useState<string | null>(null);
+  const [isLoadingCarga, setIsLoadingCarga] = useState(false);
   const [cidadesSelecionadas, setCidadesSelecionadas] = useState<string[]>([]);
 
   const { toast } = useToast();
