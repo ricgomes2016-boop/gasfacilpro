@@ -717,10 +717,15 @@ export default function GestaoRotas() {
                                 <Printer className="h-4 w-4" />
                               </Button>
                               {c.status === "em_rota" && (
-                                <Button size="sm" variant="outline" onClick={() => openRetorno(c)}>
-                                  <ArrowLeftRight className="h-4 w-4 mr-1" />
-                                  Retorno
-                                </Button>
+                                <>
+                                  <Button size="sm" variant="ghost" onClick={() => { setEditingCarreg(c); setEditCarregModalOpen(true); }} title="Editar carregamento">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => openRetorno(c)}>
+                                    <ArrowLeftRight className="h-4 w-4 mr-1" />
+                                    Retorno
+                                  </Button>
+                                </>
                               )}
                             </TableCell>
                           </TableRow>
