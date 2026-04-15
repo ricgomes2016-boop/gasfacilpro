@@ -281,7 +281,7 @@ export default function GestaoRotas() {
     setCidadesRota((prev) => recalcKm(prev.filter((_, i) => i !== index)));
   };
 
-  const totalKmAtacado = cidadesRota.reduce((sum, c) => sum + c.km, 0);
+  const totalKmAtacado = cidadesRota.length > 0 ? cidadesRota[cidadesRota.length - 1].km : 0;
 
   const handleSave = async () => {
     if (!nome.trim()) {
