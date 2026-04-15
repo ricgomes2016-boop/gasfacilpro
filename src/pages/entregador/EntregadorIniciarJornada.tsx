@@ -88,7 +88,7 @@ export default function EntregadorIniciarJornada() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const [rotasDefinidas, setRotasDefinidas] = useState<RotaDefinida[]>([]);
   const [escalaHoje, setEscalaHoje] = useState<Escala | null>(null);
-  const [produtos, setProdutos] = useState<ProdutoEstoque[]>([]);
+  const [_produtos, setProdutos] = useState<ProdutoEstoque[]>([]);
   const [entregadorId, setEntregadorId] = useState<string | null>(null);
   const [terminalFixoNome, setTerminalFixoNome] = useState<string | null>(null);
   const [terminalAtivoNome, setTerminalAtivoNome] = useState<string | null>(null);
