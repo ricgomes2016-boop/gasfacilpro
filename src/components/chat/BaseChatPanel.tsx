@@ -45,6 +45,7 @@ export function BaseChatPanel() {
   const { user } = useAuth();
   const [unidadeIds, setUnidadeIds] = useState<string[]>([]);
   const [userName, setUserName] = useState<string>("");
+  const { notify } = useChatNotification();
 
   useEffect(() => {
     if (!user) return;
