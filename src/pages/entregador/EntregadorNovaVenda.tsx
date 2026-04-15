@@ -64,14 +64,6 @@ interface ClienteDB {
   tipo: string | null;
 }
 
-const formasPagamento = [
-  { value: "dinheiro", label: "Dinheiro" },
-  { value: "pix", label: "PIX" },
-  { value: "pix_maquininha", label: "PIX Maquininha" },
-  { value: "cartao_credito", label: "Cartão Crédito" },
-  { value: "cartao_debito", label: "Cartão Débito" },
-  { value: "fiado", label: "Fiado" },
-];
 
 interface ItemVenda {
   produtoId: string;
