@@ -190,6 +190,29 @@ export default function EntregadorIniciarJornada() {
   const veiculoInfo = veiculos.find((v) => v.id === veiculoSelecionado);
   const rotaInfo = rotasDefinidas.find((r) => r.id === rotaSelecionada);
 
+  // When route changes, pre-select cities (fixed = always, optional = unchecked)
+  useEffect(() => {
+    if (rotaInfo?.tipo === "atacado" && rotaInfo.cidades) {
+      const fixas = (rotaInfo.cidades as CidadeRota[])
+        .filter((c) => !c.opcional)
+        .map((c) => c.nome);
+      setCidadesSelecionadas(fixas);
+    } else {
+      setCidadesSelecionadas([]);
+    }
+  }, [rotaSelecionada]);
+
+  const cidadesRota = useMemo(() => {
+    if (!rotaInfo?.cidades || rotaInfo.tipo !== "atacado") return [];
+    return [...(rotaInfo.cidades as CidadeRota[])].sort((a, b) => a.km - b.km);
+  }, [rotaInfo]);
+
+  const toggleCidade = (nome: string) => {
+    setCidadesSelecionadas((prev) =>
+      prev.includes(nome) ? prev.filter((c) => c !== nome) : [...prev, nome]
+    );
+  };
+
   const handleIniciarJornada = async () => {
     if (!entregadorId) {
       toast({ title: "Erro", description: "Você não está cadastrado como entregador.", variant: "destructive" });
