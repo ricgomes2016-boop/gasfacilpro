@@ -77,7 +77,7 @@ export default function TranspAbastecimento() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["transp-abastecimentos"] });
-      toast.success("Abastecimento registrado!");
+      toast.success("Transferência registrada!");
       setOpen(false);
     },
     onError: (e: any) => toast.error(e.message),
@@ -90,15 +90,15 @@ export default function TranspAbastecimento() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Abastecimento entre Filiais</h1>
-            <p className="text-muted-foreground text-sm">Transferências de carga entre unidades</p>
+            <h1 className="text-2xl font-bold text-foreground">Transferência entre Filiais</h1>
+            <p className="text-muted-foreground text-sm">Registro de transferências de carga entre unidades</p>
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2"><Plus className="h-4 w-4" />Novo Abastecimento</Button>
+              <Button className="gap-2"><Plus className="h-4 w-4" />Nova Transferência</Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>Registrar Abastecimento</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>Registrar Transferência</DialogTitle></DialogHeader>
               <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div><Label>Origem</Label>
@@ -160,7 +160,7 @@ export default function TranspAbastecimento() {
             </Card>
           ))}
           {!isLoading && abastecimentos.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground text-sm">Nenhum abastecimento registrado</div>
+            <div className="text-center py-12 text-muted-foreground text-sm">Nenhuma transferência registrada</div>
           )}
         </div>
       </div>

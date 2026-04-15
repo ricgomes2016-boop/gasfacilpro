@@ -124,7 +124,7 @@ export default function TranspRelatorios() {
 
         {/* Per Filial */}
         <Card className="border-border/40">
-          <CardHeader><CardTitle className="text-base">Custo de Abastecimento por Filial</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Custo de Transferência por Filial</CardTitle></CardHeader>
           <CardContent>
             {custosPorFilial.length > 0 ? (
               <div className="space-y-2">
@@ -144,7 +144,7 @@ export default function TranspRelatorios() {
 
         {/* Recent transfers */}
         <Card className="border-border/40">
-          <CardHeader><CardTitle className="text-base">Últimos Abastecimentos do Período</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Últimas Transferências do Período</CardTitle></CardHeader>
           <CardContent>
             {abastecimentosPeriodo.length > 0 ? (
               <div className="space-y-2">
@@ -156,7 +156,7 @@ export default function TranspRelatorios() {
                   </div>
                 ))}
               </div>
-            ) : <p className="text-sm text-muted-foreground">Sem abastecimentos no período</p>}
+            ) : <p className="text-sm text-muted-foreground">Sem transferências no período</p>}
           </CardContent>
         </Card>
       </div>
