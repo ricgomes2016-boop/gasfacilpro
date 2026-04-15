@@ -40,15 +40,48 @@ export default function EntregadorEstoque() {
         return;
       }
 
-      // Get active carregamento (em_rota)
-      const { data: carregamento } = await supabase
-        .from("carregamentos_rota")
-        .select("id, status, data_saida")
+      // Check if there's an active journey with a carregamento_id saved
+      let targetCarregamentoId: string | null = null;
+      const { data: jornadaAtiva } = await supabase
+        .from("rotas")
+        .select("observacoes" as any)
         .eq("entregador_id", entregador.id)
-        .eq("status", "em_rota")
-        .order("data_saida", { ascending: false })
+        .eq("status", "em_andamento")
+        .order("created_at", { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .maybeSingle() as any;
+
+      if (jornadaAtiva?.observacoes) {
+        try {
+          const obs = JSON.parse(jornadaAtiva.observacoes);
+          if (obs.carregamento_id) targetCarregamentoId = obs.carregamento_id;
+        } catch {}
+      }
+
+      let carregamento: any = null;
+
+      if (targetCarregamentoId) {
+        // Use the carregamento linked to the active journey
+        const { data } = await supabase
+          .from("carregamentos_rota")
+          .select("id, status, data_saida")
+          .eq("id", targetCarregamentoId)
+          .maybeSingle();
+        if (data) carregamento = data;
+      }
+
+      if (!carregamento) {
+        // Fallback: get active carregamento (em_rota)
+        const { data } = await supabase
+          .from("carregamentos_rota")
+          .select("id, status, data_saida")
+          .eq("entregador_id", entregador.id)
+          .eq("status", "em_rota")
+          .order("data_saida", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        carregamento = data;
+      }
 
       if (!carregamento) {
         setItens([]);
