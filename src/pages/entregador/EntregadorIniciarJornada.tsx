@@ -325,7 +325,7 @@ export default function EntregadorIniciarJornada() {
         km_inicial: parseInt(kmInicial),
         status: "em_andamento",
         observacoes: obsData,
-      });
+      } as any);
 
       if (rotaError) throw rotaError;
 
