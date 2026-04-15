@@ -205,7 +205,7 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
       allCoords.push(...updated.map(c => ({ lat: c.lat, lng: c.lng })));
 
       if (allCoords.length >= 2) {
-        const kms = await getOSRMDistance(allCoords);
+        const kms = await getOSRMDistanceCumulative(allCoords);
         // If we prepended origin, skip the first km (origin itself = 0)
         const offset = origem ? 1 : 0;
         const withKm = updated.map((c, i) => ({ ...c, km: kms[i + offset] || 0 }));
@@ -226,13 +226,13 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
       if (updated.length >= 1 && origem) {
         const allCoords: { lat: number; lng: number }[] = [{ lat: origem.lat, lng: origem.lng }, ...updated.map(c => ({ lat: c.lat, lng: c.lng }))];
         if (allCoords.length >= 2) {
-          const kms = await getOSRMDistance(allCoords);
+          const kms = await getOSRMDistanceCumulative(allCoords);
           onCidadesChange(updated.map((c, i) => ({ ...c, km: kms[i + 1] || 0 })));
         } else {
           onCidadesChange(updated.map((c) => ({ ...c, km: 0 })));
         }
       } else if (updated.length >= 2) {
-        const kms = await getOSRMDistance(updated);
+        const kms = await getOSRMDistanceCumulative(updated);
         onCidadesChange(updated.map((c, i) => ({ ...c, km: kms[i] || 0 })));
       } else {
         onCidadesChange(updated.map((c) => ({ ...c, km: 0 })));
