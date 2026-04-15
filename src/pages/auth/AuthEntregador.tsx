@@ -49,8 +49,8 @@ export default function AuthEntregador() {
       <Card className="w-full max-w-md border-emerald-200/50 dark:border-emerald-500/20">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
-              <Truck className="h-10 w-10 text-white" />
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg overflow-hidden">
+              <img src={iconEntregador} alt="Entregador" className="h-16 w-16 object-cover" />
             </div>
           </div>
           <CardTitle className="text-2xl font-bold">GásFácil Pro — Entregador</CardTitle>

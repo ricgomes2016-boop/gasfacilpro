@@ -58,12 +58,11 @@ export default function AuthErp() {
       <Card className="w-full max-w-md border-primary/20">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center">
-              <img src={logoImg} alt="Gás Fácil" className="h-10 w-10 object-contain" />
+            <div className="h-14 w-14 rounded-xl overflow-hidden shadow-lg">
+              <img src={iconErp} alt="ERP" className="h-14 w-14 object-cover" />
             </div>
           </div>
           <div className="flex items-center justify-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" />
             <CardTitle className="text-2xl font-bold">GásFácil Pro — ERP</CardTitle>
           </div>
           <CardDescription>

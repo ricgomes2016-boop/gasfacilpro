@@ -44,8 +44,8 @@ export default function AuthParceiro() {
       <Card className="w-full max-w-md border-blue-200/50 dark:border-blue-500/20">
         <CardHeader className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-              <Handshake className="h-10 w-10 text-white" />
+            <div className="h-16 w-16 rounded-2xl overflow-hidden shadow-lg">
+              <img src={iconParceiro} alt="Parceiro" className="h-16 w-16 object-cover" />
             </div>
           </div>
           <CardTitle className="text-2xl font-bold">GásFácil Pro — Parceiro</CardTitle>
