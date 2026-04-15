@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Phone, Send, Sparkles, User, Lightbulb, ArrowLeft, Check, CheckCheck, Building2, Search, X } from "lucide-react";
 import { VoiceInputButton } from "@/components/ai/VoiceButton";
 import { supabase } from "@/integrations/supabase/client";
+import { useChatNotification } from "@/hooks/useChatNotification";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
