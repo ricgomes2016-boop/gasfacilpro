@@ -795,10 +795,11 @@ export default function GestaoRotas() {
                     lat: unidadeAtual.latitude,
                     lng: unidadeAtual.longitude,
                   } : null}
+                  onTempoEstimadoChange={setTempoEstimado}
                 />
                 <div className="space-y-2">
                   <Label>Tempo estimado</Label>
-                  <Input value={tempoEstimado} onChange={(e) => setTempoEstimado(e.target.value)} placeholder="6h" />
+                  <Input value={tempoEstimado} readOnly className="bg-muted" placeholder="Calculado automaticamente" />
                 </div>
               </>
             )}

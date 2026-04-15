@@ -33,6 +33,7 @@ interface RotaAtacadoMapPickerProps {
   onCidadesChange: (cidades: CidadeRota[]) => void;
   totalKm: number;
   origem?: OrigemInfo | null;
+  onTempoEstimadoChange?: (tempo: string) => void;
 }
 
 async function searchCidades(query: string): Promise<SearchResult[]> {
@@ -55,9 +56,13 @@ async function searchCidades(query: string): Promise<SearchResult[]> {
   });
 }
 
-// Returns cumulative KM from origin for each coordinate
-async function getOSRMDistanceCumulative(coords: { lat: number; lng: number }[]): Promise<number[]> {
-  if (coords.length < 2) return coords.map(() => 0);
+interface OSRMResult {
+  kms: number[];
+  totalDurationMin: number;
+}
+
+async function getOSRMDistanceCumulative(coords: { lat: number; lng: number }[]): Promise<OSRMResult> {
+  if (coords.length < 2) return { kms: coords.map(() => 0), totalDurationMin: 0 };
   const coordStr = coords.map((c) => `${c.lng},${c.lat}`).join(";");
   try {
     const res = await fetch(
@@ -65,22 +70,24 @@ async function getOSRMDistanceCumulative(coords: { lat: number; lng: number }[])
     );
     const data = await res.json();
     if (data.code !== "Ok" || !data.routes?.[0]?.legs) {
-      return coords.map(() => 0);
+      return { kms: coords.map(() => 0), totalDurationMin: 0 };
     }
     const legs = data.routes[0].legs;
     const kms: number[] = [0];
-    let cumulative = 0;
+    let cumKm = 0;
+    let totalSec = 0;
     for (const leg of legs) {
-      cumulative += leg.distance / 1000;
-      kms.push(Math.round(cumulative * 10) / 10);
+      cumKm += leg.distance / 1000;
+      totalSec += leg.duration || 0;
+      kms.push(Math.round(cumKm * 10) / 10);
     }
-    return kms;
+    return { kms, totalDurationMin: Math.round(totalSec / 60) };
   } catch {
-    return coords.map(() => 0);
+    return { kms: coords.map(() => 0), totalDurationMin: 0 };
   }
 }
 
-export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem }: RotaAtacadoMapPickerProps) {
+export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem, onTempoEstimadoChange }: RotaAtacadoMapPickerProps) {
   const { toast } = useToast();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -192,12 +199,17 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
     setIsSearching(false);
   }, [searchQuery, toast]);
 
+  const formatDuration = (minutes: number): string => {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return h > 0 ? `${h}h${m > 0 ? `${m}min` : ""}` : `${m}min`;
+  };
+
   const handleSelectResult = useCallback(
     async (result: SearchResult) => {
       const newCidade: CidadeRota = { nome: result.nome, lat: result.lat, lng: result.lng, km: 0 };
       const updated = [...cidades, newCidade];
 
-      // Build coords with origin as first point for distance calculation
       const allCoords: { lat: number; lng: number }[] = [];
       if (origem) {
         allCoords.push({ lat: origem.lat, lng: origem.lng });
@@ -205,11 +217,11 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
       allCoords.push(...updated.map(c => ({ lat: c.lat, lng: c.lng })));
 
       if (allCoords.length >= 2) {
-        const kms = await getOSRMDistanceCumulative(allCoords);
-        // If we prepended origin, skip the first km (origin itself = 0)
+        const { kms, totalDurationMin } = await getOSRMDistanceCumulative(allCoords);
         const offset = origem ? 1 : 0;
         const withKm = updated.map((c, i) => ({ ...c, km: kms[i + offset] || 0 }));
         onCidadesChange(withKm);
+        onTempoEstimadoChange?.(formatDuration(totalDurationMin));
       } else {
         onCidadesChange(updated);
       }
@@ -217,7 +229,7 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
       setSearchResults([]);
       setSearchQuery("");
     },
-    [cidades, onCidadesChange, origem]
+    [cidades, onCidadesChange, origem, onTempoEstimadoChange]
   );
 
   const handleRemoveCidade = useCallback(
@@ -226,19 +238,23 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
       if (updated.length >= 1 && origem) {
         const allCoords: { lat: number; lng: number }[] = [{ lat: origem.lat, lng: origem.lng }, ...updated.map(c => ({ lat: c.lat, lng: c.lng }))];
         if (allCoords.length >= 2) {
-          const kms = await getOSRMDistanceCumulative(allCoords);
+          const { kms, totalDurationMin } = await getOSRMDistanceCumulative(allCoords);
           onCidadesChange(updated.map((c, i) => ({ ...c, km: kms[i + 1] || 0 })));
+          onTempoEstimadoChange?.(formatDuration(totalDurationMin));
         } else {
           onCidadesChange(updated.map((c) => ({ ...c, km: 0 })));
+          onTempoEstimadoChange?.("");
         }
       } else if (updated.length >= 2) {
-        const kms = await getOSRMDistanceCumulative(updated);
+        const { kms, totalDurationMin } = await getOSRMDistanceCumulative(updated);
         onCidadesChange(updated.map((c, i) => ({ ...c, km: kms[i] || 0 })));
+        onTempoEstimadoChange?.(formatDuration(totalDurationMin));
       } else {
         onCidadesChange(updated.map((c) => ({ ...c, km: 0 })));
+        onTempoEstimadoChange?.(updated.length === 0 ? "" : "");
       }
     },
-    [cidades, onCidadesChange, origem]
+    [cidades, onCidadesChange, origem, onTempoEstimadoChange]
   );
 
   return (
