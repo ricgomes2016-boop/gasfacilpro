@@ -36,6 +36,7 @@ interface PaymentSectionProps {
   pagamentos: Pagamento[];
   onChange: (pagamentos: Pagamento[]) => void;
   totalVenda: number;
+  unidadeId?: string;
 }
 
 const formasPagamento = [
