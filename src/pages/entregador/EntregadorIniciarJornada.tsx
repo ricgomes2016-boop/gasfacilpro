@@ -229,12 +229,18 @@ export default function EntregadorIniciarJornada() {
 
     setIsIniciando(true);
     try {
+      // Build observacoes with selected cities for atacado routes
+      const obsData = rotaInfo?.tipo === "atacado" && cidadesSelecionadas.length > 0
+        ? JSON.stringify({ cidades_selecionadas: cidadesSelecionadas })
+        : null;
+
       // Create route record
       const { error: rotaError } = await supabase.from("rotas").insert({
         entregador_id: entregadorId,
         veiculo_id: veiculoSelecionado,
         km_inicial: parseInt(kmInicial),
         status: "em_andamento",
+        observacoes: obsData,
       });
 
       if (rotaError) throw rotaError;
