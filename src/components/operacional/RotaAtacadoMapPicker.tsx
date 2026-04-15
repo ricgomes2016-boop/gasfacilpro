@@ -238,19 +238,23 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
       if (updated.length >= 1 && origem) {
         const allCoords: { lat: number; lng: number }[] = [{ lat: origem.lat, lng: origem.lng }, ...updated.map(c => ({ lat: c.lat, lng: c.lng }))];
         if (allCoords.length >= 2) {
-          const kms = await getOSRMDistanceCumulative(allCoords);
+          const { kms, totalDurationMin } = await getOSRMDistanceCumulative(allCoords);
           onCidadesChange(updated.map((c, i) => ({ ...c, km: kms[i + 1] || 0 })));
+          onTempoEstimadoChange?.(formatDuration(totalDurationMin));
         } else {
           onCidadesChange(updated.map((c) => ({ ...c, km: 0 })));
+          onTempoEstimadoChange?.("");
         }
       } else if (updated.length >= 2) {
-        const kms = await getOSRMDistanceCumulative(updated);
+        const { kms, totalDurationMin } = await getOSRMDistanceCumulative(updated);
         onCidadesChange(updated.map((c, i) => ({ ...c, km: kms[i] || 0 })));
+        onTempoEstimadoChange?.(formatDuration(totalDurationMin));
       } else {
         onCidadesChange(updated.map((c) => ({ ...c, km: 0 })));
+        onTempoEstimadoChange?.(updated.length === 0 ? "" : "");
       }
     },
-    [cidades, onCidadesChange, origem]
+    [cidades, onCidadesChange, origem, onTempoEstimadoChange]
   );
 
   return (
