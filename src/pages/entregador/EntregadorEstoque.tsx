@@ -44,12 +44,12 @@ export default function EntregadorEstoque() {
       let targetCarregamentoId: string | null = null;
       const { data: jornadaAtiva } = await supabase
         .from("rotas")
-        .select("observacoes")
+        .select("observacoes" as any)
         .eq("entregador_id", entregador.id)
         .eq("status", "em_andamento")
         .order("created_at", { ascending: false })
         .limit(1)
-        .maybeSingle();
+        .maybeSingle() as any;
 
       if (jornadaAtiva?.observacoes) {
         try {
