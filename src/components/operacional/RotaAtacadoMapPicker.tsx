@@ -74,7 +74,7 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm }: Rota
   const { toast } = useToast();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const markersRef = useRef<L.Marker[]>([]);
+  const markersRef = useRef<L.CircleMarker[]>([]);
   const polylineRef = useRef<L.Polyline | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
