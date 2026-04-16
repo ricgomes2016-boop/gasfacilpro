@@ -339,31 +339,31 @@ export default function PDV() {
   return (
     <MainLayout>
       <Header title="PDV" subtitle="Venda rápida para retirada no local" />
-      <div className="h-[calc(100vh-4rem)] flex flex-col p-4 gap-4">
+      <div className="h-[calc(100vh-4rem)] flex flex-col p-3 md:p-4 gap-3 md:gap-4 w-full min-w-0 max-w-full overflow-x-hidden">
         <CaixaBloqueadoBanner />
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/vendas")}>
+        <div className="flex items-center justify-between gap-2 w-full min-w-0">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+            <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" onClick={() => navigate("/vendas")}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <ShoppingCart className="h-5 w-5 text-primary" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold">PDV - Portaria</h1>
-              <p className="text-xs text-muted-foreground">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg md:text-xl font-bold truncate">PDV - Portaria</h1>
+              <p className="text-xs text-muted-foreground truncate">
                 {unidadeAtual ? `Loja: ${unidadeAtual.nome}` : "Venda rápida para retirada no local"}
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="text-lg px-4 py-2">
+          <Badge variant="outline" className="text-sm md:text-lg px-2 md:px-4 py-1 md:py-2 shrink-0">
             {new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
           </Badge>
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 min-h-0 w-full min-w-0">
           {/* Left: Products */}
           <Card className="lg:col-span-2 flex flex-col min-h-0">
             <CardHeader className="pb-2 flex-shrink-0">
