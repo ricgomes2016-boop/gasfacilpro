@@ -75,14 +75,14 @@ export function CustomerHistory({ clienteId }: CustomerHistoryProps) {
   };
 
   return (
-    <Card>
+    <Card className="w-full min-w-0 max-w-full">
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-base">
-          <History className="h-5 w-5" />
-          Histórico do Cliente
+          <History className="h-5 w-5 shrink-0" />
+          <span className="truncate">Histórico do Cliente</span>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="w-full min-w-0">
         {!clienteId ? (
           <div className="text-center py-6 text-muted-foreground">
             <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -98,35 +98,35 @@ export function CustomerHistory({ clienteId }: CustomerHistoryProps) {
             <p className="text-sm">Nenhum pedido encontrado</p>
           </div>
         ) : (
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
+          <div className="border rounded-lg overflow-x-auto w-full min-w-0 max-w-full">
+            <Table className="w-full min-w-0">
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead>Data</TableHead>
-                  <TableHead>Pedido</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Pagamento</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead className="px-2 sm:px-4">Data</TableHead>
+                  <TableHead className="px-2 sm:px-4 hidden sm:table-cell">Pedido</TableHead>
+                  <TableHead className="text-right px-2 sm:px-4">Valor</TableHead>
+                  <TableHead className="px-2 sm:px-4 hidden md:table-cell">Pagamento</TableHead>
+                  <TableHead className="px-2 sm:px-4">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {pedidos.map((pedido) => (
                   <TableRow key={pedido.id}>
-                    <TableCell className="text-sm">
+                    <TableCell className="text-sm px-2 sm:px-4 whitespace-nowrap">
                       {format(new Date(pedido.created_at), "dd/MM/yy", { locale: ptBR })}
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
+                    <TableCell className="font-mono text-xs text-muted-foreground px-2 sm:px-4 hidden sm:table-cell">
                       #{pedido.id.slice(0, 6)}
                     </TableCell>
-                    <TableCell className="text-right font-medium">
+                    <TableCell className="text-right font-medium px-2 sm:px-4 whitespace-nowrap">
                       R$ {(pedido.valor_total || 0).toFixed(2)}
                     </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
+                    <TableCell className="px-2 sm:px-4 hidden md:table-cell">
+                      <Badge variant="outline" className="text-xs truncate max-w-[120px]">
                         {pedido.forma_pagamento || "—"}
                       </Badge>
                     </TableCell>
-                    <TableCell>{getStatusBadge(pedido.status)}</TableCell>
+                    <TableCell className="px-2 sm:px-4">{getStatusBadge(pedido.status)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
