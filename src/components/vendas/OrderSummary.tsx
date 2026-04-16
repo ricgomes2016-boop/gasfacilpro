@@ -126,7 +126,7 @@ export function OrderSummary({
         {/* Ações */}
         <div className="space-y-2 pt-4">
           <Button
-            className="w-full"
+            className="w-full h-11"
             size="lg"
             onClick={onFinalizar}
             disabled={!pagamentoCompleto || itens.length === 0 || isLoading}
@@ -143,7 +143,7 @@ export function OrderSummary({
           {onAgendar && (
             <Button
               variant="secondary"
-              className="w-full"
+              className="w-full h-10"
               onClick={onAgendar}
               disabled={itens.length === 0 || isLoading}
             >
@@ -153,7 +153,7 @@ export function OrderSummary({
           )}
           <Button
             variant="outline"
-            className="w-full"
+            className="w-full h-10"
             onClick={onCancelar}
             disabled={isLoading}
           >
