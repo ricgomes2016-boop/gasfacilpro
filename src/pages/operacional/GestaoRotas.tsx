@@ -568,7 +568,7 @@ export default function GestaoRotas() {
             </Card>
 
             {/* Resumo */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
               <Card>
                 <CardContent className="p-3 text-center">
                   <p className="text-xs text-muted-foreground">Total Saída</p>
