@@ -1,74 +1,49 @@
 
-## Plano: Auditoria e correção de responsividade mobile no ERP
+## Diagnóstico
 
-### Escopo
-Revisar sistematicamente as principais telas do ERP em viewport mobile (375px) e corrigir quebras de layout, overflow horizontal, elementos desalinhados e tabelas que vazam.
+Ao selecionar um cliente na busca da tela `/vendas/nova`, o layout mobile desconfigura. Analisando `CustomerSearch.tsx`:
 
-### Áreas a auditar (prioridade)
+**Causa raiz identificada:**
 
-**1. Telas de Vendas/Pedidos** (já parcialmente corrigidas)
-- `/vendas` (lista) — verificar tabela de pedidos
-- `/vendas/nova` — confirmar correções anteriores
-- `/vendas/editar/:id` — confirmar correções anteriores
-- Modais relacionados (NovaVendaModal, detalhes de pedido)
+1. **Linha de busca (Telefone + Nome + Botão UserPlus)** usa `flex flex-col sm:flex-row gap-3` — em mobile fica em coluna (OK), mas o **botão UserPlus** tem `sm:mt-5 self-end` que em mobile fica `self-end` sem o `mt-5`, ficando alinhado à direita isoladamente.
 
-**2. Telas de Cadastros**
-- `/clientes` — tabela, busca, modal de cadastro
-- `/produtos` — tabela, modal de cadastro
-- `/fornecedores`, `/funcionarios`
+2. **Quando o cliente é selecionado**, os campos `endereco`, `numero`, `bairro`, `cep` são preenchidos. A linha `<div className="grid gap-3 md:grid-cols-4">` (Endereço col-span-3 + Número) em mobile vira `grid-cols-1` (OK), mas dentro do endereço há `<div className="relative flex gap-1">` com Input + Botão Map — se o endereço preenchido for longo, o Input não tem `min-w-0` no wrapper `flex-1`, causando overflow.
 
-**3. Telas Financeiras**
-- `/financeiro/contas-receber`, `/financeiro/contas-pagar` — tabelas longas
-- `/financeiro/caixa` — fechamento, lançamentos
-- `/financeiro/dre` — relatórios com muitas colunas
+3. **Indicador de coordenadas** `📍 lat, lng` aparece após seleção e usa texto sem `truncate`, podendo estourar.
 
-**4. Operacional**
-- `/operacional/rotas` — cards de carregamento
-- `/operacional/mapa` — Leaflet em mobile
-- `/estoque` — tabela de estoque por unidade
+4. **Dropdown de resultados** (`searchResults`) usa `position: absolute` dentro de um wrapper `relative w-full min-w-0`, mas o wrapper pai (`flex flex-col sm:flex-row`) em mobile coloca telefone e nome empilhados — o `searchRef` envolve ambos. O dropdown absoluto com `left-0 right-0` deveria funcionar, mas pode estar herdando largura errada.
 
-**5. Dashboard e widgets**
-- `/` (Dashboard) — grids de widgets, gráficos Recharts
+5. **Falta de scroll horizontal**: o usuário menciona "não é possível arrastar para o lado" — isso é esperado pois `MainLayout` tem `overflow-x-hidden`. O problema real é que algo está vazando além da viewport e não há como ver. Precisamos **eliminar o vazamento**, não permitir scroll.
 
-**6. Componentes globais**
-- `Header` (título + ações)
-- `Sidebar` mobile (já tem MobileBottomBar)
-- Dialogs/Drawers (ResponsiveDialog já implementado)
+## Solução
 
-### Padrões de correção a aplicar
+### `src/components/vendas/CustomerSearch.tsx`
 
-1. **Tabelas largas**: envolver em `<div className="overflow-x-auto">` para scroll interno; ocultar colunas secundárias com `hidden sm:table-cell`.
-2. **Grids com muitas colunas**: trocar `grid-cols-N` por `grid-cols-1 sm:grid-cols-2 md:grid-cols-N`.
-3. **Flex rows com inputs/botões**: adicionar `flex-wrap` + `min-w-0` nos filhos + `shrink-0` em botões.
-4. **Headers com título + ações**: usar `flex-col sm:flex-row gap-2`.
-5. **Cards de KPI**: garantir `min-w-0` e truncar valores longos.
-6. **Gráficos Recharts**: usar `ResponsiveContainer` com altura fixa e largura 100%.
-7. **Inputs de busca/filtro**: container com `flex-wrap` e larguras mínimas explícitas.
-8. **Padding consistente**: `p-3 sm:p-4 md:p-6` em containers de página.
-9. **Overflow global**: garantir `overflow-x-hidden` no `<main>` (já presente no `MainLayout`).
+1. **Linha de endereço com botão de mapa**: adicionar `min-w-0` no wrapper `flex-1` do input para permitir que o Input encolha.
+   ```tsx
+   <div className="relative flex-1 min-w-0">
+   ```
 
-### Metodologia de execução
+2. **Indicador de coordenadas**: adicionar `truncate` na tag `<p>`.
 
-1. **Auditoria visual com browser** em viewport 375x812:
-   - Navegar pelas rotas principais autenticado
-   - Tirar screenshots
-   - Identificar elementos que vazam ou quebram
-2. **Correções incrementais** por arquivo, priorizando telas mais usadas
-3. **Re-validação** com novo screenshot após cada fix
-4. **Documentar padrões** em `mem://ui/mobile-responsiveness-standard-erp` se surgirem novas convenções
+3. **Wrapper raiz do CardContent**: adicionar `min-w-0` para garantir que o Card não seja esticado por filhos.
 
-### Arquivos prováveis (não exaustivo)
-- `src/pages/vendas/Vendas.tsx`
-- `src/pages/clientes/Clientes.tsx`, `Cadastro.tsx`
-- `src/pages/produtos/Produtos.tsx`
-- `src/pages/financeiro/ContasReceber.tsx`, `ContasPagar.tsx`, `Caixa.tsx`, `DRE.tsx`
-- `src/pages/operacional/GestaoRotas.tsx`
-- `src/pages/Dashboard.tsx`
-- `src/components/layout/Header.tsx`
-- Componentes de tabela e cards reutilizados
+4. **Botão UserPlus em mobile**: trocar `self-end` por `self-stretch sm:self-end` ou tornar full-width em mobile para alinhar visualmente.
 
-### Entregável
-Telas principais do ERP funcionando em viewport mobile (≥360px) sem overflow horizontal, com elementos alinhados e legíveis. Após implementar, validarei com screenshots em 375px de cada rota corrigida.
+5. **Dropdown de resultados após seleção**: garantir que o wrapper `relative z-50 w-full min-w-0` esteja contido — confirmar que `sm:max-w-md` não causa problema em telas estreitas (já está OK).
 
-### Observação importante
-Como o escopo é amplo, vou priorizar as **telas mais críticas/usadas** primeiro (Vendas, Clientes, Financeiro, Dashboard). Telas administrativas raramente acessadas no mobile (configurações avançadas) ficam em segunda prioridade. Se preferir focar em telas específicas, me avise antes de aprovar.
+6. **Inputs Telefone/Nome com ícones**: já têm `pl-10` — verificar se o container `relative` tem `min-w-0` (adicionar onde faltar).
+
+### `src/pages/vendas/NovaVenda.tsx`
+- Confirmar que o wrapper que envolve `<CustomerSearch />` tem `min-w-0 w-full` (já feito em correção anterior, apenas validar).
+
+## Validação
+Após implementar, vou:
+1. Abrir `/vendas/nova` em viewport 375x812 com browser
+2. Buscar e selecionar um cliente com endereço longo
+3. Tirar screenshot e confirmar que **nenhum elemento vaza horizontalmente** após a seleção
+4. Verificar que o card "Cliente" mantém suas bordas dentro da viewport
+
+## Arquivos
+- `src/components/vendas/CustomerSearch.tsx` (principal)
+- `src/pages/vendas/NovaVenda.tsx` (verificação apenas, se necessário)
