@@ -512,19 +512,19 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
 
         {/* Autocomplete Results */}
         {showResults && searchResults.length > 0 && (
-          <div className="relative z-50">
-            <div className="absolute top-0 left-0 right-0 max-w-md bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
+          <div className="relative z-50 w-full min-w-0">
+            <div className="absolute top-0 left-0 right-0 sm:max-w-md bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
               {searchResults.map((cliente) => (
                 <button
                   key={cliente.id}
-                  className="w-full px-4 py-3 text-left hover:bg-accent transition-colors border-b border-border last:border-0"
+                  className="w-full min-w-0 px-4 py-3 text-left hover:bg-accent transition-colors border-b border-border last:border-0"
                   onMouseDown={(e) => {
                     e.preventDefault();
                     selectCliente(cliente);
                   }}
                 >
-                  <p className="font-medium text-sm">{cliente.nome}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="font-medium text-sm truncate">{cliente.nome}</p>
+                  <p className="text-xs text-muted-foreground truncate">
                     {cliente.telefone} • {[cliente.endereco, cliente.numero, cliente.bairro].filter(Boolean).join(", ")}
                   </p>
                 </button>
