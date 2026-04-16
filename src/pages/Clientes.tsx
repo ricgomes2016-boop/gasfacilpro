@@ -232,12 +232,12 @@ export default function Clientes() {
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3 flex-wrap">
-                <Badge variant="outline" className="text-xs">
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                <Badge variant="outline" className="text-xs shrink-0">
                   {totalCount} cliente{totalCount !== 1 ? "s" : ""}
                 </Badge>
                 <Select value={filtroBairro} onValueChange={setFiltroBairro}>
-                  <SelectTrigger className="w-40 h-9 text-xs">
+                  <SelectTrigger className="w-40 h-9 text-xs shrink-0">
                     <SelectValue placeholder="Filtrar bairro" />
                   </SelectTrigger>
                   <SelectContent>
