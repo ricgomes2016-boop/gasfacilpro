@@ -72,12 +72,12 @@ export default function EntregadorTransferencia() {
       if (carreg) {
         const { data: cItens } = await supabase
           .from("carregamento_rota_itens")
-          .select("produto_id, quantidade_saida, quantidade_vendida, produtos:produto_id(nome, preco_custo)")
+          .select("produto_id, quantidade_saida, quantidade_vendida, quantidade_transferida, produtos:produto_id(nome, preco_custo)")
           .eq("carregamento_id", carreg.id);
 
         setProdutos(
           (cItens || [])
-            .filter((i: any) => (i.quantidade_saida - (i.quantidade_vendida || 0)) > 0)
+            .filter((i: any) => ((i.quantidade_saida || 0) - (i.quantidade_vendida || 0) - (i.quantidade_transferida || 0)) > 0)
             .map((i: any) => ({
               id: i.produto_id,
               nome: i.produtos?.nome || "Produto",

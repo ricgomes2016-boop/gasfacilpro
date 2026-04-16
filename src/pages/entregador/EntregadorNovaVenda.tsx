@@ -405,7 +405,7 @@ export default function EntregadorNovaVenda() {
           forma_pagamento: pagamentos.map(p => p.forma).filter((v, i, a) => a.indexOf(v) === i).join(", "),
           canal_venda: canalVenda,
           observacoes: observacao || null,
-          status: "finalizado",
+          status: "entregue",
         })
         .select("id")
         .single();
