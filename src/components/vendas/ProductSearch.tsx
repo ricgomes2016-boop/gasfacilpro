@@ -208,31 +208,38 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
 
         {/* Items Table */}
         {itens.length > 0 ? (
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
+          <div className="border rounded-lg overflow-x-auto">
+            <Table className="min-w-0">
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="w-12">Cód.</TableHead>
-                  <TableHead>Produto</TableHead>
-                  <TableHead className="w-28 text-center">Qtd</TableHead>
-                  <TableHead className="w-24 text-right">Unit.</TableHead>
-                  <TableHead className="w-24 text-right">Total</TableHead>
-                  <TableHead className="w-12"></TableHead>
+                  <TableHead className="w-12 hidden sm:table-cell">Cód.</TableHead>
+                  <TableHead className="px-2 sm:px-4">Produto</TableHead>
+                  <TableHead className="w-[110px] sm:w-28 text-center px-1 sm:px-4">Qtd</TableHead>
+                  <TableHead className="w-20 sm:w-24 text-right px-1 sm:px-4">Unit.</TableHead>
+                  <TableHead className="w-20 sm:w-24 text-right hidden sm:table-cell">Total</TableHead>
+                  <TableHead className="w-10 px-1 sm:px-4"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {itens.map((item, index) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
+                    <TableCell className="font-mono text-xs text-muted-foreground hidden sm:table-cell">
                       {item.produto_id.slice(0, 4)}
                     </TableCell>
-                    <TableCell className="font-medium">{item.nome}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-center gap-1">
+                    <TableCell className="font-medium px-2 sm:px-4 py-2 sm:py-4">
+                      <div className="min-w-0">
+                        <p className="text-sm break-words">{item.nome}</p>
+                        <p className="text-xs font-semibold text-primary sm:hidden mt-0.5">
+                          R$ {item.total.toFixed(2)}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-1 sm:px-4 py-2 sm:py-4">
+                      <div className="flex items-center justify-center gap-0.5 sm:gap-1">
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-7 w-7"
+                          className="h-7 w-7 shrink-0"
                           onClick={() => updateQuantity(index, -1)}
                         >
                           <Minus className="h-3 w-3" />
@@ -249,32 +256,32 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
                             newItens[index].total = newQtd * newItens[index].preco_unitario;
                             onChange(newItens);
                           }}
-                          className="w-16 text-center h-7 text-sm"
+                          className="w-10 sm:w-16 text-center h-7 text-sm px-1"
                         />
                         <Button
                           variant="outline"
                           size="icon"
-                          className="h-7 w-7"
+                          className="h-7 w-7 shrink-0"
                           onClick={() => updateQuantity(index, 1)}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right px-1 sm:px-4 py-2 sm:py-4">
                       <Input
                         type="number"
                         step="0.01"
                         min="0"
                         value={item.preco_unitario}
                         onChange={(e) => updatePrecoUnitario(index, Number(e.target.value))}
-                        className="w-24 text-right h-8 text-sm"
+                        className="w-16 sm:w-24 text-right h-8 text-sm px-1 sm:px-3"
                       />
                     </TableCell>
-                    <TableCell className="text-right font-semibold">
+                    <TableCell className="text-right font-semibold hidden sm:table-cell">
                       R$ {item.total.toFixed(2)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-1 sm:px-4 py-2 sm:py-4">
                       <Button
                         variant="ghost"
                         size="icon"
