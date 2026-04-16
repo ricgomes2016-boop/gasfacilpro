@@ -443,10 +443,10 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
           Cliente
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 min-w-0">
         {/* Search Row */}
-        <div className="flex flex-col sm:flex-row gap-3" ref={searchRef}>
-          <div className="flex-1 relative">
+        <div className="flex flex-col sm:flex-row gap-3 min-w-0" ref={searchRef}>
+          <div className="flex-1 relative min-w-0">
             <Label className="text-xs text-muted-foreground">Telefone</Label>
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -458,12 +458,12 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
                   handleFieldChange("telefone", formatted);
                   searchClientes(formatted, "telefone");
                 }}
-                className="pl-10"
+                className="pl-10 w-full"
                 maxLength={16}
               />
             </div>
           </div>
-          <div className="flex-1 relative">
+          <div className="flex-1 relative min-w-0">
             <Label className="text-xs text-muted-foreground">Nome do Cliente</Label>
             <div className="relative">
               <Input
