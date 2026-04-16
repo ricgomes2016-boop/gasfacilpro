@@ -935,8 +935,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
 
         {/* Layout Principal */}
-        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-4 md:space-y-6">
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-3 min-w-0">
+          <div className="lg:col-span-2 space-y-4 md:space-y-6 min-w-0">
             <Card>
               <CardContent className="pt-6">
                 <div className="grid gap-4 md:grid-cols-2">
