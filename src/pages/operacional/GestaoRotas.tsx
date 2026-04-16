@@ -117,50 +117,14 @@ export default function GestaoRotas() {
 
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
-  const [transferidoFiliais, setTransferidoFiliais] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchRotas();
     fetchCarregamentos();
     fetchFilters();
-    fetchTransferencias();
   }, [unidadeAtual?.id]);
 
-  useEffect(() => {
-    fetchTransferencias();
-  }, [filtroDataInicio, filtroDataFim]);
-
-  const fetchTransferencias = async () => {
-    if (!unidadeAtual?.id) { setTransferidoFiliais(0); return; }
-    const { data: transferencias } = await supabase
-      .from("transferencias_estoque")
-      .select("id")
-      .eq("unidade_origem_id", unidadeAtual.id)
-      .eq("status", "recebido")
-      .gte("data_transferencia", filtroDataInicio)
-      .lte("data_transferencia", filtroDataFim);
-    
-    if (!transferencias || transferencias.length === 0) {
-      setTransferidoFiliais(0);
-      return;
-    }
-
-    const transferIds = transferencias.map((t: any) => t.id);
-    const { data: itens } = await supabase
-      .from("transferencia_estoque_itens")
-      .select("quantidade, produtos(nome)")
-      .in("transferencia_id", transferIds);
-    
-    const total = (itens || []).reduce((sum: number, item: any) => {
-      const nome = item.produtos?.nome || "";
-      if (nome.toLowerCase().includes("p13") && !nome.toLowerCase().includes("vazio")) {
-        return sum + (item.quantidade || 0);
-      }
-      return sum;
-    }, 0);
-    setTransferidoFiliais(total);
-  };
 
   const fetchFilters = async () => {
     let entQuery = supabase.from("entregadores").select("id, nome").eq("ativo", true).order("nome");
@@ -604,7 +568,7 @@ export default function GestaoRotas() {
             </Card>
 
             {/* Resumo */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
               <Card>
                 <CardContent className="p-3 text-center">
                   <p className="text-xs text-muted-foreground">Total Saída</p>
@@ -613,20 +577,14 @@ export default function GestaoRotas() {
               </Card>
               <Card>
                 <CardContent className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Transferido (Rota)</p>
+                  <p className="text-xs text-muted-foreground">Transferido</p>
                   <p className="text-2xl font-bold text-orange-500">{resumo.totalTransferido}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Transf. Filiais</p>
-                  <p className="text-2xl font-bold text-orange-500">{transferidoFiliais}</p>
                 </CardContent>
               </Card>
               <Card className="border-primary/30 bg-primary/5">
                 <CardContent className="p-3 text-center">
                   <p className="text-xs text-muted-foreground font-medium">Saldo Líquido</p>
-                  <p className="text-2xl font-bold text-primary">{resumo.totalSaida - resumo.totalTransferido - transferidoFiliais}</p>
+                  <p className="text-2xl font-bold text-primary">{resumo.totalSaida - resumo.totalTransferido}</p>
                 </CardContent>
               </Card>
               <Card>
