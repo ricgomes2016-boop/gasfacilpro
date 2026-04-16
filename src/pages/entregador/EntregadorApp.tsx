@@ -1,28 +1,61 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, CheckCircle } from "lucide-react";
 import { aplicarModoEntregador, vibrar } from "@/utils/mobileApp";
+import { supabase } from "@/integrations/supabase/client";
 
-// MOCK inicial (pode ligar no Supabase depois)
-const entregas = [
-  { id: "1", cliente: "Maria", endereco: "Rua A, 123", status: "pendente" },
-  { id: "2", cliente: "João", endereco: "Av B, 456", status: "pendente" },
-];
+interface Pedido {
+  id: string;
+  cliente: string;
+  endereco: string;
+}
 
 export default function EntregadorApp() {
+  const [entregas, setEntregas] = useState<Pedido[]>([]);
+
   useEffect(() => {
     aplicarModoEntregador();
+    carregarPedidos();
   }, []);
+
+  const carregarPedidos = async () => {
+    const { data, error } = await supabase
+      .from("pedidos")
+      .select("id, endereco_entrega, clientes(nome)")
+      .eq("status", "pendente")
+      .limit(20);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const lista = (data || []).map((p: any) => ({
+      id: p.id,
+      cliente: p.clientes?.nome || "Cliente",
+      endereco: p.endereco_entrega,
+    }));
+
+    setEntregas(lista);
+  };
 
   const abrirRota = (endereco: string) => {
     const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`;
     window.open(url, "_system");
   };
 
-  const finalizar = (id: string) => {
+  const finalizar = async (id: string) => {
     vibrar(200);
-    alert(`Entrega ${id} finalizada`);
+
+    const { error } = await supabase
+      .from("pedidos")
+      .update({ status: "entregue" })
+      .eq("id", id);
+
+    if (!error) {
+      setEntregas((prev) => prev.filter((e) => e.id !== id));
+    }
   };
 
   return (
@@ -58,6 +91,12 @@ export default function EntregadorApp() {
           </CardContent>
         </Card>
       ))}
+
+      {entregas.length === 0 && (
+        <p className="text-center text-sm text-muted-foreground">
+          Nenhuma entrega pendente
+        </p>
+      )}
     </div>
   );
 }
