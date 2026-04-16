@@ -49,7 +49,7 @@ export default function EntregadorEntregas() {
           clientes:cliente_id (nome, telefone, bairro, latitude, longitude),
           pedido_itens (id, quantidade, preco_unitario, produtos:produto_id (nome))
         `)
-        .in("status", ["pendente", "em_rota", "entregue"])
+        .in("status", ["pendente", "em_rota", "entregue", "finalizado"])
         .order("created_at", { ascending: false })
         .limit(100);
 
