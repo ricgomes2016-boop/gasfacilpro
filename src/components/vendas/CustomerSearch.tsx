@@ -534,11 +534,11 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
         )}
 
         {/* Address Row */}
-        <div className="grid gap-3 md:grid-cols-4">
-          <div className="md:col-span-3 relative" ref={addressRef}>
+        <div className="grid gap-3 md:grid-cols-4 min-w-0">
+          <div className="md:col-span-3 relative min-w-0" ref={addressRef}>
             <Label className="text-xs text-muted-foreground">Endereço</Label>
-            <div className="relative flex gap-1">
-              <div className="relative flex-1">
+            <div className="flex gap-1 min-w-0">
+              <div className="relative flex-1 min-w-0">
                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Rua, Avenida..."
@@ -554,7 +554,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
                       handleAddressBlur();
                     }, 200);
                   }}
-                  className="pl-10"
+                  className="pl-10 w-full"
                 />
                 {isSearchingAddress && (
                   <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
@@ -592,18 +592,19 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
               </div>
             )}
             {value.latitude && value.longitude && (
-              <p className="text-[10px] text-muted-foreground mt-1">
+              <p className="text-[10px] text-muted-foreground mt-1 truncate">
                 📍 {value.latitude.toFixed(5)}, {value.longitude.toFixed(5)}
               </p>
             )}
           </div>
-          <div>
+          <div className="min-w-0">
             <Label className="text-xs text-muted-foreground">Número</Label>
             <Input
               placeholder="Nº"
               value={value.numero}
               onChange={(e) => handleFieldChange("numero", e.target.value)}
               onBlur={handleAddressBlur}
+              className="w-full"
             />
           </div>
         </div>
