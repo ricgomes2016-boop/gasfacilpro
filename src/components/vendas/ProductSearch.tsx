@@ -184,20 +184,20 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
 
           {/* Autocomplete Results */}
           {showResults && searchResults.length > 0 && (
-            <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
+            <div className="absolute z-50 w-full min-w-0 mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
               {searchResults.map((produto) => (
                 <button
                   key={produto.id}
-                  className="w-full px-4 py-3 text-left hover:bg-accent transition-colors border-b border-border last:border-0 flex justify-between items-center"
+                  className="w-full min-w-0 px-4 py-3 text-left hover:bg-accent transition-colors border-b border-border last:border-0 flex justify-between items-center gap-2"
                   onClick={() => addItem(produto)}
                 >
-                  <div>
-                    <p className="font-medium text-sm">{produto.nome}</p>
-                    <p className="text-xs text-muted-foreground">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate">{produto.nome}</p>
+                    <p className="text-xs text-muted-foreground truncate">
                       Estoque: {produto.estoque ?? "N/A"}
                     </p>
                   </div>
-                  <span className="font-semibold text-primary">
+                  <span className="font-semibold text-primary shrink-0 text-sm">
                     R$ {produto.preco.toFixed(2)}
                   </span>
                 </button>
