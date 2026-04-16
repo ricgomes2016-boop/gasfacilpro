@@ -486,7 +486,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
           </div>
           <Button
             variant="outline"
-            className="mt-5"
+            className="sm:mt-5 self-end shrink-0"
             size="icon"
             onClick={() => {
               onChange({
