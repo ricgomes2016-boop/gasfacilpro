@@ -445,7 +445,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Search Row */}
-        <div className="flex gap-3" ref={searchRef}>
+        <div className="flex flex-col sm:flex-row gap-3" ref={searchRef}>
           <div className="flex-1 relative">
             <Label className="text-xs text-muted-foreground">Telefone</Label>
             <div className="relative">
@@ -486,7 +486,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
           </div>
           <Button
             variant="outline"
-            className="mt-5"
+            className="sm:mt-5 self-end shrink-0"
             size="icon"
             onClick={() => {
               onChange({
