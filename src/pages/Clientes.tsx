@@ -248,14 +248,14 @@ export default function Clientes() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex gap-2 flex-wrap">
-                <div className="relative">
+              <div className="flex gap-2 flex-wrap w-full sm:w-auto">
+                <div className="relative w-full sm:w-60 min-w-0">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     placeholder="Buscar cliente..."
                     value={busca}
                     onChange={(e) => setBusca(e.target.value)}
-                    className="w-60 pl-9 h-9"
+                    className="w-full pl-9 h-9"
                   />
                 </div>
                 <DropdownMenu>
