@@ -82,12 +82,14 @@ export function Header({ title, subtitle }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-1 md:gap-4 shrink-0">
+      <div className="flex items-center gap-0.5 sm:gap-1 md:gap-4 shrink-0">
         {/* Unidade Selector */}
         <UnidadeSelector />
 
-        {/* Command Palette (⌘K) */}
-        <CommandPalette />
+        {/* Command Palette (⌘K) — desktop only */}
+        <div className="hidden md:block">
+          <CommandPalette />
+        </div>
 
         {/* Chat with Entregadores */}
         <BaseChatPanel />
@@ -99,7 +101,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9"
+          className="h-9 w-9 hidden sm:inline-flex"
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
           title={resolvedTheme === "dark" ? "Modo claro" : "Modo escuro"}
         >

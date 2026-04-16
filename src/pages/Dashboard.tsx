@@ -144,7 +144,7 @@ export default function Dashboard() {
       <Header title="Dashboard" subtitle="Bem-vindo ao GásPro - Sua revenda de gás" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* ── Hero Gradient Card ── */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 p-6 md:p-8 text-white shadow-xl">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 p-4 sm:p-6 md:p-8 text-white shadow-xl">
           <div className="absolute right-0 top-0 opacity-10">
             <Flame className="h-56 w-56 -mt-8 -mr-8" strokeWidth={0.8} />
           </div>
