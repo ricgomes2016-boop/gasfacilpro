@@ -1,49 +1,57 @@
 
-## Diagnóstico
+## Diagnóstico definitivo
 
-Ao selecionar um cliente na busca da tela `/vendas/nova`, o layout mobile desconfigura. Analisando `CustomerSearch.tsx`:
+O problema persistente em mobile na tela `/vendas/nova` tem **três causas raiz** que ainda não foram atacadas corretamente:
 
-**Causa raiz identificada:**
+### 1. Auto-zoom do navegador mobile (fonte "fica grande")
+O componente `Input` em `src/components/ui/input.tsx` usa `text-base` (16px) por padrão, mas com `md:text-sm` (14px no desktop). Em mobile fica 16px — isso normalmente evita auto-zoom. **MAS**: vários inputs do `NovaVenda`, `ProductSearch`, `CustomerSearch` recebem `className="... text-sm h-7 ..."` ou `text-xs`, o que **sobrescreve** para <16px e dispara o **auto-zoom do iOS Safari / Android Chrome** ao focar — fazendo a página inteira parecer "esticar" e os inputs "mudarem de lugar".
 
-1. **Linha de busca (Telefone + Nome + Botão UserPlus)** usa `flex flex-col sm:flex-row gap-3` — em mobile fica em coluna (OK), mas o **botão UserPlus** tem `sm:mt-5 self-end` que em mobile fica `self-end` sem o `mt-5`, ficando alinhado à direita isoladamente.
+### 2. Falta de `viewport meta` com `maximum-scale`
+Sem `maximum-scale=1` no `<meta viewport>` em `index.html`, o navegador faz zoom automático ao focar inputs com fonte <16px, e o usuário **não consegue voltar** ao zoom original (sensação de "não consigo arrastar para o lado").
 
-2. **Quando o cliente é selecionado**, os campos `endereco`, `numero`, `bairro`, `cep` são preenchidos. A linha `<div className="grid gap-3 md:grid-cols-4">` (Endereço col-span-3 + Número) em mobile vira `grid-cols-1` (OK), mas dentro do endereço há `<div className="relative flex gap-1">` com Input + Botão Map — se o endereço preenchido for longo, o Input não tem `min-w-0` no wrapper `flex-1`, causando overflow.
+### 3. Containers sem `overflow-x: hidden` no nível da página
+O `MainLayout` tem `overflow-x-hidden`, mas o `<main>` filho e o container de `NovaVenda` não. Quando o auto-zoom é acionado, o conteúdo fica "preso" zoomado e parece quebrado.
 
-3. **Indicador de coordenadas** `📍 lat, lng` aparece após seleção e usa texto sem `truncate`, podendo estourar.
+## Solução (3 frentes simultâneas)
 
-4. **Dropdown de resultados** (`searchResults`) usa `position: absolute` dentro de um wrapper `relative w-full min-w-0`, mas o wrapper pai (`flex flex-col sm:flex-row`) em mobile coloca telefone e nome empilhados — o `searchRef` envolve ambos. O dropdown absoluto com `left-0 right-0` deveria funcionar, mas pode estar herdando largura errada.
+### A. Forçar fonte ≥16px em TODOS os inputs/selects/textareas em mobile
+Adicionar regra global em `src/index.css`:
+```css
+@media (max-width: 767px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+```
+Isso **elimina o auto-zoom** independentemente das classes Tailwind aplicadas em cada input.
 
-5. **Falta de scroll horizontal**: o usuário menciona "não é possível arrastar para o lado" — isso é esperado pois `MainLayout` tem `overflow-x-hidden`. O problema real é que algo está vazando além da viewport e não há como ver. Precisamos **eliminar o vazamento**, não permitir scroll.
+### B. Bloquear zoom forçado no viewport
+Atualizar `index.html`:
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+```
 
-## Solução
+### C. Garantir overflow-x-hidden em cascata
+- Adicionar `overflow-x-hidden` em `<html>` e `<body>` via `index.css`
+- Adicionar `min-w-0 max-w-full overflow-x-hidden` no container raiz de `NovaVenda.tsx`
 
-### `src/components/vendas/CustomerSearch.tsx`
+### D. Reduzir altura visual mantendo 16px
+Para inputs que precisavam ser "compactos" (`h-7`, `h-8`), manter altura pequena mas garantir fonte 16px — a regra global cuida disso. Visualmente o input fica compacto, sem disparar zoom.
 
-1. **Linha de endereço com botão de mapa**: adicionar `min-w-0` no wrapper `flex-1` do input para permitir que o Input encolha.
-   ```tsx
-   <div className="relative flex-1 min-w-0">
-   ```
-
-2. **Indicador de coordenadas**: adicionar `truncate` na tag `<p>`.
-
-3. **Wrapper raiz do CardContent**: adicionar `min-w-0` para garantir que o Card não seja esticado por filhos.
-
-4. **Botão UserPlus em mobile**: trocar `self-end` por `self-stretch sm:self-end` ou tornar full-width em mobile para alinhar visualmente.
-
-5. **Dropdown de resultados após seleção**: garantir que o wrapper `relative z-50 w-full min-w-0` esteja contido — confirmar que `sm:max-w-md` não causa problema em telas estreitas (já está OK).
-
-6. **Inputs Telefone/Nome com ícones**: já têm `pl-10` — verificar se o container `relative` tem `min-w-0` (adicionar onde faltar).
-
-### `src/pages/vendas/NovaVenda.tsx`
-- Confirmar que o wrapper que envolve `<CustomerSearch />` tem `min-w-0 w-full` (já feito em correção anterior, apenas validar).
+## Arquivos a editar
+1. `src/index.css` — regra global de fonte ≥16px em mobile + overflow-x-hidden em html/body
+2. `index.html` — meta viewport com `maximum-scale=1, user-scalable=no`
+3. `src/pages/vendas/NovaVenda.tsx` — wrapper raiz com `overflow-x-hidden max-w-full min-w-0`
 
 ## Validação
-Após implementar, vou:
-1. Abrir `/vendas/nova` em viewport 375x812 com browser
-2. Buscar e selecionar um cliente com endereço longo
-3. Tirar screenshot e confirmar que **nenhum elemento vaza horizontalmente** após a seleção
-4. Verificar que o card "Cliente" mantém suas bordas dentro da viewport
+Após implementar, vou abrir `/vendas/nova` em viewport 375x812 com o browser, focar em vários inputs (telefone, nome, endereço, quantidade de produto, preço), e tirar screenshots para confirmar:
+- Nenhum auto-zoom ao focar inputs
+- Nenhum elemento vaza horizontalmente
+- Layout permanece estável após selecionar cliente
+- Inputs mantêm posição e não "pulam"
 
-## Arquivos
-- `src/components/vendas/CustomerSearch.tsx` (principal)
-- `src/pages/vendas/NovaVenda.tsx` (verificação apenas, se necessário)
+Esta abordagem ataca a **causa raiz universal** (auto-zoom + viewport) ao invés de corrigir componente por componente, resolvendo o problema em **toda a aplicação** de uma vez.
