@@ -127,16 +127,15 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading }: PDVPa
                   onChange={(e) => setValorRecebido(e.target.value)}
                   className="text-lg text-center font-mono"
                 />
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full min-w-0">
                   {[50, 100, 150, 200].map((value) => (
                     <Button
                       key={value}
                       variant="outline"
-                      size="sm"
-                      className="flex-1"
+                      className="flex-1 h-10 min-w-0 px-2"
                       onClick={() => setQuickValue(value)}
                     >
-                      R$ {value}
+                      <span className="truncate">R$ {value}</span>
                     </Button>
                   ))}
                 </div>
@@ -153,16 +152,16 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading }: PDVPa
             )}
 
             {/* Botões */}
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={onClose}>
-                Cancelar
+            <div className="flex gap-2 w-full min-w-0">
+              <Button variant="outline" className="flex-1 h-11 min-w-0" onClick={onClose}>
+                <span className="truncate">Cancelar</span>
               </Button>
               <Button
-                className="flex-1"
+                className="flex-1 h-11 min-w-0"
                 disabled={!canFinalize || isLoading}
                 onClick={handleConfirm}
               >
-                {isLoading ? "Processando..." : "Confirmar"}
+                <span className="truncate">{isLoading ? "Processando..." : "Confirmar"}</span>
               </Button>
             </div>
           </div>

@@ -365,12 +365,12 @@ export default function PDV() {
         {/* Main Content */}
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 min-h-0 w-full min-w-0">
           {/* Left: Products */}
-          <Card className="lg:col-span-2 flex flex-col min-h-0">
+          <Card className="lg:col-span-2 flex flex-col min-h-0 w-full min-w-0 max-w-full overflow-hidden">
             <CardHeader className="pb-2 flex-shrink-0">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <div className="space-y-2 w-full min-w-0">
+                <div className="flex items-center gap-2 w-full min-w-0">
+                  <div className="flex-1 relative min-w-0">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                     <Input
                       ref={searchInputRef}
                       placeholder="Buscar produto..."
@@ -379,7 +379,7 @@ export default function PDV() {
                         setSearchTerm(e.target.value);
                         searchProdutos(e.target.value);
                       }}
-                      className="pl-10"
+                      className="pl-10 w-full min-w-0 h-10"
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && searchResults.length > 0) {
                           addProduct(searchResults[0]);
@@ -389,20 +389,20 @@ export default function PDV() {
                     
                     {/* Search Results Dropdown */}
                     {showResults && searchResults.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-lg shadow-lg overflow-hidden">
+                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-lg shadow-lg overflow-hidden max-w-full">
                         {searchResults.map((produto) => (
                           <button
                             key={produto.id}
-                            className="w-full px-4 py-3 text-left hover:bg-accent transition-colors border-b last:border-0 flex justify-between items-center"
+                            className="w-full px-3 py-3 text-left hover:bg-accent transition-colors border-b last:border-0 flex justify-between items-center gap-2 min-w-0"
                             onClick={() => addProduct(produto)}
                           >
-                            <div>
-                              <p className="font-medium text-sm">{produto.nome}</p>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-sm truncate">{produto.nome}</p>
                               <p className="text-xs text-muted-foreground">
                                 Estoque: {produto.estoque ?? 0}
                               </p>
                             </div>
-                            <span className="font-semibold text-primary">
+                            <span className="font-semibold text-primary shrink-0">
                               R$ {produto.preco.toFixed(2)}
                             </span>
                           </button>
@@ -414,6 +414,7 @@ export default function PDV() {
                   <Button
                     variant={scannerActive ? "destructive" : "outline"}
                     size="icon"
+                    className="h-10 w-10 shrink-0"
                     onClick={() => setScannerActive(!scannerActive)}
                     title={scannerActive ? "Fechar scanner" : "Escanear código de barras"}
                   >
@@ -458,18 +459,18 @@ export default function PDV() {
           </Card>
 
           {/* Right: Summary */}
-          <Card className="flex flex-col">
-            <CardContent className="p-4 lg:p-6 flex flex-col lg:flex-1">
+          <Card className="flex flex-col w-full min-w-0 max-w-full overflow-hidden">
+            <CardContent className="p-3 md:p-6 flex flex-col lg:flex-1 w-full min-w-0">
               {/* Mobile: compact horizontal layout */}
-              <div className="flex items-center justify-between lg:hidden mb-3">
-                <div>
-                  <p className="text-xs text-muted-foreground">Total ({totalItens} itens)</p>
-                  <p className="text-2xl font-bold text-primary">
+              <div className="flex items-center justify-between lg:hidden mb-3 gap-2 w-full min-w-0">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground truncate">Total ({totalItens} itens)</p>
+                  <p className="text-2xl font-bold text-primary truncate">
                     R$ {total.toFixed(2)}
                   </p>
                 </div>
                 <Button
-                  className="h-12 px-6 text-base"
+                  className="h-12 px-4 text-base shrink-0"
                   disabled={itens.length === 0}
                   onClick={() => setPaymentOpen(true)}
                 >
@@ -477,30 +478,28 @@ export default function PDV() {
                   Finalizar
                 </Button>
               </div>
-              <div className="flex gap-2 lg:hidden">
+              <div className="flex gap-2 lg:hidden w-full min-w-0">
                 <Button
                   variant="outline"
-                  size="sm"
-                  className="flex-1"
+                  className="flex-1 h-10 min-w-0"
                   onClick={clearCart}
                   disabled={itens.length === 0}
                 >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Limpar
+                  <Trash2 className="h-4 w-4 mr-1 shrink-0" />
+                  <span className="truncate">Limpar</span>
                 </Button>
                 <Button
                   variant="ghost"
-                  size="sm"
-                  className="flex-1 text-muted-foreground"
+                  className="flex-1 h-10 min-w-0 text-muted-foreground"
                   onClick={() => navigate("/vendas")}
                 >
-                  <XCircle className="h-4 w-4 mr-1" />
-                  Cancelar
+                  <XCircle className="h-4 w-4 mr-1 shrink-0" />
+                  <span className="truncate">Cancelar</span>
                 </Button>
               </div>
 
               {/* Desktop: original vertical layout */}
-              <div className="hidden lg:flex lg:flex-col lg:flex-1">
+              <div className="hidden lg:flex lg:flex-col lg:flex-1 w-full min-w-0">
                 <CardTitle className="text-base mb-4">Resumo</CardTitle>
                 <div className="flex-1 space-y-4">
                   <div className="flex justify-between text-sm">
@@ -510,7 +509,7 @@ export default function PDV() {
                   <Separator />
                   <div className="text-center py-4">
                     <p className="text-sm text-muted-foreground">Total</p>
-                    <p className="text-5xl font-bold text-primary">
+                    <p className="text-5xl font-bold text-primary truncate">
                       R$ {total.toFixed(2)}
                     </p>
                   </div>
@@ -527,7 +526,7 @@ export default function PDV() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="w-full"
+                    className="w-full h-10"
                     onClick={clearCart}
                     disabled={itens.length === 0}
                   >
@@ -536,7 +535,7 @@ export default function PDV() {
                   </Button>
                   <Button
                     variant="ghost"
-                    className="w-full text-muted-foreground"
+                    className="w-full h-10 text-muted-foreground"
                     onClick={() => navigate("/vendas")}
                   >
                     <XCircle className="h-4 w-4 mr-2" />
