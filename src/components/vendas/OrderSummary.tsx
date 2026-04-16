@@ -34,30 +34,30 @@ export function OrderSummary({
   const pagamentoCompleto = totalPago >= total && total > 0;
 
   return (
-    <Card>
+    <Card className="w-full min-w-0 max-w-full">
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-base">
-          <ShoppingCart className="h-5 w-5" />
-          Resumo da Venda
+          <ShoppingCart className="h-5 w-5 shrink-0" />
+          <span className="truncate">Resumo da Venda</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 w-full min-w-0">
         {/* Canal de venda */}
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Canal</span>
-          <Badge variant="outline">{canalVenda}</Badge>
+        <div className="flex items-center justify-between gap-2 text-sm w-full min-w-0">
+          <span className="text-muted-foreground shrink-0">Canal</span>
+          <Badge variant="outline" className="truncate max-w-[60%]">{canalVenda}</Badge>
         </div>
 
         <Separator />
 
         {/* Itens resumidos */}
-        <div className="space-y-2">
+        <div className="space-y-2 w-full min-w-0">
           {itens.map((item) => (
-            <div key={item.id} className="flex justify-between text-sm">
-              <span className="text-muted-foreground">
+            <div key={item.id} className="flex justify-between gap-2 text-sm w-full min-w-0">
+              <span className="text-muted-foreground truncate min-w-0 flex-1" title={`${item.quantidade}x ${item.nome}`}>
                 {item.quantidade}x {item.nome}
               </span>
-              <span>R$ {item.total.toFixed(2)}</span>
+              <span className="shrink-0">R$ {item.total.toFixed(2)}</span>
             </div>
           ))}
           {itens.length === 0 && (
@@ -96,9 +96,9 @@ export function OrderSummary({
                 Pagamentos
               </p>
               {pagamentos.map((p) => (
-                <div key={p.id} className="flex justify-between text-sm">
-                  <span className="capitalize">{p.forma.replace("_", " ")}</span>
-                  <span>R$ {p.valor.toFixed(2)}</span>
+                <div key={p.id} className="flex justify-between gap-2 text-sm w-full min-w-0">
+                  <span className="capitalize truncate min-w-0 flex-1">{p.forma.replace("_", " ")}</span>
+                  <span className="shrink-0">R$ {p.valor.toFixed(2)}</span>
                 </div>
               ))}
               <div className="flex justify-between text-sm font-medium pt-1">
@@ -115,10 +115,10 @@ export function OrderSummary({
         {entregadorNome && (
           <>
             <Separator />
-            <div className="flex items-center gap-2 text-sm">
-              <Truck className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Entregador:</span>
-              <span className="font-medium text-success">{entregadorNome}</span>
+            <div className="flex items-center gap-2 text-sm w-full min-w-0">
+              <Truck className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span className="text-muted-foreground shrink-0">Entregador:</span>
+              <span className="font-medium text-success truncate min-w-0" title={entregadorNome}>{entregadorNome}</span>
             </div>
           </>
         )}
