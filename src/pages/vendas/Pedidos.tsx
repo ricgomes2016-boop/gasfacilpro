@@ -457,20 +457,22 @@ export default function Pedidos() {
     <MainLayout>
       {/* #2 - removed duplicate title, kept only Header */}
       <Header title="Pedidos" subtitle="Gerenciar pedidos de venda" />
-      <div className="p-3 md:p-6 space-y-4 md:space-y-6">
+      <div className="p-3 md:p-6 space-y-4 md:space-y-6 w-full min-w-0 max-w-full overflow-x-hidden">
 
         {/* Top action */}
-        <div className="gap-2 flex-wrap text-center flex items-center justify-center">
+        <div className="gap-2 flex flex-wrap items-center justify-center sm:justify-start w-full min-w-0">
           <SmartImportButtons edgeFunctionName="parse-orders-history" onDataExtracted={handleImportData} />
-          <Button variant="outline" onClick={() => {exportarPedidosCSV(pedidosFiltrados);sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);}}>
-            <Download className="h-4 w-4 mr-2" />
-            Exportar CSV
+          <Button variant="outline" className="h-10 min-w-0" onClick={() => {exportarPedidosCSV(pedidosFiltrados);sonnerToast.success(`CSV exportado com ${pedidosFiltrados.length} pedido(s)`);}}>
+            <Download className="h-4 w-4 mr-2 shrink-0" />
+            <span className="truncate">Exportar CSV</span>
           </Button>
-          <Button variant="outline" onClick={() => navigate("/operacional/centro")}>
-            <MapIcon className="h-4 w-4 mr-2" />
-            Mapa Operacional
+          <Button variant="outline" className="h-10 min-w-0" onClick={() => navigate("/operacional/centro")}>
+            <MapIcon className="h-4 w-4 mr-2 shrink-0" />
+            <span className="truncate">Mapa Operacional</span>
           </Button>
-          <Button onClick={() => navigate("/vendas/nova")}>Nova Venda</Button>
+          <Button className="h-10 min-w-0" onClick={() => navigate("/vendas/nova")}>
+            <span className="truncate">Nova Venda</span>
+          </Button>
         </div>
 
         {/* Alert for old pending orders */}
@@ -720,14 +722,14 @@ export default function Pedidos() {
 
             <>
               {/* Mobile cards */}
-              <div className="space-y-3 md:hidden px-3 pb-3">
+              <div className="space-y-3 md:hidden px-3 pb-3 w-full min-w-0">
                 {pedidosPaginados.map((pedido) => (
-                  <div key={pedido.id} className={`border rounded-lg p-3 space-y-2 ${pedido.status === "cancelado" ? "opacity-60" : ""}`}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} />
-                        <div className="min-w-0">
-                          <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs" onClick={() => editarPedido(pedido.id)}>
+                  <div key={pedido.id} className={`border rounded-lg p-3 space-y-2 w-full min-w-0 ${pedido.status === "cancelado" ? "opacity-60" : ""}`}>
+                    <div className="flex items-start justify-between gap-2 w-full min-w-0">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} className="shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs truncate max-w-full" onClick={() => editarPedido(pedido.id)}>
                             #{getIdCurto(pedido.id)}
                           </Button>
                           <p className="text-sm font-medium truncate">{pedido.cliente}</p>
@@ -735,7 +737,7 @@ export default function Pedidos() {
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
@@ -755,14 +757,14 @@ export default function Pedidos() {
                     </div>
                     <p className="text-xs text-muted-foreground truncate">{pedido.endereco}</p>
                     <p className="text-xs truncate">{pedido.produtos}</p>
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap w-full min-w-0">
+                      <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
                         <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
-                        {pedido.entregador && <Badge variant="outline" className="text-[10px]"><Truck className="h-3 w-3 mr-1" />{pedido.entregador}</Badge>}
+                        {pedido.entregador && <Badge variant="outline" className="text-[10px] max-w-[140px] truncate"><Truck className="h-3 w-3 mr-1 shrink-0" /><span className="truncate">{pedido.entregador}</span></Badge>}
                       </div>
-                      <span className="font-bold text-sm">R$ {pedido.valor.toFixed(2)}</span>
+                      <span className="font-bold text-sm shrink-0">R$ {pedido.valor.toFixed(2)}</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground">{pedido.data}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{pedido.data}</p>
                   </div>
                 ))}
               </div>
