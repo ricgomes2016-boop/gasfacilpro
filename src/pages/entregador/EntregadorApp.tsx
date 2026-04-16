@@ -17,6 +17,34 @@ export default function EntregadorApp() {
   useEffect(() => {
     aplicarModoEntregador();
     carregarPedidos();
+
+    const channel = supabase
+      .channel("pedidos-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "pedidos" },
+        (payload) => {
+          const novo: any = payload.new;
+
+          if (novo.status === "pendente") {
+            vibrar(300);
+
+            setEntregas((prev) => [
+              {
+                id: novo.id,
+                cliente: "Novo pedido",
+                endereco: novo.endereco_entrega,
+              },
+              ...prev,
+            ]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const carregarPedidos = async () => {
@@ -26,10 +54,7 @@ export default function EntregadorApp() {
       .eq("status", "pendente")
       .limit(20);
 
-    if (error) {
-      console.error(error);
-      return;
-    }
+    if (error) return;
 
     const lista = (data || []).map((p: any) => ({
       id: p.id,
