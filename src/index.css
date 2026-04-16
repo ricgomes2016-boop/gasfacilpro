@@ -121,12 +121,29 @@
     @apply border-border;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
     font-optical-sizing: auto;
     letter-spacing: -0.01em;
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Prevent iOS/Android auto-zoom on input focus by forcing >=16px font on mobile */
+  @media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
   }
 }
 
