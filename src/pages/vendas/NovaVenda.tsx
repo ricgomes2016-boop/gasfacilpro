@@ -827,7 +827,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
   const vendaContent = (
     <>
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6 overflow-x-hidden">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6 overflow-x-hidden w-full min-w-0 max-w-full">
         <CaixaBloqueadoBanner />
 
         {/* #8 - Progress stepper */}

@@ -278,9 +278,9 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
 
           {/* Adicionar novo pagamento */}
           <div className="space-y-3">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Select value={forma} onValueChange={handleFormaChange}>
-                <SelectTrigger className="flex-1">
+                <SelectTrigger className="flex-1 min-w-[140px]">
                   <SelectValue placeholder="Forma de pagamento" />
                 </SelectTrigger>
                 <SelectContent>
@@ -294,7 +294,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
                   ))}
                 </SelectContent>
               </Select>
-              <div className="relative flex-shrink-0 w-32">
+              <div className="relative flex-shrink-0 w-28 sm:w-32">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                   R$
                 </span>
@@ -305,7 +305,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
                   className="pl-9"
                 />
               </div>
-              <Button onClick={addPagamento} size="icon">
+              <Button onClick={addPagamento} size="icon" className="shrink-0">
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
