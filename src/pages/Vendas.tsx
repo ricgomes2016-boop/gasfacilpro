@@ -172,7 +172,7 @@ export default function Vendas() {
   return (
     <MainLayout>
       <Header title="Vendas" subtitle={`Visão geral das vendas - ${periodoLabel}`} />
-      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Period filter (#8 base) */}
         <div className="flex items-center gap-3 overflow-x-auto pb-2">
           <Calendar className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -369,11 +369,11 @@ export default function Vendas() {
 
         {/* Recent orders */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <ShoppingCart className="h-4 w-4" /> Últimos Pedidos
+          <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
+            <CardTitle className="text-base flex items-center gap-2 min-w-0">
+              <ShoppingCart className="h-4 w-4 shrink-0" /> <span className="truncate">Últimos Pedidos</span>
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/vendas/pedidos")}>Ver todos</Button>
+            <Button variant="ghost" size="sm" className="shrink-0" onClick={() => navigate("/vendas/pedidos")}>Ver todos</Button>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             {isLoading ? (
