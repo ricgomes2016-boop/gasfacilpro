@@ -586,8 +586,8 @@ export default function EditarPedido() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="grid grid-cols-4 gap-3">
-                    <div className="col-span-3 grid gap-1.5 relative" ref={addressRef}>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div className="sm:col-span-3 grid gap-1.5 relative" ref={addressRef}>
                       <Label className="text-xs">Logradouro</Label>
                       <div className="flex gap-1">
                         <div className="relative flex-1">
@@ -667,7 +667,7 @@ export default function EditarPedido() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div className="grid gap-1.5">
                       <Label className="text-xs">CEP</Label>
                       <Input
@@ -687,7 +687,7 @@ export default function EditarPedido() {
                         disabled={isDisabled}
                       />
                     </div>
-                    <div className="flex items-end">
+                    <div className="hidden sm:flex items-end">
                       {coords.lat && coords.lng && (
                         <p className="text-[10px] text-muted-foreground pb-2">
                           📍 {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}
