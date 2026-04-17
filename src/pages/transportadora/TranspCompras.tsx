@@ -20,6 +20,7 @@ import { ComprasKpiToneladas } from "@/components/transportadora/compras/Comprai
 import { ComparativoFornecedoresUnit } from "@/components/transportadora/compras/ComparativoFornecedoresUnit";
 import { ComprasListaTable } from "@/components/transportadora/compras/ComprasListaTable";
 import { ResumoPorLoja } from "@/components/transportadora/compras/ResumoPorLoja";
+import { ResumoProdutosPrecos } from "@/components/transportadora/compras/ResumoProdutosPrecos";
 
 const AGUA_TO_P13 = 1;
 
@@ -473,6 +474,9 @@ export default function TranspCompras() {
 
             {/* Tabela de compras */}
             <ComprasListaTable compras={comprasPeriodo} unidadesMap={unidadesMap} />
+
+            {/* Totais por Produto + Quantidade por Preço Unitário (somente CHEIO) */}
+            <ResumoProdutosPrecos compras={comprasPeriodo} />
           </TabsContent>
 
           <TabsContent value="analise" className="mt-4 space-y-4">
