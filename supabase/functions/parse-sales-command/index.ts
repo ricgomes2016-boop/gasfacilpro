@@ -147,6 +147,76 @@ Não invente dados. Use null quando incerto.`;
 
     if (rpcError) console.error("RPC error:", rpcError);
 
+    // ETAPA 2.5: Se intenção é consulta de fiado/notinhas, busca contas a receber e retorna direto
+    if (clues.intencao === "consulta_fiado") {
+      const candidatosArr = candidatos || [];
+      if (candidatosArr.length === 0) {
+        return new Response(JSON.stringify({
+          tipo: "consulta_fiado",
+          mensagem: `Não encontrei nenhum cliente${clues.nome ? ` com o nome "${clues.nome}"` : ""} no cadastro.`,
+          clientes: [],
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const topCandidatos = candidatosArr.slice(0, 3);
+      const resultados = await Promise.all(topCandidatos.map(async (c: any) => {
+        const { data: contas } = await sb
+          .from("contas_receber")
+          .select("id, descricao, valor, vencimento, status, forma_pagamento, created_at")
+          .eq("cliente_id", c.id)
+          .in("status", ["pendente", "vencido", "em_aberto", "parcial"])
+          .order("vencimento", { ascending: true })
+          .limit(50);
+
+        const total = (contas || []).reduce((s: number, ct: any) => s + Number(ct.valor || 0), 0);
+        const hoje = new Date().toISOString().slice(0, 10);
+        const vencidas = (contas || []).filter((ct: any) => ct.vencimento && ct.vencimento < hoje);
+        const totalVencido = vencidas.reduce((s: number, ct: any) => s + Number(ct.valor || 0), 0);
+
+        return {
+          cliente_id: c.id,
+          nome: c.nome,
+          telefone: c.telefone,
+          endereco: `${c.endereco || ''}${c.numero ? ', ' + c.numero : ''}${c.bairro ? ' - ' + c.bairro : ''}`.trim(),
+          total_aberto: total,
+          total_vencido: totalVencido,
+          qtd_titulos: (contas || []).length,
+          qtd_vencidos: vencidas.length,
+          titulos: (contas || []).slice(0, 10).map((ct: any) => ({
+            descricao: ct.descricao,
+            valor: Number(ct.valor || 0),
+            vencimento: ct.vencimento,
+            status: ct.status,
+            vencido: ct.vencimento && ct.vencimento < hoje,
+          })),
+        };
+      }));
+
+      const principal = resultados[0];
+      let mensagem = "";
+      if (principal.qtd_titulos === 0) {
+        mensagem = `✅ ${principal.nome} não tem nada em aberto. Está em dia!`;
+      } else {
+        mensagem = `📋 ${principal.nome} tem ${principal.qtd_titulos} título(s) em aberto somando R$ ${principal.total_aberto.toFixed(2)}`;
+        if (principal.qtd_vencidos > 0) {
+          mensagem += `, sendo ${principal.qtd_vencidos} vencido(s) (R$ ${principal.total_vencido.toFixed(2)}).`;
+        } else {
+          mensagem += ` (todos no prazo).`;
+        }
+        if (principal.titulos.length > 0) {
+          mensagem += `\n\nÚltimos:\n` + principal.titulos.slice(0, 5).map((t: any) =>
+            `• ${t.vencimento || 's/ venc'} — R$ ${t.valor.toFixed(2)}${t.vencido ? ' ⚠️ vencido' : ''}${t.descricao ? ' — ' + t.descricao : ''}`
+          ).join("\n");
+        }
+      }
+
+      return new Response(JSON.stringify({
+        tipo: "consulta_fiado",
+        mensagem,
+        clientes: resultados,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // Carrega produtos (geralmente são poucos)
     const { data: produtos } = await sb
       .from("produtos")
