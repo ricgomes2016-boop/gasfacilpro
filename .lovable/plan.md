@@ -1,57 +1,77 @@
 
-## Diagnóstico definitivo
+## Objetivo
 
-O problema persistente em mobile na tela `/vendas/nova` tem **três causas raiz** que ainda não foram atacadas corretamente:
+Consolidar no **Mapa Operacional** (`/operacional/centro`) todas as capacidades já existentes de inteligência logística, expondo numa única tela:
 
-### 1. Auto-zoom do navegador mobile (fonte "fica grande")
-O componente `Input` em `src/components/ui/input.tsx` usa `text-base` (16px) por padrão, mas com `md:text-sm` (14px no desktop). Em mobile fica 16px — isso normalmente evita auto-zoom. **MAS**: vários inputs do `NovaVenda`, `ProductSearch`, `CustomerSearch` recebem `className="... text-sm h-7 ..."` ou `text-xs`, o que **sobrescreve** para <16px e dispara o **auto-zoom do iOS Safari / Android Chrome** ao focar — fazendo a página inteira parecer "esticar" e os inputs "mudarem de lugar".
+1. Rastreamento em tempo real dos entregadores
+2. Trilha (polyline) do percurso no mapa
+3. Detecção de paradas longas
+4. Tempo de rota acumulado
+5. Alertas inteligentes (parada longa, demora, risco de atraso)
+6. ETA automático por pedido
+7. Sugestão automática do melhor entregador para cada pedido pendente
+8. Otimização de ordem de entregas
+9. Base de produtividade (entregas/hora, paradas, tempo médio)
 
-### 2. Falta de `viewport meta` com `maximum-scale`
-Sem `maximum-scale=1` no `<meta viewport>` em `index.html`, o navegador faz zoom automático ao focar inputs com fonte <16px, e o usuário **não consegue voltar** ao zoom original (sensação de "não consigo arrastar para o lado").
+## Diagnóstico do que já existe
 
-### 3. Containers sem `overflow-x: hidden` no nível da página
-O `MainLayout` tem `overflow-x-hidden`, mas o `<main>` filho e o container de `NovaVenda` não. Quando o auto-zoom é acionado, o conteúdo fica "preso" zoomado e parece quebrado.
+Já temos os blocos de lógica prontos, só precisam ser **plugados** na tela:
 
-## Solução (3 frentes simultâneas)
+- `src/services/trackingService.ts` — grava posições em `localizacao_entregador`
+- `src/services/operacionalService.ts` — `detectarParadas`, `calcularTempoRota`, `gerarAlertas`
+- `src/services/iaOperacionalService.ts` — `escolherMelhorEntregador`, `calcularETA`, `detectarRiscoAtraso`, `otimizarOrdem`
+- `src/hooks/useOperacional.ts` — orquestra tudo a partir de entregadores + pedidos + cache de pontos
+- `src/pages/operacional/MapaOperacional.tsx` — tela já existe, precisa receber os widgets
+- `mem://features/mapa-operacional` confirma o padrão (Haversine, refresh 15-30s, latência 5m offline)
 
-### A. Forçar fonte ≥16px em TODOS os inputs/selects/textareas em mobile
-Adicionar regra global em `src/index.css`:
-```css
-@media (max-width: 767px) {
-  input, select, textarea {
-    font-size: 16px !important;
-  }
-}
-html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
+Ou seja: **não vamos criar lógica nova**, vamos compor a UI que consome `useOperacional`.
+
+## Plano de implementação (Etapa única, 1 tela)
+
+### 1. Hook de dados em tempo real
+Criar `src/hooks/useMapaOperacionalData.ts` que:
+- Carrega entregadores ativos da empresa (com `localizacao` derivada da última linha de `localizacao_entregador`)
+- Carrega pedidos `pendente` / `saiu_entrega` da unidade
+- Para cada entregador, busca os pontos das últimas 4h em `localizacao_entregador` → monta `pontosCache`
+- Assina realtime de `localizacao_entregador` e `pedidos` para refresh incremental (sem refetch completo)
+- Devolve `{ entregadores, pedidos, pontosCache }` para alimentar `useOperacional`
+
+### 2. Componentes de UI no Mapa
+Em `src/pages/operacional/MapaOperacional.tsx`:
+
+- **Polyline da trilha** por entregador (Leaflet `Polyline` com `pontosCache[id]`), cor por entregador, opacidade decrescente para pontos antigos
+- **Marcador de parada** (`<CircleMarker>` vermelho) em cada item de `dados[entregador.id].paradas`, com tooltip "Parado X min"
+- **Marcador do entregador** com badge de status (verde = em rota, amarelo = parado, vermelho = alerta)
+- **Painel lateral direito** (drawer/sidebar colapsável) com 3 abas:
+  - *Entregadores*: lista com tempo de rota, nº paradas, alertas
+  - *Pedidos*: lista de pendentes com ETA, risco (alto/médio/baixo) e sugestão "Atribuir a {melhorEntregador.nome}"
+  - *Produtividade*: cards com entregas/hora, tempo médio por entrega, % de pedidos no prazo (calculado a partir de `pedidos` entregues hoje)
+
+### 3. Ações operacionais
+- Botão **"Atribuir automaticamente"** em cada pedido pendente → executa `update pedidos set entregador_id = melhor.id`
+- Botão **"Otimizar ordem"** por entregador → chama `otimizarOrdem(pedidosDoEntregador, posicaoAtual)` e persiste a nova ordem em `pedidos.ordem_entrega` (campo já existente conforme `gestao-rotas-conferencia`)
+- Toast de **alertas inteligentes** quando `risco === 'alto'` ou nova parada > 5min é detectada (debounce por entregador)
+
+### 4. Performance
+- Refresh a cada 30s + realtime incremental (padrão `mapa-operacional`)
+- `useMemo` na trilha e nas paradas (listas grandes)
+- Filtro por unidade no topo (já existe `useUnidadeAtiva`)
+
+## Arquivos tocados
+
+```text
+NOVO  src/hooks/useMapaOperacionalData.ts
+NOVO  src/components/operacional/mapa/TrilhaPolyline.tsx
+NOVO  src/components/operacional/mapa/ParadasLayer.tsx
+NOVO  src/components/operacional/mapa/PainelLateral.tsx
+NOVO  src/components/operacional/mapa/CardProdutividade.tsx
+EDIT  src/pages/operacional/MapaOperacional.tsx
 ```
-Isso **elimina o auto-zoom** independentemente das classes Tailwind aplicadas em cada input.
 
-### B. Bloquear zoom forçado no viewport
-Atualizar `index.html`:
-```html
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-```
+Nenhuma alteração de schema — `localizacao_entregador`, `pedidos`, `entregadores` já têm tudo que precisamos. Nenhum serviço/IA é alterado: apenas consumimos.
 
-### C. Garantir overflow-x-hidden em cascata
-- Adicionar `overflow-x-hidden` em `<html>` e `<body>` via `index.css`
-- Adicionar `min-w-0 max-w-full overflow-x-hidden` no container raiz de `NovaVenda.tsx`
-
-### D. Reduzir altura visual mantendo 16px
-Para inputs que precisavam ser "compactos" (`h-7`, `h-8`), manter altura pequena mas garantir fonte 16px — a regra global cuida disso. Visualmente o input fica compacto, sem disparar zoom.
-
-## Arquivos a editar
-1. `src/index.css` — regra global de fonte ≥16px em mobile + overflow-x-hidden em html/body
-2. `index.html` — meta viewport com `maximum-scale=1, user-scalable=no`
-3. `src/pages/vendas/NovaVenda.tsx` — wrapper raiz com `overflow-x-hidden max-w-full min-w-0`
-
-## Validação
-Após implementar, vou abrir `/vendas/nova` em viewport 375x812 com o browser, focar em vários inputs (telefone, nome, endereço, quantidade de produto, preço), e tirar screenshots para confirmar:
-- Nenhum auto-zoom ao focar inputs
-- Nenhum elemento vaza horizontalmente
-- Layout permanece estável após selecionar cliente
-- Inputs mantêm posição e não "pulam"
-
-Esta abordagem ataca a **causa raiz universal** (auto-zoom + viewport) ao invés de corrigir componente por componente, resolvendo o problema em **toda a aplicação** de uma vez.
+## O que NÃO vou fazer
+- Não vou refatorar `App.tsx`, rotas, providers (regra de estabilidade)
+- Não vou criar nova rota — tudo entra em `/operacional/centro`
+- Não vou alterar `iaOperacionalService.ts` nem `operacionalService.ts`
+- Não vou mexer em `useGeoTracking` do app entregador
