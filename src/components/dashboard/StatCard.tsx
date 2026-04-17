@@ -14,6 +14,8 @@ interface StatCardProps {
   variant?: "default" | "primary" | "success" | "warning" | "info";
   /** Render as translucent tile inside a colored hero (GásMais only) */
   onHero?: boolean;
+  /** Render as colored modern card with gradient + animation (GásMais only) */
+  colored?: boolean;
 }
 
 const variantStyles = {
@@ -49,8 +51,102 @@ export function StatCard({
   trend,
   variant = "default",
   onHero = false,
+  colored = false,
 }: StatCardProps) {
   const { isGasmais } = useDashboardTheme();
+
+  // Colored modern card (GásMais) — gradient + shadow + hover animation
+  if (isGasmais && colored) {
+    const tones: Record<NonNullable<StatCardProps["variant"]>, { bar: string; glow: string; icon: string; ring: string }> = {
+      primary: {
+        bar: "from-orange-500 to-orange-600",
+        glow: "from-orange-400 to-orange-600",
+        icon: "from-orange-500 to-orange-600 shadow-orange-500/30",
+        ring: "shadow-orange-500/10",
+      },
+      success: {
+        bar: "from-emerald-500 to-emerald-600",
+        glow: "from-emerald-400 to-emerald-600",
+        icon: "from-emerald-500 to-emerald-600 shadow-emerald-500/30",
+        ring: "shadow-emerald-500/10",
+      },
+      info: {
+        bar: "from-blue-500 to-blue-600",
+        glow: "from-blue-400 to-blue-600",
+        icon: "from-blue-500 to-blue-600 shadow-blue-500/30",
+        ring: "shadow-blue-500/10",
+      },
+      warning: {
+        bar: "from-amber-500 to-amber-600",
+        glow: "from-amber-400 to-amber-600",
+        icon: "from-amber-500 to-amber-600 shadow-amber-500/30",
+        ring: "shadow-amber-500/10",
+      },
+      default: {
+        bar: "from-slate-500 to-slate-600",
+        glow: "from-slate-400 to-slate-600",
+        icon: "from-slate-500 to-slate-600 shadow-slate-500/30",
+        ring: "shadow-slate-500/10",
+      },
+    };
+    const t = tones[variant];
+    return (
+      <div
+        className={cn(
+          "group relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
+          t.ring
+        )}
+      >
+        <div className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r", t.bar)} />
+        <div
+          className={cn(
+            "pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full opacity-10 blur-2xl bg-gradient-to-br transition-opacity duration-500 group-hover:opacity-25",
+            t.glow
+          )}
+        />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {title}
+            </p>
+            <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+              {value}
+            </p>
+            {subtitle && (
+              <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+            )}
+            {trend && (
+              <span
+                className={cn(
+                  "mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
+                  trend.isPositive
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : "bg-destructive/10 text-destructive"
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-block h-1.5 w-1.5 rounded-full animate-pulse",
+                    trend.isPositive ? "bg-emerald-500" : "bg-destructive"
+                  )}
+                />
+                {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
+              </span>
+            )}
+          </div>
+          <div
+            className={cn(
+              "flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-md transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3",
+              t.icon
+            )}
+          >
+            <Icon className="h-5 w-5" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   // Hero tile (translucent on orange gradient) — GásMais inside hero
   if (isGasmais && onHero) {
