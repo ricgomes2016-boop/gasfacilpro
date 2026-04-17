@@ -157,7 +157,10 @@ export default function Funcionarios() {
         salario: form.salario ? parseFloat(form.salario) : 0,
         endereco: form.endereco || null,
       };
-      if (!editId && unidadeAtual?.id) {
+      // unidade_id: usa o selecionado no form, ou o atual da empresa, ou null
+      if (form.unidade_id) {
+        payload.unidade_id = form.unidade_id;
+      } else if (!editId && unidadeAtual?.id) {
         payload.unidade_id = unidadeAtual.id;
       }
 
