@@ -236,12 +236,6 @@ export default function TranspCompras() {
               <Label className="text-xs">Período</Label>
               <Input type="month" value={periodo} onChange={(e) => setPeriodo(e.target.value)} className="w-40" />
             </div>
-            <Button onClick={importarXmlOutlook} disabled={importing} className="gap-2">
-              <Download className="h-4 w-4" />Importar XML do Outlook
-            </Button>
-            <Button onClick={importarXmlOutlook} disabled={importing} variant="outline" className="gap-2">
-              <RefreshCw className={`h-4 w-4 ${importing ? "animate-spin" : ""}`} />Buscar XML agora
-            </Button>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2"><Plus className="h-4 w-4" />Nova Compra</Button>
@@ -319,7 +313,56 @@ export default function TranspCompras() {
               </DialogContent>
             </Dialog>
           </div>
-          <p className="text-xs text-muted-foreground w-full">Última importação: --</p>
+
+          {/* Painel Importação Outlook */}
+          <div className="w-full mt-2 p-3 rounded-lg border border-border/40 bg-muted/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Download className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold text-foreground">Importação automática de XML (NF-e) do Outlook</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_auto_auto] gap-2 items-end">
+              <div>
+                <Label className="text-xs">Filtrar remetente (opcional)</Label>
+                <Input
+                  type="email"
+                  placeholder="ex: nfe@fornecedor.com.br (vazio = todos)"
+                  value={filtroRemetente}
+                  onChange={(e) => setFiltroRemetente(e.target.value)}
+                  className="h-9"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Últimos (dias)</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={180}
+                  value={diasBusca}
+                  onChange={(e) => setDiasBusca(Math.min(180, Math.max(1, +e.target.value || 30)))}
+                  className="h-9"
+                />
+              </div>
+              <Button onClick={importarXmlOutlook} disabled={importing} className="gap-2 h-9">
+                <Download className="h-4 w-4" />Importar XML
+              </Button>
+              <Button onClick={importarXmlOutlook} disabled={importing} variant="outline" className="gap-2 h-9">
+                <RefreshCw className={`h-4 w-4 ${importing ? "animate-spin" : ""}`} />Buscar agora
+              </Button>
+            </div>
+            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
+              <span>📧 Outlook conectado</span>
+              <span>·</span>
+              <span>Última importação: {ultimaImportacao ? format(new Date(ultimaImportacao), "dd/MM/yyyy HH:mm") : "—"}</span>
+              {ultimoResultado && (
+                <>
+                  <span>·</span>
+                  <span className="text-foreground font-medium">
+                    {ultimoResultado.total_importados ?? 0} novos · {ultimoResultado.ja_existentes ?? 0} já existentes · {ultimoResultado.erros ?? 0} erros
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Resumo Mensal */}
