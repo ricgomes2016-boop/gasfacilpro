@@ -81,13 +81,29 @@ export default function TranspCompras() {
   const [importing, setImporting] = useState(false);
   const [form, setForm] = useState<CompraForm>({ ...defaultForm });
   const [periodo, setPeriodo] = useState(new Date().toISOString().slice(0, 7));
+  const [filtroRemetente, setFiltroRemetente] = useState(localStorage.getItem("transp_xml_remetente") || "");
+  const [diasBusca, setDiasBusca] = useState(Number(localStorage.getItem("transp_xml_dias") || "30"));
+  const [ultimaImportacao, setUltimaImportacao] = useState<string | null>(localStorage.getItem("transp_xml_ultima"));
+  const [ultimoResultado, setUltimoResultado] = useState<any>(null);
 
   async function importarXmlOutlook() {
     setImporting(true);
+    setUltimoResultado(null);
     try {
-      const { data, error } = await supabase.functions.invoke("importar_xml_outlook");
+      localStorage.setItem("transp_xml_remetente", filtroRemetente);
+      localStorage.setItem("transp_xml_dias", String(diasBusca));
+      const { data, error } = await supabase.functions.invoke("importar_xml_outlook", {
+        body: { filtro_remetente: filtroRemetente || null, dias: diasBusca },
+      });
       if (error) throw error;
-      toast.success("Importação concluída", { description: "XMLs processados com sucesso" });
+      const agora = new Date().toISOString();
+      localStorage.setItem("transp_xml_ultima", agora);
+      setUltimaImportacao(agora);
+      setUltimoResultado(data);
+      toast.success("Importação concluída", {
+        description: `${data?.total_importados ?? 0} XMLs novos · ${data?.ja_existentes ?? 0} já existentes · ${data?.erros ?? 0} erros`,
+      });
+      qc.invalidateQueries({ queryKey: ["transp-compras"] });
     } catch (err: any) {
       toast.error("Erro ao importar", { description: err.message });
     } finally {
