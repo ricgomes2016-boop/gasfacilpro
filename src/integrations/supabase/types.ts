@@ -7638,6 +7638,8 @@ export type Database = {
       }
       transp_compras: {
         Row: {
+          cfop: string | null
+          chave_nfe: string | null
           cidade_fornecedor: string | null
           created_at: string | null
           custo_combustivel: number | null
@@ -7656,7 +7658,10 @@ export type Database = {
           fornecedor: string
           id: string
           mes_referencia: string | null
+          numero_nf: string | null
           observacoes: string | null
+          outlook_message_id: string | null
+          produto_descricao: string | null
           qtd_agua: number | null
           qtd_p13: number | null
           qtd_p20: number | null
@@ -7666,6 +7671,8 @@ export type Database = {
           veiculo_id: string | null
         }
         Insert: {
+          cfop?: string | null
+          chave_nfe?: string | null
           cidade_fornecedor?: string | null
           created_at?: string | null
           custo_combustivel?: number | null
@@ -7684,7 +7691,10 @@ export type Database = {
           fornecedor: string
           id?: string
           mes_referencia?: string | null
+          numero_nf?: string | null
           observacoes?: string | null
+          outlook_message_id?: string | null
+          produto_descricao?: string | null
           qtd_agua?: number | null
           qtd_p13?: number | null
           qtd_p20?: number | null
@@ -7694,6 +7704,8 @@ export type Database = {
           veiculo_id?: string | null
         }
         Update: {
+          cfop?: string | null
+          chave_nfe?: string | null
           cidade_fornecedor?: string | null
           created_at?: string | null
           custo_combustivel?: number | null
@@ -7712,7 +7724,10 @@ export type Database = {
           fornecedor?: string
           id?: string
           mes_referencia?: string | null
+          numero_nf?: string | null
           observacoes?: string | null
+          outlook_message_id?: string | null
+          produto_descricao?: string | null
           qtd_agua?: number | null
           qtd_p13?: number | null
           qtd_p20?: number | null
@@ -7967,6 +7982,53 @@ export type Database = {
             foreignKeyName: "transp_funcionarios_empresa_id_fkey"
             columns: ["empresa_id"]
             isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transp_outlook_config: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          filtro_remetente: string | null
+          id: string
+          microsoft_refresh_token: string | null
+          microsoft_user_email: string | null
+          ultima_importacao: string | null
+          ultimo_status: string | null
+          ultimo_total_importados: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          filtro_remetente?: string | null
+          id?: string
+          microsoft_refresh_token?: string | null
+          microsoft_user_email?: string | null
+          ultima_importacao?: string | null
+          ultimo_status?: string | null
+          ultimo_total_importados?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          filtro_remetente?: string | null
+          id?: string
+          microsoft_refresh_token?: string | null
+          microsoft_user_email?: string | null
+          ultima_importacao?: string | null
+          ultimo_status?: string | null
+          ultimo_total_importados?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_outlook_config_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
             referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
