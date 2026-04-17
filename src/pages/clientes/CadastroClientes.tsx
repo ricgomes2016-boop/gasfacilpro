@@ -1259,6 +1259,9 @@ export default function CadastroClientesCad() {
                         const rua = cliente.endereco || "";
                         return (
                           <TableRow key={cliente.id}>
+                            <TableCell className="font-mono text-xs text-muted-foreground">
+                              {cliente.codigo_cliente ? `#${cliente.codigo_cliente}` : "-"}
+                            </TableCell>
                             <TableCell className="font-medium">{cliente.nome}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1.5">
