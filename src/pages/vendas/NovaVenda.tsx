@@ -670,7 +670,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       const { data: pedido, error: pedidoError } = await supabase
         .from("pedidos")
         .insert(pedidoInsert)
-        .select("id")
+        .select("id, numero_sequencial")
         .single();
 
       if (pedidoError) throw pedidoError;
@@ -742,7 +742,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
       toast({
         title: "Venda finalizada!",
-        description: `Pedido #${pedido.id.slice(0, 6)} criado com sucesso.`,
+        description: `Pedido #${(pedido as any).numero_sequencial ?? pedido.id.slice(0, 6)} criado com sucesso.`,
       });
 
       // Show print confirmation dialog
@@ -787,7 +787,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           status: "pendente", unidade_id: unidadeAtual?.id,
           agendado: true, data_agendamento: agendamentoDate.toISOString(),
         })
-        .select("id")
+        .select("id, numero_sequencial")
         .single();
 
       if (pedidoError) throw pedidoError;
@@ -802,7 +802,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       setAgendarOpen(false);
       toast({
         title: "Entrega agendada!",
-        description: `Pedido #${pedido.id.slice(0, 6)} agendado para ${dataAgendamento} às ${horaAgendamento}.`,
+        description: `Pedido #${(pedido as any).numero_sequencial ?? pedido.id.slice(0, 6)} agendado para ${dataAgendamento} às ${horaAgendamento}.`,
       });
       navigate("/vendas/pedidos");
     } catch (error: any) {
