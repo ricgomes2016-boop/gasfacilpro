@@ -203,6 +203,31 @@ export default function Dashboard() {
                 subtitle="cadastrados"
                 onHero
               />
+              <StatCard
+                title="Ticket Médio"
+                value={`R$ ${(stats?.ticketMedio ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                icon={TrendingUp}
+                subtitle="por pedido"
+                onHero
+              />
+              {period === "hoje" && (
+                <>
+                  <StatCard
+                    title="Entradas Caixa"
+                    value={`R$ ${(caixaDiario?.total_entradas_caixa ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                    icon={DollarSign}
+                    subtitle="hoje"
+                    onHero
+                  />
+                  <StatCard
+                    title="Diferença Caixa"
+                    value={`R$ ${(caixaDiario?.diferenca_calculada ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                    icon={Flame}
+                    subtitle={(caixaDiario?.diferenca_calculada ?? 0) !== 0 ? "atenção" : "ok"}
+                    onHero
+                  />
+                </>
+              )}
             </div>
           )}
         </div>
