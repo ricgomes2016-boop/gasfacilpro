@@ -32,6 +32,12 @@ export default function MapaOperacional() {
   const [routeToClienteLine, setRouteToClienteLine] = useState<[number, number][]>([]);
   const [percurso, setPercurso] = useState<PercursoPonto[]>([]);
 
+  // Inteligência operacional (trilha, paradas, ETA, sugestões)
+  const { entregadores: entsOp, pedidos: pedsOp, pontosCache, refresh } = useMapaOperacionalData({
+    unidadeId: unidadeAtual?.id,
+  });
+  const dadosOp = useOperacional(entsOp, pedsOp, pontosCache);
+
   // Buscar coordenadas da unidade para centralizar o mapa
   useEffect(() => {
     const fetchUnidadeCoords = async () => {
