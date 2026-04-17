@@ -78,8 +78,22 @@ export default function TranspCompras() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [form, setForm] = useState<CompraForm>({ ...defaultForm });
   const [periodo, setPeriodo] = useState(new Date().toISOString().slice(0, 7));
+
+  async function importarXmlOutlook() {
+    setImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("importar_xml_outlook");
+      if (error) throw error;
+      toast.success("Importação concluída", { description: "XMLs processados com sucesso" });
+    } catch (err: any) {
+      toast.error("Erro ao importar", { description: err.message });
+    } finally {
+      setImporting(false);
+    }
+  }
 
   const { data: veiculos = [] } = useQuery({
     queryKey: ["transp-veiculos"],
