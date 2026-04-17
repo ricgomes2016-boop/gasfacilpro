@@ -148,11 +148,9 @@ Deno.serve(async (req) => {
 
     const desde = new Date(Date.now() - dias * 86400000).toISOString();
 
-    // Monta filtro OData
-    const filterParts = [
-      "hasAttachments eq true",
-      `receivedDateTime ge ${desde}`,
-    ];
+    // Outlook/Graph não aceita combinar hasAttachments + receivedDateTime + orderby (InefficientFilter).
+    // Estratégia: filtrar só por receivedDateTime (+ remetente opcional), ordenar por data, e filtrar hasAttachments no código.
+    const filterParts = [`receivedDateTime ge ${desde}`];
     if (filtroRemetente) {
       filterParts.push(`from/emailAddress/address eq '${filtroRemetente}'`);
     }
@@ -160,8 +158,10 @@ Deno.serve(async (req) => {
     const select = encodeURIComponent("id,subject,from,receivedDateTime,hasAttachments");
 
     console.log(`[importar_xml_outlook] Buscando emails desde ${desde}, filtro: ${filtroRemetente || "(todos)"}`);
-    const list = await outlookFetch(`/me/messages?$filter=${filter}&$select=${select}&$top=50&$orderby=receivedDateTime desc`);
-    const messages = list.value || [];
+    // Sem $orderby (também causa InefficientFilter combinado com $filter em algumas mailboxes)
+    const list = await outlookFetch(`/me/messages?$filter=${filter}&$select=${select}&$top=100`);
+    const messages = (list.value || []).filter((m: any) => m.hasAttachments === true);
+    console.log(`[importar_xml_outlook] ${(list.value || []).length} emails no período, ${messages.length} com anexos`);
     console.log(`[importar_xml_outlook] ${messages.length} emails com anexos encontrados`);
 
     let total_xmls = 0;
