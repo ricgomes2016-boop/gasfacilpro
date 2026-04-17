@@ -51,6 +51,7 @@ import { ClienteUnidadesDialog } from "@/components/clientes/ClienteUnidadesDial
 
 interface Cliente {
   id: string;
+  codigo_cliente?: number | null;
   nome: string;
   cpf: string | null;
   telefone: string | null;
