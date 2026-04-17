@@ -11,8 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { P45_TO_P13, P20_TO_P13, formatCurrency, formatNumber } from "@/lib/transp-utils";
 import { toast } from "sonner";
-import { Plus, ShoppingCart, Download, RefreshCw } from "lucide-react";
+import { Plus, ShoppingCart, Download, RefreshCw, BarChart3, Package } from "lucide-react";
 import { format } from "date-fns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ComprasAnaliseGLP } from "@/components/transportadora/compras/ComprasAnaliseGLP";
+import { ComprasProdutos } from "@/components/transportadora/compras/ComprasProdutos";
 
 const AGUA_TO_P13 = 1;
 
