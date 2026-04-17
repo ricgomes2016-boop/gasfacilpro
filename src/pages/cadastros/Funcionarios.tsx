@@ -355,6 +355,32 @@ export default function Funcionarios() {
                   <Input value={form.endereco} onChange={e => setForm({...form, endereco: e.target.value})} placeholder="Rua, número, bairro" />
                 </div>
 
+                <div className="space-y-2 col-span-2">
+                  <Label className="flex items-center gap-1">
+                    <Briefcase className="h-3.5 w-3.5" />
+                    Filial / Unidade
+                  </Label>
+                  <Select
+                    value={form.unidade_id || "none"}
+                    onValueChange={(v) => setForm({ ...form, unidade_id: v === "none" ? "" : v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a filial" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem filial (todas)</SelectItem>
+                      {unidades.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Você pode mover este funcionário para outra filial a qualquer momento.
+                  </p>
+                </div>
+
                 {/* Entregador toggle */}
                 <div className="col-span-2 border rounded-lg p-4 space-y-4 bg-muted/30">
                   <div className="flex items-center justify-between">
