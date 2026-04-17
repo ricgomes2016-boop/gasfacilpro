@@ -21,6 +21,13 @@ const TIPO_LABEL: Record<string, { label: string; cls: string }> = {
   outros: { label: "Outros", cls: "bg-muted text-muted-foreground border-border" },
 };
 
+const SUBTIPO_CLS: Record<string, string> = {
+  P13: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30",
+  P20: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30",
+  P45: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30",
+  "Água": "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30",
+};
+
 export function ComprasListaTable({ compras, unidadesMap }: Props) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
@@ -184,9 +191,6 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                   else if (Number(c.qtd_p45 || 0) > 0 || /p[\s-]?45|45\s*kg/.test(desc)) subtipo = "P45";
                   else if (Number(c.qtd_agua || 0) > 0 || /água|agua|water/.test(desc)) subtipo = "Água";
                 }
-                const tipo = subtipo
-                  ? { label: `${tipoBase.label} · ${subtipo}`, cls: tipoBase.cls }
-                  : tipoBase;
                 const qtd = Number(c.quantidade || 0) || (Number(c.qtd_p13 || 0) + Number(c.qtd_p20 || 0) + Number(c.qtd_p45 || 0) + Number(c.qtd_agua || 0));
                 const pu = Number(c.preco_unitario || 0);
                 const desc = Number(c.desconto || 0);
@@ -203,9 +207,16 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                       {c.numero_nf || "—"}
                     </td>
                     <td className="px-3 py-2">
-                      <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border ${tipo.cls}`}>
-                        {tipo.label}
-                      </span>
+                      <div className="inline-flex items-center gap-1 flex-wrap">
+                        <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border ${tipoBase.cls}`}>
+                          {tipoBase.label}
+                        </span>
+                        {subtipo && (
+                          <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border ${SUBTIPO_CLS[subtipo]}`}>
+                            {subtipo}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{c.cfop || "—"}</td>
                     <td className="px-3 py-2 text-center text-foreground">{qtd > 0 ? formatNumber(qtd, 0) : "—"}</td>
