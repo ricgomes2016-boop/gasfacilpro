@@ -13,6 +13,7 @@ import { AiInsightsWidget } from "@/components/dashboard/AiInsightsWidget";
 import { DailySalesGoal } from "@/components/dashboard/DailySalesGoal";
 import { StockAlerts } from "@/components/dashboard/StockAlerts";
 import { DailyBriefingWidget } from "@/components/dashboard/DailyBriefingWidget";
+import { GasmaisThemeBanner } from "@/components/dashboard/GasmaisThemeBanner";
 import { VoiceAssistant } from "@/components/ai/VoiceAssistant";
 import { ShoppingCart, Truck, Users, DollarSign, TrendingUp, Flame } from "lucide-react";
 import { format } from "date-fns";
@@ -146,6 +147,9 @@ export default function Dashboard() {
     <MainLayout>
       <Header title="Dashboard" subtitle="Bem-vindo ao GásPro - Sua revenda de gás" />
       <div className={`${themeClass} p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6`}>
+        {/* Banner promocional do tema GásMais (dispensável) */}
+        <GasmaisThemeBanner />
+
         {/* ── Hero Gradient Card ── */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 p-4 sm:p-6 md:p-8 text-white shadow-xl">
           <div className="absolute right-0 top-0 opacity-10">
