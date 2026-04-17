@@ -433,13 +433,16 @@ export default function TranspCompras() {
               </div>
             )}
 
-            {/* Tabela de compras (com busca, alerta de duplicatas, vencimento e pago) */}
-            <ComprasListaTable compras={comprasPeriodo} />
+            {/* Resumo por Loja — GLP Cheio */}
+            <ResumoPorLoja compras={comprasPeriodo} unidadesMap={unidadesMap} />
+
+            {/* Tabela de compras */}
+            <ComprasListaTable compras={comprasPeriodo} unidadesMap={unidadesMap} />
           </TabsContent>
 
           <TabsContent value="analise" className="mt-4 space-y-4">
             <ComprasKpiToneladas compras={compras} />
-            <ComparativoFornecedores compras={compras} />
+            <ComparativoFornecedoresUnit compras={comprasPeriodo} />
             <ComprasAnaliseGLP compras={compras} />
           </TabsContent>
 
