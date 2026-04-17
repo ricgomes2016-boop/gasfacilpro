@@ -268,6 +268,7 @@ export default function Funcionarios() {
       login_email: "",
       login_password: "",
       terminal_id: entregador?.terminal_id || "",
+      unidade_id: f.unidade_id || "",
     });
     setEditId(f.id);
     setOpen(true);
