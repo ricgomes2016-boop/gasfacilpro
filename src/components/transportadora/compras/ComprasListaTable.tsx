@@ -191,9 +191,6 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                   else if (Number(c.qtd_p45 || 0) > 0 || /p[\s-]?45|45\s*kg/.test(desc)) subtipo = "P45";
                   else if (Number(c.qtd_agua || 0) > 0 || /água|agua|water/.test(desc)) subtipo = "Água";
                 }
-                const tipo = subtipo
-                  ? { label: `${tipoBase.label} · ${subtipo}`, cls: tipoBase.cls }
-                  : tipoBase;
                 const qtd = Number(c.quantidade || 0) || (Number(c.qtd_p13 || 0) + Number(c.qtd_p20 || 0) + Number(c.qtd_p45 || 0) + Number(c.qtd_agua || 0));
                 const pu = Number(c.preco_unitario || 0);
                 const desc = Number(c.desconto || 0);
@@ -210,9 +207,16 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                       {c.numero_nf || "—"}
                     </td>
                     <td className="px-3 py-2">
-                      <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border ${tipo.cls}`}>
-                        {tipo.label}
-                      </span>
+                      <div className="inline-flex items-center gap-1 flex-wrap">
+                        <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border ${tipoBase.cls}`}>
+                          {tipoBase.label}
+                        </span>
+                        {subtipo && (
+                          <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border ${SUBTIPO_CLS[subtipo]}`}>
+                            {subtipo}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{c.cfop || "—"}</td>
                     <td className="px-3 py-2 text-center text-foreground">{qtd > 0 ? formatNumber(qtd, 0) : "—"}</td>
