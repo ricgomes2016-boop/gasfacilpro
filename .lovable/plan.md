@@ -1,88 +1,76 @@
 
 
-## Plano: Cards do Dashboard coloridos, modernos e animados (tema GásMais)
+## Plano: módulo Compras (Transportadora) no estilo Base44
 
 ### Objetivo
-Manter alguns cards de KPI **fora** do hero (no grid abaixo), mas com visual **colorido, moderno, com sombra e animação** — alinhado ao estilo fintech do tema GásMais.
+Replicar a UX das telas Base44 enviadas: distinguir **Cheio / Vasilhame / Outros**, mostrar **preço unitário** na tabela, **resumo por loja (filial) + por produto**, comparativo de fornecedores com Min/Médio/Máx, KPI "Descontos totais", e melhorar a leitura do XML (descontos, vencimento, duplicata, filial destinatária via CNPJ).
 
-### Escopo
-- Apenas tema GásMais ativo (`isGasmais === true`).
-- Apenas Dashboard (`src/pages/Dashboard.tsx`) e `StatCard.tsx`.
-- Não toca em rotas, providers, App.tsx.
+### 1. Banco — novas colunas em `transp_compras`
+Migration adicionando:
+- `unidade_id uuid` (FK `unidades.id`) — filial destinatária da NF
+- `cnpj_destinatario text` — CNPJ extraído do `<dest>` para mapear a filial
+- `tipo_produto text` — `'cheio' | 'vasilhame' | 'outros'` (derivado do CFOP/descrição)
+- `preco_unitario numeric` — preço unitário do item da NF (já bruto)
+- `quantidade numeric` — quantidade do item (separa do agregado P13/P20/P45)
+- Índice em `(empresa_id, mes_referencia, unidade_id)`
 
-### O que muda
+### 2. Edge Function `importar_xml_outlook` — parser melhorado
+- Extrair `<dest><CNPJ>` → buscar `unidades` por CNPJ → setar `unidade_id`.
+- Extrair `<dup><dVenc>` (duplicatas) → primeira data = `data_vencimento`.
+- Extrair `<vDesc>` por item e `<vDesc>` total → preencher `desconto`.
+- Classificar `tipo_produto` por **CFOP** (5xxx/6xxx 5102/5405/5656 = cheio; 5949/5556 vasilhame…) com fallback por descrição (`vazio` → vasilhame; `gás/glp/p13/p20/p45` → cheio; resto → outros).
+- Salvar `preco_unitario` (`vUnCom`) e `quantidade` (`qCom`) no item.
+- Manter agregação `qtd_p13/p20/p45` apenas quando `tipo_produto = 'cheio'`.
 
-**1. Nova variante visual em `StatCard.tsx`** — prop `colored?: boolean`
-Quando `isGasmais && colored`, renderiza um card com:
-- Gradiente sutil baseado na `variant` (primary=laranja, success=verde, info=azul, warning=âmbar)
-- Borda colorida fina (`border-{cor}/20`)
-- Sombra elevada (`shadow-lg shadow-{cor}/10`)
-- Ícone em círculo com gradiente sólido + ícone branco
-- Hover: `hover:-translate-y-1 hover:shadow-xl` + transição 300ms
-- Animação de entrada: `animate-fade-in` (já existe no `index.css`)
-- Número grande com `tracking-tight`
-- Pequeno indicador de trend animado (badge pulsante quando positivo)
+### 3. Página `TranspCompras.tsx` — novos blocos (estilo Base44)
 
-**2. Em `Dashboard.tsx`** (apenas no ramo GásMais)
-- Manter no **hero** (translúcidos): Vendas, Pedidos, Pendentes, Clientes Ativos, Ticket Médio, Entradas, Diferença (como já está).
-- Adicionar **grid de 3-4 cards coloridos animados abaixo do hero**, com métricas complementares:
-  - **Vendas Hoje** (variant primary / laranja) — gradiente laranja
-  - **Recebimentos do Dia** (variant success / verde) — gradiente verde
-  - **A Receber** (variant info / azul) — gradiente azul
-  - **Estoque Crítico** (variant warning / âmbar) — gradiente âmbar
-- Stagger de animação: cada card com `style={{ animationDelay: '${i * 80}ms' }}`.
+**a) Filtros no topo**
+- Período (mês) — já existe
+- **Filial (loja)** — Select "Todas as lojas" + uma por unidade do empresa_id
 
-### Detalhes técnicos
+**b) Card "Resumo por Loja — GLP Cheio"**
+Tabela agrupada por `unidade_id` × produto cheio (P13/P20/P45):
+| Loja | Produto | Qtd | Preço Médio Unit. | Total Líquido |
++ linha "Total Geral (GLP Cheio)".
 
-```tsx
-// StatCard.tsx — nova ramificação
-if (isGasmais && colored) {
-  const tones = {
-    primary: "from-orange-500 to-orange-600 shadow-orange-500/20 border-orange-500/20",
-    success: "from-emerald-500 to-emerald-600 shadow-emerald-500/20 border-emerald-500/20",
-    info:    "from-blue-500 to-blue-600 shadow-blue-500/20 border-blue-500/20",
-    warning: "from-amber-500 to-amber-600 shadow-amber-500/20 border-amber-500/20",
-    default: "from-slate-500 to-slate-600 shadow-slate-500/20 border-slate-500/20",
-  };
-  return (
-    <div className="group relative overflow-hidden rounded-2xl border bg-card p-5 shadow-lg
-                    transition-all duration-300 hover:-translate-y-1 hover:shadow-xl animate-fade-in">
-      {/* faixa gradiente decorativa no topo */}
-      <div className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r", tones[variant])} />
-      {/* glow sutil no hover */}
-      <div className={cn("absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-10 blur-2xl bg-gradient-to-br", tones[variant])} />
-      <div className="relative flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</p>
-          <p className="mt-2 text-3xl font-bold tracking-tight">{value}</p>
-          {trend && <Badge animado pulse />}
-        </div>
-        <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-md transition-transform group-hover:scale-110", tones[variant])}>
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-    </div>
-  );
-}
+**c) Card "Comparativo de Preço Unitário por Fornecedor — GLP Cheio"**
+- Gráfico de barras (recharts) Min/Médio/Máx por fornecedor+produto
+- Tabela: Fornecedor / Produto · Preço Min · Médio · Máx · Qtd Comprada · Total Pago · Vs. Média (delta vs média geral, verde/vermelho)
+- Troféu 🏆 no fornecedor com menor preço médio do produto
+
+**d) Linha de mini-cards**
+- Por Fornecedor (bar horizontal)
+- Por Loja (bar vertical)
+- Evolução de Compras (line) — já existe parcialmente em `ComprasAnaliseGLP`
+
+**e) Card "Histórico de Compras"**
+- Badge "💰 Descontos totais: R$ X" no canto direito
+- Filtros chip: **Todos / Cheio / Vasilhame / Outros** (filtra por `tipo_produto`)
+- Colunas novas: **Loja**, **Tipo** (badge colorido), **CFOP**, **Qtd**, **Preço Unit.**, **Desconto**, **Total**, **NF**, **Vencimento**, **Pago**
+
+### 4. Componentes a criar
 ```
-
-```tsx
-// Dashboard.tsx — após o hero, antes das outras seções
-{isGasmais && (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-    {coloredCards.map((c, i) => (
-      <div key={c.title} style={{ animationDelay: `${i * 80}ms` }} className="animate-fade-in">
-        <StatCard {...c} colored />
-      </div>
-    ))}
-  </div>
-)}
+src/components/transportadora/compras/
+  ResumoPorLoja.tsx         (Card 3b)
+  ComparativoFornecedoresUnit.tsx  (Card 3c, substitui/estende o atual)
+  ComprasMiniGraficos.tsx   (Card 3d)
+  ComprasFiltroTipo.tsx     (chips Cheio/Vasilhame/Outros)
 ```
+`ComprasListaTable.tsx` ganha colunas Loja/Tipo/CFOP/Qtd/Preço Unit./Desconto + filtro de tipo + badge de descontos totais.
+
+### 5. Lógica de agrupamento (frontend)
+- `useMemo` consolidando `compras` filtradas por período+filial:
+  - `porLojaProduto`: `{unidade_id, produto, qtd, preco_medio (ponderado), total}`
+  - `porFornecedorProduto`: `{fornecedor, produto, min, med, max, qtd, total, vsMedia}`
+- Joinar `unidades` para mostrar nome da loja.
 
 ### Fora de escopo
-- Tema padrão (sem GásMais) permanece igual.
-- Sem mudanças em outras páginas, backend, migrations.
+- Não toco em rotas, providers, App.tsx, autenticação.
+- Não mudo módulo Abastecimento/Entregas.
+- Edge function continua usando Outlook (sem reescrever fluxo).
 
-### Próximo passo
-Após aprovação: edito `StatCard.tsx` (nova variante `colored`) e `Dashboard.tsx` (adiciono grid colorido animado abaixo do hero, no ramo GásMais).
+### Próximo passo após aprovação
+1. Migration (colunas novas + índice).
+2. Atualizar parser do `importar_xml_outlook`.
+3. Criar 4 componentes novos + atualizar `TranspCompras.tsx` e `ComprasListaTable.tsx`.
 
