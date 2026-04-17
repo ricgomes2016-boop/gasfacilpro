@@ -14,6 +14,8 @@ interface StatCardProps {
   variant?: "default" | "primary" | "success" | "warning" | "info";
   /** Render as translucent tile inside a colored hero (GásMais only) */
   onHero?: boolean;
+  /** Render as colored modern card with gradient + animation (GásMais only) */
+  colored?: boolean;
 }
 
 const variantStyles = {
