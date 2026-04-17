@@ -230,11 +230,6 @@ export default function TranspCompras() {
               <DialogTrigger asChild>
                 <Button className="gap-2"><Plus className="h-4 w-4" />Nova Compra</Button>
               </DialogTrigger>
-            </div>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2"><Plus className="h-4 w-4" />Nova Compra</Button>
-              </DialogTrigger>
               <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle>Registrar Compra</DialogTitle></DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="space-y-4">
