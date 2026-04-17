@@ -6,11 +6,14 @@ interface StatCardProps {
   title: string;
   value: string | number;
   icon: LucideIcon;
+  subtitle?: string;
   trend?: {
     value: number;
     isPositive: boolean;
   };
   variant?: "default" | "primary" | "success" | "warning" | "info";
+  /** Render as translucent tile inside a colored hero (GásMais only) */
+  onHero?: boolean;
 }
 
 const variantStyles = {
