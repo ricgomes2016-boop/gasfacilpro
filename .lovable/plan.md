@@ -1,76 +1,40 @@
 
+## Plan: Associar Funcionário a Outras Filiais
 
-## Plano: módulo Compras (Transportadora) no estilo Base44
+### Contexto
+Na rota `/cadastros/funcionarios` precisamos permitir que um funcionário seja associado a múltiplas unidades (filiais), igual ao padrão já existente para clientes (`ClienteUnidadesDialog`) que usa a tabela `cliente_unidades`.
 
-### Objetivo
-Replicar a UX das telas Base44 enviadas: distinguir **Cheio / Vasilhame / Outros**, mostrar **preço unitário** na tabela, **resumo por loja (filial) + por produto**, comparativo de fornecedores com Min/Médio/Máx, KPI "Descontos totais", e melhorar a leitura do XML (descontos, vencimento, duplicata, filial destinatária via CNPJ).
+### Investigação necessária
+1. Confirmar estrutura da página `Funcionarios.tsx` e se existe tabela `user_unidades` ou similar para funcionários.
+2. Verificar se funcionários têm `user_id` (vinculados a `auth.users`) — pela `UnidadeContext` já existe `user_unidades` (user_id + unidade_id), que é exatamente o mecanismo que controla quais unidades um usuário regular vê.
 
-### 1. Banco — novas colunas em `transp_compras`
-Migration adicionando:
-- `unidade_id uuid` (FK `unidades.id`) — filial destinatária da NF
-- `cnpj_destinatario text` — CNPJ extraído do `<dest>` para mapear a filial
-- `tipo_produto text` — `'cheio' | 'vasilhame' | 'outros'` (derivado do CFOP/descrição)
-- `preco_unitario numeric` — preço unitário do item da NF (já bruto)
-- `quantidade numeric` — quantidade do item (separa do agregado P13/P20/P45)
-- Índice em `(empresa_id, mes_referencia, unidade_id)`
+### Abordagem
+Reutilizar o padrão do `ClienteUnidadesDialog`, criando um `FuncionarioUnidadesDialog` que opera sobre a tabela `user_unidades`:
 
-### 2. Edge Function `importar_xml_outlook` — parser melhorado
-- Extrair `<dest><CNPJ>` → buscar `unidades` por CNPJ → setar `unidade_id`.
-- Extrair `<dup><dVenc>` (duplicatas) → primeira data = `data_vencimento`.
-- Extrair `<vDesc>` por item e `<vDesc>` total → preencher `desconto`.
-- Classificar `tipo_produto` por **CFOP** (5xxx/6xxx 5102/5405/5656 = cheio; 5949/5556 vasilhame…) com fallback por descrição (`vazio` → vasilhame; `gás/glp/p13/p20/p45` → cheio; resto → outros).
-- Salvar `preco_unitario` (`vUnCom`) e `quantidade` (`qCom`) no item.
-- Manter agregação `qtd_p13/p20/p45` apenas quando `tipo_produto = 'cheio'`.
+1. **Novo componente** `src/components/cadastros/FuncionarioUnidadesDialog.tsx`
+   - Props: `open`, `onOpenChange`, `userId` (do funcionário), `funcionarioNome`, `onSaved`
+   - Lista todas as unidades da empresa (`useUnidade().unidades`)
+   - Carrega seleções atuais de `user_unidades` filtrando por `user_id`
+   - Checkboxes para marcar/desmarcar
+   - Salvar: `delete` das antigas + `insert` das novas (mesmo padrão do cliente)
+   - Validação: pelo menos 1 unidade obrigatória
 
-### 3. Página `TranspCompras.tsx` — novos blocos (estilo Base44)
+2. **Atualizar** `src/pages/cadastros/Funcionarios.tsx`
+   - Adicionar botão/ação (ícone `Building2`) na lista/tabela de funcionários ao lado de Editar/Excluir
+   - Botão só aparece se o funcionário tiver `user_id` vinculado (caso contrário, mostrar tooltip "Funcionário sem login")
+   - Estado local para abrir o dialog com o funcionário selecionado
 
-**a) Filtros no topo**
-- Período (mês) — já existe
-- **Filial (loja)** — Select "Todas as lojas" + uma por unidade do empresa_id
+### Considerações de segurança
+- Operações em `user_unidades` já têm RLS. Apenas admin/gestor da empresa devem conseguir alterar (assumindo que a página já está restrita por roles `admin`/`gestor` conforme `cadastrosRoutes.ts`).
+- Não modificar schema — a tabela `user_unidades` já existe e é o mecanismo correto.
 
-**b) Card "Resumo por Loja — GLP Cheio"**
-Tabela agrupada por `unidade_id` × produto cheio (P13/P20/P45):
-| Loja | Produto | Qtd | Preço Médio Unit. | Total Líquido |
-+ linha "Total Geral (GLP Cheio)".
+### Arquivos
+- **Criar**: `src/components/cadastros/FuncionarioUnidadesDialog.tsx`
+- **Editar**: `src/pages/cadastros/Funcionarios.tsx` (adicionar botão + integrar dialog)
 
-**c) Card "Comparativo de Preço Unitário por Fornecedor — GLP Cheio"**
-- Gráfico de barras (recharts) Min/Médio/Máx por fornecedor+produto
-- Tabela: Fornecedor / Produto · Preço Min · Médio · Máx · Qtd Comprada · Total Pago · Vs. Média (delta vs média geral, verde/vermelho)
-- Troféu 🏆 no fornecedor com menor preço médio do produto
-
-**d) Linha de mini-cards**
-- Por Fornecedor (bar horizontal)
-- Por Loja (bar vertical)
-- Evolução de Compras (line) — já existe parcialmente em `ComprasAnaliseGLP`
-
-**e) Card "Histórico de Compras"**
-- Badge "💰 Descontos totais: R$ X" no canto direito
-- Filtros chip: **Todos / Cheio / Vasilhame / Outros** (filtra por `tipo_produto`)
-- Colunas novas: **Loja**, **Tipo** (badge colorido), **CFOP**, **Qtd**, **Preço Unit.**, **Desconto**, **Total**, **NF**, **Vencimento**, **Pago**
-
-### 4. Componentes a criar
-```
-src/components/transportadora/compras/
-  ResumoPorLoja.tsx         (Card 3b)
-  ComparativoFornecedoresUnit.tsx  (Card 3c, substitui/estende o atual)
-  ComprasMiniGraficos.tsx   (Card 3d)
-  ComprasFiltroTipo.tsx     (chips Cheio/Vasilhame/Outros)
-```
-`ComprasListaTable.tsx` ganha colunas Loja/Tipo/CFOP/Qtd/Preço Unit./Desconto + filtro de tipo + badge de descontos totais.
-
-### 5. Lógica de agrupamento (frontend)
-- `useMemo` consolidando `compras` filtradas por período+filial:
-  - `porLojaProduto`: `{unidade_id, produto, qtd, preco_medio (ponderado), total}`
-  - `porFornecedorProduto`: `{fornecedor, produto, min, med, max, qtd, total, vsMedia}`
-- Joinar `unidades` para mostrar nome da loja.
-
-### Fora de escopo
-- Não toco em rotas, providers, App.tsx, autenticação.
-- Não mudo módulo Abastecimento/Entregas.
-- Edge function continua usando Outlook (sem reescrever fluxo).
-
-### Próximo passo após aprovação
-1. Migration (colunas novas + índice).
-2. Atualizar parser do `importar_xml_outlook`.
-3. Criar 4 componentes novos + atualizar `TranspCompras.tsx` e `ComprasListaTable.tsx`.
-
+### Fluxo do usuário
+1. Acessa `/cadastros/funcionarios`
+2. Na linha do funcionário, clica no ícone de prédio (Building2)
+3. Modal abre com lista de unidades + checkboxes mostrando as atuais
+4. Marca/desmarca e salva → `user_unidades` é atualizado
+5. Funcionário passará a ver/operar nas unidades marcadas (já controlado pelo `UnidadeContext`)
