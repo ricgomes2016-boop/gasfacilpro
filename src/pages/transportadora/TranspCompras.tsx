@@ -88,6 +88,7 @@ export default function TranspCompras() {
   const [importing, setImporting] = useState(false);
   const [form, setForm] = useState<CompraForm>({ ...defaultForm });
   const [periodo, setPeriodo] = useState(new Date().toISOString().slice(0, 7));
+  const [filialFiltro, setFilialFiltro] = useState<string>("todas");
   const [filtroRemetente, setFiltroRemetente] = useState(localStorage.getItem("transp_xml_remetente") || "");
   const [diasBusca, setDiasBusca] = useState(Number(localStorage.getItem("transp_xml_dias") || "30"));
   const [ultimaImportacao, setUltimaImportacao] = useState<string | null>(localStorage.getItem("transp_xml_ultima"));
@@ -145,9 +146,30 @@ export default function TranspCompras() {
     enabled: !!user,
   });
 
+  const { data: unidades = [] } = useQuery({
+    queryKey: ["unidades-empresa", profile?.empresa_id],
+    queryFn: async () => {
+      const { data } = await supabase.from("unidades").select("id, nome").eq("empresa_id", profile!.empresa_id).eq("ativo", true).order("nome");
+      return data || [];
+    },
+    enabled: !!profile?.empresa_id,
+  });
+
+  const unidadesMap = useMemo(() => {
+    const m = new Map<string, string>();
+    unidades.forEach((u: any) => m.set(u.id, u.nome));
+    return m;
+  }, [unidades]);
+
   const custos = useMemo(() => calcCustos(form), [form]);
 
-  const comprasPeriodo = useMemo(() => compras.filter((c: any) => c.mes_referencia === periodo), [compras, periodo]);
+  const comprasPeriodo = useMemo(() => {
+    return compras.filter((c: any) => {
+      if (c.mes_referencia !== periodo) return false;
+      if (filialFiltro !== "todas" && c.unidade_id !== filialFiltro) return false;
+      return true;
+    });
+  }, [compras, periodo, filialFiltro]);
 
   const resumoMensal = useMemo(() => {
     if (comprasPeriodo.length === 0) return null;
