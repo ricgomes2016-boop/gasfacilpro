@@ -16,6 +16,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useTheme } from "@/hooks/useTheme";
+import { useDashboardTheme } from "@/hooks/useDashboardTheme";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface EmpresaConfig {
   id: string;
@@ -72,6 +75,27 @@ function ThemeSelector() {
           <span className="text-xs font-medium">{opt.label}</span>
         </button>
       ))}
+    </div>
+  );
+}
+
+function GasmaisThemeToggle() {
+  const { isGasmais, setTheme } = useDashboardTheme();
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-4">
+      <div className="space-y-1">
+        <Label htmlFor="gasmais-theme" className="text-sm font-semibold">
+          Tema GásMais (Dashboard + Sidebar)
+        </Label>
+        <p className="text-xs text-muted-foreground">
+          Aplica paleta laranja/azul e cards estilo fintech apenas no Dashboard e na Sidebar.
+        </p>
+      </div>
+      <Switch
+        id="gasmais-theme"
+        checked={isGasmais}
+        onCheckedChange={(c) => setTheme(c ? "gasmais" : "default")}
+      />
     </div>
   );
 }
@@ -531,8 +555,9 @@ export default function Configuracoes() {
               </div>
               <CardDescription>Personalize o visual do sistema</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
               <ThemeSelector />
+              <GasmaisThemeToggle />
             </CardContent>
           </Card>
 
