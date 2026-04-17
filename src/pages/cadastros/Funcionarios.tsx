@@ -37,6 +37,7 @@ interface Funcionario {
   salario: number | null;
   status: string | null;
   ativo: boolean | null;
+  unidade_id: string | null;
 }
 
 interface Entregador {
@@ -63,6 +64,7 @@ const emptyForm = {
   login_email: "",
   login_password: "",
   terminal_id: "",
+  unidade_id: "",
 };
 
 export default function Funcionarios() {
@@ -76,7 +78,7 @@ export default function Funcionarios() {
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [terminais, setTerminais] = useState<TerminalOption[]>([]);
-  const { unidadeAtual } = useUnidade();
+  const { unidadeAtual, unidades } = useUnidade();
 
   const fetchFuncionarios = async () => {
     let query = supabase
@@ -155,7 +157,10 @@ export default function Funcionarios() {
         salario: form.salario ? parseFloat(form.salario) : 0,
         endereco: form.endereco || null,
       };
-      if (!editId && unidadeAtual?.id) {
+      // unidade_id: usa o selecionado no form, ou o atual da empresa, ou null
+      if (form.unidade_id) {
+        payload.unidade_id = form.unidade_id;
+      } else if (!editId && unidadeAtual?.id) {
         payload.unidade_id = unidadeAtual.id;
       }
 
@@ -263,6 +268,7 @@ export default function Funcionarios() {
       login_email: "",
       login_password: "",
       terminal_id: entregador?.terminal_id || "",
+      unidade_id: f.unidade_id || "",
     });
     setEditId(f.id);
     setOpen(true);
@@ -347,6 +353,32 @@ export default function Funcionarios() {
                 <div className="space-y-2 col-span-2">
                   <Label>Endereço</Label>
                   <Input value={form.endereco} onChange={e => setForm({...form, endereco: e.target.value})} placeholder="Rua, número, bairro" />
+                </div>
+
+                <div className="space-y-2 col-span-2">
+                  <Label className="flex items-center gap-1">
+                    <Briefcase className="h-3.5 w-3.5" />
+                    Filial / Unidade
+                  </Label>
+                  <Select
+                    value={form.unidade_id || "none"}
+                    onValueChange={(v) => setForm({ ...form, unidade_id: v === "none" ? "" : v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a filial" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem filial (todas)</SelectItem>
+                      {unidades.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Você pode mover este funcionário para outra filial a qualquer momento.
+                  </p>
                 </div>
 
                 {/* Entregador toggle */}
