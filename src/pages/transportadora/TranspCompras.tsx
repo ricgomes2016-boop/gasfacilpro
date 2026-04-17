@@ -419,7 +419,6 @@ export default function TranspCompras() {
             <ComparativoFornecedores compras={compras} />
             <ComprasAnaliseGLP compras={compras} />
           </TabsContent>
-          </TabsContent>
 
           <TabsContent value="produtos" className="mt-4">
             <ComprasProdutos compras={compras} />
