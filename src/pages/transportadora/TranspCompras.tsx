@@ -409,6 +409,9 @@ export default function TranspCompras() {
               <Button onClick={importarXmlOutlook} disabled={importing} variant="outline" className="gap-2 h-9">
                 <RefreshCw className={`h-4 w-4 ${importing ? "animate-spin" : ""}`} />Buscar agora
               </Button>
+              <Button onClick={reprocessarXmls} disabled={importing} variant="secondary" className="gap-2 h-9" title="Re-lê os XMLs do mês selecionado e atualiza filial, tipo, preço unitário, desconto e vencimento">
+                <RefreshCw className={`h-4 w-4 ${importing ? "animate-spin" : ""}`} />Reprocessar mês
+              </Button>
             </div>
             <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
               <span>📧 Outlook conectado</span>
