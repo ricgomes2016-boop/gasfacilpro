@@ -368,64 +368,83 @@ export default function TranspCompras() {
           </div>
         </div>
 
-        {/* Resumo Mensal */}
-        {resumoMensal && (
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            <Card className="border-border/40"><CardContent className="p-3">
-              <p className="text-xs text-muted-foreground">Custo Médio P13</p>
-              <p className="text-lg font-bold text-primary">{formatCurrency(resumoMensal.mediaP13)}</p>
-              <p className="text-xs text-muted-foreground">{resumoMensal.totalP13} un</p>
-            </CardContent></Card>
-            <Card className="border-border/40"><CardContent className="p-3">
-              <p className="text-xs text-muted-foreground">Custo Médio P20</p>
-              <p className="text-lg font-bold text-foreground">{formatCurrency(resumoMensal.mediaP20)}</p>
-              <p className="text-xs text-muted-foreground">{resumoMensal.totalP20} un</p>
-            </CardContent></Card>
-            <Card className="border-border/40"><CardContent className="p-3">
-              <p className="text-xs text-muted-foreground">Custo Médio P45</p>
-              <p className="text-lg font-bold text-foreground">{formatCurrency(resumoMensal.mediaP45)}</p>
-              <p className="text-xs text-muted-foreground">{resumoMensal.totalP45} un</p>
-            </CardContent></Card>
-            <Card className="border-border/40"><CardContent className="p-3">
-              <p className="text-xs text-muted-foreground">Custo Médio Água</p>
-              <p className="text-lg font-bold text-foreground">{formatCurrency(resumoMensal.mediaAgua)}</p>
-              <p className="text-xs text-muted-foreground">{resumoMensal.totalAgua} un</p>
-            </CardContent></Card>
-            <Card className="border-border/40"><CardContent className="p-3">
-              <p className="text-xs text-muted-foreground">Total Gasto</p>
-              <p className="text-lg font-bold text-foreground">{formatCurrency(resumoMensal.totalGasto)}</p>
-              <p className="text-xs text-muted-foreground">{comprasPeriodo.length} compras</p>
-            </CardContent></Card>
-          </div>
-        )}
+        <Tabs defaultValue="compras" className="w-full">
+          <TabsList>
+            <TabsTrigger value="compras" className="gap-1.5"><ShoppingCart className="h-4 w-4" />Compras</TabsTrigger>
+            <TabsTrigger value="analise" className="gap-1.5"><BarChart3 className="h-4 w-4" />Análise GLP</TabsTrigger>
+            <TabsTrigger value="produtos" className="gap-1.5"><Package className="h-4 w-4" />Produtos</TabsTrigger>
+          </TabsList>
 
-        {/* Lista de compras */}
-        <div className="grid gap-3">
-          {comprasPeriodo.map((c: any) => (
-            <Card key={c.id} className="border-border/40">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                      <ShoppingCart className="h-5 w-5 text-muted-foreground" />
+          <TabsContent value="compras" className="space-y-4 mt-4">
+            {/* Resumo Mensal */}
+            {resumoMensal && (
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <Card className="border-border/40"><CardContent className="p-3">
+                  <p className="text-xs text-muted-foreground">Custo Médio P13</p>
+                  <p className="text-lg font-bold text-primary">{formatCurrency(resumoMensal.mediaP13)}</p>
+                  <p className="text-xs text-muted-foreground">{resumoMensal.totalP13} un</p>
+                </CardContent></Card>
+                <Card className="border-border/40"><CardContent className="p-3">
+                  <p className="text-xs text-muted-foreground">Custo Médio P20</p>
+                  <p className="text-lg font-bold text-foreground">{formatCurrency(resumoMensal.mediaP20)}</p>
+                  <p className="text-xs text-muted-foreground">{resumoMensal.totalP20} un</p>
+                </CardContent></Card>
+                <Card className="border-border/40"><CardContent className="p-3">
+                  <p className="text-xs text-muted-foreground">Custo Médio P45</p>
+                  <p className="text-lg font-bold text-foreground">{formatCurrency(resumoMensal.mediaP45)}</p>
+                  <p className="text-xs text-muted-foreground">{resumoMensal.totalP45} un</p>
+                </CardContent></Card>
+                <Card className="border-border/40"><CardContent className="p-3">
+                  <p className="text-xs text-muted-foreground">Custo Médio Água</p>
+                  <p className="text-lg font-bold text-foreground">{formatCurrency(resumoMensal.mediaAgua)}</p>
+                  <p className="text-xs text-muted-foreground">{resumoMensal.totalAgua} un</p>
+                </CardContent></Card>
+                <Card className="border-border/40"><CardContent className="p-3">
+                  <p className="text-xs text-muted-foreground">Total Gasto</p>
+                  <p className="text-lg font-bold text-foreground">{formatCurrency(resumoMensal.totalGasto)}</p>
+                  <p className="text-xs text-muted-foreground">{comprasPeriodo.length} compras</p>
+                </CardContent></Card>
+              </div>
+            )}
+
+            {/* Lista de compras */}
+            <div className="grid gap-3">
+              {comprasPeriodo.map((c: any) => (
+                <Card key={c.id} className="border-border/40">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                          <ShoppingCart className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-foreground">{c.fornecedor}{c.cidade_fornecedor ? ` · ${c.cidade_fornecedor}` : ""}</p>
+                          <p className="text-xs text-muted-foreground">{c.data} · {Number(c.distancia_ida_km)}km ida · P13:{c.qtd_p13} P20:{c.qtd_p20} P45:{c.qtd_p45} Água:{c.qtd_agua}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-foreground">{formatCurrency(Number(c.custo_total))}</p>
+                        <p className="text-xs text-muted-foreground">P13: {formatCurrency(Number(c.custo_unit_p13))}/un</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-sm text-foreground">{c.fornecedor}{c.cidade_fornecedor ? ` · ${c.cidade_fornecedor}` : ""}</p>
-                      <p className="text-xs text-muted-foreground">{c.data} · {Number(c.distancia_ida_km)}km ida · P13:{c.qtd_p13} P20:{c.qtd_p20} P45:{c.qtd_p45} Água:{c.qtd_agua}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-foreground">{formatCurrency(Number(c.custo_total))}</p>
-                    <p className="text-xs text-muted-foreground">P13: {formatCurrency(Number(c.custo_unit_p13))}/un</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          {!isLoading && comprasPeriodo.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground text-sm">Nenhuma compra registrada no período</div>
-          )}
-        </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {!isLoading && comprasPeriodo.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground text-sm">Nenhuma compra registrada no período</div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="analise" className="mt-4">
+            <ComprasAnaliseGLP compras={compras} />
+          </TabsContent>
+
+          <TabsContent value="produtos" className="mt-4">
+            <ComprasProdutos compras={compras} />
+          </TabsContent>
+        </Tabs>
+
       </div>
     </TransportadoraLayout>
   );
