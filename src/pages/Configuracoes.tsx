@@ -17,8 +17,6 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useTheme } from "@/hooks/useTheme";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 
 interface EmpresaConfig {
   id: string;
