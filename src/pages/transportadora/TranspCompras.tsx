@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { P45_TO_P13, P20_TO_P13, formatCurrency, formatNumber } from "@/lib/transp-utils";
 import { toast } from "sonner";
-import { Plus, ShoppingCart } from "lucide-react";
+import { Plus, ShoppingCart, Download, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 
 const AGUA_TO_P13 = 1;
@@ -78,8 +78,22 @@ export default function TranspCompras() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [form, setForm] = useState<CompraForm>({ ...defaultForm });
   const [periodo, setPeriodo] = useState(new Date().toISOString().slice(0, 7));
+
+  async function importarXmlOutlook() {
+    setImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("importar_xml_outlook");
+      if (error) throw error;
+      toast.success("Importação concluída", { description: "XMLs processados com sucesso" });
+    } catch (err: any) {
+      toast.error("Erro ao importar", { description: err.message });
+    } finally {
+      setImporting(false);
+    }
+  }
 
   const { data: veiculos = [] } = useQuery({
     queryKey: ["transp-veiculos"],
@@ -201,11 +215,17 @@ export default function TranspCompras() {
             <h1 className="text-2xl font-bold text-foreground">Compras</h1>
             <p className="text-muted-foreground text-sm">Registro de compras em distribuidoras · Origem: Cornélio Procópio</p>
           </div>
-          <div className="flex gap-3 items-end">
+          <div className="flex gap-3 items-end flex-wrap">
             <div>
               <Label className="text-xs">Período</Label>
               <Input type="month" value={periodo} onChange={(e) => setPeriodo(e.target.value)} className="w-40" />
             </div>
+            <Button onClick={importarXmlOutlook} disabled={importing} className="gap-2">
+              <Download className="h-4 w-4" />Importar XML do Outlook
+            </Button>
+            <Button onClick={importarXmlOutlook} disabled={importing} variant="outline" className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${importing ? "animate-spin" : ""}`} />Buscar XML agora
+            </Button>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2"><Plus className="h-4 w-4" />Nova Compra</Button>
@@ -283,6 +303,7 @@ export default function TranspCompras() {
               </DialogContent>
             </Dialog>
           </div>
+          <p className="text-xs text-muted-foreground w-full">Última importação: --</p>
         </div>
 
         {/* Resumo Mensal */}
