@@ -265,6 +265,18 @@ export default function TranspCompras() {
               <Label className="text-xs">Período</Label>
               <Input type="month" value={periodo} onChange={(e) => setPeriodo(e.target.value)} className="w-40" />
             </div>
+            <div>
+              <Label className="text-xs">Filial</Label>
+              <Select value={filialFiltro} onValueChange={setFilialFiltro}>
+                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas as lojas</SelectItem>
+                  {unidades.map((u: any) => (
+                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2"><Plus className="h-4 w-4" />Nova Compra</Button>
