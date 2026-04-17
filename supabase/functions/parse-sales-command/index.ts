@@ -111,16 +111,22 @@ serve(async (req) => {
       });
     }
 
-    // ETAPA 1: Extrair pistas do comando (cliente + endereço + telefone)
-    const extractPrompt = `Você extrai pistas de um comando de venda em português. Retorne APENAS JSON válido com os campos:
+    // ETAPA 1: Extrair pistas + detectar intenção (venda OU consulta de fiado/notinhas)
+    const extractPrompt = `Você analisa um comando do operador em português. Retorne APENAS JSON válido:
 {
+  "intencao": "venda" ou "consulta_fiado" (use "consulta_fiado" quando o operador pergunta sobre fiado, notinhas, débito, dívida, conta, o que cliente deve, quanto deve, o que tem em aberto, etc.),
   "nome": "primeiro nome ou nome completo do cliente, se mencionado, senão null",
   "telefone": "apenas dígitos do telefone, se mencionado, senão null",
-  "endereco_rua": "nome da rua/avenida sem número (ex: 'Rua das Flores'), senão null",
+  "endereco_rua": "nome da rua/avenida sem número, senão null",
   "numero": "apenas o número do endereço, senão null",
   "bairro": "nome do bairro, se mencionado, senão null"
 }
-Não invente. Se não tiver certeza, retorne null no campo.`;
+Exemplos:
+- "lança um P13 pra Maria da Rua das Flores" → intencao: "venda"
+- "como tá o fiado da Maria?" → intencao: "consulta_fiado"
+- "quanto o João deve?" → intencao: "consulta_fiado"
+- "tem notinha em aberto da Ana?" → intencao: "consulta_fiado"
+Não invente dados. Use null quando incerto.`;
 
     const cluesContent = await callAI(extractPrompt, comando, apiKey, 0);
     const clues = extractJSON(cluesContent) || {};
