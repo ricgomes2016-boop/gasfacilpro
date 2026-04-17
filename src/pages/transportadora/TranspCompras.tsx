@@ -119,6 +119,26 @@ export default function TranspCompras() {
     }
   }
 
+  async function reprocessarXmls() {
+    setImporting(true);
+    setUltimoResultado(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("reprocessar_xml_outlook", {
+        body: { mes_referencia: periodo },
+      });
+      if (error) throw error;
+      setUltimoResultado(data);
+      toast.success("Reprocessamento concluído", {
+        description: `${data?.atualizados ?? 0} atualizados · ${data?.nao_encontrados ?? 0} não encontrados · ${data?.erros ?? 0} erros`,
+      });
+      qc.invalidateQueries({ queryKey: ["transp-compras"] });
+    } catch (err: any) {
+      toast.error("Erro ao reprocessar", { description: err.message });
+    } finally {
+      setImporting(false);
+    }
+  }
+
   const { data: veiculos = [] } = useQuery({
     queryKey: ["transp-veiculos"],
     queryFn: async () => {
@@ -388,6 +408,9 @@ export default function TranspCompras() {
               </Button>
               <Button onClick={importarXmlOutlook} disabled={importing} variant="outline" className="gap-2 h-9">
                 <RefreshCw className={`h-4 w-4 ${importing ? "animate-spin" : ""}`} />Buscar agora
+              </Button>
+              <Button onClick={reprocessarXmls} disabled={importing} variant="secondary" className="gap-2 h-9" title="Re-lê os XMLs do mês selecionado e atualiza filial, tipo, preço unitário, desconto e vencimento">
+                <RefreshCw className={`h-4 w-4 ${importing ? "animate-spin" : ""}`} />Reprocessar mês
               </Button>
             </div>
             <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
