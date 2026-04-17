@@ -288,6 +288,12 @@ export default function MapaOperacional() {
                   onSelectCliente={handleSelectCliente}
                   selectedClienteId={selectedCliente?.id || null}
                   routeToClienteLine={routeToClienteLine}
+                  overlays={
+                    <>
+                      <TrilhaPolyline pontosCache={pontosCache} selectedEntregador={selectedEntregador} />
+                      <ParadasLayer dadosOp={dadosOp} selectedEntregador={selectedEntregador} />
+                    </>
+                  }
                 />
               </div>
               {/* Painel de entregadores mais próximos */}
