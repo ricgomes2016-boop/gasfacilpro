@@ -1,32 +1,88 @@
 
 
-## Diagnóstico: por que você não encontrou o tema GásMais
+## Plano: Cards do Dashboard coloridos, modernos e animados (tema GásMais)
 
-O código está implementado e o toggle existe — está em **Configurações → card "Aparência"**, logo abaixo do seletor Claro/Escuro/Sistema (linha 558 de `Configuracoes.tsx`, componente `GasmaisThemeToggle`).
+### Objetivo
+Manter alguns cards de KPI **fora** do hero (no grid abaixo), mas com visual **colorido, moderno, com sombra e animação** — alinhado ao estilo fintech do tema GásMais.
 
-Você está atualmente na rota `/auth` (tela de login), por isso não vê. Para encontrar:
+### Escopo
+- Apenas tema GásMais ativo (`isGasmais === true`).
+- Apenas Dashboard (`src/pages/Dashboard.tsx`) e `StatCard.tsx`.
+- Não toca em rotas, providers, App.tsx.
 
-1. Faça login no ERP
-2. Menu lateral → **Configurações**
-3. Role a página até o card **"Aparência"** (ícone de sol)
-4. Abaixo de "Tema" tem o switch **"Tema GásMais (Dashboard + Sidebar)"**
-5. Ative o switch → vá para o **Dashboard** e veja a nova paleta laranja/azul + sidebar escura
+### O que muda
 
-## Possíveis problemas a investigar (caso ainda não apareça depois do login)
+**1. Nova variante visual em `StatCard.tsx`** — prop `colored?: boolean`
+Quando `isGasmais && colored`, renderiza um card com:
+- Gradiente sutil baseado na `variant` (primary=laranja, success=verde, info=azul, warning=âmbar)
+- Borda colorida fina (`border-{cor}/20`)
+- Sombra elevada (`shadow-lg shadow-{cor}/10`)
+- Ícone em círculo com gradiente sólido + ícone branco
+- Hover: `hover:-translate-y-1 hover:shadow-xl` + transição 300ms
+- Animação de entrada: `animate-fade-in` (já existe no `index.css`)
+- Número grande com `tracking-tight`
+- Pequeno indicador de trend animado (badge pulsante quando positivo)
 
-Se mesmo após login você não ver o toggle no card Aparência, as causas prováveis são:
+**2. Em `Dashboard.tsx`** (apenas no ramo GásMais)
+- Manter no **hero** (translúcidos): Vendas, Pedidos, Pendentes, Clientes Ativos, Ticket Médio, Entradas, Diferença (como já está).
+- Adicionar **grid de 3-4 cards coloridos animados abaixo do hero**, com métricas complementares:
+  - **Vendas Hoje** (variant primary / laranja) — gradiente laranja
+  - **Recebimentos do Dia** (variant success / verde) — gradiente verde
+  - **A Receber** (variant info / azul) — gradiente azul
+  - **Estoque Crítico** (variant warning / âmbar) — gradiente âmbar
+- Stagger de animação: cada card com `style={{ animationDelay: '${i * 80}ms' }}`.
 
-1. **Card Aparência abaixo da dobra** — só aparece rolando. Solução: nenhuma, é só rolar.
-2. **Permissão / RBAC esconde a página inteira** — improvável já que você acessou antes.
-3. **Cache do navegador** — versão antiga da página Configurações sem o novo componente.
+### Detalhes técnicos
 
-## Plano de melhoria (se você quiser que eu mexa)
+```tsx
+// StatCard.tsx — nova ramificação
+if (isGasmais && colored) {
+  const tones = {
+    primary: "from-orange-500 to-orange-600 shadow-orange-500/20 border-orange-500/20",
+    success: "from-emerald-500 to-emerald-600 shadow-emerald-500/20 border-emerald-500/20",
+    info:    "from-blue-500 to-blue-600 shadow-blue-500/20 border-blue-500/20",
+    warning: "from-amber-500 to-amber-600 shadow-amber-500/20 border-amber-500/20",
+    default: "from-slate-500 to-slate-600 shadow-slate-500/20 border-slate-500/20",
+  };
+  return (
+    <div className="group relative overflow-hidden rounded-2xl border bg-card p-5 shadow-lg
+                    transition-all duration-300 hover:-translate-y-1 hover:shadow-xl animate-fade-in">
+      {/* faixa gradiente decorativa no topo */}
+      <div className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r", tones[variant])} />
+      {/* glow sutil no hover */}
+      <div className={cn("absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-10 blur-2xl bg-gradient-to-br", tones[variant])} />
+      <div className="relative flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</p>
+          <p className="mt-2 text-3xl font-bold tracking-tight">{value}</p>
+          {trend && <Badge animado pulse />}
+        </div>
+        <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-md transition-transform group-hover:scale-110", tones[variant])}>
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+    </div>
+  );
+}
+```
 
-Para ficar mais visível e não passar despercebido, posso:
+```tsx
+// Dashboard.tsx — após o hero, antes das outras seções
+{isGasmais && (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    {coloredCards.map((c, i) => (
+      <div key={c.title} style={{ animationDelay: `${i * 80}ms` }} className="animate-fade-in">
+        <StatCard {...c} colored />
+      </div>
+    ))}
+  </div>
+)}
+```
 
-- **Mover o toggle para o topo do card Aparência** (acima do ThemeSelector), com um badge "Novo".
-- **Adicionar um atalho rápido no Header** (ícone de paleta) que ativa/desativa direto, sem ir em Configurações.
-- **Mostrar um banner discreto no Dashboard** ("Experimente o novo tema GásMais →") na primeira visita, dispensável.
+### Fora de escopo
+- Tema padrão (sem GásMais) permanece igual.
+- Sem mudanças em outras páginas, backend, migrations.
 
-Me confirme se quer que eu aplique alguma dessas melhorias OU se é apenas questão de você logar e rolar até o card. Não vou alterar nada agora — aguardo sua decisão.
+### Próximo passo
+Após aprovação: edito `StatCard.tsx` (nova variante `colored`) e `Dashboard.tsx` (adiciono grid colorido animado abaixo do hero, no ramo GásMais).
 
