@@ -16,6 +16,9 @@ import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ComprasAnaliseGLP } from "@/components/transportadora/compras/ComprasAnaliseGLP";
 import { ComprasProdutos } from "@/components/transportadora/compras/ComprasProdutos";
+import { ComprasKpiToneladas } from "@/components/transportadora/compras/CompraisKpiToneladas";
+import { ComparativoFornecedores } from "@/components/transportadora/compras/ComparativoFornecedores";
+import { ComprasListaTable } from "@/components/transportadora/compras/ComprasListaTable";
 
 const AGUA_TO_P13 = 1;
 
