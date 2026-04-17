@@ -63,6 +63,7 @@ const emptyForm = {
   login_email: "",
   login_password: "",
   terminal_id: "",
+  unidade_id: "",
 };
 
 export default function Funcionarios() {
