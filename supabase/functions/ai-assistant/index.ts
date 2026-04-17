@@ -680,9 +680,20 @@ async function executeAction(supabase: any, action: string, params: any, unidade
           const { data: unidade } = await supabase.from("unidades").select("empresa_id").eq("id", unidade_id).single();
           empresa_id = unidade?.empresa_id || null;
         }
+        // Normaliza telefone: remove não-dígitos e prefixo de país "55" se vier com 12-13 dígitos
+        let telefoneNormalizado: string | null = null;
+        if (telefone) {
+          let digits = String(telefone).replace(/\D/g, "");
+          // Remove DDI 55 (Brasil) quando excede o tamanho local
+          if (digits.length === 13 && digits.startsWith("55")) digits = digits.slice(2);
+          else if (digits.length === 12 && digits.startsWith("55")) digits = digits.slice(2);
+          // Mantém os últimos 11 (DDD + 9 dígitos) para garantir
+          if (digits.length > 11) digits = digits.slice(-11);
+          telefoneNormalizado = digits || null;
+        }
         const { data, error } = await supabase.from("clientes").insert({
           nome,
-          telefone: telefone || null,
+          telefone: telefoneNormalizado,
           cpf: cpf || null,
           email: email || null,
           endereco: endereco || null,

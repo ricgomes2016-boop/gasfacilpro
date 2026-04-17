@@ -51,6 +51,7 @@ import { ClienteUnidadesDialog } from "@/components/clientes/ClienteUnidadesDial
 
 interface Cliente {
   id: string;
+  codigo_cliente?: number | null;
   nome: string;
   cpf: string | null;
   telefone: string | null;
@@ -217,24 +218,44 @@ export default function CadastroClientesCad() {
       const total = rows[0]?.total_count ? Number(rows[0].total_count) : 0;
       setTotalCount(total);
 
-      // Stats globais (consulta leve, somente count)
-      const baseCount = supabase
-        .from("clientes")
-        .select("id", { count: "exact", head: true })
-        .eq("empresa_id", empresa.id);
-      const [{ count: cTotal }, { count: cAtivos }, { count: cRes }, { count: cCom }] = await Promise.all([
-        baseCount,
-        supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("ativo", true),
-        supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "residencial"),
-        supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "comercial"),
-      ]);
-
-      setStats({
-        total: cTotal || 0,
-        ativos: cAtivos || 0,
-        residenciais: cRes || 0,
-        comerciais: cCom || 0,
-      });
+      // Stats: respeitam unidade selecionada (consistente com a lista paginada)
+      if (unidadeAtual?.id) {
+        // Conta via cliente_unidades para refletir a unidade atual
+        const baseLink = supabase
+          .from("cliente_unidades")
+          .select("cliente_id, clientes!inner(empresa_id, ativo, tipo)", { count: "exact", head: false })
+          .eq("unidade_id", unidadeAtual.id)
+          .eq("clientes.empresa_id", empresa.id);
+        const [allLink, ativosLink, resLink, comLink] = await Promise.all([
+          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id),
+          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id, ativo)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id).eq("clientes.ativo", true),
+          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id, tipo)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id).eq("clientes.tipo", "residencial"),
+          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id, tipo)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id).eq("clientes.tipo", "comercial"),
+        ]);
+        setStats({
+          total: allLink.count || total || 0,
+          ativos: ativosLink.count || 0,
+          residenciais: resLink.count || 0,
+          comerciais: comLink.count || 0,
+        });
+      } else {
+        const baseCount = supabase
+          .from("clientes")
+          .select("id", { count: "exact", head: true })
+          .eq("empresa_id", empresa.id);
+        const [{ count: cTotal }, { count: cAtivos }, { count: cRes }, { count: cCom }] = await Promise.all([
+          baseCount,
+          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("ativo", true),
+          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "residencial"),
+          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "comercial"),
+        ]);
+        setStats({
+          total: cTotal || 0,
+          ativos: cAtivos || 0,
+          residenciais: cRes || 0,
+          comerciais: cCom || 0,
+        });
+      }
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
       toast({
@@ -1168,7 +1189,12 @@ export default function CadastroClientesCad() {
                     <div key={cliente.id} className="rounded-lg border bg-card p-4 space-y-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-sm truncate">{cliente.nome}</p>
+                          <div className="flex items-center gap-2">
+                            {cliente.codigo_cliente && (
+                              <span className="font-mono text-[10px] text-muted-foreground shrink-0">#{cliente.codigo_cliente}</span>
+                            )}
+                            <p className="font-semibold text-sm truncate">{cliente.nome}</p>
+                          </div>
                           <div className="flex flex-wrap gap-1 mt-1">
                             <Badge variant={cliente.ativo ? "default" : "destructive"} className="text-[10px] h-5">
                               {cliente.ativo ? "Ativo" : "Inativo"}
@@ -1220,6 +1246,7 @@ export default function CadastroClientesCad() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-20">Código</TableHead>
                         <TableHead>Nome</TableHead>
                         <TableHead>Telefone</TableHead>
                         <TableHead>Endereço</TableHead>
@@ -1237,6 +1264,9 @@ export default function CadastroClientesCad() {
                         const rua = cliente.endereco || "";
                         return (
                           <TableRow key={cliente.id}>
+                            <TableCell className="font-mono text-xs text-muted-foreground">
+                              {cliente.codigo_cliente ? `#${cliente.codigo_cliente}` : "-"}
+                            </TableCell>
                             <TableCell className="font-medium">{cliente.nome}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1.5">

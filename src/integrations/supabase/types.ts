@@ -1679,6 +1679,7 @@ export type Database = {
           bloqueio_credito: boolean | null
           cep: string | null
           cidade: string | null
+          codigo_cliente: number | null
           cpf: string | null
           created_at: string
           data_ultimo_pagamento: string | null
@@ -1704,6 +1705,7 @@ export type Database = {
           bloqueio_credito?: boolean | null
           cep?: string | null
           cidade?: string | null
+          codigo_cliente?: number | null
           cpf?: string | null
           created_at?: string
           data_ultimo_pagamento?: string | null
@@ -1729,6 +1731,7 @@ export type Database = {
           bloqueio_credito?: boolean | null
           cep?: string | null
           cidade?: string | null
+          codigo_cliente?: number | null
           cpf?: string | null
           created_at?: string
           data_ultimo_pagamento?: string | null
@@ -9449,6 +9452,7 @@ export type Database = {
           bairro: string
           bloqueio_credito: boolean
           cidade: string
+          codigo_cliente: number
           cpf: string
           created_at: string
           email: string
