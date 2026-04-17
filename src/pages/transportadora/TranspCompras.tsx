@@ -119,6 +119,26 @@ export default function TranspCompras() {
     }
   }
 
+  async function reprocessarXmls() {
+    setImporting(true);
+    setUltimoResultado(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("reprocessar_xml_outlook", {
+        body: { mes_referencia: periodo },
+      });
+      if (error) throw error;
+      setUltimoResultado(data);
+      toast.success("Reprocessamento concluído", {
+        description: `${data?.atualizados ?? 0} atualizados · ${data?.nao_encontrados ?? 0} não encontrados · ${data?.erros ?? 0} erros`,
+      });
+      qc.invalidateQueries({ queryKey: ["transp-compras"] });
+    } catch (err: any) {
+      toast.error("Erro ao reprocessar", { description: err.message });
+    } finally {
+      setImporting(false);
+    }
+  }
+
   const { data: veiculos = [] } = useQuery({
     queryKey: ["transp-veiculos"],
     queryFn: async () => {
