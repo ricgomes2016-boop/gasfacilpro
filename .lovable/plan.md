@@ -1,63 +1,36 @@
 
-
 ## Problema
-Na tela `/vendas/nova`, a IA recebe o comando do usuário e chama a edge function `parse-sales-command`. Essa função hoje:
-1. Carrega só os **primeiros 200 clientes** (`.limit(200)`) e injeta no prompt da IA.
-2. Como o sistema tem **+22.000 clientes**, a chance de o cliente certo estar nessa lista é mínima → a IA quase sempre cria um cliente novo em vez de reaproveitar.
-3. Não faz busca por **endereço** — só por nome dentro da lista limitada.
-4. Não filtra por `empresa_id` nem por `unidade_id`, então quebra o isolamento multi-empresa.
+No header do ERP (`src/components/layout/Header.tsx`), em telas de celular pequenas (<400px), o conteúdo do lado direito (UnidadeSelector + ícones de chat, notificações, tema, GásMais, avatar) ocupa muito espaço e empurra/esmaga o título da página à esquerda. O `overflow-hidden` no header esconde elementos, e o `UnidadeSelector` tem largura fixa que não encolhe.
 
-## Solução: pré-busca server-side por nome E endereço antes de chamar a IA
+## Investigação necessária
+Preciso verificar como o `UnidadeSelector` está dimensionado hoje, já que ele é o maior responsável pelo "travamento" do layout em telas pequenas. Também vou conferir o `BuildVersionBadge`, `NotificationCenter`, `BaseChatPanel` e `GasmaisThemeQuickToggle` para garantir que tenham comportamento responsivo adequado.
 
-Vamos transformar o fluxo em duas etapas dentro da própria edge function:
+## Plano de correção
 
-```text
-Comando do usuário
-       │
-       ▼
-[1] Extração rápida de pistas (regex + IA leve)
-    → nome provável, telefone, rua, número, bairro
-       │
-       ▼
-[2] Busca no banco usando RPC otimizada
-    → match por nome (trigram) + telefone + endereço (rua/bairro)
-    → filtrada por empresa_id e unidade_id
-    → retorna até 15 candidatos
-       │
-       ▼
-[3] IA recebe SÓ os candidatos reais + dados do comando
-    → escolhe o cliente_id correto
-    → ou retorna null se nenhum bate
-       │
-       ▼
-[4] Frontend usa cliente_id existente (sem duplicar)
-```
+### `src/components/layout/Header.tsx`
+1. **Título e subtítulo (esquerda)**:
+   - Garantir `min-w-0` no container pai (`flex items-center gap-3`) para permitir truncamento real.
+   - Reduzir o tamanho do título em telas muito pequenas (`text-base` em <sm, `text-lg` md, `text-xl` lg).
+   - Esconder o subtítulo completo abaixo de `sm` (já está, mas validar).
 
-## Mudanças
+2. **Lado direito (ações)**:
+   - Reduzir `gap` em mobile (`gap-0` no menor breakpoint).
+   - **UnidadeSelector**: aplicar `max-w-[120px] sm:max-w-none` ou tornar compacto (só ícone + nome curto truncado) em telas <sm.
+   - **GasmaisThemeQuickToggle**: esconder em telas <sm (`hidden sm:inline-flex`) — é um toggle secundário.
+   - **NotificationCenter** e **BaseChatPanel**: garantir `h-9 w-9` consistente e shrink-0.
+   - Manter avatar do usuário sempre visível.
 
-### Backend
-**Nova RPC `buscar_clientes_para_ia`** (`empresa_id`, `unidade_id`, `nome`, `telefone`, `endereco_rua`, `bairro`, `numero`)
-- Usa índices `pg_trgm` + `unaccent` já existentes
-- Score combinado: similaridade de nome + match de telefone + similaridade de endereço/bairro + match exato de número
-- Retorna top 15 candidatos com endereço completo
+3. **Container do header**:
+   - Reduzir padding horizontal em mobile (`px-2 md:px-6`).
+   - Remover `overflow-hidden` do header e aplicar truncamento nos filhos certos (overflow-hidden corta dropdowns potencialmente).
 
-**Refactor `supabase/functions/parse-sales-command/index.ts`**
-- Remove o `.limit(200)` global
-- Adiciona etapa 1: chamada rápida ao Gemini Flash Lite só para extrair { nome?, telefone?, endereco?, numero?, bairro? } do comando
-- Chama a nova RPC com esses campos + `empresa_id` (do JWT/profile) + `unidade_id` (recebido no body)
-- Monta o prompt final só com os candidatos retornados (máx. 15) — agora cabe folgado e a IA escolhe o certo
-- Reforça regra: "Se houver candidato com endereço similar, use o `cliente_id` dele. Só crie novo se realmente não bater."
-
-### Frontend
-**`src/pages/vendas/NovaVenda.tsx` (`handleAiCommand`)**
-- Passa `unidade_id` no body do invoke
-- Mantém o resto do fluxo (já trata `data.cliente_id` corretamente)
+### `src/components/layout/UnidadeSelector.tsx` (a inspecionar e ajustar se necessário)
+- Adicionar truncamento ao nome da unidade exibido no botão.
+- Largura responsiva: compacto em mobile, expandido em desktop.
 
 ## Arquivos afetados
-- `supabase/migrations/<nova>.sql` — cria RPC `buscar_clientes_para_ia`
-- `supabase/functions/parse-sales-command/index.ts` — fluxo em 2 etapas
-- `src/pages/vendas/NovaVenda.tsx` — envia `unidade_id` no invoke
+- `src/components/layout/Header.tsx` — ajustes de breakpoints, gap, padding, visibilidade condicional
+- `src/components/layout/UnidadeSelector.tsx` — largura responsiva e truncamento (se aplicável após inspeção)
 
 ## Resultado esperado
-Quando o usuário falar "lança um P13 pra Maria da Rua das Flores 200", a IA primeiro vai buscar no banco todos os clientes cuja rua bate com "Rua das Flores" (mesmo se houver 50 Marias), encontra a correta e reutiliza o cadastro — em vez de criar mais uma duplicata.
-
+Em telas de 320–400px, o título permanece legível e truncado, o seletor de unidade encolhe mostrando nome curto, ícones secundários (GásMais toggle) somem, e nada estoura a largura do header.
