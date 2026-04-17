@@ -141,6 +141,20 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     nome: null,
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  // Próximo número de pedido (preview na tela)
+  const { data: proximoNumero } = useQuery({
+    queryKey: ["proximo-numero-pedido", empresa?.id, isLoading],
+    queryFn: async () => {
+      if (!empresa?.id) return null;
+      const { data, error } = await supabase.rpc("proximo_numero_pedido", { _empresa_id: empresa.id });
+      if (error) return null;
+      return data as number;
+    },
+    enabled: !!empresa?.id,
+    refetchInterval: 30000,
+  });
+
   const [aiCommand, setAiCommand] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -656,7 +670,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       const { data: pedido, error: pedidoError } = await supabase
         .from("pedidos")
         .insert(pedidoInsert)
-        .select("id")
+        .select("id, numero_sequencial")
         .single();
 
       if (pedidoError) throw pedidoError;
@@ -728,7 +742,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
       toast({
         title: "Venda finalizada!",
-        description: `Pedido #${pedido.id.slice(0, 6)} criado com sucesso.`,
+        description: `Pedido #${(pedido as any).numero_sequencial ?? pedido.id.slice(0, 6)} criado com sucesso.`,
       });
 
       // Show print confirmation dialog
@@ -773,7 +787,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           status: "pendente", unidade_id: unidadeAtual?.id,
           agendado: true, data_agendamento: agendamentoDate.toISOString(),
         })
-        .select("id")
+        .select("id, numero_sequencial")
         .single();
 
       if (pedidoError) throw pedidoError;
@@ -788,7 +802,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       setAgendarOpen(false);
       toast({
         title: "Entrega agendada!",
-        description: `Pedido #${pedido.id.slice(0, 6)} agendado para ${dataAgendamento} às ${horaAgendamento}.`,
+        description: `Pedido #${(pedido as any).numero_sequencial ?? pedido.id.slice(0, 6)} agendado para ${dataAgendamento} às ${horaAgendamento}.`,
       });
       navigate("/vendas/pedidos");
     } catch (error: any) {
@@ -848,7 +862,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         {/* Nova Venda button + badge */}
         <div className="flex items-center justify-between">
           <Badge variant="outline" className="text-xs">
-            #{new Date().getTime().toString().slice(-6)}
+            #{proximoNumero ?? "—"}
           </Badge>
           <Button variant="outline" size="sm" onClick={() => setShowNovaVendaModal(true)} className="gap-1.5 text-xs">
             <PlusCircle className="h-3.5 w-3.5" />
