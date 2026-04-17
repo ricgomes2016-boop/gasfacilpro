@@ -13,7 +13,7 @@ export const iniciarRastreamento = (entregadorId:string) => {
 
     const { latitude, longitude } = pos.coords;
 
-    await supabase.from("localizacao_entregador").insert({
+    await (supabase as any).from("localizacao_entregador").insert({
       entregador_id: entregadorId,
       latitude,
       longitude,
