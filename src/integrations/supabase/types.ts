@@ -7653,6 +7653,9 @@ export type Database = {
           custo_unit_p20: number | null
           custo_unit_p45: number | null
           data: string
+          data_pagamento: string | null
+          data_vencimento: string | null
+          desconto: number
           distancia_ida_km: number | null
           empresa_id: string
           fornecedor: string
@@ -7661,6 +7664,7 @@ export type Database = {
           numero_nf: string | null
           observacoes: string | null
           outlook_message_id: string | null
+          pago: boolean
           produto_descricao: string | null
           qtd_agua: number | null
           qtd_p13: number | null
@@ -7686,6 +7690,9 @@ export type Database = {
           custo_unit_p20?: number | null
           custo_unit_p45?: number | null
           data: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          desconto?: number
           distancia_ida_km?: number | null
           empresa_id: string
           fornecedor: string
@@ -7694,6 +7701,7 @@ export type Database = {
           numero_nf?: string | null
           observacoes?: string | null
           outlook_message_id?: string | null
+          pago?: boolean
           produto_descricao?: string | null
           qtd_agua?: number | null
           qtd_p13?: number | null
@@ -7719,6 +7727,9 @@ export type Database = {
           custo_unit_p20?: number | null
           custo_unit_p45?: number | null
           data?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          desconto?: number
           distancia_ida_km?: number | null
           empresa_id?: string
           fornecedor?: string
@@ -7727,6 +7738,7 @@ export type Database = {
           numero_nf?: string | null
           observacoes?: string | null
           outlook_message_id?: string | null
+          pago?: boolean
           produto_descricao?: string | null
           qtd_agua?: number | null
           qtd_p13?: number | null
