@@ -19,11 +19,13 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Plus, Search, Edit, Trash2, Phone, Briefcase, Truck,
-  LinkIcon, CreditCard, Mail, Lock, Loader2, UserCheck,
+  LinkIcon, CreditCard, Mail, Lock, Loader2, UserCheck, Building2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { FuncionarioUnidadesDialog } from "@/components/cadastros/FuncionarioUnidadesDialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Funcionario {
   id: string;
