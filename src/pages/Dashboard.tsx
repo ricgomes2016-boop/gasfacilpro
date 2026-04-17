@@ -273,26 +273,30 @@ export default function Dashboard() {
               <StatCard title="Clientes Ativos" value={stats?.clientesAtivos ?? 0} icon={Users} />
             </>
           )}
-          <StatCard
-            title="Ticket Médio"
-            value={`R$ ${(stats?.ticketMedio ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            icon={TrendingUp}
-            variant="info"
-          />
-          {period === "hoje" && (
+          {!isGasmais && (
             <>
               <StatCard
-                title="Entradas Caixa"
-                value={`R$ ${(caixaDiario?.total_entradas_caixa ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                icon={DollarSign}
-                variant="success"
+                title="Ticket Médio"
+                value={`R$ ${(stats?.ticketMedio ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                icon={TrendingUp}
+                variant="info"
               />
-              <StatCard
-                title="Diferença Caixa"
-                value={`R$ ${(caixaDiario?.diferenca_calculada ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                icon={Flame}
-                variant={(caixaDiario?.diferenca_calculada ?? 0) !== 0 ? "warning" : "default"}
-              />
+              {period === "hoje" && (
+                <>
+                  <StatCard
+                    title="Entradas Caixa"
+                    value={`R$ ${(caixaDiario?.total_entradas_caixa ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                    icon={DollarSign}
+                    variant="success"
+                  />
+                  <StatCard
+                    title="Diferença Caixa"
+                    value={`R$ ${(caixaDiario?.diferenca_calculada ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                    icon={Flame}
+                    variant={(caixaDiario?.diferenca_calculada ?? 0) !== 0 ? "warning" : "default"}
+                  />
+                </>
+              )}
             </>
           )}
         </div>
