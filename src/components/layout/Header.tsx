@@ -65,14 +65,14 @@ export function Header({ title, subtitle }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 md:h-16 items-center justify-between border-b border-border bg-background/95 px-3 md:px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60 overflow-hidden">
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-30 flex h-14 md:h-16 items-center justify-between gap-2 border-b border-border bg-background/95 px-2 md:px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60 max-w-full">
+      <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
         {/* Mobile menu */}
         <MobileNav />
         
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 min-w-0">
-            <h1 className="text-lg md:text-xl font-bold text-foreground truncate">{title}</h1>
+            <h1 className="text-base md:text-xl font-bold text-foreground truncate">{title}</h1>
             <BuildVersionBadge className="hidden md:inline-flex shrink-0" />
           </div>
           <p className="text-xs md:text-sm text-muted-foreground truncate hidden sm:block">
@@ -83,7 +83,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-0.5 sm:gap-1 md:gap-4 shrink-0">
+      <div className="flex items-center gap-0 sm:gap-1 md:gap-4 shrink-0 min-w-0">
         {/* Unidade Selector */}
         <UnidadeSelector />
 
