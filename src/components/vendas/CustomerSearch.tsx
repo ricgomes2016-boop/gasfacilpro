@@ -11,6 +11,7 @@ import { geocodeAddress } from "@/lib/geocoding";
 import { MapPickerDialog } from "@/components/ui/map-picker-dialog";
 import type { GeocodingResult } from "@/lib/geocoding";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 interface Cliente {
   id: string;
