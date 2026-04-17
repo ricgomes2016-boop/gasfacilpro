@@ -274,6 +274,18 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
       if (error) throw error;
 
+      // Se for uma consulta de fiado/notinhas, mostra resultado e não cria venda
+      if (data?.tipo === "consulta_fiado") {
+        toast({
+          title: "Consulta de fiado",
+          description: data.mensagem,
+          duration: 12000,
+        });
+        setAiCommand("");
+        setAiLoading(false);
+        return;
+      }
+
       if (data.cliente_id) {
         const { data: clienteData } = await supabase
           .from("clientes")
