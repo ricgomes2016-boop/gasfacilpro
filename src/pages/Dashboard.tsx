@@ -141,7 +141,7 @@ export default function Dashboard() {
   const greeting = getGreeting();
   const todayFormatted = format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
-  const { themeClass } = useDashboardTheme();
+  const { themeClass, isGasmais } = useDashboardTheme();
 
   return (
     <MainLayout>
@@ -171,6 +171,40 @@ export default function Dashboard() {
             </div>
             <VoiceAssistant userName={greeting.text} />
           </div>
+
+          {/* KPIs embutidos no hero (apenas tema GásMais) */}
+          {isGasmais && (
+            <div className="relative z-10 mt-6 grid gap-3 grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                title={`Vendas ${periodLabel}`}
+                value={`R$ ${(stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                icon={DollarSign}
+                subtitle={`${stats?.totalPedidos ?? 0} pedidos`}
+                onHero
+              />
+              <StatCard
+                title="Pedidos"
+                value={stats?.totalPedidos ?? 0}
+                icon={ShoppingCart}
+                subtitle={periodLabel}
+                onHero
+              />
+              <StatCard
+                title="Pendentes"
+                value={stats?.pendentes ?? 0}
+                icon={Truck}
+                subtitle="em aberto"
+                onHero
+              />
+              <StatCard
+                title="Clientes Ativos"
+                value={stats?.clientesAtivos ?? 0}
+                icon={Users}
+                subtitle="cadastrados"
+                onHero
+              />
+            </div>
+          )}
         </div>
 
         {/* Briefing IA do dia */}
@@ -193,23 +227,27 @@ export default function Dashboard() {
         {/* Alertas de estoque crítico */}
         <StockAlerts />
 
-        {/* Cards com comparativo e Ticket Médio */}
+        {/* Cards extras (no GásMais os 4 principais já estão no hero) */}
         <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
-          <StatCard
-            title={`Vendas ${periodLabel}`}
-            value={`R$ ${(stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            icon={DollarSign}
-            variant="primary"
-            trend={stats?.trendVendas}
-          />
-          <StatCard
-            title="Pedidos"
-            value={stats?.totalPedidos ?? 0}
-            icon={ShoppingCart}
-            trend={stats?.trendPedidos}
-          />
-          <StatCard title="Pendentes" value={stats?.pendentes ?? 0} icon={Truck} variant="warning" />
-          <StatCard title="Clientes Ativos" value={stats?.clientesAtivos ?? 0} icon={Users} />
+          {!isGasmais && (
+            <>
+              <StatCard
+                title={`Vendas ${periodLabel}`}
+                value={`R$ ${(stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                icon={DollarSign}
+                variant="primary"
+                trend={stats?.trendVendas}
+              />
+              <StatCard
+                title="Pedidos"
+                value={stats?.totalPedidos ?? 0}
+                icon={ShoppingCart}
+                trend={stats?.trendPedidos}
+              />
+              <StatCard title="Pendentes" value={stats?.pendentes ?? 0} icon={Truck} variant="warning" />
+              <StatCard title="Clientes Ativos" value={stats?.clientesAtivos ?? 0} icon={Users} />
+            </>
+          )}
           <StatCard
             title="Ticket Médio"
             value={`R$ ${(stats?.ticketMedio ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
