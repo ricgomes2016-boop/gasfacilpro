@@ -19,11 +19,13 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Plus, Search, Edit, Trash2, Phone, Briefcase, Truck,
-  LinkIcon, CreditCard, Mail, Lock, Loader2, UserCheck,
+  LinkIcon, CreditCard, Mail, Lock, Loader2, UserCheck, Building2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { FuncionarioUnidadesDialog } from "@/components/cadastros/FuncionarioUnidadesDialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Funcionario {
   id: string;
@@ -79,6 +81,7 @@ export default function Funcionarios() {
   const [editId, setEditId] = useState<string | null>(null);
   const [terminais, setTerminais] = useState<TerminalOption[]>([]);
   const { unidadeAtual, unidades } = useUnidade();
+  const [unidadesDialog, setUnidadesDialog] = useState<{ userId: string; nome: string } | null>(null);
 
   const fetchFuncionarios = async () => {
     let query = supabase
@@ -283,6 +286,27 @@ export default function Funcionarios() {
     toast.success("Funcionário removido");
     fetchFuncionarios();
     fetchEntregadores();
+  };
+
+  const handleOpenUnidades = async (f: Funcionario) => {
+    const entregador = getEntregadorForFuncionario(f.id);
+    let userId = entregador?.user_id || null;
+
+    if (!userId && f.email) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("email", f.email)
+        .maybeSingle();
+      userId = (data as any)?.user_id || null;
+    }
+
+    if (!userId) {
+      toast.error("Funcionário sem login no sistema. Não é possível associar a filiais.");
+      return;
+    }
+
+    setUnidadesDialog({ userId, nome: f.nome });
   };
 
   const entregadorFuncIds = new Set(entregadores.map(e => e.funcionario_id).filter(Boolean));
@@ -591,6 +615,20 @@ export default function Funcionarios() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleOpenUnidades(f)}
+                                  >
+                                    <Building2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Associar a filiais</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <Button variant="ghost" size="icon" onClick={() => handleEdit(f)}>
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -611,6 +649,15 @@ export default function Funcionarios() {
           </CardContent>
         </Card>
       </div>
+
+      {unidadesDialog && (
+        <FuncionarioUnidadesDialog
+          open={!!unidadesDialog}
+          onOpenChange={(o) => !o && setUnidadesDialog(null)}
+          userId={unidadesDialog.userId}
+          funcionarioNome={unidadesDialog.nome}
+        />
+      )}
     </MainLayout>
   );
 }
