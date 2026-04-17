@@ -9419,6 +9419,48 @@ export type Database = {
       }
     }
     Functions: {
+      autocomplete_clientes: {
+        Args: {
+          _empresa_id: string
+          _limite?: number
+          _termo?: string
+          _unidade_id?: string
+        }
+        Returns: {
+          bairro: string
+          endereco: string
+          id: string
+          nome: string
+          numero: string
+          telefone: string
+        }[]
+      }
+      buscar_clientes_paginado: {
+        Args: {
+          _apenas_ativos?: boolean
+          _empresa_id: string
+          _limite?: number
+          _offset?: number
+          _termo?: string
+          _unidade_id?: string
+        }
+        Returns: {
+          ativo: boolean
+          bairro: string
+          bloqueio_credito: boolean
+          cidade: string
+          cpf: string
+          created_at: string
+          email: string
+          endereco: string
+          id: string
+          nome: string
+          numero: string
+          saldo_devedor: number
+          telefone: string
+          total_count: number
+        }[]
+      }
       caixa_dia_bloqueado: {
         Args: { _data: string; _unidade_id: string }
         Returns: boolean
@@ -9467,6 +9509,9 @@ export type Database = {
         }
         Returns: undefined
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      unaccent: { Args: { "": string }; Returns: string }
       unidade_belongs_to_user_empresa: {
         Args: { _unidade_id: string }
         Returns: boolean
