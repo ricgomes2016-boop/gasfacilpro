@@ -26,9 +26,9 @@ export function GasmaisThemeBanner() {
   };
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border-2 border-dashed border-orange-400/50 bg-gradient-to-r from-orange-500/10 to-blue-500/10 p-3 sm:p-4">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-500/20">
-        <Sparkles className="h-5 w-5 text-orange-600" />
+    <div className="flex items-center gap-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 p-3 sm:p-4">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15">
+        <Sparkles className="h-5 w-5 text-primary" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold">Experimente o novo tema GásMais</p>
