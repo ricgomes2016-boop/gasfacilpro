@@ -239,7 +239,19 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     };
   }, []);
 
-  const selectCliente = (cliente: Cliente) => {
+  const selectCliente = async (cliente: Cliente) => {
+    let cep = cliente.cep || "";
+    try {
+      const { data } = await supabase
+        .from("clientes")
+        .select("cep")
+        .eq("id", cliente.id)
+        .maybeSingle();
+      if (data?.cep) cep = data.cep;
+    } catch (e) {
+      console.error("Erro ao carregar CEP do cliente:", e);
+    }
+
     onChange({
       ...value,
       id: cliente.id,
@@ -248,7 +260,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
       endereco: cliente.endereco || "",
       numero: cliente.numero || "",
       bairro: cliente.bairro || "",
-      cep: cliente.cep || "",
+      cep,
     });
     setShowResults(false);
     setSearchResults([]);
