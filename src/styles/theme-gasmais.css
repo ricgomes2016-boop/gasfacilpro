@@ -1,0 +1,49 @@
+/* GásMais optional theme — applied via .theme-gasmais wrapper */
+/* Scoped: only redefines tokens inside elements with this class */
+
+.theme-gasmais {
+  --primary: 24 95% 53%;
+  --primary-foreground: 0 0% 100%;
+
+  --accent: 217 91% 60%;
+  --accent-foreground: 0 0% 100%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+
+  --background: 220 20% 98%;
+  --foreground: 222 47% 11%;
+
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 9% 46%;
+
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 24 95% 53%;
+
+  --sidebar-background: 222 47% 11%;
+  --sidebar-foreground: 220 14% 90%;
+  --sidebar-primary: 24 95% 53%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 222 40% 16%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 222 30% 20%;
+  --sidebar-ring: 24 95% 53%;
+}
+
+.dark .theme-gasmais {
+  --primary: 24 95% 58%;
+  --accent: 217 91% 65%;
+  --card: 222 35% 10%;
+  --card-foreground: 220 14% 95%;
+  --background: 222 47% 7%;
+  --foreground: 220 14% 95%;
+  --muted: 222 30% 14%;
+  --muted-foreground: 220 9% 65%;
+  --border: 222 30% 18%;
+
+  --sidebar-background: 222 47% 6%;
+  --sidebar-foreground: 220 14% 88%;
+  --sidebar-accent: 222 40% 12%;
+  --sidebar-border: 222 30% 16%;
+}

@@ -29,6 +29,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { useState, useEffect } from "react";
 import { menuItems } from "./menuItems";
 import { motion, AnimatePresence } from "framer-motion";
+import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 
 // Color map for menu category icons (HSL-based tailwind classes using semantic approach)
 const menuIconColors: Record<string, string> = {
@@ -214,12 +215,17 @@ export function Sidebar() {
   const userName = profile?.full_name || "Administrador";
   const userInitial = userName.charAt(0).toUpperCase();
 
+  const { themeClass } = useDashboardTheme();
+
   return (
     <TooltipProvider delayDuration={0}>
       <motion.aside
         animate={{ width: collapsed ? 64 : 260 }}
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-        className="fixed left-0 top-0 z-40 hidden md:flex h-screen flex-col bg-sidebar/80 backdrop-blur-xl border-r border-sidebar-border/50"
+        className={cn(
+          themeClass,
+          "fixed left-0 top-0 z-40 hidden md:flex h-screen flex-col bg-sidebar/80 backdrop-blur-xl border-r border-sidebar-border/50"
+        )}
       >
         {/* Header */}
         <div className="flex h-16 items-center justify-between border-b border-sidebar-border/50 px-3">
