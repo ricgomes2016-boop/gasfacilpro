@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { DeliveryNotificationProvider } from "@/contexts/DeliveryNotificationContext";
 import { ClienteProvider } from "@/contexts/ClienteContext";
 import { ValeGasProvider } from "@/contexts/ValeGasContext";
@@ -44,13 +44,18 @@ import Auth from "./pages/Auth";
 const queryClient = new QueryClient();
 
 function RootRedirect() {
-  return <Navigate to="/dashboard" replace />;
+  const app = detectSubdomainApp();
+  if (app === "landing" || app === null) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  const defaultRoute = getSubdomainDefaultRoute(app);
+  return <Navigate to={defaultRoute} replace />;
 }
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Router>
+      <BrowserRouter>
         <AuthProvider>
           <EmpresaProvider>
             <UnidadeProvider>
@@ -66,10 +71,32 @@ const App = () => (
                           <Routes>
                             <Route path="/" element={<RootRedirect />} />
                             <Route path="/auth" element={<Auth />} />
-                            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
 
+                            <Route path="/dashboard" element={
+                              <ProtectedRoute>
+                                <Dashboard />
+                              </ProtectedRoute>
+                            } />
+
+                            {renderRoutes(adminRoutes)}
                             {renderRoutes(vendasRoutes)}
+                            {renderRoutes(caixaRoutes)}
                             {renderRoutes(operacionalRoutes)}
+                            {renderRoutes(clientesRoutes)}
+                            {renderRoutes(estoqueRoutes)}
+                            {renderRoutes(financeiroRoutes)}
+                            {renderRoutes(cadastrosRoutes)}
+                            {renderRoutes(frotaRoutes)}
+                            {renderRoutes(rhRoutes)}
+                            {renderRoutes(fiscalRoutes)}
+                            {renderRoutes(configRoutes)}
+                            {renderRoutes(entregadorRoutes)}
+                            {renderRoutes(clienteAppRoutes)}
+                            {renderRoutes(parceiroRoutes)}
+                            {renderRoutes(transportadoraRoutes)}
+                            {renderRoutes(atendimentoRoutes)}
+                            {renderRoutes(integracoesRoutes)}
+                            {renderRoutes(marketingRoutes)}
 
                             <Route path="*" element={<Navigate to="/dashboard" />} />
                           </Routes>
@@ -82,7 +109,7 @@ const App = () => (
             </UnidadeProvider>
           </EmpresaProvider>
         </AuthProvider>
-      </Router>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
