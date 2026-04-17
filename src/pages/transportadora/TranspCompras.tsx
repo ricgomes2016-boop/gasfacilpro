@@ -410,37 +410,15 @@ export default function TranspCompras() {
               </div>
             )}
 
-            {/* Lista de compras */}
-            <div className="grid gap-3">
-              {comprasPeriodo.map((c: any) => (
-                <Card key={c.id} className="border-border/40">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                          <ShoppingCart className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm text-foreground">{c.fornecedor}{c.cidade_fornecedor ? ` · ${c.cidade_fornecedor}` : ""}</p>
-                          <p className="text-xs text-muted-foreground">{c.data} · {Number(c.distancia_ida_km)}km ida · P13:{c.qtd_p13} P20:{c.qtd_p20} P45:{c.qtd_p45} Água:{c.qtd_agua}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-foreground">{formatCurrency(Number(c.custo_total))}</p>
-                        <p className="text-xs text-muted-foreground">P13: {formatCurrency(Number(c.custo_unit_p13))}/un</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {!isLoading && comprasPeriodo.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground text-sm">Nenhuma compra registrada no período</div>
-              )}
-            </div>
+            {/* Tabela de compras (com busca, alerta de duplicatas, vencimento e pago) */}
+            <ComprasListaTable compras={comprasPeriodo} />
           </TabsContent>
 
-          <TabsContent value="analise" className="mt-4">
+          <TabsContent value="analise" className="mt-4 space-y-4">
+            <ComprasKpiToneladas compras={compras} />
+            <ComparativoFornecedores compras={compras} />
             <ComprasAnaliseGLP compras={compras} />
+          </TabsContent>
           </TabsContent>
 
           <TabsContent value="produtos" className="mt-4">
