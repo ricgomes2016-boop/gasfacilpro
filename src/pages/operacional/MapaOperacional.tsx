@@ -311,6 +311,23 @@ export default function MapaOperacional() {
 
           {/* Painel lateral */}
           <div className="space-y-4">
+            {/* Inteligência Operacional */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Radio className="h-4 w-4 text-primary" />Inteligência Operacional
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PainelLateral
+                  entregadores={entsOp}
+                  pedidos={pedsOp}
+                  dadosOp={dadosOp}
+                  onRefresh={refresh}
+                />
+              </CardContent>
+            </Card>
+
             {/* Entregadores */}
             <Card>
               <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
