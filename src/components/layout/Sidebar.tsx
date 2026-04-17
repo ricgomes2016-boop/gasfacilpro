@@ -29,6 +29,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { useState, useEffect } from "react";
 import { menuItems } from "./menuItems";
 import { motion, AnimatePresence } from "framer-motion";
+import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 
 // Color map for menu category icons (HSL-based tailwind classes using semantic approach)
 const menuIconColors: Record<string, string> = {
