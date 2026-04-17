@@ -615,6 +615,20 @@ export default function Funcionarios() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleOpenUnidades(f)}
+                                  >
+                                    <Building2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Associar a filiais</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <Button variant="ghost" size="icon" onClick={() => handleEdit(f)}>
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -623,6 +637,30 @@ export default function Funcionarios() {
                             </Button>
                           </div>
                         </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {filtered.length === 0 && (
+                    <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">Nenhum funcionário encontrado</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {unidadesDialog && (
+        <FuncionarioUnidadesDialog
+          open={!!unidadesDialog}
+          onOpenChange={(o) => !o && setUnidadesDialog(null)}
+          userId={unidadesDialog.userId}
+          funcionarioNome={unidadesDialog.nome}
+        />
+      )}
+    </MainLayout>
+  );
+}
                       </TableRow>
                     );
                   })}
