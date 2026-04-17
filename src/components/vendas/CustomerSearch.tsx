@@ -436,14 +436,14 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
   const showNewClientHint = !isSearching && value.nome.trim().length >= 2 && !value.id && !showResults;
 
   return (
-    <Card>
+    <Card className="w-full min-w-0 max-w-full overflow-hidden">
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-base">
-          <User className="h-5 w-5" />
-          Cliente
+          <User className="h-5 w-5 shrink-0" />
+          <span className="truncate">Cliente</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 min-w-0">
+      <CardContent className="space-y-4 w-full min-w-0 max-w-full">
         {/* Search Row */}
         <div className="flex flex-col sm:flex-row gap-3 min-w-0" ref={searchRef}>
           <div className="flex-1 relative min-w-0">
