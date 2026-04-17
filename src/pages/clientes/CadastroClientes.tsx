@@ -156,80 +156,85 @@ export default function CadastroClientesCad() {
     comerciais: 0,
   });
 
+  // Paginação server-side (otimizado para grandes volumes)
+  const PAGE_SIZE = 50;
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounce do searchTerm: aguarda 350ms antes de disparar busca no servidor
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+      setCurrentPage(0);
+    }, 350);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [searchTerm]);
+
   useEffect(() => {
     fetchClientes();
-  }, [empresa?.id, unidadeAtual?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresa?.id, unidadeAtual?.id, currentPage, debouncedSearch, filterStatus]);
 
   const fetchClientes = async () => {
     if (!empresa?.id) {
       setClientes([]);
       setStats({ total: 0, ativos: 0, residenciais: 0, comerciais: 0 });
+      setTotalCount(0);
       setIsLoading(false);
       return;
     }
 
     try {
-      // If unidade is selected, get cliente IDs from cliente_unidades
-      let clienteIdSet: Set<string> | null = null;
-      if (unidadeAtual?.id) {
-        clienteIdSet = new Set<string>();
-        const cuPageSize = 1000;
-        let cuFrom = 0;
-        let cuHasMore = true;
-        while (cuHasMore) {
-          const { data: cuPage, error: cuError } = await supabase
-            .from("cliente_unidades")
-            .select("cliente_id")
-            .eq("unidade_id", unidadeAtual.id)
-            .range(cuFrom, cuFrom + cuPageSize - 1);
-          if (cuError) throw cuError;
-          (cuPage || []).forEach((cu: any) => clienteIdSet!.add(cu.cliente_id));
-          cuHasMore = (cuPage?.length || 0) === cuPageSize;
-          cuFrom += cuPageSize;
-        }
+      setIsLoading(true);
 
-        if (clienteIdSet.size === 0) {
-          setClientes([]);
-          setStats({ total: 0, ativos: 0, residenciais: 0, comerciais: 0 });
-          setIsLoading(false);
-          return;
-        }
+      // Status filter mapping
+      const apenasAtivos = filterStatus === "ativo" ? true : (filterStatus === "inativo" ? false : null);
+
+      const { data, error } = await supabase.rpc("buscar_clientes_paginado", {
+        _empresa_id: empresa.id,
+        _unidade_id: unidadeAtual?.id || null,
+        _termo: debouncedSearch || null,
+        _apenas_ativos: apenasAtivos === null ? false : apenasAtivos,
+        _limite: PAGE_SIZE,
+        _offset: currentPage * PAGE_SIZE,
+      });
+
+      if (error) throw error;
+
+      const rows = (data || []) as any[];
+      // Se filterStatus === "inativo", precisamos inverter (a RPC trata _apenas_ativos=false como "todos")
+      let lista = rows;
+      if (filterStatus === "inativo") {
+        lista = rows.filter((c) => !c.ativo);
       }
 
-      // Fetch all clientes paginated (no .in() filter - we filter client-side for unidade)
-      const allClientes: any[] = [];
-      const pageSize = 1000;
-      let from = 0;
-      let hasMore = true;
+      setClientes(lista as any);
+      const total = rows[0]?.total_count ? Number(rows[0].total_count) : 0;
+      setTotalCount(total);
 
-      while (hasMore) {
-        const { data, error } = await supabase
-          .from("clientes")
-          .select("id, nome, cpf, telefone, email, endereco, numero, bairro, cidade, cep, tipo, latitude, longitude, ativo, created_at")
-          .eq("empresa_id", empresa.id)
-          .order("created_at", { ascending: false })
-          .range(from, from + pageSize - 1);
+      // Stats globais (consulta leve, somente count)
+      const baseCount = supabase
+        .from("clientes")
+        .select("id", { count: "exact", head: true })
+        .eq("empresa_id", empresa.id);
+      const [{ count: cTotal }, { count: cAtivos }, { count: cRes }, { count: cCom }] = await Promise.all([
+        baseCount,
+        supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("ativo", true),
+        supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "residencial"),
+        supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "comercial"),
+      ]);
 
-        if (error) throw error;
-        allClientes.push(...(data || []));
-        hasMore = (data?.length || 0) === pageSize;
-        from += pageSize;
-      }
-
-      // Filter by unidade client-side if needed
-      const filtered = clienteIdSet
-        ? allClientes.filter(c => clienteIdSet!.has(c.id))
-        : allClientes;
-
-      setClientes(filtered);
-      
-      // Calculate stats
-      const total = filtered.length;
-      const ativos = filtered.filter(c => c.ativo).length;
-      const residenciais = filtered.filter(c => c.tipo === "residencial").length;
-      const comerciais = filtered.filter(c => c.tipo === "comercial").length;
-      
-      setStats({ total, ativos, residenciais, comerciais });
+      setStats({
+        total: cTotal || 0,
+        ativos: cAtivos || 0,
+        residenciais: cRes || 0,
+        comerciais: cCom || 0,
+      });
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
       toast({
@@ -241,6 +246,8 @@ export default function CadastroClientesCad() {
       setIsLoading(false);
     }
   };
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const handleChange = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
