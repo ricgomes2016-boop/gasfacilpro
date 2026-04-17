@@ -33,47 +33,20 @@ import { DeliveryPersonSelect } from "@/components/vendas/DeliveryPersonSelect";
 // NEW
 import { aplicarModoEntregador, vibrar } from "@/utils/mobileApp";
 
-// ... resto igual até componente
-
 export default function NovaVenda({ embedded = false, initialClienteId, onClose }: any) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
 
-  // NEW: aplicar modo mobile
   useEffect(() => {
     aplicarModoEntregador();
   }, []);
 
-  // ... resto do código mantido
+  const abrirMapaEndereco = (customer:any) => {
+    if (!customer?.endereco) return;
 
-  const handleFinalizar = async () => {
-    // ... validações mantidas
-
-    setIsLoading(true);
-    try {
-      // ... lógica mantida
-
-      toast({
-        title: "Venda finalizada!",
-        description: `Pedido criado com sucesso.`,
-      });
-
-      // NEW: vibração
-      vibrar(300);
-
-      setPendingReceiptData(receiptData);
-      setPrintDialogOpen(true);
-    } catch (error: any) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const abrirMapaEndereco = () => {
-    const endereco = `${customer.endereco} ${customer.numero} ${customer.bairro}`;
+    const endereco = `${customer.endereco} ${customer.numero || ""} ${customer.bairro || ""}`;
     const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`;
     window.open(url, "_system");
   };
@@ -83,10 +56,10 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6 overflow-x-hidden w-full min-w-0 max-w-full">
         <CaixaBloqueadoBanner />
 
-        {/* botão rota rápida */}
-        {customer.endereco && (
+        {/* botão rota segura */}
+        {typeof customer !== "undefined" && customer?.endereco && (
           <Button
-            onClick={abrirMapaEndereco}
+            onClick={() => abrirMapaEndereco(customer)}
             className="w-full h-12 flex items-center gap-2"
             variant="secondary"
           >
@@ -95,7 +68,6 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           </Button>
         )}
 
-        {/* resto mantido igual */}
       </div>
     </>
   );
