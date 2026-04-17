@@ -7,13 +7,42 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function callAI(systemPrompt: string, userPrompt: string, apiKey: string, temperature = 0.1) {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature,
+    }),
+  });
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || "";
+}
+
+function extractJSON(content: string) {
+  const match = content.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[0]);
+  } catch {
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Auth validation
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -22,8 +51,6 @@ serve(async (req) => {
       });
     }
 
-    // JWT is already validated by the gateway
-    // Extract user ID from JWT for role check
     const token = authHeader.replace("Bearer ", "");
     let userId = "";
     try {
@@ -36,14 +63,14 @@ serve(async (req) => {
       });
     }
 
-    const supabaseClient = createClient(
+    const supabaseUserClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Role check - only admin, gestor, operacional can use this
-    const { data: roles } = await supabaseClient
+    // Role check
+    const { data: roles } = await supabaseUserClient
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
@@ -56,7 +83,7 @@ serve(async (req) => {
       });
     }
 
-    const { comando } = await req.json();
+    const { comando, unidade_id } = await req.json();
     if (!comando) {
       return new Response(JSON.stringify({ error: "Comando vazio" }), {
         status: 400,
@@ -67,78 +94,115 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, supabaseKey);
+    const apiKey = Deno.env.get("LOVABLE_API_KEY")!;
 
-    const [{ data: clientes }, { data: produtos }] = await Promise.all([
-      sb.from("clientes").select("id, nome, telefone, endereco, bairro, cep, cidade").eq("ativo", true).limit(200),
-      sb.from("produtos").select("id, nome, preco, estoque, categoria").eq("ativo", true).or("tipo_botijao.is.null,tipo_botijao.neq.vazio").limit(100),
-    ]);
+    // Pega empresa_id do profile
+    const { data: profile } = await sb
+      .from("profiles")
+      .select("empresa_id")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-    const clientesList = (clientes || []).map((c: any) => `- "${c.nome}" endereco:"${c.endereco || ''}" bairro:"${c.bairro || ''}" (id: ${c.id})`).join("\n");
-    const produtosList = (produtos || []).map((p: any) => `- "${p.nome}" R$${p.preco} (id: ${p.id})`).join("\n");
-
-    const systemPrompt = `Você é um assistente de vendas de uma distribuidora de gás. O usuário vai digitar ou ditar por voz um comando em linguagem natural para lançar uma venda e você deve interpretar e retornar JSON estruturado.
-
-CLIENTES CADASTRADOS:
-${clientesList}
-
-PRODUTOS DISPONÍVEIS:
-${produtosList}
-
-REGRAS:
-1. Identifique o cliente pelo nome (busca parcial, case insensitive). Se não encontrar, retorne cliente_id como null e preencha os campos de endereço separadamente.
-2. Identifique o(s) produto(s). Se o usuário diz "gás", "gas", "botijão", "botijao" sem especificar, assuma "P13" ou o produto de gás mais comum. Se diz "1 gas" ou "2 gas" interprete como quantidade.
-3. Identifique a quantidade. Se não especificada, assuma 1.
-4. Identifique a forma de pagamento se mencionada (dinheiro, pix, cartao_credito, cartao_debito, fiado). "crédito" = cartao_credito, "débito" = cartao_debito. Se não mencionada, retorne null.
-5. Identifique o canal de venda se mencionado (telefone, whatsapp, balcao, portaria). Se não mencionado, retorne "telefone".
-6. IMPORTANTE: Extraia o endereço separado em campos: endereco (rua/logradouro), numero, complemento, bairro, cep, cidade. 
-7. Comandos de voz podem ter erros de transcrição. Interprete da melhor forma possível.
-
-Retorne APENAS um JSON válido neste formato:
-{
-  "cliente_id": "uuid ou null",
-  "cliente_nome": "nome encontrado ou digitado",
-  "cliente_telefone": "telefone se mencionado ou null",
-  "endereco": "rua/logradouro sem número",
-  "numero": "número do endereço ou null",
-  "complemento": "complemento ou null",
-  "bairro": "bairro ou null",
-  "cep": "cep ou null",
-  "cidade": "cidade ou null",
-  "itens": [{ "produto_id": "uuid", "nome": "nome do produto", "quantidade": 1, "preco_unitario": 100 }],
-  "forma_pagamento": "dinheiro|pix|cartao_credito|cartao_debito|fiado|null",
-  "canal_venda": "telefone|whatsapp|balcao|portaria",
-  "observacoes": "qualquer info extra do comando"
-}`;
-
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: comando },
-        ],
-        temperature: 0.1,
-      }),
-    });
-
-    const aiData = await response.json();
-    const content = aiData.choices?.[0]?.message?.content || "";
-    
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return new Response(JSON.stringify({ error: "Não foi possível interpretar o comando", raw: content }), {
-        status: 422,
+    const empresaId = profile?.empresa_id;
+    if (!empresaId) {
+      return new Response(JSON.stringify({ error: "Empresa não identificada" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    // ETAPA 1: Extrair pistas do comando (cliente + endereço + telefone)
+    const extractPrompt = `Você extrai pistas de um comando de venda em português. Retorne APENAS JSON válido com os campos:
+{
+  "nome": "primeiro nome ou nome completo do cliente, se mencionado, senão null",
+  "telefone": "apenas dígitos do telefone, se mencionado, senão null",
+  "endereco_rua": "nome da rua/avenida sem número (ex: 'Rua das Flores'), senão null",
+  "numero": "apenas o número do endereço, senão null",
+  "bairro": "nome do bairro, se mencionado, senão null"
+}
+Não invente. Se não tiver certeza, retorne null no campo.`;
+
+    const cluesContent = await callAI(extractPrompt, comando, apiKey, 0);
+    const clues = extractJSON(cluesContent) || {};
+
+    console.log("Pistas extraídas:", clues);
+
+    // ETAPA 2: Buscar candidatos no banco via RPC
+    const { data: candidatos, error: rpcError } = await sb.rpc("buscar_clientes_para_ia", {
+      _empresa_id: empresaId,
+      _unidade_id: unidade_id || null,
+      _nome: clues.nome || null,
+      _telefone: clues.telefone || null,
+      _endereco_rua: clues.endereco_rua || null,
+      _numero: clues.numero || null,
+      _bairro: clues.bairro || null,
+      _limite: 15,
+    });
+
+    if (rpcError) console.error("RPC error:", rpcError);
+
+    // Carrega produtos (geralmente são poucos)
+    const { data: produtos } = await sb
+      .from("produtos")
+      .select("id, nome, preco, estoque, categoria")
+      .eq("ativo", true)
+      .or("tipo_botijao.is.null,tipo_botijao.neq.vazio")
+      .limit(100);
+
+    const candidatosList = (candidatos || []).length > 0
+      ? (candidatos || []).map((c: any) =>
+          `- id:${c.id} | "${c.nome}" | tel:${c.telefone || '-'} | ${c.endereco || '-'}, ${c.numero || 's/n'} - ${c.bairro || '-'}`
+        ).join("\n")
+      : "(nenhum cliente similar encontrado no banco)";
+
+    const produtosList = (produtos || []).map((p: any) =>
+      `- "${p.nome}" R$${p.preco} (id: ${p.id})`
+    ).join("\n");
+
+    // ETAPA 3: IA escolhe o cliente correto e monta a venda
+    const systemPrompt = `Você é um assistente de vendas de uma distribuidora de gás. Interprete o comando do usuário e retorne JSON estruturado para lançar a venda.
+
+CANDIDATOS DE CLIENTE (já filtrados por similaridade de nome/telefone/endereço):
+${candidatosList}
+
+PRODUTOS DISPONÍVEIS:
+${produtosList}
+
+REGRAS CRÍTICAS:
+1. SEMPRE prefira reutilizar um cliente da lista de candidatos. Se houver candidato cujo NOME e/ou ENDEREÇO bate com o comando, use o id dele em "cliente_id". NÃO crie cliente novo nesse caso.
+2. Se NENHUM candidato bater de forma plausível, retorne "cliente_id": null e preencha os campos de endereço com base no comando.
+3. Para identificar o produto: "gás", "botijão", "P13" → procure o produto correspondente. "1 gás" significa quantidade 1.
+4. Quantidade padrão = 1 se não especificada.
+5. Forma de pagamento: dinheiro|pix|cartao_credito|cartao_debito|fiado. "crédito"=cartao_credito, "débito"=cartao_debito. null se não mencionado.
+6. canal_venda: telefone|whatsapp|balcao|portaria. Padrão "telefone".
+7. Comandos por voz podem ter erros — interprete da melhor forma.
+
+Retorne APENAS JSON neste formato:
+{
+  "cliente_id": "uuid_do_candidato_ou_null",
+  "cliente_nome": "nome",
+  "cliente_telefone": "telefone ou null",
+  "endereco": "rua sem número",
+  "numero": "número ou null",
+  "complemento": "ou null",
+  "bairro": "ou null",
+  "cep": "ou null",
+  "cidade": "ou null",
+  "itens": [{ "produto_id": "uuid", "nome": "nome", "quantidade": 1, "preco_unitario": 100 }],
+  "forma_pagamento": "dinheiro|pix|cartao_credito|cartao_debito|fiado|null",
+  "canal_venda": "telefone|whatsapp|balcao|portaria",
+  "observacoes": "info extra do comando ou string vazia"
+}`;
+
+    const finalContent = await callAI(systemPrompt, comando, apiKey, 0.1);
+    const parsed = extractJSON(finalContent);
+
+    if (!parsed) {
+      return new Response(JSON.stringify({ error: "Não foi possível interpretar o comando", raw: finalContent }), {
+        status: 422,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

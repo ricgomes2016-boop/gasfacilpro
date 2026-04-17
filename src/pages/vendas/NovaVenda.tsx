@@ -269,7 +269,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     setAiLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("parse-sales-command", {
-        body: { comando: aiCommand },
+        body: { comando: aiCommand, unidade_id: unidadeAtual?.id || null },
       });
 
       if (error) throw error;

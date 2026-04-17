@@ -9465,6 +9465,31 @@ export type Database = {
           total_count: number
         }[]
       }
+      buscar_clientes_para_ia: {
+        Args: {
+          _bairro?: string
+          _empresa_id: string
+          _endereco_rua?: string
+          _limite?: number
+          _nome?: string
+          _numero?: string
+          _telefone?: string
+          _unidade_id?: string
+        }
+        Returns: {
+          bairro: string
+          cep: string
+          cidade: string
+          codigo_cliente: number
+          complemento: string
+          endereco: string
+          id: string
+          nome: string
+          numero: string
+          score: number
+          telefone: string
+        }[]
+      }
       caixa_dia_bloqueado: {
         Args: { _data: string; _unidade_id: string }
         Returns: boolean
