@@ -22,6 +22,7 @@ import { UnidadeSelector } from "./UnidadeSelector";
 import { useTheme } from "@/hooks/useTheme";
 import { forceAppUpdate } from "@/lib/force-app-update";
 import { BuildVersionBadge } from "@/components/shared/BuildVersionBadge";
+import { GasmaisThemeQuickToggle } from "@/components/layout/GasmaisThemeQuickToggle";
 
 interface HeaderProps {
   title: string;
@@ -96,6 +97,9 @@ export function Header({ title, subtitle }: HeaderProps) {
 
         {/* Notifications */}
         <NotificationCenter />
+
+        {/* GásMais Theme Quick Toggle */}
+        <GasmaisThemeQuickToggle />
 
         {/* Theme Toggle */}
         <Button

@@ -80,11 +80,16 @@ function ThemeSelector() {
 function GasmaisThemeToggle() {
   const { isGasmais, setTheme } = useDashboardTheme();
   return (
-    <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-4">
+    <div className="flex items-start justify-between gap-4 rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
       <div className="space-y-1">
-        <Label htmlFor="gasmais-theme" className="text-sm font-semibold">
-          Tema GásMais (Dashboard + Sidebar)
-        </Label>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="gasmais-theme" className="text-sm font-semibold">
+            Tema GásMais (Dashboard + Sidebar)
+          </Label>
+          <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground">
+            Novo
+          </span>
+        </div>
         <p className="text-xs text-muted-foreground">
           Aplica paleta laranja/azul e cards estilo fintech apenas no Dashboard e na Sidebar.
         </p>
@@ -554,8 +559,8 @@ export default function Configuracoes() {
               <CardDescription>Personalize o visual do sistema</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <ThemeSelector />
               <GasmaisThemeToggle />
+              <ThemeSelector />
             </CardContent>
           </Card>
 
