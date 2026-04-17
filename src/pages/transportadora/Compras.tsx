@@ -11,7 +11,7 @@ export default function Compras() {
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("purchases")
       .select("*")
       .order("date", { ascending: false })
