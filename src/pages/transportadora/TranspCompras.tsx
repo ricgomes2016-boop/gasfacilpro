@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { P45_TO_P13, P20_TO_P13, formatCurrency, formatNumber } from "@/lib/transp-utils";
 import { toast } from "sonner";
-import { Plus, ShoppingCart } from "lucide-react";
+import { Plus, ShoppingCart, Download, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 
 const AGUA_TO_P13 = 1;
