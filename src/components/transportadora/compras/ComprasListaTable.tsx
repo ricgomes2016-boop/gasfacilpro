@@ -26,7 +26,7 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
   const [search, setSearch] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [editingVenc, setEditingVenc] = useState<Record<string, string>>({});
-  const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>("todos");
+  const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>("cheio");
 
   const dupNFs = useMemo(() => {
     const counts: Record<string, number> = {};
