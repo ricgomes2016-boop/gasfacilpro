@@ -215,10 +215,21 @@ export default function TranspCompras() {
             <h1 className="text-2xl font-bold text-foreground">Compras</h1>
             <p className="text-muted-foreground text-sm">Registro de compras em distribuidoras · Origem: Cornélio Procópio</p>
           </div>
-          <div className="flex gap-3 items-end">
+          <div className="flex gap-3 items-end flex-wrap">
             <div>
               <Label className="text-xs">Período</Label>
               <Input type="month" value={periodo} onChange={(e) => setPeriodo(e.target.value)} className="w-40" />
+            </div>
+            <Button onClick={importarXmlOutlook} disabled={importing} className="gap-2">
+              <Download className="h-4 w-4" />Importar XML do Outlook
+            </Button>
+            <Button onClick={importarXmlOutlook} disabled={importing} variant="outline" className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${importing ? "animate-spin" : ""}`} />Buscar XML agora
+            </Button>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2"><Plus className="h-4 w-4" />Nova Compra</Button>
+              </DialogTrigger>
             </div>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
