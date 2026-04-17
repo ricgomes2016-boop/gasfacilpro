@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { DeliveryNotificationProvider } from "@/contexts/DeliveryNotificationContext";
 import { ClienteProvider } from "@/contexts/ClienteContext";
 import { ValeGasProvider } from "@/contexts/ValeGasContext";
@@ -18,7 +18,6 @@ import { renderRoutes } from "@/routes/helpers";
 import { SubdomainGuard } from "@/components/routing/SubdomainGuard";
 import { detectSubdomainApp, getSubdomainDefaultRoute } from "@/lib/subdomain";
 
-// Route configurations
 import { adminRoutes } from "@/routes/adminRoutes";
 import { vendasRoutes } from "@/routes/vendasRoutes";
 import { caixaRoutes } from "@/routes/caixaRoutes";
@@ -39,42 +38,19 @@ import { atendimentoRoutes } from "@/routes/atendimentoRoutes";
 import { integracoesRoutes } from "@/routes/integracoesRoutes";
 import { marketingRoutes } from "@/routes/marketingRoutes";
 
-// Eager load: Auth + Dashboard (critical path)
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 
-// Lazy load one-off pages
-const AuthTransportadora = lazy(() => import("./pages/auth/AuthTransportadora"));
-const LandingPage = lazy(() => import("./pages/LandingPage"));
-const NotFound = lazy(() => import("./pages/NotFound"));
-const OnboardingEmpresa = lazy(() => import("./pages/onboarding/OnboardingEmpresa"));
-const OnboardingSetup = lazy(() => import("./pages/onboarding/OnboardingSetup"));
-const ComprarValeGas = lazy(() => import("./pages/publico/ComprarValeGas"));
-const CentralGasCP = lazy(() => import("./pages/publico/CentralGasCP"));
-const Instalar = lazy(() => import("./pages/Instalar"));
-const Suporte = lazy(() => import("./pages/Suporte"));
-
 const queryClient = new QueryClient();
 
-/**
- * Subdomain-aware root redirect.
- * Landing page for root domain, app-specific default for subdomains.
- */
 function RootRedirect() {
-  const app = detectSubdomainApp();
-  if (app === "landing" || app === null) {
-    // Dev or root domain — show landing or redirect to dashboard
-    if (app === "landing") return <LandingPage />;
-    return <Navigate to="/dashboard" replace />;
-  }
-  const defaultRoute = getSubdomainDefaultRoute(app);
-  return <Navigate to={defaultRoute} replace />;
+  return <Navigate to="/dashboard" replace />;
 }
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <BrowserRouter>
+      <Router>
         <AuthProvider>
           <EmpresaProvider>
             <UnidadeProvider>
@@ -87,68 +63,16 @@ const App = () => (
                     <ErrorBoundary>
                       <Suspense fallback={<PageLoader />}>
                         <SubdomainGuard>
-                        <Routes>
-                          {/* Root redirect — subdomain-aware */}
-                          <Route path="/" element={<RootRedirect />} />
+                          <Routes>
+                            <Route path="/" element={<RootRedirect />} />
+                            <Route path="/auth" element={<Auth />} />
+                            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
 
-                          {/* Public routes */}
-                          <Route path="/auth" element={<Auth />} />
-                          <Route path="/auth/transportadora" element={<AuthTransportadora />} />
-                          <Route path="/instalar" element={<Instalar />} />
-                          <Route path="/suporte" element={<Suporte />} />
-                          <Route path="/vale-gas/comprar/:parceiroId" element={<ComprarValeGas />} />
-                          <Route path="/centralgascp" element={<CentralGasCP />} />
+                            {renderRoutes(vendasRoutes)}
+                            {renderRoutes(operacionalRoutes)}
 
-                          {/* Onboarding */}
-                          <Route path="/onboarding" element={
-                            <ProtectedRoute allowedRoles={["admin"]}>
-                              <OnboardingEmpresa />
-                            </ProtectedRoute>
-                          } />
-                          <Route path="/onboarding/setup" element={
-                            <ProtectedRoute allowedRoles={["admin"]}>
-                              <OnboardingSetup />
-                            </ProtectedRoute>
-                          } />
-
-                          {/* Dashboard */}
-                          <Route path="/dashboard" element={
-                            <ProtectedRoute>
-                              <Dashboard />
-                            </ProtectedRoute>
-                          } />
-
-                          {/* Domain routes */}
-                          {renderRoutes(adminRoutes)}
-                          {renderRoutes(vendasRoutes)}
-                          {renderRoutes(caixaRoutes)}
-                          {renderRoutes(operacionalRoutes)}
-                          {renderRoutes(clientesRoutes)}
-                          {renderRoutes(estoqueRoutes)}
-                          {renderRoutes(financeiroRoutes)}
-                          {renderRoutes(cadastrosRoutes)}
-                          {renderRoutes(frotaRoutes)}
-                          {renderRoutes(rhRoutes)}
-                          {renderRoutes(fiscalRoutes)}
-                          {renderRoutes(configRoutes)}
-                          {renderRoutes(entregadorRoutes)}
-                          {renderRoutes(clienteAppRoutes)}
-                          {renderRoutes(parceiroRoutes)}
-                          {renderRoutes(transportadoraRoutes)}
-                          {renderRoutes(atendimentoRoutes)}
-                          {renderRoutes(integracoesRoutes)}
-                          {renderRoutes(marketingRoutes)}
-
-                          {/* Legacy redirects */}
-                          <Route path="/admin/dashboard" element={<Navigate to="/admin" replace />} />
-                          <Route path="/cliente/dashboard" element={<Navigate to="/cliente" replace />} />
-                          <Route path="/entregador/dashboard" element={<Navigate to="/entregador" replace />} />
-                          <Route path="/parceiro/dashboard" element={<Navigate to="/parceiro" replace />} />
-                          <Route path="/operacional/cockpit" element={<Navigate to="/operacional/ia" replace />} />
-
-                          {/* 404 */}
-                          <Route path="*" element={<NotFound />} />
-                        </Routes>
+                            <Route path="*" element={<Navigate to="/dashboard" />} />
+                          </Routes>
                         </SubdomainGuard>
                       </Suspense>
                     </ErrorBoundary>
@@ -158,7 +82,7 @@ const App = () => (
             </UnidadeProvider>
           </EmpresaProvider>
         </AuthProvider>
-      </BrowserRouter>
+      </Router>
     </TooltipProvider>
   </QueryClientProvider>
 );
