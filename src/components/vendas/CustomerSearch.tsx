@@ -60,6 +60,7 @@ interface NominatimResult {
 
 export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [activeField, setActiveField] = useState<string | null>(null);
@@ -73,22 +74,6 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
   const addressRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const addressDebounceRef = useRef<NodeJS.Timeout | null>(null);
-  const [unidadeClienteIds, setUnidadeClienteIds] = useState<string[] | null>(null);
-
-  // Fetch cliente IDs for current unidade
-  useEffect(() => {
-    if (!unidadeAtual?.id) {
-      setUnidadeClienteIds(null);
-      return;
-    }
-    supabase
-      .from("cliente_unidades")
-      .select("cliente_id")
-      .eq("unidade_id", unidadeAtual.id)
-      .then(({ data }) => {
-        setUnidadeClienteIds(data ? data.map((d: any) => d.cliente_id) : []);
-      });
-  }, [unidadeAtual?.id]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -104,9 +89,9 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Função de busca principal - somente por telefone e nome
+  // Busca via RPC autocomplete_clientes (otimizada para grandes volumes)
   const executeSearch = useCallback(async (term: string, field: string) => {
-    if (term.length < 2) {
+    if (term.length < 2 || !empresa?.id) {
       setSearchResults([]);
       setShowResults(false);
       setIsSearching(false);
@@ -117,83 +102,44 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     setIsSearching(true);
 
     try {
-      const filterByUnidade = unidadeClienteIds && unidadeClienteIds.length > 0;
+      const searchTerm = field === "telefone" ? term.replace(/\D/g, "") : term.trim();
+      if (searchTerm.length < 2) {
+        setSearchResults([]);
+        setShowResults(false);
+        setIsSearching(false);
+        return;
+      }
 
-      if (field === "telefone") {
-        const cleanTerm = term.replace(/\D/g, "");
-        if (cleanTerm.length < 2) {
-          setSearchResults([]);
-          setShowResults(false);
-          setIsSearching(false);
-          return;
-        }
+      const { data, error } = await supabase.rpc("autocomplete_clientes", {
+        _empresa_id: empresa.id,
+        _unidade_id: unidadeAtual?.id || null,
+        _termo: searchTerm,
+        _limite: 10,
+      });
 
-        let query = supabase
-          .from("clientes")
-          .select("id, nome, telefone, endereco, numero, bairro, cep, cidade")
-          .eq("ativo", true)
-          .ilike("telefone", `%${cleanTerm}%`)
-          .limit(8);
-
-        if (filterByUnidade) {
-          query = query.in("id", unidadeClienteIds);
-        }
-
-        const { data, error } = await query;
-        if (!error && data) {
-          setSearchResults(data);
-          setShowResults(data.length > 0);
-        }
-      } else if (field === "nome") {
-        const terms = term.trim().split(/\s+/).filter(t => t.length >= 2);
-        if (terms.length === 0) {
-          setSearchResults([]);
-          setShowResults(false);
-          setIsSearching(false);
-          return;
-        }
-
-        const serverTerm = [...terms].sort((a, b) => b.length - a.length)[0];
-
-        let query = supabase
-          .from("clientes")
-          .select("id, nome, telefone, endereco, numero, bairro, cep, cidade")
-          .eq("ativo", true)
-          .or(`nome.ilike.%${serverTerm}%,endereco.ilike.%${serverTerm}%,bairro.ilike.%${serverTerm}%,numero.ilike.%${serverTerm}%`)
-          .limit(100);
-
-        if (filterByUnidade) {
-          query = query.in("id", unidadeClienteIds);
-        }
-
-        const { data, error } = await query;
-        if (!error && data) {
-          const normalize = (s: string) =>
-            s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-          
-          const filtered = data.filter(cliente => {
-            const searchable = normalize([
-              cliente.nome || "",
-              cliente.endereco || "",
-              cliente.bairro || "",
-              cliente.cidade || "",
-              cliente.numero || "",
-              cliente.telefone || "",
-            ].join(" "));
-            
-            return terms.every(t => searchable.includes(normalize(t)));
-          }).slice(0, 10);
-
-          setSearchResults(filtered);
-          setShowResults(filtered.length > 0);
-        }
+      if (!error && data) {
+        // RPC returns: id, nome, telefone, endereco, numero, bairro
+        // Need to fetch cep/cidade only for the small result set if needed later (on select)
+        const mapped: Cliente[] = (data as any[]).map((c) => ({
+          id: c.id,
+          nome: c.nome,
+          telefone: c.telefone,
+          endereco: c.endereco,
+          numero: c.numero,
+          bairro: c.bairro,
+          cep: null,
+          cidade: null,
+        }));
+        setSearchResults(mapped);
+        setShowResults(mapped.length > 0);
       }
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
     } finally {
       setIsSearching(false);
     }
-  }, [unidadeClienteIds]);
+  }, [empresa?.id, unidadeAtual?.id]);
+
 
   const searchClientes = useCallback((term: string, field: string) => {
     if (debounceRef.current) {
