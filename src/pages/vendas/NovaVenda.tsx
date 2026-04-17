@@ -862,7 +862,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         {/* Nova Venda button + badge */}
         <div className="flex items-center justify-between">
           <Badge variant="outline" className="text-xs">
-            #{new Date().getTime().toString().slice(-6)}
+            #{proximoNumero ?? "—"}
           </Badge>
           <Button variant="outline" size="sm" onClick={() => setShowNovaVendaModal(true)} className="gap-1.5 text-xs">
             <PlusCircle className="h-3.5 w-3.5" />
