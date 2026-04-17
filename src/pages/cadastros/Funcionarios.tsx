@@ -37,6 +37,7 @@ interface Funcionario {
   salario: number | null;
   status: string | null;
   ativo: boolean | null;
+  unidade_id: string | null;
 }
 
 interface Entregador {
