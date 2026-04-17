@@ -288,6 +288,27 @@ export default function Funcionarios() {
     fetchEntregadores();
   };
 
+  const handleOpenUnidades = async (f: Funcionario) => {
+    const entregador = getEntregadorForFuncionario(f.id);
+    let userId = entregador?.user_id || null;
+
+    if (!userId && f.email) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("email", f.email)
+        .maybeSingle();
+      userId = (data as any)?.user_id || null;
+    }
+
+    if (!userId) {
+      toast.error("Funcionário sem login no sistema. Não é possível associar a filiais.");
+      return;
+    }
+
+    setUnidadesDialog({ userId, nome: f.nome });
+  };
+
   const entregadorFuncIds = new Set(entregadores.map(e => e.funcionario_id).filter(Boolean));
 
   const filtered = funcionarios.filter(f => {
