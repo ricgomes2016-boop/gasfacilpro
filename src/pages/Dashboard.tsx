@@ -232,6 +232,51 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* Cards coloridos modernos animados (apenas tema GásMais) */}
+        {isGasmais && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              {
+                title: "Vendas Hoje",
+                value: `R$ ${(stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+                icon: DollarSign,
+                variant: "primary" as const,
+                subtitle: `${stats?.totalPedidos ?? 0} pedidos`,
+                trend: stats?.trendVendas,
+              },
+              {
+                title: "Recebimentos",
+                value: `R$ ${(caixaDiario?.total_entradas_caixa ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+                icon: TrendingUp,
+                variant: "success" as const,
+                subtitle: "entradas no caixa",
+              },
+              {
+                title: "Ticket Médio",
+                value: `R$ ${(stats?.ticketMedio ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+                icon: ShoppingCart,
+                variant: "info" as const,
+                subtitle: "por pedido",
+              },
+              {
+                title: "Pedidos Pendentes",
+                value: stats?.pendentes ?? 0,
+                icon: Truck,
+                variant: "warning" as const,
+                subtitle: "aguardando",
+              },
+            ].map((c, i) => (
+              <div
+                key={c.title}
+                className="animate-fade-in"
+                style={{ animationDelay: `${i * 80}ms`, animationFillMode: "backwards" }}
+              >
+                <StatCard {...c} colored />
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Briefing IA do dia */}
         <DailyBriefingWidget />
 
