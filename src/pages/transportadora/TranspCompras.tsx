@@ -17,8 +17,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ComprasAnaliseGLP } from "@/components/transportadora/compras/ComprasAnaliseGLP";
 import { ComprasProdutos } from "@/components/transportadora/compras/ComprasProdutos";
 import { ComprasKpiToneladas } from "@/components/transportadora/compras/CompraisKpiToneladas";
-import { ComparativoFornecedores } from "@/components/transportadora/compras/ComparativoFornecedores";
+import { ComparativoFornecedoresUnit } from "@/components/transportadora/compras/ComparativoFornecedoresUnit";
 import { ComprasListaTable } from "@/components/transportadora/compras/ComprasListaTable";
+import { ResumoPorLoja } from "@/components/transportadora/compras/ResumoPorLoja";
 
 const AGUA_TO_P13 = 1;
 
