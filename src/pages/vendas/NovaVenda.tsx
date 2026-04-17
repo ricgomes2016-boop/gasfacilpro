@@ -141,6 +141,20 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     nome: null,
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  // Próximo número de pedido (preview na tela)
+  const { data: proximoNumero } = useQuery({
+    queryKey: ["proximo-numero-pedido", empresa?.id, isLoading],
+    queryFn: async () => {
+      if (!empresa?.id) return null;
+      const { data, error } = await supabase.rpc("proximo_numero_pedido", { _empresa_id: empresa.id });
+      if (error) return null;
+      return data as number;
+    },
+    enabled: !!empresa?.id,
+    refetchInterval: 30000,
+  });
+
   const [aiCommand, setAiCommand] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
