@@ -303,6 +303,7 @@ export default function TranspCompras() {
               </DialogContent>
             </Dialog>
           </div>
+          <p className="text-xs text-muted-foreground w-full">Última importação: --</p>
         </div>
 
         {/* Resumo Mensal */}
