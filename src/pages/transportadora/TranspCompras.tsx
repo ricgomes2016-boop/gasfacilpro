@@ -17,8 +17,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ComprasAnaliseGLP } from "@/components/transportadora/compras/ComprasAnaliseGLP";
 import { ComprasProdutos } from "@/components/transportadora/compras/ComprasProdutos";
 import { ComprasKpiToneladas } from "@/components/transportadora/compras/CompraisKpiToneladas";
-import { ComparativoFornecedores } from "@/components/transportadora/compras/ComparativoFornecedores";
+import { ComparativoFornecedoresUnit } from "@/components/transportadora/compras/ComparativoFornecedoresUnit";
 import { ComprasListaTable } from "@/components/transportadora/compras/ComprasListaTable";
+import { ResumoPorLoja } from "@/components/transportadora/compras/ResumoPorLoja";
 
 const AGUA_TO_P13 = 1;
 
@@ -87,6 +88,7 @@ export default function TranspCompras() {
   const [importing, setImporting] = useState(false);
   const [form, setForm] = useState<CompraForm>({ ...defaultForm });
   const [periodo, setPeriodo] = useState(new Date().toISOString().slice(0, 7));
+  const [filialFiltro, setFilialFiltro] = useState<string>("todas");
   const [filtroRemetente, setFiltroRemetente] = useState(localStorage.getItem("transp_xml_remetente") || "");
   const [diasBusca, setDiasBusca] = useState(Number(localStorage.getItem("transp_xml_dias") || "30"));
   const [ultimaImportacao, setUltimaImportacao] = useState<string | null>(localStorage.getItem("transp_xml_ultima"));
@@ -144,9 +146,30 @@ export default function TranspCompras() {
     enabled: !!user,
   });
 
+  const { data: unidades = [] } = useQuery({
+    queryKey: ["unidades-empresa", profile?.empresa_id],
+    queryFn: async () => {
+      const { data } = await supabase.from("unidades").select("id, nome").eq("empresa_id", profile!.empresa_id).eq("ativo", true).order("nome");
+      return data || [];
+    },
+    enabled: !!profile?.empresa_id,
+  });
+
+  const unidadesMap = useMemo(() => {
+    const m = new Map<string, string>();
+    unidades.forEach((u: any) => m.set(u.id, u.nome));
+    return m;
+  }, [unidades]);
+
   const custos = useMemo(() => calcCustos(form), [form]);
 
-  const comprasPeriodo = useMemo(() => compras.filter((c: any) => c.mes_referencia === periodo), [compras, periodo]);
+  const comprasPeriodo = useMemo(() => {
+    return compras.filter((c: any) => {
+      if (c.mes_referencia !== periodo) return false;
+      if (filialFiltro !== "todas" && c.unidade_id !== filialFiltro) return false;
+      return true;
+    });
+  }, [compras, periodo, filialFiltro]);
 
   const resumoMensal = useMemo(() => {
     if (comprasPeriodo.length === 0) return null;
@@ -241,6 +264,18 @@ export default function TranspCompras() {
             <div>
               <Label className="text-xs">Período</Label>
               <Input type="month" value={periodo} onChange={(e) => setPeriodo(e.target.value)} className="w-40" />
+            </div>
+            <div>
+              <Label className="text-xs">Filial</Label>
+              <Select value={filialFiltro} onValueChange={setFilialFiltro}>
+                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas as lojas</SelectItem>
+                  {unidades.map((u: any) => (
+                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
@@ -410,13 +445,16 @@ export default function TranspCompras() {
               </div>
             )}
 
-            {/* Tabela de compras (com busca, alerta de duplicatas, vencimento e pago) */}
-            <ComprasListaTable compras={comprasPeriodo} />
+            {/* Resumo por Loja — GLP Cheio */}
+            <ResumoPorLoja compras={comprasPeriodo} unidadesMap={unidadesMap} />
+
+            {/* Tabela de compras */}
+            <ComprasListaTable compras={comprasPeriodo} unidadesMap={unidadesMap} />
           </TabsContent>
 
           <TabsContent value="analise" className="mt-4 space-y-4">
             <ComprasKpiToneladas compras={compras} />
-            <ComparativoFornecedores compras={compras} />
+            <ComparativoFornecedoresUnit compras={comprasPeriodo} />
             <ComprasAnaliseGLP compras={compras} />
           </TabsContent>
 

@@ -7641,6 +7641,7 @@ export type Database = {
           cfop: string | null
           chave_nfe: string | null
           cidade_fornecedor: string | null
+          cnpj_destinatario: string | null
           created_at: string | null
           custo_combustivel: number | null
           custo_logistico_total: number | null
@@ -7665,11 +7666,15 @@ export type Database = {
           observacoes: string | null
           outlook_message_id: string | null
           pago: boolean
+          preco_unitario: number | null
           produto_descricao: string | null
           qtd_agua: number | null
           qtd_p13: number | null
           qtd_p20: number | null
           qtd_p45: number | null
+          quantidade: number | null
+          tipo_produto: string | null
+          unidade_id: string | null
           updated_at: string | null
           valor_compra: number | null
           veiculo_id: string | null
@@ -7678,6 +7683,7 @@ export type Database = {
           cfop?: string | null
           chave_nfe?: string | null
           cidade_fornecedor?: string | null
+          cnpj_destinatario?: string | null
           created_at?: string | null
           custo_combustivel?: number | null
           custo_logistico_total?: number | null
@@ -7702,11 +7708,15 @@ export type Database = {
           observacoes?: string | null
           outlook_message_id?: string | null
           pago?: boolean
+          preco_unitario?: number | null
           produto_descricao?: string | null
           qtd_agua?: number | null
           qtd_p13?: number | null
           qtd_p20?: number | null
           qtd_p45?: number | null
+          quantidade?: number | null
+          tipo_produto?: string | null
+          unidade_id?: string | null
           updated_at?: string | null
           valor_compra?: number | null
           veiculo_id?: string | null
@@ -7715,6 +7725,7 @@ export type Database = {
           cfop?: string | null
           chave_nfe?: string | null
           cidade_fornecedor?: string | null
+          cnpj_destinatario?: string | null
           created_at?: string | null
           custo_combustivel?: number | null
           custo_logistico_total?: number | null
@@ -7739,11 +7750,15 @@ export type Database = {
           observacoes?: string | null
           outlook_message_id?: string | null
           pago?: boolean
+          preco_unitario?: number | null
           produto_descricao?: string | null
           qtd_agua?: number | null
           qtd_p13?: number | null
           qtd_p20?: number | null
           qtd_p45?: number | null
+          quantidade?: number | null
+          tipo_produto?: string | null
+          unidade_id?: string | null
           updated_at?: string | null
           valor_compra?: number | null
           veiculo_id?: string | null
@@ -7754,6 +7769,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_compras_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
             referencedColumns: ["id"]
           },
           {

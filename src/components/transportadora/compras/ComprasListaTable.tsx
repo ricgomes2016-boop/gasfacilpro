@@ -2,22 +2,32 @@ import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Search, AlertTriangle, X, Calendar, Check } from "lucide-react";
+import { Search, AlertTriangle, X, Calendar, Check, Wallet } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { formatCurrency } from "@/lib/transp-utils";
+import { formatCurrency, formatNumber } from "@/lib/transp-utils";
 
-interface Props { compras: any[]; }
+interface Props {
+  compras: any[];
+  unidadesMap?: Map<string, string>;
+}
 
-export function ComprasListaTable({ compras }: Props) {
+type FiltroTipo = "todos" | "cheio" | "vasilhame" | "outros";
+
+const TIPO_LABEL: Record<string, { label: string; cls: string }> = {
+  cheio: { label: "Cheio", cls: "bg-success/10 text-success border-success/20" },
+  vasilhame: { label: "Vasilhame", cls: "bg-warning/10 text-warning border-warning/20" },
+  outros: { label: "Outros", cls: "bg-muted text-muted-foreground border-border" },
+};
+
+export function ComprasListaTable({ compras, unidadesMap }: Props) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [editingVenc, setEditingVenc] = useState<Record<string, string>>({});
+  const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>("todos");
 
-  // Detectar NFs duplicadas (mesma chave_nfe ou mesmo numero_nf+fornecedor)
   const dupNFs = useMemo(() => {
     const counts: Record<string, number> = {};
     compras.forEach((c) => {
@@ -35,16 +45,28 @@ export function ComprasListaTable({ compras }: Props) {
     );
   }, [compras]);
 
+  const descontosTotais = useMemo(
+    () => compras.reduce((s, c) => s + Number(c.desconto || 0), 0),
+    [compras]
+  );
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return compras;
-    const q = search.toLowerCase();
-    return compras.filter((c) =>
-      (c.fornecedor || "").toLowerCase().includes(q) ||
-      (c.numero_nf || "").toLowerCase().includes(q) ||
-      (c.cidade_fornecedor || "").toLowerCase().includes(q) ||
-      (c.cfop || "").includes(q)
-    );
-  }, [compras, search]);
+    let list = compras;
+    if (filtroTipo !== "todos") {
+      list = list.filter((c) => (c.tipo_produto || "outros") === filtroTipo);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((c) =>
+        (c.fornecedor || "").toLowerCase().includes(q) ||
+        (c.numero_nf || "").toLowerCase().includes(q) ||
+        (c.cidade_fornecedor || "").toLowerCase().includes(q) ||
+        (c.cfop || "").includes(q) ||
+        (c.produto_descricao || "").toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [compras, search, filtroTipo]);
 
   const display = showAll ? filtered : filtered.slice(0, 30);
 
@@ -53,9 +75,7 @@ export function ComprasListaTable({ compras }: Props) {
       const { error } = await (supabase as any).from("transp_compras").update(patch).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["transp-compras"] });
-    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["transp-compras"] }),
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -77,6 +97,16 @@ export function ComprasListaTable({ compras }: Props) {
   const fmtDate = (d?: string) => d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(2, 4)}` : "—";
   const isVencido = (c: any) => c.data_vencimento && !c.pago && new Date(c.data_vencimento) < new Date();
 
+  const lojaNome = (id?: string | null) =>
+    id ? (unidadesMap?.get(id) || "—") : "—";
+
+  const chips: { v: FiltroTipo; label: string }[] = [
+    { v: "todos", label: "Todos" },
+    { v: "cheio", label: "Cheio" },
+    { v: "vasilhame", label: "Vasilhame" },
+    { v: "outros", label: "Outros" },
+  ];
+
   return (
     <Card className="border-border/40">
       <CardContent className="p-0">
@@ -90,25 +120,45 @@ export function ComprasListaTable({ compras }: Props) {
           </div>
         )}
 
-        <div className="p-4 border-b border-border/40">
+        <div className="p-4 border-b border-border/40 space-y-3">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-sm font-semibold text-foreground">
               Histórico ({filtered.length}{filtered.length !== compras.length ? ` de ${compras.length}` : ""})
             </p>
-            <div className="relative flex-1 min-w-[200px] max-w-sm">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Buscar fornecedor, NF, cidade, CFOP..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setShowAll(false); }}
-                className="pl-8 pr-8 h-8 text-xs"
-              />
-              {search && (
-                <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                  <X className="h-3.5 w-3.5" />
-                </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {descontosTotais > 0 && (
+                <span className="inline-flex items-center gap-1.5 bg-success/10 text-success border border-success/20 rounded-md px-2.5 py-1 text-xs font-medium">
+                  <Wallet className="h-3 w-3" /> Descontos totais: <strong>{formatCurrency(descontosTotais)}</strong>
+                </span>
               )}
+              <div className="relative w-[220px]">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar fornecedor, NF, produto..."
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setShowAll(false); }}
+                  className="pl-8 pr-8 h-8 text-xs"
+                />
+                {search && (
+                  <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
+          </div>
+          <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit">
+            {chips.map((c) => (
+              <button
+                key={c.v}
+                onClick={() => { setFiltroTipo(c.v); setShowAll(false); }}
+                className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                  filtroTipo === c.v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -116,7 +166,7 @@ export function ComprasListaTable({ compras }: Props) {
           <table className="w-full text-xs">
             <thead className="bg-muted/40">
               <tr className="text-left">
-                {["Data", "Fornecedor", "NF", "P13", "P20", "P45", "Total", "Vencimento", "Pago"].map((h) => (
+                {["Data", "Loja", "Fornecedor", "NF", "Tipo", "CFOP", "Qtd", "Preço Unit.", "Desconto", "Total", "Vencimento", "Pago"].map((h) => (
                   <th key={h} className="px-3 py-2.5 font-medium text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -125,9 +175,14 @@ export function ComprasListaTable({ compras }: Props) {
               {display.map((c: any) => {
                 const isDup = dupNFs.has(c.numero_nf || c.id);
                 const vencido = isVencido(c);
+                const tipo = TIPO_LABEL[c.tipo_produto || "outros"] || TIPO_LABEL.outros;
+                const qtd = Number(c.quantidade || 0) || (Number(c.qtd_p13 || 0) + Number(c.qtd_p20 || 0) + Number(c.qtd_p45 || 0) + Number(c.qtd_agua || 0));
+                const pu = Number(c.preco_unitario || 0);
+                const desc = Number(c.desconto || 0);
                 return (
                   <tr key={c.id} className={`hover:bg-muted/20 ${isDup ? "bg-warning/5" : ""} ${c.pago ? "opacity-60" : ""}`}>
-                    <td className="px-3 py-2 text-muted-foreground">{fmtDate(c.data)}</td>
+                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{fmtDate(c.data)}</td>
+                    <td className="px-3 py-2 text-foreground">{lojaNome(c.unidade_id)}</td>
                     <td className="px-3 py-2 text-foreground font-medium max-w-[180px] truncate" title={c.fornecedor}>
                       {c.fornecedor}
                       {c.cidade_fornecedor && <span className="text-muted-foreground font-normal"> · {c.cidade_fornecedor}</span>}
@@ -136,9 +191,15 @@ export function ComprasListaTable({ compras }: Props) {
                       {isDup && <AlertTriangle className="inline h-3 w-3 text-warning mr-1" />}
                       {c.numero_nf || "—"}
                     </td>
-                    <td className="px-3 py-2 text-center">{c.qtd_p13 || "—"}</td>
-                    <td className="px-3 py-2 text-center">{c.qtd_p20 || "—"}</td>
-                    <td className="px-3 py-2 text-center">{c.qtd_p45 || "—"}</td>
+                    <td className="px-3 py-2">
+                      <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border ${tipo.cls}`}>
+                        {tipo.label}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{c.cfop || "—"}</td>
+                    <td className="px-3 py-2 text-center text-foreground">{qtd > 0 ? formatNumber(qtd, 0) : "—"}</td>
+                    <td className="px-3 py-2 text-primary font-semibold">{pu > 0 ? formatCurrency(pu) : "—"}</td>
+                    <td className="px-3 py-2 text-success">{desc > 0 ? formatCurrency(desc) : "—"}</td>
                     <td className="px-3 py-2 font-bold text-foreground">{formatCurrency(Number(c.custo_total))}</td>
                     <td className="px-3 py-2">
                       {editingVenc[c.id] !== undefined ? (
@@ -183,7 +244,7 @@ export function ComprasListaTable({ compras }: Props) {
               })}
               {display.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="text-center py-8 text-muted-foreground">Nenhuma compra encontrada</td>
+                  <td colSpan={12} className="text-center py-8 text-muted-foreground">Nenhuma compra encontrada</td>
                 </tr>
               )}
             </tbody>

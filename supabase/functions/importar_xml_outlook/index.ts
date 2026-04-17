@@ -7,7 +7,6 @@ const corsHeaders = {
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/microsoft_outlook";
 
-// Extrai um campo simples de XML: <tag>valor</tag>
 function pick(xml: string, tag: string): string | null {
   const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "i");
   const m = xml.match(re);
@@ -22,7 +21,6 @@ function pickAll(xml: string, tag: string): string[] {
   return out;
 }
 
-// Decodifica base64 robusto
 function b64decode(b64: string): Uint8Array {
   const clean = b64.replace(/\s/g, "");
   const bin = atob(clean);
@@ -35,24 +33,49 @@ function bytesToString(bytes: Uint8Array): string {
   return new TextDecoder("utf-8").decode(bytes);
 }
 
+// Classifica produto em cheio | vasilhame | outros baseado em CFOP + descrição
+function classificarTipo(cfop: string | null, descricao: string): "cheio" | "vasilhame" | "outros" {
+  const desc = descricao.toLowerCase();
+  // Vasilhame primeiro (palavras explícitas)
+  if (/vasilhame|vazio|botij[aã]o\s+vazio|sem\s+carga/.test(desc)) return "vasilhame";
+  // CFOPs típicos de venda de mercadoria (cheio): 5101, 5102, 5103, 5403, 5405, 5656, 6101, 6102, 6403, 6404
+  const cfopCheio = ["5101","5102","5103","5104","5405","5403","5656","6101","6102","6103","6403","6404","5651","5652","6651","6652"];
+  // CFOPs de remessa/retorno de vasilhame: 5949, 5556, 5920, 5921, 6949
+  const cfopVasilhame = ["5556","5920","5921","6920","6921"];
+  if (cfop && cfopVasilhame.includes(cfop)) return "vasilhame";
+  if (cfop && cfopCheio.includes(cfop)) {
+    if (/g[aá]s|glp|p[\s-]?13|p[\s-]?20|p[\s-]?45|13\s*kg|20\s*kg|45\s*kg/.test(desc)) return "cheio";
+  }
+  // Fallback por descrição
+  if (/g[aá]s|glp|p[\s-]?13|p[\s-]?20|p[\s-]?45|13\s*kg|20\s*kg|45\s*kg/.test(desc)) return "cheio";
+  if (/[áa]gua|gal[ãa]o/.test(desc)) return "outros";
+  return "outros";
+}
+
+interface ParsedItem {
+  produto: string;
+  cfop: string | null;
+  quantidade: number;
+  preco_unitario: number;
+  valor_total: number;
+  desconto: number;
+  tipo: "cheio" | "vasilhame" | "outros";
+}
+
 interface ParsedNFe {
   chave_nfe: string | null;
   numero_nf: string | null;
   data: string | null;
   fornecedor: string | null;
   cidade_fornecedor: string | null;
-  itens: {
-    produto: string;
-    cfop: string | null;
-    quantidade: number;
-    preco_unitario: number;
-    valor_total: number;
-  }[];
+  cnpj_destinatario: string | null;
+  data_vencimento: string | null;
+  desconto_total: number;
+  itens: ParsedItem[];
   valor_total_nota: number;
 }
 
 function parseNFeXml(xml: string): ParsedNFe | null {
-  // Chave de acesso: vem como atributo Id="NFe44170..."
   const chaveMatch = xml.match(/Id="NFe(\d{44})"/);
   const chave_nfe = chaveMatch ? chaveMatch[1] : null;
 
@@ -60,35 +83,55 @@ function parseNFeXml(xml: string): ParsedNFe | null {
   const dhEmi = pick(xml, "dhEmi") || pick(xml, "dEmi");
   const data = dhEmi ? dhEmi.slice(0, 10) : null;
 
-  // Bloco emit
+  // emit (fornecedor)
   const emitMatch = xml.match(/<emit[^>]*>([\s\S]*?)<\/emit>/i);
   const emitXml = emitMatch ? emitMatch[1] : "";
   const fornecedor = pick(emitXml, "xNome");
   const cidade_fornecedor = pick(emitXml, "xMun");
 
-  // Itens: cada <det>
-  const itens: ParsedNFe["itens"] = [];
+  // dest (filial destinatária)
+  const destMatch = xml.match(/<dest[^>]*>([\s\S]*?)<\/dest>/i);
+  const destXml = destMatch ? destMatch[1] : "";
+  const cnpj_destinatario = pick(destXml, "CNPJ") || pick(destXml, "CPF");
+
+  // duplicatas (vencimento) — pega a primeira
+  const dupMatch = xml.match(/<dup[^>]*>([\s\S]*?)<\/dup>/i);
+  const dupXml = dupMatch ? dupMatch[1] : "";
+  const data_vencimento = pick(dupXml, "dVenc");
+
+  // Itens
+  const itens: ParsedItem[] = [];
   const detBlocks = pickAll(xml, "det");
   for (const det of detBlocks) {
     const prodMatch = det.match(/<prod[^>]*>([\s\S]*?)<\/prod>/i);
     if (!prodMatch) continue;
     const prod = prodMatch[1];
+    const produto = pick(prod, "xProd") || "";
+    const cfop = pick(prod, "CFOP");
+    const desconto = parseFloat(pick(prod, "vDesc") || "0");
     itens.push({
-      produto: pick(prod, "xProd") || "",
-      cfop: pick(prod, "CFOP"),
+      produto,
+      cfop,
       quantidade: parseFloat(pick(prod, "qCom") || "0"),
       preco_unitario: parseFloat(pick(prod, "vUnCom") || "0"),
       valor_total: parseFloat(pick(prod, "vProd") || "0"),
+      desconto,
+      tipo: classificarTipo(cfop, produto),
     });
   }
 
   const totalMatch = xml.match(/<ICMSTot[^>]*>([\s\S]*?)<\/ICMSTot>/i);
   const totalXml = totalMatch ? totalMatch[1] : "";
   const valor_total_nota = parseFloat(pick(totalXml, "vNF") || "0");
+  const desconto_total = parseFloat(pick(totalXml, "vDesc") || "0");
 
   if (!numero_nf && !chave_nfe) return null;
 
-  return { chave_nfe, numero_nf, data, fornecedor, cidade_fornecedor, itens, valor_total_nota };
+  return {
+    chave_nfe, numero_nf, data, fornecedor, cidade_fornecedor,
+    cnpj_destinatario, data_vencimento, desconto_total,
+    itens, valor_total_nota,
+  };
 }
 
 async function outlookFetch(path: string): Promise<any> {
@@ -110,6 +153,10 @@ async function outlookFetch(path: string): Promise<any> {
   return JSON.parse(text);
 }
 
+function normalizeCnpj(s: string | null): string {
+  return (s || "").replace(/\D/g, "");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -118,7 +165,6 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const authHeader = req.headers.get("Authorization") || "";
 
-    // Cliente como usuário (para identificar empresa)
     const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -129,10 +175,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Cliente service-role para inserts ignorando RLS
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Pega empresa do usuário
     const { data: profile } = await supabase
       .from("profiles").select("empresa_id").eq("user_id", user.id).single();
     const empresa_id = profile?.empresa_id;
@@ -142,14 +186,23 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Carrega unidades (filiais) da empresa para mapear CNPJ → unidade_id
+    const { data: unidades } = await supabase
+      .from("unidades")
+      .select("id, cnpj")
+      .eq("empresa_id", empresa_id);
+    const cnpjToUnidade = new Map<string, string>();
+    for (const u of (unidades || [])) {
+      const c = normalizeCnpj((u as any).cnpj);
+      if (c) cnpjToUnidade.set(c, u.id);
+    }
+
     const body = await req.json().catch(() => ({}));
     const dias = Math.min(Math.max(parseInt(body.dias ?? "30"), 1), 180);
     const filtroRemetente: string | null = body.filtro_remetente || null;
 
     const desde = new Date(Date.now() - dias * 86400000).toISOString();
 
-    // Outlook/Graph não aceita combinar hasAttachments + receivedDateTime + orderby (InefficientFilter).
-    // Estratégia: filtrar só por receivedDateTime (+ remetente opcional), ordenar por data, e filtrar hasAttachments no código.
     const filterParts = [`receivedDateTime ge ${desde}`];
     if (filtroRemetente) {
       filterParts.push(`from/emailAddress/address eq '${filtroRemetente}'`);
@@ -158,11 +211,9 @@ Deno.serve(async (req) => {
     const select = encodeURIComponent("id,subject,from,receivedDateTime,hasAttachments");
 
     console.log(`[importar_xml_outlook] Buscando emails desde ${desde}, filtro: ${filtroRemetente || "(todos)"}`);
-    // Sem $orderby (também causa InefficientFilter combinado com $filter em algumas mailboxes)
     const list = await outlookFetch(`/me/messages?$filter=${filter}&$select=${select}&$top=100`);
     const messages = (list.value || []).filter((m: any) => m.hasAttachments === true);
-    console.log(`[importar_xml_outlook] ${(list.value || []).length} emails no período, ${messages.length} com anexos`);
-    console.log(`[importar_xml_outlook] ${messages.length} emails com anexos encontrados`);
+    console.log(`[importar_xml_outlook] ${messages.length} emails com anexos`);
 
     let total_xmls = 0;
     let total_importados = 0;
@@ -189,7 +240,6 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Só processa NF-e
           if (!/<infNFe/i.test(xml)) {
             detalhes.push({ arquivo: att.name, status: "ignorado (não é NF-e)" });
             continue;
@@ -202,8 +252,10 @@ Deno.serve(async (req) => {
             continue;
           }
 
+          const cnpjDest = normalizeCnpj(nfe.cnpj_destinatario);
+          const unidade_id = cnpjDest ? (cnpjToUnidade.get(cnpjDest) || null) : null;
+
           for (const item of nfe.itens) {
-            // Verifica duplicidade pela chave única
             const { data: existing } = await supabase
               .from("transp_compras")
               .select("id")
@@ -217,16 +269,22 @@ Deno.serve(async (req) => {
               continue;
             }
 
-            // Detecta produto P13/P20/P45/Água
+            // Quantidades P13/P20/P45/Água — apenas quando tipo = cheio
             const desc = item.produto.toLowerCase();
-            const qtd_p13 = /p[\s-]?13|13\s*kg/.test(desc) ? item.quantidade : 0;
-            const qtd_p20 = /p[\s-]?20|20\s*kg/.test(desc) ? item.quantidade : 0;
-            const qtd_p45 = /p[\s-]?45|45\s*kg/.test(desc) ? item.quantidade : 0;
+            const isCheio = item.tipo === "cheio";
+            const qtd_p13 = isCheio && /p[\s-]?13|13\s*kg/.test(desc) ? item.quantidade : 0;
+            const qtd_p20 = isCheio && /p[\s-]?20|20\s*kg/.test(desc) ? item.quantidade : 0;
+            const qtd_p45 = isCheio && /p[\s-]?45|45\s*kg/.test(desc) ? item.quantidade : 0;
             const qtd_agua = /[áa]gua|gal[ãa]o/.test(desc) ? item.quantidade : 0;
+
+            const valorLiquido = item.valor_total - item.desconto;
 
             const { error: insErr } = await supabase.from("transp_compras").insert({
               empresa_id,
+              unidade_id,
+              cnpj_destinatario: cnpjDest || null,
               data: nfe.data || new Date().toISOString().slice(0, 10),
+              data_vencimento: nfe.data_vencimento || null,
               fornecedor: nfe.fornecedor || "Desconhecido",
               cidade_fornecedor: nfe.cidade_fornecedor,
               chave_nfe: nfe.chave_nfe,
@@ -234,9 +292,13 @@ Deno.serve(async (req) => {
               outlook_message_id: msg.id,
               produto_descricao: item.produto,
               cfop: item.cfop,
+              tipo_produto: item.tipo,
+              quantidade: item.quantidade,
+              preco_unitario: item.preco_unitario,
+              desconto: item.desconto,
               qtd_p13, qtd_p20, qtd_p45, qtd_agua,
-              valor_compra: item.valor_total,
-              custo_total: item.valor_total,
+              valor_compra: valorLiquido,
+              custo_total: valorLiquido,
               custo_logistico_total: 0,
               custo_combustivel: 0,
               custo_pedagio: 0,
@@ -257,7 +319,10 @@ Deno.serve(async (req) => {
               detalhes.push({ arquivo: att.name, nf: nfe.numero_nf, status: "erro insert: " + insErr.message });
             } else {
               total_importados++;
-              detalhes.push({ arquivo: att.name, nf: nfe.numero_nf, produto: item.produto, status: "importado" });
+              detalhes.push({
+                arquivo: att.name, nf: nfe.numero_nf, produto: item.produto,
+                tipo: item.tipo, unidade_id, status: "importado",
+              });
             }
           }
         }
