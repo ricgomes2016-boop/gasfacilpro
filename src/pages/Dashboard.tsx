@@ -24,6 +24,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { subDays, startOfWeek, startOfMonth, startOfDay, endOfDay } from "date-fns";
 import { getBrasiliaDate, getBrasiliaStartOfDay, getBrasiliaEndOfDay } from "@/lib/utils";
+import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 
 type Period = "hoje" | "semana" | "mes";
 
