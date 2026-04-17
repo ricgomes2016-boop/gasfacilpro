@@ -6,11 +6,14 @@ interface StatCardProps {
   title: string;
   value: string | number;
   icon: LucideIcon;
+  subtitle?: string;
   trend?: {
     value: number;
     isPositive: boolean;
   };
   variant?: "default" | "primary" | "success" | "warning" | "info";
+  /** Render as translucent tile inside a colored hero (GásMais only) */
+  onHero?: boolean;
 }
 
 const variantStyles = {
@@ -42,10 +45,30 @@ export function StatCard({
   title,
   value,
   icon: Icon,
+  subtitle,
   trend,
   variant = "default",
+  onHero = false,
 }: StatCardProps) {
   const { isGasmais } = useDashboardTheme();
+
+  // Hero tile (translucent on orange gradient) — GásMais inside hero
+  if (isGasmais && onHero) {
+    return (
+      <div className="rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 p-4 transition-all hover:bg-white/15">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 mb-3">
+          <Icon className="h-4 w-4 text-white" />
+        </div>
+        <p className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-none">
+          {value}
+        </p>
+        <p className="mt-2 text-sm font-medium text-white/90">{title}</p>
+        {subtitle && (
+          <p className="text-xs text-white/60 mt-0.5">{subtitle}</p>
+        )}
+      </div>
+    );
+  }
 
   if (isGasmais) {
     return (
