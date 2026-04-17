@@ -8,6 +8,11 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Truck, RefreshCw, Clock, Package, AlertTriangle, CheckCircle, Maximize2, Minimize2, Radio, Phone, WifiOff, Route, EyeOff } from "lucide-react";
 import { DeliveryRoutesMap, Entregador, ClienteEntrega, PercursoPonto } from "@/components/mapa/DeliveryRoutesMap";
 import { NearestDriversPanel } from "@/components/mapa/NearestDriversPanel";
+import { TrilhaPolyline } from "@/components/operacional/mapa/TrilhaPolyline";
+import { ParadasLayer } from "@/components/operacional/mapa/ParadasLayer";
+import { PainelLateral } from "@/components/operacional/mapa/PainelLateral";
+import { useMapaOperacionalData } from "@/hooks/useMapaOperacionalData";
+import { useOperacional } from "@/hooks/useOperacional";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { cn } from "@/lib/utils";
@@ -26,6 +31,12 @@ export default function MapaOperacional() {
   const [selectedCliente, setSelectedCliente] = useState<ClienteEntrega | null>(null);
   const [routeToClienteLine, setRouteToClienteLine] = useState<[number, number][]>([]);
   const [percurso, setPercurso] = useState<PercursoPonto[]>([]);
+
+  // Inteligência operacional (trilha, paradas, ETA, sugestões)
+  const { entregadores: entsOp, pedidos: pedsOp, pontosCache, refresh } = useMapaOperacionalData({
+    unidadeId: unidadeAtual?.id,
+  });
+  const dadosOp = useOperacional(entsOp, pedsOp, pontosCache);
 
   // Buscar coordenadas da unidade para centralizar o mapa
   useEffect(() => {
@@ -277,6 +288,12 @@ export default function MapaOperacional() {
                   onSelectCliente={handleSelectCliente}
                   selectedClienteId={selectedCliente?.id || null}
                   routeToClienteLine={routeToClienteLine}
+                  overlays={
+                    <>
+                      <TrilhaPolyline pontosCache={pontosCache} selectedEntregador={selectedEntregador} />
+                      <ParadasLayer dadosOp={dadosOp} selectedEntregador={selectedEntregador} />
+                    </>
+                  }
                 />
               </div>
               {/* Painel de entregadores mais próximos */}
@@ -294,6 +311,23 @@ export default function MapaOperacional() {
 
           {/* Painel lateral */}
           <div className="space-y-4">
+            {/* Inteligência Operacional */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Radio className="h-4 w-4 text-primary" />Inteligência Operacional
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <PainelLateral
+                  entregadores={entsOp}
+                  pedidos={pedsOp}
+                  dadosOp={dadosOp}
+                  onRefresh={refresh}
+                />
+              </CardContent>
+            </Card>
+
             {/* Entregadores */}
             <Card>
               <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">

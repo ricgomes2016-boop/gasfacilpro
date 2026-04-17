@@ -65,6 +65,7 @@ interface DeliveryRoutesMapProps {
   onSelectCliente?: (cliente: ClienteEntrega | null) => void;
   selectedClienteId?: string | null;
   routeToClienteLine?: [number, number][];
+  overlays?: React.ReactNode;
 }
 
 // Component to update map view
@@ -94,6 +95,7 @@ export function DeliveryRoutesMap({
   onSelectCliente,
   selectedClienteId,
   routeToClienteLine = [],
+  overlays,
 }: DeliveryRoutesMapProps) {
   const [mapCenter, setMapCenter] = useState<[number, number]>(defaultCenter || [-23.5505, -46.6333]);
 
@@ -157,6 +159,8 @@ export function DeliveryRoutesMap({
       />
       
       <MapUpdater center={mapCenter} />
+
+      {overlays}
 
       {/* Rota ativa do entregador para clientes */}
       {routePoints.length > 1 && (
