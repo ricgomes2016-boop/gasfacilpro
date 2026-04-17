@@ -1189,7 +1189,12 @@ export default function CadastroClientesCad() {
                     <div key={cliente.id} className="rounded-lg border bg-card p-4 space-y-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-sm truncate">{cliente.nome}</p>
+                          <div className="flex items-center gap-2">
+                            {cliente.codigo_cliente && (
+                              <span className="font-mono text-[10px] text-muted-foreground shrink-0">#{cliente.codigo_cliente}</span>
+                            )}
+                            <p className="font-semibold text-sm truncate">{cliente.nome}</p>
+                          </div>
                           <div className="flex flex-wrap gap-1 mt-1">
                             <Badge variant={cliente.ativo ? "default" : "destructive"} className="text-[10px] h-5">
                               {cliente.ativo ? "Ativo" : "Inativo"}
