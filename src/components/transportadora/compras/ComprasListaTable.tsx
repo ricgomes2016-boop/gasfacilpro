@@ -175,7 +175,18 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
               {display.map((c: any) => {
                 const isDup = dupNFs.has(c.numero_nf || c.id);
                 const vencido = isVencido(c);
-                const tipo = TIPO_LABEL[c.tipo_produto || "outros"] || TIPO_LABEL.outros;
+                const tipoBase = TIPO_LABEL[c.tipo_produto || "outros"] || TIPO_LABEL.outros;
+                let subtipo: string | null = null;
+                if (c.tipo_produto === "cheio" || c.tipo_produto === "vasilhame") {
+                  const desc = String(c.produto_descricao || "").toLowerCase();
+                  if (Number(c.qtd_p13 || 0) > 0 || /p[\s-]?13|13\s*kg/.test(desc)) subtipo = "P13";
+                  else if (Number(c.qtd_p20 || 0) > 0 || /p[\s-]?20|20\s*kg/.test(desc)) subtipo = "P20";
+                  else if (Number(c.qtd_p45 || 0) > 0 || /p[\s-]?45|45\s*kg/.test(desc)) subtipo = "P45";
+                  else if (Number(c.qtd_agua || 0) > 0 || /água|agua|water/.test(desc)) subtipo = "Água";
+                }
+                const tipo = subtipo
+                  ? { label: `${tipoBase.label} · ${subtipo}`, cls: tipoBase.cls }
+                  : tipoBase;
                 const qtd = Number(c.quantidade || 0) || (Number(c.qtd_p13 || 0) + Number(c.qtd_p20 || 0) + Number(c.qtd_p45 || 0) + Number(c.qtd_agua || 0));
                 const pu = Number(c.preco_unitario || 0);
                 const desc = Number(c.desconto || 0);
