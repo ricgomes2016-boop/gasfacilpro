@@ -77,7 +77,7 @@ export default function Funcionarios() {
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [terminais, setTerminais] = useState<TerminalOption[]>([]);
-  const { unidadeAtual } = useUnidade();
+  const { unidadeAtual, unidades } = useUnidade();
 
   const fetchFuncionarios = async () => {
     let query = supabase
