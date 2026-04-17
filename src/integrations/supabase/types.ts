@@ -6346,6 +6346,7 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           numero_entrega: string | null
+          numero_sequencial: number | null
           observacoes: string | null
           responsavel_acerto: string | null
           sla_cumprido: boolean | null
@@ -6380,6 +6381,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           numero_entrega?: string | null
+          numero_sequencial?: number | null
           observacoes?: string | null
           responsavel_acerto?: string | null
           sla_cumprido?: boolean | null
@@ -6414,6 +6416,7 @@ export type Database = {
           latitude?: number | null
           longitude?: number | null
           numero_entrega?: string | null
+          numero_sequencial?: number | null
           observacoes?: string | null
           responsavel_acerto?: string | null
           sla_cumprido?: boolean | null
@@ -9538,6 +9541,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      proximo_numero_pedido: { Args: { _empresa_id: string }; Returns: number }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       unaccent: { Args: { "": string }; Returns: string }
