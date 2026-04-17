@@ -1293,6 +1293,38 @@ export default function CadastroClientesCad() {
                 </div>
               </>
             )}
+
+            {/* Paginação server-side (otimizada para grandes volumes) */}
+            {!isLoading && totalCount > 0 && (
+              <div className="flex flex-col gap-2 border-t p-3 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-xs text-muted-foreground">
+                  Mostrando <strong>{currentPage * PAGE_SIZE + 1}</strong>–
+                  <strong>{Math.min((currentPage + 1) * PAGE_SIZE, totalCount)}</strong> de{" "}
+                  <strong>{totalCount.toLocaleString("pt-BR")}</strong> clientes
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === 0}
+                    onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+                  >
+                    Anterior
+                  </Button>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    Pág. {currentPage + 1} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage + 1 >= totalPages}
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                  >
+                    Próxima
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
