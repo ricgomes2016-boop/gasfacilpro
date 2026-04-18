@@ -32,11 +32,18 @@ export default function SiteInstitucional() {
   const activeName = unidadeAtual?.nome ?? empresa?.nome ?? "";
 
   const site = useMemo(() => {
-    const candidates = [
-      empresa?.slug,
-      empresa?.nome ? normalize(empresa.nome) : null,
-      unidadeAtual?.nome ? normalize(unidadeAtual.nome) : null,
-    ].filter(Boolean) as string[];
+    // Prioridade ESTRITA: a loja/unidade selecionada define o site.
+    // Só caímos para a empresa quando não há unidade selecionada.
+    const candidates: string[] = [];
+
+    if (unidadeAtual?.nome) {
+      candidates.push(normalize(unidadeAtual.nome));
+    }
+
+    if (!unidadeAtual) {
+      if (empresa?.slug) candidates.push(empresa.slug);
+      if (empresa?.nome) candidates.push(normalize(empresa.nome));
+    }
 
     for (const key of candidates) {
       const match = SITES_INSTITUCIONAIS[key];
@@ -44,7 +51,7 @@ export default function SiteInstitucional() {
     }
 
     return null;
-  }, [empresa?.id, empresa?.slug, empresa?.nome, unidadeAtual?.id, unidadeAtual?.nome]);
+  }, [unidadeAtual?.id, unidadeAtual?.nome, empresa?.id, empresa?.slug, empresa?.nome]);
 
   const siteUrl = site ? `${BASE_URL}${site.path}` : "";
 
