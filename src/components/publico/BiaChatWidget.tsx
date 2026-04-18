@@ -111,7 +111,7 @@ export function BiaChatWidget({
           <span
             className={`pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-r ${gradient} opacity-50 blur-xl group-hover:opacity-80 transition-opacity`}
           />
-          {/* Avatar com anel rotativo */}
+          {/* Avatar moderno: orbital com núcleo pulsante */}
           <span className="relative w-11 h-11 rounded-full p-[2px] overflow-hidden">
             <span
               className="absolute inset-0 rounded-full animate-spin"
@@ -120,10 +120,8 @@ export function BiaChatWidget({
                 background: "conic-gradient(from 0deg, #fb923c, #e879f9, #a78bfa, #2dd4bf, #fb923c)",
               }}
             />
-            <span className="relative w-full h-full rounded-full bg-[#0a0118] flex items-center justify-center font-black text-[13px] tracking-tight">
-              <span className="bg-gradient-to-br from-orange-300 via-fuchsia-300 to-purple-300 bg-clip-text text-transparent">
-                Bia
-              </span>
+            <span className="relative w-full h-full rounded-full bg-[#0a0118] flex items-center justify-center">
+              <BiaMark size={26} />
             </span>
           </span>
           <span className="relative flex flex-col items-start leading-tight">
