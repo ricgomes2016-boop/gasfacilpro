@@ -266,7 +266,7 @@ async function identificarCliente(
     tipo: "voip",
     status: "recebida",
     unidade_id: unidadeId,
-    observacoes: "Atendimento Bia (chat do site institucional)",
+    observacoes: "🤖 Pedido criado pela Bia (site institucional)",
   });
 
   if (clientes && clientes.length > 0) {
