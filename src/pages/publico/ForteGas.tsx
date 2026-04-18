@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Flame, Phone, Clock, MapPin, Truck, Shield, CreditCard, ChevronUp, MessageCircle, Droplets, Menu, X, Zap, Sparkles, ArrowRight, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import forteGasLogo from "@/assets/forte-gas-logo.png";
 
 const WHATSAPP_NUMBER = "5543984328383";
 const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=Olá! Gostaria de fazer um pedido de gás na Forte Gás.`;
@@ -39,14 +40,8 @@ function Header() {
       <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-16">
         <a href="#inicio" className="flex items-center gap-2 group">
           <div className="relative">
-            <div className="absolute inset-0 bg-orange-500 blur-lg opacity-60 group-hover:opacity-100 transition-opacity" />
-            <div className="relative w-9 h-9 rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg">
-              <Flame className="h-5 w-5 text-white" />
-            </div>
-          </div>
-          <div className="flex flex-col leading-none">
-            <span className="text-lg font-extrabold text-white tracking-tight">FORTE</span>
-            <span className="text-[10px] font-bold text-orange-400 tracking-[0.3em] -mt-0.5">GÁS</span>
+            <div className="absolute inset-0 bg-orange-500 blur-xl opacity-40 group-hover:opacity-70 transition-opacity rounded-full" />
+            <img src={forteGasLogo} alt="Forte Gás" className="relative h-10 md:h-11 w-auto drop-shadow-[0_4px_12px_rgba(249,115,22,0.4)]" />
           </div>
         </a>
 
@@ -386,13 +381,11 @@ function Footer() {
     <footer className="bg-slate-950 border-t border-white/5 text-slate-500 py-10">
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-              <Flame className="h-4 w-4 text-white" />
-            </div>
-            <div className="leading-none">
-              <div className="text-sm font-extrabold text-white">FORTE GÁS</div>
-              <div className="text-[10px] text-orange-400 font-bold tracking-widest">CORNÉLIO PROCÓPIO</div>
+          <div className="flex items-center gap-3">
+            <img src={forteGasLogo} alt="Forte Gás" className="h-9 w-auto" />
+            <div className="leading-none border-l border-white/10 pl-3">
+              <div className="text-[10px] text-orange-400 font-bold tracking-widest">CORNÉLIO PROCÓPIO • PR</div>
+              <div className="text-xs text-slate-500 mt-1">A força do gás na sua porta</div>
             </div>
           </div>
           <p className="text-xs text-center">© {new Date().getFullYear()} Forte Gás. Todos os direitos reservados.</p>
