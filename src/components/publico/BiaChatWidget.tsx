@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageSquare, X, Send, Bot } from "lucide-react";
+import { X, Send, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 type Msg = { role: "user" | "assistant"; content: string };
@@ -12,6 +12,10 @@ interface Props {
   /** Cor de destaque (hsl tailwind). Ex: "fuchsia-500" */
   accent?: string;
   saudacao?: string;
+  /** Incremente este número para forçar abrir o chat externamente */
+  openSignal?: number;
+  /** Mensagem que será pré-preenchida no input ao abrir via openSignal */
+  prefilledMessage?: string;
 }
 
 export function BiaChatWidget({
@@ -20,6 +24,8 @@ export function BiaChatWidget({
   gradient = "from-fuchsia-500 via-purple-500 to-orange-500",
   accent = "fuchsia-500",
   saudacao,
+  openSignal,
+  prefilledMessage,
 }: Props) {
   const storageKey = `bia-chat-${unidadeSlug}`;
   const [open, setOpen] = useState(false);
