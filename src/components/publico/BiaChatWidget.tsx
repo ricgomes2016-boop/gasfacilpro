@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, Send, Sparkles } from "lucide-react";
+import { X, Send, Sparkles, Mic, Square } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 /** Marca abstrata moderna da Bia: núcleo pulsante + órbitas + brilho */
