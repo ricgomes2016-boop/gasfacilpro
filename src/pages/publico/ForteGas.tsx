@@ -177,7 +177,7 @@ function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
           {/* Stat strip */}
           <div className="grid grid-cols-3 gap-3 max-w-xl mx-auto lg:mx-0">
             {[
-              { v: "15min", l: "Entrega média" },
+              { v: "20min", l: "Entrega média" },
               { v: "100%", l: "Certificado" },
               { v: "5★", l: "Atendimento" },
             ].map((s) => (
