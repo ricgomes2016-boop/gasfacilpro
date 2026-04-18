@@ -1,40 +1,41 @@
 
-## Problema
+Diagnóstico:
+- Analisei o código atual e o problema realmente não foi corrigido.
+- Na tela `SiteInstitucional.tsx`, a lógica procura o site nesta ordem: `empresa.slug` -> `empresa.nome` -> `unidadeAtual.nome`.
+- No seu caso, a loja selecionada é uma filial (`unidadeAtual = Forte Gás`), mas a `empresa` continua sendo a empresa-mãe. Por isso a página encontra `central-gas` primeiro e fixa o link da Central Gás.
+- A captura confirma isso: no cabeçalho está selecionado `Forte Gás`, mas o card ainda mostra `Central Gás`.
 
-1. A página `/config/site-institucional` não mostra o **menu lateral (Sidebar)** nem o **cabeçalho (Header)** do ERP — está renderizando "solta".
-2. Ao trocar a empresa para **Forte Gás**, o preview continua exibindo a **Central Gás**.
+Plano de correção:
+1. Ajustar a regra de origem dos dados
+- Fazer a página usar primeiro a loja/unidade selecionada (`unidadeAtual`) como fonte principal.
+- Só usar `empresa` como fallback quando não houver unidade selecionada.
 
-## Investigação
+2. Corrigir o mapeamento do site institucional
+- Trocar o mapa simples por uma resolução mais robusta baseada na loja ativa.
+- Aceitar aliases normalizados da unidade, por exemplo:
+  - `forte gas` -> `/fortegas`
+  - `central gas` -> `/centralgascp`
+- Se a loja ativa não estiver mapeada, não pode cair automaticamente no site da empresa-mãe.
 
-**Causa #1 — Layout ausente:** Preciso conferir como outras páginas de `/config/*` são renderizadas. Provavelmente as rotas em `configRoutes.ts` envolvem o componente em um `<AppLayout>` (com Sidebar + Header), mas a `SiteInstitucional` foi adicionada sem esse wrapper, ou o componente da página não usa o layout padrão como as demais.
+3. Ajustar a regra de fallback
+- Se a unidade selecionada não tiver site institucional configurado:
+  - mostrar apenas a mensagem informando que não há site institucional
+  - exibir “Fale com o administrador”
+  - não mostrar link nem preview de outra empresa
 
-**Causa #2 — Empresa não atualiza:** O componente usa `useEmpresa()` e mapeia por `empresa.slug`. Suspeitas:
-- O slug da Forte Gás no banco pode não ser exatamente `"forte-gas"` (pode ser `"fortegas"`, `"forte_gas"`, ou outro).
-- Ou o `EmpresaContext` não atualiza reativamente o `empresa.slug` quando o usuário troca via seletor.
-- O `iframe` tem cache: mesmo trocando a URL, pode não recarregar — preciso forçar via `key={siteUrl}`.
+4. Garantir atualização visual imediata
+- Recalcular `siteUrl` com dependência direta da `unidadeAtual`.
+- Manter a recarga forçada do iframe com chave baseada na unidade ativa e no link resolvido.
 
-## Plano
+5. Validar o comportamento esperado
+- Selecionando `Forte Gás` -> deve mostrar `/fortegas`
+- Selecionando `Central Gás` -> deve mostrar `/centralgascp`
+- Selecionando uma loja sem site -> deve mostrar somente “Fale com o administrador”
 
-### 1. Adicionar Layout (Sidebar + Header) na página
-Envolver o conteúdo de `SiteInstitucional.tsx` com o mesmo layout usado pelas demais páginas `/config/*` (ex: `<AppLayout>` ou `<DashboardLayout>` — vou identificar olhando uma página irmã como `Notificacoes.tsx` ou `PersonalizacaoVisual.tsx`).
+Arquivo a ajustar:
+- `src/pages/config/SiteInstitucional.tsx`
 
-### 2. Corrigir detecção da empresa Forte Gás
-- Consultar a tabela `empresas` para descobrir o **slug real** da Forte Gás.
-- Ajustar o mapa `SITES_INSTITUCIONAIS` para aceitar múltiplas chaves possíveis (slug, nome normalizado e/ou id), tornando o matching robusto:
-  ```
-  - Por slug exato
-  - Fallback por nome normalizado (lowercase, sem acentos): "forte gas" → /fortegas
-  - Fallback por nome: "central gas" → /centralgascp
-  ```
-- Forçar reload do `iframe` ao trocar de empresa adicionando `key={siteUrl}`.
-
-### 3. Garantir reatividade
-Confirmar que `useEmpresa()` expõe `empresa` reativo (já visto em `Header.tsx` — funciona). O `useMemo` já depende de `empresa?.slug`, então basta o matching estar correto.
-
-## Arquivos a editar
-
-- `src/pages/config/SiteInstitucional.tsx` — adicionar layout wrapper, melhorar matching por nome, adicionar `key` no iframe.
-
-## Validação
-
-Após aplicar: trocar entre Central Gás e Forte Gás no seletor de empresa do header → o preview e o link devem alternar entre `/centralgascp` e `/fortegas` automaticamente, com Sidebar e Header visíveis.
+Detalhe técnico:
+- O erro não está no layout nem no iframe em si.
+- O erro está na prioridade da lógica: hoje ela privilegia `empresa.slug`, mas o seletor do cabeçalho troca `unidadeAtual`.
+- Ou seja: o seletor muda a loja, mas a tela continua resolvendo pelo cadastro da empresa principal.
