@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 
@@ -26,15 +27,24 @@ export default function SiteInstitucional() {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
   const { empresa } = useEmpresa();
+  const { unidadeAtual } = useUnidade();
+
+  const activeName = unidadeAtual?.nome ?? empresa?.nome ?? "";
 
   const site = useMemo(() => {
-    if (!empresa) return null;
-    return (
-      SITES_INSTITUCIONAIS[empresa.slug] ??
-      SITES_INSTITUCIONAIS[normalize(empresa.nome)] ??
-      null
-    );
-  }, [empresa?.id, empresa?.slug, empresa?.nome]);
+    const candidates = [
+      empresa?.slug,
+      empresa?.nome ? normalize(empresa.nome) : null,
+      unidadeAtual?.nome ? normalize(unidadeAtual.nome) : null,
+    ].filter(Boolean) as string[];
+
+    for (const key of candidates) {
+      const match = SITES_INSTITUCIONAIS[key];
+      if (match) return match;
+    }
+
+    return null;
+  }, [empresa?.id, empresa?.slug, empresa?.nome, unidadeAtual?.id, unidadeAtual?.nome]);
 
   const siteUrl = site ? `${BASE_URL}${site.path}` : "";
 
@@ -65,15 +75,15 @@ export default function SiteInstitucional() {
         <div>
           <h2 className="text-xl font-bold">Site Institucional</h2>
           <p className="text-muted-foreground">
-            Gerencie e divulgue o site da {empresa?.nome ? <strong>{empresa.nome}</strong> : "sua empresa"}.
+            Gerencie e divulgue o site da {activeName ? <strong>{activeName}</strong> : "sua empresa"}.
           </p>
         </div>
 
-        {!empresa ? (
+        {!empresa && !unidadeAtual ? (
           <Card>
             <CardContent className="flex items-center gap-3 p-6 text-muted-foreground">
               <AlertCircle className="h-5 w-5" />
-              Selecione uma empresa para visualizar o site institucional.
+              Selecione uma loja para visualizar o site institucional.
             </CardContent>
           </Card>
         ) : !site ? (
@@ -81,10 +91,8 @@ export default function SiteInstitucional() {
             <CardContent className="flex items-start gap-3 p-6">
               <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
               <div>
-                <p className="font-medium">Nenhum site institucional configurado para {empresa.nome}.</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Entre em contato com o suporte para solicitar a criação de um site personalizado para sua empresa.
-                </p>
+                <p className="font-medium">Nenhum site institucional configurado para {activeName || "esta loja"}.</p>
+                <p className="text-sm text-muted-foreground mt-1">Fale com o administrador.</p>
               </div>
             </CardContent>
           </Card>
