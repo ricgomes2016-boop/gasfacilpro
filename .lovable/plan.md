@@ -1,49 +1,33 @@
 
-## Objetivo
-Três ajustes visuais no site `/fortegas`:
-1. Remover fundo branco da logo no header (deixar transparente, integrada ao tema escuro)
-2. Modernizar visual da Bia (botão flutuante + avatar do header do chat)
-3. Transformar os 3 cards "Pronto Agora / P13 / Entrega Expressa" do hero em botões que abrem a Bia
+Vou criar um novo preset de tema "Fluid Energy Light" em `src/pages/config/PersonalizacaoVisual.tsx`, com fundo claro, gradientes vibrantes em azul/ciano e cards modernos com brilho.
 
-## Investigação rápida
-Já tenho contexto de `BiaChatWidget.tsx`. Preciso confirmar:
-- Como a logo está renderizada hoje em `ForteGas.tsx` (provavelmente `<img>` com bg branco)
-- Onde estão os 3 cards informativos do hero
-- Como expor um trigger externo para abrir o widget (hoje o `open` é state interno do widget)
+## O que vou fazer
 
-## Mudanças
+**1. Novo preset no arquivo `src/pages/config/PersonalizacaoVisual.tsx`**
+- Adicionar um novo item na lista de presets: `forte-gas-light` (label: "Forte Gás · Fluid Light")
+- Paleta clara:
+  - Background: branco levemente azulado (`hsl(210 40% 98%)`)
+  - Foreground: navy escuro para contraste (`hsl(222 47% 11%)`)
+  - Card: branco puro com leve tom (`hsl(0 0% 100%)`)
+  - Primary: azul vibrante (`hsl(210 100% 55%)`)
+  - Accent: ciano elétrico (`hsl(190 95% 50%)`)
+  - Gradient primary: 4 stops claros — `#dbeafe → #93c5fd → #38bdf8 → #06b6d4`
+  - Shadow glow: azul suave para dar brilho (`0 0 30px hsl(210 100% 60% / 0.35)`)
+- Swatches de preview atualizados com tons claros + acento ciano
 
-### 1. Logo header (Forte Gás)
-- Remover qualquer `bg-white` / `rounded` do container da logo.
-- Aplicar `mix-blend-mode: screen` ou usar a logo com fundo já transparente sobre o tema escuro.
-- Caso a logo original tenha fundo branco "queimado" no PNG, gerar via IA (Nano Banana) versão sem fundo OU aplicar máscara CSS (`backdrop-filter` + `mix-blend-screen`) para integrar visualmente.
-- Estratégia escolhida: aplicar `mix-blend-mode: screen` + leve drop-shadow — solução limpa sem regenerar asset.
+**2. Cards modernos com brilho (escopo do tema)**
+Adicionar regras CSS escopadas no mesmo preset (via `--gradient-card` e injetar uma classe utilitária no preset) para que cards usando `bg-card` ganhem:
+- Borda sutil com gradiente
+- Sombra azul suave (glow)
+- Hover com leve elevação
+- Topo com linha em gradiente azul→ciano
 
-### 2. Bia mais moderna
-- **Botão flutuante**: substituir o ícone `Bot` genérico por um avatar circular com gradiente animado (anel rotativo com conic-gradient), iniciais "BIA" estilo neon, ou um ícone de IA mais sofisticado (Sparkles + Bot combinados). Adicionar partículas/glow ao redor.
-- **Header do chat**: avatar maior com efeito de gradient ring animado, nome com tipografia editorial, badge "IA · Online" mais elegante.
-- Opcional: gerar avatar próprio da Bia via IA (rosto estilizado/abstrato) — mas mantenho ícone vetorial pra ser leve e consistente com o tema "Fluid Energy".
+Como o sistema já aplica `PRESET_THEME_OVERRIDES` via CSS vars no `:root`, vou:
+- Adicionar variáveis extras: `--gradient-card`, `--gradient-hero`, `--card-glow`
+- Adicionar um pequeno bloco de CSS injetado (já existe padrão similar no arquivo) para o preset `forte-gas-light` que estiliza `.card`/`[data-theme-card]` com a sombra e gradiente quando o preset estiver ativo
 
-### 3. Cards do hero → botões para a Bia
-- Os 3 cards ("Pronto Agora", "P13", "Entrega Expressa") viram botões clicáveis.
-- Ao clicar → abre o `BiaChatWidget` automaticamente E injeta uma mensagem inicial contextual:
-  - "Pronto Agora" → "Quero gás agora!"
-  - "P13" → "Quero pedir um P13"
-  - "Entrega Expressa" → "Preciso de entrega expressa"
-- Bia já responde direto pedindo o telefone, encurtando o funil.
+**3. Sem mexer em outros temas**
+Não vou alterar `forte-gas` (Fluid Energy escuro) nem `gasmais`. Apenas adicionar o novo preset claro.
 
-### 4. Refatoração técnica para integrar cards ↔ widget
-- Expor controle externo no `BiaChatWidget` via props opcionais:
-  - `openSignal?: number` (incrementa para forçar abrir)
-  - `prefilledMessage?: string` (mensagem pré-preenchida no input ao abrir)
-- Em `ForteGas.tsx`, manter um state `{ openSignal, prefill }` e os 3 botões disparam esse state.
-
-## Arquivos a editar
-- `src/pages/publico/ForteGas.tsx` — logo (mix-blend), cards viram botões, state de controle da Bia
-- `src/components/publico/BiaChatWidget.tsx` — novo visual do botão flutuante + avatar do header, props `openSignal` e `prefilledMessage`
-
-## Validação
-- Header: logo aparece sem retângulo branco, integrada ao fundo escuro
-- Botão da Bia: visual mais "premium" (gradient ring animado, glow)
-- Clicar em qualquer um dos 3 cards do hero abre a Bia já com a frase pronta no input
-- Mobile (384px) continua responsivo
+## Resultado esperado
+Um tema claro, arejado, com brilho azul/ciano nos cards e gradientes suaves no fundo de elementos hero — visual moderno tipo fintech/SaaS, alinhado ao site Forte Gás mas em modo light.
