@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Flame, Phone, Clock, MapPin, Truck, Shield, CreditCard, ChevronUp, MessageCircle, Droplets, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const WHATSAPP_NUMBER = "554335241094";
+const WHATSAPP_NUMBER = "5543999661816";
 const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=Olá! Gostaria de fazer um pedido de gás.`;
 const PHONE = "(43) 3524-1094";
+const WHATSAPP_DISPLAY = "(43) 99966-1816";
+const ENDERECO = "Rua Benjamin Constant, 110, Centro, Cornélio Procópio, PR";
 
 function Header() {
   const [open, setOpen] = useState(false);
