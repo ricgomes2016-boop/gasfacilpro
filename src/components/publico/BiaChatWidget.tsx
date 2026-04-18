@@ -151,10 +151,8 @@ export function BiaChatWidget({
                   background: "conic-gradient(from 0deg, rgba(255,255,255,0.9), rgba(255,255,255,0.1), rgba(255,255,255,0.9))",
                 }}
               />
-              <span className="relative w-full h-full rounded-full bg-[#0a0118] flex items-center justify-center font-black text-sm">
-                <span className="bg-gradient-to-br from-orange-200 via-fuchsia-200 to-purple-200 bg-clip-text text-transparent">
-                  Bia
-                </span>
+              <span className="relative w-full h-full rounded-full bg-[#0a0118] flex items-center justify-center">
+                <BiaMark size={28} />
               </span>
             </div>
             <div className="relative flex-1 text-white">
