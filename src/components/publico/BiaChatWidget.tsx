@@ -105,6 +105,11 @@ export function BiaChatWidget({
     ];
   });
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const [listening, setListening] = useState(false);
+  const sttSupported =
+    typeof window !== "undefined" &&
+    ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
 
   useEffect(() => {
     try {
@@ -112,6 +117,62 @@ export function BiaChatWidget({
     } catch {}
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, storageKey]);
+
+  useEffect(() => {
+    return () => {
+      try {
+        recognitionRef.current?.abort();
+      } catch {}
+    };
+  }, []);
+
+  const toggleMic = () => {
+    if (!sttSupported) {
+      alert("Seu navegador não suporta gravação por voz. Tente pelo Chrome no Android.");
+      return;
+    }
+    if (listening) {
+      try {
+        recognitionRef.current?.stop();
+      } catch {}
+      setListening(false);
+      return;
+    }
+    const SR: any =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const rec = new SR();
+    rec.lang = "pt-BR";
+    rec.continuous = false;
+    rec.interimResults = true;
+
+    rec.onresult = (event: any) => {
+      let final = "";
+      let interim = "";
+      for (let i = 0; i < event.results.length; i++) {
+        const r = event.results[i];
+        if (r.isFinal) final += r[0].transcript;
+        else interim += r[0].transcript;
+      }
+      setInput((interim || final).trim());
+    };
+    rec.onerror = (e: any) => {
+      console.error("STT error:", e?.error);
+      setListening(false);
+      if (e?.error === "not-allowed") {
+        alert("Permita o acesso ao microfone nas configurações do navegador.");
+      }
+    };
+    rec.onend = () => setListening(false);
+
+    recognitionRef.current = rec;
+    try {
+      rec.start();
+      setListening(true);
+    } catch (err) {
+      console.error(err);
+      setListening(false);
+    }
+  };
 
   // Abertura externa via openSignal + prefilledMessage
   useEffect(() => {
