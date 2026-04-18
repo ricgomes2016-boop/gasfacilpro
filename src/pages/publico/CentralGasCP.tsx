@@ -232,6 +232,8 @@ function ScrollTop() {
   );
 }
 
+import { BiaChatWidget } from "@/components/publico/BiaChatWidget";
+
 export default function CentralGasCP() {
   return (
     <div className="min-h-screen bg-white">
@@ -244,6 +246,12 @@ export default function CentralGasCP() {
       <Footer />
       <FloatingWhatsApp />
       <ScrollTop />
+      <BiaChatWidget
+        unidadeSlug="centralgascp"
+        nomeLoja="Central Gás"
+        gradient="from-blue-500 via-cyan-500 to-emerald-500"
+        accent="blue-500"
+      />
     </div>
   );
 }

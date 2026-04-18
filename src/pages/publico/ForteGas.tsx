@@ -528,6 +528,8 @@ function ScrollTop() {
   );
 }
 
+import { BiaChatWidget } from "@/components/publico/BiaChatWidget";
+
 export default function ForteGas() {
   return (
     <div className="min-h-screen bg-[#0a0118] text-white">
@@ -541,6 +543,12 @@ export default function ForteGas() {
       <Footer />
       <FloatingWhatsApp />
       <ScrollTop />
+      <BiaChatWidget
+        unidadeSlug="fortegas"
+        nomeLoja="Forte Gás"
+        gradient="from-fuchsia-500 via-purple-500 to-orange-500"
+        accent="fuchsia-500"
+      />
     </div>
   );
 }
