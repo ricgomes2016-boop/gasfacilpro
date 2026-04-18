@@ -58,7 +58,55 @@ const THEME_PRESETS = [
     hex: "#cc6b1a",
     dark: false,
   },
+  {
+    id: "forte-gas",
+    label: "Forte Gás · Fluid Energy",
+    description: "Visual do site institucional: roxo profundo, fúcsia e laranja",
+    cor: "292 84% 61%",
+    hex: "#d946ef",
+    dark: true,
+    gradient: "linear-gradient(135deg, #fb923c 0%, #d946ef 50%, #8b5cf6 100%)",
+  },
 ];
+
+/** Variáveis CSS extras aplicadas quando um preset especial é selecionado */
+const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
+  "forte-gas": {
+    "--background": "270 80% 5%",
+    "--foreground": "270 20% 96%",
+    "--card": "270 60% 8%",
+    "--card-foreground": "270 20% 96%",
+    "--popover": "270 60% 8%",
+    "--popover-foreground": "270 20% 96%",
+    "--primary": "292 84% 61%",
+    "--primary-foreground": "0 0% 100%",
+    "--secondary": "270 40% 14%",
+    "--secondary-foreground": "270 20% 96%",
+    "--muted": "270 40% 12%",
+    "--muted-foreground": "270 15% 65%",
+    "--accent": "24 95% 58%",
+    "--accent-foreground": "0 0% 100%",
+    "--border": "270 40% 18%",
+    "--input": "270 40% 18%",
+    "--ring": "292 84% 61%",
+    "--sidebar-background": "270 70% 6%",
+    "--sidebar-foreground": "270 15% 80%",
+    "--sidebar-primary": "292 84% 61%",
+    "--sidebar-primary-foreground": "0 0% 100%",
+    "--sidebar-accent": "270 50% 12%",
+    "--sidebar-accent-foreground": "270 20% 95%",
+    "--sidebar-border": "270 40% 16%",
+    "--sidebar-ring": "292 84% 61%",
+    "--gradient-primary": "linear-gradient(135deg, hsl(24 95% 58%) 0%, hsl(292 84% 61%) 50%, hsl(258 90% 66%) 100%)",
+    "--gradient-dark": "linear-gradient(135deg, hsl(258 90% 50%) 0%, hsl(292 84% 50%) 100%)",
+    "--shadow-glow": "0 0 30px hsl(292 84% 61% / 0.45)",
+  },
+};
+
+/** Variáveis que precisam ser limpas ao trocar de preset especial para um normal */
+const OVERRIDABLE_VARS = Array.from(
+  new Set(Object.values(PRESET_THEME_OVERRIDES).flatMap((o) => Object.keys(o)))
+);
 
 interface ComprovanteConfig {
   mostrarLogo: boolean;
