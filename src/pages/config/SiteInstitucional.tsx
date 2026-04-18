@@ -34,9 +34,12 @@ export default function SiteInstitucional() {
       SITES_INSTITUCIONAIS[normalize(empresa.nome)] ??
       null
     );
-  }, [empresa?.slug, empresa?.nome]);
+  }, [empresa?.id, empresa?.slug, empresa?.nome]);
 
   const siteUrl = site ? `${BASE_URL}${site.path}` : "";
+
+  // Força reload do iframe ao trocar empresa
+  const iframeKey = `${empresa?.id ?? "none"}-${siteUrl}`;
 
   const handleCopy = async () => {
     if (!siteUrl) return;
@@ -125,7 +128,7 @@ export default function SiteInstitucional() {
                     <span className="ml-2 font-mono truncate">{siteUrl}</span>
                   </div>
                   <iframe
-                    key={siteUrl}
+                    key={iframeKey}
                     src={siteUrl}
                     title={`Site institucional - ${site.nome}`}
                     className="w-full h-[500px] bg-background"
