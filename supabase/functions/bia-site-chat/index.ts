@@ -263,10 +263,10 @@ async function identificarCliente(
     telefone,
     cliente_id: clientes?.[0]?.id ?? null,
     cliente_nome: clientes?.[0]?.nome ?? null,
-    tipo: "site",
+    tipo: "voip",
     status: "recebida",
     unidade_id: unidadeId,
-    observacoes: "Atendimento Bia (chat do site)",
+    observacoes: "Atendimento Bia (chat do site institucional)",
   });
 
   if (clientes && clientes.length > 0) {
