@@ -128,7 +128,7 @@ export default function SiteInstitucional() {
                     <span className="ml-2 font-mono truncate">{siteUrl}</span>
                   </div>
                   <iframe
-                    key={siteUrl}
+                    key={iframeKey}
                     src={siteUrl}
                     title={`Site institucional - ${site.nome}`}
                     className="w-full h-[500px] bg-background"
