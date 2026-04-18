@@ -1,41 +1,51 @@
 
-Diagnóstico:
-- Analisei o código atual e o problema realmente não foi corrigido.
-- Na tela `SiteInstitucional.tsx`, a lógica procura o site nesta ordem: `empresa.slug` -> `empresa.nome` -> `unidadeAtual.nome`.
-- No seu caso, a loja selecionada é uma filial (`unidadeAtual = Forte Gás`), mas a `empresa` continua sendo a empresa-mãe. Por isso a página encontra `central-gas` primeiro e fixa o link da Central Gás.
-- A captura confirma isso: no cabeçalho está selecionado `Forte Gás`, mas o card ainda mostra `Central Gás`.
+## Objetivo
+Redesenhar a página `/fortegas` (`src/pages/publico/ForteGas.tsx`) com estética moderna inspirada nas referências enviadas: ilustrações artísticas com manchas de aquarela/tinta, gradientes vibrantes (roxo/teal/rosa), tipografia editorial moderna, layouts assimétricos com sobreposição de camadas e elementos gráficos orgânicos.
 
-Plano de correção:
-1. Ajustar a regra de origem dos dados
-- Fazer a página usar primeiro a loja/unidade selecionada (`unidadeAtual`) como fonte principal.
-- Só usar `empresa` como fallback quando não houver unidade selecionada.
+## Conceito Visual "Fluid Energy"
+- **Paleta**: gradientes vibrantes (laranja chama → magenta → roxo → teal) sobre base escura premium
+- **Estilo**: manchas de tinta/aquarela como elementos de fundo, "blobs" orgânicos animados, splashes coloridos, glassmorphism
+- **Tipografia**: títulos editoriais grandes com mix de pesos (display + thin), letras cursivas decorativas para palavras-chave
+- **Layout**: assimétrico, com camadas sobrepostas (ilustração + texto + cards flutuantes), seções com bordas curvas/onduladas
+- **Detalhes**: partículas, brilhos, micro-animações, ícones gradientes, cards com bordas iluminadas
 
-2. Corrigir o mapeamento do site institucional
-- Trocar o mapa simples por uma resolução mais robusta baseada na loja ativa.
-- Aceitar aliases normalizados da unidade, por exemplo:
-  - `forte gas` -> `/fortegas`
-  - `central gas` -> `/centralgascp`
-- Se a loja ativa não estiver mapeada, não pode cair automaticamente no site da empresa-mãe.
+## Mudanças por seção
 
-3. Ajustar a regra de fallback
-- Se a unidade selecionada não tiver site institucional configurado:
-  - mostrar apenas a mensagem informando que não há site institucional
-  - exibir “Fale com o administrador”
-  - não mostrar link nem preview de outra empresa
+### Hero
+- Background com manchas de aquarela vibrantes (laranja + magenta + teal) sobrepostas, em vez dos blobs simples atuais
+- Ilustração de chama estilizada (gerada via IA — Nano Banana) à direita em desktop, com efeito splash
+- Título editorial em duas linhas, palavra "porta" em script cursivo dourado
+- CTA com efeito de brilho animado
 
-4. Garantir atualização visual imediata
-- Recalcular `siteUrl` com dependência direta da `unidadeAtual`.
-- Manter a recarga forçada do iframe com chave baseada na unidade ativa e no link resolvido.
+### Sobre
+- Layout assimétrico com mancha de tinta de fundo
+- Cards de produtos com gradientes vibrantes diferentes (laranja, magenta, teal, roxo) e ícones flutuantes
 
-5. Validar o comportamento esperado
-- Selecionando `Forte Gás` -> deve mostrar `/fortegas`
-- Selecionando `Central Gás` -> deve mostrar `/centralgascp`
-- Selecionando uma loja sem site -> deve mostrar somente “Fale com o administrador”
+### Serviços
+- Cards estilo "revista" com bordas iluminadas em hover, números grandes (01, 02, 03, 04) como elemento decorativo
+- Splashes de cor entre cards
 
-Arquivo a ajustar:
-- `src/pages/config/SiteInstitucional.tsx`
+### Diferenciais
+- Layout em zig-zag com ilustrações orgânicas
+- Ícones com fundo gradiente vibrante e animação flutuante
 
-Detalhe técnico:
-- O erro não está no layout nem no iframe em si.
-- O erro está na prioridade da lógica: hoje ela privilegia `empresa.slug`, mas o seletor do cabeçalho troca `unidadeAtual`.
-- Ou seja: o seletor muda a loja, mas a tela continua resolvendo pelo cadastro da empresa principal.
+### CTA Banner
+- Banner com gradiente magenta→laranja→roxo, splash decorativo, tipografia editorial grande
+
+### Contato
+- Cards glassmorphism com bordas gradientes coloridas
+
+### Footer
+- Mais elegante, com gradiente sutil
+
+## Recursos a gerar
+1. **1 ilustração gerada via IA** (Nano Banana) — chama abstrata estilo aquarela vibrante para o hero, salva em `src/assets/forte-gas-hero-art.png`
+
+## Arquivos
+- `src/pages/publico/ForteGas.tsx` (reescrita visual completa, mantendo estrutura/links/WhatsApp/dados)
+- `src/assets/forte-gas-hero-art.png` (novo asset gerado)
+
+## Validação
+- Build sem erros
+- Página carrega em `/fortegas` mantendo todos os links (WhatsApp, telefone, endereço) intactos
+- Responsivo no viewport mobile (384px) e desktop
