@@ -74,6 +74,8 @@ const App = () => (
                           <Routes>
                             <Route path="/" element={<RootRedirect />} />
                             <Route path="/auth" element={<Auth />} />
+                            <Route path="/centralgascp" element={<CentralGasCP />} />
+                            <Route path="/fortegas" element={<ForteGas />} />
 
                             <Route path="/dashboard" element={
                               <ProtectedRoute>
