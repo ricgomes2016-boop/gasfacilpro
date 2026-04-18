@@ -2,6 +2,64 @@ import { useEffect, useRef, useState } from "react";
 import { X, Send, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+/** Marca abstrata moderna da Bia: núcleo pulsante + órbitas + brilho */
+function BiaMark({ size = 28 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient id="biaGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#fb923c" />
+          <stop offset="50%" stopColor="#e879f9" />
+          <stop offset="100%" stopColor="#a78bfa" />
+        </linearGradient>
+        <radialGradient id="biaCore" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+          <stop offset="60%" stopColor="#e879f9" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#a78bfa" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+
+      {/* Órbita 1 */}
+      <ellipse
+        cx="16" cy="16" rx="13" ry="5"
+        stroke="url(#biaGrad)" strokeWidth="1.6" fill="none" opacity="0.95"
+        transform="rotate(30 16 16)"
+      />
+      {/* Órbita 2 */}
+      <ellipse
+        cx="16" cy="16" rx="13" ry="5"
+        stroke="url(#biaGrad)" strokeWidth="1.4" fill="none" opacity="0.7"
+        transform="rotate(-30 16 16)"
+      />
+
+      {/* Núcleo (halo) */}
+      <circle cx="16" cy="16" r="8" fill="url(#biaCore)" opacity="0.6" />
+      {/* Núcleo sólido */}
+      <circle cx="16" cy="16" r="3.6" fill="url(#biaGrad)">
+        <animate attributeName="r" values="3.4;4;3.4" dur="2s" repeatCount="indefinite" />
+      </circle>
+
+      {/* Partículas nas órbitas */}
+      <circle cx="29" cy="16" r="1.2" fill="#fb923c">
+        <animateTransform attributeName="transform" type="rotate" from="30 16 16" to="390 16 16" dur="6s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="3" cy="16" r="1" fill="#e879f9">
+        <animateTransform attributeName="transform" type="rotate" from="-30 16 16" to="-390 16 16" dur="7s" repeatCount="indefinite" />
+      </circle>
+
+      {/* Faísca */}
+      <path d="M25 6 L26 8 L28 9 L26 10 L25 12 L24 10 L22 9 L24 8 Z" fill="#ffffff" opacity="0.9" />
+    </svg>
+  );
+}
+
 type Msg = { role: "user" | "assistant"; content: string };
 
 interface Props {
@@ -111,7 +169,7 @@ export function BiaChatWidget({
           <span
             className={`pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-r ${gradient} opacity-50 blur-xl group-hover:opacity-80 transition-opacity`}
           />
-          {/* Avatar com anel rotativo */}
+          {/* Avatar moderno: orbital com núcleo pulsante */}
           <span className="relative w-11 h-11 rounded-full p-[2px] overflow-hidden">
             <span
               className="absolute inset-0 rounded-full animate-spin"
@@ -120,10 +178,8 @@ export function BiaChatWidget({
                 background: "conic-gradient(from 0deg, #fb923c, #e879f9, #a78bfa, #2dd4bf, #fb923c)",
               }}
             />
-            <span className="relative w-full h-full rounded-full bg-[#0a0118] flex items-center justify-center font-black text-[13px] tracking-tight">
-              <span className="bg-gradient-to-br from-orange-300 via-fuchsia-300 to-purple-300 bg-clip-text text-transparent">
-                Bia
-              </span>
+            <span className="relative w-full h-full rounded-full bg-[#0a0118] flex items-center justify-center">
+              <BiaMark size={26} />
             </span>
           </span>
           <span className="relative flex flex-col items-start leading-tight">
@@ -153,10 +209,8 @@ export function BiaChatWidget({
                   background: "conic-gradient(from 0deg, rgba(255,255,255,0.9), rgba(255,255,255,0.1), rgba(255,255,255,0.9))",
                 }}
               />
-              <span className="relative w-full h-full rounded-full bg-[#0a0118] flex items-center justify-center font-black text-sm">
-                <span className="bg-gradient-to-br from-orange-200 via-fuchsia-200 to-purple-200 bg-clip-text text-transparent">
-                  Bia
-                </span>
+              <span className="relative w-full h-full rounded-full bg-[#0a0118] flex items-center justify-center">
+                <BiaMark size={28} />
               </span>
             </div>
             <div className="relative flex-1 text-white">
