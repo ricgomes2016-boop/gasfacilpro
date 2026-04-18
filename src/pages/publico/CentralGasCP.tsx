@@ -84,7 +84,7 @@ function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
             </Button>
           </a>
           <a href={`tel:${PHONE.replace(/\D/g, "")}`}>
-            <Button size="lg" variant="outline" className="border-white/40 text-white hover:bg-white/10 text-base gap-2 px-8">
+            <Button size="lg" variant="outline" className="bg-white/10 border-white text-white hover:bg-white hover:text-orange-600 text-base gap-2 px-8">
               <Phone className="h-5 w-5" /> {PHONE}
             </Button>
           </a>
