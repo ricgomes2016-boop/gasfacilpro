@@ -55,6 +55,14 @@ export function BiaChatWidget({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, storageKey]);
 
+  // Abertura externa via openSignal + prefilledMessage
+  useEffect(() => {
+    if (openSignal === undefined) return;
+    setOpen(true);
+    if (prefilledMessage) setInput(prefilledMessage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openSignal]);
+
   const enviar = async () => {
     const text = input.trim();
     if (!text || loading) return;
