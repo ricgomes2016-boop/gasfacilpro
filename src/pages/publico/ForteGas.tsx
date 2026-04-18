@@ -550,10 +550,18 @@ function ScrollTop() {
 import { BiaChatWidget } from "@/components/publico/BiaChatWidget";
 
 export default function ForteGas() {
+  const [biaSignal, setBiaSignal] = useState(0);
+  const [biaPrefill, setBiaPrefill] = useState<string | undefined>(undefined);
+
+  const askBia = (msg: string) => {
+    setBiaPrefill(msg);
+    setBiaSignal((n) => n + 1);
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0118] text-white">
       <Header />
-      <Hero />
+      <Hero onAskBia={askBia} />
       <Sobre />
       <Servicos />
       <Diferenciais />
@@ -567,6 +575,8 @@ export default function ForteGas() {
         nomeLoja="Forte Gás"
         gradient="from-fuchsia-500 via-purple-500 to-orange-500"
         accent="fuchsia-500"
+        openSignal={biaSignal}
+        prefilledMessage={biaPrefill}
       />
     </div>
   );
