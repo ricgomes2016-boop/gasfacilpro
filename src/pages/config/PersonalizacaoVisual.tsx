@@ -136,13 +136,25 @@ const DEFAULT_CONFIG: PersonalizacaoConfig = {
   },
 };
 
-function applyTheme(darkMode: boolean, corPrimaria: string) {
+function applyTheme(darkMode: boolean, corPrimaria: string, presetId?: string) {
   const root = document.documentElement;
   if (darkMode) {
     root.classList.add("dark");
   } else {
     root.classList.remove("dark");
   }
+
+  // Limpa overrides anteriores
+  OVERRIDABLE_VARS.forEach((v) => root.style.removeProperty(v));
+
+  // Aplica overrides do preset especial (se houver)
+  const overrides = presetId ? PRESET_THEME_OVERRIDES[presetId] : undefined;
+  if (overrides) {
+    Object.entries(overrides).forEach(([k, v]) => root.style.setProperty(k, v));
+    return;
+  }
+
+  // Caso padrão: só ajusta a cor primária
   root.style.setProperty("--primary", corPrimaria);
   root.style.setProperty("--sidebar-primary", corPrimaria);
   root.style.setProperty("--ring", corPrimaria);
