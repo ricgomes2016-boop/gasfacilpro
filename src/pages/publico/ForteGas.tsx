@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
-import { Flame, Phone, Clock, MapPin, Truck, Shield, CreditCard, ChevronUp, MessageCircle, Droplets, Menu, X, Zap, Sparkles, ArrowRight, Star } from "lucide-react";
+import {
+  Flame, Phone, Clock, MapPin, Truck, Shield, CreditCard, ChevronUp,
+  MessageCircle, Droplets, Menu, X, Zap, Sparkles, ArrowRight, Star,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import forteGasLogo from "@/assets/forte-gas-logo.png";
+import heroArt from "@/assets/forte-gas-hero-art.png";
 
 const WHATSAPP_NUMBER = "5543984328383";
 const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=Olá! Gostaria de fazer um pedido de gás na Forte Gás.`;
@@ -9,6 +13,22 @@ const PHONE_DISPLAY = "(43) 98432-8383";
 const PHONE_TEL = "5543984328383";
 const ENDERECO = "Rua Wilson de Barros Gatti, 10 — CL Fortunato Sibim";
 const CIDADE = "Cornélio Procópio - PR";
+
+/* ---------- Reusable: Watercolor blobs background ---------- */
+function FluidBackdrop() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="absolute -top-32 -left-24 w-[520px] h-[520px] rounded-full blur-[120px] opacity-60"
+        style={{ background: "radial-gradient(circle, #f97316 0%, transparent 70%)" }} />
+      <div className="absolute top-1/3 -right-32 w-[600px] h-[600px] rounded-full blur-[140px] opacity-50"
+        style={{ background: "radial-gradient(circle, #d946ef 0%, transparent 70%)" }} />
+      <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] rounded-full blur-[130px] opacity-40"
+        style={{ background: "radial-gradient(circle, #14b8a6 0%, transparent 70%)" }} />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full blur-[100px] opacity-30"
+        style={{ background: "radial-gradient(circle, #8b5cf6 0%, transparent 70%)" }} />
+    </div>
+  );
+}
 
 /* ---------- Header ---------- */
 function Header() {
@@ -33,31 +53,28 @@ function Header() {
     <header
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-500 ${
         scrolled
-          ? "bg-slate-950/85 backdrop-blur-xl border-b border-orange-500/20 shadow-[0_8px_32px_-8px_rgba(249,115,22,0.3)]"
+          ? "bg-[#0a0118]/80 backdrop-blur-2xl border-b border-fuchsia-500/20 shadow-[0_8px_40px_-8px_rgba(217,70,239,0.4)]"
           : "bg-transparent"
       }`}
     >
       <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-16">
         <a href="#inicio" className="flex items-center gap-2 group">
           <div className="relative">
-            <div className="absolute inset-0 bg-orange-500 blur-xl opacity-40 group-hover:opacity-70 transition-opacity rounded-full" />
-            <img src={forteGasLogo} alt="Forte Gás" className="relative h-10 md:h-11 w-auto drop-shadow-[0_4px_12px_rgba(249,115,22,0.4)]" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-orange-500 via-fuchsia-500 to-purple-600 blur-xl opacity-50 group-hover:opacity-90 transition-opacity rounded-full" />
+            <img src={forteGasLogo} alt="Forte Gás" className="relative h-10 md:h-11 w-auto drop-shadow-[0_4px_16px_rgba(249,115,22,0.5)]" />
           </div>
         </a>
 
         <nav className="hidden md:flex items-center gap-1">
           {links.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              className="text-sm font-medium text-slate-200 hover:text-orange-400 px-3 py-2 rounded-md transition-colors relative group"
-            >
+            <a key={l.href} href={l.href}
+              className="text-sm font-medium text-slate-200 hover:text-white px-3 py-2 rounded-md transition-colors relative group">
               {l.label}
-              <span className="absolute bottom-1 left-3 right-3 h-px bg-orange-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+              <span className="absolute bottom-1 left-3 right-3 h-px bg-gradient-to-r from-orange-400 via-fuchsia-400 to-purple-400 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
             </a>
           ))}
           <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="ml-3">
-            <Button size="sm" className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white gap-1.5 shadow-lg shadow-orange-500/30 border-0">
+            <Button size="sm" className="relative overflow-hidden bg-gradient-to-r from-orange-500 via-fuchsia-500 to-purple-600 hover:opacity-90 text-white gap-1.5 shadow-lg shadow-fuchsia-500/40 border-0">
               <MessageCircle className="h-4 w-4" /> Pedir Agora
             </Button>
           </a>
@@ -69,14 +86,15 @@ function Header() {
       </div>
 
       {open && (
-        <div className="md:hidden bg-slate-950/95 backdrop-blur-xl border-t border-orange-500/20 px-4 pb-4 space-y-1 animate-fade-in">
+        <div className="md:hidden bg-[#0a0118]/95 backdrop-blur-2xl border-t border-fuchsia-500/20 px-4 pb-4 space-y-1 animate-fade-in">
           {links.map((l) => (
-            <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="block py-2.5 text-sm font-medium text-slate-200 hover:text-orange-400">
+            <a key={l.href} href={l.href} onClick={() => setOpen(false)}
+              className="block py-2.5 text-sm font-medium text-slate-200 hover:text-fuchsia-400">
               {l.label}
             </a>
           ))}
           <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer">
-            <Button size="sm" className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white gap-1.5 mt-2 border-0">
+            <Button size="sm" className="w-full bg-gradient-to-r from-orange-500 via-fuchsia-500 to-purple-600 text-white gap-1.5 mt-2 border-0">
               <MessageCircle className="h-4 w-4" /> Pedir Agora
             </Button>
           </a>
@@ -89,96 +107,154 @@ function Header() {
 /* ---------- Hero ---------- */
 function Hero() {
   return (
-    <section id="inicio" className="relative min-h-screen flex items-center pt-16 overflow-hidden bg-slate-950">
-      {/* Animated gradient blobs */}
-      <div className="absolute inset-0">
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-600/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: "4s" }} />
-        <div className="absolute bottom-1/4 -right-20 w-[500px] h-[500px] bg-orange-500/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: "6s", animationDelay: "1s" }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-orange-600/10 rounded-full blur-3xl" />
-      </div>
+    <section id="inicio" className="relative min-h-screen flex items-center pt-24 pb-12 overflow-hidden bg-[#0a0118]">
+      <FluidBackdrop />
 
-      {/* Grid pattern */}
-      <div
-        className="absolute inset-0 opacity-[0.07]"
+      {/* Grid texture */}
+      <div className="absolute inset-0 opacity-[0.04]"
         style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-          maskImage: "radial-gradient(ellipse at center, black 40%, transparent 80%)",
-        }}
-      />
+          backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)",
+          backgroundSize: "80px 80px",
+          maskImage: "radial-gradient(ellipse at center, black 30%, transparent 80%)",
+        }} />
 
-      <div className="relative max-w-6xl mx-auto px-4 py-20 md:py-32 text-center text-white w-full">
-        <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur-md border border-orange-500/30 rounded-full px-4 py-1.5 text-xs font-semibold mb-8 animate-fade-in">
-          <Sparkles className="h-3.5 w-3.5 text-orange-400" />
-          <span className="bg-gradient-to-r from-orange-300 to-orange-100 bg-clip-text text-transparent">Cornélio Procópio e Região</span>
+      <div className="relative max-w-6xl mx-auto px-4 w-full grid lg:grid-cols-2 gap-8 items-center">
+        {/* Left: Copy */}
+        <div className="text-white text-center lg:text-left order-2 lg:order-1">
+          <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur-md border border-fuchsia-400/30 rounded-full px-4 py-1.5 text-xs font-semibold mb-6 animate-fade-in">
+            <Sparkles className="h-3.5 w-3.5 text-fuchsia-300" />
+            <span className="bg-gradient-to-r from-orange-200 via-fuchsia-200 to-purple-200 bg-clip-text text-transparent">
+              Cornélio Procópio • PR
+            </span>
+          </div>
+
+          <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-black leading-[0.92] tracking-tighter mb-6 animate-fade-in">
+            <span className="block">A força do</span>
+            <span className="block">
+              gás na sua{" "}
+              <span className="relative inline-block italic font-serif font-normal">
+                <span className="bg-gradient-to-r from-orange-300 via-fuchsia-400 to-purple-400 bg-clip-text text-transparent">porta</span>
+                <svg className="absolute -bottom-3 left-0 w-full" viewBox="0 0 200 12" fill="none" preserveAspectRatio="none">
+                  <path d="M2 8 Q 50 2, 100 6 T 198 5" stroke="url(#g1)" strokeWidth="3" strokeLinecap="round" fill="none" />
+                  <defs>
+                    <linearGradient id="g1">
+                      <stop offset="0%" stopColor="#fb923c" />
+                      <stop offset="50%" stopColor="#e879f9" />
+                      <stop offset="100%" stopColor="#a78bfa" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </span>
+            </span>
+          </h1>
+
+          <p className="text-base md:text-lg text-slate-300 max-w-xl mx-auto lg:mx-0 mb-10 leading-relaxed animate-fade-in">
+            Entrega expressa de <strong className="text-white">P13</strong>, <strong className="text-white">P45</strong> e{" "}
+            <strong className="text-white">água mineral</strong>. Atendimento rápido, seguro e do jeito que sua família merece.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3 mb-12 animate-fade-in">
+            <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer">
+              <Button size="lg" className="relative overflow-hidden group bg-gradient-to-r from-orange-500 via-fuchsia-500 to-purple-600 hover:opacity-90 text-white text-base gap-2 px-8 h-13 shadow-2xl shadow-fuchsia-500/40 border-0">
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                <MessageCircle className="h-5 w-5 relative" />
+                <span className="relative">Pedir pelo WhatsApp</span>
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform relative" />
+              </Button>
+            </a>
+            <a href={`tel:${PHONE_TEL}`}>
+              <Button size="lg" variant="outline" className="border-white/20 bg-white/5 backdrop-blur text-white hover:bg-white/10 hover:text-white text-base gap-2 px-8 h-13">
+                <Phone className="h-5 w-5 text-fuchsia-300" /> {PHONE_DISPLAY}
+              </Button>
+            </a>
+          </div>
+
+          {/* Stat strip */}
+          <div className="grid grid-cols-3 gap-3 max-w-xl mx-auto lg:mx-0">
+            {[
+              { v: "15min", l: "Entrega média" },
+              { v: "100%", l: "Certificado" },
+              { v: "5★", l: "Atendimento" },
+            ].map((s) => (
+              <div key={s.l} className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-2xl p-3 md:p-4 hover:border-fuchsia-400/40 hover:bg-white/[0.07] transition-all">
+                <div className="text-2xl md:text-3xl font-black bg-gradient-to-br from-orange-300 via-fuchsia-300 to-purple-300 bg-clip-text text-transparent">
+                  {s.v}
+                </div>
+                <div className="text-[10px] md:text-xs text-slate-400 mt-1 uppercase tracking-wider">{s.l}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.95] tracking-tighter mb-6 animate-fade-in">
-          A força do gás{" "}
-          <span className="relative inline-block">
-            <span className="bg-gradient-to-r from-orange-400 via-orange-500 to-amber-400 bg-clip-text text-transparent">na sua porta</span>
-            <span className="absolute -inset-2 bg-orange-500/20 blur-2xl -z-10" />
-          </span>
-        </h1>
-
-        <p className="text-base md:text-xl text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-in">
-          Entrega expressa de <strong className="text-white">P13</strong>, <strong className="text-white">P45</strong> e <strong className="text-white">água mineral</strong>.
-          Atendimento rápido, seguro e do jeito que sua família merece.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16 animate-fade-in">
-          <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer">
-            <Button size="lg" className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-white text-base gap-2 px-8 h-12 shadow-xl shadow-orange-500/40 border-0 group">
-              <MessageCircle className="h-5 w-5" />
-              Pedir pelo WhatsApp
-              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </a>
-          <a href={`tel:${PHONE_TEL}`}>
-            <Button size="lg" variant="outline" className="border-white/20 bg-white/5 backdrop-blur text-white hover:bg-white/10 text-base gap-2 px-8 h-12">
-              <Phone className="h-5 w-5 text-orange-400" /> {PHONE_DISPLAY}
-            </Button>
-          </a>
-        </div>
-
-        {/* Stat strip */}
-        <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
-          {[
-            { v: "15min", l: "Entrega média" },
-            { v: "100%", l: "Produtos certificados" },
-            { v: "5★", l: "Atendimento" },
-          ].map((s) => (
-            <div key={s.l} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 hover:border-orange-500/40 hover:bg-white/[0.07] transition-all">
-              <div className="text-2xl md:text-3xl font-black bg-gradient-to-br from-orange-300 to-orange-500 bg-clip-text text-transparent">{s.v}</div>
-              <div className="text-[11px] md:text-xs text-slate-400 mt-1 uppercase tracking-wider">{s.l}</div>
+        {/* Right: Hero art */}
+        <div className="relative order-1 lg:order-2 flex justify-center items-center">
+          <div className="relative w-full max-w-md lg:max-w-lg aspect-square">
+            <div className="absolute inset-0 bg-gradient-to-tr from-orange-500/30 via-fuchsia-500/30 to-purple-500/30 blur-3xl rounded-full animate-pulse" style={{ animationDuration: "5s" }} />
+            <img
+              src={heroArt}
+              alt="Chama abstrata Forte Gás"
+              className="relative w-full h-full object-contain drop-shadow-[0_20px_60px_rgba(217,70,239,0.4)] animate-fade-in"
+              style={{ animationDuration: "1.2s" }}
+            />
+            {/* Floating badges */}
+            <div className="absolute top-6 -left-2 md:-left-6 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-xl animate-fade-in">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-fuchsia-500 flex items-center justify-center">
+                  <Flame className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-300 uppercase tracking-wider">Pronto agora</div>
+                  <div className="text-xs font-bold text-white">Botijão P13</div>
+                </div>
+              </div>
             </div>
-          ))}
+            <div className="absolute bottom-8 -right-2 md:-right-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-xl animate-fade-in">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-400 to-purple-500 flex items-center justify-center">
+                  <Truck className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-300 uppercase tracking-wider">Entrega</div>
+                  <div className="text-xs font-bold text-white">Expressa</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Bottom fade */}
-      <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-slate-950 to-transparent" />
+      <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-[#0a0118] to-transparent" />
     </section>
   );
 }
 
 /* ---------- Sobre ---------- */
 function Sobre() {
+  const cards = [
+    { icon: Flame, label: "Gás P13", grad: "from-orange-400 to-red-500" },
+    { icon: Flame, label: "Gás P45", grad: "from-amber-400 to-fuchsia-600" },
+    { icon: Droplets, label: "Água Mineral", grad: "from-teal-400 to-blue-600" },
+    { icon: Truck, label: "Entrega Expressa", grad: "from-purple-500 to-fuchsia-600" },
+  ];
   return (
-    <section id="sobre" className="relative py-24 bg-slate-950 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-blue-950/20 to-slate-950" />
-      <div className="relative max-w-5xl mx-auto px-4">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
+    <section id="sobre" className="relative py-28 bg-[#0a0118] overflow-hidden">
+      <FluidBackdrop />
+      <div className="relative max-w-6xl mx-auto px-4">
+        <div className="grid md:grid-cols-2 gap-14 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-orange-400 mb-4">
-              <span className="w-8 h-px bg-orange-400" /> Sobre nós
+            <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-fuchsia-300 mb-5">
+              <span className="w-10 h-px bg-gradient-to-r from-transparent to-fuchsia-400" /> Sobre nós
             </div>
-            <h2 className="text-4xl md:text-5xl font-black text-white mb-6 leading-tight">
-              Tradição e <span className="bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">confiança</span> em cada entrega.
+            <h2 className="text-4xl md:text-6xl font-black text-white mb-6 leading-[1.05] tracking-tight">
+              Tradição e{" "}
+              <span className="italic font-serif font-normal bg-gradient-to-r from-orange-300 via-fuchsia-400 to-purple-400 bg-clip-text text-transparent">
+                confiança
+              </span>{" "}
+              em cada entrega.
             </h2>
-            <p className="text-base text-slate-300 leading-relaxed mb-4">
-              A <strong className="text-white">Forte Gás</strong> é referência em distribuição de gás de cozinha em <strong className="text-white">Cornélio Procópio</strong> e região.
+            <p className="text-base md:text-lg text-slate-300 leading-relaxed mb-4">
+              A <strong className="text-white">Forte Gás</strong> é referência em distribuição de gás de cozinha em{" "}
+              <strong className="text-white">Cornélio Procópio</strong> e região.
             </p>
             <p className="text-base text-slate-400 leading-relaxed">
               Levamos praticidade, segurança e atendimento ágil para sua casa ou comércio. Nossa missão é simples: você nunca ficar sem gás.
@@ -186,20 +262,12 @@ function Sobre() {
           </div>
 
           <div className="relative">
-            <div className="absolute -inset-4 bg-gradient-to-tr from-orange-500/30 via-blue-500/20 to-orange-400/20 blur-2xl rounded-3xl" />
-            <div className="relative grid grid-cols-2 gap-3">
-              {[
-                { icon: Flame, label: "Gás P13", color: "from-orange-500 to-red-500" },
-                { icon: Flame, label: "Gás P45", color: "from-amber-500 to-orange-600" },
-                { icon: Droplets, label: "Água Mineral", color: "from-blue-400 to-blue-600" },
-                { icon: Truck, label: "Entrega Expressa", color: "from-blue-500 to-indigo-600" },
-              ].map((c, i) => (
-                <div
-                  key={c.label}
-                  className="relative bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-5 hover:-translate-y-1 hover:border-orange-500/40 transition-all duration-500"
-                  style={{ animationDelay: `${i * 100}ms` }}
-                >
-                  <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${c.color} flex items-center justify-center shadow-lg mb-3`}>
+            <div className="absolute -inset-8 bg-gradient-to-tr from-orange-500/20 via-fuchsia-500/30 to-purple-500/20 blur-3xl rounded-[3rem]" />
+            <div className="relative grid grid-cols-2 gap-4">
+              {cards.map((c, i) => (
+                <div key={c.label}
+                  className={`relative bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-3xl p-6 hover:-translate-y-2 hover:border-fuchsia-400/40 transition-all duration-500 ${i % 2 === 1 ? "translate-y-6" : ""}`}>
+                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${c.grad} flex items-center justify-center shadow-xl mb-4`}>
                     <c.icon className="h-5 w-5 text-white" />
                   </div>
                   <div className="text-sm font-bold text-white">{c.label}</div>
@@ -215,37 +283,53 @@ function Sobre() {
 
 /* ---------- Serviços ---------- */
 const servicos = [
-  { icon: Flame, title: "Gás P13", desc: "Botijão residencial de 13kg, ideal para uso doméstico.", color: "from-orange-500 to-red-500" },
-  { icon: Flame, title: "Gás P45", desc: "Cilindro de 45kg para comércios e restaurantes.", color: "from-amber-500 to-orange-600" },
-  { icon: Droplets, title: "Água Mineral", desc: "Galões de 20 litros de água mineral de qualidade.", color: "from-blue-400 to-blue-600" },
-  { icon: Truck, title: "Entrega Expressa", desc: "Entregamos em minutos em Cornélio Procópio.", color: "from-blue-500 to-indigo-600" },
+  { icon: Flame, title: "Gás P13", desc: "Botijão residencial de 13kg, ideal para uso doméstico.", grad: "from-orange-400 to-red-500" },
+  { icon: Flame, title: "Gás P45", desc: "Cilindro de 45kg para comércios e restaurantes.", grad: "from-amber-400 to-fuchsia-600" },
+  { icon: Droplets, title: "Água Mineral", desc: "Galões de 20 litros de água mineral de qualidade.", grad: "from-teal-400 to-blue-600" },
+  { icon: Truck, title: "Entrega Expressa", desc: "Entregamos em minutos em Cornélio Procópio.", grad: "from-purple-500 to-fuchsia-600" },
 ];
 
 function Servicos() {
   return (
-    <section id="servicos" className="relative py-24 bg-gradient-to-b from-slate-950 to-slate-900 overflow-hidden">
-      <div className="max-w-6xl mx-auto px-4">
+    <section id="servicos" className="relative py-28 bg-gradient-to-b from-[#0a0118] via-[#1a0533] to-[#0a0118] overflow-hidden">
+      <div className="absolute top-1/4 -right-32 w-[400px] h-[400px] rounded-full blur-[120px] opacity-40"
+        style={{ background: "radial-gradient(circle, #f97316 0%, transparent 70%)" }} />
+      <div className="absolute bottom-1/4 -left-32 w-[400px] h-[400px] rounded-full blur-[120px] opacity-40"
+        style={{ background: "radial-gradient(circle, #14b8a6 0%, transparent 70%)" }} />
+
+      <div className="relative max-w-6xl mx-auto px-4">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-orange-400 mb-4">
-            <span className="w-8 h-px bg-orange-400" /> O que oferecemos <span className="w-8 h-px bg-orange-400" />
+          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-fuchsia-300 mb-4">
+            <span className="w-8 h-px bg-fuchsia-400" /> O que oferecemos <span className="w-8 h-px bg-fuchsia-400" />
           </div>
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-4">Nossos Serviços</h2>
+          <h2 className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tight">
+            Nossos{" "}
+            <span className="italic font-serif font-normal bg-gradient-to-r from-orange-300 via-fuchsia-400 to-purple-400 bg-clip-text text-transparent">
+              Serviços
+            </span>
+          </h2>
           <p className="text-slate-400 max-w-xl mx-auto">Tudo que você precisa, com agilidade e qualidade garantidas.</p>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {servicos.map((s, i) => (
-            <div
-              key={s.title}
-              className="group relative bg-gradient-to-br from-white/[0.07] to-white/[0.02] backdrop-blur-md border border-white/10 rounded-2xl p-6 hover:-translate-y-2 hover:border-orange-500/50 transition-all duration-500"
-              style={{ animationDelay: `${i * 80}ms` }}
-            >
-              <div className={`absolute -top-px left-6 right-6 h-px bg-gradient-to-r from-transparent via-orange-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity`} />
-              <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-5 shadow-lg group-hover:scale-110 transition-transform duration-500`}>
-                <s.icon className="h-7 w-7 text-white" />
+            <div key={s.title}
+              className="group relative bg-gradient-to-br from-white/[0.07] to-white/[0.02] backdrop-blur-md border border-white/10 rounded-3xl p-7 hover:-translate-y-2 hover:border-fuchsia-400/50 transition-all duration-500 overflow-hidden">
+              {/* Big number watermark */}
+              <div className="absolute -top-6 -right-2 text-7xl font-black text-white/[0.04] select-none pointer-events-none">
+                {String(i + 1).padStart(2, "0")}
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">{s.title}</h3>
-              <p className="text-sm text-slate-400 leading-relaxed">{s.desc}</p>
+              {/* Glow on hover */}
+              <div className={`absolute -top-px left-6 right-6 h-px bg-gradient-to-r from-transparent via-fuchsia-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity`} />
+              <div className={`absolute -inset-1 bg-gradient-to-br ${s.grad} opacity-0 group-hover:opacity-10 blur-2xl transition-opacity rounded-3xl`} />
+
+              <div className="relative">
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${s.grad} flex items-center justify-center mb-5 shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500`}>
+                  <s.icon className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">{s.title}</h3>
+                <p className="text-sm text-slate-400 leading-relaxed">{s.desc}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -256,41 +340,37 @@ function Servicos() {
 
 /* ---------- Diferenciais ---------- */
 const diferenciais = [
-  { icon: Zap, title: "Entrega Expressa", desc: "Receba seu pedido em minutos" },
-  { icon: Clock, title: "Atendimento Estendido", desc: "Pronto para atender você" },
-  { icon: Shield, title: "Segurança Total", desc: "Produtos certificados e seguros" },
-  { icon: CreditCard, title: "Pagamento Fácil", desc: "Dinheiro, cartão ou Pix" },
+  { icon: Zap, title: "Entrega Expressa", desc: "Receba seu pedido em minutos", grad: "from-orange-400 to-fuchsia-500" },
+  { icon: Clock, title: "Atendimento Estendido", desc: "Pronto para atender você", grad: "from-fuchsia-400 to-purple-600" },
+  { icon: Shield, title: "Segurança Total", desc: "Produtos certificados e seguros", grad: "from-teal-400 to-blue-600" },
+  { icon: CreditCard, title: "Pagamento Fácil", desc: "Dinheiro, cartão ou Pix", grad: "from-purple-500 to-fuchsia-500" },
 ];
 
 function Diferenciais() {
   return (
-    <section id="diferenciais" className="relative py-24 bg-slate-900 overflow-hidden">
-      <div className="absolute inset-0">
-        <div className="absolute top-0 left-1/3 w-72 h-72 bg-orange-500/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/3 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl" />
-      </div>
-
+    <section id="diferenciais" className="relative py-28 bg-[#0a0118] overflow-hidden">
+      <FluidBackdrop />
       <div className="relative max-w-6xl mx-auto px-4">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-orange-400 mb-4">
-            <span className="w-8 h-px bg-orange-400" /> Por que nós <span className="w-8 h-px bg-orange-400" />
+          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-fuchsia-300 mb-4">
+            <span className="w-8 h-px bg-fuchsia-400" /> Por que nós <span className="w-8 h-px bg-fuchsia-400" />
           </div>
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
-            Por que escolher a <span className="bg-gradient-to-r from-orange-400 to-amber-400 bg-clip-text text-transparent">Forte Gás?</span>
+          <h2 className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tight">
+            Por que escolher a{" "}
+            <span className="italic font-serif font-normal bg-gradient-to-r from-orange-300 via-fuchsia-400 to-purple-400 bg-clip-text text-transparent">
+              Forte Gás?
+            </span>
           </h2>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {diferenciais.map((d, i) => (
-            <div
-              key={d.title}
-              className="group relative text-center"
-              style={{ animationDelay: `${i * 100}ms` }}
-            >
+            <div key={d.title}
+              className={`group relative text-center ${i % 2 === 1 ? "lg:translate-y-8" : ""}`}>
               <div className="relative mb-5 inline-block">
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity" />
-                <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 text-white flex items-center justify-center mx-auto shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-                  <d.icon className="h-7 w-7" />
+                <div className={`absolute inset-0 bg-gradient-to-br ${d.grad} rounded-3xl blur-2xl opacity-50 group-hover:opacity-100 transition-opacity`} />
+                <div className={`relative w-20 h-20 rounded-3xl bg-gradient-to-br ${d.grad} text-white flex items-center justify-center mx-auto shadow-2xl group-hover:scale-110 group-hover:-rotate-6 transition-all duration-500`}>
+                  <d.icon className="h-8 w-8" />
                 </div>
               </div>
               <h3 className="font-bold text-white text-lg mb-1">{d.title}</h3>
@@ -306,23 +386,35 @@ function Diferenciais() {
 /* ---------- CTA Banner ---------- */
 function CTABanner() {
   return (
-    <section className="relative py-20 bg-slate-950 overflow-hidden">
+    <section className="relative py-20 bg-[#0a0118] overflow-hidden">
       <div className="max-w-5xl mx-auto px-4">
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 p-10 md:p-14 text-center shadow-2xl shadow-orange-500/30">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.25),transparent_50%)]" />
-          <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-blue-500/30 rounded-full blur-3xl" />
+        <div className="relative rounded-[2.5rem] overflow-hidden p-10 md:p-16 text-center shadow-2xl"
+          style={{
+            background: "linear-gradient(135deg, #f97316 0%, #d946ef 50%, #8b5cf6 100%)",
+            boxShadow: "0 40px 100px -20px rgba(217,70,239,0.5)",
+          }}>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.3),transparent_50%)]" />
+          <div className="absolute -top-32 -right-32 w-80 h-80 bg-white/15 rounded-full blur-3xl" />
+          <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-purple-900/40 rounded-full blur-3xl" />
+          <div className="absolute top-10 left-10 w-32 h-32 rounded-full blur-2xl opacity-60"
+            style={{ background: "radial-gradient(circle, #fef3c7 0%, transparent 70%)" }} />
 
           <div className="relative">
-            <div className="inline-flex items-center gap-1.5 mb-4">
+            <div className="inline-flex items-center gap-1.5 mb-5">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="h-4 w-4 fill-white text-white" />
               ))}
             </div>
-            <h3 className="text-3xl md:text-5xl font-black text-white mb-4 leading-tight">Acabou o gás?<br className="md:hidden" /> Peça em segundos.</h3>
-            <p className="text-white/90 text-lg mb-8 max-w-xl mx-auto">Entrega rápida em toda Cornélio Procópio. Atendimento humano, sem robôs.</p>
+            <h3 className="text-4xl md:text-6xl font-black text-white mb-5 leading-[1.05] tracking-tight">
+              Acabou o gás?
+              <br />
+              <span className="italic font-serif font-normal">Peça em segundos.</span>
+            </h3>
+            <p className="text-white/90 text-lg mb-8 max-w-xl mx-auto">
+              Entrega rápida em toda Cornélio Procópio. Atendimento humano, sem robôs.
+            </p>
             <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer">
-              <Button size="lg" className="bg-white text-orange-600 hover:bg-orange-50 text-base font-bold gap-2 px-8 h-12 shadow-xl border-0">
+              <Button size="lg" className="bg-white text-fuchsia-600 hover:bg-white/95 text-base font-bold gap-2 px-10 h-13 shadow-2xl border-0">
                 <MessageCircle className="h-5 w-5" /> Pedir Agora pelo WhatsApp
               </Button>
             </a>
@@ -336,39 +428,47 @@ function CTABanner() {
 /* ---------- Contato ---------- */
 function Contato() {
   return (
-    <section id="contato" className="relative py-24 bg-slate-950">
-      <div className="max-w-5xl mx-auto px-4">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-orange-400 mb-4">
-            <span className="w-8 h-px bg-orange-400" /> Fale conosco <span className="w-8 h-px bg-orange-400" />
+    <section id="contato" className="relative py-28 bg-[#0a0118] overflow-hidden">
+      <FluidBackdrop />
+      <div className="relative max-w-5xl mx-auto px-4">
+        <div className="text-center mb-14">
+          <div className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-fuchsia-300 mb-4">
+            <span className="w-8 h-px bg-fuchsia-400" /> Fale conosco <span className="w-8 h-px bg-fuchsia-400" />
           </div>
-          <h2 className="text-4xl md:text-5xl font-black text-white mb-4">Entre em Contato</h2>
+          <h2 className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tight">
+            Entre em{" "}
+            <span className="italic font-serif font-normal bg-gradient-to-r from-orange-300 via-fuchsia-400 to-purple-400 bg-clip-text text-transparent">
+              Contato
+            </span>
+          </h2>
         </div>
 
         <div className="grid md:grid-cols-3 gap-5">
-          <a href={`tel:${PHONE_TEL}`} className="group bg-gradient-to-br from-white/[0.07] to-white/[0.02] border border-white/10 rounded-2xl p-7 text-center hover:-translate-y-1 hover:border-orange-500/40 transition-all">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform">
-              <Phone className="h-5 w-5 text-white" />
-            </div>
-            <h3 className="font-bold text-white mb-1">Telefone</h3>
-            <p className="text-slate-400 text-sm">{PHONE_DISPLAY}</p>
-          </a>
-
-          <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="group bg-gradient-to-br from-white/[0.07] to-white/[0.02] border border-white/10 rounded-2xl p-7 text-center hover:-translate-y-1 hover:border-green-500/40 transition-all">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform">
-              <MessageCircle className="h-5 w-5 text-white" />
-            </div>
-            <h3 className="font-bold text-white mb-1">WhatsApp</h3>
-            <p className="text-slate-400 text-sm">{PHONE_DISPLAY}</p>
-          </a>
-
-          <div className="group bg-gradient-to-br from-white/[0.07] to-white/[0.02] border border-white/10 rounded-2xl p-7 text-center hover:-translate-y-1 hover:border-blue-500/40 transition-all">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform">
-              <MapPin className="h-5 w-5 text-white" />
-            </div>
-            <h3 className="font-bold text-white mb-1">Endereço</h3>
-            <p className="text-slate-400 text-xs leading-relaxed">{ENDERECO}<br />{CIDADE}</p>
-          </div>
+          {[
+            { href: `tel:${PHONE_TEL}`, ext: false, icon: Phone, title: "Telefone", desc: PHONE_DISPLAY, grad: "from-orange-400 to-fuchsia-500", border: "hover:border-orange-400/50" },
+            { href: WHATSAPP_LINK, ext: true, icon: MessageCircle, title: "WhatsApp", desc: PHONE_DISPLAY, grad: "from-teal-400 to-emerald-500", border: "hover:border-teal-400/50" },
+            { href: null, ext: false, icon: MapPin, title: "Endereço", desc: `${ENDERECO}\n${CIDADE}`, grad: "from-purple-500 to-fuchsia-600", border: "hover:border-purple-400/50" },
+          ].map((c) => {
+            const inner = (
+              <div className={`group relative bg-gradient-to-br from-white/[0.07] to-white/[0.02] backdrop-blur-md border border-white/10 rounded-3xl p-7 text-center hover:-translate-y-1 ${c.border} transition-all h-full`}>
+                <div className={`absolute -inset-px bg-gradient-to-br ${c.grad} opacity-0 group-hover:opacity-20 blur-xl transition-opacity rounded-3xl`} />
+                <div className="relative">
+                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${c.grad} flex items-center justify-center mx-auto mb-4 shadow-xl group-hover:scale-110 transition-transform`}>
+                    <c.icon className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="font-bold text-white mb-1">{c.title}</h3>
+                  <p className="text-slate-400 text-xs leading-relaxed whitespace-pre-line">{c.desc}</p>
+                </div>
+              </div>
+            );
+            return c.href ? (
+              <a key={c.title} href={c.href} {...(c.ext ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
+                {inner}
+              </a>
+            ) : (
+              <div key={c.title}>{inner}</div>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -378,13 +478,16 @@ function Contato() {
 /* ---------- Footer ---------- */
 function Footer() {
   return (
-    <footer className="bg-slate-950 border-t border-white/5 text-slate-500 py-10">
+    <footer className="relative bg-[#0a0118] border-t border-white/5 text-slate-500 py-12 overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-fuchsia-500/40 to-transparent" />
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <img src={forteGasLogo} alt="Forte Gás" className="h-9 w-auto" />
+            <img src={forteGasLogo} alt="Forte Gás" className="h-10 w-auto" />
             <div className="leading-none border-l border-white/10 pl-3">
-              <div className="text-[10px] text-orange-400 font-bold tracking-widest">CORNÉLIO PROCÓPIO • PR</div>
+              <div className="text-[10px] bg-gradient-to-r from-orange-300 via-fuchsia-300 to-purple-300 bg-clip-text text-transparent font-bold tracking-[0.25em]">
+                CORNÉLIO PROCÓPIO • PR
+              </div>
               <div className="text-xs text-slate-500 mt-1">A força do gás na sua porta</div>
             </div>
           </div>
@@ -398,15 +501,10 @@ function Footer() {
 /* ---------- Floating ---------- */
 function FloatingWhatsApp() {
   return (
-    <a
-      href={WHATSAPP_LINK}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="fixed bottom-6 right-6 z-50 group"
-      aria-label="WhatsApp"
-    >
+    <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"
+      className="fixed bottom-6 right-6 z-50 group" aria-label="WhatsApp">
       <span className="absolute inset-0 rounded-full bg-green-500 animate-ping opacity-30" />
-      <span className="relative w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-full flex items-center justify-center shadow-xl shadow-green-500/40 group-hover:scale-110 transition-transform">
+      <span className="relative w-14 h-14 bg-gradient-to-br from-green-400 to-emerald-600 text-white rounded-full flex items-center justify-center shadow-xl shadow-green-500/40 group-hover:scale-110 transition-transform">
         <MessageCircle className="h-7 w-7" />
       </span>
     </a>
@@ -422,11 +520,9 @@ function ScrollTop() {
   }, []);
   if (!show) return null;
   return (
-    <button
-      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className="fixed bottom-6 left-6 z-50 w-10 h-10 bg-white/10 backdrop-blur-md border border-white/20 hover:bg-orange-500 hover:border-orange-500 text-white rounded-full flex items-center justify-center shadow-lg transition-all animate-fade-in"
-      aria-label="Voltar ao topo"
-    >
+    <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      className="fixed bottom-6 left-6 z-50 w-10 h-10 bg-white/10 backdrop-blur-md border border-white/20 hover:bg-gradient-to-br hover:from-orange-500 hover:to-fuchsia-500 hover:border-fuchsia-400 text-white rounded-full flex items-center justify-center shadow-lg transition-all animate-fade-in"
+      aria-label="Voltar ao topo">
       <ChevronUp className="h-5 w-5" />
     </button>
   );
@@ -434,7 +530,7 @@ function ScrollTop() {
 
 export default function ForteGas() {
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-[#0a0118] text-white">
       <Header />
       <Hero />
       <Sobre />
