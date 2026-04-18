@@ -60,8 +60,13 @@ function Header() {
       <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-16">
         <a href="#inicio" className="flex items-center gap-2 group">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-tr from-orange-500 via-fuchsia-500 to-purple-600 blur-xl opacity-50 group-hover:opacity-90 transition-opacity rounded-full" />
-            <img src={forteGasLogo} alt="Forte Gás" className="relative h-10 md:h-11 w-auto drop-shadow-[0_4px_16px_rgba(249,115,22,0.5)]" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-orange-500/40 via-fuchsia-500/40 to-purple-600/40 blur-2xl opacity-60 group-hover:opacity-100 transition-opacity rounded-full" />
+            <img
+              src={forteGasLogo}
+              alt="Forte Gás"
+              className="relative h-11 md:h-12 w-auto drop-shadow-[0_4px_20px_rgba(249,115,22,0.6)]"
+              style={{ mixBlendMode: "screen" }}
+            />
           </div>
         </a>
 
@@ -105,7 +110,7 @@ function Header() {
 }
 
 /* ---------- Hero ---------- */
-function Hero() {
+function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
   return (
     <section id="inicio" className="relative min-h-screen flex items-center pt-24 pb-12 overflow-hidden bg-[#0a0118]">
       <FluidBackdrop />
@@ -196,29 +201,43 @@ function Hero() {
               className="relative w-full h-full object-contain drop-shadow-[0_20px_60px_rgba(217,70,239,0.4)] animate-fade-in"
               style={{ animationDuration: "1.2s" }}
             />
-            {/* Floating badges */}
-            <div className="absolute top-6 -left-2 md:-left-6 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-xl animate-fade-in">
+            {/* Floating badges → botões que abrem a Bia */}
+            <button
+              type="button"
+              onClick={() => onAskBia("Quero pedir um P13 agora!")}
+              className="absolute top-6 -left-2 md:-left-6 bg-white/10 backdrop-blur-xl border border-white/20 hover:border-fuchsia-400/60 hover:bg-white/[0.18] rounded-2xl p-3 shadow-xl animate-fade-in transition-all hover:-translate-y-0.5 hover:scale-105 group cursor-pointer text-left"
+              aria-label="Pedir P13 com a Bia"
+            >
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-fuchsia-500 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-fuchsia-500/30">
                   <Flame className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-300 uppercase tracking-wider">Pronto agora</div>
-                  <div className="text-xs font-bold text-white">Botijão P13</div>
+                  <div className="text-[10px] text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                    Pronto agora <Sparkles className="h-2.5 w-2.5 text-fuchsia-300" />
+                  </div>
+                  <div className="text-xs font-bold text-white group-hover:text-fuchsia-200 transition-colors">Pedir P13 → Bia</div>
                 </div>
               </div>
-            </div>
-            <div className="absolute bottom-8 -right-2 md:-right-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 shadow-xl animate-fade-in">
+            </button>
+            <button
+              type="button"
+              onClick={() => onAskBia("Preciso de entrega expressa, por favor!")}
+              className="absolute bottom-8 -right-2 md:-right-4 bg-white/10 backdrop-blur-xl border border-white/20 hover:border-purple-400/60 hover:bg-white/[0.18] rounded-2xl p-3 shadow-xl animate-fade-in transition-all hover:-translate-y-0.5 hover:scale-105 group cursor-pointer text-left"
+              aria-label="Pedir entrega expressa com a Bia"
+            >
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-400 to-purple-500 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-400 to-purple-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
                   <Truck className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                  <div className="text-[10px] text-slate-300 uppercase tracking-wider">Entrega</div>
-                  <div className="text-xs font-bold text-white">Expressa</div>
+                  <div className="text-[10px] text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                    Entrega <Sparkles className="h-2.5 w-2.5 text-purple-300" />
+                  </div>
+                  <div className="text-xs font-bold text-white group-hover:text-purple-200 transition-colors">Expressa → Bia</div>
                 </div>
               </div>
-            </div>
+            </button>
           </div>
         </div>
       </div>
@@ -531,10 +550,18 @@ function ScrollTop() {
 import { BiaChatWidget } from "@/components/publico/BiaChatWidget";
 
 export default function ForteGas() {
+  const [biaSignal, setBiaSignal] = useState(0);
+  const [biaPrefill, setBiaPrefill] = useState<string | undefined>(undefined);
+
+  const askBia = (msg: string) => {
+    setBiaPrefill(msg);
+    setBiaSignal((n) => n + 1);
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0118] text-white">
       <Header />
-      <Hero />
+      <Hero onAskBia={askBia} />
       <Sobre />
       <Servicos />
       <Diferenciais />
@@ -548,6 +575,8 @@ export default function ForteGas() {
         nomeLoja="Forte Gás"
         gradient="from-fuchsia-500 via-purple-500 to-orange-500"
         accent="fuchsia-500"
+        openSignal={biaSignal}
+        prefilledMessage={biaPrefill}
       />
     </div>
   );
