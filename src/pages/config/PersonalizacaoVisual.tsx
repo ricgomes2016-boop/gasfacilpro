@@ -216,6 +216,8 @@ const DEFAULT_CONFIG: PersonalizacaoConfig = {
   },
 };
 
+const PRESET_STYLE_ID = "preset-extra-css";
+
 function applyTheme(darkMode: boolean, corPrimaria: string, presetId?: string) {
   const root = document.documentElement;
   if (darkMode) {
@@ -226,6 +228,27 @@ function applyTheme(darkMode: boolean, corPrimaria: string, presetId?: string) {
 
   // Limpa overrides anteriores
   OVERRIDABLE_VARS.forEach((v) => root.style.removeProperty(v));
+
+  // Atributo do preset (para CSS escopado)
+  if (presetId) {
+    root.setAttribute("data-theme-preset", presetId);
+  } else {
+    root.removeAttribute("data-theme-preset");
+  }
+
+  // Injeta/remove CSS extra do preset
+  let styleEl = document.getElementById(PRESET_STYLE_ID) as HTMLStyleElement | null;
+  const extraCss = presetId ? PRESET_EXTRA_CSS[presetId] : undefined;
+  if (extraCss) {
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = PRESET_STYLE_ID;
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = extraCss;
+  } else if (styleEl) {
+    styleEl.textContent = "";
+  }
 
   // Aplica overrides do preset especial (se houver)
   const overrides = presetId ? PRESET_THEME_OVERRIDES[presetId] : undefined;
