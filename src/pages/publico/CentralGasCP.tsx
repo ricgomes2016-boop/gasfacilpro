@@ -55,7 +55,12 @@ function Header() {
   );
 }
 
-function Hero() {
+function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
+  const quickActions = [
+    { label: "Pronto agora", desc: "Peça e receba rápido", msg: "Quero gás agora!" },
+    { label: "Gás P13", desc: "Botijão residencial", msg: "Quero pedir um P13" },
+    { label: "Entrega expressa", desc: "Em minutos na sua porta", msg: "Preciso de entrega expressa" },
+  ];
   return (
     <section id="inicio" className="relative pt-16 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-orange-500 via-orange-600 to-red-600" />
