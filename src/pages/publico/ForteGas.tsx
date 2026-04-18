@@ -60,8 +60,13 @@ function Header() {
       <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-16">
         <a href="#inicio" className="flex items-center gap-2 group">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-tr from-orange-500 via-fuchsia-500 to-purple-600 blur-xl opacity-50 group-hover:opacity-90 transition-opacity rounded-full" />
-            <img src={forteGasLogo} alt="Forte Gás" className="relative h-10 md:h-11 w-auto drop-shadow-[0_4px_16px_rgba(249,115,22,0.5)]" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-orange-500/40 via-fuchsia-500/40 to-purple-600/40 blur-2xl opacity-60 group-hover:opacity-100 transition-opacity rounded-full" />
+            <img
+              src={forteGasLogo}
+              alt="Forte Gás"
+              className="relative h-11 md:h-12 w-auto drop-shadow-[0_4px_20px_rgba(249,115,22,0.6)]"
+              style={{ mixBlendMode: "screen" }}
+            />
           </div>
         </a>
 
