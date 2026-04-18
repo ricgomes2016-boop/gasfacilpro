@@ -41,6 +41,9 @@ import { marketingRoutes } from "@/routes/marketingRoutes";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 
+const CentralGasCP = lazy(() => import("./pages/publico/CentralGasCP"));
+const ForteGas = lazy(() => import("./pages/publico/ForteGas"));
+
 const queryClient = new QueryClient();
 
 function RootRedirect() {
@@ -71,6 +74,8 @@ const App = () => (
                           <Routes>
                             <Route path="/" element={<RootRedirect />} />
                             <Route path="/auth" element={<Auth />} />
+                            <Route path="/centralgascp" element={<CentralGasCP />} />
+                            <Route path="/fortegas" element={<ForteGas />} />
 
                             <Route path="/dashboard" element={
                               <ProtectedRoute>
