@@ -40,14 +40,8 @@ function Header() {
       <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-16">
         <a href="#inicio" className="flex items-center gap-2 group">
           <div className="relative">
-            <div className="absolute inset-0 bg-orange-500 blur-lg opacity-60 group-hover:opacity-100 transition-opacity" />
-            <div className="relative w-9 h-9 rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg">
-              <Flame className="h-5 w-5 text-white" />
-            </div>
-          </div>
-          <div className="flex flex-col leading-none">
-            <span className="text-lg font-extrabold text-white tracking-tight">FORTE</span>
-            <span className="text-[10px] font-bold text-orange-400 tracking-[0.3em] -mt-0.5">GÁS</span>
+            <div className="absolute inset-0 bg-orange-500 blur-xl opacity-40 group-hover:opacity-70 transition-opacity rounded-full" />
+            <img src={forteGasLogo} alt="Forte Gás" className="relative h-10 md:h-11 w-auto drop-shadow-[0_4px_12px_rgba(249,115,22,0.4)]" />
           </div>
         </a>
 
