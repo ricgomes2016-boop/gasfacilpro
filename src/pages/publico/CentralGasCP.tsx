@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Flame, Phone, Clock, MapPin, Truck, Shield, CreditCard, ChevronUp, MessageCircle, Droplets, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const WHATSAPP_NUMBER = "554335241094";
+const WHATSAPP_NUMBER = "5543999661816";
 const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=Olá! Gostaria de fazer um pedido de gás.`;
 const PHONE = "(43) 3524-1094";
+const WHATSAPP_DISPLAY = "(43) 99966-1816";
+const ENDERECO = "Rua Benjamin Constant, 110, Centro, Cornélio Procópio, PR";
 
 function Header() {
   const [open, setOpen] = useState(false);
@@ -82,7 +84,7 @@ function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
             </Button>
           </a>
           <a href={`tel:${PHONE.replace(/\D/g, "")}`}>
-            <Button size="lg" variant="outline" className="border-white/40 text-white hover:bg-white/10 text-base gap-2 px-8">
+            <Button size="lg" variant="outline" className="bg-white/10 border-white text-white hover:bg-white hover:text-orange-600 text-base gap-2 px-8">
               <Phone className="h-5 w-5" /> {PHONE}
             </Button>
           </a>
@@ -201,12 +203,12 @@ function Contato() {
           <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 text-center hover:shadow-md transition-shadow">
             <MessageCircle className="h-8 w-8 text-green-500 mx-auto mb-3" />
             <h3 className="font-semibold text-slate-800 mb-1">WhatsApp</h3>
-            <p className="text-slate-600">{PHONE}</p>
+            <p className="text-slate-600">{WHATSAPP_DISPLAY}</p>
           </a>
           <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 text-center">
             <MapPin className="h-8 w-8 text-orange-500 mx-auto mb-3" />
             <h3 className="font-semibold text-slate-800 mb-1">Endereço</h3>
-            <p className="text-slate-600 text-sm">Cornélio Procópio - PR</p>
+            <p className="text-slate-600 text-sm">{ENDERECO}</p>
           </div>
         </div>
       </div>
