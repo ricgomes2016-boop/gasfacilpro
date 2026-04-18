@@ -203,12 +203,12 @@ function Contato() {
           <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 text-center hover:shadow-md transition-shadow">
             <MessageCircle className="h-8 w-8 text-green-500 mx-auto mb-3" />
             <h3 className="font-semibold text-slate-800 mb-1">WhatsApp</h3>
-            <p className="text-slate-600">{PHONE}</p>
+            <p className="text-slate-600">{WHATSAPP_DISPLAY}</p>
           </a>
           <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-100 text-center">
             <MapPin className="h-8 w-8 text-orange-500 mx-auto mb-3" />
             <h3 className="font-semibold text-slate-800 mb-1">Endereço</h3>
-            <p className="text-slate-600 text-sm">Cornélio Procópio - PR</p>
+            <p className="text-slate-600 text-sm">{ENDERECO}</p>
           </div>
         </div>
       </div>
