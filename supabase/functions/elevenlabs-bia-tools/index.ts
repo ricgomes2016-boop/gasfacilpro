@@ -71,15 +71,19 @@ serve(async (req) => {
         .limit(1);
 
       // Register the incoming call (triggers CallerID popup)
-      await supabase.from("chamadas_recebidas").insert({
+      const { error: chamadaError } = await supabase.from("chamadas_recebidas").insert({
         telefone,
         cliente_id: clientes?.[0]?.id ?? null,
         cliente_nome: clientes?.[0]?.nome ?? null,
-        tipo: "telefone",
-        status: "atendida_ia",
+        tipo: "voip",
+        status: "recebida",
         unidade_id: unidade.id,
-        observacoes: "Atendida pela Bia (IA - ElevenLabs)",
+        observacoes: "Recebida pela Bia (IA - ElevenLabs)",
       });
+
+      if (chamadaError) {
+        console.error("Erro registrando chamada recebida:", chamadaError);
+      }
 
       if (clientes && clientes.length > 0) {
         const c = clientes[0];
