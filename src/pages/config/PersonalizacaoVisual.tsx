@@ -58,7 +58,55 @@ const THEME_PRESETS = [
     hex: "#cc6b1a",
     dark: false,
   },
+  {
+    id: "forte-gas",
+    label: "Forte Gás · Fluid Energy",
+    description: "Visual do site institucional: roxo profundo, fúcsia e laranja",
+    cor: "292 84% 61%",
+    hex: "#d946ef",
+    dark: true,
+    gradient: "linear-gradient(135deg, #fb923c 0%, #d946ef 50%, #8b5cf6 100%)",
+  },
 ];
+
+/** Variáveis CSS extras aplicadas quando um preset especial é selecionado */
+const PRESET_THEME_OVERRIDES: Record<string, Record<string, string>> = {
+  "forte-gas": {
+    "--background": "270 80% 5%",
+    "--foreground": "270 20% 96%",
+    "--card": "270 60% 8%",
+    "--card-foreground": "270 20% 96%",
+    "--popover": "270 60% 8%",
+    "--popover-foreground": "270 20% 96%",
+    "--primary": "292 84% 61%",
+    "--primary-foreground": "0 0% 100%",
+    "--secondary": "270 40% 14%",
+    "--secondary-foreground": "270 20% 96%",
+    "--muted": "270 40% 12%",
+    "--muted-foreground": "270 15% 65%",
+    "--accent": "24 95% 58%",
+    "--accent-foreground": "0 0% 100%",
+    "--border": "270 40% 18%",
+    "--input": "270 40% 18%",
+    "--ring": "292 84% 61%",
+    "--sidebar-background": "270 70% 6%",
+    "--sidebar-foreground": "270 15% 80%",
+    "--sidebar-primary": "292 84% 61%",
+    "--sidebar-primary-foreground": "0 0% 100%",
+    "--sidebar-accent": "270 50% 12%",
+    "--sidebar-accent-foreground": "270 20% 95%",
+    "--sidebar-border": "270 40% 16%",
+    "--sidebar-ring": "292 84% 61%",
+    "--gradient-primary": "linear-gradient(135deg, hsl(24 95% 58%) 0%, hsl(292 84% 61%) 50%, hsl(258 90% 66%) 100%)",
+    "--gradient-dark": "linear-gradient(135deg, hsl(258 90% 50%) 0%, hsl(292 84% 50%) 100%)",
+    "--shadow-glow": "0 0 30px hsl(292 84% 61% / 0.45)",
+  },
+};
+
+/** Variáveis que precisam ser limpas ao trocar de preset especial para um normal */
+const OVERRIDABLE_VARS = Array.from(
+  new Set(Object.values(PRESET_THEME_OVERRIDES).flatMap((o) => Object.keys(o)))
+);
 
 interface ComprovanteConfig {
   mostrarLogo: boolean;
@@ -88,13 +136,25 @@ const DEFAULT_CONFIG: PersonalizacaoConfig = {
   },
 };
 
-function applyTheme(darkMode: boolean, corPrimaria: string) {
+function applyTheme(darkMode: boolean, corPrimaria: string, presetId?: string) {
   const root = document.documentElement;
   if (darkMode) {
     root.classList.add("dark");
   } else {
     root.classList.remove("dark");
   }
+
+  // Limpa overrides anteriores
+  OVERRIDABLE_VARS.forEach((v) => root.style.removeProperty(v));
+
+  // Aplica overrides do preset especial (se houver)
+  const overrides = presetId ? PRESET_THEME_OVERRIDES[presetId] : undefined;
+  if (overrides) {
+    Object.entries(overrides).forEach(([k, v]) => root.style.setProperty(k, v));
+    return;
+  }
+
+  // Caso padrão: só ajusta a cor primária
   root.style.setProperty("--primary", corPrimaria);
   root.style.setProperty("--sidebar-primary", corPrimaria);
   root.style.setProperty("--ring", corPrimaria);
@@ -119,7 +179,10 @@ export default function PersonalizacaoVisual() {
 
   // Apply theme whenever it changes
   useEffect(() => {
-    applyTheme(config.darkMode, config.corPrimaria);
+    const matchedPreset = THEME_PRESETS.find(
+      (p) => p.cor === config.corPrimaria && p.dark === config.darkMode && PRESET_THEME_OVERRIDES[p.id]
+    );
+    applyTheme(config.darkMode, config.corPrimaria, matchedPreset?.id);
   }, [config.darkMode, config.corPrimaria]);
 
   const loadConfig = async () => {
@@ -386,7 +449,7 @@ export default function PersonalizacaoVisual() {
                         <div className="flex items-center gap-2 mb-1">
                           <div
                             className="h-5 w-5 rounded-full shrink-0 border"
-                            style={{ backgroundColor: preset.hex }}
+                            style={{ background: (preset as any).gradient ?? preset.hex }}
                           />
                           <span className="text-sm font-semibold">{preset.label}</span>
                           {isActive && <Check className="h-3.5 w-3.5 text-primary ml-auto" />}
