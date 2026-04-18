@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Flame, Phone, Clock, MapPin, Truck, Shield, CreditCard, ChevronUp, MessageCircle, Droplets, Menu, X, Zap, Sparkles, ArrowRight, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import forteGasLogo from "@/assets/forte-gas-logo.png";
 
 const WHATSAPP_NUMBER = "5543984328383";
 const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=Olá! Gostaria de fazer um pedido de gás na Forte Gás.`;
