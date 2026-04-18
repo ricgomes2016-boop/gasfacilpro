@@ -55,7 +55,12 @@ function Header() {
   );
 }
 
-function Hero() {
+function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
+  const quickActions = [
+    { label: "Pronto agora", desc: "Peça e receba rápido", msg: "Quero gás agora!" },
+    { label: "Gás P13", desc: "Botijão residencial", msg: "Quero pedir um P13" },
+    { label: "Entrega expressa", desc: "Em minutos na sua porta", msg: "Preciso de entrega expressa" },
+  ];
   return (
     <section id="inicio" className="relative pt-16 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-orange-500 via-orange-600 to-red-600" />
@@ -81,6 +86,19 @@ function Hero() {
               <Phone className="h-5 w-5" /> {PHONE}
             </Button>
           </a>
+        </div>
+        <div className="mt-12 grid sm:grid-cols-3 gap-3 max-w-3xl mx-auto">
+          {quickActions.map((a) => (
+            <button
+              key={a.label}
+              onClick={() => onAskBia(a.msg)}
+              className="group text-left bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-xl p-4 transition-all hover:-translate-y-0.5"
+            >
+              <div className="text-sm font-bold text-white">{a.label}</div>
+              <div className="text-xs text-white/80 mt-0.5">{a.desc}</div>
+              <div className="text-[10px] text-white/60 mt-2 uppercase tracking-wider group-hover:text-white/90">Falar com a Bia →</div>
+            </button>
+          ))}
         </div>
       </div>
       <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent" />
@@ -235,10 +253,12 @@ function ScrollTop() {
 import { BiaChatWidget } from "@/components/publico/BiaChatWidget";
 
 export default function CentralGasCP() {
+  const [biaState, setBiaState] = useState<{ openSignal: number; prefill: string }>({ openSignal: 0, prefill: "" });
+  const askBia = (msg: string) => setBiaState((s) => ({ openSignal: s.openSignal + 1, prefill: msg }));
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      <Hero />
+      <Hero onAskBia={askBia} />
       <Sobre />
       <Servicos />
       <Diferenciais />
@@ -251,6 +271,8 @@ export default function CentralGasCP() {
         nomeLoja="Central Gás"
         gradient="from-blue-500 via-cyan-500 to-emerald-500"
         accent="blue-500"
+        openSignal={biaState.openSignal}
+        prefilledMessage={biaState.prefill}
       />
     </div>
   );
