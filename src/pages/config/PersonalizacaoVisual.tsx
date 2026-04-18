@@ -449,7 +449,7 @@ export default function PersonalizacaoVisual() {
                         <div className="flex items-center gap-2 mb-1">
                           <div
                             className="h-5 w-5 rounded-full shrink-0 border"
-                            style={{ backgroundColor: preset.hex }}
+                            style={{ background: (preset as any).gradient ?? preset.hex }}
                           />
                           <span className="text-sm font-semibold">{preset.label}</span>
                           {isActive && <Check className="h-3.5 w-3.5 text-primary ml-auto" />}
