@@ -249,9 +249,15 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
   if (!unidadeId) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: null };
 
   const { data: u } = await supabase.from("unidades")
-    .select("horario_abertura, horario_fechamento, empresa_id").eq("id", unidadeId).maybeSingle();
+    .select("horario_abertura, horario_fechamento, empresa_id, cidade, estado, bairros_atendidos").eq("id", unidadeId).maybeSingle();
 
-  if (!u?.empresa_id) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: u?.empresa_id || null };
+  const unidadeLocation = {
+    cidade: u?.cidade || null,
+    estado: u?.estado || null,
+    bairros: Array.isArray(u?.bairros_atendidos) ? u.bairros_atendidos : [],
+  };
+
+  if (!u?.empresa_id) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: u?.empresa_id || null, unidadeLocation };
 
   // Fetch regras_bia from configuracoes_empresa
   const { data: configEmpresa } = await supabase.from("configuracoes_empresa")
@@ -273,7 +279,7 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
   let effectiveClosing = fechamento;
   if (isSunday) {
     if (!domingoAtivo) {
-      return { isOffHours: true, horarioInfo: "Não abrimos aos domingos", isSunday: true, waterDeliveryAllowed: false, empresaId: u.empresa_id };
+      return { isOffHours: true, horarioInfo: "Não abrimos aos domingos", isSunday: true, waterDeliveryAllowed: false, empresaId: u.empresa_id, unidadeLocation };
     }
     // Respect dynamic Sunday closing time from regras_bia
     effectiveClosing = fechamentoDomingo;
@@ -293,6 +299,7 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
     gasDoPovoEntrega,
     gasDoPovoTaxa,
     autoFollowupAtivo,
+    unidadeLocation,
   };
 }
 
