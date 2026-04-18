@@ -105,15 +105,35 @@ export function BiaChatWidget({
         <button
           onClick={() => setOpen(true)}
           aria-label="Falar com a Bia"
-          className={`fixed bottom-6 right-24 z-50 group flex items-center gap-2 pl-3 pr-4 py-3 rounded-full bg-gradient-to-r ${gradient} text-white shadow-2xl shadow-${accent}/40 hover:scale-105 transition-transform`}
+          className={`fixed bottom-6 right-24 z-50 group flex items-center gap-3 pl-2 pr-5 py-2 rounded-full bg-[#0a0118]/80 backdrop-blur-xl border border-white/10 text-white shadow-2xl shadow-${accent}/40 hover:scale-[1.04] active:scale-100 transition-all`}
         >
-          <span className="absolute inset-0 rounded-full bg-white/20 animate-ping opacity-20" />
-          <span className="relative w-9 h-9 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-            <Bot className="w-5 h-5" />
+          {/* Glow halo */}
+          <span
+            className={`pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-r ${gradient} opacity-50 blur-xl group-hover:opacity-80 transition-opacity`}
+          />
+          {/* Avatar com anel rotativo */}
+          <span className="relative w-11 h-11 rounded-full p-[2px] overflow-hidden">
+            <span
+              className="absolute inset-0 rounded-full animate-spin"
+              style={{
+                animationDuration: "4s",
+                background: "conic-gradient(from 0deg, #fb923c, #e879f9, #a78bfa, #2dd4bf, #fb923c)",
+              }}
+            />
+            <span className="relative w-full h-full rounded-full bg-[#0a0118] flex items-center justify-center font-black text-[13px] tracking-tight">
+              <span className="bg-gradient-to-br from-orange-300 via-fuchsia-300 to-purple-300 bg-clip-text text-transparent">
+                Bia
+              </span>
+            </span>
           </span>
-          <span className="relative font-semibold text-sm hidden sm:inline">Falar com a Bia</span>
-          <span className="relative sm:hidden font-semibold text-sm">Bia</span>
-          <span className="relative ml-1 h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="relative flex flex-col items-start leading-tight">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-white/60 font-semibold flex items-center gap-1">
+              <Sparkles className="w-2.5 h-2.5 text-fuchsia-300" /> IA · Online
+            </span>
+            <span className="text-sm font-bold hidden sm:inline">Falar com a Bia</span>
+            <span className="text-sm font-bold sm:hidden">Bia</span>
+          </span>
+          <span className="relative ml-1 h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
         </button>
       )}
 
@@ -121,15 +141,33 @@ export function BiaChatWidget({
       {open && (
         <div className="fixed inset-x-0 bottom-0 sm:inset-auto sm:bottom-6 sm:right-6 z-50 sm:w-[380px] h-[80vh] sm:h-[560px] bg-[#0a0118] border border-white/10 sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200">
           {/* Header */}
-          <div className={`bg-gradient-to-r ${gradient} px-4 py-3 flex items-center gap-3`}>
-            <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-              <Bot className="w-5 h-5 text-white" />
+          <div className={`relative bg-gradient-to-r ${gradient} px-4 py-3 flex items-center gap-3 overflow-hidden`}>
+            <div className="absolute inset-0 opacity-30 pointer-events-none"
+              style={{ background: "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.4) 0%, transparent 60%)" }} />
+            {/* Avatar header com anel rotativo */}
+            <div className="relative w-12 h-12 rounded-full p-[2px] shrink-0">
+              <span
+                className="absolute inset-0 rounded-full animate-spin"
+                style={{
+                  animationDuration: "5s",
+                  background: "conic-gradient(from 0deg, rgba(255,255,255,0.9), rgba(255,255,255,0.1), rgba(255,255,255,0.9))",
+                }}
+              />
+              <span className="relative w-full h-full rounded-full bg-[#0a0118] flex items-center justify-center font-black text-sm">
+                <span className="bg-gradient-to-br from-orange-200 via-fuchsia-200 to-purple-200 bg-clip-text text-transparent">
+                  Bia
+                </span>
+              </span>
             </div>
-            <div className="flex-1 text-white">
-              <div className="font-bold leading-tight">Bia · {nomeLoja}</div>
-              <div className="text-xs flex items-center gap-1.5 opacity-90">
-                <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
-                Online agora
+            <div className="relative flex-1 text-white">
+              <div className="font-bold leading-tight tracking-tight flex items-center gap-1.5">
+                Bia <span className="text-white/60 font-normal">·</span>{" "}
+                <span className="font-serif italic font-normal">{nomeLoja}</span>
+              </div>
+              <div className="text-[11px] flex items-center gap-1.5 opacity-95 mt-0.5">
+                <Sparkles className="w-3 h-3" />
+                <span className="uppercase tracking-wider font-semibold">IA · Online</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse ml-0.5" />
               </div>
             </div>
             <button
