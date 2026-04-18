@@ -249,9 +249,15 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
   if (!unidadeId) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: null };
 
   const { data: u } = await supabase.from("unidades")
-    .select("horario_abertura, horario_fechamento, empresa_id").eq("id", unidadeId).maybeSingle();
+    .select("horario_abertura, horario_fechamento, empresa_id, cidade, estado, bairros_atendidos").eq("id", unidadeId).maybeSingle();
 
-  if (!u?.empresa_id) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: u?.empresa_id || null };
+  const unidadeLocation = {
+    cidade: u?.cidade || null,
+    estado: u?.estado || null,
+    bairros: Array.isArray(u?.bairros_atendidos) ? u.bairros_atendidos : [],
+  };
+
+  if (!u?.empresa_id) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: u?.empresa_id || null, unidadeLocation };
 
   // Fetch regras_bia from configuracoes_empresa
   const { data: configEmpresa } = await supabase.from("configuracoes_empresa")
@@ -273,7 +279,7 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
   let effectiveClosing = fechamento;
   if (isSunday) {
     if (!domingoAtivo) {
-      return { isOffHours: true, horarioInfo: "Não abrimos aos domingos", isSunday: true, waterDeliveryAllowed: false, empresaId: u.empresa_id };
+      return { isOffHours: true, horarioInfo: "Não abrimos aos domingos", isSunday: true, waterDeliveryAllowed: false, empresaId: u.empresa_id, unidadeLocation };
     }
     // Respect dynamic Sunday closing time from regras_bia
     effectiveClosing = fechamentoDomingo;
@@ -293,6 +299,7 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
     gasDoPovoEntrega,
     gasDoPovoTaxa,
     autoFollowupAtivo,
+    unidadeLocation,
   };
 }
 
@@ -574,7 +581,8 @@ export function buildSystemPrompt(
   sundayContext?: { isSunday: boolean; waterDeliveryAllowed: boolean },
   history?: any[],
   gasDoPovoConfig?: { entrega: boolean; taxa: number },
-  contactIdentity?: ContactIdentity
+  contactIdentity?: ContactIdentity,
+  unidadeLocation?: { cidade: string | null; estado: string | null; bairros: string[] }
 ): string {
   const agentName = config.agentName || "Bia";
   const now = new Date();
@@ -656,7 +664,25 @@ REGRAS OBRIGATÓRIAS:
 - Marque internamente como insatisfação para acompanhamento`;
   }
 
-  return `Você é a ${agentName}, assistente virtual de vendas de gás da empresa. Seu atendimento deve ser CALOROSO, HUMANO e NATURAL — como uma atendente simpática de verdade, não um robô.
+  // Área de atendimento (cidade/estado da unidade)
+  let areaAtendimentoSection = "";
+  if (unidadeLocation?.cidade) {
+    const cidadeEstado = unidadeLocation.estado
+      ? `${unidadeLocation.cidade}/${unidadeLocation.estado}`
+      : unidadeLocation.cidade;
+    const bairrosTxt = unidadeLocation.bairros.length > 0
+      ? `\n- Bairros atendidos: ${unidadeLocation.bairros.join(", ")}.`
+      : "";
+    areaAtendimentoSection = `\n\n🚨 ÁREA DE ATENDIMENTO (REGRA ABSOLUTA — NUNCA QUEBRE):
+- A loja atende SOMENTE em ${cidadeEstado} e região imediata.${bairrosTxt}
+- Se o cliente perguntar se atende OUTRA cidade, OUTRO estado ou OUTRO município (ex: "atende Rio Grande do Sul?", "entrega em São Paulo?", "vocês vão até Curitiba?"):
+  → Responda EDUCADAMENTE que NÃO: "Que pena! Atendemos somente ${cidadeEstado} e região. Não conseguimos entregar aí. 😔"
+  → NUNCA confirme entrega fora de ${cidadeEstado}.
+  → NÃO invente cobertura. NÃO prometa o que não pode cumprir.
+- Se o endereço informado pelo cliente for claramente de outra cidade/estado, recuse a entrega com gentileza.`;
+  }
+
+  return `Você é a ${agentName}, assistente virtual de vendas de gás da empresa. Seu atendimento deve ser CALOROSO, HUMANO e NATURAL — como uma atendente simpática de verdade, não um robô.${areaAtendimentoSection}
 
 PERSONALIDADE:
 - Seja ACOLHEDORA e SIMPÁTICA, use emojis com moderação (1-2 por mensagem)
