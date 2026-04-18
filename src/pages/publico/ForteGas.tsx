@@ -110,7 +110,7 @@ function Header() {
 }
 
 /* ---------- Hero ---------- */
-function Hero() {
+function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
   return (
     <section id="inicio" className="relative min-h-screen flex items-center pt-24 pb-12 overflow-hidden bg-[#0a0118]">
       <FluidBackdrop />
