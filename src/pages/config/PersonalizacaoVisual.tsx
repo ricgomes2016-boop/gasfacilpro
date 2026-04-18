@@ -67,6 +67,15 @@ const THEME_PRESETS = [
     dark: true,
     gradient: "linear-gradient(135deg, #1e3a8a 0%, #2563eb 35%, #06b6d4 70%, #d946ef 100%)",
   },
+  {
+    id: "forte-gas-light",
+    label: "Forte Gás · Fluid Light",
+    description: "Versão clara e moderna: brilho azul/ciano, cards com glow suave",
+    cor: "210 100% 55%",
+    hex: "#1a8cff",
+    dark: false,
+    gradient: "linear-gradient(135deg, #dbeafe 0%, #93c5fd 35%, #38bdf8 70%, #06b6d4 100%)",
+  },
 ];
 
 /** Variáveis CSS extras aplicadas quando um preset especial é selecionado */
