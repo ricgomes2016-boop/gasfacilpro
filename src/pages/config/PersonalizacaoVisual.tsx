@@ -179,7 +179,10 @@ export default function PersonalizacaoVisual() {
 
   // Apply theme whenever it changes
   useEffect(() => {
-    applyTheme(config.darkMode, config.corPrimaria);
+    const matchedPreset = THEME_PRESETS.find(
+      (p) => p.cor === config.corPrimaria && p.dark === config.darkMode && PRESET_THEME_OVERRIDES[p.id]
+    );
+    applyTheme(config.darkMode, config.corPrimaria, matchedPreset?.id);
   }, [config.darkMode, config.corPrimaria]);
 
   const loadConfig = async () => {
