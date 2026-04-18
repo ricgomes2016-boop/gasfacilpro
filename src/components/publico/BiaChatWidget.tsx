@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, Send, Sparkles } from "lucide-react";
+import { X, Send, Sparkles, Mic, Square } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 /** Marca abstrata moderna da Bia: núcleo pulsante + órbitas + brilho */
@@ -105,6 +105,11 @@ export function BiaChatWidget({
     ];
   });
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const [listening, setListening] = useState(false);
+  const sttSupported =
+    typeof window !== "undefined" &&
+    ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
 
   useEffect(() => {
     try {
@@ -112,6 +117,62 @@ export function BiaChatWidget({
     } catch {}
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, storageKey]);
+
+  useEffect(() => {
+    return () => {
+      try {
+        recognitionRef.current?.abort();
+      } catch {}
+    };
+  }, []);
+
+  const toggleMic = () => {
+    if (!sttSupported) {
+      alert("Seu navegador não suporta gravação por voz. Tente pelo Chrome no Android.");
+      return;
+    }
+    if (listening) {
+      try {
+        recognitionRef.current?.stop();
+      } catch {}
+      setListening(false);
+      return;
+    }
+    const SR: any =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const rec = new SR();
+    rec.lang = "pt-BR";
+    rec.continuous = false;
+    rec.interimResults = true;
+
+    rec.onresult = (event: any) => {
+      let final = "";
+      let interim = "";
+      for (let i = 0; i < event.results.length; i++) {
+        const r = event.results[i];
+        if (r.isFinal) final += r[0].transcript;
+        else interim += r[0].transcript;
+      }
+      setInput((interim || final).trim());
+    };
+    rec.onerror = (e: any) => {
+      console.error("STT error:", e?.error);
+      setListening(false);
+      if (e?.error === "not-allowed") {
+        alert("Permita o acesso ao microfone nas configurações do navegador.");
+      }
+    };
+    rec.onend = () => setListening(false);
+
+    recognitionRef.current = rec;
+    try {
+      rec.start();
+      setListening(true);
+    } catch (err) {
+      console.error(err);
+      setListening(false);
+    }
+  };
 
   // Abertura externa via openSignal + prefilledMessage
   useEffect(() => {
@@ -264,15 +325,30 @@ export function BiaChatWidget({
 
           {/* Input */}
           <div className="border-t border-white/10 p-3 bg-[#0a0118]">
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && enviar()}
-                placeholder="Digite sua mensagem..."
+                placeholder={listening ? "Ouvindo... fale agora" : "Digite ou toque no microfone..."}
                 disabled={loading}
                 className="flex-1 bg-white/5 border border-white/10 text-white placeholder:text-white/40 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-white/30"
               />
+              {sttSupported && (
+                <button
+                  onClick={toggleMic}
+                  disabled={loading}
+                  className={`w-11 h-11 shrink-0 rounded-full flex items-center justify-center transition-all ${
+                    listening
+                      ? "bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/50"
+                      : "bg-white/5 border border-white/10 text-white/80 hover:bg-white/10"
+                  }`}
+                  aria-label={listening ? "Parar gravação" : "Gravar áudio"}
+                  title={listening ? "Parar" : "Gravar áudio"}
+                >
+                  {listening ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </button>
+              )}
               <button
                 onClick={enviar}
                 disabled={loading || !input.trim()}
@@ -283,7 +359,7 @@ export function BiaChatWidget({
               </button>
             </div>
             <div className="text-[10px] text-white/30 text-center mt-2">
-              Atendimento automático com IA
+              {listening ? "🎙️ Ouvindo... toque no quadrado para parar" : "Atendimento automático com IA"}
             </div>
           </div>
         </div>
