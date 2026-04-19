@@ -277,6 +277,10 @@ export default function CentralGasCP() {
         openSignal={biaState.openSignal}
         prefilledMessage={biaState.prefill}
       />
+      <BiaAvatarSite
+        gradient="from-blue-500 via-cyan-500 to-emerald-500"
+        glowClass="shadow-cyan-500/50"
+      />
     </div>
   );
 }
