@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { useConversation } from "@elevenlabs/react";
+import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { Mic, MicOff, X, Sparkles, PhoneOff, Volume2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import biaAvatar from "@/assets/bia-avatar.png";
@@ -13,7 +13,7 @@ interface BiaAvatarSiteProps {
   positionClass?: string;
 }
 
-export function BiaAvatarSite({
+function BiaAvatarSiteContent({
   glowClass = "shadow-orange-500/50",
   gradient = "from-orange-500 via-fuchsia-500 to-purple-600",
   positionClass = "fixed bottom-44 right-6 z-50",
@@ -263,6 +263,14 @@ export function BiaAvatarSite({
         </div>
       )}
     </>
+  );
+}
+
+export function BiaAvatarSite(props: BiaAvatarSiteProps) {
+  return (
+    <ConversationProvider>
+      <BiaAvatarSiteContent {...props} />
+    </ConversationProvider>
   );
 }
 
