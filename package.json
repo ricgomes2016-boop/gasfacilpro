@@ -17,6 +17,7 @@
     "@capacitor/android": "^8.2.0",
     "@capacitor/core": "^8.2.0",
     "@capacitor/ios": "^8.2.0",
+    "@elevenlabs/react": "^1.1.1",
     "@hookform/resolvers": "^3.10.0",
     "@lovable.dev/cloud-auth-js": "^1.0.0",
     "@radix-ui/react-accordion": "^1.2.11",
