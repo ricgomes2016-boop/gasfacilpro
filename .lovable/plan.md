@@ -1,33 +1,51 @@
 
-Vou criar um novo preset de tema "Fluid Energy Light" em `src/pages/config/PersonalizacaoVisual.tsx`, com fundo claro, gradientes vibrantes em azul/ciano e cards modernos com brilho.
+Bia conversacional por voz no site Forte Gás — cliente fala no microfone, ela responde por voz, em tempo real.
+
+## Abordagem: ElevenLabs Conversational AI (Agent)
+
+Já temos `ELEVENLABS_AGENT_ID` configurado nos secrets — perfeito. Vou usar o SDK oficial `@elevenlabs/react` (`useConversation`) com WebRTC: latência baixa, transcrição + TTS + LLM tudo gerenciado pela ElevenLabs.
 
 ## O que vou fazer
 
-**1. Novo preset no arquivo `src/pages/config/PersonalizacaoVisual.tsx`**
-- Adicionar um novo item na lista de presets: `forte-gas-light` (label: "Forte Gás · Fluid Light")
-- Paleta clara:
-  - Background: branco levemente azulado (`hsl(210 40% 98%)`)
-  - Foreground: navy escuro para contraste (`hsl(222 47% 11%)`)
-  - Card: branco puro com leve tom (`hsl(0 0% 100%)`)
-  - Primary: azul vibrante (`hsl(210 100% 55%)`)
-  - Accent: ciano elétrico (`hsl(190 95% 50%)`)
-  - Gradient primary: 4 stops claros — `#dbeafe → #93c5fd → #38bdf8 → #06b6d4`
-  - Shadow glow: azul suave para dar brilho (`0 0 30px hsl(210 100% 60% / 0.35)`)
-- Swatches de preview atualizados com tons claros + acento ciano
+**1. Edge function `elevenlabs-conversation-token`** (nova, pública)
+- Gera token WebRTC de uso único usando `ELEVENLABS_AGENT_ID` + `ELEVENLABS_API_KEY`
+- Mantém a API key segura no servidor
 
-**2. Cards modernos com brilho (escopo do tema)**
-Adicionar regras CSS escopadas no mesmo preset (via `--gradient-card` e injetar uma classe utilitária no preset) para que cards usando `bg-card` ganhem:
-- Borda sutil com gradiente
-- Sombra azul suave (glow)
-- Hover com leve elevação
-- Topo com linha em gradiente azul→ciano
+**2. Componente `BiaAvatarSite.tsx`** (novo)
+- Avatar circular flutuante (canto inferior direito do site)
+- Ao clicar: abre card com avatar grande + botão "Falar com a Bia"
+- Pede permissão de microfone, busca o token, conecta via WebRTC
+- Estados visuais: idle / conectando / ouvindo / falando (animação de ondas)
+- Avatar pulsa quando `isSpeaking`
+- Botão "Encerrar conversa" e fechar
+- Mostra transcrição ao vivo do que cliente falou + última resposta da Bia (texto pequeno, opcional)
 
-Como o sistema já aplica `PRESET_THEME_OVERRIDES` via CSS vars no `:root`, vou:
-- Adicionar variáveis extras: `--gradient-card`, `--gradient-hero`, `--card-glow`
-- Adicionar um pequeno bloco de CSS injetado (já existe padrão similar no arquivo) para o preset `forte-gas-light` que estiliza `.card`/`[data-theme-card]` com a sombra e gradiente quando o preset estiver ativo
+**3. Avatar visual**
+- Gerar 1 imagem da Bia (ilustração profissional, paleta azul/laranja Forte Gás) via Lovable AI image
+- Salvar em `src/assets/bia-avatar.png`
 
-**3. Sem mexer em outros temas**
-Não vou alterar `forte-gas` (Fluid Energy escuro) nem `gasmais`. Apenas adicionar o novo preset claro.
+**4. Integração em `ForteGas.tsx`**
+- Importar e renderizar `<BiaAvatarSite />` fixed bottom-right, posicionado para não sobrepor o botão WhatsApp
 
-## Resultado esperado
-Um tema claro, arejado, com brilho azul/ciano nos cards e gradientes suaves no fundo de elementos hero — visual moderno tipo fintech/SaaS, alinhado ao site Forte Gás mas em modo light.
+**5. Pacote**
+- Adicionar `@elevenlabs/react` ao projeto
+
+## Configuração necessária no painel ElevenLabs (usuário faz)
+O agente (`ELEVENLABS_AGENT_ID`) precisa estar configurado com:
+- **System prompt**: "Você é a Bia, atendente da Forte Gás… [info da empresa: produtos P13/P20/P45, água 20L, telefone (43) 3524-1094, WhatsApp (43) 99966-1816, endereço Rua Benjamin Constant, 110, Cornélio Procópio-PR, horário…]"
+- **First message**: "Oi! Eu sou a Bia da Forte Gás. Como posso te ajudar?"
+- **Language**: Portuguese (pt)
+- **Voice**: feminina PT-BR
+- **Authentication**: pode deixar público (sem auth) se quiser pular o token, ou manter privado e usar o token (recomendado)
+
+Vou deixar o componente preparado pra ambos os modos — se o agente for público, usa só `agentId`; se privado, usa o token gerado pela edge function.
+
+## Arquivos
+- `supabase/functions/elevenlabs-conversation-token/index.ts` (novo)
+- `src/assets/bia-avatar.png` (gerado)
+- `src/components/site/BiaAvatarSite.tsx` (novo)
+- `src/pages/publico/ForteGas.tsx` (montar componente)
+- `package.json` (add `@elevenlabs/react`)
+
+## Resultado
+Visitante clica no avatar → permite microfone → fala normalmente → Bia responde por voz em tempo real, conversando sobre a Forte Gás, produtos, preços, horário, e direciona para WhatsApp se quiser fechar pedido.
