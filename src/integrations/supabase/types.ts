@@ -9441,6 +9441,24 @@ export type Database = {
           telefone: string
         }[]
       }
+      autocomplete_clientes_v2: {
+        Args: {
+          _empresa_id: string
+          _limite?: number
+          _termo?: string
+          _unidade_id?: string
+        }
+        Returns: {
+          bairro: string
+          cep: string
+          cidade: string
+          endereco: string
+          id: string
+          nome: string
+          numero: string
+          telefone: string
+        }[]
+      }
       buscar_clientes_paginado: {
         Args: {
           _apenas_ativos?: boolean
