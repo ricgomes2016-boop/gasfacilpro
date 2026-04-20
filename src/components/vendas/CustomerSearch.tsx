@@ -110,16 +110,15 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
         return;
       }
 
-      const { data, error } = await supabase.rpc("autocomplete_clientes", {
+      const { data, error } = await supabase.rpc("autocomplete_clientes_v2" as any, {
         _empresa_id: empresa.id,
         _unidade_id: unidadeAtual?.id || null,
         _termo: searchTerm,
-        _limite: 10,
+        _limite: 12,
       });
 
       if (!error && data) {
-        // RPC returns: id, nome, telefone, endereco, numero, bairro
-        // Need to fetch cep/cidade only for the small result set if needed later (on select)
+        // v2 returns: id, nome, telefone, endereco, numero, bairro, cep, cidade
         const mapped: Cliente[] = (data as any[]).map((c) => ({
           id: c.id,
           nome: c.nome,
@@ -127,8 +126,8 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
           endereco: c.endereco,
           numero: c.numero,
           bairro: c.bairro,
-          cep: null,
-          cidade: null,
+          cep: c.cep ?? null,
+          cidade: c.cidade ?? null,
         }));
         setSearchResults(mapped);
         setShowResults(mapped.length > 0);
@@ -145,14 +144,16 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
-    if (term.length < 2) {
+    // telefone aceita 2+ dígitos; texto exige 3+
+    const minLen = field === "telefone" ? 2 : 3;
+    if (term.length < minLen) {
       setSearchResults([]);
       setShowResults(false);
       return;
     }
     debounceRef.current = setTimeout(() => {
       executeSearch(term, field);
-    }, 300);
+    }, 350);
   }, [executeSearch]);
 
   // Resolve CEP via ViaCEP (primary source for Brazilian addresses)
