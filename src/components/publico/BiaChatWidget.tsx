@@ -63,7 +63,7 @@ function BiaMark({ size = 28 }: { size?: number }) {
 type Msg = { role: "user" | "assistant"; content: string };
 
 interface Props {
-  unidadeSlug: "fortegas" | "centralgascp";
+  unidadeSlug: "fortegas" | "centralgascp" | "japagas";
   nomeLoja: string;
   /** Tailwind gradient classes para o botão flutuante e header. Ex: "from-fuchsia-500 to-orange-500" */
   gradient?: string;
