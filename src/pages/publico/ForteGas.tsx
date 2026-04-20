@@ -174,6 +174,46 @@ function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
             </a>
           </div>
 
+          {/* Quick action cards (antes flutuantes na arte) */}
+          <div className="grid sm:grid-cols-2 gap-3 max-w-xl mx-auto lg:mx-0 mb-12 animate-fade-in">
+            <button
+              type="button"
+              onClick={() => onAskBia("Quero pedir um P13 agora!")}
+              className="bg-white/10 backdrop-blur-xl border border-white/20 hover:border-fuchsia-400/60 hover:bg-white/[0.18] rounded-2xl p-3 shadow-xl transition-all hover:-translate-y-0.5 hover:scale-[1.02] group cursor-pointer text-left"
+              aria-label="Pedir P13 com a Bia"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-fuchsia-500/30 shrink-0">
+                  <Flame className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                    Pronto agora <Sparkles className="h-2.5 w-2.5 text-fuchsia-300" />
+                  </div>
+                  <div className="text-xs font-bold text-white group-hover:text-fuchsia-200 transition-colors">Pedir P13 → Bia</div>
+                </div>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => onAskBia("Preciso de entrega expressa, por favor!")}
+              className="bg-white/10 backdrop-blur-xl border border-white/20 hover:border-purple-400/60 hover:bg-white/[0.18] rounded-2xl p-3 shadow-xl transition-all hover:-translate-y-0.5 hover:scale-[1.02] group cursor-pointer text-left"
+              aria-label="Pedir entrega expressa com a Bia"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-400 to-purple-500 flex items-center justify-center shadow-lg shadow-purple-500/30 shrink-0">
+                  <Truck className="h-4 w-4 text-white" />
+                </div>
+                <div>
+                  <div className="text-[10px] text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                    Entrega <Sparkles className="h-2.5 w-2.5 text-purple-300" />
+                  </div>
+                  <div className="text-xs font-bold text-white group-hover:text-purple-200 transition-colors">Expressa → Bia</div>
+                </div>
+              </div>
+            </button>
+          </div>
+
           {/* Stat strip */}
           <div className="grid grid-cols-3 gap-3 max-w-xl mx-auto lg:mx-0">
             {[
@@ -201,43 +241,6 @@ function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
               className="relative w-full h-full object-contain drop-shadow-[0_20px_60px_rgba(217,70,239,0.4)] animate-fade-in"
               style={{ animationDuration: "1.2s" }}
             />
-            {/* Floating badges → botões que abrem a Bia */}
-            <button
-              type="button"
-              onClick={() => onAskBia("Quero pedir um P13 agora!")}
-              className="absolute top-6 -left-2 md:-left-6 bg-white/10 backdrop-blur-xl border border-white/20 hover:border-fuchsia-400/60 hover:bg-white/[0.18] rounded-2xl p-3 shadow-xl animate-fade-in transition-all hover:-translate-y-0.5 hover:scale-105 group cursor-pointer text-left"
-              aria-label="Pedir P13 com a Bia"
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-fuchsia-500/30">
-                  <Flame className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-300 uppercase tracking-wider flex items-center gap-1">
-                    Pronto agora <Sparkles className="h-2.5 w-2.5 text-fuchsia-300" />
-                  </div>
-                  <div className="text-xs font-bold text-white group-hover:text-fuchsia-200 transition-colors">Pedir P13 → Bia</div>
-                </div>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => onAskBia("Preciso de entrega expressa, por favor!")}
-              className="absolute bottom-8 -right-2 md:-right-4 bg-white/10 backdrop-blur-xl border border-white/20 hover:border-purple-400/60 hover:bg-white/[0.18] rounded-2xl p-3 shadow-xl animate-fade-in transition-all hover:-translate-y-0.5 hover:scale-105 group cursor-pointer text-left"
-              aria-label="Pedir entrega expressa com a Bia"
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-400 to-purple-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
-                  <Truck className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <div className="text-[10px] text-slate-300 uppercase tracking-wider flex items-center gap-1">
-                    Entrega <Sparkles className="h-2.5 w-2.5 text-purple-300" />
-                  </div>
-                  <div className="text-xs font-bold text-white group-hover:text-purple-200 transition-colors">Expressa → Bia</div>
-                </div>
-              </div>
-            </button>
           </div>
         </div>
       </div>
