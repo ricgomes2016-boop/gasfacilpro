@@ -402,12 +402,9 @@ export default function Pedidos() {
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
   }, [pedidos]);
 
-  const getIdCurto = (id: string) => p_getNum(p_id_holder(id));
-  // Exibe número sequencial quando disponível, fallback para UUID curto
-  function p_id_holder(id: string) { return id; }
-  function p_getNum(id: string) { return id.substring(0, 8).toUpperCase(); }
-  // Helper canônico para uso nas linhas de tabela/dialog
-  const getNumExib = (p: PedidoFormatado) => p.numero_sequencial != null ? String(p.numero_sequencial) : p.id.substring(0, 8).toUpperCase();
+  // Helper: número curto do UUID (legado), e número de exibição (sequencial > UUID curto)
+  const getIdCurto = (id: string) => id.substring(0, 8).toUpperCase();
+  const getNumExib = (p: PedidoFormatado) => p.numero_sequencial != null ? String(p.numero_sequencial) : getIdCurto(p.id);
 
   const getStatusBadgeEntregador = (status: string | null) => {
     switch (status) {
