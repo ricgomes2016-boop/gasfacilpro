@@ -174,9 +174,9 @@ export function BiaChatWidget({
     }
   };
 
-  // Abertura externa via openSignal + prefilledMessage
+  // Abertura externa via openSignal + prefilledMessage (ignora valor inicial 0)
   useEffect(() => {
-    if (openSignal === undefined) return;
+    if (!openSignal) return;
     setOpen(true);
     if (prefilledMessage) setInput(prefilledMessage);
     // eslint-disable-next-line react-hooks/exhaustive-deps
