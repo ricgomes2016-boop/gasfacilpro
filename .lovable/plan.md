@@ -1,51 +1,69 @@
 
 
-## Atualizar imagens e dicas de segurança — Japa Gás (padrão brasileiro)
+## Melhorias: Busca de Cliente + Numeração Sequencial de Pedidos
 
-As 6 imagens atuais da seção "Dicas de Segurança" mostram botijões em formatos europeus/asiáticos (verde-água com válvula exposta, vermelho alto tipo LPG europeu) que não correspondem ao **botijão P13 brasileiro padrão** (cilíndrico baixo, cor cinza/prata com alça superior, lacre plástico colorido no registro).
+### 1. Busca de cliente em Nova Venda — reconhecer endereço + número
 
-### 1. Pesquisa de referência (fontes brasileiras)
+**Problema atual:** `CustomerSearch.tsx` chama `autocomplete_clientes` que só pesquisa em `nome` e `telefone`. Não encontra clientes por endereço (rua) nem por "Rua X, 340".
 
-Consultar conteúdo oficial de:
-- **ABNT NBR 13523 / 15514** (instalações residenciais de GLP)
-- **Sindigás** (Sindicato Nacional das Empresas Distribuidoras de GLP) — cartilha "Uso Seguro do Gás"
-- **Corpo de Bombeiros (PR/SP)** — orientações públicas
-- **Ultragaz, Liquigás, Copagaz, Nacional Gás** — páginas de segurança ao consumidor
+**Solução:**
+- Criar nova função RPC `autocomplete_clientes_v2` (security definer, stable) que aceita um único termo livre e procura em:
+  - `nome` (ILIKE prefixo + contém)
+  - `telefone` (dígitos)
+  - `endereco` (ILIKE)
+  - `bairro` (ILIKE)
+  - `cidade` (ILIKE)
+  - `numero` exato quando o termo contém dígitos
+  - **Suporte combinado:** se o termo vier como `"Rua Brasil 340"` ou `"Brasil, 340"`, separa em parte textual + parte numérica e exige que **ambas** batam (rua contém "Brasil" E número = "340").
+  - Usa `unaccent` + `pg_trgm` (extensões já instaladas) para tolerância a acentos e erros de digitação.
+  - Filtra por `empresa_id` + opcionalmente `unidade_id` via `cliente_unidades`.
+  - Ordena por score (telefone exato > nome prefixo > rua+número > similaridade).
+  - Limite 12 resultados, retorna `id, nome, telefone, endereco, numero, bairro, cep, cidade`.
 
-Para garantir que as dicas reflitam o padrão real brasileiro (mangueira amarela NBR 8613 com validade de 5 anos impressa, regulador com selo INMETRO trocado a cada 5 anos — não 10, lacre plástico com cor do ano, posição vertical em área externa ventilada, etc.).
+- Atualizar `CustomerSearch.tsx`:
+  - Trocar `autocomplete_clientes` → `autocomplete_clientes_v2`.
+  - Adicionar **terceiro campo de busca "Endereço/Nº"** ao lado de Telefone e Nome (mesmo dropdown de resultados unificado), opcional — ou usar o próprio campo "Endereço" já existente para também disparar busca em clientes.
+  - Aumentar debounce para `350ms` (estava 300) e exigir mínimo `3` caracteres para campos textuais (mantém 2 para telefone) — reduz carga.
 
-### 2. Revisar conteúdo das 6 dicas
+### 2. Pedidos — exibir número sequencial em vez do UUID curto
 
-Ajustar textos com base na pesquisa:
+**Problema atual:** `Pedidos.tsx`, `PedidoViewDialog.tsx`, `usePedidos.ts` exibem `id.substring(0,8).toUpperCase()`. O campo `numero_sequencial` já existe na tabela e é preenchido pelo trigger `fn_assign_numero_pedido` (sequencial por empresa).
 
-| # | Título | Ajuste principal |
-|---|--------|------------------|
-| 1 | Verifique o lacre do botijão | Mencionar lacre plástico colorido e selo INMETRO |
-| 2 | Instale em área ventilada | Reforçar "área externa, nunca dentro de armário fechado" (NBR 13523) |
-| 3 | Teste com água e sabão | Manter — é o padrão recomendado pelo Sindigás |
-| 4 | Mangueira e regulador | **Corrigir**: mangueira **amarela NBR 8613** trocar a cada 5 anos, regulador a cada **5 anos** (não 10) |
-| 5 | Em caso de vazamento | Acrescentar "não ligue/desligue interruptores" e ligue 193 |
-| 6 | Mantenha em pé, longe do calor | Reforçar distância mínima de 1,5m do fogão |
+**Solução:**
+- `src/hooks/usePedidos.ts`: incluir `numero_sequencial` no `select` e adicionar ao tipo `PedidoFormatado`.
+- `src/types/pedido.ts`: adicionar `numero_sequencial: number | null`.
+- `src/pages/vendas/Pedidos.tsx`:
+  - Substituir `getIdCurto(p.id)` por `p.numero_sequencial ? '#' + p.numero_sequencial : '#' + getIdCurto(p.id)` (fallback para pedidos antigos sem número).
+  - Aplicar nas linhas: header da lista, exportação CSV, impressão, mensagem WhatsApp, modal de detalhes.
+- `src/components/pedidos/PedidoViewDialog.tsx`: mesmo tratamento.
+- Adicionar busca por número sequencial no filtro da tela Pedidos (já existe filtro por texto — incluir match em `numero_sequencial`).
 
-### 3. Regerar as 6 imagens com padrão brasileiro
+### 3. Cadastro de Cliente — busca por endereço + performance
 
-Gerar novas fotos via Lovable AI (`google/gemini-3.1-flash-image-preview` para qualidade superior) com prompts explícitos descrevendo:
+**Problema atual:** RPC `buscar_clientes_paginado` só procura em `nome, telefone, cpf, codigo_cliente`. Adicionalmente, `fetchClientes` dispara **5 queries de count em paralelo a cada busca** — pesado em bases grandes.
 
-- **Botijão P13 brasileiro**: cilindro de aço cinza/prata de ~13kg, alça superior em arco, base circular preta, registro/válvula no topo com lacre plástico colorido, etiqueta com logo da distribuidora
-- **Cozinha brasileira**: ambiente típico residencial brasileiro (não europeu)
-- **Mangueira amarela** visível nas fotos de instalação
-- **Regulador prata com selo INMETRO** circular
+**Solução:**
+- Atualizar RPC `buscar_clientes_paginado` (via migração que recria a função) para incluir `OR endereco ILIKE '%termo%' OR bairro ILIKE '%termo%'` quando o termo tem ≥3 caracteres. Quando o termo contém dígitos isolados, também tentar match em `numero`.
+- Em `CadastroClientes.tsx`:
+  - **Performance**: Calcular as estatísticas (`stats` com 4 counts) **apenas no carregamento inicial e quando `unidadeAtual` muda** — não a cada digitação/paginação. Hoje recalcula a cada mudança de `debouncedSearch` e `currentPage`.
+  - Aumentar debounce de `350ms` → `450ms`.
+  - Aumentar mínimo de caracteres da busca para `2` (já é) mas **só dispara busca server-side** se `term.length === 0 || term.length >= 2`.
+  - Adicionar placeholder no input: `"Buscar por nome, telefone, CPF, endereço, bairro ou número…"`.
 
-Salvar substituindo `src/assets/japa-gas/seguranca-{1..6}.jpg`.
+### Detalhes técnicos / Arquivos
 
-### 4. Arquivos
+**Migrações SQL** (1 migration):
+- `CREATE OR REPLACE FUNCTION autocomplete_clientes_v2(...)` — nova função
+- `CREATE OR REPLACE FUNCTION buscar_clientes_paginado(...)` — recriação com endereço/bairro/número
+- Garantir índices: `CREATE INDEX IF NOT EXISTS idx_clientes_endereco_trgm ON clientes USING gin (endereco gin_trgm_ops);` e equivalente para `bairro`. Acelera ILIKE em bases grandes.
 
-- **Editar**: `src/pages/publico/JapaGas.tsx` (textos das dicas)
-- **Substituir**: `src/assets/japa-gas/seguranca-1.jpg` … `seguranca-6.jpg` (novas imagens padrão BR)
+**Arquivos a editar:**
+- `src/components/vendas/CustomerSearch.tsx` — usar nova RPC, opcionalmente novo campo "Endereço"
+- `src/hooks/usePedidos.ts` — incluir `numero_sequencial`
+- `src/types/pedido.ts` — adicionar campo
+- `src/pages/vendas/Pedidos.tsx` — usar `numero_sequencial` em todas as exibições + filtro
+- `src/components/pedidos/PedidoViewDialog.tsx` — usar `numero_sequencial`
+- `src/pages/clientes/CadastroClientes.tsx` — separar fetch de stats, ajustar debounce, atualizar placeholder
 
-### Observação técnica
-
-- Usar `google/gemini-3.1-flash-image-preview` (qualidade pro, rápido) ao invés de `gemini-2.5-flash-image` para garantir realismo dos detalhes (lacre, INMETRO, mangueira amarela).
-- Manter paleta visual coerente (tons quentes/teal de fundo) para harmonia com o restante do site.
-- Sem alterações de layout, rotas ou backend.
+**Sem alterações em:** App.tsx, rotas, autenticação, RLS (apenas funções RPC SECURITY DEFINER novas/atualizadas).
 
