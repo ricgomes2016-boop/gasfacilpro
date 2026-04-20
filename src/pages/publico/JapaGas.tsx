@@ -520,7 +520,6 @@ export default function JapaGas() {
       <Hero onAskBia={askBia} />
       <Sobre />
       <Servicos />
-      <DicasSeguranca />
       <Diferenciais />
       <Contato />
       <Footer />
