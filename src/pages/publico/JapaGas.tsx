@@ -20,7 +20,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import heroImg from "@/assets/japa-gas/hero.jpg";
+import { BiaChatWidget } from "@/components/publico/BiaChatWidget";
+import botijoesImg from "@/assets/japa-gas/botijoes.png";
 import seg1 from "@/assets/japa-gas/seguranca-1.jpg";
 import seg2 from "@/assets/japa-gas/seguranca-2.jpg";
 import seg3 from "@/assets/japa-gas/seguranca-3.jpg";
@@ -28,11 +29,11 @@ import seg4 from "@/assets/japa-gas/seguranca-4.jpg";
 import seg5 from "@/assets/japa-gas/seguranca-5.jpg";
 import seg6 from "@/assets/japa-gas/seguranca-6.jpg";
 
-const WHATSAPP_NUMBER = "5543999661816";
+const WHATSAPP_NUMBER = "5543999892022";
 const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=Olá! Gostaria de fazer um pedido de gás na Japa Gás.`;
-const PHONE = "(43) 3524-1094";
-const WHATSAPP_DISPLAY = "(43) 99966-1816";
-const ENDERECO = "Cornélio Procópio, PR";
+const PHONE = "(43) 3542-3003";
+const WHATSAPP_DISPLAY = "(43) 99989-2022";
+const ENDERECO = "Rua Gilberto Freire, 340 — Vila Maria, Bandeirantes, PR";
 
 // Paleta Japa Gás
 const TEAL = "#0d7377";
@@ -69,7 +70,7 @@ function Header() {
               Japa Gás
             </span>
             <span className="text-[10px] uppercase tracking-widest text-slate-400">
-              Filial Central Gás
+              Bandeirantes · PR
             </span>
           </div>
         </a>
@@ -119,11 +120,11 @@ function Header() {
   );
 }
 
-function Hero() {
+function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
   const quickActions = [
-    { label: "Pronto agora", desc: "Peça e receba rápido" },
-    { label: "Gás P13", desc: "Botijão residencial" },
-    { label: "Entrega expressa", desc: "Em minutos na sua porta" },
+    { label: "Pronto agora", desc: "Peça e receba rápido", msg: "Quero gás agora!" },
+    { label: "Gás P13", desc: "Botijão residencial", msg: "Quero pedir um P13!" },
+    { label: "Entrega expressa", desc: "Em minutos na sua porta", msg: "Preciso de entrega expressa, por favor!" },
   ];
   return (
     <section id="inicio" className="relative pt-16 overflow-hidden">
@@ -153,7 +154,7 @@ function Hero() {
           sua casa
         </h1>
         <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-8">
-          Gás de cozinha P13 e P45 com entrega rápida em Cornélio Procópio. Atendimento
+          Gás de cozinha P13 e P45 com entrega rápida em Bandeirantes. Atendimento
           atencioso, segurança e qualidade — do nosso lar ao seu.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -181,13 +182,17 @@ function Hero() {
 
         <div className="mt-10 grid sm:grid-cols-3 gap-3 max-w-3xl mx-auto">
           {quickActions.map((a) => (
-            <div
+            <button
               key={a.label}
-              className="text-left bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4"
+              onClick={() => onAskBia(a.msg)}
+              className="text-left bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/20 transition-colors group"
             >
               <div className="text-sm font-bold text-white">{a.label}</div>
               <div className="text-xs text-white/80 mt-0.5">{a.desc}</div>
-            </div>
+              <div className="text-[11px] text-white/70 mt-2 group-hover:text-white transition-colors">
+                Falar com a Bia →
+              </div>
+            </button>
           ))}
         </div>
       </div>
@@ -210,24 +215,23 @@ function Sobre() {
           </h2>
           <div className="w-16 h-1 mb-6 rounded-full" style={{ background: CORAL }} />
           <p className="text-lg text-slate-600 leading-relaxed">
-            A <strong>Japa Gás</strong> é uma filial da rede <strong>Central Gás</strong>,
-            atendendo Cornélio Procópio com a mesma qualidade, agilidade e dedicação que
-            marcam nossa história. Inspirados nos valores de <em>respeito, disciplina e
-            atenção aos detalhes</em>, oferecemos entrega rápida e atendimento humano para
-            cada cliente.
+            A <strong>Japa Gás</strong> entrega em Bandeirantes com agilidade, segurança e
+            atendimento humano. Inspirados nos valores de <em>respeito, disciplina e
+            atenção aos detalhes</em>, cuidamos de cada pedido como se fosse para nossa
+            própria casa.
           </p>
           <p className="mt-4 text-slate-500">
             Nosso compromisso: você nunca fica sem gás — e sempre recebe com segurança.
           </p>
         </div>
-        <div className="relative rounded-2xl overflow-hidden shadow-xl">
+        <div className="relative rounded-2xl overflow-hidden p-6 flex items-center justify-center" style={{ background: WASHI }}>
           <img
-            src={heroImg}
-            alt="Cozinha aconchegante com botijão da Japa Gás"
-            width={1280}
-            height={768}
+            src={botijoesImg}
+            alt="Botijões de gás P13 e P45 da Japa Gás"
+            width={1080}
+            height={900}
             loading="lazy"
-            className="w-full h-full object-cover"
+            className="w-full h-auto object-contain max-h-96"
           />
         </div>
       </div>
@@ -466,8 +470,8 @@ function Footer() {
     <footer className="bg-slate-900 text-slate-400 py-8">
       <div className="max-w-6xl mx-auto px-4 text-center text-sm space-y-1">
         <p>
-          © {new Date().getFullYear()} <span className="text-white font-semibold">Japa Gás</span> —
-          Filial Central Gás · Cornélio Procópio, PR.
+          © {new Date().getFullYear()} <span className="text-white font-semibold">Japa Gás</span> ·
+          Bandeirantes, PR.
         </p>
         <p className="text-xs text-slate-500">Todos os direitos reservados.</p>
       </div>
@@ -502,10 +506,18 @@ function ScrollTop() {
 }
 
 export default function JapaGas() {
+  const [biaSignal, setBiaSignal] = useState(0);
+  const [biaPrefill, setBiaPrefill] = useState<string | undefined>(undefined);
+
+  const askBia = (msg: string) => {
+    setBiaPrefill(msg);
+    setBiaSignal((n) => n + 1);
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      <Hero />
+      <Hero onAskBia={askBia} />
       <Sobre />
       <Servicos />
       <DicasSeguranca />
@@ -514,6 +526,14 @@ export default function JapaGas() {
       <Footer />
       <FloatingWhatsApp />
       <ScrollTop />
+      <BiaChatWidget
+        unidadeSlug="japagas"
+        nomeLoja="Japa Gás"
+        gradient="from-teal-600 via-teal-500 to-orange-400"
+        accent="teal-600"
+        openSignal={biaSignal}
+        prefilledMessage={biaPrefill}
+      />
     </div>
   );
 }
