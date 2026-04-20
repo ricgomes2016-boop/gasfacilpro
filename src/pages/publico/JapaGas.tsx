@@ -48,7 +48,7 @@ function Header() {
     { label: "Início", href: "#inicio" },
     { label: "Sobre", href: "#sobre" },
     { label: "Serviços", href: "#servicos" },
-    { label: "Segurança", href: "#seguranca" },
+    
     { label: "Contato", href: "#contato" },
   ];
   return (
@@ -520,7 +520,6 @@ export default function JapaGas() {
       <Hero onAskBia={askBia} />
       <Sobre />
       <Servicos />
-      <DicasSeguranca />
       <Diferenciais />
       <Contato />
       <Footer />
