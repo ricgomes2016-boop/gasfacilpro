@@ -2460,6 +2460,47 @@ export type Database = {
           },
         ]
       }
+      contador_empresas: {
+        Row: {
+          ativo: boolean
+          contador_user_id: string
+          created_at: string
+          empresa_id: string
+          id: string
+          observacoes: string | null
+          permissoes: Json
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          contador_user_id: string
+          created_at?: string
+          empresa_id: string
+          id?: string
+          observacoes?: string | null
+          permissoes?: Json
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          contador_user_id?: string
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          observacoes?: string | null
+          permissoes?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contador_empresas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contas_bancarias: {
         Row: {
           agencia: string | null
@@ -2842,6 +2883,106 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      despesas_contabeis: {
+        Row: {
+          arquivo_mime: string | null
+          arquivo_nome: string | null
+          arquivo_url: string | null
+          categoria: string | null
+          cnpj_fornecedor: string | null
+          contador_baixou_em: string | null
+          contador_user_id: string | null
+          created_at: string
+          data_despesa: string
+          descricao: string
+          empresa_id: string
+          forma_pagamento: string | null
+          fornecedor: string | null
+          id: string
+          observacoes: string | null
+          ocr_metadata: Json | null
+          ocr_texto: string | null
+          plano_conta_id: string | null
+          status: string
+          unidade_id: string | null
+          updated_at: string
+          uploaded_by: string | null
+          valor: number
+        }
+        Insert: {
+          arquivo_mime?: string | null
+          arquivo_nome?: string | null
+          arquivo_url?: string | null
+          categoria?: string | null
+          cnpj_fornecedor?: string | null
+          contador_baixou_em?: string | null
+          contador_user_id?: string | null
+          created_at?: string
+          data_despesa?: string
+          descricao: string
+          empresa_id: string
+          forma_pagamento?: string | null
+          fornecedor?: string | null
+          id?: string
+          observacoes?: string | null
+          ocr_metadata?: Json | null
+          ocr_texto?: string | null
+          plano_conta_id?: string | null
+          status?: string
+          unidade_id?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          valor?: number
+        }
+        Update: {
+          arquivo_mime?: string | null
+          arquivo_nome?: string | null
+          arquivo_url?: string | null
+          categoria?: string | null
+          cnpj_fornecedor?: string | null
+          contador_baixou_em?: string | null
+          contador_user_id?: string | null
+          created_at?: string
+          data_despesa?: string
+          descricao?: string
+          empresa_id?: string
+          forma_pagamento?: string | null
+          fornecedor?: string | null
+          id?: string
+          observacoes?: string | null
+          ocr_metadata?: Json | null
+          ocr_texto?: string | null
+          plano_conta_id?: string | null
+          status?: string
+          unidade_id?: string | null
+          updated_at?: string
+          uploaded_by?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "despesas_contabeis_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_contabeis_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_despesas_plano_conta"
+            columns: ["plano_conta_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
         ]
@@ -9515,7 +9656,22 @@ export type Database = {
         Args: { _data: string; _unidade_id: string }
         Returns: boolean
       }
+      contador_has_empresa: {
+        Args: { _empresa_id: string; _user_id: string }
+        Returns: boolean
+      }
       execute_readonly_query: { Args: { query_text: string }; Returns: Json }
+      get_contador_empresas: {
+        Args: { _user_id?: string }
+        Returns: {
+          empresa_id: string
+          empresa_logo_url: string
+          empresa_nome: string
+          empresa_slug: string
+          permissoes: Json
+          total_unidades: number
+        }[]
+      }
       get_empresa_by_slug: {
         Args: { _slug: string }
         Returns: {
