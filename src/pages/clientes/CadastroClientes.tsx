@@ -1077,7 +1077,7 @@ export default function CadastroClientesCad() {
                   <div className="relative w-full sm:w-64">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      placeholder="Buscar cliente..."
+                      placeholder="Buscar por nome, telefone, CPF, endereço, bairro ou número..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-9"
