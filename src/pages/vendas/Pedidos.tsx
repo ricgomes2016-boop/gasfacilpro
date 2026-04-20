@@ -299,7 +299,7 @@ export default function Pedidos() {
     excluirPedido(
       { pedidoId: pedidoExcluir.id },
       {
-        onSuccess: () => {toast({ title: "Pedido excluído", description: `Pedido #${getIdCurto(pedidoExcluir.id)} foi excluído permanentemente.` });setDeleteDialogAberto(false);setPedidoExcluir(null);},
+        onSuccess: () => {toast({ title: "Pedido excluído", description: `Pedido #${pedidoExcluir.numero_sequencial ?? getIdCurto(pedidoExcluir.id)} foi excluído permanentemente.` });setDeleteDialogAberto(false);setPedidoExcluir(null);},
         onError: (error: any) => {toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });}
       }
     );
@@ -324,7 +324,7 @@ export default function Pedidos() {
       eq("id", pedidoTransferirFilial.id);
       if (error) throw error;
       const filialNome = unidades.find((u) => u.id === filialSelecionadaId)?.nome || "filial";
-      toast({ title: "Pedido transferido!", description: `Pedido #${getIdCurto(pedidoTransferirFilial.id)} transferido para ${filialNome}.` });
+      toast({ title: "Pedido transferido!", description: `Pedido #${pedidoTransferirFilial.numero_sequencial ?? getIdCurto(pedidoTransferirFilial.id)} transferido para ${filialNome}.` });
       queryClient.invalidateQueries({ queryKey: ["pedidos"] });
       setFilialDialogAberto(false);
       setPedidoTransferirFilial(null);
@@ -560,7 +560,7 @@ export default function Pedidos() {
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Sugerir Entregador - Pedido #{getIdCurto(pedido.id)}</DialogTitle>
+                        <DialogTitle>Sugerir Entregador - Pedido #{getNumExib(pedido)}</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4 mt-4">
                         <div className="p-4 bg-muted rounded-lg">
@@ -739,7 +739,7 @@ export default function Pedidos() {
                         <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} className="shrink-0" />
                         <div className="min-w-0 flex-1">
                           <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs truncate max-w-full" onClick={() => editarPedido(pedido.id)}>
-                            #{getIdCurto(pedido.id)}
+                            #{getNumExib(pedido)}
                           </Button>
                           <p className="text-sm font-medium truncate">{pedido.cliente}</p>
                         </div>
@@ -808,7 +808,7 @@ export default function Pedidos() {
                         </TableCell>
                         <TableCell>
                           <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs" onClick={() => editarPedido(pedido.id)}>
-                            #{getIdCurto(pedido.id)}
+                            #{getNumExib(pedido)}
                           </Button>
                         </TableCell>
                         <TableCell className="font-medium text-sm max-w-[120px] truncate">{pedido.cliente}</TableCell>
@@ -943,7 +943,7 @@ export default function Pedidos() {
             <div className="space-y-4 mt-2">
                 <div className="p-4 bg-muted rounded-lg space-y-1">
                   <div className="flex items-center justify-between">
-                    <p className="font-medium text-sm">Pedido #{getIdCurto(pedidoTransferir.id)}</p>
+                    <p className="font-medium text-sm">Pedido #{getNumExib(pedidoTransferir)}</p>
                     <Badge variant="outline">R$ {pedidoTransferir.valor.toFixed(2)}</Badge>
                   </div>
                   <p className="text-sm">{pedidoTransferir.cliente}</p>
@@ -983,7 +983,7 @@ export default function Pedidos() {
             <AlertDialogHeader>
               <AlertDialogTitle className="flex items-center gap-2"><Lock className="h-5 w-5 text-destructive" />Excluir Pedido</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta ação é irreversível. O pedido <span className="font-bold">#{pedidoExcluir ? getIdCurto(pedidoExcluir.id) : ""}</span> será excluído permanentemente. Digite sua senha para confirmar.
+                Esta ação é irreversível. O pedido <span className="font-bold">#{pedidoExcluir ? getNumExib(pedidoExcluir) : ""}</span> será excluído permanentemente. Digite sua senha para confirmar.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="space-y-3 py-2">
@@ -1069,7 +1069,7 @@ export default function Pedidos() {
           <div className="space-y-4 mt-2">
               <div className="p-4 bg-muted rounded-lg space-y-1">
                 <div className="flex items-center justify-between">
-                  <p className="font-medium text-sm">Pedido #{getIdCurto(pedidoTransferirFilial.id)}</p>
+                  <p className="font-medium text-sm">Pedido #{getNumExib(pedidoTransferirFilial)}</p>
                   <Badge variant="outline">R$ {pedidoTransferirFilial.valor.toFixed(2)}</Badge>
                 </div>
                 <p className="text-sm">{pedidoTransferirFilial.cliente}</p>
