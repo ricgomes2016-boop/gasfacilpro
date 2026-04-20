@@ -65,7 +65,9 @@ export function ProtectedRoute({
       if (roles.includes("entregador")) return <Navigate to="/entregador" replace />;
       if (roles.includes("parceiro")) return <Navigate to="/parceiro" replace />;
       if (roles.includes("transportadora")) return <Navigate to="/transportadora" replace />;
-      if (roles.includes("contador")) return <Navigate to="/financeiro/contador" replace />;
+      if (roles.includes("contador")) {
+        return <Navigate to={subdomainApp === "contador" ? "/contador" : "/financeiro/contador"} replace />;
+      }
       // If roles not yet loaded, wait
       if (roles.length === 0) {
         return (
@@ -96,7 +98,9 @@ export function ProtectedRoute({
       if (roles.includes("entregador")) return <Navigate to="/entregador" replace />;
       if (roles.includes("parceiro")) return <Navigate to="/parceiro" replace />;
       if (roles.includes("transportadora")) return <Navigate to="/transportadora" replace />;
-      if (roles.includes("contador")) return <Navigate to="/financeiro/contador" replace />;
+      if (roles.includes("contador")) {
+        return <Navigate to={subdomainApp === "contador" ? "/contador" : "/financeiro/contador"} replace />;
+      }
 
       // On restricted subdomains, redirect to auth instead of showing access denied with broken links
       if (subdomainApp && subdomainApp !== "landing") {
