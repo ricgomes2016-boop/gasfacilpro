@@ -280,38 +280,38 @@ const dicasSeguranca = [
   {
     img: seg1,
     icon: CheckCircle2,
-    title: "Verifique o lacre do botijão",
-    desc: "Antes de aceitar o botijão, confira se o lacre está intacto. Lacre rompido pode indicar adulteração.",
+    title: "Confira o lacre e o selo INMETRO",
+    desc: "Só aceite botijões com lacre plástico colorido intacto e selo INMETRO visível na válvula. Lacre rompido pode indicar adulteração.",
   },
   {
     img: seg2,
     icon: Wind,
-    title: "Instale em área ventilada",
-    desc: "Mantenha o botijão sempre em local arejado, longe de paredes fechadas e ambientes sem circulação de ar.",
+    title: "Instale em área externa ventilada",
+    desc: "Conforme a NBR 13523, o botijão deve ficar em área externa e ventilada — nunca dentro de armários fechados ou cômodos sem circulação de ar.",
   },
   {
     img: seg3,
     icon: Droplets,
     title: "Teste com água e sabão",
-    desc: "Aplique água com sabão nas conexões. Se formar bolhas, há vazamento — feche o registro imediatamente.",
+    desc: "Aplique espuma de água com sabão nas conexões (válvula, regulador e mangueira). Se formar bolhas, há vazamento — feche o registro imediatamente.",
   },
   {
     img: seg4,
     icon: Calendar,
-    title: "Mangueira e regulador na validade",
-    desc: "Troque a mangueira a cada 5 anos e o regulador a cada 10. Verifique sempre a data gravada nos equipamentos.",
+    title: "Mangueira amarela e regulador certificados",
+    desc: "Use mangueira amarela NBR 8613 e regulador com selo INMETRO. Ambos devem ser trocados a cada 5 anos — confira a data impressa nos equipamentos.",
   },
   {
     img: seg5,
     icon: AlertTriangle,
     title: "Em caso de vazamento",
-    desc: "NÃO acenda luzes, nem use celular. Abra portas e janelas, feche o registro e ligue para o 193.",
+    desc: "NÃO acenda fósforos, NÃO ligue ou desligue interruptores e NÃO use celular. Feche o registro, abra portas e janelas e ligue para o 193 (Bombeiros).",
   },
   {
     img: seg6,
     icon: ArrowUpCircle,
-    title: "Mantenha em pé, longe do calor",
-    desc: "O botijão deve ficar sempre na vertical, longe de fogões, fornos, sol direto e fontes de calor.",
+    title: "Em pé e a 1,5m do fogão",
+    desc: "Mantenha o botijão sempre na vertical, a no mínimo 1,5 metro do fogão e longe de fornos, sol direto e fontes de calor.",
   },
 ];
 
