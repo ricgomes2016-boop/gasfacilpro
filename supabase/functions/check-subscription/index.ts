@@ -48,7 +48,12 @@ serve(async (req) => {
       });
     }
 
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    const supabaseAuth = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } }
+    );
+    const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
     if (userError) {
       const message = userError.message || "Authentication failed";
       // Avoid hard-failing transient auth races on client startup
