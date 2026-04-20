@@ -548,7 +548,6 @@ function ScrollTop() {
 }
 
 import { BiaChatWidget } from "@/components/publico/BiaChatWidget";
-import { BiaAvatarSite } from "@/components/site/BiaAvatarSite";
 
 export default function ForteGas() {
   const [biaSignal, setBiaSignal] = useState(0);
@@ -579,7 +578,6 @@ export default function ForteGas() {
         openSignal={biaSignal}
         prefilledMessage={biaPrefill}
       />
-      <BiaAvatarSite />
     </div>
   );
 }
