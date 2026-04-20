@@ -113,6 +113,38 @@ const App = () => (
                             {renderRoutes(integracoesRoutes)}
                             {renderRoutes(marketingRoutes)}
 
+                            {/* Portal do Contador (subdomínio contabil.*) */}
+                            <Route path="/contador" element={
+                              <ProtectedRoute allowedRoles={["contador","admin","super_admin","gestor","financeiro"]}>
+                                <ContadorProvider><ContadorDashboard /></ContadorProvider>
+                              </ProtectedRoute>
+                            } />
+                            <Route path="/contador/empresas" element={
+                              <ProtectedRoute allowedRoles={["contador","admin","super_admin","gestor","financeiro"]}>
+                                <ContadorProvider><ContadorEmpresas /></ContadorProvider>
+                              </ProtectedRoute>
+                            } />
+                            <Route path="/contador/xml" element={
+                              <ProtectedRoute allowedRoles={["contador","admin","super_admin","gestor","financeiro"]}>
+                                <ContadorProvider><ContadorXML /></ContadorProvider>
+                              </ProtectedRoute>
+                            } />
+                            <Route path="/contador/despesas" element={
+                              <ProtectedRoute allowedRoles={["contador","admin","super_admin","gestor","financeiro"]}>
+                                <ContadorProvider><ContadorDespesas /></ContadorProvider>
+                              </ProtectedRoute>
+                            } />
+                            <Route path="/contador/financeiro" element={
+                              <ProtectedRoute allowedRoles={["contador","admin","super_admin","gestor","financeiro"]}>
+                                <ContadorProvider><ContadorFinanceiro /></ContadorProvider>
+                              </ProtectedRoute>
+                            } />
+                            <Route path="/contador/plano-contas" element={
+                              <ProtectedRoute allowedRoles={["contador","admin","super_admin","gestor","financeiro"]}>
+                                <ContadorProvider><ContadorPlanoContas /></ContadorProvider>
+                              </ProtectedRoute>
+                            } />
+
                             <Route path="*" element={<Navigate to="/dashboard" />} />
                           </Routes>
                         </SubdomainGuard>
