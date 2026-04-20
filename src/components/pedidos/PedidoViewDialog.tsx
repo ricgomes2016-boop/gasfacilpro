@@ -28,8 +28,10 @@ export function PedidoViewDialog({ pedido, open, onOpenChange, onCancelar }: Ped
   const config = statusConfig[pedido.status];
   const StatusIcon = config.icon;
 
-  // ID curto para exibição (primeiros 8 caracteres do UUID)
-  const idCurto = pedido.id.substring(0, 8).toUpperCase();
+  // Número de exibição: usa numero_sequencial quando disponível, com fallback para UUID curto
+  const idCurto = pedido.numero_sequencial != null
+    ? String(pedido.numero_sequencial)
+    : pedido.id.substring(0, 8).toUpperCase();
 
   const handlePrint = () => {
     const itensHtml = pedido.itens

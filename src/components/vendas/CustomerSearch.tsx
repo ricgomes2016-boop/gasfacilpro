@@ -501,11 +501,13 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
               <div className="relative flex-1 min-w-0">
                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Rua, Avenida..."
+                  placeholder="Rua, Avenida... (busca cliente também)"
                   value={value.endereco}
                   onChange={(e) => {
                     handleFieldChange("endereco", e.target.value);
                     debouncedAddressSearch(e.target.value);
+                    // Também busca cliente por endereço quando não há cliente selecionado
+                    if (!value.id) searchClientes(e.target.value, "endereco");
                   }}
                   onBlur={() => {
                     // delay to allow click on suggestion

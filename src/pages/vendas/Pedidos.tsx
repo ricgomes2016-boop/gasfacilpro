@@ -47,10 +47,14 @@ import { toast as sonnerToast } from "sonner";
 import { getBrasiliaDate } from "@/lib/utils";
 import { format as fnsFormat } from "date-fns";
 
+function getNumeroExibicao(p: { numero_sequencial?: number | null; id: string }) {
+  return p.numero_sequencial != null ? String(p.numero_sequencial) : p.id.substring(0, 8).toUpperCase();
+}
+
 function exportarPedidosCSV(pedidos: PedidoFormatado[]) {
-  const header = ["ID", "Data", "Cliente", "Endereço", "Produtos", "Valor (R$)", "Status", "Pagamento", "Entregador", "Canal"];
+  const header = ["Nº", "Data", "Cliente", "Endereço", "Produtos", "Valor (R$)", "Status", "Pagamento", "Entregador", "Canal"];
   const rows = pedidos.map((p) => [
-  p.id.substring(0, 8).toUpperCase(),
+  getNumeroExibicao(p),
   p.data,
   p.cliente,
   (p.endereco || "").replace(/,/g, " "),
@@ -332,7 +336,7 @@ export default function Pedidos() {
   };
 
   const imprimirPedido = (pedido: PedidoFormatado) => {
-    const idCurto = pedido.id.substring(0, 8).toUpperCase();
+    const idCurto = getNumeroExibicao(pedido);
     const itensHtml = pedido.itens.map((item) => `<div>${item.quantidade}x ${item.produto?.nome || 'Produto'} - R$ ${(item.preco_unitario * item.quantidade).toFixed(2)}</div>`).join("");
     const printContent = `<html><head><title>Pedido #${idCurto}</title><style>body{font-family:Arial,sans-serif;padding:20px}.header{text-align:center;margin-bottom:20px}.info{margin:8px 0}.label{font-weight:bold}.total{font-size:18px;font-weight:bold;margin-top:20px}.sep{border-top:1px dashed #ccc;margin:15px 0}</style></head><body><div class="header"><h2>PEDIDO #${idCurto}</h2><p>${pedido.data}</p></div><div class="sep"></div><div class="info"><span class="label">Cliente:</span> ${pedido.cliente}</div><div class="info"><span class="label">Endereço:</span> ${pedido.endereco}</div><div class="sep"></div><div class="info"><span class="label">Itens:</span></div>${itensHtml || `<div>${pedido.produtos}</div>`}${pedido.entregador ? `<div class="sep"></div><div class="info"><span class="label">Entregador:</span> ${pedido.entregador}</div>` : ''}${pedido.observacoes ? `<div class="info"><span class="label">Obs:</span> ${pedido.observacoes}</div>` : ''}<div class="sep"></div><div class="total">TOTAL: R$ ${pedido.valor.toFixed(2)}</div></body></html>`;
     const w = window.open('', '_blank');
@@ -340,7 +344,7 @@ export default function Pedidos() {
   };
 
   const enviarWhatsApp = (pedido: PedidoFormatado) => {
-    const idCurto = pedido.id.substring(0, 8).toUpperCase();
+    const idCurto = getNumeroExibicao(pedido);
     const itensTexto = pedido.itens.map((item) => `  • ${item.quantidade}x ${item.produto?.nome || 'Produto'}`).join("\n");
     const mensagem = encodeURIComponent(
       `*Pedido #${idCurto}*\n\n📦 *Produtos:*\n${itensTexto || pedido.produtos}\n\n💰 *Valor:* R$ ${pedido.valor.toFixed(2)}\n📍 *Endereço:* ${pedido.endereco}\n📅 *Data:* ${pedido.data}\n${pedido.observacoes ? `📝 *Obs:* ${pedido.observacoes}\n` : ''}\nObrigado pela preferência!`
