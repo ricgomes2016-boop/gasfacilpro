@@ -588,7 +588,7 @@ export default function Pedidos() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar cliente, endereço, ID..."
+                  placeholder="Buscar nº pedido, cliente, endereço..."
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                   className="h-9 pl-9" />
