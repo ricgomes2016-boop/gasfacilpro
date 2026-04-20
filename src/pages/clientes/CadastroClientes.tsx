@@ -164,13 +164,17 @@ export default function CadastroClientesCad() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Debounce do searchTerm: aguarda 350ms antes de disparar busca no servidor
+  // Debounce do searchTerm: aguarda 450ms antes de disparar busca no servidor
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     searchDebounceRef.current = setTimeout(() => {
-      setDebouncedSearch(searchTerm.trim());
-      setCurrentPage(0);
-    }, 350);
+      const term = searchTerm.trim();
+      // Só dispara busca server-side se vazio OU >= 2 chars
+      if (term.length === 0 || term.length >= 2) {
+        setDebouncedSearch(term);
+        setCurrentPage(0);
+      }
+    }, 450);
     return () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     };
@@ -181,10 +185,53 @@ export default function CadastroClientesCad() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [empresa?.id, unidadeAtual?.id, currentPage, debouncedSearch, filterStatus]);
 
+  // Stats são caros — recalcular apenas quando muda empresa/unidade (não a cada digitação ou paginação)
+  useEffect(() => {
+    fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresa?.id, unidadeAtual?.id]);
+
+  const fetchStats = async () => {
+    if (!empresa?.id) {
+      setStats({ total: 0, ativos: 0, residenciais: 0, comerciais: 0 });
+      return;
+    }
+    try {
+      if (unidadeAtual?.id) {
+        const [allLink, ativosLink, resLink, comLink] = await Promise.all([
+          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id),
+          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id, ativo)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id).eq("clientes.ativo", true),
+          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id, tipo)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id).eq("clientes.tipo", "residencial"),
+          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id, tipo)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id).eq("clientes.tipo", "comercial"),
+        ]);
+        setStats({
+          total: allLink.count || 0,
+          ativos: ativosLink.count || 0,
+          residenciais: resLink.count || 0,
+          comerciais: comLink.count || 0,
+        });
+      } else {
+        const [{ count: cTotal }, { count: cAtivos }, { count: cRes }, { count: cCom }] = await Promise.all([
+          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id),
+          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("ativo", true),
+          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "residencial"),
+          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "comercial"),
+        ]);
+        setStats({
+          total: cTotal || 0,
+          ativos: cAtivos || 0,
+          residenciais: cRes || 0,
+          comerciais: cCom || 0,
+        });
+      }
+    } catch (e) {
+      console.error("Erro ao calcular stats:", e);
+    }
+  };
+
   const fetchClientes = async () => {
     if (!empresa?.id) {
       setClientes([]);
-      setStats({ total: 0, ativos: 0, residenciais: 0, comerciais: 0 });
       setTotalCount(0);
       setIsLoading(false);
       return;
@@ -208,7 +255,6 @@ export default function CadastroClientesCad() {
       if (error) throw error;
 
       const rows = (data || []) as any[];
-      // Se filterStatus === "inativo", precisamos inverter (a RPC trata _apenas_ativos=false como "todos")
       let lista = rows;
       if (filterStatus === "inativo") {
         lista = rows.filter((c) => !c.ativo);
@@ -217,45 +263,6 @@ export default function CadastroClientesCad() {
       setClientes(lista as any);
       const total = rows[0]?.total_count ? Number(rows[0].total_count) : 0;
       setTotalCount(total);
-
-      // Stats: respeitam unidade selecionada (consistente com a lista paginada)
-      if (unidadeAtual?.id) {
-        // Conta via cliente_unidades para refletir a unidade atual
-        const baseLink = supabase
-          .from("cliente_unidades")
-          .select("cliente_id, clientes!inner(empresa_id, ativo, tipo)", { count: "exact", head: false })
-          .eq("unidade_id", unidadeAtual.id)
-          .eq("clientes.empresa_id", empresa.id);
-        const [allLink, ativosLink, resLink, comLink] = await Promise.all([
-          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id),
-          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id, ativo)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id).eq("clientes.ativo", true),
-          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id, tipo)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id).eq("clientes.tipo", "residencial"),
-          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id, tipo)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id).eq("clientes.tipo", "comercial"),
-        ]);
-        setStats({
-          total: allLink.count || total || 0,
-          ativos: ativosLink.count || 0,
-          residenciais: resLink.count || 0,
-          comerciais: comLink.count || 0,
-        });
-      } else {
-        const baseCount = supabase
-          .from("clientes")
-          .select("id", { count: "exact", head: true })
-          .eq("empresa_id", empresa.id);
-        const [{ count: cTotal }, { count: cAtivos }, { count: cRes }, { count: cCom }] = await Promise.all([
-          baseCount,
-          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("ativo", true),
-          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "residencial"),
-          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "comercial"),
-        ]);
-        setStats({
-          total: cTotal || 0,
-          ativos: cAtivos || 0,
-          residenciais: cRes || 0,
-          comerciais: cCom || 0,
-        });
-      }
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
       toast({
@@ -1070,7 +1077,7 @@ export default function CadastroClientesCad() {
                   <div className="relative w-full sm:w-64">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      placeholder="Buscar cliente..."
+                      placeholder="Buscar por nome, telefone, CPF, endereço, bairro ou número..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-9"

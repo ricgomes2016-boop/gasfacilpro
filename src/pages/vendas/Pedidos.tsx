@@ -47,10 +47,14 @@ import { toast as sonnerToast } from "sonner";
 import { getBrasiliaDate } from "@/lib/utils";
 import { format as fnsFormat } from "date-fns";
 
+function getNumeroExibicao(p: { numero_sequencial?: number | null; id: string }) {
+  return p.numero_sequencial != null ? String(p.numero_sequencial) : p.id.substring(0, 8).toUpperCase();
+}
+
 function exportarPedidosCSV(pedidos: PedidoFormatado[]) {
-  const header = ["ID", "Data", "Cliente", "Endereço", "Produtos", "Valor (R$)", "Status", "Pagamento", "Entregador", "Canal"];
+  const header = ["Nº", "Data", "Cliente", "Endereço", "Produtos", "Valor (R$)", "Status", "Pagamento", "Entregador", "Canal"];
   const rows = pedidos.map((p) => [
-  p.id.substring(0, 8).toUpperCase(),
+  getNumeroExibicao(p),
   p.data,
   p.cliente,
   (p.endereco || "").replace(/,/g, " "),
@@ -295,7 +299,7 @@ export default function Pedidos() {
     excluirPedido(
       { pedidoId: pedidoExcluir.id },
       {
-        onSuccess: () => {toast({ title: "Pedido excluído", description: `Pedido #${getIdCurto(pedidoExcluir.id)} foi excluído permanentemente.` });setDeleteDialogAberto(false);setPedidoExcluir(null);},
+        onSuccess: () => {toast({ title: "Pedido excluído", description: `Pedido #${pedidoExcluir.numero_sequencial ?? getIdCurto(pedidoExcluir.id)} foi excluído permanentemente.` });setDeleteDialogAberto(false);setPedidoExcluir(null);},
         onError: (error: any) => {toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });}
       }
     );
@@ -320,7 +324,7 @@ export default function Pedidos() {
       eq("id", pedidoTransferirFilial.id);
       if (error) throw error;
       const filialNome = unidades.find((u) => u.id === filialSelecionadaId)?.nome || "filial";
-      toast({ title: "Pedido transferido!", description: `Pedido #${getIdCurto(pedidoTransferirFilial.id)} transferido para ${filialNome}.` });
+      toast({ title: "Pedido transferido!", description: `Pedido #${pedidoTransferirFilial.numero_sequencial ?? getIdCurto(pedidoTransferirFilial.id)} transferido para ${filialNome}.` });
       queryClient.invalidateQueries({ queryKey: ["pedidos"] });
       setFilialDialogAberto(false);
       setPedidoTransferirFilial(null);
@@ -332,7 +336,7 @@ export default function Pedidos() {
   };
 
   const imprimirPedido = (pedido: PedidoFormatado) => {
-    const idCurto = pedido.id.substring(0, 8).toUpperCase();
+    const idCurto = getNumeroExibicao(pedido);
     const itensHtml = pedido.itens.map((item) => `<div>${item.quantidade}x ${item.produto?.nome || 'Produto'} - R$ ${(item.preco_unitario * item.quantidade).toFixed(2)}</div>`).join("");
     const printContent = `<html><head><title>Pedido #${idCurto}</title><style>body{font-family:Arial,sans-serif;padding:20px}.header{text-align:center;margin-bottom:20px}.info{margin:8px 0}.label{font-weight:bold}.total{font-size:18px;font-weight:bold;margin-top:20px}.sep{border-top:1px dashed #ccc;margin:15px 0}</style></head><body><div class="header"><h2>PEDIDO #${idCurto}</h2><p>${pedido.data}</p></div><div class="sep"></div><div class="info"><span class="label">Cliente:</span> ${pedido.cliente}</div><div class="info"><span class="label">Endereço:</span> ${pedido.endereco}</div><div class="sep"></div><div class="info"><span class="label">Itens:</span></div>${itensHtml || `<div>${pedido.produtos}</div>`}${pedido.entregador ? `<div class="sep"></div><div class="info"><span class="label">Entregador:</span> ${pedido.entregador}</div>` : ''}${pedido.observacoes ? `<div class="info"><span class="label">Obs:</span> ${pedido.observacoes}</div>` : ''}<div class="sep"></div><div class="total">TOTAL: R$ ${pedido.valor.toFixed(2)}</div></body></html>`;
     const w = window.open('', '_blank');
@@ -340,7 +344,7 @@ export default function Pedidos() {
   };
 
   const enviarWhatsApp = (pedido: PedidoFormatado) => {
-    const idCurto = pedido.id.substring(0, 8).toUpperCase();
+    const idCurto = getNumeroExibicao(pedido);
     const itensTexto = pedido.itens.map((item) => `  • ${item.quantidade}x ${item.produto?.nome || 'Produto'}`).join("\n");
     const mensagem = encodeURIComponent(
       `*Pedido #${idCurto}*\n\n📦 *Produtos:*\n${itensTexto || pedido.produtos}\n\n💰 *Valor:* R$ ${pedido.valor.toFixed(2)}\n📍 *Endereço:* ${pedido.endereco}\n📅 *Data:* ${pedido.data}\n${pedido.observacoes ? `📝 *Obs:* ${pedido.observacoes}\n` : ''}\nObrigado pela preferência!`
@@ -357,15 +361,18 @@ export default function Pedidos() {
 
   // Filter pedidos
   const pedidosFiltrados = useMemo(() => {
+    const buscaLower = busca.toLowerCase().trim();
+    const buscaDigits = buscaLower.replace(/\D/g, "");
     return pedidos.filter((p) => {
       const matchStatus = filtroStatus === "todos" || p.status === filtroStatus;
       const matchEntregador = filtroEntregador === "todos" || (
       filtroEntregador === "sem_entregador" ? !p.entregador : p.entregador === filtroEntregador);
       const matchBusca = busca === "" ||
-      p.cliente.toLowerCase().includes(busca.toLowerCase()) ||
-      p.endereco.toLowerCase().includes(busca.toLowerCase()) ||
-      p.id.toLowerCase().includes(busca.toLowerCase()) ||
-      p.entregador && p.entregador.toLowerCase().includes(busca.toLowerCase());
+      p.cliente.toLowerCase().includes(buscaLower) ||
+      p.endereco.toLowerCase().includes(buscaLower) ||
+      p.id.toLowerCase().includes(buscaLower) ||
+      (p.numero_sequencial != null && buscaDigits !== "" && String(p.numero_sequencial).includes(buscaDigits)) ||
+      (p.entregador && p.entregador.toLowerCase().includes(buscaLower));
       return matchStatus && matchEntregador && matchBusca;
     });
   }, [pedidos, filtroStatus, filtroEntregador, busca]);
@@ -395,7 +402,9 @@ export default function Pedidos() {
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
   }, [pedidos]);
 
+  // Helper: número curto do UUID (legado), e número de exibição (sequencial > UUID curto)
   const getIdCurto = (id: string) => id.substring(0, 8).toUpperCase();
+  const getNumExib = (p: PedidoFormatado) => p.numero_sequencial != null ? String(p.numero_sequencial) : getIdCurto(p.id);
 
   const getStatusBadgeEntregador = (status: string | null) => {
     switch (status) {
@@ -551,7 +560,7 @@ export default function Pedidos() {
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Sugerir Entregador - Pedido #{getIdCurto(pedido.id)}</DialogTitle>
+                        <DialogTitle>Sugerir Entregador - Pedido #{getNumExib(pedido)}</DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4 mt-4">
                         <div className="p-4 bg-muted rounded-lg">
@@ -579,7 +588,7 @@ export default function Pedidos() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar cliente, endereço, ID..."
+                  placeholder="Buscar nº pedido, cliente, endereço..."
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                   className="h-9 pl-9" />
@@ -730,7 +739,7 @@ export default function Pedidos() {
                         <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} className="shrink-0" />
                         <div className="min-w-0 flex-1">
                           <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs truncate max-w-full" onClick={() => editarPedido(pedido.id)}>
-                            #{getIdCurto(pedido.id)}
+                            #{getNumExib(pedido)}
                           </Button>
                           <p className="text-sm font-medium truncate">{pedido.cliente}</p>
                         </div>
@@ -799,7 +808,7 @@ export default function Pedidos() {
                         </TableCell>
                         <TableCell>
                           <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs" onClick={() => editarPedido(pedido.id)}>
-                            #{getIdCurto(pedido.id)}
+                            #{getNumExib(pedido)}
                           </Button>
                         </TableCell>
                         <TableCell className="font-medium text-sm max-w-[120px] truncate">{pedido.cliente}</TableCell>
@@ -934,7 +943,7 @@ export default function Pedidos() {
             <div className="space-y-4 mt-2">
                 <div className="p-4 bg-muted rounded-lg space-y-1">
                   <div className="flex items-center justify-between">
-                    <p className="font-medium text-sm">Pedido #{getIdCurto(pedidoTransferir.id)}</p>
+                    <p className="font-medium text-sm">Pedido #{getNumExib(pedidoTransferir)}</p>
                     <Badge variant="outline">R$ {pedidoTransferir.valor.toFixed(2)}</Badge>
                   </div>
                   <p className="text-sm">{pedidoTransferir.cliente}</p>
@@ -974,7 +983,7 @@ export default function Pedidos() {
             <AlertDialogHeader>
               <AlertDialogTitle className="flex items-center gap-2"><Lock className="h-5 w-5 text-destructive" />Excluir Pedido</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta ação é irreversível. O pedido <span className="font-bold">#{pedidoExcluir ? getIdCurto(pedidoExcluir.id) : ""}</span> será excluído permanentemente. Digite sua senha para confirmar.
+                Esta ação é irreversível. O pedido <span className="font-bold">#{pedidoExcluir ? getNumExib(pedidoExcluir) : ""}</span> será excluído permanentemente. Digite sua senha para confirmar.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="space-y-3 py-2">
@@ -1060,7 +1069,7 @@ export default function Pedidos() {
           <div className="space-y-4 mt-2">
               <div className="p-4 bg-muted rounded-lg space-y-1">
                 <div className="flex items-center justify-between">
-                  <p className="font-medium text-sm">Pedido #{getIdCurto(pedidoTransferirFilial.id)}</p>
+                  <p className="font-medium text-sm">Pedido #{getNumExib(pedidoTransferirFilial)}</p>
                   <Badge variant="outline">R$ {pedidoTransferirFilial.valor.toFixed(2)}</Badge>
                 </div>
                 <p className="text-sm">{pedidoTransferirFilial.cliente}</p>

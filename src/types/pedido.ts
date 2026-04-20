@@ -13,6 +13,7 @@ export interface PedidoItem {
 
 export interface PedidoFormatado {
   id: string;
+  numero_sequencial: number | null;
   cliente: string;
   cliente_id: string | null;
   endereco: string;

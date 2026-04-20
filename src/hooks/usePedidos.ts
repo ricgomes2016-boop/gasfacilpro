@@ -64,6 +64,7 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
 
           return {
             id: pedido.id,
+            numero_sequencial: (pedido as any).numero_sequencial ?? null,
             cliente: clienteNome,
             cliente_id: pedido.cliente_id,
             endereco,
