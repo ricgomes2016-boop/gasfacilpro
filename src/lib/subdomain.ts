@@ -10,7 +10,7 @@
  * Em ambiente de desenvolvimento (localhost, preview), usa rotas normais.
  */
 
-export type SubdomainApp = "cliente" | "entregador" | "parceiro" | "erp" | "painel" | "api" | "transportadora" | "landing" | null;
+export type SubdomainApp = "cliente" | "entregador" | "parceiro" | "erp" | "painel" | "api" | "transportadora" | "contador" | "landing" | null;
 
 const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
   clientes: "cliente",
@@ -27,6 +27,9 @@ const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
   logistica: "transportadora",
   api: "api",
   integracoes: "api",
+  contabil: "contador",
+  contador: "contador",
+  contabilidade: "contador",
 };
 
 // Known base domains for the SaaS
@@ -118,6 +121,8 @@ export function getCanonicalHostnameForApp(
       return `portal.${baseDomain}`;
     case "api":
       return `api.${baseDomain}`;
+    case "contador":
+      return `contabil.${baseDomain}`;
     case "landing":
       return baseDomain;
     default:
@@ -141,6 +146,7 @@ export function inferAppFromPath(pathname: string): Exclude<SubdomainApp, null> 
   // IMPORTANT: exact segment matching prevents collisions like
   // /clientes being interpreted as /cliente.
   if (matchesRouteSegment(pathname, "/admin")) return "painel";
+  if (matchesRouteSegment(pathname, "/contador")) return "contador";
   if (matchesRouteSegment(pathname, "/clientes")) return "erp";
   if (matchesRouteSegment(pathname, "/cliente")) return "cliente";
   if (matchesRouteSegment(pathname, "/entregador")) return "entregador";
@@ -192,6 +198,7 @@ export function getSubdomainDefaultRoute(app: SubdomainApp): string {
     case "transportadora": return "/transportadora";
     case "painel": return "/admin";
     case "api": return "/integracoes";
+    case "contador": return "/contador";
     case "landing": return "/";
     default: return "/dashboard";
   }
@@ -224,6 +231,8 @@ export function isRouteAllowedForSubdomain(app: SubdomainApp, pathname: string):
       return pathname === "/auth" || matchesRouteSegment(pathname, "/integracoes");
     case "painel":
       return pathname === "/auth" || pathname.startsWith("/admin");
+    case "contador":
+      return pathname === "/auth" || matchesRouteSegment(pathname, "/contador");
     case "landing":
       return true;
     default:
