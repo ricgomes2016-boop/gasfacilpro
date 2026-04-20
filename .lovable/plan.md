@@ -1,51 +1,66 @@
 
-Bia conversacional por voz no site Forte Gás — cliente fala no microfone, ela responde por voz, em tempo real.
 
-## Abordagem: ElevenLabs Conversational AI (Agent)
+## Site Institucional — Japa Gás (filial Central Gás)
 
-Já temos `ELEVENLABS_AGENT_ID` configurado nos secrets — perfeito. Vou usar o SDK oficial `@elevenlabs/react` (`useConversation`) com WebRTC: latência baixa, transcrição + TTS + LLM tudo gerenciado pela ElevenLabs.
+Criar uma nova página pública `/japagas` no mesmo padrão estrutural de `CentralGasCP` e `ForteGas`, porém com identidade visual inspirada na imagem de referência (teal/cyan + coral, toques japoneses) e uma seção dedicada de **Dicas de Segurança com fotos**.
 
-## O que vou fazer
+### 1. Nova página `src/pages/publico/JapaGas.tsx`
 
-**1. Edge function `elevenlabs-conversation-token`** (nova, pública)
-- Gera token WebRTC de uso único usando `ELEVENLABS_AGENT_ID` + `ELEVENLABS_API_KEY`
-- Mantém a API key segura no servidor
+Estrutura (mesma arquitetura do CentralGasCP — Header fixo, Hero, Sobre, Serviços, Dicas, Contato, Footer + WhatsApp flutuante):
 
-**2. Componente `BiaAvatarSite.tsx`** (novo)
-- Avatar circular flutuante (canto inferior direito do site)
-- Ao clicar: abre card com avatar grande + botão "Falar com a Bia"
-- Pede permissão de microfone, busca o token, conecta via WebRTC
-- Estados visuais: idle / conectando / ouvindo / falando (animação de ondas)
-- Avatar pulsa quando `isSpeaking`
-- Botão "Encerrar conversa" e fechar
-- Mostra transcrição ao vivo do que cliente falou + última resposta da Bia (texto pequeno, opcional)
+- **Paleta** (extraída da imagem):
+  - Primário teal: `#2d8a8a` / `#0d7377`
+  - Acento coral: `#e07856` / `#d96846`
+  - Fundo claro: `#f4f1ea` (off-white com toque de papel washi)
+  - Texto escuro: `slate-800`
+  - Gradientes hero: `from-teal-700 via-teal-600 to-orange-400`
 
-**3. Avatar visual**
-- Gerar 1 imagem da Bia (ilustração profissional, paleta azul/laranja Forte Gás) via Lovable AI image
-- Salvar em `src/assets/bia-avatar.png`
+- **Identidade Japa Gás**: emoji/ícone 🔥 com nome em fonte semi-serifada, badge "Filial Central Gás" sutil no header, motivos sutis (círculo vermelho/sol, linhas finas tipo nankin) como elementos decorativos.
 
-**4. Integração em `ForteGas.tsx`**
-- Importar e renderizar `<BiaAvatarSite />` fixed bottom-right, posicionado para não sobrepor o botão WhatsApp
+- **Hero**: título "Energia que aquece sua casa", subtítulo bilingue leve ("Tradição e confiança · 信頼"), CTAs WhatsApp + Telefone, 3 quick-actions (Pronto agora / Gás P13 / Entrega expressa).
 
-**5. Pacote**
-- Adicionar `@elevenlabs/react` ao projeto
+- **Contatos**: usar mesmos placeholders editáveis no topo do arquivo (`WHATSAPP_NUMBER`, `PHONE`, `ENDERECO`) — valores iniciais reaproveitados da Central Gás, fáceis de trocar depois.
 
-## Configuração necessária no painel ElevenLabs (usuário faz)
-O agente (`ELEVENLABS_AGENT_ID`) precisa estar configurado com:
-- **System prompt**: "Você é a Bia, atendente da Forte Gás… [info da empresa: produtos P13/P20/P45, água 20L, telefone (43) 3524-1094, WhatsApp (43) 99966-1816, endereço Rua Benjamin Constant, 110, Cornélio Procópio-PR, horário…]"
-- **First message**: "Oi! Eu sou a Bia da Forte Gás. Como posso te ajudar?"
-- **Language**: Portuguese (pt)
-- **Voice**: feminina PT-BR
-- **Authentication**: pode deixar público (sem auth) se quiser pular o token, ou manter privado e usar o token (recomendado)
+### 2. Seção "Dicas de Segurança com Fotos"
 
-Vou deixar o componente preparado pra ambos os modos — se o agente for público, usa só `agentId`; se privado, usa o token gerado pela edge function.
+Grid de 6 cards, cada um com **foto gerada por IA** (estilo fotográfico realista, paleta coerente), título e descrição curta:
 
-## Arquivos
-- `supabase/functions/elevenlabs-conversation-token/index.ts` (novo)
-- `src/assets/bia-avatar.png` (gerado)
-- `src/components/site/BiaAvatarSite.tsx` (novo)
-- `src/pages/publico/ForteGas.tsx` (montar componente)
-- `package.json` (add `@elevenlabs/react`)
+1. Verificação do lacre do botijão
+2. Instalação em área ventilada
+3. Teste de vazamento com água e sabão
+4. Mangueira e regulador dentro da validade
+5. O que fazer em caso de vazamento (não acender luz, abrir janelas)
+6. Manter botijão sempre em pé, longe do calor
 
-## Resultado
-Visitante clica no avatar → permite microfone → fala normalmente → Bia responde por voz em tempo real, conversando sobre a Forte Gás, produtos, preços, horário, e direciona para WhatsApp se quiser fechar pedido.
+Banner vermelho no topo da seção com **telefones de emergência** (193 Bombeiros, 192 SAMU) — mesmo padrão usado em `ClienteDicas.tsx`.
+
+Imagens geradas via Lovable AI (`google/gemini-2.5-flash-image`) e salvas em `src/assets/japa-gas/seguranca-{1..6}.jpg`, importadas como módulos ES6.
+
+### 3. Roteamento
+
+`src/App.tsx`: adicionar
+```tsx
+const JapaGas = lazy(() => import("./pages/publico/JapaGas"));
+<Route path="/japagas" element={<JapaGas />} />
+```
+
+### 4. Integração com tela de divulgação
+
+`src/pages/config/SiteInstitucional.tsx`: adicionar entradas no mapa
+```ts
+"japa-gas": { path: "/japagas", nome: "Japa Gás" },
+"japa gas": { path: "/japagas", nome: "Japa Gás" },
+```
+Assim, ao selecionar a filial Japa Gás no seletor de unidade, o card de divulgação carrega o link automaticamente.
+
+### Arquivos
+
+- **Criar**: `src/pages/publico/JapaGas.tsx`, `src/assets/japa-gas/seguranca-1.jpg` ... `seguranca-6.jpg`, `src/assets/japa-gas/hero.jpg`
+- **Editar**: `src/App.tsx` (rota lazy), `src/pages/config/SiteInstitucional.tsx` (mapa de sites)
+
+### Observações técnicas
+
+- Página totalmente client-side, sem dependência de backend — segue exatamente o padrão de CentralGasCP/ForteGas.
+- Imagens geradas uma vez via script temporário e commitadas como assets estáticos (não há chamada de IA em runtime).
+- Mobile-first, header com menu hambúrguer, botão WhatsApp flutuante fixo no canto inferior direito.
+
