@@ -361,15 +361,18 @@ export default function Pedidos() {
 
   // Filter pedidos
   const pedidosFiltrados = useMemo(() => {
+    const buscaLower = busca.toLowerCase().trim();
+    const buscaDigits = buscaLower.replace(/\D/g, "");
     return pedidos.filter((p) => {
       const matchStatus = filtroStatus === "todos" || p.status === filtroStatus;
       const matchEntregador = filtroEntregador === "todos" || (
       filtroEntregador === "sem_entregador" ? !p.entregador : p.entregador === filtroEntregador);
       const matchBusca = busca === "" ||
-      p.cliente.toLowerCase().includes(busca.toLowerCase()) ||
-      p.endereco.toLowerCase().includes(busca.toLowerCase()) ||
-      p.id.toLowerCase().includes(busca.toLowerCase()) ||
-      p.entregador && p.entregador.toLowerCase().includes(busca.toLowerCase());
+      p.cliente.toLowerCase().includes(buscaLower) ||
+      p.endereco.toLowerCase().includes(buscaLower) ||
+      p.id.toLowerCase().includes(buscaLower) ||
+      (p.numero_sequencial != null && buscaDigits !== "" && String(p.numero_sequencial).includes(buscaDigits)) ||
+      (p.entregador && p.entregador.toLowerCase().includes(buscaLower));
       return matchStatus && matchEntregador && matchBusca;
     });
   }, [pedidos, filtroStatus, filtroEntregador, busca]);
@@ -399,7 +402,12 @@ export default function Pedidos() {
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
   }, [pedidos]);
 
-  const getIdCurto = (id: string) => id.substring(0, 8).toUpperCase();
+  const getIdCurto = (id: string) => p_getNum(p_id_holder(id));
+  // Exibe número sequencial quando disponível, fallback para UUID curto
+  function p_id_holder(id: string) { return id; }
+  function p_getNum(id: string) { return id.substring(0, 8).toUpperCase(); }
+  // Helper canônico para uso nas linhas de tabela/dialog
+  const getNumExib = (p: PedidoFormatado) => p.numero_sequencial != null ? String(p.numero_sequencial) : p.id.substring(0, 8).toUpperCase();
 
   const getStatusBadgeEntregador = (status: string | null) => {
     switch (status) {
