@@ -253,7 +253,6 @@ function ScrollTop() {
 }
 
 import { BiaChatWidget } from "@/components/publico/BiaChatWidget";
-import { BiaAvatarSite } from "@/components/site/BiaAvatarSite";
 
 export default function CentralGasCP() {
   const [biaState, setBiaState] = useState<{ openSignal: number; prefill: string }>({ openSignal: 0, prefill: "" });
@@ -276,10 +275,6 @@ export default function CentralGasCP() {
         accent="blue-500"
         openSignal={biaState.openSignal}
         prefilledMessage={biaState.prefill}
-      />
-      <BiaAvatarSite
-        gradient="from-blue-500 via-cyan-500 to-emerald-500"
-        glowClass="shadow-cyan-500/50"
       />
     </div>
   );
