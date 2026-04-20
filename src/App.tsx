@@ -40,10 +40,18 @@ import { marketingRoutes } from "@/routes/marketingRoutes";
 
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
+import { ContadorProvider } from "@/contexts/ContadorContext";
 
 const CentralGasCP = lazy(() => import("./pages/publico/CentralGasCP"));
 const ForteGas = lazy(() => import("./pages/publico/ForteGas"));
 const JapaGas = lazy(() => import("./pages/publico/JapaGas"));
+
+const ContadorDashboard = lazy(() => import("./pages/contador/ContadorDashboard"));
+const ContadorXML = lazy(() => import("./pages/contador/ContadorXML"));
+const ContadorDespesas = lazy(() => import("./pages/contador/ContadorDespesas"));
+const ContadorFinanceiro = lazy(() => import("./pages/contador/ContadorFinanceiro"));
+const ContadorEmpresas = lazy(() => import("./pages/contador/ContadorEmpresas"));
+const ContadorPlanoContas = lazy(() => import("./pages/contador/ContadorPlanoContas"));
 
 const queryClient = new QueryClient();
 
