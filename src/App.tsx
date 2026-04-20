@@ -43,6 +43,7 @@ import Auth from "./pages/Auth";
 
 const CentralGasCP = lazy(() => import("./pages/publico/CentralGasCP"));
 const ForteGas = lazy(() => import("./pages/publico/ForteGas"));
+const JapaGas = lazy(() => import("./pages/publico/JapaGas"));
 
 const queryClient = new QueryClient();
 
@@ -76,6 +77,7 @@ const App = () => (
                             <Route path="/auth" element={<Auth />} />
                             <Route path="/centralgascp" element={<CentralGasCP />} />
                             <Route path="/fortegas" element={<ForteGas />} />
+                            <Route path="/japagas" element={<JapaGas />} />
 
                             <Route path="/dashboard" element={
                               <ProtectedRoute>
