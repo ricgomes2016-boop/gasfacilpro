@@ -89,7 +89,7 @@ function Hero({ onAskBia }: { onAskBia: (msg: string) => void }) {
             </Button>
           </a>
         </div>
-        <div className="mt-12 grid sm:grid-cols-3 gap-3 max-w-3xl mx-auto">
+        <div className="mt-12 grid gap-3 max-w-md mx-auto">
           {quickActions.map((a) => (
             <button
               key={a.label}
