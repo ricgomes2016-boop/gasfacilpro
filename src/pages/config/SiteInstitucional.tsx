@@ -18,6 +18,8 @@ const SITES_INSTITUCIONAIS: Record<string, { path: string; nome: string }> = {
   "central gas": { path: "/centralgascp", nome: "Central Gás" },
   "forte-gas": { path: "/fortegas", nome: "Forte Gás" },
   "forte gas": { path: "/fortegas", nome: "Forte Gás" },
+  "japa-gas": { path: "/japagas", nome: "Japa Gás" },
+  "japa gas": { path: "/japagas", nome: "Japa Gás" },
 };
 
 const normalize = (s: string) =>
