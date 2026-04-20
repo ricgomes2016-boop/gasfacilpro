@@ -49,32 +49,46 @@ function BiaAvatarSiteContent({
   const isConnected = status === "connected";
 
   const start = useCallback(async () => {
+    console.log("[Bia] start() chamado");
     setConnecting(true);
     setErrorMsg(null);
-    try {
-      // Pede permissão do microfone
-      await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      // Busca token efêmero da edge function
+    // 1) Pede microfone IMEDIATAMENTE (preserva o gesto do usuário)
+    let stream: MediaStream | null = null;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("[Bia] microfone permitido");
+    } catch (e: any) {
+      console.error("[Bia] microfone negado:", e);
+      setConnecting(false);
+      setErrorMsg(
+        e?.name === "NotAllowedError"
+          ? "Você precisa permitir o microfone para falar com a Bia."
+          : e?.name === "NotFoundError"
+          ? "Nenhum microfone encontrado neste dispositivo."
+          : "Não consegui acessar o microfone.",
+      );
+      return;
+    }
+
+    // 2) Agora busca o token e inicia a sessão
+    try {
       const { data, error } = await supabase.functions.invoke(
         "elevenlabs-conversation-token",
       );
       if (error) throw error;
-      if (!data?.token || !data?.agentId) {
-        throw new Error("Token inválido");
-      }
+      if (!data?.token || !data?.agentId) throw new Error("Token inválido");
 
+      console.log("[Bia] token recebido, iniciando sessão");
       await conversation.startSession({
         conversationToken: data.token,
         connectionType: "webrtc",
       } as any);
+      console.log("[Bia] sessão iniciada");
     } catch (e: any) {
-      console.error(e);
-      setErrorMsg(
-        e?.message?.includes("Permission")
-          ? "Permita o acesso ao microfone para falar com a Bia."
-          : "Não consegui conectar. Tente novamente em instantes.",
-      );
+      console.error("[Bia] erro ao conectar:", e);
+      stream?.getTracks().forEach((t) => t.stop());
+      setErrorMsg("Não consegui conectar. Tente novamente em instantes.");
     } finally {
       setConnecting(false);
     }
@@ -93,14 +107,19 @@ function BiaAvatarSiteContent({
       {/* Botão flutuante */}
       {!open && (
         <button
-          onClick={() => setOpen(true)}
+          type="button"
+          onClick={() => {
+            console.log("[Bia] botão flutuante clicado");
+            setOpen(true);
+          }}
           aria-label="Falar com a Bia por voz"
-          className={`${positionClass} group flex items-center gap-3 pl-2 pr-4 py-2 rounded-full bg-[#0a0118]/80 backdrop-blur-xl border border-white/10 text-white shadow-2xl ${glowClass} hover:scale-[1.04] transition-all`}
+          className={`${positionClass} group flex items-center gap-3 pl-2 pr-4 py-2 rounded-full bg-[#0a0118]/80 backdrop-blur-xl border border-white/10 text-white shadow-2xl ${glowClass} hover:scale-[1.04] transition-all cursor-pointer`}
         >
           <span
-            className={`pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-r ${gradient} opacity-50 blur-xl group-hover:opacity-80 transition-opacity`}
+            aria-hidden="true"
+            className={`pointer-events-none absolute -inset-1 rounded-full bg-gradient-to-r ${gradient} opacity-50 blur-xl group-hover:opacity-80 transition-opacity -z-10`}
           />
-          <span className="relative w-11 h-11 rounded-full p-[2px] overflow-hidden">
+          <span className="relative w-11 h-11 rounded-full p-[2px] overflow-hidden pointer-events-none">
             <span
               className="absolute inset-0 rounded-full animate-spin"
               style={{
