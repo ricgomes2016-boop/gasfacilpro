@@ -211,17 +211,25 @@ export default function ContadorXML() {
                 className="pl-9 bg-[hsl(220,18%,15%)] border-[hsl(220,15%,22%)] text-white"
               />
             </div>
-            <select
-              value={filterTipo}
-              onChange={(e) => setFilterTipo(e.target.value)}
-              className="bg-[hsl(220,18%,15%)] border border-[hsl(220,15%,22%)] text-white rounded-md px-3 py-2 text-sm"
-            >
-              <option value="">Todos os tipos</option>
-              <option value="nfe">NF-e</option>
-              <option value="nfce">NFC-e</option>
-              <option value="cte">CT-e</option>
-              <option value="mdfe">MDF-e</option>
-            </select>
+            <div className="flex flex-wrap gap-2">
+              {TIPOS.map((t) => {
+                const n = t.key === "" ? notas.length : (counts[t.key] ?? 0);
+                const active = filterTipo === t.key;
+                return (
+                  <button
+                    key={t.key || "all"}
+                    onClick={() => setFilterTipo(t.key)}
+                    className={`px-3 py-2 rounded-md text-sm border transition-colors ${
+                      active
+                        ? "bg-[hsl(165,60%,40%)] border-[hsl(165,60%,40%)] text-white"
+                        : "bg-[hsl(220,18%,15%)] border-[hsl(220,15%,22%)] text-[hsl(220,10%,75%)] hover:bg-[hsl(220,18%,18%)]"
+                    }`}
+                  >
+                    {t.label} <span className="ml-1 opacity-70">({n})</span>
+                  </button>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
 
