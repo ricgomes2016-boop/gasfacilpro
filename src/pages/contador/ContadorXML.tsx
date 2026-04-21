@@ -7,13 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Upload, FileCode, Loader2, Download, Search } from "lucide-react";
+import { Upload, FileCode, Loader2, Download, Search, Archive } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { usePeriodo } from "@/contexts/PeriodoContext";
 import { BotaoExportar } from "@/components/contador/BotaoExportar";
 import { ImportacaoInteligente } from "@/components/contador/ImportacaoInteligente";
 import { fmt } from "@/services/contadorExportService";
+import JSZip from "jszip";
 
 interface NotaRow {
   id: string;
