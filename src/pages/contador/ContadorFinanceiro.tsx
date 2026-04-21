@@ -222,6 +222,7 @@ export default function ContadorFinanceiro() {
               groupByPDF={!unidadeAtiva ? "_loja_nome" : undefined}
             />
           </div>
+        </div>
 
         <Tabs defaultValue="importar" className="w-full">
           <TabsList className="bg-[hsl(220,18%,13%)] border border-[hsl(220,15%,20%)]">
