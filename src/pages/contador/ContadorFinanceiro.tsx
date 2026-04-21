@@ -176,6 +176,40 @@ export default function ContadorFinanceiro() {
             <h1 className="text-2xl font-bold text-[hsl(0,0%,95%)]">Financeiro</h1>
             <p className="text-sm text-[hsl(220,10%,60%)]">Importação de OFX e PDF de extratos bancários</p>
           </div>
+          <BotaoExportar
+            relatorio="extratos"
+            titulo="Relatório de Extratos Bancários"
+            empresa={empresaAtiva?.empresa_nome ?? "—"}
+            escopo={unidadeAtiva ? unidadeAtiva.nome : `Todas as lojas — ${unidades.length} unidades`}
+            periodoLabel={range.label}
+            colunas={[
+              { header: "Data", key: "data", format: (v) => fmt.date(v) },
+              { header: "Descrição", key: "descricao" },
+              { header: "Tipo", key: "tipo" },
+              { header: "Valor", key: "valor", align: "right", format: (v) => fmt.brl(Number(v ?? 0)) },
+              { header: "Conciliado", key: "conciliado", format: (v) => (v ? "Sim" : "Não") },
+              { header: "Loja", key: "_loja_nome" },
+            ]}
+            linhas={extratos.map((e) => ({
+              ...e,
+              _loja_nome: unidades.find((u) => u.id === e.unidade_id)?.nome ?? "—",
+            }))}
+            totais={[
+              {
+                label: "Entradas",
+                value: fmt.brl(extratos.filter((e) => Number(e.valor) >= 0).reduce((s, e) => s + Number(e.valor ?? 0), 0)),
+              },
+              {
+                label: "Saídas",
+                value: fmt.brl(extratos.filter((e) => Number(e.valor) < 0).reduce((s, e) => s + Number(e.valor ?? 0), 0)),
+              },
+              {
+                label: "Saldo do período",
+                value: fmt.brl(extratos.reduce((s, e) => s + Number(e.valor ?? 0), 0)),
+              },
+            ]}
+            groupByPDF={!unidadeAtiva ? "_loja_nome" : undefined}
+          />
         </div>
 
         <Tabs defaultValue="importar" className="w-full">

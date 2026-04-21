@@ -133,10 +133,37 @@ export default function ContadorXML() {
             <h1 className="text-2xl font-bold text-[hsl(0,0%,95%)]">Entrada de XMLs</h1>
             <p className="text-sm text-[hsl(220,10%,60%)]">Importe XMLs de NF-e, NFC-e e CT-e por loja</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <input
               ref={fileRef} type="file" accept=".xml" multiple className="hidden"
               onChange={(e) => handleUpload(e.target.files)}
+            />
+            <BotaoExportar
+              relatorio="xmls"
+              titulo="Relatório de XMLs Fiscais"
+              empresa={empresaAtiva?.empresa_nome ?? "—"}
+              escopo={unidadeAtiva ? unidadeAtiva.nome : `Todas as lojas — ${unidades.length} unidades`}
+              periodoLabel={range.label}
+              colunas={[
+                { header: "Tipo", key: "tipo" },
+                { header: "Número", key: "numero" },
+                { header: "Série", key: "serie" },
+                { header: "Emissão", key: "data_emissao", format: (v) => fmt.date(v) },
+                { header: "Chave", key: "chave_acesso" },
+                { header: "Remetente", key: "remetente_nome" },
+                { header: "Destinatário", key: "destinatario_nome" },
+                { header: "Valor", key: "valor_total", align: "right", format: (v) => fmt.brl(Number(v ?? 0)) },
+                { header: "Loja", key: "_loja_nome" },
+              ]}
+              linhas={filtered.map((n) => ({
+                ...n,
+                _loja_nome: unidades.find((u) => u.id === n.unidade_id)?.nome ?? "—",
+              }))}
+              totais={[
+                { label: "Total notas", value: String(filtered.length) },
+                { label: "Valor total", value: fmt.brl(filtered.reduce((s, n) => s + Number(n.valor_total ?? 0), 0)) },
+              ]}
+              groupByPDF={!unidadeAtiva ? "_loja_nome" : undefined}
             />
             <Button
               onClick={() => fileRef.current?.click()}
