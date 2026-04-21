@@ -4,8 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import {
-  LogOut, FileText, LayoutDashboard, Calendar, MessageSquare,
-  Megaphone, ClipboardList, Menu, X, ChevronLeft
+  LogOut, FileText, LayoutDashboard, Calendar,
+  Megaphone, ClipboardList, Menu, X,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 
@@ -26,8 +26,7 @@ export function ContadorLayout({ children }: ContadorLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[hsl(220,20%,7%)] text-[hsl(0,0%,93%)] flex">
-      {/* Overlay mobile */}
+    <div className="theme-contador min-h-screen text-foreground flex">
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/60 z-40 lg:hidden"
@@ -35,31 +34,28 @@ export function ContadorLayout({ children }: ContadorLayoutProps) {
         />
       )}
 
-      {/* Sidebar */}
       <aside className={cn(
         "fixed lg:sticky top-0 left-0 z-50 h-screen w-64 flex flex-col",
-        "bg-[hsl(220,22%,10%)] border-r border-[hsl(220,15%,18%)]",
+        "bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
         "transition-transform duration-300 lg:translate-x-0",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-[hsl(220,15%,18%)]">
+        <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border">
           <img src={logoImg} alt="Logo" className="h-9 w-9 rounded-lg" />
           <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-bold truncate text-[hsl(0,0%,95%)]">Portal Contábil</h1>
-            <p className="text-xs text-[hsl(220,10%,55%)] truncate">{profile?.full_name || "Contador"}</p>
+            <h1 className="text-sm font-bold truncate text-sidebar-foreground">Portal Contábil</h1>
+            <p className="text-xs text-sidebar-foreground/60 truncate">{profile?.full_name || "Contador"}</p>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden h-8 w-8 text-[hsl(220,10%,55%)] hover:text-[hsl(0,0%,95%)]"
+            className="lg:hidden h-8 w-8 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             onClick={() => setSidebarOpen(false)}
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
@@ -68,10 +64,10 @@ export function ContadorLayout({ children }: ContadorLayoutProps) {
               end={item.path === "/financeiro/contador"}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium",
-                "text-[hsl(220,10%,60%)] hover:text-[hsl(0,0%,95%)] hover:bg-[hsl(220,18%,15%)]",
+                "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",
                 "transition-colors duration-150"
               )}
-              activeClassName="bg-[hsl(165,60%,40%)]/15 text-[hsl(165,60%,55%)] hover:text-[hsl(165,60%,55%)]"
+              activeClassName="bg-primary/20 text-primary hover:text-primary hover:bg-primary/25"
               onClick={() => setSidebarOpen(false)}
             >
               <item.icon className="h-5 w-5 shrink-0" />
@@ -80,12 +76,11 @@ export function ContadorLayout({ children }: ContadorLayoutProps) {
           ))}
         </nav>
 
-        {/* Footer */}
-        <div className="px-3 py-4 border-t border-[hsl(220,15%,18%)]">
+        <div className="px-3 py-4 border-t border-sidebar-border">
           <Button
             variant="ghost"
             onClick={signOut}
-            className="w-full justify-start gap-3 text-[hsl(220,10%,55%)] hover:text-[hsl(0,80%,65%)] hover:bg-[hsl(0,80%,65%)]/10"
+            className="w-full justify-start gap-3 text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10"
           >
             <LogOut className="h-4 w-4" />
             Sair
@@ -93,23 +88,20 @@ export function ContadorLayout({ children }: ContadorLayoutProps) {
         </div>
       </aside>
 
-      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar mobile */}
-        <header className="sticky top-0 z-30 flex items-center gap-3 px-4 py-3 lg:hidden bg-[hsl(220,22%,10%)] border-b border-[hsl(220,15%,18%)]">
+        <header className="sticky top-0 z-30 flex items-center gap-3 px-4 py-3 lg:hidden bg-card/70 backdrop-blur border-b border-border">
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 text-[hsl(220,10%,60%)]"
+            className="h-9 w-9 text-foreground/70"
             onClick={() => setSidebarOpen(true)}
           >
             <Menu className="h-5 w-5" />
           </Button>
           <img src={logoImg} alt="Logo" className="h-7 w-7 rounded" />
-          <span className="text-sm font-semibold text-[hsl(0,0%,95%)]">Portal Contábil</span>
+          <span className="text-sm font-semibold text-foreground">Portal Contábil</span>
         </header>
 
-        {/* Content */}
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
