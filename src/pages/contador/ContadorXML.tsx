@@ -7,13 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Upload, FileCode, Loader2, Download, Search } from "lucide-react";
+import { Upload, FileCode, Loader2, Download, Search, Archive } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { usePeriodo } from "@/contexts/PeriodoContext";
 import { BotaoExportar } from "@/components/contador/BotaoExportar";
 import { ImportacaoInteligente } from "@/components/contador/ImportacaoInteligente";
 import { fmt } from "@/services/contadorExportService";
+import JSZip from "jszip";
 
 interface NotaRow {
   id: string;
@@ -54,6 +56,8 @@ export default function ContadorXML() {
   const [filterTipo, setFilterTipo] = useState<string>("");
   const [ignorarPeriodo, setIgnorarPeriodo] = useState(true);
   const [totalNoBanco, setTotalNoBanco] = useState(0);
+  const [selecionados, setSelecionados] = useState<string[]>([]);
+  const [baixandoLote, setBaixandoLote] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const fetchNotas = async () => {
@@ -142,6 +146,66 @@ export default function ContadorXML() {
     } catch {
       window.open(n.xml_url, "_blank");
     }
+  };
+
+  const toggleSel = (id: string) =>
+    setSelecionados((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+
+  const toggleSelAll = (ids: string[]) => {
+    const todosMarcados = ids.length > 0 && ids.every((id) => selecionados.includes(id));
+    setSelecionados((prev) => todosMarcados ? prev.filter((x) => !ids.includes(x)) : Array.from(new Set([...prev, ...ids])));
+  };
+
+  const baixarSelecionadosZip = async () => {
+    const alvos = (filterTipo || search ? filtered : notas).filter((n) => selecionados.includes(n.id) && n.xml_url);
+    if (alvos.length === 0) { toast.error("Nenhum XML selecionado com arquivo disponível"); return; }
+    setBaixandoLote(true);
+    const zip = new JSZip();
+    let ok = 0, fail = 0;
+    for (const n of alvos) {
+      try {
+        const { data, error } = await supabase.storage.from("contabil-xmls").createSignedUrl(n.xml_url!, 120);
+        if (error) throw error;
+        const resp = await fetch(data.signedUrl);
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const blob = await resp.blob();
+        const dia = (n.data_emissao ?? n.created_at?.slice(0, 10) ?? "sem-data").slice(0, 10);
+        const tipo = (n.tipo ?? "doc").toLowerCase();
+        const nome = `${dia}/${tipo}_${n.numero ?? n.id.slice(0, 8)}.xml`;
+        zip.file(nome, blob);
+        ok++;
+      } catch (e) {
+        console.error("zip falha", n.id, e);
+        fail++;
+      }
+    }
+    try {
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement("a");
+      const stamp = format(new Date(), "yyyyMMdd-HHmm");
+      a.href = url;
+      a.download = `xmls_${empresaAtiva?.empresa_slug ?? "empresa"}_${stamp}.zip`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      toast.success(`Lote ZIP gerado · ${ok} arquivo(s)${fail ? ` · ${fail} falha(s)` : ""}`);
+    } catch (e: any) {
+      toast.error("Falha ao gerar ZIP: " + e.message);
+    } finally {
+      setBaixandoLote(false);
+    }
+  };
+
+  const baixarSelecionadosIndividual = async () => {
+    const alvos = filtered.filter((n) => selecionados.includes(n.id) && n.xml_url);
+    if (alvos.length === 0) { toast.error("Nenhum XML selecionado com arquivo disponível"); return; }
+    for (const n of alvos) {
+      try {
+        const { data } = await supabase.storage.from("contabil-xmls").createSignedUrl(n.xml_url!, 120);
+        if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+      } catch { /* ignore */ }
+    }
+    toast.success(`${alvos.length} download(s) iniciado(s)`);
   };
 
   const counts = useMemo(() => notas.reduce((acc, n) => {
@@ -264,6 +328,23 @@ export default function ContadorXML() {
               {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
               Importar XML
             </Button>
+            <Button
+              variant="outline"
+              disabled={selecionados.length === 0 || baixandoLote}
+              onClick={baixarSelecionadosIndividual}
+              className="border-[hsl(220,15%,22%)] text-[hsl(0,0%,90%)] hover:bg-[hsl(220,18%,15%)]"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Baixar Selecionados ({selecionados.length})
+            </Button>
+            <Button
+              disabled={selecionados.length === 0 || baixandoLote}
+              onClick={baixarSelecionadosZip}
+              className="bg-[hsl(220,80%,55%)] hover:bg-[hsl(220,80%,60%)] text-white"
+            >
+              {baixandoLote ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Archive className="h-4 w-4 mr-2" />}
+              Gerar Lote ZIP
+            </Button>
           </div>
         </div>
 
@@ -358,6 +439,12 @@ export default function ContadorXML() {
                   <table className="w-full text-sm">
                     <thead className="bg-[hsl(220,18%,13%)] text-[hsl(220,10%,60%)] text-xs uppercase sticky top-0">
                       <tr>
+                        <th className="px-3 py-3 w-10">
+                          <Checkbox
+                            checked={filtered.length > 0 && filtered.every((n) => selecionados.includes(n.id))}
+                            onCheckedChange={() => toggleSelAll(filtered.map((n) => n.id))}
+                          />
+                        </th>
                         <th className="px-3 py-3 text-left">Tipo</th>
                         <th className="px-3 py-3 text-left">Nº / Série</th>
                         <th className="px-3 py-3 text-left">Chave</th>
@@ -377,10 +464,16 @@ export default function ContadorXML() {
                         return (
                           <>
                             <tr key={`g-${dia}`} className="bg-[hsl(220,22%,14%)]">
-                              <td colSpan={11} className="px-3 py-2">
+                              <td colSpan={12} className="px-3 py-2">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <div className="font-semibold text-[hsl(165,60%,60%)]">
-                                    ▸ {safeDateLabel(dia)}
+                                  <div className="flex items-center gap-2">
+                                    <Checkbox
+                                      checked={rows.length > 0 && rows.every((r) => selecionados.includes(r.id))}
+                                      onCheckedChange={() => toggleSelAll(rows.map((r) => r.id))}
+                                    />
+                                    <div className="font-semibold text-[hsl(165,60%,60%)]">
+                                      ▸ {safeDateLabel(dia)}
+                                    </div>
                                   </div>
                                   <div className="text-xs text-[hsl(220,10%,70%)]">
                                     {rows.length} nota{rows.length > 1 ? "s" : ""} · <span className="text-[hsl(0,0%,93%)] font-medium">{brl(somaDia)}</span>
@@ -393,6 +486,7 @@ export default function ContadorXML() {
                               const chaveCurta = chave ? `${chave.slice(0, 6)}…${chave.slice(-6)}` : "—";
                               return (
                                 <tr key={n.id} className="border-t border-[hsl(220,15%,18%)] hover:bg-[hsl(220,18%,13%)]">
+                                  <td className="px-3 py-2"><Checkbox checked={selecionados.includes(n.id)} onCheckedChange={() => toggleSel(n.id)} /></td>
                                   <td className="px-3 py-2"><Badge variant="outline" className="uppercase">{n.tipo ?? "—"}</Badge></td>
                                   <td className="px-3 py-2 text-[hsl(0,0%,90%)] whitespace-nowrap">
                                     {n.numero ?? "—"} <span className="text-[hsl(220,10%,55%)]">/ {n.serie ?? "—"}</span>
