@@ -439,6 +439,12 @@ export default function ContadorXML() {
                   <table className="w-full text-sm">
                     <thead className="bg-[hsl(220,18%,13%)] text-[hsl(220,10%,60%)] text-xs uppercase sticky top-0">
                       <tr>
+                        <th className="px-3 py-3 w-10">
+                          <Checkbox
+                            checked={filtered.length > 0 && filtered.every((n) => selecionados.includes(n.id))}
+                            onCheckedChange={() => toggleSelAll(filtered.map((n) => n.id))}
+                          />
+                        </th>
                         <th className="px-3 py-3 text-left">Tipo</th>
                         <th className="px-3 py-3 text-left">Nº / Série</th>
                         <th className="px-3 py-3 text-left">Chave</th>
