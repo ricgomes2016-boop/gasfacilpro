@@ -126,19 +126,23 @@ async function processarXmlInline(
     console.warn("upload xml:", upErr.message);
   }
 
-  const { data: inserted, error } = await supabase.from("notas_fiscais").insert({
-    chave_acesso: meta.chave,
-    numero: meta.numero,
-    serie: meta.serie,
-    tipo: meta.tipo,
-    valor_total: meta.valor || 0,
-    data_emissao: meta.data ? new Date(meta.data).toISOString() : null,
-    remetente_nome: meta.emit_nome,
-    remetente_cnpj: meta.cnpj_emit,
-    xml_url: path,
-    status: "importado",
-    unidade_id,
-  }).select("id").single();
+    const { data: inserted, error } = await supabase.from("notas_fiscais").insert({
+      chave_acesso: meta.chave,
+      numero: meta.numero,
+      serie: meta.serie,
+      tipo: meta.tipo,
+      valor_total: meta.valor || 0,
+      data_emissao: meta.data ? new Date(meta.data).toISOString() : null,
+      remetente_nome: meta.emit_nome,
+      remetente_cpf_cnpj: meta.cnpj_emit,
+      destinatario_nome: meta.dest_nome,
+      destinatario_cpf_cnpj: meta.cnpj_dest,
+      xml_url: path,
+      xml_conteudo: xml,
+      xml_importado: true,
+      status: "importado",
+      unidade_id,
+    }).select("id").single();
 
   if (error) throw new Error(error.message);
   return { duplicate: false, id: inserted.id, meta };
