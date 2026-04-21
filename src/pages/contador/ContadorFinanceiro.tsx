@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { usePeriodo } from "@/contexts/PeriodoContext";
 import { BotaoExportar } from "@/components/contador/BotaoExportar";
+import { ImportacaoInteligente } from "@/components/contador/ImportacaoInteligente";
 import { fmt } from "@/services/contadorExportService";
 
 interface ExtratoRow {
@@ -176,40 +177,51 @@ export default function ContadorFinanceiro() {
             <h1 className="text-2xl font-bold text-[hsl(0,0%,95%)]">Financeiro</h1>
             <p className="text-sm text-[hsl(220,10%,60%)]">Importação de OFX e PDF de extratos bancários</p>
           </div>
-          <BotaoExportar
-            relatorio="extratos"
-            titulo="Relatório de Extratos Bancários"
-            empresa={empresaAtiva?.empresa_nome ?? "—"}
-            escopo={unidadeAtiva ? unidadeAtiva.nome : `Todas as lojas — ${unidades.length} unidades`}
-            periodoLabel={range.label}
-            colunas={[
-              { header: "Data", key: "data", format: (v) => fmt.date(v) },
-              { header: "Descrição", key: "descricao" },
-              { header: "Tipo", key: "tipo" },
-              { header: "Valor", key: "valor", align: "right", format: (v) => fmt.brl(Number(v ?? 0)) },
-              { header: "Conciliado", key: "conciliado", format: (v) => (v ? "Sim" : "Não") },
-              { header: "Loja", key: "_loja_nome" },
-            ]}
-            linhas={extratos.map((e) => ({
-              ...e,
-              _loja_nome: unidades.find((u) => u.id === e.unidade_id)?.nome ?? "—",
-            }))}
-            totais={[
-              {
-                label: "Entradas",
-                value: fmt.brl(extratos.filter((e) => Number(e.valor) >= 0).reduce((s, e) => s + Number(e.valor ?? 0), 0)),
-              },
-              {
-                label: "Saídas",
-                value: fmt.brl(extratos.filter((e) => Number(e.valor) < 0).reduce((s, e) => s + Number(e.valor ?? 0), 0)),
-              },
-              {
-                label: "Saldo do período",
-                value: fmt.brl(extratos.reduce((s, e) => s + Number(e.valor ?? 0), 0)),
-              },
-            ]}
-            groupByPDF={!unidadeAtiva ? "_loja_nome" : undefined}
-          />
+          <div className="flex flex-wrap gap-2">
+            {empresaAtiva && (
+              <ImportacaoInteligente
+                empresa_id={empresaAtiva.empresa_id}
+                unidade_id_padrao={unidadeAtiva?.id}
+                destino="financeiro"
+                onConcluido={fetchExtratos}
+                label="IA: OFX/CSV/PDF"
+              />
+            )}
+            <BotaoExportar
+              relatorio="extratos"
+              titulo="Relatório de Extratos Bancários"
+              empresa={empresaAtiva?.empresa_nome ?? "—"}
+              escopo={unidadeAtiva ? unidadeAtiva.nome : `Todas as lojas — ${unidades.length} unidades`}
+              periodoLabel={range.label}
+              colunas={[
+                { header: "Data", key: "data", format: (v) => fmt.date(v) },
+                { header: "Descrição", key: "descricao" },
+                { header: "Tipo", key: "tipo" },
+                { header: "Valor", key: "valor", align: "right", format: (v) => fmt.brl(Number(v ?? 0)) },
+                { header: "Conciliado", key: "conciliado", format: (v) => (v ? "Sim" : "Não") },
+                { header: "Loja", key: "_loja_nome" },
+              ]}
+              linhas={extratos.map((e) => ({
+                ...e,
+                _loja_nome: unidades.find((u) => u.id === e.unidade_id)?.nome ?? "—",
+              }))}
+              totais={[
+                {
+                  label: "Entradas",
+                  value: fmt.brl(extratos.filter((e) => Number(e.valor) >= 0).reduce((s, e) => s + Number(e.valor ?? 0), 0)),
+                },
+                {
+                  label: "Saídas",
+                  value: fmt.brl(extratos.filter((e) => Number(e.valor) < 0).reduce((s, e) => s + Number(e.valor ?? 0), 0)),
+                },
+                {
+                  label: "Saldo do período",
+                  value: fmt.brl(extratos.reduce((s, e) => s + Number(e.valor ?? 0), 0)),
+                },
+              ]}
+              groupByPDF={!unidadeAtiva ? "_loja_nome" : undefined}
+            />
+          </div>
         </div>
 
         <Tabs defaultValue="importar" className="w-full">

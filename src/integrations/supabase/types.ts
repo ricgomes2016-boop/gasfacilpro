@@ -4443,6 +4443,99 @@ export type Database = {
           },
         ]
       }
+      importacoes_inteligentes: {
+        Row: {
+          arquivo_mime: string | null
+          arquivo_nome: string
+          arquivo_path: string | null
+          arquivo_tamanho: number | null
+          cnpj_detectado: string | null
+          confianca: number | null
+          created_at: string
+          dados_extraidos: Json | null
+          destino: string
+          empresa_id: string
+          id: string
+          mensagem_erro: string | null
+          origem: string
+          processado_em: string | null
+          registros_criados: number | null
+          registros_duplicados: number | null
+          registros_erro: number | null
+          registros_processados: number | null
+          status: string
+          tipo_detectado: string | null
+          unidade_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          arquivo_mime?: string | null
+          arquivo_nome: string
+          arquivo_path?: string | null
+          arquivo_tamanho?: number | null
+          cnpj_detectado?: string | null
+          confianca?: number | null
+          created_at?: string
+          dados_extraidos?: Json | null
+          destino?: string
+          empresa_id: string
+          id?: string
+          mensagem_erro?: string | null
+          origem?: string
+          processado_em?: string | null
+          registros_criados?: number | null
+          registros_duplicados?: number | null
+          registros_erro?: number | null
+          registros_processados?: number | null
+          status?: string
+          tipo_detectado?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          arquivo_mime?: string | null
+          arquivo_nome?: string
+          arquivo_path?: string | null
+          arquivo_tamanho?: number | null
+          cnpj_detectado?: string | null
+          confianca?: number | null
+          created_at?: string
+          dados_extraidos?: Json | null
+          destino?: string
+          empresa_id?: string
+          id?: string
+          mensagem_erro?: string | null
+          origem?: string
+          processado_em?: string | null
+          registros_criados?: number | null
+          registros_duplicados?: number | null
+          registros_erro?: number | null
+          registros_processados?: number | null
+          status?: string
+          tipo_detectado?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacoes_inteligentes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacoes_inteligentes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integracoes_config: {
         Row: {
           ativo: boolean
