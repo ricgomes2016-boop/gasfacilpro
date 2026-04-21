@@ -34,7 +34,7 @@ export function ContadorPortalLayout({ children }: ContadorPortalLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <PeriodoProvider>
+
     <div className="min-h-screen bg-[hsl(220,20%,7%)] text-[hsl(0,0%,93%)] flex">
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
