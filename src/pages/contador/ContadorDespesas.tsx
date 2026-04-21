@@ -200,6 +200,15 @@ export default function ContadorDespesas() {
               ]}
               groupByPDF={!unidadeAtiva ? "_loja_nome" : undefined}
             />
+            {empresaAtiva && (
+              <ImportacaoInteligente
+                empresa_id={empresaAtiva.empresa_id}
+                unidade_id_padrao={unidadeAtiva?.id}
+                destino="despesa"
+                onConcluido={fetchDespesas}
+                label="IA: PDF/ZIP"
+              />
+            )}
             <Button variant="outline" onClick={() => cameraRef.current?.click()} disabled={uploading || !empresaAtiva}
               className="border-[hsl(220,15%,22%)] text-[hsl(0,0%,90%)] hover:bg-[hsl(220,18%,15%)]">
               <Camera className="h-4 w-4 mr-2" /> Escanear

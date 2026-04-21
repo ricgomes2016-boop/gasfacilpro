@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { usePeriodo } from "@/contexts/PeriodoContext";
 import { BotaoExportar } from "@/components/contador/BotaoExportar";
+import { ImportacaoInteligente } from "@/components/contador/ImportacaoInteligente";
 import { fmt } from "@/services/contadorExportService";
 
 interface NotaRow {
@@ -165,6 +166,15 @@ export default function ContadorXML() {
               ]}
               groupByPDF={!unidadeAtiva ? "_loja_nome" : undefined}
             />
+            {empresaAtiva && (
+              <ImportacaoInteligente
+                empresa_id={empresaAtiva.empresa_id}
+                unidade_id_padrao={unidadeAtiva?.id}
+                destino="xml"
+                onConcluido={fetchNotas}
+                label="IA: ZIP/XML"
+              />
+            )}
             <Button
               onClick={() => fileRef.current?.click()}
               disabled={uploading || !empresaAtiva}
