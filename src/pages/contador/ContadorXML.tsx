@@ -54,7 +54,7 @@ export default function ContadorXML() {
   const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState("");
   const [filterTipo, setFilterTipo] = useState<string>("");
-  const [ignorarPeriodo, setIgnorarPeriodo] = useState(true);
+  const [ignorarPeriodo, setIgnorarPeriodo] = useState(false);
   const [totalNoBanco, setTotalNoBanco] = useState(0);
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [baixandoLote, setBaixandoLote] = useState(false);
@@ -273,8 +273,8 @@ export default function ContadorXML() {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-[hsl(0,0%,95%)]">Entrada de XMLs</h1>
-            <p className="text-sm text-[hsl(220,10%,60%)]">XMLs de NF-e, NFC-e, CT-e e MDF-e — agrupados por dia de emissão</p>
+            <h1 className="text-2xl font-bold text-foreground">Entrada de XMLs</h1>
+            <p className="text-sm text-muted-foreground">XMLs de NF-e, NFC-e, CT-e e MDF-e — agrupados por dia de emissão</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <input
@@ -323,7 +323,7 @@ export default function ContadorXML() {
             <Button
               onClick={() => fileRef.current?.click()}
               disabled={uploading || !empresaAtiva}
-              className="bg-[hsl(165,60%,40%)] hover:bg-[hsl(165,60%,45%)] text-white"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
               Importar XML
@@ -332,7 +332,7 @@ export default function ContadorXML() {
               variant="outline"
               disabled={selecionados.length === 0 || baixandoLote}
               onClick={baixarSelecionadosIndividual}
-              className="border-[hsl(220,15%,22%)] text-[hsl(0,0%,90%)] hover:bg-[hsl(220,18%,15%)]"
+              className="border-border text-foreground hover:bg-muted"
             >
               <Download className="h-4 w-4 mr-2" />
               Baixar Selecionados ({selecionados.length})
@@ -340,7 +340,7 @@ export default function ContadorXML() {
             <Button
               disabled={selecionados.length === 0 || baixandoLote}
               onClick={baixarSelecionadosZip}
-              className="bg-[hsl(220,80%,55%)] hover:bg-[hsl(220,80%,60%)] text-white"
+              className="bg-accent hover:bg-accent/90 text-accent-foreground"
             >
               {baixandoLote ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Archive className="h-4 w-4 mr-2" />}
               Gerar Lote ZIP
@@ -350,17 +350,17 @@ export default function ContadorXML() {
 
         {/* Aviso: dados gravados vs filtro de período */}
         {empresaAtiva && totalNoBanco > 0 && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-3 rounded-md bg-[hsl(220,22%,11%)] border border-[hsl(220,15%,20%)]">
-            <div className="text-sm text-[hsl(220,10%,75%)]">
-              <span className="font-semibold text-[hsl(0,0%,95%)]">{totalNoBanco}</span> XML(s) gravado(s) no banco ·{" "}
-              <span className="font-semibold text-[hsl(165,60%,60%)]">{notas.length}</span>{" "}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-3 rounded-md bg-card border border-border">
+            <div className="text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">{totalNoBanco}</span> XML(s) gravado(s) no banco ·{" "}
+              <span className="font-semibold text-primary">{notas.length}</span>{" "}
               {ignorarPeriodo ? "exibido(s) (todos os períodos)" : `no período ${range.label}`}
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIgnorarPeriodo((v) => !v)}
-              className="border-[hsl(220,15%,22%)] text-[hsl(0,0%,90%)] hover:bg-[hsl(220,18%,15%)]"
+              className="border-border text-foreground hover:bg-muted"
             >
               {ignorarPeriodo ? "Aplicar filtro de período" : "Mostrar todos os períodos"}
             </Button>
@@ -380,26 +380,26 @@ export default function ContadorXML() {
               ? { count: filtered.length, valor: totalGeral }
               : (totaisPorTipo[t.key] ?? { count: 0, valor: 0 });
             return (
-              <Card key={t.key} className="bg-[hsl(220,22%,11%)] border-[hsl(220,15%,20%)]">
+              <Card key={t.key} className="bg-card border-border">
                 <CardContent className="p-3">
-                  <div className="text-xs text-[hsl(220,10%,55%)] uppercase">{t.label}</div>
-                  <div className="text-lg font-semibold text-[hsl(0,0%,95%)]">{v.count}</div>
-                  <div className="text-xs text-[hsl(165,60%,55%)]">{brl(v.valor)}</div>
+                  <div className="text-xs text-muted-foreground uppercase">{t.label}</div>
+                  <div className="text-lg font-semibold text-foreground">{v.count}</div>
+                  <div className="text-xs text-primary">{brl(v.valor)}</div>
                 </CardContent>
               </Card>
             );
           })}
         </div>
 
-        <Card className="bg-[hsl(220,22%,11%)] border-[hsl(220,15%,20%)]">
+        <Card className="bg-card border-border">
           <CardContent className="p-4 flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(220,10%,50%)]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por chave, número, CNPJ ou nome…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 bg-[hsl(220,18%,15%)] border-[hsl(220,15%,22%)] text-white"
+                className="pl-9 bg-muted border-border text-foreground"
               />
             </div>
             <div className="flex flex-wrap gap-2">
@@ -412,8 +412,8 @@ export default function ContadorXML() {
                     onClick={() => setFilterTipo(t.key)}
                     className={`px-3 py-2 rounded-md text-sm border transition-colors ${
                       active
-                        ? "bg-[hsl(165,60%,40%)] border-[hsl(165,60%,40%)] text-white"
-                        : "bg-[hsl(220,18%,15%)] border-[hsl(220,15%,22%)] text-[hsl(220,10%,75%)] hover:bg-[hsl(220,18%,18%)]"
+                        ? "bg-primary border-primary text-primary-foreground"
+                        : "bg-muted border-border text-foreground/80 hover:bg-muted/70"
                     }`}
                   >
                     {t.label} <span className="ml-1 opacity-70">({n})</span>
@@ -424,20 +424,34 @@ export default function ContadorXML() {
           </CardContent>
         </Card>
 
-        <Card className="bg-[hsl(220,22%,11%)] border-[hsl(220,15%,20%)]">
+        <Card className="bg-card border-border">
           <CardContent className="p-0">
             {loading ? (
-              <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-[hsl(165,60%,55%)]" /></div>
+              <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
             ) : filtered.length === 0 ? (
-              <div className="text-center py-12">
-                <FileCode className="h-12 w-12 mx-auto mb-3 text-[hsl(220,10%,30%)]" />
-                <p className="text-sm text-[hsl(220,10%,55%)]">Nenhum XML encontrado para o período/filtros selecionados.</p>
+              <div className="text-center py-12 px-6">
+                <FileCode className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                <p className="text-sm text-muted-foreground mb-4">
+                  {totalNoBanco > 0 && !ignorarPeriodo
+                    ? `Nenhum XML no período ${range.label}. Existem ${totalNoBanco} no banco em outros períodos.`
+                    : "Nenhum XML encontrado para os filtros selecionados."}
+                </p>
+                {totalNoBanco > 0 && !ignorarPeriodo && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIgnorarPeriodo(true)}
+                    className="border-border text-foreground hover:bg-muted"
+                  >
+                    Ver todos os períodos
+                  </Button>
+                )}
               </div>
             ) : (
               <TooltipProvider delayDuration={200}>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-[hsl(220,18%,13%)] text-[hsl(220,10%,60%)] text-xs uppercase sticky top-0">
+                    <thead className="bg-muted text-muted-foreground text-xs uppercase sticky top-0">
                       <tr>
                         <th className="px-3 py-3 w-10">
                           <Checkbox
@@ -463,7 +477,7 @@ export default function ContadorXML() {
                         const somaDia = rows.reduce((s, n) => s + Number(n.valor_total ?? 0), 0);
                         return (
                           <>
-                            <tr key={`g-${dia}`} className="bg-[hsl(220,22%,14%)]">
+                            <tr key={`g-${dia}`} className="bg-muted/60">
                               <td colSpan={12} className="px-3 py-2">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <div className="flex items-center gap-2">
@@ -471,12 +485,12 @@ export default function ContadorXML() {
                                       checked={rows.length > 0 && rows.every((r) => selecionados.includes(r.id))}
                                       onCheckedChange={() => toggleSelAll(rows.map((r) => r.id))}
                                     />
-                                    <div className="font-semibold text-[hsl(165,60%,60%)]">
+                                    <div className="font-semibold text-primary">
                                       ▸ {safeDateLabel(dia)}
                                     </div>
                                   </div>
-                                  <div className="text-xs text-[hsl(220,10%,70%)]">
-                                    {rows.length} nota{rows.length > 1 ? "s" : ""} · <span className="text-[hsl(0,0%,93%)] font-medium">{brl(somaDia)}</span>
+                                  <div className="text-xs text-muted-foreground">
+                                    {rows.length} nota{rows.length > 1 ? "s" : ""} · <span className="text-foreground font-medium">{brl(somaDia)}</span>
                                   </div>
                                 </div>
                               </td>
@@ -485,13 +499,13 @@ export default function ContadorXML() {
                               const chave = n.chave_acesso ?? "";
                               const chaveCurta = chave ? `${chave.slice(0, 6)}…${chave.slice(-6)}` : "—";
                               return (
-                                <tr key={n.id} className="border-t border-[hsl(220,15%,18%)] hover:bg-[hsl(220,18%,13%)]">
+                                <tr key={n.id} className="border-t border-border hover:bg-muted/40">
                                   <td className="px-3 py-2"><Checkbox checked={selecionados.includes(n.id)} onCheckedChange={() => toggleSel(n.id)} /></td>
                                   <td className="px-3 py-2"><Badge variant="outline" className="uppercase">{n.tipo ?? "—"}</Badge></td>
-                                  <td className="px-3 py-2 text-[hsl(0,0%,90%)] whitespace-nowrap">
-                                    {n.numero ?? "—"} <span className="text-[hsl(220,10%,55%)]">/ {n.serie ?? "—"}</span>
+                                  <td className="px-3 py-2 text-foreground whitespace-nowrap">
+                                    {n.numero ?? "—"} <span className="text-muted-foreground">/ {n.serie ?? "—"}</span>
                                   </td>
-                                  <td className="px-3 py-2 text-[hsl(220,10%,70%)] font-mono text-xs">
+                                  <td className="px-3 py-2 text-muted-foreground font-mono text-xs">
                                     {chave ? (
                                       <Tooltip>
                                         <TooltipTrigger asChild>
@@ -503,25 +517,25 @@ export default function ContadorXML() {
                                       </Tooltip>
                                     ) : "—"}
                                   </td>
-                                  <td className="px-3 py-2 text-[hsl(220,10%,75%)] whitespace-nowrap">{fmtCNPJ(n.remetente_cpf_cnpj)}</td>
-                                  <td className="px-3 py-2 text-[hsl(220,10%,80%)] max-w-[180px] truncate" title={n.remetente_nome ?? ""}>
+                                  <td className="px-3 py-2 text-foreground/80 whitespace-nowrap">{fmtCNPJ(n.remetente_cpf_cnpj)}</td>
+                                  <td className="px-3 py-2 text-foreground/90 max-w-[180px] truncate" title={n.remetente_nome ?? ""}>
                                     {n.remetente_nome ?? "—"}
                                   </td>
-                                  <td className="px-3 py-2 text-[hsl(220,10%,75%)] whitespace-nowrap">{fmtCNPJ(n.destinatario_cpf_cnpj)}</td>
-                                  <td className="px-3 py-2 text-[hsl(220,10%,80%)] max-w-[180px] truncate" title={n.destinatario_nome ?? ""}>
+                                  <td className="px-3 py-2 text-foreground/80 whitespace-nowrap">{fmtCNPJ(n.destinatario_cpf_cnpj)}</td>
+                                  <td className="px-3 py-2 text-foreground/90 max-w-[180px] truncate" title={n.destinatario_nome ?? ""}>
                                     {n.destinatario_nome ?? "—"}
                                   </td>
-                                  <td className="px-3 py-2 text-[hsl(220,10%,70%)]">{lojaNome(n.unidade_id)}</td>
+                                  <td className="px-3 py-2 text-muted-foreground">{lojaNome(n.unidade_id)}</td>
                                   <td className="px-3 py-2">
                                     <Badge variant="outline" className="text-xs">
                                       {n.status ?? "importado"}
                                     </Badge>
                                   </td>
-                                  <td className="px-3 py-2 text-right text-[hsl(0,0%,93%)] font-medium whitespace-nowrap">
+                                  <td className="px-3 py-2 text-right text-foreground font-medium whitespace-nowrap">
                                     {n.valor_total != null ? brl(Number(n.valor_total)) : "—"}
                                   </td>
                                   <td className="px-3 py-2 text-right">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-[hsl(165,60%,55%)]" onClick={() => downloadXml(n)} title="Baixar XML">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => downloadXml(n)} title="Baixar XML">
                                       <Download className="h-4 w-4" />
                                     </Button>
                                   </td>
