@@ -184,8 +184,22 @@ export function ImportacaoInteligente({ empresa_id, unidade_id_padrao, destino =
             </table>
           </div>
 
-          <div className="flex justify-end pt-3">
-            <Button onClick={() => setOpen(false)} disabled={processing}>Fechar</Button>
+          <div className="flex flex-col sm:flex-row gap-2 justify-end pt-3">
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={processing}
+            >
+              Fechar
+            </Button>
+            <Button
+              onClick={() => { onConcluido?.(); setOpen(false); toast.success("Lista da página atualizada"); }}
+              disabled={processing || (resumo?.criados ?? 0) === 0}
+              className="bg-[hsl(165,60%,40%)] hover:bg-[hsl(165,60%,45%)] text-white"
+            >
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Gravar na página ({resumo?.criados ?? 0})
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
