@@ -148,6 +148,66 @@ export default function ContadorXML() {
     }
   };
 
+  const toggleSel = (id: string) =>
+    setSelecionados((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+
+  const toggleSelAll = (ids: string[]) => {
+    const todosMarcados = ids.length > 0 && ids.every((id) => selecionados.includes(id));
+    setSelecionados((prev) => todosMarcados ? prev.filter((x) => !ids.includes(x)) : Array.from(new Set([...prev, ...ids])));
+  };
+
+  const baixarSelecionadosZip = async () => {
+    const alvos = (filterTipo || search ? filtered : notas).filter((n) => selecionados.includes(n.id) && n.xml_url);
+    if (alvos.length === 0) { toast.error("Nenhum XML selecionado com arquivo disponível"); return; }
+    setBaixandoLote(true);
+    const zip = new JSZip();
+    let ok = 0, fail = 0;
+    for (const n of alvos) {
+      try {
+        const { data, error } = await supabase.storage.from("contabil-xmls").createSignedUrl(n.xml_url!, 120);
+        if (error) throw error;
+        const resp = await fetch(data.signedUrl);
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const blob = await resp.blob();
+        const dia = (n.data_emissao ?? n.created_at?.slice(0, 10) ?? "sem-data").slice(0, 10);
+        const tipo = (n.tipo ?? "doc").toLowerCase();
+        const nome = `${dia}/${tipo}_${n.numero ?? n.id.slice(0, 8)}.xml`;
+        zip.file(nome, blob);
+        ok++;
+      } catch (e) {
+        console.error("zip falha", n.id, e);
+        fail++;
+      }
+    }
+    try {
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement("a");
+      const stamp = format(new Date(), "yyyyMMdd-HHmm");
+      a.href = url;
+      a.download = `xmls_${empresaAtiva?.empresa_slug ?? "empresa"}_${stamp}.zip`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      toast.success(`Lote ZIP gerado · ${ok} arquivo(s)${fail ? ` · ${fail} falha(s)` : ""}`);
+    } catch (e: any) {
+      toast.error("Falha ao gerar ZIP: " + e.message);
+    } finally {
+      setBaixandoLote(false);
+    }
+  };
+
+  const baixarSelecionadosIndividual = async () => {
+    const alvos = filtered.filter((n) => selecionados.includes(n.id) && n.xml_url);
+    if (alvos.length === 0) { toast.error("Nenhum XML selecionado com arquivo disponível"); return; }
+    for (const n of alvos) {
+      try {
+        const { data } = await supabase.storage.from("contabil-xmls").createSignedUrl(n.xml_url!, 120);
+        if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+      } catch { /* ignore */ }
+    }
+    toast.success(`${alvos.length} download(s) iniciado(s)`);
+  };
+
   const counts = useMemo(() => notas.reduce((acc, n) => {
     const t = (n.tipo ?? "outro").toLowerCase();
     acc[t] = (acc[t] ?? 0) + 1;
