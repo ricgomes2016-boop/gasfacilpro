@@ -114,8 +114,14 @@ export default function ContadorXML() {
     }
   };
 
+  const counts = notas.reduce((acc, n) => {
+    const t = (n.tipo ?? "outro").toLowerCase();
+    acc[t] = (acc[t] ?? 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
   const filtered = notas.filter((n) => {
-    if (filterTipo && n.tipo !== filterTipo) return false;
+    if (filterTipo && (n.tipo ?? "").toLowerCase() !== filterTipo) return false;
     if (search) {
       const q = search.toLowerCase();
       return (n.chave_acesso ?? "").toLowerCase().includes(q)
@@ -125,6 +131,14 @@ export default function ContadorXML() {
     }
     return true;
   });
+
+  const TIPOS: { key: string; label: string }[] = [
+    { key: "", label: "Todos" },
+    { key: "nfe", label: "NF-e" },
+    { key: "nfce", label: "NFC-e" },
+    { key: "cte", label: "CT-e" },
+    { key: "mdfe", label: "MDF-e" },
+  ];
 
   return (
     <ContadorPortalLayout>
