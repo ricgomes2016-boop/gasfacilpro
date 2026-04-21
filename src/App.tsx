@@ -41,6 +41,7 @@ import { marketingRoutes } from "@/routes/marketingRoutes";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import { ContadorProvider } from "@/contexts/ContadorContext";
+import { PeriodoProvider } from "@/contexts/PeriodoContext";
 
 const CentralGasCP = lazy(() => import("./pages/publico/CentralGasCP"));
 const ForteGas = lazy(() => import("./pages/publico/ForteGas"));
