@@ -1,11 +1,16 @@
-import { Building2, Store } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Building2, Store, Crown, MapPin } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel, SelectSeparator } from "@/components/ui/select";
 import { useContador } from "@/contexts/ContadorContext";
+import { Badge } from "@/components/ui/badge";
 
 export function SeletorEmpresaUnidade() {
   const { empresas, empresaAtiva, setEmpresaAtiva, unidades, unidadeAtiva, setUnidadeAtiva } = useContador();
 
   if (empresas.length === 0) return null;
+
+  const matrizes = unidades.filter((u) => u.tipo === "matriz");
+  const filiais = unidades.filter((u) => u.tipo !== "matriz");
+  const totalLojas = unidades.length;
 
   return (
     <div className="flex flex-col sm:flex-row gap-2 w-full">
@@ -47,13 +52,45 @@ export function SeletorEmpresaUnidade() {
           <SelectTrigger className="bg-[hsl(220,18%,15%)] border-[hsl(220,15%,22%)] text-white h-9 text-xs">
             <SelectValue placeholder="Todas as lojas" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">Todas as lojas</SelectItem>
-            {unidades.map((u) => (
-              <SelectItem key={u.id} value={u.id}>
-                {u.nome}
-              </SelectItem>
-            ))}
+          <SelectContent className="max-h-80">
+            <SelectItem value="__all__">
+              <span className="flex items-center gap-2">
+                <span className="font-medium">Todas as lojas</span>
+                <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">{totalLojas}</Badge>
+              </span>
+            </SelectItem>
+
+            {matrizes.length > 0 && (
+              <>
+                <SelectSeparator />
+                <SelectGroup>
+                  <SelectLabel className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-[hsl(165,60%,55%)]">
+                    <Crown className="h-3 w-3" /> Matriz
+                  </SelectLabel>
+                  {matrizes.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.nome}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </>
+            )}
+
+            {filiais.length > 0 && (
+              <>
+                <SelectSeparator />
+                <SelectGroup>
+                  <SelectLabel className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-[hsl(220,10%,60%)]">
+                    <MapPin className="h-3 w-3" /> Filiais ({filiais.length})
+                  </SelectLabel>
+                  {filiais.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.nome}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </>
+            )}
           </SelectContent>
         </Select>
       </div>
