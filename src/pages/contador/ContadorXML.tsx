@@ -52,7 +52,7 @@ export default function ContadorXML() {
   const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState("");
   const [filterTipo, setFilterTipo] = useState<string>("");
-  const [ignorarPeriodo, setIgnorarPeriodo] = useState(false);
+  const [ignorarPeriodo, setIgnorarPeriodo] = useState(true);
   const [totalNoBanco, setTotalNoBanco] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
