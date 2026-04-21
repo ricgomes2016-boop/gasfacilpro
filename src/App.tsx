@@ -117,32 +117,32 @@ const App = () => (
                             {/* Portal do Contador (subdomínio contabil.*) */}
                             <Route path="/contador" element={
                               <ProtectedRoute allowedRoles={["contador","admin","super_admin","gestor","financeiro"]}>
-                                <ContadorProvider><ContadorDashboard /></ContadorProvider>
+                                <ContadorProvider><PeriodoProvider><ContadorDashboard /></PeriodoProvider></ContadorProvider>
                               </ProtectedRoute>
                             } />
                             <Route path="/contador/empresas" element={
                               <ProtectedRoute allowedRoles={["contador","admin","super_admin","gestor","financeiro"]}>
-                                <ContadorProvider><ContadorEmpresas /></ContadorProvider>
+                                <ContadorProvider><PeriodoProvider><ContadorEmpresas /></PeriodoProvider></ContadorProvider>
                               </ProtectedRoute>
                             } />
                             <Route path="/contador/xml" element={
                               <ProtectedRoute allowedRoles={["contador","admin","super_admin","gestor","financeiro"]}>
-                                <ContadorProvider><ContadorXML /></ContadorProvider>
+                                <ContadorProvider><PeriodoProvider><ContadorXML /></PeriodoProvider></ContadorProvider>
                               </ProtectedRoute>
                             } />
                             <Route path="/contador/despesas" element={
                               <ProtectedRoute allowedRoles={["contador","admin","super_admin","gestor","financeiro"]}>
-                                <ContadorProvider><ContadorDespesas /></ContadorProvider>
+                                <ContadorProvider><PeriodoProvider><ContadorDespesas /></PeriodoProvider></ContadorProvider>
                               </ProtectedRoute>
                             } />
                             <Route path="/contador/financeiro" element={
                               <ProtectedRoute allowedRoles={["contador","admin","super_admin","gestor","financeiro"]}>
-                                <ContadorProvider><ContadorFinanceiro /></ContadorProvider>
+                                <ContadorProvider><PeriodoProvider><ContadorFinanceiro /></PeriodoProvider></ContadorProvider>
                               </ProtectedRoute>
                             } />
                             <Route path="/contador/plano-contas" element={
                               <ProtectedRoute allowedRoles={["contador","admin","super_admin","gestor","financeiro"]}>
-                                <ContadorProvider><ContadorPlanoContas /></ContadorProvider>
+                                <ContadorProvider><PeriodoProvider><ContadorPlanoContas /></PeriodoProvider></ContadorProvider>
                               </ProtectedRoute>
                             } />
 
