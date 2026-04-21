@@ -1,4 +1,4 @@
-// Importação inteligente: ZIP/RAR de XMLs, PDFs (notas/boletos), extratos OFX/CSV/PDF, planilhas XLSX/CSV
+// Importação inteligente: ZIP de XMLs, PDFs (notas/boletos), extratos OFX/CSV/PDF, planilhas XLSX/CSV
 // Roteia automaticamente para a unidade correta via CNPJ destinatário.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import JSZip from "https://esm.sh/jszip@3.10.1";
@@ -31,23 +31,23 @@ function detectFileType(name: string, mime: string): string {
   return "desconhecido";
 }
 
-// Parse simples de XML para extrair CNPJ destinatário/emitente, valor, número, chave
-function parseXmlMetadata(xml: string): { tipo: string; chave?: string; cnpj_dest?: string; cnpj_emit?: string; numero?: string; serie?: string; valor?: number; data?: string; emit_nome?: string; dest_nome?: string } {
+// Parse XML para extrair CNPJ destinatário/emitente, valor, número, chave
+function parseXmlMetadata(xml: string) {
   const get = (tag: string) => {
-    const m = xml.match(new RegExp(`<${tag}[^>]*>([^<]+)</${tag}>`, "i"));
+    const m = xml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "i"));
     return m ? m[1].trim() : undefined;
   };
   const getIn = (parent: string, tag: string) => {
     const block = xml.match(new RegExp(`<${parent}[\\s\\S]*?</${parent}>`, "i"));
     if (!block) return undefined;
-    const m = block[0].match(new RegExp(`<${tag}[^>]*>([^<]+)</${tag}>`, "i"));
+    const m = block[0].match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "i"));
     return m ? m[1].trim() : undefined;
   };
 
-  let tipo = "xml";
-  if (xml.includes("<NFe") || xml.includes("infNFe")) tipo = xml.includes("mod>65<") ? "xml_nfce" : "xml_nfe";
-  else if (xml.includes("<CTe") || xml.includes("infCte")) tipo = "xml_cte";
-  else if (xml.includes("<MDFe") || xml.includes("infMDFe")) tipo = "xml_mdfe";
+  let tipo = "nfe";
+  if (/<NFe[\s>]/i.test(xml) && /modelo>65</i.test(xml)) tipo = "nfce";
+  else if (/<CTe[\s>]/i.test(xml)) tipo = "cte";
+  else if (/<MDFe[\s>]/i.test(xml)) tipo = "mdfe";
 
   const chave = (xml.match(/Id="NFe(\d{44})"/) || xml.match(/Id="CTe(\d{44})"/) || xml.match(/Id="MDFe(\d{44})"/) || [])[1]
     || get("chNFe") || get("chCTe");
@@ -66,60 +66,82 @@ function parseXmlMetadata(xml: string): { tipo: string; chave?: string; cnpj_des
   };
 }
 
-// Extrai texto de PDF (uso simples: pega texto entre BT/ET via heurística leve)
-async function pdfToBase64(bytes: Uint8Array): Promise<string> {
-  let bin = "";
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
-}
-
-// Pede para a IA extrair CNPJ + dados estruturados de um documento (PDF/imagem)
-async function aiExtractFromDocument(base64: string, mime: string, hint: string): Promise<any> {
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: `Você é especialista em documentos fiscais brasileiros. Extraia dados estruturados de ${hint}. Retorne APENAS JSON.` },
-        { role: "user", content: [
-          { type: "text", text: `Extraia: tipo (nota_fiscal/boleto/recibo/extrato/desconhecido), cnpj_emitente, cnpj_destinatario, nome_emitente, nome_destinatario, numero_documento, valor_total (number), data_emissao (YYYY-MM-DD), data_vencimento (YYYY-MM-DD), descricao. Use null para campos ausentes. Retorne JSON puro, sem markdown.` },
-          { type: "image_url", image_url: { url: `data:${mime};base64,${base64}` } }
-        ]}
-      ],
-    }),
-  });
-  if (!resp.ok) throw new Error(`AI error ${resp.status}: ${await resp.text()}`);
-  const data = await resp.json();
-  const txt = data.choices?.[0]?.message?.content || "{}";
-  const clean = txt.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-  try { return JSON.parse(clean); } catch { return {}; }
-}
-
-// Pede para IA mapear colunas de CSV/XLSX livre
-async function aiMapSpreadsheet(headers: string[], sampleRows: any[][]): Promise<any> {
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash-lite",
-      messages: [
-        { role: "system", content: "Você analisa cabeçalhos de planilha e mapeia para campos financeiros. Retorne APENAS JSON." },
-        { role: "user", content: `Cabeçalhos: ${JSON.stringify(headers)}\nAmostra: ${JSON.stringify(sampleRows.slice(0, 3))}\n\nMapeie para: { "data": "<nome_coluna>", "descricao": "<nome_coluna>", "valor": "<nome_coluna>", "tipo": "<entrada|saida|despesa>" }. Use null se não encontrar.` }
-      ],
-    }),
-  });
-  if (!resp.ok) return {};
-  const data = await resp.json();
-  const txt = data.choices?.[0]?.message?.content || "{}";
-  const clean = txt.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-  try { return JSON.parse(clean); } catch { return {}; }
+// Pede para IA mapear colunas de CSV/XLSX livre ou extrair dados de texto
+async function aiExtractFromText(text: string, hint: string): Promise<any> {
+  try {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite",
+        messages: [
+          { role: "system", content: `Você é especialista em documentos fiscais brasileiros. Extraia dados estruturados de ${hint}. Retorne APENAS JSON válido, sem markdown.` },
+          { role: "user", content: `Conteúdo:\n${text.slice(0, 6000)}\n\nExtraia: tipo (nota_fiscal/boleto/recibo/extrato/desconhecido), cnpj_emitente, cnpj_destinatario, nome_emitente, nome_destinatario, numero_documento, valor_total (number), data_emissao (YYYY-MM-DD), data_vencimento (YYYY-MM-DD), descricao. Use null para campos ausentes.` }
+        ],
+      }),
+    });
+    if (!resp.ok) {
+      console.error(`AI ${resp.status}: ${await resp.text()}`);
+      return {};
+    }
+    const data = await resp.json();
+    const txt = data.choices?.[0]?.message?.content || "{}";
+    const clean = txt.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    return JSON.parse(clean);
+  } catch (e) {
+    console.error("aiExtractFromText error:", e);
+    return {};
+  }
 }
 
 function matchUnidade(cnpj: string | undefined, unidades: UnidadeRef[]): UnidadeRef | null {
   if (!cnpj) return null;
   const digits = onlyDigits(cnpj);
+  if (!digits) return null;
   return unidades.find(u => onlyDigits(u.cnpj) === digits) || null;
+}
+
+// Processamento INLINE de XML (sem invocar outra função)
+async function processarXmlInline(
+  supabase: any,
+  xml: string,
+  nomeOrig: string,
+  empresa_id: string,
+  unidade_id: string,
+) {
+  const meta = parseXmlMetadata(xml);
+
+  // Anti-duplicidade
+  if (meta.chave) {
+    const { data: existing } = await supabase.from("notas_fiscais")
+      .select("id").eq("chave_acesso", meta.chave).maybeSingle();
+    if (existing) return { duplicate: true, id: existing.id, meta };
+  }
+
+  // Upload XML
+  const path = `${empresa_id}/${unidade_id}/${meta.chave ?? `nf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`}.xml`;
+  const { error: upErr } = await supabase.storage.from("contabil-xmls")
+    .upload(path, new Blob([xml], { type: "application/xml" }), { upsert: false });
+  if (upErr && !upErr.message.includes("already exists")) {
+    console.warn("upload xml:", upErr.message);
+  }
+
+  const { data: inserted, error } = await supabase.from("notas_fiscais").insert({
+    chave_acesso: meta.chave,
+    numero: meta.numero,
+    serie: meta.serie,
+    tipo: meta.tipo,
+    valor_total: meta.valor || 0,
+    data_emissao: meta.data ? new Date(meta.data).toISOString() : null,
+    remetente_nome: meta.emit_nome,
+    remetente_cnpj: meta.cnpj_emit,
+    xml_url: path,
+    status: "importado",
+    unidade_id,
+  }).select("id").single();
+
+  if (error) throw new Error(error.message);
+  return { duplicate: false, id: inserted.id, meta };
 }
 
 Deno.serve(async (req) => {
@@ -180,36 +202,42 @@ Deno.serve(async (req) => {
         const meta = parseXmlMetadata(xml);
         const unidadeMatch = matchUnidade(meta.cnpj_dest, unidades) || matchUnidade(meta.cnpj_emit, unidades);
         const targetUnidade = unidadeMatch?.id || unidade_id_padrao || unidades[0]?.id;
-        if (!targetUnidade) { erros++; resultados.push({ nome: nomeOrig, erro: "Sem unidade alvo" }); return; }
+        if (!targetUnidade) {
+          erros++;
+          resultados.push({ nome: nomeOrig, erro: "Sem unidade alvo (cadastre CNPJ nas unidades)" });
+          return;
+        }
 
-        // Chama parse-nfe-xml já existente
-        const { data, error } = await supabase.functions.invoke("parse-nfe-xml", {
-          body: { xml, filename: nomeOrig, empresa_id, unidade_id: targetUnidade },
-        });
-        if (error) throw error;
-        if (data?.duplicate) duplicados++; else criados++;
+        const result = await processarXmlInline(supabase, xml, nomeOrig, empresa_id, targetUnidade);
+        if (result.duplicate) duplicados++; else criados++;
         resultados.push({
           nome: nomeOrig, tipo: meta.tipo, chave: meta.chave,
-          unidade_id: targetUnidade, unidade_nome: unidadeMatch?.nome,
-          cnpj_dest: meta.cnpj_dest, valor: meta.valor, status: data?.duplicate ? "duplicado" : "criado",
+          unidade_id: targetUnidade, unidade_nome: unidadeMatch?.nome || "(padrão)",
+          cnpj_dest: meta.cnpj_dest, valor: meta.valor,
+          status: result.duplicate ? "duplicado" : "criado",
           confianca: unidadeMatch ? 1.0 : 0.5,
         });
       } catch (e: any) {
         erros++;
-        resultados.push({ nome: nomeOrig, erro: e.message });
+        resultados.push({ nome: nomeOrig, erro: e.message || String(e) });
       }
     };
 
-    // ZIP: extrair e processar cada XML
+    // ZIP: extrair e processar cada XML em lotes paralelos
     if (tipo === "zip") {
       const zip = await JSZip.loadAsync(bytes);
       const files = Object.values(zip.files).filter((f: any) => !f.dir && f.name.toLowerCase().endsWith(".xml"));
-      for (const f of files as any[]) {
-        const content = await f.async("string");
-        await processarXml(content, f.name);
+      console.log(`ZIP: ${files.length} XMLs encontrados`);
+
+      const BATCH = 8;
+      for (let i = 0; i < files.length; i += BATCH) {
+        const slice = files.slice(i, i + BATCH);
+        await Promise.all(slice.map(async (f: any) => {
+          const content = await f.async("string");
+          await processarXml(content, f.name);
+        }));
       }
     } else if (tipo === "rar") {
-      // RAR: aviso (não suportado nativamente em Deno) — pedir ZIP
       await supabase.from("importacoes_inteligentes").update({
         status: "erro", mensagem_erro: "Formato RAR não suportado. Por favor, envie ZIP.",
       }).eq("id", imp.id);
@@ -220,37 +248,65 @@ Deno.serve(async (req) => {
       const xml = new TextDecoder("utf-8").decode(bytes);
       await processarXml(xml, fileName);
     } else if (tipo === "pdf") {
-      // PDF: usa IA para extrair dados; rota para despesas
-      const b64 = await pdfToBase64(bytes);
-      const extraido = await aiExtractFromDocument(b64, "application/pdf", "PDF de nota fiscal ou boleto");
-      const cnpjDest = extraido.cnpj_destinatario || extraido.cnpj_emitente;
-      const unidadeMatch = matchUnidade(cnpjDest, unidades);
-      const targetUnidade = unidadeMatch?.id || unidade_id_padrao || unidades[0]?.id;
-      const confianca = unidadeMatch ? 0.85 : 0.4;
+      // PDF: extração de texto bruta + IA (sem image_url, que não funciona com PDFs)
+      const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+      // Heurística: pega trechos legíveis (entre BT/ET ou entre parênteses)
+      const matches = text.match(/\(([^)]{2,200})\)/g) || [];
+      const textoLegivel = matches.map(m => m.slice(1, -1)).join(" ").slice(0, 4000);
 
-      if (extraido.valor_total && targetUnidade) {
-        const { error } = await supabase.from("despesas" as any).insert({
-          unidade_id: targetUnidade,
-          descricao: extraido.descricao || `${extraido.tipo || "Documento"} ${extraido.numero_documento || fileName}`,
-          valor: extraido.valor_total,
-          data_vencimento: extraido.data_vencimento || extraido.data_emissao || new Date().toISOString().slice(0, 10),
-          status: "pendente",
-          observacoes: `Importação automática: ${fileName}`,
-        });
-        if (error) { erros++; resultados.push({ nome: fileName, erro: error.message }); }
-        else { criados++; resultados.push({ nome: fileName, tipo: "despesa", unidade_nome: unidadeMatch?.nome, ...extraido, confianca }); }
+      if (textoLegivel.length > 50) {
+        const extraido = await aiExtractFromText(textoLegivel, "PDF de nota fiscal ou boleto");
+        const cnpjDest = extraido.cnpj_destinatario || extraido.cnpj_emitente;
+        const unidadeMatch = matchUnidade(cnpjDest, unidades);
+        const targetUnidade = unidadeMatch?.id || unidade_id_padrao || unidades[0]?.id;
+        const confianca = unidadeMatch ? 0.85 : 0.4;
+
+        if (extraido.valor_total && targetUnidade) {
+          const { error } = await supabase.from("despesas" as any).insert({
+            unidade_id: targetUnidade,
+            descricao: extraido.descricao || `${extraido.tipo || "Documento"} ${extraido.numero_documento || fileName}`,
+            valor: extraido.valor_total,
+            data_vencimento: extraido.data_vencimento || extraido.data_emissao || new Date().toISOString().slice(0, 10),
+            status: "pendente",
+            observacoes: `Importação automática IA: ${fileName}`,
+          });
+          if (error) {
+            erros++;
+            resultados.push({ nome: fileName, erro: error.message });
+          } else {
+            criados++;
+            resultados.push({ nome: fileName, tipo: "despesa", unidade_nome: unidadeMatch?.nome || "(padrão)", ...extraido, confianca });
+          }
+        } else {
+          resultados.push({ nome: fileName, ...extraido, confianca, status: "revisao", motivo: "Dados insuficientes para criar despesa automaticamente" });
+        }
       } else {
-        resultados.push({ nome: fileName, ...extraido, confianca, status: "revisao" });
+        resultados.push({
+          nome: fileName,
+          status: "revisao",
+          confianca: 0.2,
+          motivo: "PDF parece ser escaneado (imagem). Use OCR externo ou converta para texto.",
+        });
       }
     } else if (tipo === "ofx" || tipo === "csv" || tipo === "xlsx") {
-      // Para extratos/planilhas: extrai cabeçalhos via texto e marca para revisão manual
-      const text = new TextDecoder("utf-8").decode(bytes.slice(0, 4000));
-      const linhas = text.split(/\r?\n/).slice(0, 5);
-      resultados.push({ nome: fileName, tipo, status: "revisao", preview: linhas, confianca: 0.5 });
+      const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes.slice(0, 8000));
+      const linhas = text.split(/\r?\n/).slice(0, 8);
+      resultados.push({
+        nome: fileName, tipo, status: "revisao",
+        preview: linhas, confianca: 0.5,
+        motivo: "Extratos e planilhas precisam de revisão manual antes da importação.",
+      });
+    } else {
+      resultados.push({
+        nome: fileName, tipo: "desconhecido", status: "revisao", confianca: 0,
+        motivo: `Formato não suportado: ${tipo}`,
+      });
     }
 
     const totalProc = resultados.length;
-    const status = erros > 0 && criados === 0 ? "erro" : (resultados.some(r => r.status === "revisao") ? "revisao" : "concluido");
+    const status = erros > 0 && criados === 0
+      ? "erro"
+      : (resultados.some(r => r.status === "revisao") ? "revisao" : "concluido");
 
     await supabase.from("importacoes_inteligentes").update({
       status,
@@ -270,7 +326,7 @@ Deno.serve(async (req) => {
 
   } catch (e: any) {
     console.error("importar-inteligente erro:", e);
-    return new Response(JSON.stringify({ error: e.message }), {
+    return new Response(JSON.stringify({ error: e.message || String(e) }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
