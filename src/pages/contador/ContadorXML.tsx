@@ -9,6 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Upload, FileCode, Loader2, Download, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { usePeriodo } from "@/contexts/PeriodoContext";
+import { BotaoExportar } from "@/components/contador/BotaoExportar";
+import { fmt } from "@/services/contadorExportService";
 
 interface NotaRow {
   id: string;
@@ -28,6 +31,7 @@ interface NotaRow {
 
 export default function ContadorXML() {
   const { empresaAtiva, unidadeAtiva, unidades } = useContador();
+  const { range } = usePeriodo();
   const [notas, setNotas] = useState<NotaRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -44,8 +48,10 @@ export default function ContadorXML() {
       let q = supabase.from("notas_fiscais" as any)
         .select("*")
         .in("unidade_id", unidadeIds)
+        .gte("created_at", range.inicioISOFull)
+        .lte("created_at", range.fimISOFull)
         .order("data_emissao", { ascending: false })
-        .limit(200);
+        .limit(500);
       const { data, error } = await q;
       if (error) throw error;
       setNotas((data ?? []) as any);
@@ -55,7 +61,7 @@ export default function ContadorXML() {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchNotas(); }, [empresaAtiva, unidadeAtiva]);
+  useEffect(() => { fetchNotas(); }, [empresaAtiva, unidadeAtiva, range.inicioISO, range.fimISO]);
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;

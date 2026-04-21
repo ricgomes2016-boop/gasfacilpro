@@ -10,6 +10,9 @@ import { Camera, Upload, Loader2, Receipt, Search, Download, CheckCircle2 } from
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePeriodo } from "@/contexts/PeriodoContext";
+import { BotaoExportar } from "@/components/contador/BotaoExportar";
+import { fmt } from "@/services/contadorExportService";
 
 interface DespesaRow {
   id: string;
@@ -31,6 +34,7 @@ interface DespesaRow {
 
 export default function ContadorDespesas() {
   const { empresaAtiva, unidadeAtiva, unidades } = useContador();
+  const { range } = usePeriodo();
   const { user } = useAuth();
   const [despesas, setDespesas] = useState<DespesaRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,8 +51,10 @@ export default function ContadorDespesas() {
       let q: any = supabase.from("despesas_contabeis" as any)
         .select("*")
         .eq("empresa_id", empresaAtiva.empresa_id)
+        .gte("data_despesa", range.inicioISO)
+        .lte("data_despesa", range.fimISO)
         .order("data_despesa", { ascending: false })
-        .limit(200);
+        .limit(500);
       if (unidadeAtiva) q = q.eq("unidade_id", unidadeAtiva.id);
       const { data, error } = await q;
       if (error) throw error;
@@ -57,7 +63,7 @@ export default function ContadorDespesas() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchDespesas(); }, [empresaAtiva, unidadeAtiva]);
+  useEffect(() => { fetchDespesas(); }, [empresaAtiva, unidadeAtiva, range.inicioISO, range.fimISO]);
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;

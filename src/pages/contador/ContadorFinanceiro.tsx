@@ -9,6 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload, Loader2, FileText, Banknote } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { usePeriodo } from "@/contexts/PeriodoContext";
+import { BotaoExportar } from "@/components/contador/BotaoExportar";
+import { fmt } from "@/services/contadorExportService";
 
 interface ExtratoRow {
   id: string;
@@ -46,6 +49,7 @@ function parseOFX(text: string) {
 
 export default function ContadorFinanceiro() {
   const { empresaAtiva, unidadeAtiva, unidades } = useContador();
+  const { range } = usePeriodo();
   const [extratos, setExtratos] = useState<ExtratoRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -61,15 +65,17 @@ export default function ContadorFinanceiro() {
       const { data, error } = await supabase.from("extrato_bancario" as any)
         .select("*")
         .in("unidade_id", unidadeIds)
+        .gte("data", range.inicioISO)
+        .lte("data", range.fimISO)
         .order("data", { ascending: false })
-        .limit(300);
+        .limit(500);
       if (error) throw error;
       setExtratos((data ?? []) as any);
     } catch (e: any) { toast.error("Erro: " + e.message); }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchExtratos(); }, [empresaAtiva, unidadeAtiva]);
+  useEffect(() => { fetchExtratos(); }, [empresaAtiva, unidadeAtiva, range.inicioISO, range.fimISO]);
 
   const handleOFX = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
