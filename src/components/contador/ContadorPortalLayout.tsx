@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { SeletorEmpresaUnidade } from "@/components/contador/SeletorEmpresaUnidade";
+import { FiltroPeriodo } from "@/components/contador/FiltroPeriodo";
+import { PeriodoProvider } from "@/contexts/PeriodoContext";
 
 interface ContadorPortalLayoutProps {
   children: ReactNode;
@@ -32,6 +34,7 @@ export function ContadorPortalLayout({ children }: ContadorPortalLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
+    <PeriodoProvider>
     <div className="min-h-screen bg-[hsl(220,20%,7%)] text-[hsl(0,0%,93%)] flex">
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
@@ -91,7 +94,7 @@ export function ContadorPortalLayout({ children }: ContadorPortalLayoutProps) {
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="sticky top-0 z-30 flex flex-col gap-2 px-4 py-3 bg-[hsl(220,22%,10%)] border-b border-[hsl(220,15%,18%)]">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <Button
               variant="ghost" size="icon"
               className="lg:hidden h-9 w-9 text-[hsl(220,10%,60%)]"
@@ -99,11 +102,11 @@ export function ContadorPortalLayout({ children }: ContadorPortalLayoutProps) {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <div className="flex-1 min-w-0 hidden sm:block">
-              <p className="text-xs text-[hsl(220,10%,50%)]">Empresa cliente / Loja</p>
-            </div>
-            <div className="flex-1 min-w-0 max-w-2xl">
+            <div className="flex-1 min-w-[220px] max-w-2xl">
               <SeletorEmpresaUnidade />
+            </div>
+            <div className="ml-auto">
+              <FiltroPeriodo />
             </div>
           </div>
         </header>
@@ -113,5 +116,6 @@ export function ContadorPortalLayout({ children }: ContadorPortalLayoutProps) {
         </main>
       </div>
     </div>
+    </PeriodoProvider>
   );
 }
