@@ -10,7 +10,7 @@ import {
 import logoImg from "@/assets/logo.png";
 import { SeletorEmpresaUnidade } from "@/components/contador/SeletorEmpresaUnidade";
 import { FiltroPeriodo } from "@/components/contador/FiltroPeriodo";
-import { PeriodoProvider } from "@/contexts/PeriodoContext";
+
 
 interface ContadorPortalLayoutProps {
   children: ReactNode;
