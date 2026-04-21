@@ -328,6 +328,23 @@ export default function ContadorXML() {
               {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
               Importar XML
             </Button>
+            <Button
+              variant="outline"
+              disabled={selecionados.length === 0 || baixandoLote}
+              onClick={baixarSelecionadosIndividual}
+              className="border-[hsl(220,15%,22%)] text-[hsl(0,0%,90%)] hover:bg-[hsl(220,18%,15%)]"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Baixar Selecionados ({selecionados.length})
+            </Button>
+            <Button
+              disabled={selecionados.length === 0 || baixandoLote}
+              onClick={baixarSelecionadosZip}
+              className="bg-[hsl(220,80%,55%)] hover:bg-[hsl(220,80%,60%)] text-white"
+            >
+              {baixandoLote ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Archive className="h-4 w-4 mr-2" />}
+              Gerar Lote ZIP
+            </Button>
           </div>
         </div>
 
