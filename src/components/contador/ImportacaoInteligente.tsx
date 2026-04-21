@@ -185,20 +185,16 @@ export function ImportacaoInteligente({ empresa_id, unidade_id_padrao, destino =
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2 justify-end pt-3">
+            {!processing && resumo && (resumo.criados > 0 || resumo.duplicados > 0) && (
+              <p className="text-xs text-muted-foreground self-center mr-auto">
+                ✓ Os registros já estão salvos no sistema.
+              </p>
+            )}
             <Button
-              variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => { onConcluido?.(); setOpen(false); }}
               disabled={processing}
             >
               Fechar
-            </Button>
-            <Button
-              onClick={() => { onConcluido?.(); setOpen(false); toast.success("Lista da página atualizada"); }}
-              disabled={processing || (resumo?.criados ?? 0) === 0}
-              className="bg-[hsl(165,60%,40%)] hover:bg-[hsl(165,60%,45%)] text-white"
-            >
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Gravar na página ({resumo?.criados ?? 0})
             </Button>
           </div>
         </DialogContent>
