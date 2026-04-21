@@ -34,27 +34,26 @@ export function ContadorPortalLayout({ children }: ContadorPortalLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-
-    <div className="min-h-screen bg-[hsl(220,20%,7%)] text-[hsl(0,0%,93%)] flex">
+    <div className="theme-contador min-h-screen text-foreground flex">
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       <aside className={cn(
         "fixed lg:sticky top-0 left-0 z-50 h-screen w-64 flex flex-col",
-        "bg-[hsl(220,22%,10%)] border-r border-[hsl(220,15%,18%)]",
+        "bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
         "transition-transform duration-300 lg:translate-x-0",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-[hsl(220,15%,18%)]">
+        <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border">
           <img src={logoImg} alt="Logo" className="h-9 w-9 rounded-lg" />
           <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-bold truncate text-[hsl(0,0%,95%)]">Portal Contábil</h1>
-            <p className="text-xs text-[hsl(220,10%,55%)] truncate">{profile?.full_name || "Contador"}</p>
+            <h1 className="text-sm font-bold truncate text-sidebar-foreground">Portal Contábil</h1>
+            <p className="text-xs text-sidebar-foreground/60 truncate">{profile?.full_name || "Contador"}</p>
           </div>
           <Button
             variant="ghost" size="icon"
-            className="lg:hidden h-8 w-8 text-[hsl(220,10%,55%)] hover:text-[hsl(0,0%,95%)]"
+            className="lg:hidden h-8 w-8 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             onClick={() => setSidebarOpen(false)}
           >
             <X className="h-4 w-4" />
@@ -69,10 +68,10 @@ export function ContadorPortalLayout({ children }: ContadorPortalLayoutProps) {
               end={item.path === "/contador"}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium",
-                "text-[hsl(220,10%,60%)] hover:text-[hsl(0,0%,95%)] hover:bg-[hsl(220,18%,15%)]",
+                "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",
                 "transition-colors duration-150"
               )}
-              activeClassName="bg-[hsl(165,60%,40%)]/15 text-[hsl(165,60%,55%)] hover:text-[hsl(165,60%,55%)]"
+              activeClassName="bg-primary/20 text-primary hover:text-primary hover:bg-primary/25"
               onClick={() => setSidebarOpen(false)}
             >
               <item.icon className="h-5 w-5 shrink-0" />
@@ -81,10 +80,10 @@ export function ContadorPortalLayout({ children }: ContadorPortalLayoutProps) {
           ))}
         </nav>
 
-        <div className="px-3 py-4 border-t border-[hsl(220,15%,18%)]">
+        <div className="px-3 py-4 border-t border-sidebar-border">
           <Button
             variant="ghost" onClick={signOut}
-            className="w-full justify-start gap-3 text-[hsl(220,10%,55%)] hover:text-[hsl(0,80%,65%)] hover:bg-[hsl(0,80%,65%)]/10"
+            className="w-full justify-start gap-3 text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10"
           >
             <LogOut className="h-4 w-4" />
             Sair
@@ -93,11 +92,11 @@ export function ContadorPortalLayout({ children }: ContadorPortalLayoutProps) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-30 flex flex-col gap-2 px-4 py-3 bg-[hsl(220,22%,10%)] border-b border-[hsl(220,15%,18%)]">
+        <header className="sticky top-0 z-30 flex flex-col gap-2 px-4 py-3 bg-card/70 backdrop-blur border-b border-border">
           <div className="flex items-center gap-3 flex-wrap">
             <Button
               variant="ghost" size="icon"
-              className="lg:hidden h-9 w-9 text-[hsl(220,10%,60%)]"
+              className="lg:hidden h-9 w-9 text-foreground/70"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="h-5 w-5" />
