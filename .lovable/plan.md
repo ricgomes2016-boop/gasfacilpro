@@ -1,106 +1,76 @@
 
+
 ## Objetivo
 
-Fazer a página `/contador/xml` exibir imediatamente os XMLs que já estão no banco, sem criar mais botões “placebo” e sem continuar gastando crédito em tentativas que não resolvem a causa real.
+1. Aplicar paleta de cores inspirada na imagem (tons roxo/violeta profundo com acentos vibrantes) em todo o portal do contador.
+2. Garantir que o filtro de mês (período) funcione corretamente na página `/contador/xml`, deixando-o como comportamento padrão.
 
-## Diagnóstico confirmado
+## 1. Nova paleta do Portal do Contador
 
-Os XMLs já existem no banco:
-- 163 registros em `notas_fiscais`
-- 118 do tipo `nfe`
-- 45 do tipo `nfce`
+Inspirada na imagem: fundo roxo profundo com gradiente, cards translúcidos, acento violeta vibrante e detalhes em rosa/magenta.
 
-Eles estão vinculados às unidades:
-- ABMF
-- Temgas
-- Forte Gás
+Tokens (HSL) que serão criados em `src/styles/theme-contador.css` (escopo `.theme-contador`):
 
-O problema principal não é importação nem “gravar na página”. O problema é de acesso/leitura no portal do contador:
+```text
+--background:        252 45% 8%      (roxo quase preto)
+--foreground:        250 20% 96%
+--card:              252 35% 13%     (card escuro translúcido)
+--card-foreground:   250 20% 96%
+--muted:             252 25% 18%
+--muted-foreground:  250 15% 70%
+--primary:           265 85% 65%     (violeta vibrante - botões)
+--primary-foreground:0 0% 100%
+--accent:            290 80% 65%     (magenta - destaques)
+--accent-foreground: 0 0% 100%
+--border:            252 30% 22%
+--ring:              265 85% 65%
+--sidebar-background:252 50% 6%
+--sidebar-accent:    265 60% 25%
+```
 
-1. A tela `/contador/xml` lê `notas_fiscais` direto do frontend.
-2. A tabela `notas_fiscais` está protegida por RLS.
-3. As policies atuais de `notas_fiscais` não liberam corretamente o perfil `contador` para empresas vinculadas em `contador_empresas`.
-4. Resultado: a query volta vazia na tela, mesmo com dados já gravados no banco.
+Mais um gradiente global de fundo:
+```text
+background: radial-gradient(at 20% 0%, hsl(265 70% 25% / 0.6), transparent 50%),
+            radial-gradient(at 80% 100%, hsl(290 60% 25% / 0.5), transparent 50%),
+            hsl(252 45% 8%);
+```
 
-O botão “Gravar na página” não resolve isso, porque ele só dispara novo fetch no frontend.
+### Aplicação
+- Criar `src/styles/theme-contador.css` com os tokens acima.
+- Importar o CSS no `src/main.tsx` (ou onde os outros temas são importados).
+- Aplicar a classe `theme-contador` no layout do contador (`src/layouts/ContadorLayout.tsx` ou equivalente — será localizado).
+- Ajustar a sidebar e o header do contador para usar `bg-sidebar`, `text-sidebar-foreground`, `border-sidebar-border`.
+- Trocar cores hardcoded `hsl(220,18%,15%)` etc. nas páginas `src/pages/contador/*` e `src/components/contador/*` por tokens semânticos (`bg-card`, `border-border`, `text-foreground`, `text-muted-foreground`, `bg-primary`).
 
-## O que será implementado
-
-### 1. Corrigir o acesso do contador aos XMLs no backend
-Criar uma migration específica para `notas_fiscais`:
-
-- ajustar a policy restritiva `tenant_isolation_notas_fiscais`
-- permitir leitura quando:
-  - o usuário for `super_admin`, ou
-  - a unidade pertencer à própria empresa do usuário, ou
-  - o usuário contador estiver vinculado à empresa da unidade via `contador_empresas`
-
-Também será adicionada/ajustada uma policy explícita de `SELECT` para `contador`, porque hoje a leitura está centrada em `admin/gestor/financeiro/operacional`.
-
-Efeito esperado:
-- o contador passa a enxergar os XMLs já existentes sem reimportar nada.
-
-### 2. Remover a falsa sensação de persistência na UI
-Na `src/components/contador/ImportacaoInteligente.tsx`:
-
-- remover ou rebaixar o botão “Gravar na página”
-- substituir por ação honesta, como “Atualizar lista”, apenas quando fizer sentido
-- manter o refresh automático após importação concluída
-
-Objetivo:
-- não induzir a ideia de que falta “salvar na página”
-- deixar claro que, após importar, os registros já estão no sistema
-
-### 3. Deixar a tela de XML resiliente para dados já existentes
-Na `src/pages/contador/ContadorXML.tsx`:
-
-- manter a carga por “todos os períodos” como padrão
-- preservar agrupamento por dia, tipo, CNPJ e dados fiscais
-- garantir refetch somente depois que empresa/unidade estiverem prontas
-- melhorar estado vazio para diferenciar:
-  - “sem XML cadastrado”
-  - “sem empresa selecionada”
-  - “sem permissão para visualizar”
-  - “nenhum XML no filtro atual”
-
-Objetivo:
-- a página parar de parecer vazia sem explicação
-
-### 4. Validar o fluxo completo com os dados já existentes
-Depois da correção:
-
-- confirmar que os cards mostram os totais reais
-- confirmar que NF-e e NFC-e aparecem na tabela
-- confirmar que os XMLs das unidades ABMF, Temgas e Forte Gás ficam visíveis
-- confirmar que o filtro por empresa/unidade continua funcionando
-
-## Arquivos afetados
-
-### Banco / backend
-- nova migration em `supabase/migrations/...sql`
-
-### Frontend
+### Páginas/componentes afetados pelo recolor
 - `src/pages/contador/ContadorXML.tsx`
+- `src/pages/contador/ContadorDashboard.tsx` (e demais páginas do portal)
+- `src/components/contador/FiltroPeriodo.tsx`
 - `src/components/contador/ImportacaoInteligente.tsx`
+- Layout/sidebar do contador
+
+## 2. Filtro de mês na página XML
+
+Hoje o `ContadorXML.tsx` está com `ignorarPeriodo = true` por padrão (mostra tudo). Será ajustado para:
+
+- `ignorarPeriodo` inicia em `false` → o filtro do `PeriodoContext` (mês atual por padrão) é aplicado direto na query por `data_emissao`.
+- Manter o toggle “Mostrar todos os períodos” como opção secundária.
+- Garantir refetch automático ao mudar `preset` ou datas customizadas (dependência do `useEffect` já considera `range.inicioISO`/`fimISO`).
+- Mostrar com destaque o período ativo (ex.: “Exibindo: 04/2026 — 47 XML”).
+- Estado vazio diferenciado quando há registros no banco mas o mês filtrado não tem nada: oferecer botão “Ver todos os períodos”.
+
+### Arquivos
+- `src/pages/contador/ContadorXML.tsx` — alterar default do estado, ajustar banner e estado vazio.
 
 ## Resultado esperado
 
-Após a correção:
-- os XMLs que já estão no banco aparecem na página sem nova importação
-- o contador consegue ver NF-e e NFC-e existentes
-- a tabela deixa de ficar zerada sem motivo
-- não será mais necessário insistir em importação nem em botão de “gravar na página” para resolver visibilidade
+- Portal do contador com identidade visual nova (roxo profundo + violeta/magenta), coerente em todas as páginas.
+- Página `/contador/xml` abre já filtrada pelo mês atual; trocar o seletor de período recarrega imediatamente; opção de ver tudo continua disponível.
 
-## Detalhe técnico principal
+## Detalhes técnicos
 
-A correção central será na RLS de `public.notas_fiscais`, usando a empresa da `unidade_id` como base de autorização para o contador vinculado em `public.contador_empresas`.
+- Sem migração de banco.
+- Sem mexer em `App.tsx`, providers ou rotas.
+- Tokens em HSL (sem `hsl(...)`), respeitando o padrão Tailwind do projeto.
+- Tema isolado por classe (`.theme-contador`) — não afeta ERP, app cliente, entregador nem transportadora.
 
-Em termos práticos, a regra ficará equivalente a:
-
-```sql
-super_admin
-OR empresa do usuário
-OR contador vinculado à empresa da unidade da nota
-```
-
-Isso resolve a causa real sem refatorar `App.tsx`, sem mexer na estrutura do portal e sem recriar os XMLs.
