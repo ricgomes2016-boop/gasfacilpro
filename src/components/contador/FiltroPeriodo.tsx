@@ -13,13 +13,13 @@ export function FiltroPeriodo() {
 
   return (
     <div className="flex items-center gap-2">
-      <div className="flex items-center gap-1.5 text-[hsl(220,10%,55%)]">
+      <div className="flex items-center gap-1.5 text-muted-foreground">
         <Filter className="h-3.5 w-3.5" />
         <span className="text-[10px] uppercase tracking-wide hidden sm:inline">Período</span>
       </div>
 
       <Select value={preset} onValueChange={(v) => setPreset(v as PeriodoPreset)}>
-        <SelectTrigger className="h-9 w-[150px] bg-[hsl(220,18%,15%)] border-[hsl(220,15%,22%)] text-white text-xs">
+        <SelectTrigger className="h-9 w-[150px] bg-muted border-border text-foreground text-xs">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -35,8 +35,8 @@ export function FiltroPeriodo() {
             <Button
               variant="outline"
               className={cn(
-                "h-9 px-3 text-xs justify-start font-normal bg-[hsl(220,18%,15%)] border-[hsl(220,15%,22%)] text-white hover:bg-[hsl(220,18%,18%)]",
-                !customInicio && "text-[hsl(220,10%,55%)]"
+                "h-9 px-3 text-xs justify-start font-normal bg-muted border-border text-foreground hover:bg-muted/70",
+                !customInicio && "text-muted-foreground"
               )}
             >
               <CalendarIcon className="h-3.5 w-3.5 mr-2" />
@@ -59,7 +59,7 @@ export function FiltroPeriodo() {
         </Popover>
       )}
 
-      <span className="hidden md:inline text-[10px] text-[hsl(220,10%,50%)] ml-1">{range.label}</span>
+      <span className="hidden md:inline text-[10px] text-muted-foreground ml-1">{range.label}</span>
     </div>
   );
 }
