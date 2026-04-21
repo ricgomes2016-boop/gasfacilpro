@@ -56,6 +56,8 @@ export default function ContadorXML() {
   const [filterTipo, setFilterTipo] = useState<string>("");
   const [ignorarPeriodo, setIgnorarPeriodo] = useState(true);
   const [totalNoBanco, setTotalNoBanco] = useState(0);
+  const [selecionados, setSelecionados] = useState<string[]>([]);
+  const [baixandoLote, setBaixandoLote] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const fetchNotas = async () => {
