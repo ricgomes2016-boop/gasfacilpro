@@ -94,7 +94,7 @@ export default function ContadorXML() {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchNotas(); }, [empresaAtiva, unidadeAtiva, range.inicioISO, range.fimISO]);
+  useEffect(() => { fetchNotas(); }, [empresaAtiva, unidadeAtiva, range.inicioISO, range.fimISO, ignorarPeriodo]);
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
