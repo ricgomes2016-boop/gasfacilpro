@@ -89,6 +89,7 @@ export function ContadorProvider({ children }: { children: ReactNode }) {
       .select("id, nome, tipo, empresa_id")
       .eq("empresa_id", empresaId)
       .eq("ativo", true)
+      .order("tipo", { ascending: true }) // matriz antes de filial
       .order("nome");
     if (error) {
       console.error("fetch unidades error:", error);
