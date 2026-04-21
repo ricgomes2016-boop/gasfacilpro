@@ -464,10 +464,16 @@ export default function ContadorXML() {
                         return (
                           <>
                             <tr key={`g-${dia}`} className="bg-[hsl(220,22%,14%)]">
-                              <td colSpan={11} className="px-3 py-2">
+                              <td colSpan={12} className="px-3 py-2">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <div className="font-semibold text-[hsl(165,60%,60%)]">
-                                    ▸ {safeDateLabel(dia)}
+                                  <div className="flex items-center gap-2">
+                                    <Checkbox
+                                      checked={rows.length > 0 && rows.every((r) => selecionados.includes(r.id))}
+                                      onCheckedChange={() => toggleSelAll(rows.map((r) => r.id))}
+                                    />
+                                    <div className="font-semibold text-[hsl(165,60%,60%)]">
+                                      ▸ {safeDateLabel(dia)}
+                                    </div>
                                   </div>
                                   <div className="text-xs text-[hsl(220,10%,70%)]">
                                     {rows.length} nota{rows.length > 1 ? "s" : ""} · <span className="text-[hsl(0,0%,93%)] font-medium">{brl(somaDia)}</span>
@@ -480,6 +486,7 @@ export default function ContadorXML() {
                               const chaveCurta = chave ? `${chave.slice(0, 6)}…${chave.slice(-6)}` : "—";
                               return (
                                 <tr key={n.id} className="border-t border-[hsl(220,15%,18%)] hover:bg-[hsl(220,18%,13%)]">
+                                  <td className="px-3 py-2"><Checkbox checked={selecionados.includes(n.id)} onCheckedChange={() => toggleSel(n.id)} /></td>
                                   <td className="px-3 py-2"><Badge variant="outline" className="uppercase">{n.tipo ?? "—"}</Badge></td>
                                   <td className="px-3 py-2 text-[hsl(0,0%,90%)] whitespace-nowrap">
                                     {n.numero ?? "—"} <span className="text-[hsl(220,10%,55%)]">/ {n.serie ?? "—"}</span>
