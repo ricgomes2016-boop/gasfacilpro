@@ -52,6 +52,8 @@ export default function ContadorXML() {
   const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState("");
   const [filterTipo, setFilterTipo] = useState<string>("");
+  const [ignorarPeriodo, setIgnorarPeriodo] = useState(false);
+  const [totalNoBanco, setTotalNoBanco] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const fetchNotas = async () => {
@@ -59,17 +61,31 @@ export default function ContadorXML() {
     setLoading(true);
     try {
       const unidadeIds = unidadeAtiva ? [unidadeAtiva.id] : unidades.map((u) => u.id);
-      if (unidadeIds.length === 0) { setNotas([]); return; }
-      // Filtra por data_emissao (campo fiscal). Como period range usa ISO datetime,
-      // extraímos só a parte DATE (YYYY-MM-DD) para comparar com a coluna date.
-      const inicioDate = (range.inicioISOFull ?? range.inicioISO ?? "").slice(0, 10);
-      const fimDate = (range.fimISOFull ?? range.fimISO ?? "").slice(0, 10);
-      const { data, error } = await supabase.from("notas_fiscais" as any)
+      if (unidadeIds.length === 0) { setNotas([]); setTotalNoBanco(0); return; }
+
+      // 1) Conta o total existente (independente de período) para o aviso
+      const { count: totalCount } = await supabase
+        .from("notas_fiscais" as any)
+        .select("*", { count: "exact", head: true })
+        .in("unidade_id", unidadeIds);
+      setTotalNoBanco(totalCount ?? 0);
+
+      // 2) Busca os registros — opcionalmente filtrando por data_emissao
+      let q = supabase.from("notas_fiscais" as any)
         .select("*")
         .in("unidade_id", unidadeIds)
-        .or(`and(data_emissao.gte.${inicioDate},data_emissao.lte.${fimDate}),and(data_emissao.is.null,created_at.gte.${range.inicioISOFull},created_at.lte.${range.fimISOFull})`)
         .order("data_emissao", { ascending: false, nullsFirst: false })
         .limit(1000);
+
+      if (!ignorarPeriodo) {
+        const inicioDate = (range.inicioISOFull ?? range.inicioISO ?? "").slice(0, 10);
+        const fimDate = (range.fimISOFull ?? range.fimISO ?? "").slice(0, 10);
+        if (inicioDate && fimDate) {
+          q = q.gte("data_emissao", inicioDate).lte("data_emissao", fimDate);
+        }
+      }
+
+      const { data, error } = await q;
       if (error) throw error;
       setNotas((data ?? []) as any);
     } catch (e: any) {
@@ -78,7 +94,7 @@ export default function ContadorXML() {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchNotas(); }, [empresaAtiva, unidadeAtiva, range.inicioISO, range.fimISO]);
+  useEffect(() => { fetchNotas(); }, [empresaAtiva, unidadeAtiva, range.inicioISO, range.fimISO, ignorarPeriodo]);
 
   const handleUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -250,6 +266,25 @@ export default function ContadorXML() {
             </Button>
           </div>
         </div>
+
+        {/* Aviso: dados gravados vs filtro de período */}
+        {empresaAtiva && totalNoBanco > 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-3 rounded-md bg-[hsl(220,22%,11%)] border border-[hsl(220,15%,20%)]">
+            <div className="text-sm text-[hsl(220,10%,75%)]">
+              <span className="font-semibold text-[hsl(0,0%,95%)]">{totalNoBanco}</span> XML(s) gravado(s) no banco ·{" "}
+              <span className="font-semibold text-[hsl(165,60%,60%)]">{notas.length}</span>{" "}
+              {ignorarPeriodo ? "exibido(s) (todos os períodos)" : `no período ${range.label}`}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIgnorarPeriodo((v) => !v)}
+              className="border-[hsl(220,15%,22%)] text-[hsl(0,0%,90%)] hover:bg-[hsl(220,18%,15%)]"
+            >
+              {ignorarPeriodo ? "Aplicar filtro de período" : "Mostrar todos os períodos"}
+            </Button>
+          </div>
+        )}
 
         {/* Resumo por tipo */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2">
