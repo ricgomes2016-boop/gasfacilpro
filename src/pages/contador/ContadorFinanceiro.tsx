@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { usePeriodo } from "@/contexts/PeriodoContext";
 import { BotaoExportar } from "@/components/contador/BotaoExportar";
 import { ImportacaoInteligente } from "@/components/contador/ImportacaoInteligente";
+import { DialogImportarOFX } from "@/components/contador/DialogImportarOFX";
 import { fmt } from "@/services/contadorExportService";
 
 interface ExtratoRow {
@@ -25,28 +26,8 @@ interface ExtratoRow {
   created_at: string;
 }
 
-function parseOFX(text: string) {
-  // Parser simples que extrai STMTTRN
-  const txns: Array<{ date: string; amount: number; type: string; memo: string; fitid: string }> = [];
-  const re = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi;
-  let m: RegExpExecArray | null;
-  const get = (block: string, tag: string) => {
-    const r = new RegExp(`<${tag}>([^<\\r\\n]*)`, "i");
-    const x = block.match(r);
-    return x ? x[1].trim() : "";
-  };
-  while ((m = re.exec(text)) !== null) {
-    const block = m[1];
-    const dt = get(block, "DTPOSTED").slice(0, 8);
-    const date = dt.length === 8 ? `${dt.slice(0,4)}-${dt.slice(4,6)}-${dt.slice(6,8)}` : new Date().toISOString().slice(0,10);
-    const amount = parseFloat(get(block, "TRNAMT") || "0");
-    const type = get(block, "TRNTYPE");
-    const memo = get(block, "MEMO") || get(block, "NAME");
-    const fitid = get(block, "FITID");
-    txns.push({ date, amount, type, memo, fitid });
-  }
-  return txns;
-}
+// Parser OFX legado removido — agora vive em src/services/ofxParser.ts e é usado pelo DialogImportarOFX
+
 
 export default function ContadorFinanceiro() {
   const { empresaAtiva, unidadeAtiva, unidades } = useContador();
@@ -54,7 +35,6 @@ export default function ContadorFinanceiro() {
   const [extratos, setExtratos] = useState<ExtratoRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const ofxRef = useRef<HTMLInputElement>(null);
   const pdfRef = useRef<HTMLInputElement>(null);
 
   const fetchExtratos = async () => {
@@ -78,53 +58,8 @@ export default function ContadorFinanceiro() {
 
   useEffect(() => { fetchExtratos(); }, [empresaAtiva, unidadeAtiva, range.inicioISO, range.fimISO]);
 
-  const handleOFX = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    if (!empresaAtiva) { toast.error("Selecione uma empresa"); return; }
-    const targetUnidade = unidadeAtiva ?? unidades[0];
-    if (!targetUnidade) { toast.error("Empresa sem lojas"); return; }
+  // handleOFX legado removido — substituído pelo DialogImportarOFX
 
-    setUploading(true);
-    let total = 0, dup = 0;
-    for (const file of Array.from(files)) {
-      try {
-        const text = await file.text();
-        const txns = parseOFX(text);
-        if (txns.length === 0) { toast.error(`${file.name}: nenhuma transação encontrada`); continue; }
-
-        // Upload arquivo original
-        const path = `${empresaAtiva.empresa_id}/${targetUnidade.id}/ofx-${Date.now()}-${file.name}`;
-        await supabase.storage.from("contabil-extratos").upload(path, file, { contentType: "application/x-ofx" });
-
-        for (const t of txns) {
-          // Anti-duplicidade: data+valor+memo (limit 80) por unidade
-          const memo = (t.memo ?? "").slice(0, 200);
-          const { data: exists } = await supabase.from("extrato_bancario" as any)
-            .select("id")
-            .eq("unidade_id", targetUnidade.id)
-            .eq("data", t.date)
-            .eq("valor", t.amount)
-            .ilike("descricao", memo.slice(0, 80) + "%")
-            .limit(1);
-          if (exists && exists.length > 0) { dup++; continue; }
-
-          const { error } = await (supabase.from("extrato_bancario" as any) as any).insert({
-            data: t.date,
-            descricao: memo || t.fitid || "OFX",
-            valor: t.amount,
-            tipo: t.amount >= 0 ? "credito" : "debito",
-            unidade_id: targetUnidade.id,
-            conciliado: false,
-          });
-          if (!error) total++;
-        }
-      } catch (e: any) { console.error(e); toast.error(`${file.name}: ${e.message}`); }
-    }
-    setUploading(false);
-    toast.success(`${total} transação(ões) importada(s)${dup ? `, ${dup} duplicada(s) ignorada(s)` : ""}`);
-    fetchExtratos();
-    if (ofxRef.current) ofxRef.current.value = "";
-  };
 
   const handlePDF = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -235,15 +170,20 @@ export default function ContadorFinanceiro() {
               <Card className="bg-[hsl(220,22%,11%)] border-[hsl(220,15%,20%)]">
                 <CardContent className="p-6">
                   <Banknote className="h-8 w-8 text-[hsl(165,60%,55%)] mb-3" />
-                  <h3 className="font-semibold text-[hsl(0,0%,95%)] mb-1">Importar OFX</h3>
-                  <p className="text-sm text-[hsl(220,10%,60%)] mb-4">Arquivo OFX exportado do internet banking</p>
-                  <input ref={ofxRef} type="file" accept=".ofx,.OFX" multiple className="hidden"
-                    onChange={(e) => handleOFX(e.target.files)} />
-                  <Button onClick={() => ofxRef.current?.click()} disabled={uploading || !empresaAtiva}
-                    className="bg-[hsl(165,60%,40%)] hover:bg-[hsl(165,60%,45%)] text-white">
-                    {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                    Selecionar OFX
-                  </Button>
+                  <h3 className="font-semibold text-[hsl(0,0%,95%)] mb-1">Importar OFX (multi-conta)</h3>
+                  <p className="text-sm text-[hsl(220,10%,60%)] mb-4">Detecta filiais, agrupa por conta bancária e mostra resumo</p>
+                  {empresaAtiva ? (
+                    <DialogImportarOFX
+                      empresaId={empresaAtiva.empresa_id}
+                      unidades={unidades.map((u) => ({ id: u.id, nome: u.nome, cnpj: (u as any).cnpj }))}
+                      unidadeAtivaId={unidadeAtiva?.id ?? null}
+                      onConcluido={fetchExtratos}
+                    />
+                  ) : (
+                    <Button disabled className="bg-[hsl(165,60%,40%)] text-white">
+                      <Upload className="h-4 w-4 mr-2" /> Selecione uma empresa
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
 
