@@ -389,7 +389,7 @@ export default function ContadorFinanceiro() {
           </div>
         </div>
 
-        <Tabs defaultValue="importar" className="w-full">
+        <Tabs value={tabPagina} onValueChange={setTabPagina} className="w-full">
           <TabsList className="bg-[hsl(220,18%,13%)] border border-[hsl(220,15%,20%)]">
             <TabsTrigger value="importar">Importar</TabsTrigger>
             <TabsTrigger value="extratos">Extratos</TabsTrigger>
