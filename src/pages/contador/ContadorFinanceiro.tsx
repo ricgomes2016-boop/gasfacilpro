@@ -326,7 +326,7 @@ export default function ContadorFinanceiro() {
                 empresa_id={empresaAtiva.empresa_id}
                 unidade_id_padrao={unidadeAtiva?.id}
                 destino="financeiro"
-                onConcluido={fetchExtratos}
+                onConcluido={handleImportConcluida}
                 label="IA: OFX/CSV/PDF"
               />
             )}
@@ -415,7 +415,7 @@ export default function ContadorFinanceiro() {
                         cnpj: (u as any).cnpj,
                       }))}
                       unidadeAtivaId={unidadeAtiva?.id ?? null}
-                      onConcluido={fetchExtratos}
+                      onConcluido={handleImportConcluida}
                     />
                   ) : (
                     <Button disabled className="bg-[hsl(165,60%,40%)] text-white">
@@ -566,7 +566,7 @@ export default function ContadorFinanceiro() {
                           cnpj: (u as any).cnpj,
                         }))}
                         unidadeAtivaId={unidadeAtiva?.id ?? null}
-                        onConcluido={fetchExtratos}
+                        onConcluido={handleImportConcluida}
                       />
                     )}
                   </div>
