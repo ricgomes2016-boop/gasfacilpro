@@ -122,6 +122,12 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
   const [highlightIndex, setHighlightIndex] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const resultsListRef = useRef<HTMLDivElement>(null);
+  const [ultimoPedidoInfo, setUltimoPedidoInfo] = useState<{
+    valor: number;
+    data: string;
+    forma: string | null;
+  } | null>(null);
+  const [loadingUltimo, setLoadingUltimo] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState<NominatimResult[]>([]);
@@ -339,6 +345,46 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     setShowResults(false);
     setSearchResults([]);
     setSearchTerm("");
+
+    // Carrega último pedido pago do cliente (último valor que ele pagou)
+    setUltimoPedidoInfo(null);
+    setLoadingUltimo(true);
+    try {
+      const { data: ult } = await supabase
+        .from("pedidos")
+        .select("valor_total, created_at, forma_pagamento, status")
+        .eq("cliente_id", cliente.id)
+        .in("status", ["entregue", "concluido", "finalizado", "pago"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let pedido = ult;
+      if (!pedido) {
+        // Fallback: pega o último pedido qualquer (exceto cancelado)
+        const { data: any2 } = await supabase
+          .from("pedidos")
+          .select("valor_total, created_at, forma_pagamento, status")
+          .eq("cliente_id", cliente.id)
+          .neq("status", "cancelado")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        pedido = any2 ?? null;
+      }
+
+      if (pedido) {
+        setUltimoPedidoInfo({
+          valor: Number(pedido.valor_total) || 0,
+          data: pedido.created_at as string,
+          forma: (pedido as any).forma_pagamento ?? null,
+        });
+      }
+    } catch (e) {
+      console.error("Erro ao carregar último pedido do cliente:", e);
+    } finally {
+      setLoadingUltimo(false);
+    }
   };
 
   const selectAddress = async (result: NominatimResult) => {
@@ -583,6 +629,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
                 setSearchTerm("");
                 setSearchResults([]);
                 setShowResults(false);
+                setUltimoPedidoInfo(null);
                 onChange({
                   ...value,
                   id: null,
@@ -608,6 +655,27 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
             <p className="text-[10px] text-muted-foreground mt-1">
               ✨ Cliente não encontrado — preencha abaixo e será cadastrado automaticamente
             </p>
+          )}
+          {value.id && (loadingUltimo || ultimoPedidoInfo) && (
+            <div className="mt-2 flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs">
+              {loadingUltimo ? (
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Buscando último pedido…
+                </span>
+              ) : ultimoPedidoInfo ? (
+                <>
+                  <span className="text-muted-foreground">Último valor pago:</span>
+                  <strong className="text-primary">
+                    {ultimoPedidoInfo.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </strong>
+                  <span className="text-muted-foreground">
+                    em {new Date(ultimoPedidoInfo.data).toLocaleDateString("pt-BR")}
+                    {ultimoPedidoInfo.forma ? ` · ${ultimoPedidoInfo.forma}` : ""}
+                  </span>
+                </>
+              ) : null}
+            </div>
           )}
         </div>
 
