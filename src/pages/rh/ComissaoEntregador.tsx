@@ -7,7 +7,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter,
 } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, TrendingUp, Package, Calculator, Printer, Edit2, Save, X } from "lucide-react";
+import { DollarSign, TrendingUp, Package, Calculator, Printer, Edit2, Save, X, AlertTriangle } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -228,6 +229,31 @@ export default function ComissaoEntregador() {
     }).sort((a, b) => b.totalComissao - a.totalComissao);
   }, [pedidosDetalhados, comissaoMap]);
 
+  // Itens (produto/canal) sem regra de comissão configurada (comissão = 0)
+  const itensSemRegra = useMemo(() => {
+    const set = new Map<string, { produto: string; canal: string; quantidade: number; entregadores: Set<string> }>();
+    dadosAgrupados.forEach((ent) => {
+      ent.linhas.forEach((l) => {
+        if (l.comissaoUnit === 0) {
+          const key = `${normalize(l.produto)}|${normalizeCanal(l.canal)}`;
+          const existing = set.get(key);
+          if (existing) {
+            existing.quantidade += l.quantidade;
+            existing.entregadores.add(ent.nome);
+          } else {
+            set.set(key, {
+              produto: l.produto,
+              canal: l.canal,
+              quantidade: l.quantidade,
+              entregadores: new Set([ent.nome]),
+            });
+          }
+        }
+      });
+    });
+    return Array.from(set.values()).sort((a, b) => b.quantidade - a.quantidade);
+  }, [dadosAgrupados]);
+
   const handleSaveQuickConfig = async () => {
     if (!editingConfig || !unidadeAtual?.id) return;
     try {
@@ -373,6 +399,46 @@ export default function ComissaoEntregador() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Aviso: itens sem regra de comissão configurada */}
+        {!isLoading && itensSemRegra.length > 0 && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>
+              {itensSemRegra.length} {itensSemRegra.length === 1 ? "combinação está" : "combinações estão"} sem regra de comissão
+            </AlertTitle>
+            <AlertDescription>
+              <p className="mb-2 text-sm">
+                Os itens abaixo ficaram com comissão R$ 0,00 porque não há configuração em <strong>Configurar Comissões</strong> para o produto/canal:
+              </p>
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 max-h-56 overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="h-8 text-xs">Produto</TableHead>
+                      <TableHead className="h-8 text-xs">Canal</TableHead>
+                      <TableHead className="h-8 text-xs text-center">Qtd</TableHead>
+                      <TableHead className="h-8 text-xs">Entregador(es)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {itensSemRegra.map((item, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="py-1.5 text-xs font-medium">{item.produto}</TableCell>
+                        <TableCell className="py-1.5 text-xs capitalize">{item.canal}</TableCell>
+                        <TableCell className="py-1.5 text-xs text-center">{item.quantidade}</TableCell>
+                        <TableCell className="py-1.5 text-xs">{Array.from(item.entregadores).join(", ")}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <p className="mt-2 text-xs">
+                Configure em <strong>Configurar Comissões</strong> ou clique no ícone de edição ao lado do valor R$ 0,00 nas tabelas abaixo.
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Tabelas detalhadas por entregador */}
         {isLoading ? (
