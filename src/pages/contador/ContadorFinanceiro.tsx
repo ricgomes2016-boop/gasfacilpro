@@ -493,6 +493,42 @@ export default function ContadorFinanceiro() {
           </TabsContent>
 
           <TabsContent value="extratos" className="mt-4 space-y-3">
+            {/* Banner: última importação */}
+            {ultimaImportacao && ultimaImportacao.totalInseridos > 0 && (
+              <Card className="bg-[hsl(165,60%,12%)] border-[hsl(165,60%,30%)]">
+                <CardContent className="p-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="h-8 w-8 rounded-full bg-[hsl(165,60%,40%)]/20 flex items-center justify-center">
+                      <Banknote className="h-4 w-4 text-[hsl(165,70%,60%)]" />
+                    </div>
+                    <div>
+                      <p className="text-[hsl(0,0%,95%)] font-medium">
+                        Última importação: {ultimaImportacao.totalInseridos} lançamento(s) em{" "}
+                        {ultimaImportacao.contas} conta(s)
+                        {ultimaImportacao.contasCriadas > 0 &&
+                          ` · ${ultimaImportacao.contasCriadas} conta(s) bancária(s) criada(s)`}
+                      </p>
+                      <p className="text-xs text-[hsl(220,10%,65%)]">
+                        {ultimaImportacao.periodo
+                          ? `Período: ${ultimaImportacao.periodo.inicio.split("-").reverse().join("/")} → ${ultimaImportacao.periodo.fim.split("-").reverse().join("/")}`
+                          : "—"}
+                        {" · "}
+                        {ultimaImportacao.unidadesIds.length} unidade(s) afetada(s)
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setUltimaImportacao(null)}
+                    className="text-[hsl(220,10%,60%)] hover:text-[hsl(0,0%,90%)] h-8"
+                  >
+                    <X className="h-3 w-3 mr-1" /> Dispensar
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Filtros locais */}
             <Card className="bg-[hsl(220,22%,11%)] border-[hsl(220,15%,20%)]">
               <CardContent className="p-3">
