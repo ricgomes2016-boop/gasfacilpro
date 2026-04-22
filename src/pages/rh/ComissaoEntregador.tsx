@@ -229,6 +229,31 @@ export default function ComissaoEntregador() {
     }).sort((a, b) => b.totalComissao - a.totalComissao);
   }, [pedidosDetalhados, comissaoMap]);
 
+  // Itens (produto/canal) sem regra de comissão configurada (comissão = 0)
+  const itensSemRegra = useMemo(() => {
+    const set = new Map<string, { produto: string; canal: string; quantidade: number; entregadores: Set<string> }>();
+    dadosAgrupados.forEach((ent) => {
+      ent.linhas.forEach((l) => {
+        if (l.comissaoUnit === 0) {
+          const key = `${normalize(l.produto)}|${normalizeCanal(l.canal)}`;
+          const existing = set.get(key);
+          if (existing) {
+            existing.quantidade += l.quantidade;
+            existing.entregadores.add(ent.nome);
+          } else {
+            set.set(key, {
+              produto: l.produto,
+              canal: l.canal,
+              quantidade: l.quantidade,
+              entregadores: new Set([ent.nome]),
+            });
+          }
+        }
+      });
+    });
+    return Array.from(set.values()).sort((a, b) => b.quantidade - a.quantidade);
+  }, [dadosAgrupados]);
+
   const handleSaveQuickConfig = async () => {
     if (!editingConfig || !unidadeAtual?.id) return;
     try {
