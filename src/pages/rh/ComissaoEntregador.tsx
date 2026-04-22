@@ -186,7 +186,7 @@ export default function ComissaoEntregador() {
       const eId = item.entregador_id;
       const canal = item.canal_venda || "portaria";
       const prodNome = item.produtos?.nome || "Produto";
-      const comissaoUnit = comissaoMap.get(`${item.produto_id}|${normalizeCanal(canal)}`) ?? 0;
+      const comissaoUnit = lookupComissao(item.produto_id, prodNome, canal);
 
       if (!porEntregador.has(eId)) {
         porEntregador.set(eId, { nome: item.entregador_nome, produtos: new Map() });
