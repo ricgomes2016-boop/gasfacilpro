@@ -66,11 +66,13 @@ export default function ComissaoEntregador() {
     return meses;
   }, []);
 
-  // Buscar config de comissões do banco
+  // Buscar config de comissões do banco (com nome do produto para mapear por nome também)
   const { data: comissaoConfig = [] } = useQuery({
     queryKey: ["comissao-config", unidadeAtual?.id],
     queryFn: async () => {
-      let query = supabase.from("comissao_config").select("produto_id, canal_venda, valor, unidade_id");
+      let query = supabase
+        .from("comissao_config")
+        .select("produto_id, canal_venda, valor, unidade_id, produtos(nome)");
       if (unidadeAtual?.id) {
         query = query.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
       }
@@ -79,20 +81,36 @@ export default function ComissaoEntregador() {
     },
   });
 
-  // Normalize canal name: lowercase, remove accents
-  const normalizeCanal = (canal: string) =>
-    canal?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() || "";
+  // Normalize: lowercase, remove accents, trim
+  const normalize = (s: string) =>
+    s?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() || "";
+  const normalizeCanal = normalize;
 
-  // Map config for fast lookup: key = "produto_id|normalized_canal"
+  // Map config: chave por produto_id E por nome normalizado (fallback p/ produtos duplicados entre unidades)
   const comissaoMap = useMemo(() => {
-    const map = new Map<string, number>();
-    // First add global (null unidade) configs, then override with unit-specific
-    const sorted = [...comissaoConfig].sort((a: any, b: any) => (a.unidade_id ? 1 : 0) - (b.unidade_id ? 1 : 0));
+    const byId = new Map<string, number>();
+    const byName = new Map<string, number>();
+    const sorted = [...comissaoConfig].sort(
+      (a: any, b: any) => (a.unidade_id ? 1 : 0) - (b.unidade_id ? 1 : 0)
+    );
     sorted.forEach((c: any) => {
-      map.set(`${c.produto_id}|${normalizeCanal(c.canal_venda)}`, Number(c.valor));
+      const canal = normalizeCanal(c.canal_venda);
+      const valor = Number(c.valor) || 0;
+      byId.set(`${c.produto_id}|${canal}`, valor);
+      const nome = (c as any).produtos?.nome ? normalize((c as any).produtos.nome) : null;
+      if (nome && valor > 0) byName.set(`${nome}|${canal}`, valor);
     });
-    return map;
+    return { byId, byName };
   }, [comissaoConfig]);
+
+  const lookupComissao = (produtoId: string, produtoNome: string, canal: string) => {
+    const c = normalizeCanal(canal);
+    const direct = comissaoMap.byId.get(`${produtoId}|${c}`);
+    if (direct !== undefined && direct > 0) return direct;
+    const byName = comissaoMap.byName.get(`${normalize(produtoNome)}|${c}`);
+    if (byName !== undefined) return byName;
+    return direct ?? 0;
+  };
 
   // Buscar entregadores
   const { data: entregadores = [] } = useQuery({
