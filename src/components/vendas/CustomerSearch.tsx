@@ -146,9 +146,11 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Busca via RPC autocomplete_clientes (otimizada para grandes volumes)
+  // Busca multicampo: nome, telefone, endereço, número, bairro.
+  // Estratégia: RPC retorna candidatos; refinamos no cliente exigindo TODOS os tokens.
   const executeSearch = useCallback(async (term: string, field: string) => {
-    if (term.length < 2 || !empresa?.id) {
+    const trimmed = term.trim();
+    if (trimmed.length < 2 || !empresa?.id) {
       setSearchResults([]);
       setShowResults(false);
       setIsSearching(false);
@@ -159,23 +161,23 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     setIsSearching(true);
 
     try {
-      const searchTerm = field === "telefone" ? term.replace(/\D/g, "") : term.trim();
-      if (searchTerm.length < 2) {
-        setSearchResults([]);
-        setShowResults(false);
-        setIsSearching(false);
-        return;
-      }
+      // Tokens de busca (case/diacritic insensitive)
+      const tokens = trimmed.split(/\s+/).filter((t) => t.length >= 1).map(normalize);
+      // Termo enviado ao RPC: token mais longo (mais discriminativo) ou só dígitos se for telefone
+      const onlyDigits = trimmed.replace(/\D/g, "");
+      const rpcTerm =
+        onlyDigits.length >= trimmed.length - 2 && onlyDigits.length >= 4
+          ? onlyDigits
+          : (tokens.slice().sort((a, b) => b.length - a.length)[0] || trimmed);
 
       const { data, error } = await supabase.rpc("autocomplete_clientes_v2" as any, {
         _empresa_id: empresa.id,
         _unidade_id: unidadeAtual?.id || null,
-        _termo: searchTerm,
-        _limite: 12,
+        _termo: rpcTerm,
+        _limite: 50,
       });
 
       if (!error && data) {
-        // v2 returns: id, nome, telefone, endereco, numero, bairro, cep, cidade
         const mapped: Cliente[] = (data as any[]).map((c) => ({
           id: c.id,
           nome: c.nome,
@@ -186,8 +188,20 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
           cep: c.cep ?? null,
           cidade: c.cidade ?? null,
         }));
-        setSearchResults(mapped);
-        setShowResults(mapped.length > 0);
+
+        // Refina exigindo que todos os tokens apareçam na "haystack" do cliente
+        const refined = mapped.filter((c) => {
+          const haystack = normalize(
+            [c.nome, c.telefone, c.endereco, c.numero, c.bairro, c.cidade]
+              .filter(Boolean)
+              .join(" "),
+          );
+          return tokens.every((tk) => haystack.includes(tk));
+        });
+
+        const finalList = (refined.length > 0 ? refined : mapped).slice(0, 12);
+        setSearchResults(finalList);
+        setShowResults(true);
       }
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
