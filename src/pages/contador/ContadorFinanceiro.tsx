@@ -236,15 +236,20 @@ export default function ContadorFinanceiro() {
               <Card className="bg-[hsl(220,22%,11%)] border-[hsl(220,15%,20%)]">
                 <CardContent className="p-6">
                   <Banknote className="h-8 w-8 text-[hsl(165,60%,55%)] mb-3" />
-                  <h3 className="font-semibold text-[hsl(0,0%,95%)] mb-1">Importar OFX</h3>
-                  <p className="text-sm text-[hsl(220,10%,60%)] mb-4">Arquivo OFX exportado do internet banking</p>
-                  <input ref={ofxRef} type="file" accept=".ofx,.OFX" multiple className="hidden"
-                    onChange={(e) => handleOFX(e.target.files)} />
-                  <Button onClick={() => ofxRef.current?.click()} disabled={uploading || !empresaAtiva}
-                    className="bg-[hsl(165,60%,40%)] hover:bg-[hsl(165,60%,45%)] text-white">
-                    {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                    Selecionar OFX
-                  </Button>
+                  <h3 className="font-semibold text-[hsl(0,0%,95%)] mb-1">Importar OFX (multi-conta)</h3>
+                  <p className="text-sm text-[hsl(220,10%,60%)] mb-4">Detecta filiais, agrupa por conta bancária e mostra resumo</p>
+                  {empresaAtiva ? (
+                    <DialogImportarOFX
+                      empresaId={empresaAtiva.empresa_id}
+                      unidades={unidades.map((u) => ({ id: u.id, nome: u.nome, cnpj: (u as any).cnpj }))}
+                      unidadeAtivaId={unidadeAtiva?.id ?? null}
+                      onConcluido={fetchExtratos}
+                    />
+                  ) : (
+                    <Button disabled className="bg-[hsl(165,60%,40%)] text-white">
+                      <Upload className="h-4 w-4 mr-2" /> Selecione uma empresa
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
 
