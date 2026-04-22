@@ -231,21 +231,30 @@ export default function ComissaoEntregador() {
   const handleSaveQuickConfig = async () => {
     if (!editingConfig || !unidadeAtual?.id) return;
     try {
-      // Upsert specific config
+      // Buscar TODOS os produtos com o mesmo nome (cobre duplicatas entre unidades da mesma empresa)
+      const { data: prodsMesmoNome } = await supabase
+        .from("produtos")
+        .select("id")
+        .eq("nome", editingConfig.produtoNome);
+
+      const ids = Array.from(
+        new Set([editingConfig.produtoId, ...((prodsMesmoNome || []).map((p: any) => p.id))])
+      );
+
+      const rows = ids.map((produto_id) => ({
+        unidade_id: unidadeAtual.id,
+        produto_id,
+        canal_venda: editingConfig.canal,
+        valor: editingConfig.valor,
+      }));
+
       const { error } = await supabase
         .from("comissao_config")
-        .upsert({
-          unidade_id: unidadeAtual.id,
-          produto_id: editingConfig.produtoId,
-          canal_venda: editingConfig.canal,
-          valor: editingConfig.valor
-        }, {
-          onConflict: "unidade_id,produto_id,canal_venda"
-        });
+        .upsert(rows, { onConflict: "unidade_id,produto_id,canal_venda" });
 
       if (error) throw error;
 
-      toast.success("Comissão atualizada!");
+      toast.success(`Comissão atualizada (${ids.length} variações do produto)`);
       setEditingConfig(null);
       queryClient.invalidateQueries({ queryKey: ["comissao-config"] });
       queryClient.invalidateQueries({ queryKey: ["comissao-detalhada"] });
