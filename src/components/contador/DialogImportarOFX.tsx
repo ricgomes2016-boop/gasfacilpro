@@ -390,12 +390,11 @@ export function DialogImportarOFX({ empresaId, unidades, unidadeAtivaId, onConcl
     } catch (e: any) {
       console.error(e);
       toast.error("Erro na importação: " + e.message);
-      setHistorico((prev) =>
-        [{
-          id: crypto.randomUUID(), arquivo: arquivo.name, quando: new Date(),
-          contas: abas.length, lancamentos: 0, status: "erro" as const,
-        }, ...prev].slice(0, 5),
-      );
+      const erroEntry: Importacao = {
+        id: crypto.randomUUID(), arquivo: arquivo.name, quando: new Date(),
+        contas: abas.length, lancamentos: 0, status: "erro",
+      };
+      setHistorico((prev) => [erroEntry, ...prev].slice(0, 5));
     } finally {
       setImportando(false);
     }
