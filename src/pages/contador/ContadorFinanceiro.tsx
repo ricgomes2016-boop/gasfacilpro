@@ -553,21 +553,43 @@ export default function ContadorFinanceiro() {
                 ) : extratos.length === 0 ? (
                   <div className="text-center py-12 px-4">
                     <Banknote className="h-12 w-12 mx-auto mb-3 text-[hsl(220,10%,30%)]" />
-                    <p className="text-sm text-[hsl(220,10%,55%)] mb-4">
-                      Nenhum extrato importado neste período. Use a aba <strong>Importar</strong>{" "}
-                      para começar.
-                    </p>
-                    {empresaAtiva && (
-                      <DialogImportarOFX
-                        empresaId={empresaAtiva.empresa_id}
-                        unidades={unidades.map((u) => ({
-                          id: u.id,
-                          nome: u.nome,
-                          cnpj: (u as any).cnpj,
-                        }))}
-                        unidadeAtivaId={unidadeAtiva?.id ?? null}
-                        onConcluido={handleImportConcluida}
-                      />
+                    {foraDoPeriodo && foraDoPeriodo.total > 0 ? (
+                      <>
+                        <p className="text-sm text-[hsl(0,0%,90%)] mb-1 font-medium">
+                          Existem <strong>{foraDoPeriodo.total}</strong> lançamento(s) importados
+                          fora do período selecionado.
+                        </p>
+                        <p className="text-xs text-[hsl(220,10%,55%)] mb-4">
+                          Período dos dados: {foraDoPeriodo.min.split("-").reverse().join("/")} →{" "}
+                          {foraDoPeriodo.max.split("-").reverse().join("/")}. Período atual:{" "}
+                          {range.label}.
+                        </p>
+                        <Button
+                          onClick={ampliarPeriodo}
+                          className="bg-[hsl(165,60%,40%)] hover:bg-[hsl(165,60%,45%)] text-white"
+                        >
+                          Ampliar período para ver os dados
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-[hsl(220,10%,55%)] mb-4">
+                          Nenhum extrato importado neste período. Use a aba{" "}
+                          <strong>Importar</strong> para começar.
+                        </p>
+                        {empresaAtiva && (
+                          <DialogImportarOFX
+                            empresaId={empresaAtiva.empresa_id}
+                            unidades={unidades.map((u) => ({
+                              id: u.id,
+                              nome: u.nome,
+                              cnpj: (u as any).cnpj,
+                            }))}
+                            unidadeAtivaId={unidadeAtiva?.id ?? null}
+                            onConcluido={handleImportConcluida}
+                          />
+                        )}
+                      </>
                     )}
                   </div>
                 ) : (
