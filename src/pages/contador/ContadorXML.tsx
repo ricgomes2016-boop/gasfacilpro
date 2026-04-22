@@ -258,6 +258,28 @@ export default function ContadorXML() {
     try { return format(parseISO(k), "dd/MM/yyyy"); } catch { return k; }
   };
 
+  /**
+   * Formata data_emissao respeitando a data real gravada no XML, sem shift de fuso.
+   * - Se a string termina em "Z" (UTC, registros antigos), normaliza para Brasília (UTC-3)
+   *   antes de extrair o dia, corrigindo retroativamente o histórico.
+   * - Se já tem offset (ex: "...-03:00"), usa os 10 primeiros caracteres direto.
+   * - Se é data pura "YYYY-MM-DD", usa direto.
+   */
+  const formatDataEmissao = (iso: string | null | undefined): string => {
+    if (!iso) return "—";
+    let dateStr = iso;
+    if (iso.endsWith("Z")) {
+      // Registro antigo gravado em UTC: subtrai 3h para chegar no dia em Brasília
+      const d = new Date(iso);
+      d.setUTCHours(d.getUTCHours() - 3);
+      dateStr = d.toISOString();
+    }
+    const ymd = dateStr.slice(0, 10);
+    const [y, m, dd] = ymd.split("-");
+    if (!y || !m || !dd) return iso;
+    return `${dd}/${m}/${y}`;
+  };
+
   return (
     <ContadorPortalLayout>
       <div className="space-y-4">
@@ -278,7 +300,7 @@ export default function ContadorXML() {
               escopo={unidadeAtiva ? unidadeAtiva.nome : `Todas as lojas — ${unidades.length} unidades`}
               periodoLabel={range.label}
               colunas={[
-                { header: "Data", key: "data_emissao", format: (v) => fmt.date(v) },
+                { header: "Data", key: "data_emissao", format: (v) => formatDataEmissao(v) },
                 { header: "Tipo", key: "tipo" },
                 { header: "Número", key: "numero" },
                 { header: "Série", key: "serie" },
@@ -438,7 +460,7 @@ export default function ContadorXML() {
             ) : (
               <TooltipProvider delayDuration={200}>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm min-w-[1100px]">
                     <thead className="bg-muted text-muted-foreground text-xs uppercase sticky top-0">
                       <tr>
                         <th className="px-3 py-3 w-10">
@@ -447,7 +469,7 @@ export default function ContadorXML() {
                             onCheckedChange={() => toggleSelAll(filtered.map((n) => n.id))}
                           />
                         </th>
-                        <th className="px-3 py-3 text-left w-[110px]">Data</th>
+                        <th className="px-3 py-3 text-left whitespace-nowrap w-[100px]">Data</th>
                         <th className="px-3 py-3 text-left">Tipo</th>
                         <th className="px-3 py-3 text-left">Nº / Série</th>
                         <th className="px-3 py-3 text-left">Chave</th>
@@ -465,11 +487,11 @@ export default function ContadorXML() {
                       {filtered.map((n) => {
                         const chave = n.chave_acesso ?? "";
                         const chaveCurta = chave ? `${chave.slice(0, 6)}…${chave.slice(-6)}` : "—";
-                        const dia = n.data_emissao ?? n.created_at?.slice(0, 10) ?? null;
+                        const dia = n.data_emissao ?? n.created_at ?? null;
                         return (
                           <tr key={n.id} className="border-t border-border hover:bg-muted/40">
                             <td className="px-3 py-2"><Checkbox checked={selecionados.includes(n.id)} onCheckedChange={() => toggleSel(n.id)} /></td>
-                            <td className="px-3 py-2 text-foreground whitespace-nowrap">{dia ? safeDateLabel(dia.slice(0, 10)) : "—"}</td>
+                            <td className="px-3 py-2 text-foreground whitespace-nowrap tabular-nums w-[100px]">{formatDataEmissao(dia)}</td>
                             <td className="px-3 py-2"><Badge variant="outline" className="uppercase">{n.tipo ?? "—"}</Badge></td>
                             <td className="px-3 py-2 text-foreground whitespace-nowrap">
                               {n.numero ?? "—"} <span className="text-muted-foreground">/ {n.serie ?? "—"}</span>
