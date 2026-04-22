@@ -32,7 +32,17 @@ Deno.serve(async (req) => {
     const numero = get("nNF") || get("nCT") || get("nMDF");
     const serie = get("serie");
     const valor_total = parseFloat(get("vNF") || get("vTPrest") || get("vBC") || "0") || 0;
-    const data_emissao = get("dhEmi") || get("dEmi") || null;
+    // Preserva data original do XML sem conversão para UTC.
+    // dhEmi vem como "2026-03-31T23:15:00-03:00" (com offset do emitente).
+    // dEmi vem como "2026-03-31" (data pura, sem hora) — fixamos meio-dia em -03:00 para evitar shift.
+    const dhEmi = get("dhEmi");
+    const dEmi = get("dEmi");
+    let data_emissao: string | null = null;
+    if (dhEmi) {
+      data_emissao = dhEmi; // mantém offset original
+    } else if (dEmi) {
+      data_emissao = `${dEmi.slice(0, 10)}T12:00:00-03:00`;
+    }
     const remetente_nome = get("xNome");
     const remetente_cnpj = get("CNPJ");
 
@@ -59,7 +69,7 @@ Deno.serve(async (req) => {
       serie,
       tipo,
       valor_total,
-      data_emissao: data_emissao ? new Date(data_emissao).toISOString() : null,
+      data_emissao: data_emissao,
       remetente_nome,
       remetente_cnpj,
       xml_url: path,
