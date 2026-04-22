@@ -122,6 +122,12 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
   const [highlightIndex, setHighlightIndex] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const resultsListRef = useRef<HTMLDivElement>(null);
+  const [ultimoPedidoInfo, setUltimoPedidoInfo] = useState<{
+    valor: number;
+    data: string;
+    forma: string | null;
+  } | null>(null);
+  const [loadingUltimo, setLoadingUltimo] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState<NominatimResult[]>([]);
