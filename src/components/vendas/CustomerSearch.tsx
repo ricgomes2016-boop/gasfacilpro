@@ -58,6 +58,59 @@ interface NominatimResult {
   };
 }
 
+// Normaliza string removendo acentos para comparação case/diacritic-insensitive
+const normalize = (s: string) =>
+  (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+// Destaca em <strong> os trechos do texto que coincidem com qualquer token da busca
+function highlightMatch(text: string, term: string): React.ReactNode {
+  if (!text) return text;
+  const tokens = (term || "")
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2);
+  if (tokens.length === 0) return text;
+
+  const normText = normalize(text);
+  // mapeia cada caractere da string normalizada para seu índice na original (NFD pode mudar tamanho)
+  // estratégia simples: buscar no texto original em paralelo, case/diacritic insensitive,
+  // marcando intervalos que correspondem.
+  const ranges: Array<[number, number]> = [];
+  for (const tk of tokens) {
+    const nTk = normalize(tk);
+    if (!nTk) continue;
+    let from = 0;
+    while (from <= normText.length - nTk.length) {
+      const idx = normText.indexOf(nTk, from);
+      if (idx === -1) break;
+      ranges.push([idx, idx + nTk.length]);
+      from = idx + nTk.length;
+    }
+  }
+  if (ranges.length === 0) return text;
+  // merge overlapping
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged: Array<[number, number]> = [];
+  for (const r of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1]);
+    else merged.push([r[0], r[1]]);
+  }
+  const out: React.ReactNode[] = [];
+  let cursor = 0;
+  merged.forEach(([s, e], i) => {
+    if (s > cursor) out.push(text.slice(cursor, s));
+    out.push(
+      <strong key={i} className="font-semibold text-foreground">
+        {text.slice(s, e)}
+      </strong>,
+    );
+    cursor = e;
+  });
+  if (cursor < text.length) out.push(text.slice(cursor));
+  return <>{out}</>;
+}
+
 export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
@@ -65,6 +118,10 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
   const [showResults, setShowResults] = useState(false);
   const [activeField, setActiveField] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [highlightIndex, setHighlightIndex] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const resultsListRef = useRef<HTMLDivElement>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState<NominatimResult[]>([]);
@@ -89,9 +146,11 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Busca via RPC autocomplete_clientes (otimizada para grandes volumes)
+  // Busca multicampo: nome, telefone, endereço, número, bairro.
+  // Estratégia: RPC retorna candidatos; refinamos no cliente exigindo TODOS os tokens.
   const executeSearch = useCallback(async (term: string, field: string) => {
-    if (term.length < 2 || !empresa?.id) {
+    const trimmed = term.trim();
+    if (trimmed.length < 2 || !empresa?.id) {
       setSearchResults([]);
       setShowResults(false);
       setIsSearching(false);
@@ -102,23 +161,23 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     setIsSearching(true);
 
     try {
-      const searchTerm = field === "telefone" ? term.replace(/\D/g, "") : term.trim();
-      if (searchTerm.length < 2) {
-        setSearchResults([]);
-        setShowResults(false);
-        setIsSearching(false);
-        return;
-      }
+      // Tokens de busca (case/diacritic insensitive)
+      const tokens = trimmed.split(/\s+/).filter((t) => t.length >= 1).map(normalize);
+      // Termo enviado ao RPC: token mais longo (mais discriminativo) ou só dígitos se for telefone
+      const onlyDigits = trimmed.replace(/\D/g, "");
+      const rpcTerm =
+        onlyDigits.length >= trimmed.length - 2 && onlyDigits.length >= 4
+          ? onlyDigits
+          : (tokens.slice().sort((a, b) => b.length - a.length)[0] || trimmed);
 
       const { data, error } = await supabase.rpc("autocomplete_clientes_v2" as any, {
         _empresa_id: empresa.id,
         _unidade_id: unidadeAtual?.id || null,
-        _termo: searchTerm,
-        _limite: 12,
+        _termo: rpcTerm,
+        _limite: 50,
       });
 
       if (!error && data) {
-        // v2 returns: id, nome, telefone, endereco, numero, bairro, cep, cidade
         const mapped: Cliente[] = (data as any[]).map((c) => ({
           id: c.id,
           nome: c.nome,
@@ -129,8 +188,20 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
           cep: c.cep ?? null,
           cidade: c.cidade ?? null,
         }));
-        setSearchResults(mapped);
-        setShowResults(mapped.length > 0);
+
+        // Refina exigindo que todos os tokens apareçam na "haystack" do cliente
+        const refined = mapped.filter((c) => {
+          const haystack = normalize(
+            [c.nome, c.telefone, c.endereco, c.numero, c.bairro, c.cidade]
+              .filter(Boolean)
+              .join(" "),
+          );
+          return tokens.every((tk) => haystack.includes(tk));
+        });
+
+        const finalList = (refined.length > 0 ? refined : mapped).slice(0, 12);
+        setSearchResults(finalList);
+        setShowResults(true);
       }
     } catch (error) {
       console.error("Erro ao buscar clientes:", error);
@@ -144,16 +215,14 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
-    // telefone aceita 2+ dígitos; texto exige 3+
-    const minLen = field === "telefone" ? 2 : 3;
-    if (term.length < minLen) {
+    if (term.trim().length < 2) {
       setSearchResults([]);
       setShowResults(false);
       return;
     }
     debounceRef.current = setTimeout(() => {
       executeSearch(term, field);
-    }, 350);
+    }, 300);
   }, [executeSearch]);
 
   // Resolve CEP via ViaCEP (primary source for Brazilian addresses)
@@ -240,6 +309,10 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     };
   }, []);
 
+  useEffect(() => {
+    setHighlightIndex(0);
+  }, [searchResults]);
+
   const selectCliente = async (cliente: Cliente) => {
     let cep = cliente.cep || "";
     try {
@@ -265,6 +338,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     });
     setShowResults(false);
     setSearchResults([]);
+    setSearchTerm("");
   };
 
   const selectAddress = async (result: NominatimResult) => {
@@ -404,94 +478,163 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 w-full min-w-0 max-w-full">
-        {/* Search Row */}
-        <div className="flex flex-col sm:flex-row gap-3 min-w-0" ref={searchRef}>
-          <div className="flex-1 relative min-w-0">
+        {/* Combobox de busca multicampo */}
+        <div className="relative min-w-0" ref={searchRef}>
+          <Label className="text-xs text-muted-foreground">Buscar cliente</Label>
+          <div className="flex gap-2 min-w-0">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                ref={searchInputRef}
+                role="combobox"
+                aria-expanded={showResults}
+                aria-controls="customer-search-listbox"
+                aria-autocomplete="list"
+                autoComplete="off"
+                placeholder="Nome, telefone, endereço, número ou bairro…"
+                value={searchTerm}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setSearchTerm(v);
+                  searchClientes(v, "multi");
+                  if (v.trim().length >= 2) setShowResults(true);
+                }}
+                onFocus={() => {
+                  if (searchResults.length > 0) setShowResults(true);
+                }}
+                onKeyDown={(e) => {
+                  if (!showResults || searchResults.length === 0) return;
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setHighlightIndex((i) => Math.min(i + 1, searchResults.length - 1));
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setHighlightIndex((i) => Math.max(i - 1, 0));
+                  } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    const sel = searchResults[highlightIndex];
+                    if (sel) selectCliente(sel);
+                  } else if (e.key === "Escape") {
+                    setShowResults(false);
+                  }
+                }}
+                className="pl-10 pr-10 w-full"
+              />
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+
+              {/* Popover de resultados — absoluto, z-50, sem deslocar layout */}
+              {showResults && (
+                <div
+                  id="customer-search-listbox"
+                  role="listbox"
+                  ref={resultsListRef}
+                  className="absolute left-0 right-0 top-full mt-1 z-50 bg-popover text-popover-foreground border border-border rounded-md shadow-lg max-h-72 overflow-y-auto"
+                >
+                  {searchResults.length === 0 && !isSearching && searchTerm.trim().length >= 2 && (
+                    <div className="px-4 py-3 text-sm text-muted-foreground">
+                      Nenhum cliente encontrado. Preencha os campos abaixo para cadastrar.
+                    </div>
+                  )}
+                  {searchResults.map((cliente, idx) => {
+                    const enderecoLinha = [cliente.endereco, cliente.numero].filter(Boolean).join(", ");
+                    const linha2 = [enderecoLinha, cliente.bairro].filter(Boolean).join(" - ");
+                    const isActive = idx === highlightIndex;
+                    return (
+                      <button
+                        key={cliente.id}
+                        type="button"
+                        role="option"
+                        aria-selected={isActive}
+                        className={`w-full text-left px-4 py-2.5 border-b border-border last:border-0 transition-colors ${
+                          isActive ? "bg-accent text-accent-foreground" : "hover:bg-accent/60"
+                        }`}
+                        onMouseEnter={() => setHighlightIndex(idx)}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          selectCliente(cliente);
+                        }}
+                      >
+                        <p className="font-medium text-sm truncate">
+                          {highlightMatch(cliente.nome, searchTerm)}
+                          {cliente.telefone && (
+                            <span className="ml-2 text-xs text-muted-foreground font-normal">
+                              {highlightMatch(cliente.telefone, searchTerm)}
+                            </span>
+                          )}
+                        </p>
+                        {linha2 && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {highlightMatch(linha2, searchTerm)}
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="shrink-0"
+              onClick={() => {
+                setSearchTerm("");
+                setSearchResults([]);
+                setShowResults(false);
+                onChange({
+                  ...value,
+                  id: null,
+                  nome: "",
+                  telefone: "",
+                  endereco: "",
+                  numero: "",
+                  complemento: "",
+                  bairro: "",
+                  cep: "",
+                  observacao: "",
+                  latitude: null,
+                  longitude: null,
+                });
+                setTimeout(() => searchInputRef.current?.focus(), 50);
+              }}
+              title="Novo cliente (limpar campos)"
+            >
+              <UserPlus className="h-4 w-4" />
+            </Button>
+          </div>
+          {showNewClientHint && (
+            <p className="text-[10px] text-muted-foreground mt-1">
+              ✨ Cliente não encontrado — preencha abaixo e será cadastrado automaticamente
+            </p>
+          )}
+        </div>
+
+        {/* Campos de identificação (sempre visíveis para edição/cadastro) */}
+        <div className="grid gap-3 sm:grid-cols-2 min-w-0">
+          <div className="min-w-0">
+            <Label className="text-xs text-muted-foreground">Nome do Cliente</Label>
+            <Input
+              placeholder="Nome do cliente"
+              value={value.nome}
+              onChange={(e) => handleFieldChange("nome", e.target.value)}
+            />
+          </div>
+          <div className="min-w-0">
             <Label className="text-xs text-muted-foreground">Telefone</Label>
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="(00) 00000-0000"
                 value={value.telefone}
-                onChange={(e) => {
-                  const formatted = formatPhone(e.target.value);
-                  handleFieldChange("telefone", formatted);
-                  searchClientes(formatted, "telefone");
-                }}
+                onChange={(e) => handleFieldChange("telefone", formatPhone(e.target.value))}
                 className="pl-10 w-full"
                 maxLength={16}
               />
             </div>
           </div>
-          <div className="flex-1 relative min-w-0">
-            <Label className="text-xs text-muted-foreground">Nome do Cliente</Label>
-            <div className="relative">
-              <Input
-                placeholder="Nome do cliente"
-                value={value.nome}
-                onChange={(e) => {
-                  handleFieldChange("nome", e.target.value);
-                  searchClientes(e.target.value, "nome");
-                }}
-              />
-              {isSearching && (
-                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-              )}
-            </div>
-            {showNewClientHint && (
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                ✨ Novo cliente — será cadastrado automaticamente
-              </p>
-            )}
-          </div>
-          <Button
-            variant="outline"
-            className="self-stretch sm:self-end sm:mt-5 shrink-0 w-full sm:w-10"
-            size="icon"
-            onClick={() => {
-              onChange({
-                ...value,
-                id: null,
-                nome: "",
-                telefone: "",
-                endereco: "",
-                numero: "",
-                complemento: "",
-                bairro: "",
-                cep: "",
-                observacao: "",
-                latitude: null,
-                longitude: null,
-              });
-            }}
-            title="Novo cliente (limpar campos)"
-          >
-            <UserPlus className="h-4 w-4" />
-          </Button>
         </div>
-
-        {/* Autocomplete Results */}
-        {showResults && searchResults.length > 0 && (
-          <div className="relative z-50 w-full min-w-0">
-            <div className="absolute top-0 left-0 right-0 sm:max-w-md bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
-              {searchResults.map((cliente) => (
-                <button
-                  key={cliente.id}
-                  className="w-full min-w-0 px-4 py-3 text-left hover:bg-accent transition-colors border-b border-border last:border-0"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    selectCliente(cliente);
-                  }}
-                >
-                  <p className="font-medium text-sm truncate">{cliente.nome}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {cliente.telefone} • {[cliente.endereco, cliente.numero, cliente.bairro].filter(Boolean).join(", ")}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Address Row */}
         <div className="grid gap-3 md:grid-cols-4 min-w-0">
