@@ -411,94 +411,163 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 w-full min-w-0 max-w-full">
-        {/* Search Row */}
-        <div className="flex flex-col sm:flex-row gap-3 min-w-0" ref={searchRef}>
-          <div className="flex-1 relative min-w-0">
+        {/* Combobox de busca multicampo */}
+        <div className="relative min-w-0" ref={searchRef}>
+          <Label className="text-xs text-muted-foreground">Buscar cliente</Label>
+          <div className="flex gap-2 min-w-0">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                ref={searchInputRef}
+                role="combobox"
+                aria-expanded={showResults}
+                aria-controls="customer-search-listbox"
+                aria-autocomplete="list"
+                autoComplete="off"
+                placeholder="Nome, telefone, endereço, número ou bairro…"
+                value={searchTerm}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setSearchTerm(v);
+                  searchClientes(v, "multi");
+                  if (v.trim().length >= 2) setShowResults(true);
+                }}
+                onFocus={() => {
+                  if (searchResults.length > 0) setShowResults(true);
+                }}
+                onKeyDown={(e) => {
+                  if (!showResults || searchResults.length === 0) return;
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setHighlightIndex((i) => Math.min(i + 1, searchResults.length - 1));
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setHighlightIndex((i) => Math.max(i - 1, 0));
+                  } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    const sel = searchResults[highlightIndex];
+                    if (sel) selectCliente(sel);
+                  } else if (e.key === "Escape") {
+                    setShowResults(false);
+                  }
+                }}
+                className="pl-10 pr-10 w-full"
+              />
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+
+              {/* Popover de resultados — absoluto, z-50, sem deslocar layout */}
+              {showResults && (
+                <div
+                  id="customer-search-listbox"
+                  role="listbox"
+                  ref={resultsListRef}
+                  className="absolute left-0 right-0 top-full mt-1 z-50 bg-popover text-popover-foreground border border-border rounded-md shadow-lg max-h-72 overflow-y-auto"
+                >
+                  {searchResults.length === 0 && !isSearching && searchTerm.trim().length >= 2 && (
+                    <div className="px-4 py-3 text-sm text-muted-foreground">
+                      Nenhum cliente encontrado. Preencha os campos abaixo para cadastrar.
+                    </div>
+                  )}
+                  {searchResults.map((cliente, idx) => {
+                    const enderecoLinha = [cliente.endereco, cliente.numero].filter(Boolean).join(", ");
+                    const linha2 = [enderecoLinha, cliente.bairro].filter(Boolean).join(" - ");
+                    const isActive = idx === highlightIndex;
+                    return (
+                      <button
+                        key={cliente.id}
+                        type="button"
+                        role="option"
+                        aria-selected={isActive}
+                        className={`w-full text-left px-4 py-2.5 border-b border-border last:border-0 transition-colors ${
+                          isActive ? "bg-accent text-accent-foreground" : "hover:bg-accent/60"
+                        }`}
+                        onMouseEnter={() => setHighlightIndex(idx)}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          selectCliente(cliente);
+                        }}
+                      >
+                        <p className="font-medium text-sm truncate">
+                          {highlightMatch(cliente.nome, searchTerm)}
+                          {cliente.telefone && (
+                            <span className="ml-2 text-xs text-muted-foreground font-normal">
+                              {highlightMatch(cliente.telefone, searchTerm)}
+                            </span>
+                          )}
+                        </p>
+                        {linha2 && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {highlightMatch(linha2, searchTerm)}
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="shrink-0"
+              onClick={() => {
+                setSearchTerm("");
+                setSearchResults([]);
+                setShowResults(false);
+                onChange({
+                  ...value,
+                  id: null,
+                  nome: "",
+                  telefone: "",
+                  endereco: "",
+                  numero: "",
+                  complemento: "",
+                  bairro: "",
+                  cep: "",
+                  observacao: "",
+                  latitude: null,
+                  longitude: null,
+                });
+                setTimeout(() => searchInputRef.current?.focus(), 50);
+              }}
+              title="Novo cliente (limpar campos)"
+            >
+              <UserPlus className="h-4 w-4" />
+            </Button>
+          </div>
+          {showNewClientHint && (
+            <p className="text-[10px] text-muted-foreground mt-1">
+              ✨ Cliente não encontrado — preencha abaixo e será cadastrado automaticamente
+            </p>
+          )}
+        </div>
+
+        {/* Campos de identificação (sempre visíveis para edição/cadastro) */}
+        <div className="grid gap-3 sm:grid-cols-2 min-w-0">
+          <div className="min-w-0">
+            <Label className="text-xs text-muted-foreground">Nome do Cliente</Label>
+            <Input
+              placeholder="Nome do cliente"
+              value={value.nome}
+              onChange={(e) => handleFieldChange("nome", e.target.value)}
+            />
+          </div>
+          <div className="min-w-0">
             <Label className="text-xs text-muted-foreground">Telefone</Label>
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="(00) 00000-0000"
                 value={value.telefone}
-                onChange={(e) => {
-                  const formatted = formatPhone(e.target.value);
-                  handleFieldChange("telefone", formatted);
-                  searchClientes(formatted, "telefone");
-                }}
+                onChange={(e) => handleFieldChange("telefone", formatPhone(e.target.value))}
                 className="pl-10 w-full"
                 maxLength={16}
               />
             </div>
           </div>
-          <div className="flex-1 relative min-w-0">
-            <Label className="text-xs text-muted-foreground">Nome do Cliente</Label>
-            <div className="relative">
-              <Input
-                placeholder="Nome do cliente"
-                value={value.nome}
-                onChange={(e) => {
-                  handleFieldChange("nome", e.target.value);
-                  searchClientes(e.target.value, "nome");
-                }}
-              />
-              {isSearching && (
-                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-              )}
-            </div>
-            {showNewClientHint && (
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                ✨ Novo cliente — será cadastrado automaticamente
-              </p>
-            )}
-          </div>
-          <Button
-            variant="outline"
-            className="self-stretch sm:self-end sm:mt-5 shrink-0 w-full sm:w-10"
-            size="icon"
-            onClick={() => {
-              onChange({
-                ...value,
-                id: null,
-                nome: "",
-                telefone: "",
-                endereco: "",
-                numero: "",
-                complemento: "",
-                bairro: "",
-                cep: "",
-                observacao: "",
-                latitude: null,
-                longitude: null,
-              });
-            }}
-            title="Novo cliente (limpar campos)"
-          >
-            <UserPlus className="h-4 w-4" />
-          </Button>
         </div>
-
-        {/* Autocomplete Results */}
-        {showResults && searchResults.length > 0 && (
-          <div className="relative z-50 w-full min-w-0">
-            <div className="absolute top-0 left-0 right-0 sm:max-w-md bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
-              {searchResults.map((cliente) => (
-                <button
-                  key={cliente.id}
-                  className="w-full min-w-0 px-4 py-3 text-left hover:bg-accent transition-colors border-b border-border last:border-0"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    selectCliente(cliente);
-                  }}
-                >
-                  <p className="font-medium text-sm truncate">{cliente.nome}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {cliente.telefone} • {[cliente.endereco, cliente.numero, cliente.bairro].filter(Boolean).join(", ")}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Address Row */}
         <div className="grid gap-3 md:grid-cols-4 min-w-0">
