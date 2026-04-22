@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { usePeriodo } from "@/contexts/PeriodoContext";
 import { BotaoExportar } from "@/components/contador/BotaoExportar";
 import { ImportacaoInteligente } from "@/components/contador/ImportacaoInteligente";
+import { DialogImportarOFX } from "@/components/contador/DialogImportarOFX";
 import { fmt } from "@/services/contadorExportService";
 
 interface ExtratoRow {
