@@ -374,6 +374,16 @@ export default function ContadorXML() {
               {baixandoLote ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Archive className="h-4 w-4 mr-2" />}
               Gerar Lote ZIP
             </Button>
+            <Button
+              variant="outline"
+              disabled={corrigindoDatas || !empresaAtiva}
+              onClick={corrigirDatasEmissao}
+              className="border-border text-foreground hover:bg-muted"
+              title="Relê os XMLs do storage e corrige a data de emissão das notas afetadas pelo bug de fuso horário"
+            >
+              {corrigindoDatas ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Corrigir datas
+            </Button>
           </div>
         </div>
 
