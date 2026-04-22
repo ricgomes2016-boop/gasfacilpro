@@ -148,16 +148,14 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
-    // telefone aceita 2+ dígitos; texto exige 3+
-    const minLen = field === "telefone" ? 2 : 3;
-    if (term.length < minLen) {
+    if (term.trim().length < 2) {
       setSearchResults([]);
       setShowResults(false);
       return;
     }
     debounceRef.current = setTimeout(() => {
       executeSearch(term, field);
-    }, 350);
+    }, 300);
   }, [executeSearch]);
 
   // Resolve CEP via ViaCEP (primary source for Brazilian addresses)
