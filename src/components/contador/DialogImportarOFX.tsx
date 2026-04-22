@@ -360,17 +360,15 @@ export function DialogImportarOFX({ empresaId, unidades, unidadeAtivaId, onConcl
       }
 
       // Histórico em memória
-      setHistorico((prev) => [
-        {
-          id: crypto.randomUUID(),
-          arquivo: arquivo.name,
-          quando: new Date(),
-          contas: abas.length,
-          lancamentos: totalInseridos,
-          status: "ok",
-        },
-        ...prev,
-      ].slice(0, 5));
+      const okEntry: Importacao = {
+        id: crypto.randomUUID(),
+        arquivo: arquivo.name,
+        quando: new Date(),
+        contas: abas.length,
+        lancamentos: totalInseridos,
+        status: "ok",
+      };
+      setHistorico((prev) => [okEntry, ...prev].slice(0, 5));
 
       setResumoFinal({
         contas: abas.length,
