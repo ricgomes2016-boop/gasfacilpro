@@ -65,6 +65,10 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
   const [showResults, setShowResults] = useState(false);
   const [activeField, setActiveField] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [highlightIndex, setHighlightIndex] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const resultsListRef = useRef<HTMLDivElement>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState<NominatimResult[]>([]);
