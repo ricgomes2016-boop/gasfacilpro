@@ -58,7 +58,26 @@ export default function ContadorXML() {
   const [totalNoBanco, setTotalNoBanco] = useState(0);
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [baixandoLote, setBaixandoLote] = useState(false);
+  const [corrigindoDatas, setCorrigindoDatas] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const corrigirDatasEmissao = async () => {
+    if (!empresaAtiva) { toast.error("Selecione uma empresa"); return; }
+    if (!confirm("Reler XMLs e corrigir data de emissão das notas? Pode levar alguns segundos.")) return;
+    setCorrigindoDatas(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("corrigir-data-emissao-xmls", {
+        body: { empresa_id: empresaAtiva.empresa_id },
+      });
+      if (error) throw error;
+      toast.success(`Concluído: ${data.atualizados} corrigida(s), ${data.inalterados} OK, ${data.erros} erro(s)`);
+      fetchNotas();
+    } catch (e: any) {
+      toast.error("Falha: " + e.message);
+    } finally {
+      setCorrigindoDatas(false);
+    }
+  };
 
   const fetchNotas = async () => {
     if (!empresaAtiva) return;
@@ -354,6 +373,16 @@ export default function ContadorXML() {
             >
               {baixandoLote ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Archive className="h-4 w-4 mr-2" />}
               Gerar Lote ZIP
+            </Button>
+            <Button
+              variant="outline"
+              disabled={corrigindoDatas || !empresaAtiva}
+              onClick={corrigirDatasEmissao}
+              className="border-border text-foreground hover:bg-muted"
+              title="Relê os XMLs do storage e corrige a data de emissão das notas afetadas pelo bug de fuso horário"
+            >
+              {corrigindoDatas ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Corrigir datas
             </Button>
           </div>
         </div>
