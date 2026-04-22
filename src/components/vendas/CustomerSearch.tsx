@@ -629,6 +629,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
                 setSearchTerm("");
                 setSearchResults([]);
                 setShowResults(false);
+                setUltimoPedidoInfo(null);
                 onChange({
                   ...value,
                   id: null,
