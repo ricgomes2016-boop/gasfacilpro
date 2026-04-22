@@ -1,0 +1,1 @@
+ALTER TABLE public.extrato_bancario ADD COLUMN IF NOT EXISTS categoria text;
