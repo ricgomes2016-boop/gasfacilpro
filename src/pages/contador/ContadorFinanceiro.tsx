@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import { usePeriodo } from "@/contexts/PeriodoContext";
 import { BotaoExportar } from "@/components/contador/BotaoExportar";
 import { ImportacaoInteligente } from "@/components/contador/ImportacaoInteligente";
-import { DialogImportarOFX } from "@/components/contador/DialogImportarOFX";
+import { DialogImportarOFX, type ImportOFXResult } from "@/components/contador/DialogImportarOFX";
 import { fmt } from "@/services/contadorExportService";
 import {
   PlanilhaExtratos,
@@ -80,6 +80,7 @@ export default function ContadorFinanceiro() {
   const [tabAtiva, setTabAtiva] = useState<string>(TODAS);
   const [tabPagina, setTabPagina] = useState<string>("extratos");
   const [foraDoPeriodo, setForaDoPeriodo] = useState<{ total: number; min: string; max: string } | null>(null);
+  const [ultimaImportacao, setUltimaImportacao] = useState<ImportOFXResult & { quando: Date } | null>(null);
   const [filtros, setFiltros] = useState<FiltrosLocais>(() => {
     try {
       const raw = localStorage.getItem(FILTROS_KEY);
@@ -172,9 +173,44 @@ export default function ContadorFinanceiro() {
     toast.success("Período ampliado para abranger todos os extratos importados");
   };
 
-  const handleImportConcluida = () => {
-    fetchExtratos();
+  const handleImportConcluida = (result?: ImportOFXResult) => {
+    // 1. Sempre vai para a aba Extratos
     setTabPagina("extratos");
+
+    if (result && result.totalInseridos > 0) {
+      // 2. Ajusta período para cobrir o intervalo importado (com folga)
+      if (result.periodo) {
+        const inicio = new Date(result.periodo.inicio + "T00:00:00");
+        const fim = new Date(result.periodo.fim + "T23:59:59");
+        // Só amplia se o período atual não cobre
+        const rangeIni = new Date(range.inicioISO + "T00:00:00");
+        const rangeFim = new Date(range.fimISO + "T23:59:59");
+        if (inicio < rangeIni || fim > rangeFim) {
+          const novoIni = inicio < rangeIni ? inicio : rangeIni;
+          const novoFim = fim > rangeFim ? fim : rangeFim;
+          setCustom(novoIni, novoFim);
+        }
+      }
+
+      // 3. Reseta tab da conta para "Todas" (vamos focar depois que carregar)
+      setTabAtiva(TODAS);
+
+      // 4. Limpa filtros locais que possam esconder dados
+      setFiltros(FILTROS_DEFAULT);
+
+      // 5. Memoriza última importação para o banner
+      setUltimaImportacao({ ...result, quando: new Date() });
+
+      // 6. Se uma única conta bancária foi afetada, foca nela após reload
+      setTimeout(() => {
+        if (result.contasBancariasIds.length === 1) {
+          setTabAtiva(result.contasBancariasIds[0]);
+        }
+      }, 600);
+    }
+
+    // 7. Recarrega
+    fetchExtratos();
   };
 
   useEffect(() => {
@@ -457,6 +493,42 @@ export default function ContadorFinanceiro() {
           </TabsContent>
 
           <TabsContent value="extratos" className="mt-4 space-y-3">
+            {/* Banner: última importação */}
+            {ultimaImportacao && ultimaImportacao.totalInseridos > 0 && (
+              <Card className="bg-[hsl(165,60%,12%)] border-[hsl(165,60%,30%)]">
+                <CardContent className="p-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="h-8 w-8 rounded-full bg-[hsl(165,60%,40%)]/20 flex items-center justify-center">
+                      <Banknote className="h-4 w-4 text-[hsl(165,70%,60%)]" />
+                    </div>
+                    <div>
+                      <p className="text-[hsl(0,0%,95%)] font-medium">
+                        Última importação: {ultimaImportacao.totalInseridos} lançamento(s) em{" "}
+                        {ultimaImportacao.contas} conta(s)
+                        {ultimaImportacao.contasCriadas > 0 &&
+                          ` · ${ultimaImportacao.contasCriadas} conta(s) bancária(s) criada(s)`}
+                      </p>
+                      <p className="text-xs text-[hsl(220,10%,65%)]">
+                        {ultimaImportacao.periodo
+                          ? `Período: ${ultimaImportacao.periodo.inicio.split("-").reverse().join("/")} → ${ultimaImportacao.periodo.fim.split("-").reverse().join("/")}`
+                          : "—"}
+                        {" · "}
+                        {ultimaImportacao.unidadesIds.length} unidade(s) afetada(s)
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setUltimaImportacao(null)}
+                    className="text-[hsl(220,10%,60%)] hover:text-[hsl(0,0%,90%)] h-8"
+                  >
+                    <X className="h-3 w-3 mr-1" /> Dispensar
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Filtros locais */}
             <Card className="bg-[hsl(220,22%,11%)] border-[hsl(220,15%,20%)]">
               <CardContent className="p-3">

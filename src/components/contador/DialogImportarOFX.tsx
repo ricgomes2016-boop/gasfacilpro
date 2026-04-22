@@ -59,11 +59,20 @@ type Importacao = {
   status: "ok" | "erro";
 };
 
+export interface ImportOFXResult {
+  totalInseridos: number;
+  contas: number;
+  contasCriadas: number;
+  contasBancariasIds: string[];
+  unidadesIds: string[];
+  periodo: { inicio: string; fim: string } | null;
+}
+
 interface Props {
   empresaId: string;
   unidades: Unidade[];
   unidadeAtivaId?: string | null;
-  onConcluido?: () => void;
+  onConcluido?: (result?: ImportOFXResult) => void;
 }
 
 const fmtBRL = (v: number) =>
@@ -306,6 +315,9 @@ export function DialogImportarOFX({ empresaId, unidades, unidadeAtivaId, onConcl
       let contasCriadas = 0;
       let totalInseridos = 0;
       const saldosResumo: { nome: string; valor: number }[] = [];
+      const contasBancariasIds: string[] = [];
+      const unidadesIds = new Set<string>();
+      const erros: string[] = [];
 
       for (const aba of abas) {
         if (!aba.unidadeId) continue;
@@ -316,36 +328,59 @@ export function DialogImportarOFX({ empresaId, unidades, unidadeAtivaId, onConcl
         const last4 = (aba.conta.acctId || "").slice(-4);
         const labelConta = `${unidade?.nome ?? "—"} · ${aba.conta.bankName ?? bancoNome(aba.conta.bankId)} ····${last4}`;
 
-        // Cria conta bancária se necessário
-        if (aba.criarContaBancaria && !aba.contaBancariaId) {
-          const { error: cbErr } = await supabase.from("contas_bancarias").insert({
-            nome: `${aba.conta.bankName ?? bancoNome(aba.conta.bankId)} ${last4}`,
-            banco: aba.conta.bankName ?? bancoNome(aba.conta.bankId),
-            agencia: null,
-            conta: aba.conta.acctId || null,
-            unidade_id: aba.unidadeId,
-            tipo: aba.conta.acctType?.toLowerCase().includes("sav") ? "poupanca" : "corrente",
-            saldo_inicial: aba.conta.saldoFinal,
-            saldo_atual: aba.conta.saldoFinal,
-            ativo: true,
-          });
-          if (!cbErr) contasCriadas++;
+        // Cria conta bancária se necessário e captura o ID
+        let contaBancariaId: string | null = aba.contaBancariaId;
+        if (aba.criarContaBancaria && !contaBancariaId) {
+          const { data: cbData, error: cbErr } = await supabase
+            .from("contas_bancarias")
+            .insert({
+              nome: `${aba.conta.bankName ?? bancoNome(aba.conta.bankId)} ${last4}`,
+              banco: aba.conta.bankName ?? bancoNome(aba.conta.bankId),
+              agencia: null,
+              conta: aba.conta.acctId || null,
+              unidade_id: aba.unidadeId,
+              tipo: aba.conta.acctType?.toLowerCase().includes("sav") ? "poupanca" : "corrente",
+              saldo_inicial: aba.conta.saldoFinal,
+              saldo_atual: aba.conta.saldoFinal,
+              ativo: true,
+            })
+            .select("id")
+            .single();
+          if (cbErr) {
+            console.error("Erro criar conta bancária:", cbErr);
+            erros.push(`Conta ${labelConta}: ${cbErr.message}`);
+          } else if (cbData) {
+            contaBancariaId = (cbData as any).id;
+            contasCriadas++;
+          }
         }
 
-        // Insere lançamentos em batches
+        if (contaBancariaId) contasBancariasIds.push(contaBancariaId);
+        unidadesIds.add(aba.unidadeId);
+
+        // Insere lançamentos em batches, validando erros reais
         const rows = linhasParaImportar.map((l) => ({
           data: l.date,
           descricao: (l.memo || l.fitid || "OFX").slice(0, 200),
           valor: l.amount,
           tipo: l.amount >= 0 ? "credito" : "debito",
           unidade_id: aba.unidadeId!,
+          conta_bancaria_id: contaBancariaId,
           conciliado: false,
         }));
+
+        let inseridosNaAba = 0;
         for (let i = 0; i < rows.length; i += 100) {
           const batch = rows.slice(i, i + 100);
-          await (supabase.from("extrato_bancario" as any) as any).insert(batch);
+          const { error: insErr } = await (supabase.from("extrato_bancario" as any) as any).insert(batch);
+          if (insErr) {
+            console.error("Erro insert extrato_bancario:", insErr);
+            erros.push(`Lote ${labelConta}: ${insErr.message}`);
+          } else {
+            inseridosNaAba += batch.length;
+          }
         }
-        totalInseridos += rows.length;
+        totalInseridos += inseridosNaAba;
         saldosResumo.push({ nome: labelConta, valor: aba.conta.saldoFinal });
       }
 
@@ -359,6 +394,17 @@ export function DialogImportarOFX({ empresaId, unidades, unidadeAtivaId, onConcl
         console.warn("Falha no upload do OFX original:", e);
       }
 
+      // Se nada foi inserido e houve erros, falhou
+      if (totalInseridos === 0 && erros.length > 0) {
+        toast.error("Falha na importação: " + erros[0]);
+        const erroEntry: Importacao = {
+          id: crypto.randomUUID(), arquivo: arquivo.name, quando: new Date(),
+          contas: abas.length, lancamentos: 0, status: "erro",
+        };
+        setHistorico((prev) => [erroEntry, ...prev].slice(0, 5));
+        return;
+      }
+
       // Histórico em memória
       const okEntry: Importacao = {
         id: crypto.randomUUID(),
@@ -366,7 +412,7 @@ export function DialogImportarOFX({ empresaId, unidades, unidadeAtivaId, onConcl
         quando: new Date(),
         contas: abas.length,
         lancamentos: totalInseridos,
-        status: "ok",
+        status: erros.length > 0 ? "erro" : "ok",
       };
       setHistorico((prev) => [okEntry, ...prev].slice(0, 5));
 
@@ -377,14 +423,29 @@ export function DialogImportarOFX({ empresaId, unidades, unidadeAtivaId, onConcl
         saldos: saldosResumo,
       });
 
-      toast.success(
-        `Importação concluída: ${totalInseridos} lançamento(s) em ${abas.length} conta(s).` +
-          (contasCriadas > 0 ? ` ${contasCriadas} conta(s) bancária(s) criada(s).` : ""),
-      );
+      if (erros.length > 0) {
+        toast.warning(
+          `Importação parcial: ${totalInseridos} gravado(s), ${erros.length} erro(s). Veja o console.`,
+        );
+      } else {
+        toast.success(
+          `Importação concluída: ${totalInseridos} lançamento(s) em ${abas.length} conta(s).` +
+            (contasCriadas > 0 ? ` ${contasCriadas} conta(s) bancária(s) criada(s).` : ""),
+        );
+      }
 
       // Limpa input mantendo o resumo final visível
       if (inputRef.current) inputRef.current.value = "";
-      onConcluido?.();
+
+      const result: ImportOFXResult = {
+        totalInseridos,
+        contas: abas.length,
+        contasCriadas,
+        contasBancariasIds,
+        unidadesIds: Array.from(unidadesIds),
+        periodo: resumo.dMin && resumo.dMax ? { inicio: resumo.dMin, fim: resumo.dMax } : null,
+      };
+      onConcluido?.(result);
     } catch (e: any) {
       console.error(e);
       toast.error("Erro na importação: " + e.message);
