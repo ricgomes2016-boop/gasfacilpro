@@ -345,6 +345,46 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     setShowResults(false);
     setSearchResults([]);
     setSearchTerm("");
+
+    // Carrega último pedido pago do cliente (último valor que ele pagou)
+    setUltimoPedidoInfo(null);
+    setLoadingUltimo(true);
+    try {
+      const { data: ult } = await supabase
+        .from("pedidos")
+        .select("valor_total, created_at, forma_pagamento, status")
+        .eq("cliente_id", cliente.id)
+        .in("status", ["entregue", "concluido", "finalizado", "pago"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let pedido = ult;
+      if (!pedido) {
+        // Fallback: pega o último pedido qualquer (exceto cancelado)
+        const { data: any2 } = await supabase
+          .from("pedidos")
+          .select("valor_total, created_at, forma_pagamento, status")
+          .eq("cliente_id", cliente.id)
+          .neq("status", "cancelado")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        pedido = any2 ?? null;
+      }
+
+      if (pedido) {
+        setUltimoPedidoInfo({
+          valor: Number(pedido.valor_total) || 0,
+          data: pedido.created_at as string,
+          forma: (pedido as any).forma_pagamento ?? null,
+        });
+      }
+    } catch (e) {
+      console.error("Erro ao carregar último pedido do cliente:", e);
+    } finally {
+      setLoadingUltimo(false);
+    }
   };
 
   const selectAddress = async (result: NominatimResult) => {
