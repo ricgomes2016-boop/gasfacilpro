@@ -271,6 +271,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     });
     setShowResults(false);
     setSearchResults([]);
+    setSearchTerm("");
   };
 
   const selectAddress = async (result: NominatimResult) => {
