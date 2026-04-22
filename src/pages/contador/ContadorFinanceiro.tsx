@@ -26,28 +26,8 @@ interface ExtratoRow {
   created_at: string;
 }
 
-function parseOFX(text: string) {
-  // Parser simples que extrai STMTTRN
-  const txns: Array<{ date: string; amount: number; type: string; memo: string; fitid: string }> = [];
-  const re = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi;
-  let m: RegExpExecArray | null;
-  const get = (block: string, tag: string) => {
-    const r = new RegExp(`<${tag}>([^<\\r\\n]*)`, "i");
-    const x = block.match(r);
-    return x ? x[1].trim() : "";
-  };
-  while ((m = re.exec(text)) !== null) {
-    const block = m[1];
-    const dt = get(block, "DTPOSTED").slice(0, 8);
-    const date = dt.length === 8 ? `${dt.slice(0,4)}-${dt.slice(4,6)}-${dt.slice(6,8)}` : new Date().toISOString().slice(0,10);
-    const amount = parseFloat(get(block, "TRNAMT") || "0");
-    const type = get(block, "TRNTYPE");
-    const memo = get(block, "MEMO") || get(block, "NAME");
-    const fitid = get(block, "FITID");
-    txns.push({ date, amount, type, memo, fitid });
-  }
-  return txns;
-}
+// Parser OFX legado removido — agora vive em src/services/ofxParser.ts e é usado pelo DialogImportarOFX
+
 
 export default function ContadorFinanceiro() {
   const { empresaAtiva, unidadeAtiva, unidades } = useContador();
