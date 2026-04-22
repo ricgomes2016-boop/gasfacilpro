@@ -274,7 +274,7 @@ export default function ContadorXML() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Entrada de XMLs</h1>
-            <p className="text-sm text-muted-foreground">XMLs de NF-e, NFC-e, CT-e e MDF-e — agrupados por dia de emissão</p>
+            <p className="text-sm text-muted-foreground">XMLs de NF-e, NFC-e, CT-e e MDF-e — ordenados por data de emissão</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <input
