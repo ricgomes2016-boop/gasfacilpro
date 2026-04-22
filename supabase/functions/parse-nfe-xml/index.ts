@@ -32,16 +32,17 @@ Deno.serve(async (req) => {
     const numero = get("nNF") || get("nCT") || get("nMDF");
     const serie = get("serie");
     const valor_total = parseFloat(get("vNF") || get("vTPrest") || get("vBC") || "0") || 0;
-    // Preserva data original do XML sem conversão para UTC.
-    // dhEmi vem como "2026-03-31T23:15:00-03:00" (com offset do emitente).
-    // dEmi vem como "2026-03-31" (data pura, sem hora) — fixamos meio-dia em -03:00 para evitar shift.
-    const dhEmi = get("dhEmi");
-    const dEmi = get("dEmi");
+    // A coluna data_emissao é DATE no banco. Para evitar shift de fuso ao fazer cast
+    // (ex: "2026-03-31T23:15:00-03:00" cast em UTC vira 2026-04-01), extraímos
+    // o dia LOCAL do emitente direto do próprio XML, preservando o offset original.
+    const dhEmi = get("dhEmi"); // "2026-03-31T23:15:00-03:00"
+    const dEmi = get("dEmi");   // "2026-03-31"
     let data_emissao: string | null = null;
     if (dhEmi) {
-      data_emissao = dhEmi; // mantém offset original
+      // Pega apenas os 10 primeiros chars (YYYY-MM-DD) — esta é a data LOCAL do XML
+      data_emissao = dhEmi.slice(0, 10);
     } else if (dEmi) {
-      data_emissao = `${dEmi.slice(0, 10)}T12:00:00-03:00`;
+      data_emissao = dEmi.slice(0, 10);
     }
     const remetente_nome = get("xNome");
     const remetente_cnpj = get("CNPJ");
