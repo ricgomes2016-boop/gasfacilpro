@@ -58,7 +58,58 @@ interface NominatimResult {
   };
 }
 
-export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
+// Normaliza string removendo acentos para comparação case/diacritic-insensitive
+const normalize = (s: string) =>
+  (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+// Destaca em <strong> os trechos do texto que coincidem com qualquer token da busca
+function highlightMatch(text: string, term: string): React.ReactNode {
+  if (!text) return text;
+  const tokens = (term || "")
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2);
+  if (tokens.length === 0) return text;
+
+  const normText = normalize(text);
+  // mapeia cada caractere da string normalizada para seu índice na original (NFD pode mudar tamanho)
+  // estratégia simples: buscar no texto original em paralelo, case/diacritic insensitive,
+  // marcando intervalos que correspondem.
+  const ranges: Array<[number, number]> = [];
+  for (const tk of tokens) {
+    const nTk = normalize(tk);
+    if (!nTk) continue;
+    let from = 0;
+    while (from <= normText.length - nTk.length) {
+      const idx = normText.indexOf(nTk, from);
+      if (idx === -1) break;
+      ranges.push([idx, idx + nTk.length]);
+      from = idx + nTk.length;
+    }
+  }
+  if (ranges.length === 0) return text;
+  // merge overlapping
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged: Array<[number, number]> = [];
+  for (const r of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1]);
+    else merged.push([r[0], r[1]]);
+  }
+  const out: React.ReactNode[] = [];
+  let cursor = 0;
+  merged.forEach(([s, e], i) => {
+    if (s > cursor) out.push(text.slice(cursor, s));
+    out.push(
+      <strong key={i} className="font-semibold text-foreground">
+        {text.slice(s, e)}
+      </strong>,
+    );
+    cursor = e;
+  });
+  if (cursor < text.length) out.push(text.slice(cursor));
+  return <>{out}</>;
+}
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
