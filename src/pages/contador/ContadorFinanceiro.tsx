@@ -72,12 +72,14 @@ const FILTROS_DEFAULT: FiltrosLocais = {
 
 export default function ContadorFinanceiro() {
   const { empresaAtiva, unidadeAtiva, unidades } = useContador();
-  const { range } = usePeriodo();
+  const { range, setCustom } = usePeriodo();
   const [extratos, setExtratos] = useState<ExtratoRow[]>([]);
   const [contasBancarias, setContasBancarias] = useState<ContaBancariaInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [tabAtiva, setTabAtiva] = useState<string>(TODAS);
+  const [tabPagina, setTabPagina] = useState<string>("extratos");
+  const [foraDoPeriodo, setForaDoPeriodo] = useState<{ total: number; min: string; max: string } | null>(null);
   const [filtros, setFiltros] = useState<FiltrosLocais>(() => {
     try {
       const raw = localStorage.getItem(FILTROS_KEY);
@@ -103,9 +105,10 @@ export default function ContadorFinanceiro() {
       if (unidadeIds.length === 0) {
         setExtratos([]);
         setContasBancarias([]);
+        setForaDoPeriodo(null);
         return;
       }
-      const [extRes, ctaRes] = await Promise.all([
+      const [extRes, ctaRes, foraRes] = await Promise.all([
         supabase
           .from("extrato_bancario" as any)
           .select("*")
@@ -118,16 +121,60 @@ export default function ContadorFinanceiro() {
           .from("contas_bancarias" as any)
           .select("id, unidade_id, banco, conta, agencia, nome")
           .in("unidade_id", unidadeIds),
+        // Contagem total fora do período para alertar o usuário
+        supabase
+          .from("extrato_bancario" as any)
+          .select("data", { count: "exact", head: false })
+          .in("unidade_id", unidadeIds)
+          .or(`data.lt.${range.inicioISO},data.gt.${range.fimISO}`)
+          .order("data", { ascending: false })
+          .limit(1),
       ]);
       if (extRes.error) throw extRes.error;
       if (ctaRes.error) throw ctaRes.error;
       setExtratos((extRes.data ?? []) as any);
       setContasBancarias((ctaRes.data ?? []) as any);
+
+      // Se não há nada no período mas existem registros fora, busca min/max p/ sugerir
+      if ((extRes.data ?? []).length === 0 && (foraRes.count ?? 0) > 0) {
+        const { data: rangeData } = await supabase
+          .from("extrato_bancario" as any)
+          .select("data")
+          .in("unidade_id", unidadeIds)
+          .order("data", { ascending: false })
+          .limit(1);
+        const { data: rangeDataMin } = await supabase
+          .from("extrato_bancario" as any)
+          .select("data")
+          .in("unidade_id", unidadeIds)
+          .order("data", { ascending: true })
+          .limit(1);
+        setForaDoPeriodo({
+          total: foraRes.count ?? 0,
+          min: (rangeDataMin?.[0] as any)?.data ?? "",
+          max: (rangeData?.[0] as any)?.data ?? "",
+        });
+      } else {
+        setForaDoPeriodo(null);
+      }
     } catch (e: any) {
       toast.error("Erro: " + e.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const ampliarPeriodo = () => {
+    if (!foraDoPeriodo) return;
+    const inicio = new Date(foraDoPeriodo.min + "T00:00:00");
+    const fim = new Date(foraDoPeriodo.max + "T23:59:59");
+    setCustom(inicio, fim);
+    toast.success("Período ampliado para abranger todos os extratos importados");
+  };
+
+  const handleImportConcluida = () => {
+    fetchExtratos();
+    setTabPagina("extratos");
   };
 
   useEffect(() => {
@@ -279,7 +326,7 @@ export default function ContadorFinanceiro() {
                 empresa_id={empresaAtiva.empresa_id}
                 unidade_id_padrao={unidadeAtiva?.id}
                 destino="financeiro"
-                onConcluido={fetchExtratos}
+                onConcluido={handleImportConcluida}
                 label="IA: OFX/CSV/PDF"
               />
             )}
@@ -342,7 +389,7 @@ export default function ContadorFinanceiro() {
           </div>
         </div>
 
-        <Tabs defaultValue="importar" className="w-full">
+        <Tabs value={tabPagina} onValueChange={setTabPagina} className="w-full">
           <TabsList className="bg-[hsl(220,18%,13%)] border border-[hsl(220,15%,20%)]">
             <TabsTrigger value="importar">Importar</TabsTrigger>
             <TabsTrigger value="extratos">Extratos</TabsTrigger>
@@ -368,7 +415,7 @@ export default function ContadorFinanceiro() {
                         cnpj: (u as any).cnpj,
                       }))}
                       unidadeAtivaId={unidadeAtiva?.id ?? null}
-                      onConcluido={fetchExtratos}
+                      onConcluido={handleImportConcluida}
                     />
                   ) : (
                     <Button disabled className="bg-[hsl(165,60%,40%)] text-white">
@@ -506,21 +553,43 @@ export default function ContadorFinanceiro() {
                 ) : extratos.length === 0 ? (
                   <div className="text-center py-12 px-4">
                     <Banknote className="h-12 w-12 mx-auto mb-3 text-[hsl(220,10%,30%)]" />
-                    <p className="text-sm text-[hsl(220,10%,55%)] mb-4">
-                      Nenhum extrato importado neste período. Use a aba <strong>Importar</strong>{" "}
-                      para começar.
-                    </p>
-                    {empresaAtiva && (
-                      <DialogImportarOFX
-                        empresaId={empresaAtiva.empresa_id}
-                        unidades={unidades.map((u) => ({
-                          id: u.id,
-                          nome: u.nome,
-                          cnpj: (u as any).cnpj,
-                        }))}
-                        unidadeAtivaId={unidadeAtiva?.id ?? null}
-                        onConcluido={fetchExtratos}
-                      />
+                    {foraDoPeriodo && foraDoPeriodo.total > 0 ? (
+                      <>
+                        <p className="text-sm text-[hsl(0,0%,90%)] mb-1 font-medium">
+                          Existem <strong>{foraDoPeriodo.total}</strong> lançamento(s) importados
+                          fora do período selecionado.
+                        </p>
+                        <p className="text-xs text-[hsl(220,10%,55%)] mb-4">
+                          Período dos dados: {foraDoPeriodo.min.split("-").reverse().join("/")} →{" "}
+                          {foraDoPeriodo.max.split("-").reverse().join("/")}. Período atual:{" "}
+                          {range.label}.
+                        </p>
+                        <Button
+                          onClick={ampliarPeriodo}
+                          className="bg-[hsl(165,60%,40%)] hover:bg-[hsl(165,60%,45%)] text-white"
+                        >
+                          Ampliar período para ver os dados
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-[hsl(220,10%,55%)] mb-4">
+                          Nenhum extrato importado neste período. Use a aba{" "}
+                          <strong>Importar</strong> para começar.
+                        </p>
+                        {empresaAtiva && (
+                          <DialogImportarOFX
+                            empresaId={empresaAtiva.empresa_id}
+                            unidades={unidades.map((u) => ({
+                              id: u.id,
+                              nome: u.nome,
+                              cnpj: (u as any).cnpj,
+                            }))}
+                            unidadeAtivaId={unidadeAtiva?.id ?? null}
+                            onConcluido={handleImportConcluida}
+                          />
+                        )}
+                      </>
                     )}
                   </div>
                 ) : (
