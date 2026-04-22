@@ -400,6 +400,46 @@ export default function ComissaoEntregador() {
           </Card>
         </div>
 
+        {/* Aviso: itens sem regra de comissão configurada */}
+        {!isLoading && itensSemRegra.length > 0 && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>
+              {itensSemRegra.length} {itensSemRegra.length === 1 ? "combinação está" : "combinações estão"} sem regra de comissão
+            </AlertTitle>
+            <AlertDescription>
+              <p className="mb-2 text-sm">
+                Os itens abaixo ficaram com comissão R$ 0,00 porque não há configuração em <strong>Configurar Comissões</strong> para o produto/canal:
+              </p>
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 max-h-56 overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="h-8 text-xs">Produto</TableHead>
+                      <TableHead className="h-8 text-xs">Canal</TableHead>
+                      <TableHead className="h-8 text-xs text-center">Qtd</TableHead>
+                      <TableHead className="h-8 text-xs">Entregador(es)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {itensSemRegra.map((item, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell className="py-1.5 text-xs font-medium">{item.produto}</TableCell>
+                        <TableCell className="py-1.5 text-xs capitalize">{item.canal}</TableCell>
+                        <TableCell className="py-1.5 text-xs text-center">{item.quantidade}</TableCell>
+                        <TableCell className="py-1.5 text-xs">{Array.from(item.entregadores).join(", ")}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <p className="mt-2 text-xs">
+                Configure em <strong>Configurar Comissões</strong> ou clique no ícone de edição ao lado do valor R$ 0,00 nas tabelas abaixo.
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Tabelas detalhadas por entregador */}
         {isLoading ? (
           <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-24 w-full" />)}</div>
