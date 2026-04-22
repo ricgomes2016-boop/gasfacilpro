@@ -105,9 +105,10 @@ export default function ContadorFinanceiro() {
       if (unidadeIds.length === 0) {
         setExtratos([]);
         setContasBancarias([]);
+        setForaDoPeriodo(null);
         return;
       }
-      const [extRes, ctaRes] = await Promise.all([
+      const [extRes, ctaRes, foraRes] = await Promise.all([
         supabase
           .from("extrato_bancario" as any)
           .select("*")
@@ -120,16 +121,60 @@ export default function ContadorFinanceiro() {
           .from("contas_bancarias" as any)
           .select("id, unidade_id, banco, conta, agencia, nome")
           .in("unidade_id", unidadeIds),
+        // Contagem total fora do período para alertar o usuário
+        supabase
+          .from("extrato_bancario" as any)
+          .select("data", { count: "exact", head: false })
+          .in("unidade_id", unidadeIds)
+          .or(`data.lt.${range.inicioISO},data.gt.${range.fimISO}`)
+          .order("data", { ascending: false })
+          .limit(1),
       ]);
       if (extRes.error) throw extRes.error;
       if (ctaRes.error) throw ctaRes.error;
       setExtratos((extRes.data ?? []) as any);
       setContasBancarias((ctaRes.data ?? []) as any);
+
+      // Se não há nada no período mas existem registros fora, busca min/max p/ sugerir
+      if ((extRes.data ?? []).length === 0 && (foraRes.count ?? 0) > 0) {
+        const { data: rangeData } = await supabase
+          .from("extrato_bancario" as any)
+          .select("data")
+          .in("unidade_id", unidadeIds)
+          .order("data", { ascending: false })
+          .limit(1);
+        const { data: rangeDataMin } = await supabase
+          .from("extrato_bancario" as any)
+          .select("data")
+          .in("unidade_id", unidadeIds)
+          .order("data", { ascending: true })
+          .limit(1);
+        setForaDoPeriodo({
+          total: foraRes.count ?? 0,
+          min: (rangeDataMin?.[0] as any)?.data ?? "",
+          max: (rangeData?.[0] as any)?.data ?? "",
+        });
+      } else {
+        setForaDoPeriodo(null);
+      }
     } catch (e: any) {
       toast.error("Erro: " + e.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const ampliarPeriodo = () => {
+    if (!foraDoPeriodo) return;
+    const inicio = new Date(foraDoPeriodo.min + "T00:00:00");
+    const fim = new Date(foraDoPeriodo.max + "T23:59:59");
+    setCustom(inicio, fim);
+    toast.success("Período ampliado para abranger todos os extratos importados");
+  };
+
+  const handleImportConcluida = () => {
+    fetchExtratos();
+    setTabPagina("extratos");
   };
 
   useEffect(() => {
