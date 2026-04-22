@@ -3650,6 +3650,7 @@ export type Database = {
       }
       extrato_bancario: {
         Row: {
+          categoria: string | null
           conciliado: boolean
           conta_bancaria_id: string | null
           created_at: string
@@ -3663,6 +3664,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          categoria?: string | null
           conciliado?: boolean
           conta_bancaria_id?: string | null
           created_at?: string
@@ -3676,6 +3678,7 @@ export type Database = {
           valor?: number
         }
         Update: {
+          categoria?: string | null
           conciliado?: boolean
           conta_bancaria_id?: string | null
           created_at?: string
