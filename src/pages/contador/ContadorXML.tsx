@@ -288,7 +288,7 @@ export default function ContadorXML() {
               escopo={unidadeAtiva ? unidadeAtiva.nome : `Todas as lojas — ${unidades.length} unidades`}
               periodoLabel={range.label}
               colunas={[
-                { header: "Emissão", key: "data_emissao", format: (v) => fmt.date(v) },
+                { header: "Data", key: "data_emissao", format: (v) => fmt.date(v) },
                 { header: "Tipo", key: "tipo" },
                 { header: "Número", key: "numero" },
                 { header: "Série", key: "serie" },
@@ -303,13 +303,11 @@ export default function ContadorXML() {
               linhas={filtered.map((n) => ({
                 ...n,
                 _loja_nome: lojaNome(n.unidade_id),
-                _dia: n.data_emissao ?? n.created_at?.slice(0, 10),
               }))}
               totais={[
                 { label: "Total notas", value: String(filtered.length) },
                 { label: "Valor total", value: fmt.brl(totalGeral) },
               ]}
-              groupByPDF="_dia"
             />
             {empresaAtiva && (
               <ImportacaoInteligente
