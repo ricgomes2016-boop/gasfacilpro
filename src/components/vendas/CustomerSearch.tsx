@@ -110,6 +110,8 @@ function highlightMatch(text: string, term: string): React.ReactNode {
   if (cursor < text.length) out.push(text.slice(cursor));
   return <>{out}</>;
 }
+
+export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
   const [searchResults, setSearchResults] = useState<Cliente[]>([]);
