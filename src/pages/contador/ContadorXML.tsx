@@ -242,17 +242,7 @@ export default function ContadorXML() {
 
   const totalGeral = useMemo(() => filtered.reduce((s, n) => s + Number(n.valor_total ?? 0), 0), [filtered]);
 
-  // Agrupar por data de emissão (fallback para created_at)
-  const grupos = useMemo(() => {
-    const map = new Map<string, NotaRow[]>();
-    filtered.forEach((n) => {
-      const d = (n.data_emissao ?? n.created_at?.slice(0, 10) ?? "0000-00-00");
-      const k = d.slice(0, 10);
-      if (!map.has(k)) map.set(k, []);
-      map.get(k)!.push(n);
-    });
-    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
-  }, [filtered]);
+
 
   const TIPOS: { key: string; label: string }[] = [
     { key: "", label: "Todos" },
