@@ -242,6 +242,10 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     };
   }, []);
 
+  useEffect(() => {
+    setHighlightIndex(0);
+  }, [searchResults]);
+
   const selectCliente = async (cliente: Cliente) => {
     let cep = cliente.cep || "";
     try {
