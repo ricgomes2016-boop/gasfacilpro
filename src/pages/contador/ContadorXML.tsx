@@ -242,17 +242,7 @@ export default function ContadorXML() {
 
   const totalGeral = useMemo(() => filtered.reduce((s, n) => s + Number(n.valor_total ?? 0), 0), [filtered]);
 
-  // Agrupar por data de emissão (fallback para created_at)
-  const grupos = useMemo(() => {
-    const map = new Map<string, NotaRow[]>();
-    filtered.forEach((n) => {
-      const d = (n.data_emissao ?? n.created_at?.slice(0, 10) ?? "0000-00-00");
-      const k = d.slice(0, 10);
-      if (!map.has(k)) map.set(k, []);
-      map.get(k)!.push(n);
-    });
-    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
-  }, [filtered]);
+
 
   const TIPOS: { key: string; label: string }[] = [
     { key: "", label: "Todos" },
@@ -274,7 +264,7 @@ export default function ContadorXML() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Entrada de XMLs</h1>
-            <p className="text-sm text-muted-foreground">XMLs de NF-e, NFC-e, CT-e e MDF-e — agrupados por dia de emissão</p>
+            <p className="text-sm text-muted-foreground">XMLs de NF-e, NFC-e, CT-e e MDF-e — ordenados por data de emissão</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <input
@@ -288,7 +278,7 @@ export default function ContadorXML() {
               escopo={unidadeAtiva ? unidadeAtiva.nome : `Todas as lojas — ${unidades.length} unidades`}
               periodoLabel={range.label}
               colunas={[
-                { header: "Emissão", key: "data_emissao", format: (v) => fmt.date(v) },
+                { header: "Data", key: "data_emissao", format: (v) => fmt.date(v) },
                 { header: "Tipo", key: "tipo" },
                 { header: "Número", key: "numero" },
                 { header: "Série", key: "serie" },
@@ -303,13 +293,11 @@ export default function ContadorXML() {
               linhas={filtered.map((n) => ({
                 ...n,
                 _loja_nome: lojaNome(n.unidade_id),
-                _dia: n.data_emissao ?? n.created_at?.slice(0, 10),
               }))}
               totais={[
                 { label: "Total notas", value: String(filtered.length) },
                 { label: "Valor total", value: fmt.brl(totalGeral) },
               ]}
-              groupByPDF="_dia"
             />
             {empresaAtiva && (
               <ImportacaoInteligente
@@ -459,6 +447,7 @@ export default function ContadorXML() {
                             onCheckedChange={() => toggleSelAll(filtered.map((n) => n.id))}
                           />
                         </th>
+                        <th className="px-3 py-3 text-left w-[110px]">Data</th>
                         <th className="px-3 py-3 text-left">Tipo</th>
                         <th className="px-3 py-3 text-left">Nº / Série</th>
                         <th className="px-3 py-3 text-left">Chave</th>
@@ -473,76 +462,53 @@ export default function ContadorXML() {
                       </tr>
                     </thead>
                     <tbody>
-                      {grupos.map(([dia, rows]) => {
-                        const somaDia = rows.reduce((s, n) => s + Number(n.valor_total ?? 0), 0);
+                      {filtered.map((n) => {
+                        const chave = n.chave_acesso ?? "";
+                        const chaveCurta = chave ? `${chave.slice(0, 6)}…${chave.slice(-6)}` : "—";
+                        const dia = n.data_emissao ?? n.created_at?.slice(0, 10) ?? null;
                         return (
-                          <>
-                            <tr key={`g-${dia}`} className="bg-muted/60">
-                              <td colSpan={12} className="px-3 py-2">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <div className="flex items-center gap-2">
-                                    <Checkbox
-                                      checked={rows.length > 0 && rows.every((r) => selecionados.includes(r.id))}
-                                      onCheckedChange={() => toggleSelAll(rows.map((r) => r.id))}
-                                    />
-                                    <div className="font-semibold text-primary">
-                                      ▸ {safeDateLabel(dia)}
-                                    </div>
-                                  </div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {rows.length} nota{rows.length > 1 ? "s" : ""} · <span className="text-foreground font-medium">{brl(somaDia)}</span>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                            {rows.map((n) => {
-                              const chave = n.chave_acesso ?? "";
-                              const chaveCurta = chave ? `${chave.slice(0, 6)}…${chave.slice(-6)}` : "—";
-                              return (
-                                <tr key={n.id} className="border-t border-border hover:bg-muted/40">
-                                  <td className="px-3 py-2"><Checkbox checked={selecionados.includes(n.id)} onCheckedChange={() => toggleSel(n.id)} /></td>
-                                  <td className="px-3 py-2"><Badge variant="outline" className="uppercase">{n.tipo ?? "—"}</Badge></td>
-                                  <td className="px-3 py-2 text-foreground whitespace-nowrap">
-                                    {n.numero ?? "—"} <span className="text-muted-foreground">/ {n.serie ?? "—"}</span>
-                                  </td>
-                                  <td className="px-3 py-2 text-muted-foreground font-mono text-xs">
-                                    {chave ? (
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <span className="cursor-help">{chaveCurta}</span>
-                                        </TooltipTrigger>
-                                        <TooltipContent className="font-mono text-xs max-w-[420px] break-all">
-                                          {chave}
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    ) : "—"}
-                                  </td>
-                                  <td className="px-3 py-2 text-foreground/80 whitespace-nowrap">{fmtCNPJ(n.remetente_cpf_cnpj)}</td>
-                                  <td className="px-3 py-2 text-foreground/90 max-w-[180px] truncate" title={n.remetente_nome ?? ""}>
-                                    {n.remetente_nome ?? "—"}
-                                  </td>
-                                  <td className="px-3 py-2 text-foreground/80 whitespace-nowrap">{fmtCNPJ(n.destinatario_cpf_cnpj)}</td>
-                                  <td className="px-3 py-2 text-foreground/90 max-w-[180px] truncate" title={n.destinatario_nome ?? ""}>
-                                    {n.destinatario_nome ?? "—"}
-                                  </td>
-                                  <td className="px-3 py-2 text-muted-foreground">{lojaNome(n.unidade_id)}</td>
-                                  <td className="px-3 py-2">
-                                    <Badge variant="outline" className="text-xs">
-                                      {n.status ?? "importado"}
-                                    </Badge>
-                                  </td>
-                                  <td className="px-3 py-2 text-right text-foreground font-medium whitespace-nowrap">
-                                    {n.valor_total != null ? brl(Number(n.valor_total)) : "—"}
-                                  </td>
-                                  <td className="px-3 py-2 text-right">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => downloadXml(n)} title="Baixar XML">
-                                      <Download className="h-4 w-4" />
-                                    </Button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </>
+                          <tr key={n.id} className="border-t border-border hover:bg-muted/40">
+                            <td className="px-3 py-2"><Checkbox checked={selecionados.includes(n.id)} onCheckedChange={() => toggleSel(n.id)} /></td>
+                            <td className="px-3 py-2 text-foreground whitespace-nowrap">{dia ? safeDateLabel(dia.slice(0, 10)) : "—"}</td>
+                            <td className="px-3 py-2"><Badge variant="outline" className="uppercase">{n.tipo ?? "—"}</Badge></td>
+                            <td className="px-3 py-2 text-foreground whitespace-nowrap">
+                              {n.numero ?? "—"} <span className="text-muted-foreground">/ {n.serie ?? "—"}</span>
+                            </td>
+                            <td className="px-3 py-2 text-muted-foreground font-mono text-xs">
+                              {chave ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="cursor-help">{chaveCurta}</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="font-mono text-xs max-w-[420px] break-all">
+                                    {chave}
+                                  </TooltipContent>
+                                </Tooltip>
+                              ) : "—"}
+                            </td>
+                            <td className="px-3 py-2 text-foreground/80 whitespace-nowrap">{fmtCNPJ(n.remetente_cpf_cnpj)}</td>
+                            <td className="px-3 py-2 text-foreground/90 max-w-[180px] truncate" title={n.remetente_nome ?? ""}>
+                              {n.remetente_nome ?? "—"}
+                            </td>
+                            <td className="px-3 py-2 text-foreground/80 whitespace-nowrap">{fmtCNPJ(n.destinatario_cpf_cnpj)}</td>
+                            <td className="px-3 py-2 text-foreground/90 max-w-[180px] truncate" title={n.destinatario_nome ?? ""}>
+                              {n.destinatario_nome ?? "—"}
+                            </td>
+                            <td className="px-3 py-2 text-muted-foreground">{lojaNome(n.unidade_id)}</td>
+                            <td className="px-3 py-2">
+                              <Badge variant="outline" className="text-xs">
+                                {n.status ?? "importado"}
+                              </Badge>
+                            </td>
+                            <td className="px-3 py-2 text-right text-foreground font-medium whitespace-nowrap">
+                              {n.valor_total != null ? brl(Number(n.valor_total)) : "—"}
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => downloadXml(n)} title="Baixar XML">
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </td>
+                          </tr>
                         );
                       })}
                     </tbody>
