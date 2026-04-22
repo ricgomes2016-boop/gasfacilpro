@@ -655,6 +655,27 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
               ✨ Cliente não encontrado — preencha abaixo e será cadastrado automaticamente
             </p>
           )}
+          {value.id && (loadingUltimo || ultimoPedidoInfo) && (
+            <div className="mt-2 flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs">
+              {loadingUltimo ? (
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Buscando último pedido…
+                </span>
+              ) : ultimoPedidoInfo ? (
+                <>
+                  <span className="text-muted-foreground">Último valor pago:</span>
+                  <strong className="text-primary">
+                    {ultimoPedidoInfo.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </strong>
+                  <span className="text-muted-foreground">
+                    em {new Date(ultimoPedidoInfo.data).toLocaleDateString("pt-BR")}
+                    {ultimoPedidoInfo.forma ? ` · ${ultimoPedidoInfo.forma}` : ""}
+                  </span>
+                </>
+              ) : null}
+            </div>
+          )}
         </div>
 
         {/* Campos de identificação (sempre visíveis para edição/cadastro) */}
