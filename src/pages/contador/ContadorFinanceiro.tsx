@@ -72,12 +72,14 @@ const FILTROS_DEFAULT: FiltrosLocais = {
 
 export default function ContadorFinanceiro() {
   const { empresaAtiva, unidadeAtiva, unidades } = useContador();
-  const { range } = usePeriodo();
+  const { range, setCustom } = usePeriodo();
   const [extratos, setExtratos] = useState<ExtratoRow[]>([]);
   const [contasBancarias, setContasBancarias] = useState<ContaBancariaInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [tabAtiva, setTabAtiva] = useState<string>(TODAS);
+  const [tabPagina, setTabPagina] = useState<string>("extratos");
+  const [foraDoPeriodo, setForaDoPeriodo] = useState<{ total: number; min: string; max: string } | null>(null);
   const [filtros, setFiltros] = useState<FiltrosLocais>(() => {
     try {
       const raw = localStorage.getItem(FILTROS_KEY);
