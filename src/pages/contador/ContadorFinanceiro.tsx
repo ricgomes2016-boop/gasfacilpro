@@ -35,7 +35,6 @@ export default function ContadorFinanceiro() {
   const [extratos, setExtratos] = useState<ExtratoRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const ofxRef = useRef<HTMLInputElement>(null);
   const pdfRef = useRef<HTMLInputElement>(null);
 
   const fetchExtratos = async () => {
@@ -59,53 +58,8 @@ export default function ContadorFinanceiro() {
 
   useEffect(() => { fetchExtratos(); }, [empresaAtiva, unidadeAtiva, range.inicioISO, range.fimISO]);
 
-  const handleOFX = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    if (!empresaAtiva) { toast.error("Selecione uma empresa"); return; }
-    const targetUnidade = unidadeAtiva ?? unidades[0];
-    if (!targetUnidade) { toast.error("Empresa sem lojas"); return; }
+  // handleOFX legado removido — substituído pelo DialogImportarOFX
 
-    setUploading(true);
-    let total = 0, dup = 0;
-    for (const file of Array.from(files)) {
-      try {
-        const text = await file.text();
-        const txns = parseOFX(text);
-        if (txns.length === 0) { toast.error(`${file.name}: nenhuma transação encontrada`); continue; }
-
-        // Upload arquivo original
-        const path = `${empresaAtiva.empresa_id}/${targetUnidade.id}/ofx-${Date.now()}-${file.name}`;
-        await supabase.storage.from("contabil-extratos").upload(path, file, { contentType: "application/x-ofx" });
-
-        for (const t of txns) {
-          // Anti-duplicidade: data+valor+memo (limit 80) por unidade
-          const memo = (t.memo ?? "").slice(0, 200);
-          const { data: exists } = await supabase.from("extrato_bancario" as any)
-            .select("id")
-            .eq("unidade_id", targetUnidade.id)
-            .eq("data", t.date)
-            .eq("valor", t.amount)
-            .ilike("descricao", memo.slice(0, 80) + "%")
-            .limit(1);
-          if (exists && exists.length > 0) { dup++; continue; }
-
-          const { error } = await (supabase.from("extrato_bancario" as any) as any).insert({
-            data: t.date,
-            descricao: memo || t.fitid || "OFX",
-            valor: t.amount,
-            tipo: t.amount >= 0 ? "credito" : "debito",
-            unidade_id: targetUnidade.id,
-            conciliado: false,
-          });
-          if (!error) total++;
-        }
-      } catch (e: any) { console.error(e); toast.error(`${file.name}: ${e.message}`); }
-    }
-    setUploading(false);
-    toast.success(`${total} transação(ões) importada(s)${dup ? `, ${dup} duplicada(s) ignorada(s)` : ""}`);
-    fetchExtratos();
-    if (ofxRef.current) ofxRef.current.value = "";
-  };
 
   const handlePDF = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
