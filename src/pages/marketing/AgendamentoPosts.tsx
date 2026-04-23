@@ -94,6 +94,20 @@ export default function AgendamentoPosts() {
     enabled: !!empresaId,
   });
 
+  const { data: socialAccounts = [] } = useQuery({
+    queryKey: ["mkt-social-accounts", empresaId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("social_accounts").select("id, plataforma, conectado_via, ativo")
+        .eq("empresa_id", empresaId!).eq("ativo", true);
+      return data || [];
+    },
+    enabled: !!empresaId,
+  });
+
+  const contaPlataforma = socialAccounts.find((s: any) => s.plataforma === form.plataforma);
+  const isOAuthAccount = contaPlataforma?.conectado_via === "oauth";
+
   const addMut = useMutation({
     mutationFn: async () => {
       const dataHora = `${form.data_agendamento}T${form.hora}:00`;
