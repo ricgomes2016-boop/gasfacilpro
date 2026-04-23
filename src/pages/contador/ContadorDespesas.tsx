@@ -338,6 +338,7 @@ export default function ContadorDespesas() {
                             aria-label="Selecionar despesa"
                           />
                         </td>
+                        <td className="px-4 py-3 text-[hsl(220,10%,75%)] whitespace-nowrap">{format(new Date(d.data_despesa), "dd/MM/yyyy")}</td>
                         <td className="px-4 py-3 max-w-xs">
                           <Input
                             defaultValue={d.fornecedor ?? ""}
