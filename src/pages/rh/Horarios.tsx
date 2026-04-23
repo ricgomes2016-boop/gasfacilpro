@@ -527,6 +527,16 @@ function EscalasTab() {
               <div className="space-y-2"><Label>Início</Label><Input type="time" value={turnoInicio} onChange={(e) => setTurnoInicio(e.target.value)} /></div>
               <div className="space-y-2"><Label>Fim</Label><Input type="time" value={turnoFim} onChange={(e) => setTurnoFim(e.target.value)} /></div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Saída Almoço <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input type="time" value={almocoInicio} onChange={(e) => setAlmocoInicio(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Retorno Almoço <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input type="time" value={almocoFim} onChange={(e) => setAlmocoFim(e.target.value)} />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>Rota</Label>
               <Select value={rotaId} onValueChange={setRotaId}>
