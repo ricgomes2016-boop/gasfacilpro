@@ -224,7 +224,25 @@ export default function AgendamentoPosts() {
                         <div className="flex-1 min-w-0 space-y-1">
                           <p className="text-sm font-medium line-clamp-2">{ag.texto?.slice(0, 120) || "Post sem texto"}</p>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="outline" className={`text-[10px] ${st.color}`}><StIcon className="h-3 w-3 mr-1" />{st.label}</Badge>
+                            <TooltipProvider delayDuration={150}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className={`text-[10px] cursor-default ${st.color}`}>
+                                    <StIcon className="h-3 w-3 mr-1" />{st.label}
+                                  </Badge>
+                                </TooltipTrigger>
+                                {ag.status === "falhou" && ag.resultado_publicacao?.erro && (
+                                  <TooltipContent className="max-w-xs">
+                                    <p className="text-xs"><strong>Erro:</strong> {ag.resultado_publicacao.erro}</p>
+                                  </TooltipContent>
+                                )}
+                                {ag.status === "publicado" && ag.resultado_publicacao?.publicado_em && (
+                                  <TooltipContent>
+                                    <p className="text-xs">Publicado em {format(new Date(ag.resultado_publicacao.publicado_em), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
+                            </TooltipProvider>
                             <span className="text-xs text-muted-foreground capitalize">{plataformaEmoji[ag.plataforma]} {ag.plataforma}</span>
                             <span className="text-xs text-muted-foreground">{format(new Date(ag.data_agendamento), "dd/MM/yyyy · HH:mm", { locale: ptBR })}</span>
                           </div>
@@ -262,6 +280,23 @@ export default function AgendamentoPosts() {
                       <SelectItem value="whatsapp">💬 WhatsApp</SelectItem>
                     </SelectContent>
                   </Select>
+                  {contaPlataforma ? (
+                    isOAuthAccount ? (
+                      <div className="mt-2 flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20">
+                        <Zap className="h-3.5 w-3.5" />
+                        <span>Será publicado automaticamente no horário agendado</span>
+                      </div>
+                    ) : (
+                      <div className="mt-2 flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        <span>Apenas lembrete — você precisará publicar manualmente</span>
+                      </div>
+                    )
+                  ) : (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Nenhuma conta cadastrada para esta plataforma. Cadastre em Marketing → Redes Sociais.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Imagem (opcional)</label>
