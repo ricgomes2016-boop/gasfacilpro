@@ -72,6 +72,7 @@ const emptyForm = {
   regime_pagamento: "mensal",
   valor_diaria: "",
   entra_na_escala: false,
+  is_transporte: false,
 };
 
 export default function Funcionarios() {
@@ -171,6 +172,7 @@ export default function Funcionarios() {
         regime_pagamento: form.regime_pagamento || "mensal",
         valor_diaria: regimeUsaDiaria && form.valor_diaria ? parseFloat(form.valor_diaria) : 0,
         entra_na_escala: !!form.entra_na_escala,
+        is_transporte: !!form.is_transporte,
       };
       // unidade_id: usa o selecionado no form, ou o atual da empresa, ou null
       if (form.unidade_id) {
@@ -289,6 +291,7 @@ export default function Funcionarios() {
       regime_pagamento: fAny.regime_pagamento || "mensal",
       valor_diaria: fAny.valor_diaria?.toString() || "",
       entra_na_escala: !!fAny.entra_na_escala,
+      is_transporte: !!fAny.is_transporte,
     });
     setEditId(f.id);
     setOpen(true);
@@ -491,6 +494,23 @@ export default function Funcionarios() {
                       onCheckedChange={(v) => setForm({ ...form, entra_na_escala: v })}
                     />
                   </div>
+                </div>
+
+                {/* Setor Transporte toggle */}
+                <div className="col-span-2 border rounded-lg p-4 bg-muted/20 flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Truck className="h-4 w-4 text-primary" />
+                      <Label className="text-base font-medium">Trabalha no setor de transporte</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Marque se este funcionário atua no transporte (motorista, ajudante, conferente, etc.). Independente de ser entregador formal.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.is_transporte}
+                    onCheckedChange={(v) => setForm({ ...form, is_transporte: v })}
+                  />
                 </div>
 
                 {/* Entregador toggle */}

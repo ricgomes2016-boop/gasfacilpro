@@ -4350,6 +4350,7 @@ export type Database = {
           endereco: string | null
           entra_na_escala: boolean
           id: string
+          is_transporte: boolean
           nome: string
           regime_pagamento: string
           salario: number | null
@@ -4372,6 +4373,7 @@ export type Database = {
           endereco?: string | null
           entra_na_escala?: boolean
           id?: string
+          is_transporte?: boolean
           nome: string
           regime_pagamento?: string
           salario?: number | null
@@ -4394,6 +4396,7 @@ export type Database = {
           endereco?: string | null
           entra_na_escala?: boolean
           id?: string
+          is_transporte?: boolean
           nome?: string
           regime_pagamento?: string
           salario?: number | null
