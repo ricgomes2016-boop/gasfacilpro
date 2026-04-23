@@ -589,6 +589,16 @@ function EscalasTab() {
               <div className="space-y-2"><Label>Início</Label><Input type="time" value={bulkInicio} onChange={(e) => setBulkInicio(e.target.value)} /></div>
               <div className="space-y-2"><Label>Fim</Label><Input type="time" value={bulkFim} onChange={(e) => setBulkFim(e.target.value)} /></div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Saída Almoço <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input type="time" value={bulkAlmocoInicio} onChange={(e) => setBulkAlmocoInicio(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Retorno Almoço <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input type="time" value={bulkAlmocoFim} onChange={(e) => setBulkAlmocoFim(e.target.value)} />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>Rota</Label>
               <Select value={bulkRotaId} onValueChange={setBulkRotaId}>
