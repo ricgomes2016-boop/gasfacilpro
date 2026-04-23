@@ -285,6 +285,19 @@ export default function ContadorDespesas() {
           </CardContent>
         </Card>
 
+        {algumSelecionado && (
+          <Card className="bg-[hsl(165,40%,12%)] border-[hsl(165,60%,30%)]">
+            <CardContent className="p-3 flex flex-wrap items-center justify-between gap-3">
+              <span className="text-sm text-[hsl(165,60%,80%)]">
+                {selecionados.size} despesa(s) selecionada(s) — total {fmt.brl(linhasParaExportar.reduce((s, d) => s + Number(d.valor ?? 0), 0))}
+              </span>
+              <Button variant="ghost" size="sm" onClick={limparSelecao} className="text-[hsl(165,60%,80%)] hover:bg-[hsl(165,40%,18%)]">
+                Limpar seleção
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="bg-[hsl(220,22%,11%)] border-[hsl(220,15%,20%)]">
           <CardContent className="p-0">
             {loading ? (
@@ -299,6 +312,13 @@ export default function ContadorDespesas() {
                 <table className="w-full text-sm">
                   <thead className="bg-[hsl(220,18%,13%)] text-[hsl(220,10%,60%)] text-xs uppercase">
                     <tr>
+                      <th className="px-3 py-3 w-10">
+                        <Checkbox
+                          checked={todosSelecionadosVisiveis}
+                          onCheckedChange={toggleTodos}
+                          aria-label="Selecionar todos"
+                        />
+                      </th>
                       <th className="px-4 py-3 text-left">Data</th>
                       <th className="px-4 py-3 text-left">Fornecedor</th>
                       <th className="px-4 py-3 text-left">Descrição</th>
@@ -310,8 +330,14 @@ export default function ContadorDespesas() {
                   </thead>
                   <tbody className="divide-y divide-[hsl(220,15%,18%)]">
                     {filtered.map((d) => (
-                      <tr key={d.id} className="hover:bg-[hsl(220,18%,13%)]">
-                        <td className="px-4 py-3 text-[hsl(220,10%,75%)] whitespace-nowrap">{format(new Date(d.data_despesa), "dd/MM/yyyy")}</td>
+                      <tr key={d.id} className={`hover:bg-[hsl(220,18%,13%)] ${selecionados.has(d.id) ? "bg-[hsl(165,40%,10%)]" : ""}`}>
+                        <td className="px-3 py-3">
+                          <Checkbox
+                            checked={selecionados.has(d.id)}
+                            onCheckedChange={() => toggleSelecionado(d.id)}
+                            aria-label="Selecionar despesa"
+                          />
+                        </td>
                         <td className="px-4 py-3 max-w-xs">
                           <Input
                             defaultValue={d.fornecedor ?? ""}
