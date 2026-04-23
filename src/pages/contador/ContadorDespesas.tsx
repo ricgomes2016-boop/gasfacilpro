@@ -15,6 +15,7 @@ import { BotaoExportar } from "@/components/contador/BotaoExportar";
 import { ImportacaoInteligente } from "@/components/contador/ImportacaoInteligente";
 import { fmt } from "@/services/contadorExportService";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface DespesaRow {
   id: string;
@@ -43,6 +44,7 @@ export default function ContadorDespesas() {
   const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
 
@@ -171,6 +173,33 @@ export default function ContadorDespesas() {
     return true;
   });
 
+  const todosSelecionadosVisiveis = filtered.length > 0 && filtered.every((d) => selecionados.has(d.id));
+  const algumSelecionado = selecionados.size > 0;
+  const linhasParaExportar = algumSelecionado
+    ? filtered.filter((d) => selecionados.has(d.id))
+    : filtered;
+
+  const toggleSelecionado = (id: string) => {
+    setSelecionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleTodos = () => {
+    setSelecionados((prev) => {
+      if (todosSelecionadosVisiveis) {
+        const next = new Set(prev);
+        filtered.forEach((d) => next.delete(d.id));
+        return next;
+      }
+      const next = new Set(prev);
+      filtered.forEach((d) => next.add(d.id));
+      return next;
+    });
+  };
+  const limparSelecao = () => setSelecionados(new Set());
+
   const statusColors: Record<string, string> = {
     pendente: "bg-amber-500/15 text-amber-400 border-amber-500/30",
     classificada: "bg-blue-500/15 text-blue-400 border-blue-500/30",
@@ -193,7 +222,7 @@ export default function ContadorDespesas() {
               onChange={(e) => handleUpload(e.target.files)} />
             <BotaoExportar
               relatorio="despesas"
-              titulo="Relatório de Despesas"
+              titulo={algumSelecionado ? `Despesas selecionadas (${selecionados.size})` : "Relatório de Despesas"}
               empresa={empresaAtiva?.empresa_nome ?? "—"}
               escopo={unidadeAtiva ? unidadeAtiva.nome : `Todas as lojas — ${unidades.length} unidades`}
               periodoLabel={range.label}
@@ -207,13 +236,13 @@ export default function ContadorDespesas() {
                 { header: "Status", key: "status" },
                 { header: "Loja", key: "_loja_nome" },
               ]}
-              linhas={filtered.map((d) => ({
+              linhas={linhasParaExportar.map((d) => ({
                 ...d,
                 _loja_nome: unidades.find((u) => u.id === d.unidade_id)?.nome ?? "—",
               }))}
               totais={[
-                { label: "Total despesas", value: fmt.brl(filtered.reduce((s, d) => s + Number(d.valor ?? 0), 0)) },
-                { label: "Quantidade", value: String(filtered.length) },
+                { label: algumSelecionado ? "Total selecionado" : "Total despesas", value: fmt.brl(linhasParaExportar.reduce((s, d) => s + Number(d.valor ?? 0), 0)) },
+                { label: "Quantidade", value: String(linhasParaExportar.length) },
               ]}
               groupByPDF={!unidadeAtiva ? "_loja_nome" : undefined}
             />
@@ -256,6 +285,19 @@ export default function ContadorDespesas() {
           </CardContent>
         </Card>
 
+        {algumSelecionado && (
+          <Card className="bg-[hsl(165,40%,12%)] border-[hsl(165,60%,30%)]">
+            <CardContent className="p-3 flex flex-wrap items-center justify-between gap-3">
+              <span className="text-sm text-[hsl(165,60%,80%)]">
+                {selecionados.size} despesa(s) selecionada(s) — total {fmt.brl(linhasParaExportar.reduce((s, d) => s + Number(d.valor ?? 0), 0))}
+              </span>
+              <Button variant="ghost" size="sm" onClick={limparSelecao} className="text-[hsl(165,60%,80%)] hover:bg-[hsl(165,40%,18%)]">
+                Limpar seleção
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="bg-[hsl(220,22%,11%)] border-[hsl(220,15%,20%)]">
           <CardContent className="p-0">
             {loading ? (
@@ -270,6 +312,13 @@ export default function ContadorDespesas() {
                 <table className="w-full text-sm">
                   <thead className="bg-[hsl(220,18%,13%)] text-[hsl(220,10%,60%)] text-xs uppercase">
                     <tr>
+                      <th className="px-3 py-3 w-10">
+                        <Checkbox
+                          checked={todosSelecionadosVisiveis}
+                          onCheckedChange={toggleTodos}
+                          aria-label="Selecionar todos"
+                        />
+                      </th>
                       <th className="px-4 py-3 text-left">Data</th>
                       <th className="px-4 py-3 text-left">Fornecedor</th>
                       <th className="px-4 py-3 text-left">Descrição</th>
@@ -281,7 +330,14 @@ export default function ContadorDespesas() {
                   </thead>
                   <tbody className="divide-y divide-[hsl(220,15%,18%)]">
                     {filtered.map((d) => (
-                      <tr key={d.id} className="hover:bg-[hsl(220,18%,13%)]">
+                      <tr key={d.id} className={`hover:bg-[hsl(220,18%,13%)] ${selecionados.has(d.id) ? "bg-[hsl(165,40%,10%)]" : ""}`}>
+                        <td className="px-3 py-3">
+                          <Checkbox
+                            checked={selecionados.has(d.id)}
+                            onCheckedChange={() => toggleSelecionado(d.id)}
+                            aria-label="Selecionar despesa"
+                          />
+                        </td>
                         <td className="px-4 py-3 text-[hsl(220,10%,75%)] whitespace-nowrap">{format(new Date(d.data_despesa), "dd/MM/yyyy")}</td>
                         <td className="px-4 py-3 max-w-xs">
                           <Input
