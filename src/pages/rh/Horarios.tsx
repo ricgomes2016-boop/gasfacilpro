@@ -38,10 +38,25 @@ interface Escala {
   data: string;
   turno_inicio: string;
   turno_fim: string;
+  almoco_inicio: string | null;
+  almoco_fim: string | null;
   status: string;
   observacoes: string | null;
   entregadores: { nome: string } | null;
   rotas_definidas: { nome: string } | null;
+}
+
+// Calcula horas líquidas (turno - almoço quando definido)
+function calcHoras(inicio: string, fim: string, almIni?: string | null, almFim?: string | null): number {
+  const toMin = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  };
+  let total = toMin(fim) - toMin(inicio);
+  if (almIni && almFim) {
+    total -= Math.max(0, toMin(almFim) - toMin(almIni));
+  }
+  return Math.max(0, total) / 60;
 }
 
 function EscalasTab() {
@@ -59,6 +74,8 @@ function EscalasTab() {
   const [data, setData] = useState("");
   const [turnoInicio, setTurnoInicio] = useState("08:00");
   const [turnoFim, setTurnoFim] = useState("18:00");
+  const [almocoInicio, setAlmocoInicio] = useState("");
+  const [almocoFim, setAlmocoFim] = useState("");
   const [observacoes, setObservacoes] = useState("");
 
   // Modal "Aplicar Escala da Semana"
@@ -67,6 +84,8 @@ function EscalasTab() {
   const [bulkRotaId, setBulkRotaId] = useState("");
   const [bulkInicio, setBulkInicio] = useState("08:00");
   const [bulkFim, setBulkFim] = useState("18:00");
+  const [bulkAlmocoInicio, setBulkAlmocoInicio] = useState("");
+  const [bulkAlmocoFim, setBulkAlmocoFim] = useState("");
   const [bulkDias, setBulkDias] = useState<boolean[]>([true, true, true, true, true, true, false]);
   const [bulkSaving, setBulkSaving] = useState(false);
 
@@ -85,7 +104,7 @@ function EscalasTab() {
         let q = supabase
           .from("escalas_entregador")
           .select(`
-            id, entregador_id, rota_definida_id, data, turno_inicio, turno_fim, status, observacoes,
+            id, entregador_id, rota_definida_id, data, turno_inicio, turno_fim, almoco_inicio, almoco_fim, status, observacoes,
             entregadores:entregador_id (nome),
             rotas_definidas:rota_definida_id (nome)
           `)
@@ -118,6 +137,8 @@ function EscalasTab() {
     setData(preData || format(new Date(), "yyyy-MM-dd"));
     setTurnoInicio("08:00");
     setTurnoFim("18:00");
+    setAlmocoInicio("");
+    setAlmocoFim("");
     setObservacoes("");
     setModalOpen(true);
   };
@@ -129,6 +150,8 @@ function EscalasTab() {
     setData(escala.data);
     setTurnoInicio(escala.turno_inicio.slice(0, 5));
     setTurnoFim(escala.turno_fim.slice(0, 5));
+    setAlmocoInicio(escala.almoco_inicio ? escala.almoco_inicio.slice(0, 5) : "");
+    setAlmocoFim(escala.almoco_fim ? escala.almoco_fim.slice(0, 5) : "");
     setObservacoes(escala.observacoes || "");
     setModalOpen(true);
   };
@@ -139,12 +162,23 @@ function EscalasTab() {
       return;
     }
 
+    if ((almocoInicio && !almocoFim) || (!almocoInicio && almocoFim)) {
+      toast({ title: "Preencha ambos os horários do almoço", variant: "destructive" });
+      return;
+    }
+    if (almocoInicio && almocoFim && (almocoInicio <= turnoInicio || almocoFim >= turnoFim)) {
+      toast({ title: "Almoço deve estar dentro do turno", variant: "destructive" });
+      return;
+    }
+
     const payload = {
       entregador_id: entregadorId,
       rota_definida_id: rotaId && rotaId !== "none" ? rotaId : null,
       data,
       turno_inicio: turnoInicio,
       turno_fim: turnoFim,
+      almoco_inicio: almocoInicio || null,
+      almoco_fim: almocoFim || null,
       observacoes: observacoes || null,
       unidade_id: unidadeAtual?.id || null,
     };
@@ -178,6 +212,8 @@ function EscalasTab() {
     setBulkRotaId("");
     setBulkInicio("08:00");
     setBulkFim("18:00");
+    setBulkAlmocoInicio("");
+    setBulkAlmocoFim("");
     setBulkDias([true, true, true, true, true, true, false]);
     setBulkOpen(true);
   };
@@ -185,6 +221,14 @@ function EscalasTab() {
   const handleBulkSave = async () => {
     if (!bulkEntregadorId) {
       toast({ title: "Selecione um entregador", variant: "destructive" });
+      return;
+    }
+    if ((bulkAlmocoInicio && !bulkAlmocoFim) || (!bulkAlmocoInicio && bulkAlmocoFim)) {
+      toast({ title: "Preencha ambos os horários do almoço", variant: "destructive" });
+      return;
+    }
+    if (bulkAlmocoInicio && bulkAlmocoFim && (bulkAlmocoInicio <= bulkInicio || bulkAlmocoFim >= bulkFim)) {
+      toast({ title: "Almoço deve estar dentro do turno", variant: "destructive" });
       return;
     }
     const diasSelecionados = bulkDias
@@ -209,6 +253,8 @@ function EscalasTab() {
         data: dia,
         turno_inicio: bulkInicio,
         turno_fim: bulkFim,
+        almoco_inicio: bulkAlmocoInicio || null,
+        almoco_fim: bulkAlmocoFim || null,
         unidade_id: unidadeAtual?.id || null,
       });
       if (error) {
@@ -245,10 +291,7 @@ function EscalasTab() {
   const totalEscalas = escalas.length;
   const entregadoresEscalados = new Set(escalas.map((e) => e.entregador_id)).size;
   const horasTotais = escalas.reduce((acc, e) => {
-    const [hi, mi] = e.turno_inicio.split(":").map(Number);
-    const [hf, mf] = e.turno_fim.split(":").map(Number);
-    const diff = (hf * 60 + mf - (hi * 60 + mi)) / 60;
-    return acc + Math.max(0, diff);
+    return acc + calcHoras(e.turno_inicio, e.turno_fim, e.almoco_inicio, e.almoco_fim);
   }, 0);
   const diasSemCobertura = diasDaSemana.filter(
     (d) => !escalas.some((e) => e.data === format(d, "yyyy-MM-dd"))
@@ -399,12 +442,24 @@ function EscalasTab() {
                               isHoje && "bg-primary/5"
                             )}
                             onClick={() => openEdit(escala)}
+                            title={
+                              folga
+                                ? "Folga"
+                                : escala.almoco_inicio && escala.almoco_fim
+                                  ? `Turno: ${escala.turno_inicio.slice(0,5)}–${escala.turno_fim.slice(0,5)} • Almoço: ${escala.almoco_inicio.slice(0,5)}–${escala.almoco_fim.slice(0,5)} • Líquido: ${calcHoras(escala.turno_inicio, escala.turno_fim, escala.almoco_inicio, escala.almoco_fim).toFixed(1)}h`
+                                  : `Turno: ${escala.turno_inicio.slice(0,5)}–${escala.turno_fim.slice(0,5)} • ${calcHoras(escala.turno_inicio, escala.turno_fim).toFixed(1)}h`
+                            }
                           >
                             <div className="flex flex-col gap-1 items-stretch">
                               {folga ? (
                                 <Badge className={cn("justify-center text-[10px]", statusBadgeClass.folga)}>
                                   Folga
                                 </Badge>
+                              ) : escala.almoco_inicio && escala.almoco_fim ? (
+                                <div className="text-[11px] font-semibold text-center leading-tight">
+                                  <div>{escala.turno_inicio.slice(0,5)}–{escala.almoco_inicio.slice(0,5)}</div>
+                                  <div>{escala.almoco_fim.slice(0,5)}–{escala.turno_fim.slice(0,5)}</div>
+                                </div>
                               ) : (
                                 <div className="text-xs font-semibold text-center">
                                   {escala.turno_inicio.slice(0, 5)}-{escala.turno_fim.slice(0, 5)}
@@ -472,6 +527,16 @@ function EscalasTab() {
               <div className="space-y-2"><Label>Início</Label><Input type="time" value={turnoInicio} onChange={(e) => setTurnoInicio(e.target.value)} /></div>
               <div className="space-y-2"><Label>Fim</Label><Input type="time" value={turnoFim} onChange={(e) => setTurnoFim(e.target.value)} /></div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Saída Almoço <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input type="time" value={almocoInicio} onChange={(e) => setAlmocoInicio(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Retorno Almoço <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input type="time" value={almocoFim} onChange={(e) => setAlmocoFim(e.target.value)} />
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>Rota</Label>
               <Select value={rotaId} onValueChange={setRotaId}>
@@ -523,6 +588,16 @@ function EscalasTab() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label>Início</Label><Input type="time" value={bulkInicio} onChange={(e) => setBulkInicio(e.target.value)} /></div>
               <div className="space-y-2"><Label>Fim</Label><Input type="time" value={bulkFim} onChange={(e) => setBulkFim(e.target.value)} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Saída Almoço <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input type="time" value={bulkAlmocoInicio} onChange={(e) => setBulkAlmocoInicio(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Retorno Almoço <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input type="time" value={bulkAlmocoFim} onChange={(e) => setBulkAlmocoFim(e.target.value)} />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Rota</Label>

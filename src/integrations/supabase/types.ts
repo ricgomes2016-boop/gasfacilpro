@@ -3596,6 +3596,8 @@ export type Database = {
       }
       escalas_entregador: {
         Row: {
+          almoco_fim: string | null
+          almoco_inicio: string | null
           created_at: string
           data: string
           entregador_id: string
@@ -3609,6 +3611,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          almoco_fim?: string | null
+          almoco_inicio?: string | null
           created_at?: string
           data?: string
           entregador_id: string
@@ -3622,6 +3626,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          almoco_fim?: string | null
+          almoco_inicio?: string | null
           created_at?: string
           data?: string
           entregador_id?: string
