@@ -1,13 +1,14 @@
-import { Bot, MessageCircle } from "lucide-react";
+import { Bot, MessageCircle, Calculator } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface MobileBottomBarProps {
   onOpenAi: () => void;
   onOpenChat: () => void;
+  onOpenCalc: () => void;
   chatUnread?: number;
 }
 
-export function MobileBottomBar({ onOpenAi, onOpenChat, chatUnread = 0 }: MobileBottomBarProps) {
+export function MobileBottomBar({ onOpenAi, onOpenChat, onOpenCalc, chatUnread = 0 }: MobileBottomBarProps) {
   return (
     <div className="fixed bottom-0 right-0 left-0 z-40 flex border-t border-border/50 bg-background/80 backdrop-blur-xl md:hidden">
       <motion.button
@@ -37,6 +38,15 @@ export function MobileBottomBar({ onOpenAi, onOpenChat, chatUnread = 0 }: Mobile
       >
         <Bot className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
         <span className="text-[10px] font-semibold tracking-wide">IA</span>
+      </motion.button>
+      <div className="w-px bg-border/50 my-2" />
+      <motion.button
+        whileTap={{ scale: 0.95 }}
+        onClick={onOpenCalc}
+        className="flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 text-muted-foreground hover:text-primary transition-colors group"
+      >
+        <Calculator className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+        <span className="text-[10px] font-semibold tracking-wide">Calc</span>
       </motion.button>
     </div>
   );
