@@ -139,9 +139,20 @@ export default function DashboardMarketing() {
                 <div className={`p-2.5 rounded-xl ${kpi.bg}`}>
                   <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="text-2xl font-bold">{kpi.value}</p>
                   <p className="text-xs text-muted-foreground">{kpi.label}</p>
+                  {(kpi as any).action && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-xs text-primary"
+                      onClick={(kpi as any).action.onClick}
+                    >
+                      <Link2 className="h-3 w-3 mr-1" />
+                      {(kpi as any).action.label}
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
