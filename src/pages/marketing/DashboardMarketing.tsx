@@ -112,6 +112,7 @@ export default function DashboardMarketing() {
   ];
 
   const quickActions = [
+    { label: "Conectar Rede", icon: Link2, color: "text-primary", onClick: () => setConectarOpen(true) },
     { label: "Criar Conteúdo IA", path: "/clientes/marketing", icon: Sparkles, color: "text-violet-500" },
     { label: "Agendar Post", path: "/marketing/agendamentos", icon: Calendar, color: "text-emerald-500" },
     { label: "Redes Sociais", path: "/marketing/redes-sociais", icon: Share2, color: "text-blue-500" },
