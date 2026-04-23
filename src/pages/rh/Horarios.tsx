@@ -104,7 +104,7 @@ function EscalasTab() {
         let q = supabase
           .from("escalas_entregador")
           .select(`
-            id, entregador_id, rota_definida_id, data, turno_inicio, turno_fim, status, observacoes,
+            id, entregador_id, rota_definida_id, data, turno_inicio, turno_fim, almoco_inicio, almoco_fim, status, observacoes,
             entregadores:entregador_id (nome),
             rotas_definidas:rota_definida_id (nome)
           `)
