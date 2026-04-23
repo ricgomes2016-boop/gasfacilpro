@@ -259,6 +259,13 @@ export default function DashboardMarketing() {
           </Card>
         </div>
       </div>
+
+      <ConectarRedesModal
+        open={conectarOpen}
+        onOpenChange={setConectarOpen}
+        unidadeId={unidadeAtual?.id}
+        contasConectadas={socialAccounts as any}
+      />
     </MainLayout>
   );
 }
