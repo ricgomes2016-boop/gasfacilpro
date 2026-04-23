@@ -100,6 +100,7 @@ export default function DashboardMarketing() {
       icon: Share2,
       color: "text-violet-500",
       bg: "bg-violet-500/10",
+      action: { label: "Conectar", onClick: () => setConectarOpen(true) },
     },
     {
       label: "Conversas Ativas",
