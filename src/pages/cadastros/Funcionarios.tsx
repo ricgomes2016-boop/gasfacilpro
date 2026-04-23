@@ -387,11 +387,13 @@ export default function Funcionarios() {
                   <Label>Data de Admissão</Label>
                   <Input value={form.data_admissao} onChange={e => setForm({...form, data_admissao: e.target.value})} type="date" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Salário</Label>
-                  <Input value={form.salario} onChange={e => setForm({...form, salario: e.target.value})} placeholder="2500.00" />
-                </div>
-                <div className="space-y-2 col-span-2">
+                {(form.regime_pagamento === "mensal" || form.regime_pagamento === "misto") && (
+                  <div className="space-y-2">
+                    <Label>Salário {form.regime_pagamento === "misto" ? "(parte fixa)" : ""}</Label>
+                    <Input value={form.salario} onChange={e => setForm({...form, salario: e.target.value})} placeholder="2500.00" />
+                  </div>
+                )}
+                <div className={`space-y-2 ${(form.regime_pagamento === "mensal" || form.regime_pagamento === "misto") ? "" : "col-span-2"}`}>
                   <Label>Endereço</Label>
                   <Input value={form.endereco} onChange={e => setForm({...form, endereco: e.target.value})} placeholder="Rua, número, bairro" />
                 </div>
