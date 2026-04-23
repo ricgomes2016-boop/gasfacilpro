@@ -375,25 +375,35 @@ export default function TranspCompras() {
               </DialogContent>
             </Dialog>
           </div>
+        </div>
 
-          {/* Painel Importação Outlook */}
-          <div className="w-full mt-2 p-3 rounded-lg border border-border/40 bg-muted/20">
-            <div className="flex items-center gap-2 mb-2">
-              <Download className="h-4 w-4 text-primary" />
-              <p className="text-sm font-semibold text-foreground">Importação automática de XML (NF-e) do Outlook</p>
+        {/* Card destacado: Importação automática de XML do Outlook */}
+        <Card id="painel-importar-xml" className="border-primary/30 bg-primary/5 w-full min-w-0">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2 min-w-0">
+                <Download className="h-5 w-5 text-primary flex-shrink-0" />
+                <CardTitle className="text-base sm:text-lg truncate">📧 Importar NF-e do Outlook</CardTitle>
+              </div>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-0.5 text-xs font-medium text-success">
+                <span className="h-1.5 w-1.5 rounded-full bg-success" />
+                Outlook conectado
+              </span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px_auto_auto] gap-2 items-end">
-              <div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3 w-full min-w-0">
+              <div className="min-w-0">
                 <Label className="text-xs">Filtrar remetente (opcional)</Label>
                 <Input
                   type="email"
                   placeholder="ex: nfe@fornecedor.com.br (vazio = todos)"
                   value={filtroRemetente}
                   onChange={(e) => setFiltroRemetente(e.target.value)}
-                  className="h-9"
+                  className="h-10 w-full min-w-0"
                 />
               </div>
-              <div>
+              <div className="min-w-0">
                 <Label className="text-xs">Últimos (dias)</Label>
                 <Input
                   type="number"
@@ -401,23 +411,33 @@ export default function TranspCompras() {
                   max={180}
                   value={diasBusca}
                   onChange={(e) => setDiasBusca(Math.min(180, Math.max(1, +e.target.value || 30)))}
-                  className="h-9"
+                  className="h-10 w-full min-w-0"
                 />
               </div>
-              <Button onClick={importarXmlOutlook} disabled={importing} className="gap-2 h-9">
-                <Download className="h-4 w-4" />Importar XML
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 w-full min-w-0">
+              <Button onClick={importarXmlOutlook} disabled={importing} className="gap-2 h-10 flex-1 sm:flex-none">
+                <Download className={`h-4 w-4 ${importing ? "animate-pulse" : ""}`} />
+                Buscar XMLs no Outlook
               </Button>
-              <Button onClick={importarXmlOutlook} disabled={importing} variant="outline" className="gap-2 h-9">
-                <RefreshCw className={`h-4 w-4 ${importing ? "animate-spin" : ""}`} />Buscar agora
-              </Button>
-              <Button onClick={reprocessarXmls} disabled={importing} variant="secondary" className="gap-2 h-9" title="Re-lê os XMLs do mês selecionado e atualiza filial, tipo, preço unitário, desconto e vencimento">
-                <RefreshCw className={`h-4 w-4 ${importing ? "animate-spin" : ""}`} />Reprocessar mês
+              <Button
+                onClick={reprocessarXmls}
+                disabled={importing}
+                variant="secondary"
+                className="gap-2 h-10 flex-1 sm:flex-none"
+                title="Re-lê os XMLs do mês selecionado e atualiza filial, tipo, preço unitário, desconto e vencimento"
+              >
+                <RefreshCw className={`h-4 w-4 ${importing ? "animate-spin" : ""}`} />
+                Reprocessar mês ({periodo})
               </Button>
             </div>
-            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
-              <span>📧 Outlook conectado</span>
-              <span>·</span>
-              <span>Última importação: {ultimaImportacao ? format(new Date(ultimaImportacao), "dd/MM/yyyy HH:mm") : "—"}</span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap pt-1 border-t border-border/40">
+              <span>
+                Última importação:{" "}
+                <strong className="text-foreground">
+                  {ultimaImportacao ? format(new Date(ultimaImportacao), "dd/MM/yyyy HH:mm") : "—"}
+                </strong>
+              </span>
               {ultimoResultado && (
                 <>
                   <span>·</span>
@@ -427,8 +447,8 @@ export default function TranspCompras() {
                 </>
               )}
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         <Tabs defaultValue="compras" className="w-full">
           <TabsList>
