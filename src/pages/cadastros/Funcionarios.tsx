@@ -496,6 +496,23 @@ export default function Funcionarios() {
                   </div>
                 </div>
 
+                {/* Setor Transporte toggle */}
+                <div className="col-span-2 border rounded-lg p-4 bg-muted/20 flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Truck className="h-4 w-4 text-primary" />
+                      <Label className="text-base font-medium">Trabalha no setor de transporte</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Marque se este funcionário atua no transporte (motorista, ajudante, conferente, etc.). Independente de ser entregador formal.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.is_transporte}
+                    onCheckedChange={(v) => setForm({ ...form, is_transporte: v })}
+                  />
+                </div>
+
                 {/* Entregador toggle */}
                 <div className="col-span-2 border rounded-lg p-4 space-y-4 bg-muted/30">
                   <div className="flex items-center justify-between">
