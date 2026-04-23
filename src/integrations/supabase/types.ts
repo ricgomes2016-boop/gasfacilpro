@@ -5397,6 +5397,54 @@ export type Database = {
           },
         ]
       }
+      marketing_templates: {
+        Row: {
+          categoria: string
+          created_at: string
+          created_by: string | null
+          dica: string | null
+          empresa_id: string | null
+          favorito: boolean
+          hashtags: string | null
+          id: string
+          is_padrao: boolean
+          legenda: string
+          nome: string
+          plataforma: string
+          updated_at: string
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          created_by?: string | null
+          dica?: string | null
+          empresa_id?: string | null
+          favorito?: boolean
+          hashtags?: string | null
+          id?: string
+          is_padrao?: boolean
+          legenda: string
+          nome: string
+          plataforma: string
+          updated_at?: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          created_by?: string | null
+          dica?: string | null
+          empresa_id?: string | null
+          favorito?: boolean
+          hashtags?: string | null
+          id?: string
+          is_padrao?: boolean
+          legenda?: string
+          nome?: string
+          plataforma?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mdfe_nfes_vinculadas: {
         Row: {
           chave_acesso: string
