@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
       .from("marketing_agendamentos")
       .select("*, social_accounts!inner(*)")
       .eq("status", "agendado")
-      .lte("data_agendada", now)
+      .lte("data_agendamento", now)
       .eq("social_accounts.conectado_via", "oauth")
       .limit(20);
 
@@ -39,8 +39,8 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             social_account_id: ag.social_account_id,
-            image_url: ag.imagem_url,
-            caption: `${ag.legenda ?? ""}\n\n${ag.hashtags ?? ""}`.trim(),
+            image_url: ag.midia_url,
+            caption: `${ag.texto ?? ""}\n\n${ag.hashtags ?? ""}`.trim(),
           }),
         });
         const data = await res.json();
@@ -50,8 +50,11 @@ Deno.serve(async (req) => {
           .from("marketing_agendamentos")
           .update({
             status: "publicado",
-            publicado_em: new Date().toISOString(),
-            external_post_id: data.external_id,
+            resultado_publicacao: {
+              publicado_em: new Date().toISOString(),
+              external_id: data.external_id ?? null,
+              raw: data,
+            },
           })
           .eq("id", ag.id);
 
@@ -60,8 +63,11 @@ Deno.serve(async (req) => {
         await supabase
           .from("marketing_agendamentos")
           .update({
-            status: "erro",
-            erro_mensagem: String((e as Error).message ?? e).slice(0, 500),
+            status: "falhou",
+            resultado_publicacao: {
+              erro: String((e as Error).message ?? e).slice(0, 500),
+              falhou_em: new Date().toISOString(),
+            },
           })
           .eq("id", ag.id);
         results.push({ id: ag.id, ok: false, msg: String(e) });
