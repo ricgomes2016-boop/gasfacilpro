@@ -67,6 +67,11 @@ const emptyForm = {
   login_password: "",
   terminal_id: "",
   unidade_id: "",
+  // Vínculo e regime
+  tipo_vinculo: "clt",
+  regime_pagamento: "mensal",
+  valor_diaria: "",
+  entra_na_escala: false,
 };
 
 export default function Funcionarios() {
@@ -149,6 +154,9 @@ export default function Funcionarios() {
     setSaving(true);
 
     try {
+      const regimeUsaSalario = form.regime_pagamento === "mensal" || form.regime_pagamento === "misto";
+      const regimeUsaDiaria = form.regime_pagamento === "diaria" || form.regime_pagamento === "misto";
+
       const payload: any = {
         nome: form.nome,
         cpf: form.cpf || null,
@@ -157,8 +165,12 @@ export default function Funcionarios() {
         cargo: form.is_entregador ? "Entregador" : (form.cargo || null),
         setor: form.setor || null,
         data_admissao: form.data_admissao || null,
-        salario: form.salario ? parseFloat(form.salario) : 0,
+        salario: regimeUsaSalario && form.salario ? parseFloat(form.salario) : 0,
         endereco: form.endereco || null,
+        tipo_vinculo: form.tipo_vinculo || "clt",
+        regime_pagamento: form.regime_pagamento || "mensal",
+        valor_diaria: regimeUsaDiaria && form.valor_diaria ? parseFloat(form.valor_diaria) : 0,
+        entra_na_escala: !!form.entra_na_escala,
       };
       // unidade_id: usa o selecionado no form, ou o atual da empresa, ou null
       if (form.unidade_id) {
@@ -256,6 +268,7 @@ export default function Funcionarios() {
 
   const handleEdit = (f: Funcionario) => {
     const entregador = getEntregadorForFuncionario(f.id);
+    const fAny = f as any;
     setForm({
       nome: f.nome,
       cpf: f.cpf || "",
@@ -272,6 +285,10 @@ export default function Funcionarios() {
       login_password: "",
       terminal_id: entregador?.terminal_id || "",
       unidade_id: f.unidade_id || "",
+      tipo_vinculo: fAny.tipo_vinculo || "clt",
+      regime_pagamento: fAny.regime_pagamento || "mensal",
+      valor_diaria: fAny.valor_diaria?.toString() || "",
+      entra_na_escala: !!fAny.entra_na_escala,
     });
     setEditId(f.id);
     setOpen(true);
