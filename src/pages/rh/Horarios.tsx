@@ -18,8 +18,10 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  Clock, Users, Edit, Calendar, Sun, Moon, Truck, Plus, Pencil, Trash2, Loader2, MapPin, X, CalendarDays, CalendarCheck, Sparkles, Info, UserPlus,
+  Clock, Users, Edit, Calendar, Sun, Moon, Truck, Plus, Pencil, Trash2, Loader2, MapPin, X, CalendarDays, CalendarCheck, Sparkles, Info, UserPlus, Activity, Flame, AlertTriangle, LayoutGrid, List, Star,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -895,6 +897,477 @@ function EscalasTab() {
   );
 }
 
+// ─── Cobertura Horária Tab ─────────────────────────────────────────────────
+
+interface EscalaCob {
+  id: string;
+  entregador_id: string;
+  data: string;
+  turno_inicio: string;
+  turno_fim: string;
+  almoco_inicio: string | null;
+  almoco_fim: string | null;
+  unidade_id: string | null;
+  entregadores: { nome: string } | null;
+  unidades: { nome: string; cidade: string | null } | null;
+}
+
+const DIAS_LABEL = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+const HORA_INICIO = 6;
+const HORA_FIM = 23;
+
+const toMinCob = (t: string) => {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + (m || 0);
+};
+
+function fmtHora(min: number) {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function getBlocosTrabalho(esc: EscalaCob): Array<[number, number]> {
+  const ini = toMinCob(esc.turno_inicio);
+  const fim = toMinCob(esc.turno_fim);
+  if (esc.almoco_inicio && esc.almoco_fim) {
+    const aIni = toMinCob(esc.almoco_inicio);
+    const aFim = toMinCob(esc.almoco_fim);
+    return [[ini, aIni], [aFim, fim]];
+  }
+  return [[ini, fim]];
+}
+
+function CoberturaTab() {
+  const { unidadeAtual } = useUnidade();
+  const [filtroSemana, setFiltroSemana] = useState(() => {
+    const hoje = getBrasiliaDate();
+    return format(startOfWeek(hoje, { weekStartsOn: 1 }), "yyyy-MM-dd");
+  });
+  const [incluirCidade, setIncluirCidade] = useState(false);
+  const [modo, setModo] = useState<"heatmap" | "lista">("heatmap");
+
+  const inicioSemana = parseISO(filtroSemana);
+  const fimSemana = addDays(inicioSemana, 6);
+  const diasDaSemana = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(inicioSemana, i)),
+    [filtroSemana]
+  );
+
+  // Cidade da unidade atual
+  const { data: unidadeInfo } = useQuery({
+    queryKey: ["cob-unidade-info", unidadeAtual?.id],
+    queryFn: async () => {
+      if (!unidadeAtual?.id) return null;
+      const { data } = await supabase.from("unidades").select("id, cidade, empresa_id").eq("id", unidadeAtual.id).maybeSingle();
+      return data;
+    },
+    enabled: !!unidadeAtual?.id,
+  });
+
+  // Unidades da mesma cidade (incluindo a atual)
+  const { data: unidadesCidade = [] } = useQuery({
+    queryKey: ["cob-unidades-cidade", unidadeInfo?.empresa_id, unidadeInfo?.cidade],
+    queryFn: async () => {
+      if (!unidadeInfo?.empresa_id || !unidadeInfo?.cidade) return [];
+      const { data } = await supabase
+        .from("unidades")
+        .select("id, nome, cidade")
+        .eq("empresa_id", unidadeInfo.empresa_id)
+        .eq("cidade", unidadeInfo.cidade);
+      return data || [];
+    },
+    enabled: !!unidadeInfo?.empresa_id && !!unidadeInfo?.cidade,
+  });
+
+  const unidadeIds = useMemo(() => {
+    if (incluirCidade && unidadesCidade.length > 0) return unidadesCidade.map((u) => u.id);
+    return unidadeAtual?.id ? [unidadeAtual.id] : [];
+  }, [incluirCidade, unidadesCidade, unidadeAtual?.id]);
+
+  // Escalas da semana
+  const { data: escalas = [], isLoading } = useQuery<EscalaCob[]>({
+    queryKey: ["cob-escalas", filtroSemana, unidadeIds.join(",")],
+    queryFn: async () => {
+      if (unidadeIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("escalas_entregador")
+        .select(`
+          id, entregador_id, data, turno_inicio, turno_fim, almoco_inicio, almoco_fim, unidade_id,
+          entregadores:entregador_id (nome),
+          unidades:unidade_id (nome, cidade)
+        `)
+        .gte("data", format(inicioSemana, "yyyy-MM-dd"))
+        .lte("data", format(fimSemana, "yyyy-MM-dd"))
+        .in("unidade_id", unidadeIds);
+      if (error) throw error;
+      return (data || []) as unknown as EscalaCob[];
+    },
+    enabled: unidadeIds.length > 0,
+  });
+
+  // Pico de pedidos por hora (últimas 4 semanas)
+  const { data: picosHora = [] } = useQuery({
+    queryKey: ["cob-picos-pedidos", unidadeIds.join(",")],
+    queryFn: async () => {
+      if (unidadeIds.length === 0) return [];
+      const dataInicio = format(addDays(getBrasiliaDate(), -28), "yyyy-MM-dd");
+      const { data } = await supabase
+        .from("pedidos")
+        .select("created_at")
+        .in("unidade_id", unidadeIds)
+        .gte("created_at", dataInicio)
+        .limit(5000);
+      const contagem = new Map<number, number>();
+      (data || []).forEach((p: any) => {
+        const h = new Date(p.created_at).getHours();
+        contagem.set(h, (contagem.get(h) || 0) + 1);
+      });
+      const arr = Array.from(contagem.entries()).map(([h, c]) => ({ hora: h, count: c }));
+      const max = Math.max(1, ...arr.map((a) => a.count));
+      // Considera "pico" horas com >= 70% do máximo
+      return arr.filter((a) => a.count >= max * 0.7).map((a) => a.hora);
+    },
+    enabled: unidadeIds.length > 0,
+  });
+
+  // Mapa: dia da semana (0=seg .. 6=dom) -> hora -> entregadores
+  const cobertura = useMemo(() => {
+    const map: Record<number, Record<number, Array<{ id: string; nome: string; unidade: string | null; outraUnidade: boolean }>>> = {};
+    for (let d = 0; d < 7; d++) {
+      map[d] = {};
+      for (let h = HORA_INICIO; h <= HORA_FIM; h++) map[d][h] = [];
+    }
+    for (const esc of escalas) {
+      const dataEsc = parseISO(esc.data);
+      // dia da semana 1=seg .. 0=dom -> normalizar p/ 0=seg..6=dom
+      const dow = (dataEsc.getDay() + 6) % 7;
+      const blocos = getBlocosTrabalho(esc);
+      const outraUnidade = !!unidadeAtual?.id && esc.unidade_id !== unidadeAtual.id;
+      for (let h = HORA_INICIO; h <= HORA_FIM; h++) {
+        const horaMin = h * 60;
+        const ativo = blocos.some(([ini, fim]) => horaMin >= ini && horaMin < fim);
+        if (ativo) {
+          map[dow][h].push({
+            id: esc.entregador_id,
+            nome: esc.entregadores?.nome || "—",
+            unidade: esc.unidades?.nome || null,
+            outraUnidade,
+          });
+        }
+      }
+    }
+    return map;
+  }, [escalas, unidadeAtual?.id]);
+
+  // Estatísticas
+  const totalEntregadores = useMemo(() => new Set(escalas.map((e) => e.entregador_id)).size, [escalas]);
+  const horasHomem = useMemo(() => {
+    let total = 0;
+    for (const esc of escalas) {
+      for (const [ini, fim] of getBlocosTrabalho(esc)) total += Math.max(0, fim - ini);
+    }
+    return total / 60;
+  }, [escalas]);
+
+  // Pico médio (para 🔥)
+  const picoMedio = useMemo(() => {
+    const counts: number[] = [];
+    for (let d = 0; d < 7; d++) {
+      for (let h = HORA_INICIO; h <= HORA_FIM; h++) {
+        const c = cobertura[d][h].length;
+        if (c > 0) counts.push(c);
+      }
+    }
+    if (counts.length === 0) return 0;
+    const avg = counts.reduce((a, b) => a + b, 0) / counts.length;
+    return Math.ceil(avg);
+  }, [cobertura]);
+
+  // Buracos de cobertura em horários de pico
+  const buracos = useMemo(() => {
+    const out: Array<{ dia: number; hora: number }> = [];
+    for (const h of picosHora) {
+      if (h < HORA_INICIO || h > HORA_FIM) continue;
+      for (let d = 0; d < 7; d++) {
+        if (cobertura[d][h].length === 0) out.push({ dia: d, hora: h });
+      }
+    }
+    return out.slice(0, 10);
+  }, [cobertura, picosHora]);
+
+  function celulaClasse(count: number) {
+    if (count === 0) return "bg-muted/40 text-muted-foreground";
+    if (count === 1) return "bg-primary/10 text-foreground";
+    if (count <= 3) return "bg-primary/25 text-foreground font-medium";
+    return "bg-success/30 text-foreground font-semibold";
+  }
+
+  // Lista por dia
+  const escalasPorDia = useMemo(() => {
+    const out: Record<number, EscalaCob[]> = {};
+    for (let d = 0; d < 7; d++) out[d] = [];
+    for (const esc of escalas) {
+      const dow = (parseISO(esc.data).getDay() + 6) % 7;
+      out[dow].push(esc);
+    }
+    for (let d = 0; d < 7; d++) {
+      out[d].sort((a, b) => (a.entregadores?.nome || "").localeCompare(b.entregadores?.nome || "", "pt-BR"));
+    }
+    return out;
+  }, [escalas]);
+
+  const goHoje = () => {
+    const hoje = getBrasiliaDate();
+    setFiltroSemana(format(startOfWeek(hoje, { weekStartsOn: 1 }), "yyyy-MM-dd"));
+  };
+
+  return (
+    <div className="space-y-4 w-full min-w-0">
+      {/* Filtros e navegação */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex rounded-md border bg-muted/30 p-0.5">
+            <button
+              onClick={() => setModo("heatmap")}
+              className={cn(
+                "px-3 py-1.5 text-xs rounded flex items-center gap-1 transition-colors",
+                modo === "heatmap" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" /> Heatmap
+            </button>
+            <button
+              onClick={() => setModo("lista")}
+              className={cn(
+                "px-3 py-1.5 text-xs rounded flex items-center gap-1 transition-colors",
+                modo === "lista" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <List className="h-3.5 w-3.5" /> Lista por dia
+            </button>
+          </div>
+          {unidadesCidade.length > 1 && (
+            <label className="flex items-center gap-2 text-xs px-2 py-1.5 rounded-md border cursor-pointer hover:bg-muted/40">
+              <Switch checked={incluirCidade} onCheckedChange={setIncluirCidade} />
+              <span>Incluir unidades da mesma cidade ({unidadeInfo?.cidade})</span>
+            </label>
+          )}
+        </div>
+      </div>
+
+      <div className="flex items-center justify-center gap-2 flex-wrap">
+        <Button variant="outline" size="sm" onClick={() => setFiltroSemana(format(addDays(parseISO(filtroSemana), -7), "yyyy-MM-dd"))}>← Anterior</Button>
+        <Button variant="ghost" size="sm" onClick={goHoje}>Hoje</Button>
+        <span className="font-medium text-sm min-w-[160px] text-center">
+          {format(inicioSemana, "dd/MM", { locale: ptBR })} - {format(fimSemana, "dd/MM/yyyy", { locale: ptBR })}
+        </span>
+        <Button variant="outline" size="sm" onClick={() => setFiltroSemana(format(addDays(parseISO(filtroSemana), 7), "yyyy-MM-dd"))}>Próxima →</Button>
+      </div>
+
+      {/* Cards resumo */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-medium">Entregadores</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent><div className="text-2xl font-bold">{totalEntregadores}</div></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-medium">Horas-homem</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent><div className="text-2xl font-bold">{horasHomem.toFixed(0)}h</div></CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-medium">Pico médio</CardTitle>
+            <Flame className="h-4 w-4 text-warning" />
+          </CardHeader>
+          <CardContent><div className="text-2xl font-bold">{picoMedio}</div></CardContent>
+        </Card>
+        <Card className={buracos.length > 0 ? "border-destructive/40" : ""}>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-medium">Buracos no pico</CardTitle>
+            <AlertTriangle className={cn("h-4 w-4", buracos.length > 0 ? "text-destructive" : "text-muted-foreground")} />
+          </CardHeader>
+          <CardContent>
+            <div className={cn("text-2xl font-bold", buracos.length > 0 ? "text-destructive" : "")}>{buracos.length}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Buracos no pico */}
+      {buracos.length > 0 && (
+        <Card className="border-destructive/30 bg-destructive/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              Horários sem cobertura (pico de pedidos)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-1.5">
+              {buracos.map((b, i) => (
+                <Badge key={i} variant="outline" className="border-destructive/40 text-destructive text-xs">
+                  {DIAS_LABEL[b.dia]} · {String(b.hora).padStart(2, "0")}:00
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {isLoading ? (
+        <div className="space-y-2">{[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+      ) : modo === "heatmap" ? (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center justify-between flex-wrap gap-2">
+              <span className="flex items-center gap-2"><Activity className="h-4 w-4 text-primary" />Cobertura por hora × dia</span>
+              <span className="text-xs font-normal text-muted-foreground flex items-center gap-3 flex-wrap">
+                <span className="flex items-center gap-1"><Star className="h-3 w-3 text-warning fill-warning" /> hora de pico</span>
+                <span className="flex items-center gap-1"><Flame className="h-3 w-3 text-destructive" /> acima da média</span>
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <TooltipProvider delayDuration={150}>
+              <table className="w-full border-collapse text-xs min-w-[600px]">
+                <thead>
+                  <tr>
+                    <th className="text-left p-1.5 font-medium text-muted-foreground sticky left-0 bg-background w-16">Hora</th>
+                    {diasDaSemana.map((d, i) => (
+                      <th key={i} className="p-1.5 font-medium text-center">
+                        <div>{DIAS_LABEL[i]}</div>
+                        <div className="text-[10px] text-muted-foreground">{format(d, "dd/MM")}</div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({ length: HORA_FIM - HORA_INICIO + 1 }, (_, i) => HORA_INICIO + i).map((h) => {
+                    const isPico = picosHora.includes(h);
+                    return (
+                      <tr key={h}>
+                        <td className="p-1.5 sticky left-0 bg-background font-mono text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            {isPico && <Star className="h-3 w-3 text-warning fill-warning" />}
+                            {String(h).padStart(2, "0")}:00
+                          </div>
+                        </td>
+                        {Array.from({ length: 7 }, (_, d) => {
+                          const lista = cobertura[d][h];
+                          const count = lista.length;
+                          const acima = picoMedio > 0 && count > picoMedio;
+                          return (
+                            <td key={d} className="p-0.5">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div
+                                    className={cn(
+                                      "h-9 rounded flex items-center justify-center gap-1 cursor-default transition-all hover:ring-2 hover:ring-primary/40",
+                                      celulaClasse(count),
+                                      isPico && count === 0 && "ring-1 ring-destructive/40"
+                                    )}
+                                  >
+                                    <span>{count}</span>
+                                    {acima && <Flame className="h-3 w-3 text-destructive" />}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs">
+                                  <div className="text-xs font-semibold mb-1">
+                                    {DIAS_LABEL[d]} · {String(h).padStart(2, "0")}:00
+                                  </div>
+                                  {count === 0 ? (
+                                    <div className="text-xs text-muted-foreground">Sem cobertura</div>
+                                  ) : (
+                                    <ul className="text-xs space-y-0.5">
+                                      {lista.map((p, idx) => (
+                                        <li key={idx}>
+                                          • {p.nome}
+                                          {p.outraUnidade && p.unidade && (
+                                            <span className="text-muted-foreground"> ({p.unidade})</span>
+                                          )}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </TooltipContent>
+                              </Tooltip>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </TooltipProvider>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {diasDaSemana.map((d, idx) => {
+            const lista = escalasPorDia[idx];
+            const totalDia = new Set(lista.map((e) => e.entregador_id)).size;
+            return (
+              <Card key={idx}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center justify-between">
+                    <span className="uppercase tracking-wide">
+                      {DIAS_LABEL[idx]} · {format(d, "dd/MM", { locale: ptBR })}
+                    </span>
+                    <Badge variant="outline">{totalDia} entregador{totalDia !== 1 ? "es" : ""}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {lista.length === 0 ? (
+                    <p className="text-xs text-muted-foreground py-2">Sem escalas neste dia</p>
+                  ) : (
+                    <ul className="divide-y">
+                      {lista.map((esc) => {
+                        const blocos = getBlocosTrabalho(esc);
+                        const totalMin = blocos.reduce((acc, [a, b]) => acc + (b - a), 0);
+                        const outra = !!unidadeAtual?.id && esc.unidade_id !== unidadeAtual.id;
+                        return (
+                          <li key={esc.id} className="py-2 flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-medium truncate">{esc.entregadores?.nome || "—"}</span>
+                              {outra && esc.unidades?.nome && (
+                                <Badge variant="outline" className="text-[10px] h-5 gap-1">
+                                  <MapPin className="h-3 w-3" />{esc.unidades.nome}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="font-mono text-muted-foreground">
+                                {blocos.map(([a, b], i) => (
+                                  <span key={i}>
+                                    {i > 0 && <span className="mx-1">·</span>}
+                                    {fmtHora(a)}–{fmtHora(b)}
+                                  </span>
+                                ))}
+                              </span>
+                              <Badge variant="secondary" className="text-[10px] h-5">{(totalMin / 60).toFixed(1)}h</Badge>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
 export default function Horarios() {
@@ -1007,104 +1480,14 @@ export default function Horarios() {
     <MainLayout>
       <Header title="Horários e Escalas" subtitle="Gestão de jornadas, turnos e escalas de entregadores" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        <Tabs defaultValue="jornadas">
+        <Tabs defaultValue="cobertura">
           <TabsList>
-            <TabsTrigger value="jornadas" className="gap-1"><Clock className="h-4 w-4" />Jornadas</TabsTrigger>
+            <TabsTrigger value="cobertura" className="gap-1"><Activity className="h-4 w-4" />Cobertura Horária</TabsTrigger>
             <TabsTrigger value="escalas" className="gap-1"><Calendar className="h-4 w-4" />Escalas Semanais</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="jornadas" className="space-y-4 mt-4">
-            <div className="flex items-center justify-between">
-              <Button className="gap-2" onClick={openNew}>
-                <Calendar className="h-4 w-4" />Novo Horário
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Com Horário</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{horarios.length}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Turno Manhã</CardTitle>
-                  <Sun className="h-4 w-4 text-warning" />
-                </CardHeader>
-                <CardContent><div className="text-2xl font-bold text-warning">{turnoManha}</div></CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Turno Tarde</CardTitle>
-                  <Moon className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent><div className="text-2xl font-bold text-primary">{turnoTarde}</div></CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Comercial</CardTitle>
-                  <Clock className="h-4 w-4 text-success" />
-                </CardHeader>
-                <CardContent><div className="text-2xl font-bold text-success">{horarios.length - turnoManha - turnoTarde}</div></CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader><CardTitle>Quadro de Horários</CardTitle></CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
-                ) : horarios.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Nenhum horário cadastrado</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Funcionário</TableHead>
-                        <TableHead>Cargo</TableHead>
-                        <TableHead>Turno</TableHead>
-                        <TableHead>Entrada</TableHead>
-                        <TableHead>Saída</TableHead>
-                        <TableHead>Intervalo</TableHead>
-                        <TableHead>Dias</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {horarios.map((h: any) => {
-                        const turnoLabel: Record<string, string> = { manha: "Manhã", tarde: "Tarde", comercial: "Comercial", noturno: "Noturno" };
-                        return (
-                          <TableRow key={h.id}>
-                            <TableCell className="font-medium">{h.funcionarios?.nome || h.entregadores?.nome || "N/A"}</TableCell>
-                            <TableCell>
-                              {h.entregador_id ? (
-                                <Badge variant="outline" className="gap-1"><Truck className="h-3 w-3" />Entregador</Badge>
-                              ) : h.funcionarios?.cargo || "-"}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={h.turno === "manha" ? "default" : h.turno === "tarde" ? "secondary" : "outline"}>
-                                {turnoLabel[h.turno] || h.turno}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{h.entrada}</TableCell>
-                            <TableCell>{h.saida}</TableCell>
-                            <TableCell>{h.intervalo}</TableCell>
-                            <TableCell>{h.dias_semana}</TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" onClick={() => openEdit(h)}><Edit className="h-4 w-4" /></Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
+          <TabsContent value="cobertura" className="mt-4">
+            <CoberturaTab />
           </TabsContent>
 
           <TabsContent value="escalas" className="mt-4">
