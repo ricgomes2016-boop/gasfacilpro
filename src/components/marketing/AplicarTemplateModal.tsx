@@ -121,17 +121,48 @@ export function AplicarTemplateModal({ open, onOpenChange, template }: Props) {
             <div className="space-y-3">
               {placeholders.length > 0 && (
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Variáveis</Label>
-                  {placeholders.map((key) => (
-                    <div key={key}>
-                      <Label className="text-xs text-muted-foreground">{labelFor(key)}</Label>
-                      <Input
-                        value={values[key] || ""}
-                        onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
-                        placeholder={`Ex: ${labelFor(key)}`}
-                      />
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Variáveis detectadas</Label>
+                    <div className="flex gap-1">
+                      <Badge variant="outline" className="text-[10px] gap-1">
+                        <CheckCircle2 className="h-3 w-3 text-green-600" />
+                        {preenchidas.length}/{placeholders.length}
+                      </Badge>
+                      {pendentes.length > 0 && (
+                        <Badge variant="outline" className="text-[10px] gap-1 border-amber-500/40 text-amber-600">
+                          <AlertTriangle className="h-3 w-3" />
+                          {pendentes.length} pendente(s)
+                        </Badge>
+                      )}
                     </div>
-                  ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Revise e confirme os valores que serão substituídos no post antes de agendar.
+                  </p>
+                  {placeholders.map((key) => {
+                    const filled = !!values[key]?.trim();
+                    return (
+                      <div key={key}>
+                        <Label className="text-xs flex items-center gap-1.5">
+                          {filled ? (
+                            <CheckCircle2 className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <AlertTriangle className="h-3 w-3 text-amber-500" />
+                          )}
+                          <span className={filled ? "text-foreground" : "text-amber-600"}>
+                            {labelFor(key)}
+                          </span>
+                          <code className="text-[10px] text-muted-foreground">{`{{${key}}}`}</code>
+                        </Label>
+                        <Input
+                          value={values[key] || ""}
+                          onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
+                          placeholder={`Ex: ${labelFor(key)}`}
+                          className={!filled ? "border-amber-500/40" : ""}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
