@@ -137,6 +137,8 @@ function EscalasTab() {
     setData(preData || format(new Date(), "yyyy-MM-dd"));
     setTurnoInicio("08:00");
     setTurnoFim("18:00");
+    setAlmocoInicio("");
+    setAlmocoFim("");
     setObservacoes("");
     setModalOpen(true);
   };
@@ -148,6 +150,8 @@ function EscalasTab() {
     setData(escala.data);
     setTurnoInicio(escala.turno_inicio.slice(0, 5));
     setTurnoFim(escala.turno_fim.slice(0, 5));
+    setAlmocoInicio(escala.almoco_inicio ? escala.almoco_inicio.slice(0, 5) : "");
+    setAlmocoFim(escala.almoco_fim ? escala.almoco_fim.slice(0, 5) : "");
     setObservacoes(escala.observacoes || "");
     setModalOpen(true);
   };
