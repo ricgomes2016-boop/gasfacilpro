@@ -7485,14 +7485,21 @@ export type Database = {
       }
       social_accounts: {
         Row: {
+          access_token: string | null
           ativo: boolean
           avatar_url: string | null
+          conectado_via: string
           created_at: string
           empresa_id: string
+          external_id: string | null
           id: string
+          ig_business_id: string | null
           nome_conta: string
+          page_id: string | null
           plataforma: string
+          profile_picture_url: string | null
           refresh_token: string | null
+          scopes: string[] | null
           token: string | null
           token_expires_at: string | null
           unidade_id: string | null
@@ -7500,14 +7507,21 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          access_token?: string | null
           ativo?: boolean
           avatar_url?: string | null
+          conectado_via?: string
           created_at?: string
           empresa_id: string
+          external_id?: string | null
           id?: string
+          ig_business_id?: string | null
           nome_conta: string
+          page_id?: string | null
           plataforma: string
+          profile_picture_url?: string | null
           refresh_token?: string | null
+          scopes?: string[] | null
           token?: string | null
           token_expires_at?: string | null
           unidade_id?: string | null
@@ -7515,14 +7529,21 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          access_token?: string | null
           ativo?: boolean
           avatar_url?: string | null
+          conectado_via?: string
           created_at?: string
           empresa_id?: string
+          external_id?: string | null
           id?: string
+          ig_business_id?: string | null
           nome_conta?: string
+          page_id?: string | null
           plataforma?: string
+          profile_picture_url?: string | null
           refresh_token?: string | null
+          scopes?: string[] | null
           token?: string | null
           token_expires_at?: string | null
           unidade_id?: string | null
