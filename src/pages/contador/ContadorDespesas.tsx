@@ -14,6 +14,7 @@ import { usePeriodo } from "@/contexts/PeriodoContext";
 import { BotaoExportar } from "@/components/contador/BotaoExportar";
 import { ImportacaoInteligente } from "@/components/contador/ImportacaoInteligente";
 import { fmt } from "@/services/contadorExportService";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface DespesaRow {
   id: string;
@@ -127,6 +128,21 @@ export default function ContadorDespesas() {
     fetchDespesas();
     if (fileRef.current) fileRef.current.value = "";
     if (cameraRef.current) cameraRef.current.value = "";
+  };
+
+  const updateDespesa = async (id: string, patch: Partial<DespesaRow>) => {
+    const prev = despesas.find((x) => x.id === id);
+    if (!prev) return;
+    setDespesas((arr) => arr.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+    const { error } = await (supabase.from("despesas_contabeis" as any) as any)
+      .update(patch)
+      .eq("id", id);
+    if (error) {
+      setDespesas((arr) => arr.map((x) => (x.id === id ? prev : x)));
+      toast.error("Erro ao salvar: " + error.message);
+    } else {
+      toast.success("Despesa atualizada");
+    }
   };
 
   const marcarBaixada = async (id: string) => {
@@ -257,6 +273,7 @@ export default function ContadorDespesas() {
                       <th className="px-4 py-3 text-left">Data</th>
                       <th className="px-4 py-3 text-left">Fornecedor</th>
                       <th className="px-4 py-3 text-left">Descrição</th>
+                      <th className="px-4 py-3 text-left">Filial</th>
                       <th className="px-4 py-3 text-right">Valor</th>
                       <th className="px-4 py-3 text-left">Status</th>
                       <th className="px-4 py-3 text-right">Ações</th>
@@ -265,12 +282,58 @@ export default function ContadorDespesas() {
                   <tbody className="divide-y divide-[hsl(220,15%,18%)]">
                     {filtered.map((d) => (
                       <tr key={d.id} className="hover:bg-[hsl(220,18%,13%)]">
-                        <td className="px-4 py-3 text-[hsl(220,10%,75%)]">{format(new Date(d.data_despesa), "dd/MM/yyyy")}</td>
-                        <td className="px-4 py-3 text-[hsl(0,0%,90%)] max-w-xs truncate">{d.fornecedor ?? "—"}</td>
+                        <td className="px-4 py-3 text-[hsl(220,10%,75%)] whitespace-nowrap">{format(new Date(d.data_despesa), "dd/MM/yyyy")}</td>
+                        <td className="px-4 py-3 max-w-xs">
+                          <Input
+                            defaultValue={d.fornecedor ?? ""}
+                            onBlur={(e) => {
+                              const v = e.target.value.trim() || null;
+                              if (v !== (d.fornecedor ?? null)) updateDespesa(d.id, { fornecedor: v });
+                            }}
+                            className="h-8 bg-transparent border-transparent hover:border-[hsl(220,15%,22%)] focus:border-[hsl(165,60%,40%)] text-[hsl(0,0%,90%)] px-2"
+                            placeholder="—"
+                          />
+                        </td>
                         <td className="px-4 py-3 text-[hsl(220,10%,75%)] max-w-xs truncate">{d.descricao}</td>
-                        <td className="px-4 py-3 text-right text-[hsl(0,0%,93%)] font-medium">R$ {Number(d.valor).toFixed(2)}</td>
+                        <td className="px-4 py-3">
+                          <Select
+                            value={d.unidade_id ?? "nenhum"}
+                            onValueChange={(v) => updateDespesa(d.id, { unidade_id: v === "nenhum" ? null : v })}
+                          >
+                            <SelectTrigger className="h-8 bg-transparent border-transparent hover:border-[hsl(220,15%,22%)] text-[hsl(0,0%,90%)] min-w-[140px]">
+                              <SelectValue placeholder="Sem filial" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[hsl(220,22%,11%)] border-[hsl(220,15%,20%)] text-[hsl(0,0%,90%)]">
+                              <SelectItem value="nenhum">Sem filial</SelectItem>
+                              {unidades.map((u) => (
+                                <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-4 py-3 text-right font-medium">
+                          <div className="flex items-center justify-end gap-1">
+                            <span className="text-[hsl(220,10%,55%)] text-xs">R$</span>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              defaultValue={Number(d.valor).toFixed(2)}
+                              onBlur={(e) => {
+                                const n = Number(e.target.value);
+                                if (!isFinite(n) || n < 0) {
+                                  toast.error("Valor inválido");
+                                  e.target.value = Number(d.valor).toFixed(2);
+                                  return;
+                                }
+                                if (n !== Number(d.valor)) updateDespesa(d.id, { valor: n });
+                              }}
+                              className="h-8 w-24 bg-transparent border-transparent hover:border-[hsl(220,15%,22%)] focus:border-[hsl(165,60%,40%)] text-right text-[hsl(0,0%,93%)] px-2"
+                            />
+                          </div>
+                        </td>
                         <td className="px-4 py-3"><Badge className={statusColors[d.status] ?? ""} variant="outline">{d.status}</Badge></td>
-                        <td className="px-4 py-3 text-right space-x-1">
+                        <td className="px-4 py-3 text-right space-x-1 whitespace-nowrap">
                           {d.arquivo_url && (
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-[hsl(165,60%,55%)]" onClick={() => downloadArquivo(d)}>
                               <Download className="h-4 w-4" />
