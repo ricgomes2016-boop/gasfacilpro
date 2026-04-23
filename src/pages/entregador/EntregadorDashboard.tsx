@@ -214,6 +214,9 @@ export default function EntregadorDashboard() {
           </div>
         </div>
 
+        {/* Horário da semana do entregador */}
+        <MeuHorarioSemana>
+
         {/* Resumo financeiro do dia - Premium Dark Card */}
         <Card className="border-none shadow-xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden rounded-3xl">
           <div className="absolute top-0 right-0 p-4 opacity-5">
