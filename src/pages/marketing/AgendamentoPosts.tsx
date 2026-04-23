@@ -59,20 +59,24 @@ export default function AgendamentoPosts() {
     hora: "10:00",
   });
 
-  // Receber imagem/legenda/plataforma via query param (vindas da Galeria ou Templates)
+  // Receber imagem/legenda/plataforma/data/hora via query param (vindas da Galeria ou Templates)
   useEffect(() => {
     const img = searchParams.get("imagem");
     const legenda = searchParams.get("legenda");
     const plat = searchParams.get("plataforma");
-    if (img || legenda || plat) {
+    const dataQ = searchParams.get("data");
+    const horaQ = searchParams.get("hora");
+    if (img || legenda || plat || dataQ || horaQ) {
       setForm((f) => ({
         ...f,
         midia_url: img || f.midia_url,
         texto: legenda || f.texto,
         plataforma: plat || f.plataforma,
+        data_agendamento: dataQ || f.data_agendamento,
+        hora: horaQ || f.hora,
       }));
       setDialogOpen(true);
-      ["imagem", "legenda", "plataforma"].forEach((k) => searchParams.delete(k));
+      ["imagem", "legenda", "plataforma", "data", "hora"].forEach((k) => searchParams.delete(k));
       setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
