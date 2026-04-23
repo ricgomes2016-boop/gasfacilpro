@@ -152,7 +152,7 @@ export function CriarPaginaWizard({ open, onOpenChange }: Props) {
               <ul className="space-y-1.5">
                 {plat.requisitos.map((r) => (
                   <li key={r} className="flex items-start gap-2 text-sm">
-                    <Check className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                    <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                     <span>{r}</span>
                   </li>
                 ))}
