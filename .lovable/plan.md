@@ -1,56 +1,54 @@
 
 
-## Heatmap: mostrar todos os nomes + inverter eixos (dia × hora)
+## Recalcular comissões em RH/Comissão
 
-### Mudanças no `CoberturaTab` (`src/pages/rh/Horarios.tsx`)
+### Diagnóstico (causas reais do "tudo zerado")
 
-**1. Mostrar TODOS os nomes na célula**
-- Remover o limite de 3 nomes + `+N`. Listar todos os entregadores ativos no bloco, um por linha (`text-[10px]`, `truncate`, `text-muted-foreground`).
-- Manter `*` para entregadores de outra unidade (toggle "mesma cidade").
-- Tooltip continua com lista completa nome + unidade (redundante, mas útil quando truncado).
-- Altura da célula passa a ser automática (`h-auto min-h-[60px]`) para acomodar listas longas sem quebrar.
+Confirmado via consulta direta no banco:
 
-**2. Inverter eixos: linhas = DIAS, colunas = HORAS**
+1. **Duplicatas em `comissao_config`** — existem 8 linhas duplicadas para `Gás P13 / telefone` (R$ 1,00 cada). O save atual deleta+insere por unidade, mas algo deixou lixo histórico. Não causa zeragem, mas polui.
+2. **Configurações mais importantes estão com valor 0:**
+   - `Gás P13 / Portaria` = **R$ 0** (e Portaria tem pedidos)
+   - `Água Mineral 20L` em **todos** os canais = **R$ 0** (8 itens vendidos no mês)
+3. **Forte Gás (3 pedidos do mês) não tem nenhuma config** — só Central Gas tem. Como o `lookupComissao` usa `byName` apenas quando `valor > 0`, não há fallback.
+4. **Inconsistência maiúsculas/minúsculas resolvida pelo normalize**, então `telefone` (pedido) bate com `Telefone` (config) ✅. **Mas** com 8 linhas duplicadas de `telefone` no banco, o sort + `byId.set` mantém o último — ainda assim bate em R$ 1, OK.
+5. **Conclusão**: a lógica do código **funciona** — o que está zerado são, de fato, os valores cadastrados (Portaria, Água, Forte Gás).
 
-Layout novo:
+### Mudanças
 
-```text
-         06h  07h  08h  09h  10h ★  11h ★  12h  13h  14h ★ ...
-Seg       0    1    3    3    5 🔥   5 🔥   3    4    5 🔥
-Ter       0    1    3    3    5 🔥   5 🔥   3    4    5 🔥
-Qua       0    1    2    2    4      4      2    3    4
-Qui       0    1    3    3    5 🔥   5 🔥   3    4    5 🔥
-Sex       0    1    3    3    5 🔥   5 🔥   3    4    5 🔥
-Sáb       0    0    1    1    2      2      1    2    2
-Dom       0    0    0    0    0      0      0    0    0
-```
+**1. Limpar duplicatas em `comissao_config`** (migration de DELETE)
+- Para cada `(unidade_id, produto_id, lower(canal_venda))`, manter apenas 1 linha (a com maior `valor`, depois mais recente).
+- Adicionar índice único `UNIQUE (unidade_id, produto_id, lower(canal_venda))` para impedir duplicatas futuras.
+- Ajustar `ComissaoConfigEditor.tsx` para fazer **upsert** com `onConflict` em vez de `delete + insert` (mais seguro).
 
-- Eixo X (cabeçalho): horas 06h → 23h, com ★ nos picos de pedidos.
-- Eixo Y (primeira coluna): dias da semana (Seg–Dom), sticky à esquerda.
-- Cada célula: contagem grande + 🔥 (se acima do pico médio) + lista vertical de **todos** os primeiros nomes.
-- Coluna do dia fica `sticky left-0 bg-background z-10` para o usuário rolar horizontalmente entre as horas sem perder a referência do dia.
-- Largura de cada coluna de hora: `min-w-[80px]`.
-- Container com `overflow-x-auto` (scroll horizontal nas horas, que são muitas; dias = só 7 linhas, cabem na vertical sem scroll).
+**2. Fallback cross-unit em `lookupComissao`** (`src/pages/rh/ComissaoEntregador.tsx`)
+- Hoje a query traz `comissao_config` filtrada por `unidade_id = atual OR null`. Para **Forte Gás** (que não tem config própria), não há linha alguma.
+- Mudar a query para **trazer todas as configs da empresa** (todas as unidades + null), e o `comissaoMap.byName` passa a funcionar como fallback automático: se a unidade atual não tem config para `Gás P13 / Portaria`, usa a de Central Gas.
+- Prioridade no `byId`: unidade atual > null > outras unidades (ajuste no `sort`).
 
-**3. Ajustes visuais**
-- Cabeçalho de hora compacto (`text-[11px]`, `font-medium`), com ★ amarelo acima do número.
-- Borda sutil entre células mantida.
-- Modo "Lista por dia" continua intacto (toggle Heatmap | Lista).
-- Cards de resumo (buracos no pico, totais) intactos.
+**3. Botão "Recalcular comissões" no header da página**
+- Botão `RefreshCw` ao lado do `ComissaoConfigEditor`.
+- Ação: `queryClient.invalidateQueries` para `comissao-config`, `comissao-detalhada`, `entregadores-comissao` → força refetch e recálculo do `useMemo`.
+- Toast: "Comissões recalculadas com base na configuração atual".
 
-### Por que inverter ajuda
-- Hoje há 18 horas (Y) × 7 dias (X) → matriz alta e estreita, com pouco espaço por célula para nomes.
-- Invertendo: 7 dias (Y) × 18 horas (X) → matriz baixa e larga, com scroll horizontal natural; cada célula tem mais espaço vertical para listar nomes empilhados.
-- Padrão visual mais comum em ferramentas de escala (When I Work, Deputy, Homebase).
+**4. Card "Diagnóstico de comissões zeradas" mais explícito**
+- Já existe a seção `itensSemRegra`. Melhorar:
+  - Mostrar chip da **unidade** de cada item zerado (Central Gas / Forte Gás).
+  - Botão "Configurar agora" abre o `ComissaoConfigEditor` já no produto/canal correspondente (quando possível).
+  - Linha-resumo: "X pedidos do mês estão sem comissão configurada (R$ Y em vendas)".
 
-### Arquivo
-- **Editar**: `src/pages/rh/Horarios.tsx` (apenas render do heatmap em `CoberturaTab` — estrutura da tabela, header, body e célula).
-- Sem migrations, sem mudanças de query, sem mudanças nas demais abas.
+**5. Aviso quando a unidade atual não tem nenhuma config**
+- Banner amarelo: "A unidade **Forte Gás** não tem comissões cadastradas. Usando como fallback a configuração de **Central Gas**. Recomenda-se cadastrar valores específicos."
+
+### Arquivos
+- **Migration**: limpar duplicatas + criar índice único em `public.comissao_config`.
+- **Editar**: `src/pages/rh/ComissaoEntregador.tsx` (query cross-unit, botão recalcular, banner fallback, melhoria do card de zerados).
+- **Editar**: `src/components/rh/ComissaoConfigEditor.tsx` (trocar delete+insert por upsert com `onConflict`).
 
 ### Critério de aceite
-- Heatmap renderiza com **dias nas linhas** e **horas nas colunas**.
-- Cada célula mostra **todos** os primeiros nomes dos entregadores ativos (sem corte com `+N`).
-- Coluna do dia fica fixa ao rolar horizontalmente entre as horas.
-- Picos de pedidos marcados com ★ no cabeçalho da hora correspondente.
-- Modo "Lista por dia", filtros, toggle de cidade e cards de buracos permanecem funcionando igual.
+- Comissões deixam de aparecer R$ 0,00 para produtos/canais que **têm** valor cadastrado em qualquer unidade da empresa (fallback funciona para Forte Gás).
+- Botão "Recalcular" força refresh imediato dos dados.
+- Card de "itens sem regra" mostra exatamente quais combinações ainda precisam ser configuradas, com link rápido pro editor.
+- Sem duplicatas em `comissao_config`; futuras gravações usam upsert idempotente.
+- Demais funcionalidades (impressão de recibo, filtros de mês/entregador, gráfico) permanecem intactas.
 
