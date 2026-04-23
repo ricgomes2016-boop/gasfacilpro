@@ -27,6 +27,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDate, getBrasiliaDateString } from "@/lib/utils";
 import { Capacitor } from "@capacitor/core";
+import { MeuHorarioSemana } from "@/components/entregador/MeuHorarioSemana";
 
 export default function EntregadorDashboard() {
   const { pendingDeliveries } = useDeliveryNotifications();
