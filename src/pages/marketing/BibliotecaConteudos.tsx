@@ -148,7 +148,19 @@ export default function BibliotecaConteudos() {
                   const tc = tipoConfig[c.tipo] || tipoConfig.texto;
                   const TipoIcon = tc.icon;
                   return (
-                    <Card key={c.id} className="border-border/50">
+                    <Card key={c.id} className="border-border/50 overflow-hidden">
+                      {c.midia_url && (
+                        <div className="relative aspect-video bg-muted">
+                          <img src={c.midia_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                          <Button
+                            variant="destructive" size="icon" className="absolute top-1.5 right-1.5 h-6 w-6 opacity-80"
+                            onClick={() => linkImagem.mutate({ id: c.id, midia_url: null })}
+                            title="Remover imagem"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
                       <CardContent className="p-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -165,17 +177,23 @@ export default function BibliotecaConteudos() {
                         {c.conteudo && <p className="text-sm text-muted-foreground line-clamp-4">{c.conteudo}</p>}
                         {c.hashtags && <p className="text-xs text-primary/70 truncate">{c.hashtags}</p>}
                         <div className="flex items-center gap-1 pt-1 border-t border-border/30">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleFav.mutate({ id: c.id, favorito: !c.favorito })}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleFav.mutate({ id: c.id, favorito: !c.favorito })} title="Favoritar">
                             {c.favorito ? <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" /> : <StarOff className="h-3.5 w-3.5" />}
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => c.conteudo && copyToClipboard(c.conteudo)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => c.conteudo && copyToClipboard(c.conteudo)} title="Copiar texto">
                             <Copy className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/marketing/agendamentos")}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSeletorParaId(c.id)} title="Vincular imagem">
+                            <Link2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPreviewItem(c)} title="Preview">
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(c.midia_url ? `/marketing/agendamentos?imagem=${encodeURIComponent(c.midia_url)}` : "/marketing/agendamentos")} title="Agendar">
                             <CalendarPlus className="h-3.5 w-3.5" />
                           </Button>
                           <div className="flex-1" />
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(c.id)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(c.id)} title="Excluir">
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -191,6 +209,32 @@ export default function BibliotecaConteudos() {
             <GaleriaImagens />
           </TabsContent>
         </Tabs>
+
+        <SeletorImagemGaleria
+          open={!!seletorParaId}
+          onOpenChange={(v) => !v && setSeletorParaId(null)}
+          onSelect={(url) => {
+            if (seletorParaId) linkImagem.mutate({ id: seletorParaId, midia_url: url });
+            setSeletorParaId(null);
+          }}
+        />
+
+        <Dialog open={!!previewItem} onOpenChange={(v) => !v && setPreviewItem(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Preview do post</DialogTitle>
+            </DialogHeader>
+            {previewItem && (
+              <div className="bg-muted/30 rounded-lg p-3">
+                <PostPreview
+                  plataforma={previewItem.plataforma || "instagram"}
+                  imagemUrl={previewItem.midia_url}
+                  texto={[previewItem.conteudo, previewItem.hashtags].filter(Boolean).join("\n\n")}
+                />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );
