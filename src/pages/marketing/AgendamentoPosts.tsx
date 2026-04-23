@@ -59,13 +59,20 @@ export default function AgendamentoPosts() {
     hora: "10:00",
   });
 
-  // Receber imagem via query param (vinda da Galeria → "Usar em post")
+  // Receber imagem/legenda/plataforma via query param (vindas da Galeria ou Templates)
   useEffect(() => {
     const img = searchParams.get("imagem");
-    if (img) {
-      setForm((f) => ({ ...f, midia_url: img }));
+    const legenda = searchParams.get("legenda");
+    const plat = searchParams.get("plataforma");
+    if (img || legenda || plat) {
+      setForm((f) => ({
+        ...f,
+        midia_url: img || f.midia_url,
+        texto: legenda || f.texto,
+        plataforma: plat || f.plataforma,
+      }));
       setDialogOpen(true);
-      searchParams.delete("imagem");
+      ["imagem", "legenda", "plataforma"].forEach((k) => searchParams.delete(k));
       setSearchParams(searchParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);

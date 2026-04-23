@@ -12,8 +12,9 @@ import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import {
   Search, FileText, Image as ImageIcon, Video, Star, StarOff, Trash2, Copy, CalendarPlus,
-  Sparkles, Images, Link2, Eye, X,
+  Sparkles, Images, Link2, Eye, X, LayoutTemplate,
 } from "lucide-react";
+import { TemplatesBiblioteca } from "@/components/marketing/TemplatesBiblioteca";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -102,6 +103,9 @@ export default function BibliotecaConteudos() {
             </TabsTrigger>
             <TabsTrigger value="galeria" className="gap-1.5">
               <Images className="h-4 w-4" /> Galeria
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="gap-1.5">
+              <LayoutTemplate className="h-4 w-4" /> Templates
             </TabsTrigger>
           </TabsList>
 
@@ -207,6 +211,10 @@ export default function BibliotecaConteudos() {
 
           <TabsContent value="galeria">
             <GaleriaImagens />
+          </TabsContent>
+
+          <TabsContent value="templates">
+            <TemplatesBiblioteca />
           </TabsContent>
         </Tabs>
 
