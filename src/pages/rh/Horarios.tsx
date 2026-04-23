@@ -442,12 +442,24 @@ function EscalasTab() {
                               isHoje && "bg-primary/5"
                             )}
                             onClick={() => openEdit(escala)}
+                            title={
+                              folga
+                                ? "Folga"
+                                : escala.almoco_inicio && escala.almoco_fim
+                                  ? `Turno: ${escala.turno_inicio.slice(0,5)}–${escala.turno_fim.slice(0,5)} • Almoço: ${escala.almoco_inicio.slice(0,5)}–${escala.almoco_fim.slice(0,5)} • Líquido: ${calcHoras(escala.turno_inicio, escala.turno_fim, escala.almoco_inicio, escala.almoco_fim).toFixed(1)}h`
+                                  : `Turno: ${escala.turno_inicio.slice(0,5)}–${escala.turno_fim.slice(0,5)} • ${calcHoras(escala.turno_inicio, escala.turno_fim).toFixed(1)}h`
+                            }
                           >
                             <div className="flex flex-col gap-1 items-stretch">
                               {folga ? (
                                 <Badge className={cn("justify-center text-[10px]", statusBadgeClass.folga)}>
                                   Folga
                                 </Badge>
+                              ) : escala.almoco_inicio && escala.almoco_fim ? (
+                                <div className="text-[11px] font-semibold text-center leading-tight">
+                                  <div>{escala.turno_inicio.slice(0,5)}–{escala.almoco_inicio.slice(0,5)}</div>
+                                  <div>{escala.almoco_fim.slice(0,5)}–{escala.turno_fim.slice(0,5)}</div>
+                                </div>
                               ) : (
                                 <div className="text-xs font-semibold text-center">
                                   {escala.turno_inicio.slice(0, 5)}-{escala.turno_fim.slice(0, 5)}
