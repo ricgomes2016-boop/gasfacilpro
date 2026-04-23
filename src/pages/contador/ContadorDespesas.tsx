@@ -222,7 +222,7 @@ export default function ContadorDespesas() {
               onChange={(e) => handleUpload(e.target.files)} />
             <BotaoExportar
               relatorio="despesas"
-              titulo="Relatório de Despesas"
+              titulo={algumSelecionado ? `Despesas selecionadas (${selecionados.size})` : "Relatório de Despesas"}
               empresa={empresaAtiva?.empresa_nome ?? "—"}
               escopo={unidadeAtiva ? unidadeAtiva.nome : `Todas as lojas — ${unidades.length} unidades`}
               periodoLabel={range.label}
@@ -236,13 +236,13 @@ export default function ContadorDespesas() {
                 { header: "Status", key: "status" },
                 { header: "Loja", key: "_loja_nome" },
               ]}
-              linhas={filtered.map((d) => ({
+              linhas={linhasParaExportar.map((d) => ({
                 ...d,
                 _loja_nome: unidades.find((u) => u.id === d.unidade_id)?.nome ?? "—",
               }))}
               totais={[
-                { label: "Total despesas", value: fmt.brl(filtered.reduce((s, d) => s + Number(d.valor ?? 0), 0)) },
-                { label: "Quantidade", value: String(filtered.length) },
+                { label: algumSelecionado ? "Total selecionado" : "Total despesas", value: fmt.brl(linhasParaExportar.reduce((s, d) => s + Number(d.valor ?? 0), 0)) },
+                { label: "Quantidade", value: String(linhasParaExportar.length) },
               ]}
               groupByPDF={!unidadeAtiva ? "_loja_nome" : undefined}
             />
