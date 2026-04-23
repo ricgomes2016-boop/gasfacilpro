@@ -12,7 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import {
   Search, FileText, Image as ImageIcon, Video, Star, StarOff, Trash2, Copy, CalendarPlus,
-  Sparkles, Images,
+  Sparkles, Images, Link2, Eye, X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -21,6 +21,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { GaleriaImagens } from "@/components/marketing/GaleriaImagens";
+import { SeletorImagemGaleria } from "@/components/marketing/SeletorImagemGaleria";
+import { PostPreview } from "@/components/marketing/PostPreview";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const tipoConfig: Record<string, { icon: any; label: string; color: string }> = {
   texto: { icon: FileText, label: "Texto", color: "bg-blue-500/10 text-blue-600" },
@@ -41,6 +44,8 @@ export default function BibliotecaConteudos() {
   const [busca, setBusca] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroPlataforma, setFiltroPlataforma] = useState("todas");
+  const [seletorParaId, setSeletorParaId] = useState<string | null>(null);
+  const [previewItem, setPreviewItem] = useState<any | null>(null);
 
   const { data: conteudos = [] } = useQuery({
     queryKey: ["mkt-conteudos", empresaId],
@@ -65,6 +70,13 @@ export default function BibliotecaConteudos() {
       await supabase.from("marketing_conteudos").delete().eq("id", id);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["mkt-conteudos"] }); toast({ title: "Removido" }); },
+  });
+
+  const linkImagem = useMutation({
+    mutationFn: async ({ id, midia_url }: { id: string; midia_url: string | null }) => {
+      await supabase.from("marketing_conteudos").update({ midia_url }).eq("id", id);
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["mkt-conteudos"] }); toast({ title: "Imagem atualizada" }); },
   });
 
   const copyToClipboard = (text: string) => { navigator.clipboard.writeText(text); toast({ title: "Copiado!" }); };
