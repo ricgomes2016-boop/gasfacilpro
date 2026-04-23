@@ -9,16 +9,19 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import {
   BarChart3, Calendar, FileText, Share2, MessageSquare, Sparkles,
-  TrendingUp, Eye, Heart, MousePointerClick, ArrowRight, Megaphone,
+  TrendingUp, Eye, Heart, MousePointerClick, ArrowRight, Megaphone, Link2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useState } from "react";
+import { ConectarRedesModal } from "@/components/marketing/ConectarRedesModal";
 
 export default function DashboardMarketing() {
   const navigate = useNavigate();
   const { empresa } = useEmpresa();
   const { unidadeAtual } = useUnidade();
   const empresaId = empresa?.id;
+  const [conectarOpen, setConectarOpen] = useState(false);
 
   const { data: conteudos = [] } = useQuery({
     queryKey: ["mkt-conteudos-count", empresaId],
