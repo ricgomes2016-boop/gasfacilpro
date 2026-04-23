@@ -1,68 +1,103 @@
 
 
-## Multi-Tenant para Conexão Meta + Limpeza
+## Conexão "1-clique" para Redes Sociais — o que é possível
 
-### Resposta à pergunta 2
-O app Meta do SaaS é **um só, do produto** (não da Central Gás). Cada empresa cliente autoriza esse app a postar nas Páginas/Instagrams **dela** via OAuth — os tokens já ficam isolados por `empresa_id` em `social_accounts` com RLS. Funciona como Hootsuite, Buffer, mLabs etc.
+### Resposta direta
 
-A Central Gás é apenas a **primeira empresa testadora** enquanto o app está em modo Desenvolvimento da Meta. Para os demais clientes funcionarem, precisamos: (a) passar pelo App Review da Meta para liberar produção, e (b) implementar algumas melhorias de UX e segurança listadas abaixo.
+**Sim, é possível** para Instagram, Facebook, TikTok, YouTube, LinkedIn e Pinterest — todos suportam OAuth oficial (mesmo padrão que já implementamos para Meta). O fluxo fica:
+
+1. Usuário clica **"Conectar TikTok"** → abre popup
+2. Faz login na própria plataforma (ou cria conta lá mesmo)
+3. Autoriza o GásFácilPro
+4. Popup fecha sozinho → conta já aparece conectada no sistema
+
+**O que NÃO é possível** (limitação das próprias plataformas, não do Lovable):
+
+- ❌ Criar a conta da rede social *de dentro* do nosso sistema (ex: cadastrar e-mail/senha do TikTok pelo nosso form). Instagram, TikTok, YouTube etc. **proíbem** isso nos termos de uso — só permitem cadastro nos sites/apps oficiais deles.
+- ❌ WhatsApp: não tem OAuth público; usa Cloud API (já implementado no projeto) ou Evolution.
+- ✅ Mas o popup OAuth **já abre direto na tela de login/cadastro da plataforma**, então na prática é "2 cliques": clicar em "Criar conta" dentro do popup do TikTok e voltar — quase igual ao que você descreveu.
 
 ### O que será entregue
 
-**1. Limpar cron duplicado**
-- SQL via insert tool: `SELECT cron.unschedule('meta-publish-cron');` (mantém só `meta-publish-cron-job`).
+**1. Botão único "Conectar rede social" com seletor visual**
+Substituir o wizard atual de 5 cards por um modal mais direto:
+- Lista vertical das 6 plataformas com OAuth (Instagram, Facebook, TikTok, YouTube, LinkedIn, Pinterest)
+- Cada uma com badge: 🟢 Conectada / ⚪ Não conectada
+- Clicou → abre popup OAuth direto, sem etapas intermediárias
+- Se a pessoa não tem conta ainda, o próprio popup oferece "Criar conta" da plataforma
 
-**2. Reforçar isolamento por empresa no callback OAuth**
-- Em `meta-oauth-callback`: validar que o `state.empresa_id` corresponde a uma empresa real e que o `state.user_id` ainda pertence àquela empresa (anti-replay).
-- Adicionar `nonce` aleatório no `state` (gerado no `meta-oauth-start`, persistido em tabela `oauth_states` com TTL 10 min) para evitar reuso.
-- Validar `ts` do state (rejeitar se >15 min).
+**2. OAuth para TikTok Business**
+- Nova edge function `tiktok-oauth-start` + `tiktok-oauth-callback` (mesmo padrão da Meta)
+- Salva token em `social_accounts` com `plataforma='tiktok'`, `conectado_via='oauth'`
+- Permissões: `user.info.basic`, `video.publish`, `video.upload`
+- **Pré-requisito**: criar app em developers.tiktok.com (TikTok for Developers) — vou te guiar
 
-**3. Tela de status do app Meta (`/marketing/redes-sociais`)**
-- Card no topo informando o estado do app Meta:
-  - "🟡 Modo Desenvolvimento — só Facebooks cadastrados como testadores conseguem conectar. Solicite acesso ao admin do SaaS."
-  - "🟢 Aprovado pela Meta — qualquer empresa pode conectar."
-- Estado controlado por flag em `configuracoes_globais` (nova linha `meta_app_review_status: 'dev' | 'approved'`).
+**3. OAuth para YouTube (Google)**
+- Reusa o `lovable.auth.signInWithOAuth("google", ...)` com escopos extras: `youtube.upload`, `youtube.readonly`
+- Salva canal e token em `social_accounts` com `plataforma='youtube'`
+- **Pré-requisito**: ativar YouTube Data API v3 no Google Cloud do app já existente
 
-**4. Guia visual no botão Conectar quando empresa ≠ testadora**
-- Se a tentativa de OAuth falhar com erro Meta tipo `(#10) Application does not have permission` ou redirect com erro, exibir modal explicando:
-  - "Seu Facebook ainda não está autorizado como testador no nosso app Meta. Envie seu Facebook ID para o suporte do SaaS adicionar."
-  - Botão "Copiar meu Facebook ID" (extraído do callback, se houver) e link para `https://findmyfbid.com`.
+**4. OAuth para LinkedIn (opcional, marcar como "em breve" se preferir)**
+- Edge functions `linkedin-oauth-start` + `linkedin-oauth-callback`
+- Permissões: `w_member_social` (postar) + `r_organization_social` (páginas de empresa)
+- **Pré-requisito**: criar app em linkedin.com/developers
 
-**5. Documento interno: passos de App Review**
-- Criar `docs/meta-app-review.md` com checklist do que a Meta exige:
-  - Vídeo de demonstração de cada permissão (`pages_manage_posts`, `instagram_content_publish` etc.)
-  - URL da política de privacidade do SaaS
-  - Termos de uso
-  - Conta de teste para o revisor da Meta
-  - Justificativa de uso de cada escopo
+**5. OAuth para Pinterest (opcional)**
+- Edge functions `pinterest-oauth-start` + `pinterest-oauth-callback`
+- Permissões: `boards:read`, `pins:write`
+- **Pré-requisito**: criar app em developers.pinterest.com
 
-**6. Painel super-admin: lista de conexões OAuth por empresa**
-- Em `/admin` (rota existente), nova aba **"Integrações Meta"** mostrando: empresa, contas conectadas, data de expiração do token, última publicação. Permite ao super-admin do SaaS ver quem está usando.
-- Apenas role `super_admin` enxerga.
+**6. Publicação automática estendida**
+- O cron `meta-publish-cron-job` já existe; criar `tiktok-publish-cron`, `youtube-publish-cron`, `linkedin-publish-cron`, `pinterest-publish-cron` (cada um a cada 5 min)
+- Posts agendados publicam sozinhos para qualquer rede conectada via OAuth
 
-**7. Cron de renovação preventiva de tokens (`meta-refresh-tokens`)**
-- Edge function nova rodando 1x/dia que pega contas com `token_expires_at` < 7 dias e chama `/oauth/access_token?grant_type=fb_exchange_token` para renovar mais 60 dias.
-- Atualiza `access_token` e `token_expires_at`.
-- Se renovação falhar (usuário revogou), marca conta como `ativo=false` e cria notificação para o admin daquela empresa reconectar.
+**7. Tela "Adicionar rede social" simplificada**
+Remover o wizard atual `CriarPaginaWizard.tsx`. Substituir por:
+- Botão grande: **"+ Conectar rede social"**
+- Modal lista as 6 plataformas; cada linha tem botão **"Conectar"** (OAuth) ou **"Já conectada ✓"**
+- Para WhatsApp, manter o fluxo atual (Cloud API/Evolution)
+- Texto pequeno: *"Não tem conta ainda? O próprio popup vai te oferecer criar uma."*
+
+### Resumo do que **não dá** (limite das plataformas)
+
+| Plataforma | Conectar conta existente | Criar conta nova de dentro do sistema |
+|------------|--------------------------|----------------------------------------|
+| Instagram  | ✅ OAuth (já feito)      | ❌ proibido pelo Meta — usuário cria no app do IG |
+| Facebook   | ✅ OAuth (já feito)      | ❌ idem |
+| TikTok     | ✅ OAuth (a fazer)       | ❌ usuário cria no app TikTok; popup mostra "Sign up" |
+| YouTube    | ✅ OAuth (a fazer)       | ❌ requer conta Google |
+| LinkedIn   | ✅ OAuth (a fazer)       | ❌ usuário cria em linkedin.com |
+| Pinterest  | ✅ OAuth (a fazer)       | ❌ usuário cria em pinterest.com |
+| WhatsApp   | ⚠️ via Cloud API/Evolution (já feito) | N/A |
+
+### Sequência recomendada (porque cada plataforma exige App Review)
+
+1. **Agora**: Implementar UX simplificada do botão único + ativar TikTok e YouTube (mais usados).
+2. **Depois**: LinkedIn e Pinterest sob demanda (menos usados em distribuidoras de gás).
 
 ### Detalhes técnicos
-- **Nova tabela**: `oauth_states (nonce uuid pk, user_id uuid, empresa_id uuid, expires_at timestamptz, used_at timestamptz)` com TTL e RLS service-role only.
-- **Arquivos novos**:
-  - `supabase/functions/meta-refresh-tokens/index.ts`
-  - `src/components/admin/MetaIntegrationsPanel.tsx`
-  - `src/components/marketing/MetaAppStatusBanner.tsx`
-  - `docs/meta-app-review.md`
-- **Arquivos alterados**:
-  - `supabase/functions/meta-oauth-start/index.ts` — gerar e gravar nonce
-  - `supabase/functions/meta-oauth-callback/index.ts` — validar nonce, ts, empresa
-  - `src/pages/marketing/RedesSociais.tsx` — banner de status + tratamento de erro de testador
 
-### Critérios de aceite
-- Cron `meta-publish-cron` (duplicado) removido; só `meta-publish-cron-job` ativo.
-- OAuth com state expirado ou nonce reusado é rejeitado com erro claro.
-- Banner em `/marketing/redes-sociais` mostra se o app Meta está em modo dev ou aprovado.
-- Empresa não-testadora vê instruções claras de como pedir acesso em vez de erro genérico.
-- Super-admin vê painel com todas as conexões OAuth por empresa.
-- Tokens com vencimento <7 dias são renovados automaticamente; falhas geram notificação para reconectar.
-- Documento `meta-app-review.md` com checklist pronto para submeter à Meta.
+- **Arquivos novos**:
+  - `supabase/functions/tiktok-oauth-start/index.ts`
+  - `supabase/functions/tiktok-oauth-callback/index.ts`
+  - `supabase/functions/youtube-oauth-start/index.ts`
+  - `supabase/functions/youtube-oauth-callback/index.ts`
+  - `supabase/functions/tiktok-publish-cron/index.ts`
+  - `supabase/functions/tiktok-publish-post/index.ts`
+  - `supabase/functions/youtube-publish-cron/index.ts`
+  - `supabase/functions/youtube-publish-post/index.ts`
+  - `src/components/marketing/ConectarRedesModal.tsx` (substitui `CriarPaginaWizard.tsx`)
+- **Arquivos alterados**:
+  - `src/pages/marketing/RedesSociais.tsx` — botão único + modal
+  - `src/components/marketing/ConectarRedeSocialButton.tsx` — aceitar `plataforma: 'meta' | 'tiktok' | 'youtube' | ...`
+- **Secrets novos** (vou pedir após aprovação):
+  - `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`
+  - `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET` (pode reusar o Google OAuth do app)
+- **Reusa a tabela `oauth_states`** já criada na implementação anterior (multi-tenant, anti-replay).
+
+### Perguntas antes de implementar
+
+1. **Quais plataformas priorizar agora?** TikTok + YouTube (recomendado) ou as 4 todas?
+2. Você já tem **app TikTok Developer** criado? Se não, te guio passo a passo (5 min).
+3. O **Google OAuth** do projeto pode ser estendido para YouTube, ou prefere app separado?
 
