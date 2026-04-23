@@ -26,8 +26,9 @@ Deno.serve(async (req) => {
       });
     }
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
+      supabaseUrl,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } },
     );
@@ -67,17 +68,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const redirectUri = `${supabaseUrl}/functions/v1/meta-oauth-callback`;
-
-    // State assinado simples (base64 + segredo)
-    const statePayload = {
+    // Persistir nonce com service role (RLS bloqueia acesso direto)
+    const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const nonce = crypto.randomUUID();
+    const { error: nonceErr } = await admin.from("oauth_states").insert({
+      nonce,
       user_id: userId,
       empresa_id: profile.empresa_id,
       unidade_id: unidadeId,
       return_url: returnUrl,
-      ts: Date.now(),
-    };
+    });
+    if (nonceErr) throw new Error(`Falha ao gerar state: ${nonceErr.message}`);
+
+    const redirectUri = `${supabaseUrl}/functions/v1/meta-oauth-callback`;
+
+    // State agora carrega só o nonce (anti-replay) + ts
+    const statePayload = { n: nonce, ts: Date.now() };
     const state = btoa(JSON.stringify(statePayload));
 
     const authUrl = new URL("https://www.facebook.com/v21.0/dialog/oauth");

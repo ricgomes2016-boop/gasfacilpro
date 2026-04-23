@@ -12,24 +12,34 @@ Deno.serve(async (req) => {
   const code = url.searchParams.get("code");
   const stateRaw = url.searchParams.get("state");
   const errorParam = url.searchParams.get("error");
+  const errorReason = url.searchParams.get("error_reason");
+  const errorDescription = url.searchParams.get("error_description");
 
-  const renderHtml = (title: string, message: string, ok: boolean) => `<!doctype html>
+  const renderHtml = (title: string, message: string, ok: boolean, errorCode?: string) => `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><title>${title}</title>
 <style>
-body{font-family:system-ui,-apple-system,sans-serif;background:#0f172a;color:#f1f5f9;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;padding:20px;text-align:center}
-.card{max-width:480px;background:#1e293b;padding:32px;border-radius:16px;border:1px solid #334155}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0f172a;color:#f1f5f9;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;text-align:center}
+.card{max-width:520px;background:#1e293b;padding:32px;border-radius:16px;border:1px solid #334155}
 h1{margin:0 0 12px;font-size:22px;color:${ok ? "#22c55e" : "#ef4444"}}
-p{margin:0 0 20px;color:#cbd5e1;line-height:1.5}
-button{background:#3b82f6;color:#fff;border:0;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px}
+p{margin:0 0 16px;color:#cbd5e1;line-height:1.5}
+.code{font-family:monospace;background:#0f172a;padding:8px 12px;border-radius:6px;font-size:12px;color:#94a3b8;margin:8px 0}
+button{background:#3b82f6;color:#fff;border:0;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;margin:4px}
 </style></head><body><div class="card">
 <h1>${ok ? "✅" : "⚠️"} ${title}</h1><p>${message}</p>
+${errorCode ? `<div class="code">${errorCode}</div>` : ""}
 <button onclick="window.close()">Fechar janela</button>
 </div>
-<script>setTimeout(()=>{try{window.opener&&window.opener.postMessage({type:'meta-oauth',ok:${ok}},'*');}catch(e){}}, 100);</script>
+<script>setTimeout(()=>{try{window.opener&&window.opener.postMessage({type:'meta-oauth',ok:${ok},error:${JSON.stringify(errorCode || null)}},'*');}catch(e){}}, 100);</script>
 </body></html>`;
 
   if (errorParam) {
-    return new Response(renderHtml("Conexão cancelada", `Erro: ${errorParam}`, false), {
+    const isPermissionError =
+      errorParam === "access_denied" || errorReason === "user_denied" ||
+      errorDescription?.toLowerCase().includes("permission");
+    const msg = isPermissionError
+      ? "Seu Facebook ainda não está autorizado como testador no nosso app Meta. Envie seu Facebook ID para o suporte do GásFácilPro adicionar você."
+      : `Erro retornado pela Meta: ${errorDescription || errorParam}`;
+    return new Response(renderHtml("Conexão cancelada", msg, false, errorParam), {
       headers: { "Content-Type": "text/html; charset=utf-8" },
     });
   }
@@ -42,10 +52,50 @@ button{background:#3b82f6;color:#fff;border:0;padding:10px 20px;border-radius:8p
 
   try {
     const state = JSON.parse(atob(stateRaw));
+    const nonce = state.n;
+    const ts = state.ts;
+
+    if (!nonce || !ts) throw new Error("State malformado");
+    if (Date.now() - ts > 15 * 60 * 1000) throw new Error("State expirado (>15 min)");
+
     const META_APP_ID = Deno.env.get("META_APP_ID")!;
     const META_APP_SECRET = Deno.env.get("META_APP_SECRET")!;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const redirectUri = `${supabaseUrl}/functions/v1/meta-oauth-callback`;
+
+    const supabase = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // Validar nonce: existe, não usado, não expirado
+    const { data: stateRow, error: stateErr } = await supabase
+      .from("oauth_states")
+      .select("*")
+      .eq("nonce", nonce)
+      .maybeSingle();
+
+    if (stateErr || !stateRow) throw new Error("State inválido ou desconhecido");
+    if (stateRow.used_at) throw new Error("State já utilizado (replay bloqueado)");
+    if (new Date(stateRow.expires_at).getTime() < Date.now())
+      throw new Error("State expirado");
+
+    // Validar que o usuário ainda pertence à empresa
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("empresa_id")
+      .eq("user_id", stateRow.user_id)
+      .maybeSingle();
+
+    if (!profile || profile.empresa_id !== stateRow.empresa_id) {
+      throw new Error("Usuário não pertence mais à empresa do state");
+    }
+
+    // Marcar como usado imediatamente
+    await supabase
+      .from("oauth_states")
+      .update({ used_at: new Date().toISOString() })
+      .eq("nonce", nonce);
 
     // 1. Trocar code por short-lived token
     const tokenUrl = new URL("https://graph.facebook.com/v21.0/oauth/access_token");
@@ -60,7 +110,7 @@ button{background:#3b82f6;color:#fff;border:0;padding:10px 20px;border-radius:8p
 
     const shortToken = tokenData.access_token;
 
-    // 2. Trocar por long-lived token (60 dias)
+    // 2. Long-lived token (60 dias)
     const longUrl = new URL("https://graph.facebook.com/v21.0/oauth/access_token");
     longUrl.searchParams.set("grant_type", "fb_exchange_token");
     longUrl.searchParams.set("client_id", META_APP_ID);
@@ -75,25 +125,19 @@ button{background:#3b82f6;color:#fff;border:0;padding:10px 20px;border-radius:8p
     const expiresIn = longData.expires_in ?? 60 * 24 * 60 * 60;
     const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
-    // 3. Listar páginas do usuário
+    // 3. Listar páginas
     const pagesRes = await fetch(
       `https://graph.facebook.com/v21.0/me/accounts?access_token=${longToken}&fields=id,name,access_token,instagram_business_account{id,username,profile_picture_url},picture`,
     );
     const pagesData = await pagesRes.json();
     if (!pagesRes.ok) throw new Error(`Pages fetch failed: ${JSON.stringify(pagesData)}`);
 
-    const supabase = createClient(
-      supabaseUrl,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
     let savedCount = 0;
     for (const page of pagesData.data ?? []) {
-      // Salva conta Facebook
       await supabase.from("social_accounts").upsert(
         {
-          empresa_id: state.empresa_id,
-          unidade_id: state.unidade_id,
+          empresa_id: stateRow.empresa_id,
+          unidade_id: stateRow.unidade_id,
           plataforma: "facebook",
           nome_conta: page.name,
           username: page.name,
@@ -110,17 +154,16 @@ button{background:#3b82f6;color:#fff;border:0;padding:10px 20px;border-radius:8p
       );
       savedCount++;
 
-      // Se houver IG vinculado, salva também
       if (page.instagram_business_account?.id) {
         const ig = page.instagram_business_account;
         await supabase.from("social_accounts").upsert(
           {
-            empresa_id: state.empresa_id,
-            unidade_id: state.unidade_id,
+            empresa_id: stateRow.empresa_id,
+            unidade_id: stateRow.unidade_id,
             plataforma: "instagram",
             nome_conta: ig.username ?? page.name,
             username: ig.username,
-            access_token: page.access_token, // IG usa o page token
+            access_token: page.access_token,
             token_expires_at: expiresAt,
             page_id: page.id,
             ig_business_id: ig.id,
