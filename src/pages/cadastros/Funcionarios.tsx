@@ -172,6 +172,7 @@ export default function Funcionarios() {
         regime_pagamento: form.regime_pagamento || "mensal",
         valor_diaria: regimeUsaDiaria && form.valor_diaria ? parseFloat(form.valor_diaria) : 0,
         entra_na_escala: !!form.entra_na_escala,
+        is_transporte: !!form.is_transporte,
       };
       // unidade_id: usa o selecionado no form, ou o atual da empresa, ou null
       if (form.unidade_id) {
