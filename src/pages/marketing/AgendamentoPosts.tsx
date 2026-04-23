@@ -28,6 +28,8 @@ import {
 import { SeletorImagemGaleria } from "@/components/marketing/SeletorImagemGaleria";
 import { PostPreview } from "@/components/marketing/PostPreview";
 import { CalendarioPosts } from "@/components/marketing/CalendarioPosts";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Zap, AlertTriangle } from "lucide-react";
 
 const FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/marketing-ai`;
 
