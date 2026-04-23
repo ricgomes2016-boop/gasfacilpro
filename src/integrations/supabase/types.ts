@@ -1765,6 +1765,7 @@ export type Database = {
         Row: {
           canal_venda: string
           created_at: string
+          funcionario_id: string | null
           id: string
           produto_id: string
           unidade_id: string | null
@@ -1774,6 +1775,7 @@ export type Database = {
         Insert: {
           canal_venda: string
           created_at?: string
+          funcionario_id?: string | null
           id?: string
           produto_id: string
           unidade_id?: string | null
@@ -1783,6 +1785,7 @@ export type Database = {
         Update: {
           canal_venda?: string
           created_at?: string
+          funcionario_id?: string | null
           id?: string
           produto_id?: string
           unidade_id?: string | null
@@ -1790,6 +1793,13 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "comissao_config_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "comissao_config_produto_id_fkey"
             columns: ["produto_id"]
@@ -3601,6 +3611,7 @@ export type Database = {
           created_at: string
           data: string
           entregador_id: string
+          funcionario_id: string | null
           id: string
           observacoes: string | null
           rota_definida_id: string | null
@@ -3616,6 +3627,7 @@ export type Database = {
           created_at?: string
           data?: string
           entregador_id: string
+          funcionario_id?: string | null
           id?: string
           observacoes?: string | null
           rota_definida_id?: string | null
@@ -3631,6 +3643,7 @@ export type Database = {
           created_at?: string
           data?: string
           entregador_id?: string
+          funcionario_id?: string | null
           id?: string
           observacoes?: string | null
           rota_definida_id?: string | null
@@ -3661,6 +3674,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_comissao_entregador"
             referencedColumns: ["entregador_id"]
+          },
+          {
+            foreignKeyName: "escalas_entregador_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "escalas_entregador_rota_definida_id_fkey"
@@ -4268,6 +4288,57 @@ export type Database = {
           },
         ]
       }
+      funcionario_diarias: {
+        Row: {
+          created_at: string
+          data: string
+          funcionario_id: string
+          id: string
+          observacoes: string | null
+          status: string
+          unidade_id: string | null
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          funcionario_id: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          unidade_id?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          funcionario_id?: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          unidade_id?: string | null
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funcionario_diarias_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funcionario_diarias_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funcionarios: {
         Row: {
           ativo: boolean | null
@@ -4277,14 +4348,19 @@ export type Database = {
           data_admissao: string | null
           email: string | null
           endereco: string | null
+          entra_na_escala: boolean
           id: string
           nome: string
+          regime_pagamento: string
           salario: number | null
           setor: string | null
           status: string | null
           telefone: string | null
+          tipo_vinculo: string
           unidade_id: string | null
           updated_at: string
+          valor_diaria: number
+          valor_por_produto: Json
         }
         Insert: {
           ativo?: boolean | null
@@ -4294,14 +4370,19 @@ export type Database = {
           data_admissao?: string | null
           email?: string | null
           endereco?: string | null
+          entra_na_escala?: boolean
           id?: string
           nome: string
+          regime_pagamento?: string
           salario?: number | null
           setor?: string | null
           status?: string | null
           telefone?: string | null
+          tipo_vinculo?: string
           unidade_id?: string | null
           updated_at?: string
+          valor_diaria?: number
+          valor_por_produto?: Json
         }
         Update: {
           ativo?: boolean | null
@@ -4311,14 +4392,19 @@ export type Database = {
           data_admissao?: string | null
           email?: string | null
           endereco?: string | null
+          entra_na_escala?: boolean
           id?: string
           nome?: string
+          regime_pagamento?: string
           salario?: number | null
           setor?: string | null
           status?: string | null
           telefone?: string | null
+          tipo_vinculo?: string
           unidade_id?: string | null
           updated_at?: string
+          valor_diaria?: number
+          valor_por_produto?: Json
         }
         Relationships: [
           {
