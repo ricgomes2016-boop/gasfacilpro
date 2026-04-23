@@ -8,6 +8,7 @@ import { ChatOperador } from "@/components/chat/ChatOperador";
 import { MobileBottomBar } from "@/components/layout/MobileBottomBar";
 import { TransferenciaPendentePopup } from "@/components/estoque/TransferenciaPendentePopup";
 import { PedidoPendenteAlertProvider } from "@/components/alerts/PedidoPendenteAlertProvider";
+import { CalculatorPopover } from "@/components/shared/CalculatorPopover";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -19,6 +20,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   const isAiPage = location.pathname === "/assistente-ia";
   const [aiOpen, setAiOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [calcOpen, setCalcOpen] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
 
   useEffect(() => {
@@ -43,8 +45,10 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       <MobileBottomBar
         onOpenAi={() => { if (!isAiPage) setAiOpen(true); }}
         onOpenChat={() => setChatOpen(true)}
+        onOpenCalc={() => setCalcOpen(true)}
         chatUnread={chatUnread}
       />
+      <CalculatorPopover externalOpen={calcOpen} onExternalClose={() => setCalcOpen(false)} />
     </div>
   );
 }

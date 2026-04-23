@@ -23,6 +23,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { forceAppUpdate } from "@/lib/force-app-update";
 import { BuildVersionBadge } from "@/components/shared/BuildVersionBadge";
 import { GasmaisThemeQuickToggle } from "@/components/layout/GasmaisThemeQuickToggle";
+import { CalculatorPopover } from "@/components/shared/CalculatorPopover";
 
 interface HeaderProps {
   title: string;
@@ -100,6 +101,9 @@ export function Header({ title, subtitle }: HeaderProps) {
 
         {/* GásMais Theme Quick Toggle */}
         <GasmaisThemeQuickToggle />
+
+        {/* Calculadora */}
+        <CalculatorPopover />
 
         {/* Theme Toggle */}
         <Button
