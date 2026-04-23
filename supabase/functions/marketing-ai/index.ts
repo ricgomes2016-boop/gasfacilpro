@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,7 +10,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { type, platform, topic, tone, imagePrompt } = await req.json();
+    const body = await req.json();
+    const { type, platform, topic, tone, imagePrompt, empresa_id, unidade_id, save } = body;
 
     const toneGuides: Record<string, string> = {
       informal: "Use linguagem informal, gírias leves e muitos emojis.",
@@ -44,6 +46,54 @@ serve(async (req) => {
       }
 
       const data = await response.json();
+      const imgB64Url: string | undefined = data?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+      // Salvar no bucket + tabela se solicitado
+      if (save && imgB64Url && empresa_id) {
+        try {
+          const supaUrl = Deno.env.get("SUPABASE_URL")!;
+          const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+          const supa = createClient(supaUrl, serviceKey);
+
+          // base64 -> bytes
+          const base64 = imgB64Url.split(",")[1] || imgB64Url;
+          const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+          const fileName = `imagens/${empresa_id}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.png`;
+
+          const { error: upErr } = await supa.storage
+            .from("marketing-assets")
+            .upload(fileName, bytes, { contentType: "image/png", upsert: false });
+          if (upErr) throw upErr;
+
+          const { data: pub } = supa.storage.from("marketing-assets").getPublicUrl(fileName);
+          const publicUrl = pub.publicUrl;
+
+          const { data: row, error: insErr } = await supa
+            .from("marketing_imagens")
+            .insert({
+              empresa_id,
+              unidade_id: unidade_id || null,
+              url: publicUrl,
+              origem: "ia",
+              prompt: imagePrompt || null,
+              titulo: (imagePrompt || "Imagem IA").slice(0, 80),
+            })
+            .select()
+            .single();
+          if (insErr) throw insErr;
+
+          return new Response(JSON.stringify({ image: { url: publicUrl }, record: row }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        } catch (saveErr) {
+          console.error("Erro ao salvar imagem:", saveErr);
+          // devolve a imagem em base64 mesmo assim
+          return new Response(JSON.stringify({ image: { url: imgB64Url }, error_save: String(saveErr) }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
