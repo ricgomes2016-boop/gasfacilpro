@@ -1480,104 +1480,14 @@ export default function Horarios() {
     <MainLayout>
       <Header title="Horários e Escalas" subtitle="Gestão de jornadas, turnos e escalas de entregadores" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        <Tabs defaultValue="jornadas">
+        <Tabs defaultValue="cobertura">
           <TabsList>
-            <TabsTrigger value="jornadas" className="gap-1"><Clock className="h-4 w-4" />Jornadas</TabsTrigger>
+            <TabsTrigger value="cobertura" className="gap-1"><Activity className="h-4 w-4" />Cobertura Horária</TabsTrigger>
             <TabsTrigger value="escalas" className="gap-1"><Calendar className="h-4 w-4" />Escalas Semanais</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="jornadas" className="space-y-4 mt-4">
-            <div className="flex items-center justify-between">
-              <Button className="gap-2" onClick={openNew}>
-                <Calendar className="h-4 w-4" />Novo Horário
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Com Horário</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{horarios.length}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Turno Manhã</CardTitle>
-                  <Sun className="h-4 w-4 text-warning" />
-                </CardHeader>
-                <CardContent><div className="text-2xl font-bold text-warning">{turnoManha}</div></CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Turno Tarde</CardTitle>
-                  <Moon className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent><div className="text-2xl font-bold text-primary">{turnoTarde}</div></CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Comercial</CardTitle>
-                  <Clock className="h-4 w-4 text-success" />
-                </CardHeader>
-                <CardContent><div className="text-2xl font-bold text-success">{horarios.length - turnoManha - turnoTarde}</div></CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader><CardTitle>Quadro de Horários</CardTitle></CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
-                ) : horarios.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Nenhum horário cadastrado</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Funcionário</TableHead>
-                        <TableHead>Cargo</TableHead>
-                        <TableHead>Turno</TableHead>
-                        <TableHead>Entrada</TableHead>
-                        <TableHead>Saída</TableHead>
-                        <TableHead>Intervalo</TableHead>
-                        <TableHead>Dias</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {horarios.map((h: any) => {
-                        const turnoLabel: Record<string, string> = { manha: "Manhã", tarde: "Tarde", comercial: "Comercial", noturno: "Noturno" };
-                        return (
-                          <TableRow key={h.id}>
-                            <TableCell className="font-medium">{h.funcionarios?.nome || h.entregadores?.nome || "N/A"}</TableCell>
-                            <TableCell>
-                              {h.entregador_id ? (
-                                <Badge variant="outline" className="gap-1"><Truck className="h-3 w-3" />Entregador</Badge>
-                              ) : h.funcionarios?.cargo || "-"}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={h.turno === "manha" ? "default" : h.turno === "tarde" ? "secondary" : "outline"}>
-                                {turnoLabel[h.turno] || h.turno}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{h.entrada}</TableCell>
-                            <TableCell>{h.saida}</TableCell>
-                            <TableCell>{h.intervalo}</TableCell>
-                            <TableCell>{h.dias_semana}</TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" onClick={() => openEdit(h)}><Edit className="h-4 w-4" /></Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
+          <TabsContent value="cobertura" className="mt-4">
+            <CoberturaTab />
           </TabsContent>
 
           <TabsContent value="escalas" className="mt-4">
