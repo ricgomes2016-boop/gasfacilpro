@@ -10,9 +10,25 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY não configurada");
 
-    const prompt = `Analise esta despesa/recibo/nota fiscal e extraia os dados em JSON.
-Campos: fornecedor (nome), cnpj (apenas dígitos ou null), data (YYYY-MM-DD), valor (número decimal), categoria (combustível, alimentação, materiais, serviços, etc), forma_pagamento (dinheiro/pix/cartão/boleto), descricao (resumo curto).
-Responda APENAS o JSON, sem markdown.`;
+    const prompt = `Você é um OCR fiscal brasileiro. Analise esta despesa/recibo/nota/cupom/boleto e extraia EXATAMENTE estes campos para preencher uma tabela contábil.
+
+Retorne JSON com TODAS estas chaves (use null quando não conseguir ler):
+{
+  "data": "YYYY-MM-DD",                  // data de emissão (ou vencimento se for boleto)
+  "fornecedor": "Razão social ou nome fantasia do estabelecimento",
+  "cnpj": "apenas dígitos, sem pontuação",
+  "descricao": "Resumo curto e claro: ex 'Combustível Posto Shell' ou 'Conta de energia EDP ref 11/2025'",
+  "categoria": "uma destas: Combustível, Alimentação, Materiais, Serviços, Energia, Água, Telefone/Internet, Aluguel, Manutenção, Frete, Impostos, Outros",
+  "valor": 0.00,                          // valor TOTAL pago em decimal (use ponto)
+  "forma_pagamento": "dinheiro|pix|cartão|boleto|null"
+}
+
+REGRAS:
+- "valor" SEMPRE numérico decimal (ex: 150.50). Nunca string.
+- "cnpj" só dígitos (ex: "12345678000199") ou null.
+- "data" sempre formato ISO YYYY-MM-DD.
+- "fornecedor" é o nome do EMITENTE (quem vendeu/prestou).
+- Responda APENAS o JSON puro, sem markdown, sem comentários.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
