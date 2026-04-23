@@ -173,6 +173,22 @@ export default function FolhaPagamento() {
     },
   });
 
+  // Diárias do mês (terceirizados)
+  const { data: diariasMes = [] } = useQuery({
+    queryKey: ["folha-diarias", unidadeAtual?.id, mesKey],
+    queryFn: async () => {
+      let query = supabase
+        .from("funcionario_diarias")
+        .select("funcionario_id, valor, status")
+        .neq("status", "cancelada")
+        .gte("data", format(startOfMonth(mesSelecionado), "yyyy-MM-dd"))
+        .lte("data", format(endOfMonth(mesSelecionado), "yyyy-MM-dd"));
+      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
+      const { data } = await query;
+      return data || [];
+    },
+  });
+
   const comissaoMap = useMemo(() => {
     const map = new Map<string, number>();
     comissaoConfig.forEach((c: any) => map.set(`${c.produto_id}|${c.canal_venda}`, Number(c.valor)));
@@ -223,20 +239,60 @@ export default function FolhaPagamento() {
     return map;
   }, [bonusMes]);
 
+  const diariasPorFunc = useMemo(() => {
+    const map = new Map<string, { total: number; qtd: number }>();
+    diariasMes.forEach((d: any) => {
+      const cur = map.get(d.funcionario_id) || { total: 0, qtd: 0 };
+      cur.total += Number(d.valor || 0);
+      cur.qtd += 1;
+      map.set(d.funcionario_id, cur);
+    });
+    return map;
+  }, [diariasMes]);
+
   const dadosFolha = useMemo(() => {
     return funcionarios.map((f: any) => {
-      const salarioBase = Number(f.salario) || 0;
-      const periculosidade = Math.round(salarioBase * 0.30 * 100) / 100; // 30% do salário
-      const bh = bancoHoras.find((b: any) => b.funcionario_id === f.id);
-      const horasExtras = bh ? Math.round(Number(bh.saldo_positivo) * 15) : 0;
+      const tipoVinculo = f.tipo_vinculo || "clt";
+      const regime = f.regime_pagamento || "mensal";
+      const isTerceirizado = tipoVinculo !== "clt";
+
       const entId = funcToEntregadorId.get(f.id);
       const comissao = entId ? (comissaoPorEntregador.get(entId) || 0) : 0;
       const valesDesconto = valesPorFunc.get(f.id) || 0;
       const bonusVal = bonusPorFunc.get(f.id) || 0;
+      const diariasInfo = diariasPorFunc.get(f.id) || { total: 0, qtd: 0 };
 
-      const salContrINSS = salarioBase + periculosidade; // Base de contribuição INSS
+      // Terceirizado: sem INSS/IR/periculosidade. Líquido = diárias + comissões + bonus - vales - outros
+      if (isTerceirizado) {
+        const edit = descontosEdit[f.id] || { inss: "", ir: "", outros: "" };
+        const outros = edit.outros !== "" ? parseFloat(edit.outros) || 0 : 0;
+        const bruto = diariasInfo.total + comissao + bonusVal;
+        const totalDescontos = valesDesconto + outros;
+        const liquido = bruto - totalDescontos;
+        return {
+          id: f.id,
+          funcionario: f.nome,
+          cargo: f.cargo || (tipoVinculo === "terceirizado" ? "Terceirizado" : tipoVinculo.toUpperCase()),
+          tipoVinculo,
+          regime,
+          diariasQtd: diariasInfo.qtd,
+          diariasTotal: diariasInfo.total,
+          salarioBase: 0, periculosidade: 0, horasExtras: 0,
+          comissao, valesDesconto, bonusVal,
+          inss: 0, ir: 0, outros,
+          bruto, totalDescontos, liquido,
+        };
+      }
+
+      // CLT: lógica original
+      const salarioBase = Number(f.salario) || 0;
+      const periculosidade = Math.round(salarioBase * 0.30 * 100) / 100;
+      const bh = bancoHoras.find((b: any) => b.funcionario_id === f.id);
+      const horasExtras = bh ? Math.round(Number(bh.saldo_positivo) * 15) : 0;
+
+      const salContrINSS = salarioBase + periculosidade;
       const edit = descontosEdit[f.id] || { inss: "", ir: "", outros: "" };
-      const inss = edit.inss !== "" ? parseFloat(edit.inss) || 0 : Math.round(salContrINSS * 0.0809 * 100) / 100; // 8,09%
+      const inss = edit.inss !== "" ? parseFloat(edit.inss) || 0 : Math.round(salContrINSS * 0.0809 * 100) / 100;
       const ir = edit.ir !== "" ? parseFloat(edit.ir) || 0 : 0;
       const outros = edit.outros !== "" ? parseFloat(edit.outros) || 0 : 0;
 
@@ -248,11 +304,15 @@ export default function FolhaPagamento() {
         id: f.id,
         funcionario: f.nome,
         cargo: f.cargo || "N/A",
+        tipoVinculo,
+        regime,
+        diariasQtd: 0,
+        diariasTotal: 0,
         salarioBase, periculosidade, horasExtras, comissao, valesDesconto, bonusVal,
         inss, ir, outros, bruto, totalDescontos, liquido,
       };
     });
-  }, [funcionarios, bancoHoras, funcToEntregadorId, comissaoPorEntregador, valesPorFunc, bonusPorFunc, descontosEdit]);
+  }, [funcionarios, bancoHoras, funcToEntregadorId, comissaoPorEntregador, valesPorFunc, bonusPorFunc, diariasPorFunc, descontosEdit]);
 
   const totalBruto = dadosFolha.reduce((acc, f) => acc + f.bruto, 0);
   const totalDescontos = dadosFolha.reduce((acc, f) => acc + f.totalDescontos, 0);

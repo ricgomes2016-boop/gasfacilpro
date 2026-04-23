@@ -67,6 +67,11 @@ const emptyForm = {
   login_password: "",
   terminal_id: "",
   unidade_id: "",
+  // Vínculo e regime
+  tipo_vinculo: "clt",
+  regime_pagamento: "mensal",
+  valor_diaria: "",
+  entra_na_escala: false,
 };
 
 export default function Funcionarios() {
@@ -149,6 +154,9 @@ export default function Funcionarios() {
     setSaving(true);
 
     try {
+      const regimeUsaSalario = form.regime_pagamento === "mensal" || form.regime_pagamento === "misto";
+      const regimeUsaDiaria = form.regime_pagamento === "diaria" || form.regime_pagamento === "misto";
+
       const payload: any = {
         nome: form.nome,
         cpf: form.cpf || null,
@@ -157,8 +165,12 @@ export default function Funcionarios() {
         cargo: form.is_entregador ? "Entregador" : (form.cargo || null),
         setor: form.setor || null,
         data_admissao: form.data_admissao || null,
-        salario: form.salario ? parseFloat(form.salario) : 0,
+        salario: regimeUsaSalario && form.salario ? parseFloat(form.salario) : 0,
         endereco: form.endereco || null,
+        tipo_vinculo: form.tipo_vinculo || "clt",
+        regime_pagamento: form.regime_pagamento || "mensal",
+        valor_diaria: regimeUsaDiaria && form.valor_diaria ? parseFloat(form.valor_diaria) : 0,
+        entra_na_escala: !!form.entra_na_escala,
       };
       // unidade_id: usa o selecionado no form, ou o atual da empresa, ou null
       if (form.unidade_id) {
@@ -256,6 +268,7 @@ export default function Funcionarios() {
 
   const handleEdit = (f: Funcionario) => {
     const entregador = getEntregadorForFuncionario(f.id);
+    const fAny = f as any;
     setForm({
       nome: f.nome,
       cpf: f.cpf || "",
@@ -272,6 +285,10 @@ export default function Funcionarios() {
       login_password: "",
       terminal_id: entregador?.terminal_id || "",
       unidade_id: f.unidade_id || "",
+      tipo_vinculo: fAny.tipo_vinculo || "clt",
+      regime_pagamento: fAny.regime_pagamento || "mensal",
+      valor_diaria: fAny.valor_diaria?.toString() || "",
+      entra_na_escala: !!fAny.entra_na_escala,
     });
     setEditId(f.id);
     setOpen(true);
@@ -370,11 +387,13 @@ export default function Funcionarios() {
                   <Label>Data de Admissão</Label>
                   <Input value={form.data_admissao} onChange={e => setForm({...form, data_admissao: e.target.value})} type="date" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Salário</Label>
-                  <Input value={form.salario} onChange={e => setForm({...form, salario: e.target.value})} placeholder="2500.00" />
-                </div>
-                <div className="space-y-2 col-span-2">
+                {(form.regime_pagamento === "mensal" || form.regime_pagamento === "misto") && (
+                  <div className="space-y-2">
+                    <Label>Salário {form.regime_pagamento === "misto" ? "(parte fixa)" : ""}</Label>
+                    <Input value={form.salario} onChange={e => setForm({...form, salario: e.target.value})} placeholder="2500.00" />
+                  </div>
+                )}
+                <div className={`space-y-2 ${(form.regime_pagamento === "mensal" || form.regime_pagamento === "misto") ? "" : "col-span-2"}`}>
                   <Label>Endereço</Label>
                   <Input value={form.endereco} onChange={e => setForm({...form, endereco: e.target.value})} placeholder="Rua, número, bairro" />
                 </div>
@@ -403,6 +422,75 @@ export default function Funcionarios() {
                   <p className="text-xs text-muted-foreground">
                     Você pode mover este funcionário para outra filial a qualquer momento.
                   </p>
+                </div>
+
+                {/* Vínculo e pagamento */}
+                <div className="col-span-2 border rounded-lg p-4 space-y-3 bg-muted/20">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-primary" />
+                    <Label className="text-base font-medium">Vínculo e pagamento</Label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Tipo de vínculo</Label>
+                      <Select
+                        value={form.tipo_vinculo}
+                        onValueChange={(v) => setForm({ ...form, tipo_vinculo: v })}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="clt">CLT</SelectItem>
+                          <SelectItem value="terceirizado">Terceirizado</SelectItem>
+                          <SelectItem value="freelancer">Freelancer</SelectItem>
+                          <SelectItem value="pj">PJ</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Regime de pagamento</Label>
+                      <Select
+                        value={form.regime_pagamento}
+                        onValueChange={(v) => setForm({ ...form, regime_pagamento: v })}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mensal">Mensal (salário)</SelectItem>
+                          <SelectItem value="diaria">Diária</SelectItem>
+                          <SelectItem value="por_produto">Por produto</SelectItem>
+                          <SelectItem value="misto">Misto (diária + produto)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {(form.regime_pagamento === "diaria" || form.regime_pagamento === "misto") && (
+                      <div className="space-y-1 col-span-2">
+                        <Label className="text-xs">Valor da diária (R$)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={form.valor_diaria}
+                          onChange={(e) => setForm({ ...form, valor_diaria: e.target.value })}
+                          placeholder="120.00"
+                        />
+                      </div>
+                    )}
+                    {(form.regime_pagamento === "por_produto" || form.regime_pagamento === "misto") && (
+                      <p className="col-span-2 text-xs text-muted-foreground">
+                        Valores por produto são definidos em <strong>RH → Comissão</strong>, no editor de comissões (selecione este funcionário para uma regra individual).
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <div>
+                      <Label className="text-sm">Entra na escala de trabalho</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Permite escalar este funcionário em RH/Horários mesmo sem ser entregador formal.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={form.entra_na_escala}
+                      onCheckedChange={(v) => setForm({ ...form, entra_na_escala: v })}
+                    />
+                  </div>
                 </div>
 
                 {/* Entregador toggle */}

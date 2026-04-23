@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  Clock, Users, Edit, Calendar, Sun, Moon, Truck, Plus, Pencil, Trash2, Loader2, MapPin, X, CalendarDays, CalendarCheck, Sparkles, Info, UserPlus, Activity, Flame, AlertTriangle, LayoutGrid, List, Star,
+  Clock, Users, Edit, Calendar, Sun, Moon, Truck, Plus, Pencil, Trash2, Loader2, MapPin, X, CalendarDays, CalendarCheck, Sparkles, Info, UserPlus, Activity, Flame, AlertTriangle, LayoutGrid, List, Star, Wallet,
 } from "lucide-react";
+import { DiariasTerceirizadosTab } from "@/components/rh/DiariasTerceirizadosTab";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -1499,6 +1500,7 @@ export default function Horarios() {
           <TabsList>
             <TabsTrigger value="cobertura" className="gap-1"><Activity className="h-4 w-4" />Cobertura Horária</TabsTrigger>
             <TabsTrigger value="escalas" className="gap-1"><Calendar className="h-4 w-4" />Escalas Semanais</TabsTrigger>
+            <TabsTrigger value="diarias" className="gap-1"><Wallet className="h-4 w-4" />Diárias (Terceirizados)</TabsTrigger>
           </TabsList>
 
           <TabsContent value="cobertura" className="mt-4">
@@ -1507,6 +1509,10 @@ export default function Horarios() {
 
           <TabsContent value="escalas" className="mt-4">
             <EscalasTab />
+          </TabsContent>
+
+          <TabsContent value="diarias" className="mt-4">
+            <DiariasTerceirizadosTab />
           </TabsContent>
         </Tabs>
       </div>
