@@ -22,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ConectarRedeSocialButton } from "@/components/marketing/ConectarRedeSocialButton";
 import { CriarPaginaWizard } from "@/components/marketing/CriarPaginaWizard";
+import { MetaAppStatusBanner } from "@/components/marketing/MetaAppStatusBanner";
 
 const plataformas = [
   { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500" },
@@ -98,6 +99,8 @@ export default function RedesSociais() {
     <MainLayout>
       <Header title="Redes Sociais" subtitle="Conecte e gerencie suas contas por unidade" />
       <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
+        <MetaAppStatusBanner />
+
         {/* Hero — conexão real */}
         <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/0">
           <CardContent className="p-5 md:p-6">

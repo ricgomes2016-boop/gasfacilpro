@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Settings,
   Bell,
+  Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ const navItems = [
   { label: "Empresas", href: "/admin/empresas", icon: Building2, description: "Gerenciar tenants" },
   { label: "Unidades", href: "/admin/unidades", icon: MapPin, description: "Filiais e matrizes" },
   { label: "Administradores", href: "/admin/admins", icon: Users, description: "Gestores das empresas" },
+  { label: "Integrações Meta", href: "/admin/meta-integracoes", icon: Share2, description: "Conexões OAuth Facebook/Instagram" },
 ];
 
 export function AdminLayout({ children }: { children: ReactNode }) {
