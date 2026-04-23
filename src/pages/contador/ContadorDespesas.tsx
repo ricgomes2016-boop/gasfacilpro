@@ -173,6 +173,33 @@ export default function ContadorDespesas() {
     return true;
   });
 
+  const todosSelecionadosVisiveis = filtered.length > 0 && filtered.every((d) => selecionados.has(d.id));
+  const algumSelecionado = selecionados.size > 0;
+  const linhasParaExportar = algumSelecionado
+    ? filtered.filter((d) => selecionados.has(d.id))
+    : filtered;
+
+  const toggleSelecionado = (id: string) => {
+    setSelecionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleTodos = () => {
+    setSelecionados((prev) => {
+      if (todosSelecionadosVisiveis) {
+        const next = new Set(prev);
+        filtered.forEach((d) => next.delete(d.id));
+        return next;
+      }
+      const next = new Set(prev);
+      filtered.forEach((d) => next.add(d.id));
+      return next;
+    });
+  };
+  const limparSelecao = () => setSelecionados(new Set());
+
   const statusColors: Record<string, string> = {
     pendente: "bg-amber-500/15 text-amber-400 border-amber-500/30",
     classificada: "bg-blue-500/15 text-blue-400 border-blue-500/30",
