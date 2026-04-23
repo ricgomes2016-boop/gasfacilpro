@@ -38,10 +38,25 @@ interface Escala {
   data: string;
   turno_inicio: string;
   turno_fim: string;
+  almoco_inicio: string | null;
+  almoco_fim: string | null;
   status: string;
   observacoes: string | null;
   entregadores: { nome: string } | null;
   rotas_definidas: { nome: string } | null;
+}
+
+// Calcula horas líquidas (turno - almoço quando definido)
+function calcHoras(inicio: string, fim: string, almIni?: string | null, almFim?: string | null): number {
+  const toMin = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  };
+  let total = toMin(fim) - toMin(inicio);
+  if (almIni && almFim) {
+    total -= Math.max(0, toMin(almFim) - toMin(almIni));
+  }
+  return Math.max(0, total) / 60;
 }
 
 function EscalasTab() {
