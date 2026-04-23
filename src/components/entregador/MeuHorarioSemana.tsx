@@ -131,7 +131,7 @@ export function MeuHorarioSemana() {
                         {temAlmoco && (
                           <Badge
                             variant="outline"
-                            className="font-mono text-[11px] gap-1 px-2 py-0.5 border-amber-500/40 text-amber-700 dark:text-amber-400"
+                            className="font-mono text-[11px] gap-1 px-2 py-0.5 border-warning/40 text-warning"
                           >
                             <Coffee className="h-3 w-3" />
                             {fmtHora(esc.almoco_inicio)}–{fmtHora(esc.almoco_fim)}
