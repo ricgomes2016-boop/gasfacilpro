@@ -5266,6 +5266,51 @@ export type Database = {
           },
         ]
       }
+      marketing_imagens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          empresa_id: string
+          favorito: boolean
+          id: string
+          origem: string
+          prompt: string | null
+          tags: string | null
+          titulo: string | null
+          unidade_id: string | null
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          empresa_id: string
+          favorito?: boolean
+          id?: string
+          origem: string
+          prompt?: string | null
+          tags?: string | null
+          titulo?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          empresa_id?: string
+          favorito?: boolean
+          id?: string
+          origem?: string
+          prompt?: string | null
+          tags?: string | null
+          titulo?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       marketing_metricas: {
         Row: {
           agendamento_id: string | null
