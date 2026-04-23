@@ -458,6 +458,24 @@ export default function TranspCompras() {
           </TabsList>
 
           <TabsContent value="compras" className="space-y-4 mt-4">
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 h-9"
+                onClick={() => {
+                  const el = document.getElementById("painel-importar-xml");
+                  if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    el.classList.add("ring-2", "ring-primary");
+                    setTimeout(() => el.classList.remove("ring-2", "ring-primary"), 1500);
+                  }
+                }}
+              >
+                <Download className="h-4 w-4" />
+                Importar XML do e-mail
+              </Button>
+            </div>
             {/* Resumo Mensal */}
             {resumoMensal && (
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
