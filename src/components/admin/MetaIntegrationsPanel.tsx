@@ -7,6 +7,9 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CheckCircle2, AlertCircle, Facebook, Instagram } from "lucide-react";
 
+// Cores semânticas: green/pink/blue/amber são tokens utilitários do tailwind
+// usados consistentemente em toda a base para indicar status (ok/social/alert).
+
 export function MetaIntegrationsPanel() {
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["admin-meta-integrations"],
