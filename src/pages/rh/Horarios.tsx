@@ -343,6 +343,75 @@ function EscalasTab() {
     return map;
   }, [escalas]);
 
+  // Filtra: somente entregadores com ao menos 1 escala na semana + extras adicionados
+  const entregadoresVisiveis = useMemo(() => {
+    const idsComEscala = new Set(escalas.map((e) => e.entregador_id));
+    const idsTotais = new Set([...idsComEscala, ...extraEntregadorIds]);
+    return entregadores
+      .filter((e) => idsTotais.has(e.id))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [entregadores, escalas, extraEntregadorIds]);
+
+  // Limpa extras que já têm escala (não precisa mais ser "extra")
+  useEffect(() => {
+    const idsComEscala = new Set(escalas.map((e) => e.entregador_id));
+    setExtraEntregadorIds((prev) => prev.filter((id) => !idsComEscala.has(id)));
+  }, [escalas]);
+
+  const entregadoresDisponiveisParaAdicionar = useMemo(
+    () => entregadores.filter((e) => !entregadoresVisiveis.some((v) => v.id === e.id)),
+    [entregadores, entregadoresVisiveis]
+  );
+
+  // Sugestão IA
+  const handleSugerirIA = async () => {
+    setIaLoading(true);
+    setIaProposta(null);
+    setIaOpen(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sugerir-escala-ia", {
+        body: { unidade_id: unidadeAtual?.id || null, inicio_semana: filtroSemana },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setIaProposta(data);
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar sugestão", description: e.message || "Tente novamente", variant: "destructive" });
+      setIaOpen(false);
+    } finally {
+      setIaLoading(false);
+    }
+  };
+
+  const handleAplicarIA = async () => {
+    if (!iaProposta) return;
+    setIaApplying(true);
+    let criadas = 0;
+    let conflitos = 0;
+    for (const esc of iaProposta.escalas) {
+      const { error } = await supabase.from("escalas_entregador").insert({
+        entregador_id: esc.entregador_id,
+        data: esc.data,
+        turno_inicio: esc.turno_inicio,
+        turno_fim: esc.turno_fim,
+        almoco_inicio: esc.almoco_inicio || null,
+        almoco_fim: esc.almoco_fim || null,
+        rota_definida_id: esc.rota_definida_id || null,
+        unidade_id: unidadeAtual?.id || null,
+      });
+      if (error) conflitos++;
+      else criadas++;
+    }
+    setIaApplying(false);
+    setIaOpen(false);
+    setIaProposta(null);
+    toast({
+      title: "Escala sugerida aplicada",
+      description: `${criadas} turno(s) criado(s)${conflitos > 0 ? ` · ${conflitos} já existiam` : ""}`,
+    });
+    fetchAll();
+  };
+
   return (
     <div className="space-y-4 w-full min-w-0">
       {/* Header actions */}
@@ -351,6 +420,16 @@ function EscalasTab() {
           <Button onClick={() => openNew()} size="sm"><Plus className="h-4 w-4 mr-1" />Nova Escala</Button>
           <Button variant="outline" size="sm" onClick={openBulk}>
             <CalendarCheck className="h-4 w-4 mr-1" />Aplicar Escala da Semana
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSugerirIA}
+            disabled={iaLoading}
+            className="border-primary/30 text-primary hover:bg-primary/5"
+          >
+            <Sparkles className="h-4 w-4 mr-1" />
+            Sugerir Escala (IA)
           </Button>
         </div>
       </div>
@@ -382,8 +461,14 @@ function EscalasTab() {
           <div className="text-2xl font-bold">{entregadoresEscalados}</div>
         </CardContent></Card>
         <Card><CardContent className="p-3 sm:p-4">
-          <div className="text-xs text-muted-foreground">Horas previstas</div>
+          <div className="text-xs text-muted-foreground">Horas previstas (líquidas)</div>
           <div className="text-2xl font-bold">{horasTotais.toFixed(1)}h</div>
+          {escalasComAlmocoEstimado > 0 && (
+            <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
+              <Info className="h-3 w-3" />
+              {escalasComAlmocoEstimado} com almoço estimado
+            </div>
+          )}
         </CardContent></Card>
         <Card><CardContent className="p-3 sm:p-4">
           <div className="text-xs text-muted-foreground">Dias sem cobertura</div>
@@ -403,6 +488,21 @@ function EscalasTab() {
           ) : entregadores.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">
               Nenhum entregador ativo nesta unidade.
+            </div>
+          ) : entregadoresVisiveis.length === 0 ? (
+            <div className="text-center py-12 px-4 space-y-3">
+              <Calendar className="h-10 w-10 mx-auto text-muted-foreground/50" />
+              <div className="text-sm text-muted-foreground">
+                Nenhuma escala cadastrada nesta semana.
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                <Button onClick={() => openNew()} size="sm">
+                  <Plus className="h-4 w-4 mr-1" />Criar primeira escala
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setAddRowOpen(true)}>
+                  <UserPlus className="h-4 w-4 mr-1" />Adicionar entregador à semana
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto w-full min-w-0">
@@ -434,7 +534,7 @@ function EscalasTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {entregadores.map((ent) => (
+                  {entregadoresVisiveis.map((ent) => (
                     <TableRow key={ent.id}>
                       <TableCell className="sticky left-0 bg-background z-10 font-medium border-r truncate max-w-[200px]">
                         {ent.nome}
@@ -460,6 +560,14 @@ function EscalasTab() {
                         }
 
                         const folga = isFolga(escala);
+                        const c = calcHoras(escala.turno_inicio, escala.turno_fim, escala.almoco_inicio, escala.almoco_fim);
+                        const tooltip = folga
+                          ? "Folga"
+                          : escala.almoco_inicio && escala.almoco_fim
+                            ? `Turno: ${escala.turno_inicio.slice(0,5)}–${escala.turno_fim.slice(0,5)} • Almoço: ${escala.almoco_inicio.slice(0,5)}–${escala.almoco_fim.slice(0,5)} • Líquido: ${c.horas.toFixed(1)}h`
+                            : c.estimado
+                              ? `Turno: ${escala.turno_inicio.slice(0,5)}–${escala.turno_fim.slice(0,5)} • Líquido: ${c.horas.toFixed(1)}h (almoço estimado: 1h — não cadastrado, cadastre para precisão)`
+                              : `Turno: ${escala.turno_inicio.slice(0,5)}–${escala.turno_fim.slice(0,5)} • ${c.horas.toFixed(1)}h`;
                         return (
                           <TableCell
                             key={dataStr}
@@ -468,13 +576,7 @@ function EscalasTab() {
                               isHoje && "bg-primary/5"
                             )}
                             onClick={() => openEdit(escala)}
-                            title={
-                              folga
-                                ? "Folga"
-                                : escala.almoco_inicio && escala.almoco_fim
-                                  ? `Turno: ${escala.turno_inicio.slice(0,5)}–${escala.turno_fim.slice(0,5)} • Almoço: ${escala.almoco_inicio.slice(0,5)}–${escala.almoco_fim.slice(0,5)} • Líquido: ${calcHoras(escala.turno_inicio, escala.turno_fim, escala.almoco_inicio, escala.almoco_fim).toFixed(1)}h`
-                                  : `Turno: ${escala.turno_inicio.slice(0,5)}–${escala.turno_fim.slice(0,5)} • ${calcHoras(escala.turno_inicio, escala.turno_fim).toFixed(1)}h`
-                            }
+                            title={tooltip}
                           >
                             <div className="flex flex-col gap-1 items-stretch">
                               {folga ? (
@@ -487,8 +589,9 @@ function EscalasTab() {
                                   <div>{escala.almoco_fim.slice(0,5)}–{escala.turno_fim.slice(0,5)}</div>
                                 </div>
                               ) : (
-                                <div className="text-xs font-semibold text-center">
-                                  {escala.turno_inicio.slice(0, 5)}-{escala.turno_fim.slice(0, 5)}
+                                <div className="text-xs font-semibold text-center flex items-center justify-center gap-0.5">
+                                  <span>{escala.turno_inicio.slice(0, 5)}-{escala.turno_fim.slice(0, 5)}</span>
+                                  {c.estimado && <Info className="h-2.5 w-2.5 text-warning shrink-0" />}
                                 </div>
                               )}
                               {escala.rotas_definidas && (
@@ -518,10 +621,127 @@ function EscalasTab() {
                   ))}
                 </TableBody>
               </Table>
+              {entregadoresDisponiveisParaAdicionar.length > 0 && (
+                <div className="border-t p-3 flex justify-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAddRowOpen(true)}
+                    className="text-muted-foreground"
+                  >
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Adicionar entregador à semana
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Modal: Adicionar entregador à semana */}
+      <Dialog open={addRowOpen} onOpenChange={setAddRowOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" />
+              Adicionar entregador à semana
+            </DialogTitle>
+            <DialogDescription>
+              Inclui o entregador na grade para você criar escalas clicando nas células.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 mt-2 max-h-[50vh] overflow-y-auto">
+            {entregadoresDisponiveisParaAdicionar.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Todos os entregadores já estão na grade.
+              </p>
+            ) : (
+              entregadoresDisponiveisParaAdicionar.map((e) => (
+                <Button
+                  key={e.id}
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setExtraEntregadorIds((prev) => [...prev, e.id]);
+                    setAddRowOpen(false);
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  {e.nome}
+                </Button>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Sugestão IA */}
+      <Dialog open={iaOpen} onOpenChange={(o) => { if (!iaApplying) setIaOpen(o); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Sugestão Inteligente de Escala
+            </DialogTitle>
+            <DialogDescription>
+              Proposta gerada com base no histórico de 4 semanas e na demanda de pedidos.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            {iaLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">A IA está analisando o histórico...</p>
+              </div>
+            ) : iaProposta ? (
+              <>
+                <div className="bg-primary/5 border border-primary/20 rounded-md p-3 text-sm">
+                  <strong className="text-primary">Estratégia:</strong> {iaProposta.resumo}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {iaProposta.escalas.length} turno(s) propostos. Conflitos com escalas existentes serão ignorados.
+                </div>
+                <div className="max-h-[40vh] overflow-y-auto border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Entregador</TableHead>
+                        <TableHead className="text-xs">Data</TableHead>
+                        <TableHead className="text-xs">Turno</TableHead>
+                        <TableHead className="text-xs">Almoço</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {iaProposta.escalas.map((esc, i) => {
+                        const ent = entregadores.find((e) => e.id === esc.entregador_id);
+                        return (
+                          <TableRow key={i} className="bg-primary/5">
+                            <TableCell className="text-xs py-1.5">{ent?.nome || esc.entregador_id.slice(0, 8)}</TableCell>
+                            <TableCell className="text-xs py-1.5">{format(parseISO(esc.data), "EEE dd/MM", { locale: ptBR })}</TableCell>
+                            <TableCell className="text-xs py-1.5">{esc.turno_inicio}–{esc.turno_fim}</TableCell>
+                            <TableCell className="text-xs py-1.5">
+                              {esc.almoco_inicio && esc.almoco_fim ? `${esc.almoco_inicio}–${esc.almoco_fim}` : "—"}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <Button variant="outline" onClick={() => setIaOpen(false)} className="flex-1" disabled={iaApplying}>
+                    Descartar
+                  </Button>
+                  <Button onClick={handleAplicarIA} className="flex-1" disabled={iaApplying}>
+                    {iaApplying ? <Loader2 className="h-4 w-4 animate-spin" /> : `Aplicar tudo (${iaProposta.escalas.length})`}
+                  </Button>
+                </div>
+              </>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal Nova/Editar Escala */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
