@@ -9,16 +9,19 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import {
   BarChart3, Calendar, FileText, Share2, MessageSquare, Sparkles,
-  TrendingUp, Eye, Heart, MousePointerClick, ArrowRight, Megaphone,
+  TrendingUp, Eye, Heart, MousePointerClick, ArrowRight, Megaphone, Link2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useState } from "react";
+import { ConectarRedesModal } from "@/components/marketing/ConectarRedesModal";
 
 export default function DashboardMarketing() {
   const navigate = useNavigate();
   const { empresa } = useEmpresa();
   const { unidadeAtual } = useUnidade();
   const empresaId = empresa?.id;
+  const [conectarOpen, setConectarOpen] = useState(false);
 
   const { data: conteudos = [] } = useQuery({
     queryKey: ["mkt-conteudos-count", empresaId],
@@ -97,6 +100,7 @@ export default function DashboardMarketing() {
       icon: Share2,
       color: "text-violet-500",
       bg: "bg-violet-500/10",
+      action: { label: "Conectar", onClick: () => setConectarOpen(true) },
     },
     {
       label: "Conversas Ativas",
@@ -108,6 +112,7 @@ export default function DashboardMarketing() {
   ];
 
   const quickActions = [
+    { label: "Conectar Rede", icon: Link2, color: "text-primary", onClick: () => setConectarOpen(true) },
     { label: "Criar Conteúdo IA", path: "/clientes/marketing", icon: Sparkles, color: "text-violet-500" },
     { label: "Agendar Post", path: "/marketing/agendamentos", icon: Calendar, color: "text-emerald-500" },
     { label: "Redes Sociais", path: "/marketing/redes-sociais", icon: Share2, color: "text-blue-500" },
@@ -135,9 +140,20 @@ export default function DashboardMarketing() {
                 <div className={`p-2.5 rounded-xl ${kpi.bg}`}>
                   <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="text-2xl font-bold">{kpi.value}</p>
                   <p className="text-xs text-muted-foreground">{kpi.label}</p>
+                  {(kpi as any).action && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-xs text-primary"
+                      onClick={(kpi as any).action.onClick}
+                    >
+                      <Link2 className="h-3 w-3 mr-1" />
+                      {(kpi as any).action.label}
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -156,10 +172,10 @@ export default function DashboardMarketing() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
               {quickActions.map((action) => (
                 <Button
-                  key={action.path}
+                  key={action.label}
                   variant="outline"
                   className="h-auto flex-col gap-2 py-4 hover:bg-accent/50"
-                  onClick={() => navigate(action.path)}
+                  onClick={() => (action as any).onClick ? (action as any).onClick() : navigate((action as any).path)}
                 >
                   <action.icon className={`h-5 w-5 ${action.color}`} />
                   <span className="text-xs font-medium">{action.label}</span>
@@ -243,6 +259,13 @@ export default function DashboardMarketing() {
           </Card>
         </div>
       </div>
+
+      <ConectarRedesModal
+        open={conectarOpen}
+        onOpenChange={setConectarOpen}
+        unidadeId={unidadeAtual?.id}
+        contasConectadas={socialAccounts as any}
+      />
     </MainLayout>
   );
 }
