@@ -172,10 +172,10 @@ export default function DashboardMarketing() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
               {quickActions.map((action) => (
                 <Button
-                  key={action.path}
+                  key={action.label}
                   variant="outline"
                   className="h-auto flex-col gap-2 py-4 hover:bg-accent/50"
-                  onClick={() => navigate(action.path)}
+                  onClick={() => (action as any).onClick ? (action as any).onClick() : navigate((action as any).path)}
                 >
                   <action.icon className={`h-5 w-5 ${action.color}`} />
                   <span className="text-xs font-medium">{action.label}</span>
