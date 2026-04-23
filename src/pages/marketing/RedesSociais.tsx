@@ -9,7 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Share2, Instagram, Facebook, Youtube, Music2, Check, X, Sparkles, Zap, Info } from "lucide-react";
+import { Plus, Trash2, Share2, Instagram, Facebook, Youtube, Music2, Check, X, Sparkles, Zap, Info, CheckCircle2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -175,10 +178,30 @@ export default function RedesSociais() {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm truncate">{acc.nome_conta}</p>
                       {acc.username && <p className="text-xs text-muted-foreground truncate">@{acc.username}</p>}
-                      <div className="flex items-center gap-1 mt-1">
-                        <Badge variant={isOAuth ? "default" : "secondary"} className="text-[10px]">
-                          {isOAuth ? "🔗 OAuth" : "Manual"}
-                        </Badge>
+                      {isOAuth && acc.token_expires_at && (
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          Token válido até {format(new Date(acc.token_expires_at), "dd/MM/yyyy", { locale: ptBR })}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                        <TooltipProvider delayDuration={150}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {isOAuth ? (
+                                <Badge className="gap-1 bg-green-500/15 text-green-700 dark:text-green-400 border border-green-500/30 hover:bg-green-500/20 text-[10px]">
+                                  <CheckCircle2 className="h-3 w-3" /> Conectado via OAuth
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="text-[10px]">Cadastro manual</Badge>
+                              )}
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {isOAuth
+                                ? "Publicação automática habilitada — posts agendados publicam sozinhos."
+                                : "Apenas lembrete — não publica automaticamente."}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                         <Badge variant={acc.ativo ? "default" : "outline"} className="text-[10px]">
                           {acc.ativo ? "Ativa" : "Inativa"}
                         </Badge>
