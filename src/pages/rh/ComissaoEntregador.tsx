@@ -7,7 +7,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter,
 } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DollarSign, TrendingUp, Package, Calculator, Printer, Edit2, Save, X, AlertTriangle } from "lucide-react";
+import { DollarSign, TrendingUp, Package, Calculator, Printer, Edit2, Save, X, AlertTriangle, RefreshCw } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -67,33 +67,39 @@ export default function ComissaoEntregador() {
     return meses;
   }, []);
 
-  // Buscar config de comissões do banco (com nome do produto para mapear por nome também)
+  // Buscar TODAS as configs de comissão (cross-unit) para permitir fallback automático entre lojas
   const { data: comissaoConfig = [] } = useQuery({
     queryKey: ["comissao-config", unidadeAtual?.id],
     queryFn: async () => {
-      let query = supabase
+      const { data } = await supabase
         .from("comissao_config")
         .select("produto_id, canal_venda, valor, unidade_id, produtos(nome)");
-      if (unidadeAtual?.id) {
-        query = query.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
-      }
-      const { data } = await query;
       return data || [];
     },
   });
+
+  // Detecta se a unidade atual NÃO tem nenhuma config própria (vai usar fallback)
+  const unidadeUsandoFallback = useMemo(() => {
+    if (!unidadeAtual?.id || comissaoConfig.length === 0) return false;
+    return !comissaoConfig.some((c: any) => c.unidade_id === unidadeAtual.id);
+  }, [comissaoConfig, unidadeAtual?.id]);
 
   // Normalize: lowercase, remove accents, trim
   const normalize = (s: string) =>
     s?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim() || "";
   const normalizeCanal = normalize;
 
-  // Map config: chave por produto_id E por nome normalizado (fallback p/ produtos duplicados entre unidades)
+  // Map config: prioridade unidade atual > null (global) > outras unidades.
+  // Iteramos do MENOR para MAIOR prioridade — o último set "vence".
   const comissaoMap = useMemo(() => {
     const byId = new Map<string, number>();
     const byName = new Map<string, number>();
-    const sorted = [...comissaoConfig].sort(
-      (a: any, b: any) => (a.unidade_id ? 1 : 0) - (b.unidade_id ? 1 : 0)
-    );
+    const prio = (c: any) => {
+      if (unidadeAtual?.id && c.unidade_id === unidadeAtual.id) return 3;
+      if (!c.unidade_id) return 2;
+      return 1; // outras unidades (fallback)
+    };
+    const sorted = [...comissaoConfig].sort((a: any, b: any) => prio(a) - prio(b));
     sorted.forEach((c: any) => {
       const canal = normalizeCanal(c.canal_venda);
       const valor = Number(c.valor) || 0;
@@ -102,7 +108,7 @@ export default function ComissaoEntregador() {
       if (nome && valor > 0) byName.set(`${nome}|${canal}`, valor);
     });
     return { byId, byName };
-  }, [comissaoConfig]);
+  }, [comissaoConfig, unidadeAtual?.id]);
 
   const lookupComissao = (produtoId: string, produtoNome: string, canal: string) => {
     const c = normalizeCanal(canal);
@@ -353,8 +359,35 @@ export default function ComissaoEntregador() {
           </div>
           <div className="flex items-end pt-5 gap-2">
             <ComissaoConfigEditor />
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ["comissao-config"] });
+                queryClient.invalidateQueries({ queryKey: ["comissao-detalhada"] });
+                queryClient.invalidateQueries({ queryKey: ["entregadores-comissao"] });
+                queryClient.invalidateQueries({ queryKey: ["comissao-comparativo"] });
+                toast.success("Comissões recalculadas com base na configuração atual");
+              }}
+            >
+              <RefreshCw className="h-4 w-4" />
+              Recalcular
+            </Button>
           </div>
         </div>
+
+        {/* Banner de fallback cross-unit */}
+        {unidadeUsandoFallback && (
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Usando configuração de outra loja</AlertTitle>
+            <AlertDescription>
+              A unidade <strong>{unidadeAtual?.nome}</strong> não tem comissões cadastradas próprias.
+              Estamos usando como fallback automático a configuração das demais lojas da empresa.
+              Recomenda-se cadastrar valores específicos em <strong>Configurar Comissões</strong>.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Cards resumo */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

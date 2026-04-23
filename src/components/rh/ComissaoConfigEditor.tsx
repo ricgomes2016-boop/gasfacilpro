@@ -111,7 +111,7 @@ export function ComissaoConfigEditor() {
     }
   }, [produtos, canaisVenda, configExistente]);
 
-  // Save mutation
+  // Save mutation (upsert idempotente, sem delete)
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!selectedUnidadeId) throw new Error("Selecione uma loja");
@@ -128,14 +128,10 @@ export function ComissaoConfigEditor() {
         });
       });
 
-      // Delete existing for this unidade and insert new
-      await supabase
-        .from("comissao_config")
-        .delete()
-        .eq("unidade_id", selectedUnidadeId);
-
       if (upserts.length > 0) {
-        const { error } = await supabase.from("comissao_config").insert(upserts);
+        const { error } = await supabase
+          .from("comissao_config")
+          .upsert(upserts, { onConflict: "unidade_id,produto_id,canal_venda" });
         if (error) throw error;
       }
     },
