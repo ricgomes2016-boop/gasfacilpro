@@ -130,6 +130,21 @@ export default function ContadorDespesas() {
     if (cameraRef.current) cameraRef.current.value = "";
   };
 
+  const updateDespesa = async (id: string, patch: Partial<DespesaRow>) => {
+    const prev = despesas.find((x) => x.id === id);
+    if (!prev) return;
+    setDespesas((arr) => arr.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+    const { error } = await (supabase.from("despesas_contabeis" as any) as any)
+      .update(patch)
+      .eq("id", id);
+    if (error) {
+      setDespesas((arr) => arr.map((x) => (x.id === id ? prev : x)));
+      toast.error("Erro ao salvar: " + error.message);
+    } else {
+      toast.success("Despesa atualizada");
+    }
+  };
+
   const marcarBaixada = async (id: string) => {
     const { error } = await (supabase.from("despesas_contabeis" as any) as any)
       .update({ status: "baixada", contador_baixou_em: new Date().toISOString(), contador_user_id: user?.id })
