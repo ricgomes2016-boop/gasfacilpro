@@ -1,90 +1,83 @@
 
 
-## Gestão de Marketing — Galeria de Imagens + Auditoria do Módulo
+## Templates por Plataforma na Biblioteca de Marketing
 
-### Parte 1 — Galeria de Imagens na Biblioteca
+### Objetivo
+Permitir aplicar modelos prontos de texto/legenda/hashtags antes de agendar um post, acelerando a criação de conteúdo para Instagram, Facebook e WhatsApp.
 
-**Nova aba "Galeria" em `/marketing/conteudos`**
+### O que será entregue
 
-Reformular `BibliotecaConteudos.tsx` com tabs no topo:
-- **Conteúdos** (atual: textos, posts, roteiros)
-- **Galeria** (nova: imagens geradas + importadas)
+**1. Nova aba "Templates" em `/marketing/conteudos`**
+- Adicionar terceira tab ao lado de "Conteúdos" e "Galeria".
+- Grid de cards de templates filtráveis por plataforma (Instagram, Facebook, WhatsApp, Todos) e categoria (Promoção, Institucional, Datas Comemorativas, Engajamento, Lançamento).
+- Cada card mostra: nome, plataforma (emoji), categoria (badge), prévia da legenda (3 linhas), hashtags sugeridas e botões: **Usar template**, **Visualizar (preview)**, **Editar**, **Duplicar**, **Excluir**, **Favoritar**.
 
-**Funcionalidades da Galeria:**
-- Grid responsivo (2 col mobile / 3-4 col desktop) com preview quadrado das imagens.
-- Cada card: imagem, badge de origem (Gerada IA / Importada), data, ações (usar em post, baixar, copiar URL, favoritar, excluir).
-- Filtros: origem (todas / IA / importadas), favoritas, busca por título/tag.
-- Botão **"Importar Imagem"** (upload via `ImageUpload` existente, bucket `marketing-assets` que já existe e é público).
-- Botão **"Gerar com IA"** → abre modal usando edge function `marketing-ai` com `modalities: ["image","text"]` (Nano Banana já documentado no contexto).
-- Botão **"Usar neste post"** em cada imagem → navega para `/marketing/agendamentos` com a URL da imagem pré-anexada, ou abre modal de novo post.
+**2. Biblioteca padrão de 12-15 templates pré-cadastrados** (seed na migração)
+- Instagram: "Promoção Relâmpago", "Bom dia + produto", "Antes/Depois", "Carrossel educativo", "Reels — receita rápida"
+- Facebook: "Post institucional", "Promoção semanal", "Depoimento de cliente"
+- WhatsApp: "Status promo", "Aviso de horário", "Lista de transmissão", "Cupom"
+- Datas: "Dia das Mães", "Natal", "Black Friday"
 
-**Backend:**
-- Nova tabela `marketing_imagens` (id, empresa_id, unidade_id, url, titulo, tags, origem `'ia'|'importada'`, prompt, favorito, created_by, created_at) com RLS por empresa/unidade.
-- Bucket `marketing-assets` (já existe, público) — pasta `imagens/{empresa_id}/`.
-- Edge function `marketing-ai` ganha rota `?tipo=imagem` que gera via Nano Banana, salva no bucket e insere em `marketing_imagens`.
+Cada template traz placeholders `{{empresa}}`, `{{produto}}`, `{{preco}}`, `{{telefone}}`, `{{cupom}}` que são substituídos automaticamente ao aplicar.
 
-### Parte 2 — Auditoria do Módulo de Marketing
+**3. Modal "Aplicar Template"**
+- Escolher imagem da Galeria (opcional).
+- Preencher variáveis (campos dinâmicos baseados nos placeholders detectados).
+- Preview ao vivo no mockup da rede social (reusando `PostPreview.tsx`).
+- Botões: **Salvar na Biblioteca** (cria registro em `marketing_conteudos`) ou **Agendar agora** (vai direto para `/marketing/agendamentos` com tudo preenchido).
 
-**O que já existe (verificado nos arquivos):**
-- `/marketing/conteudos` — Biblioteca de textos/roteiros
-- `/marketing/agendamentos` — Agenda de posts
-- `/marketing/campanhas` — Campanhas (compartilhada com clientes)
-- `/marketing/configuracoes` — Configurações
-- `/clientes/marketing` — Criação de conteúdo com IA (textos, vídeos, roteiros TikTok/Reels)
-- Edge function `marketing-ai` com suporte a textos e roteiros de vídeo cena-a-cena
-
-**Ajustes propostos (quick wins):**
-1. **Dashboard de Marketing reativado** — recolocar `/marketing` no menu com KPIs: posts agendados, taxa de publicação, conteúdos gerados no mês, imagens na galeria.
-2. **Vincular conteúdo + imagem** — ao criar post de "imagem" na Biblioteca, permitir anexar uma imagem da Galeria (campo `imagem_url` em `marketing_conteudos`).
-3. **Preview real do post** — mostrar mockup de Instagram/Facebook com imagem + legenda + hashtags antes de salvar.
-4. **Calendário visual** em `/marketing/agendamentos` com drag-and-drop de posts entre dias.
-
-**Novas funcionalidades sugeridas (médio prazo):**
-5. **Templates de post** — modelos prontos por categoria (promoção, institucional, datas comemorativas).
-6. **Hashtag sugerida por IA** baseada no conteúdo + nicho (gás/água/delivery local).
-7. **Integração de publicação automática** — conectar com Meta Graph API para publicar direto no Instagram/Facebook (já há infraestrutura WhatsApp Meta).
-8. **Análise de performance** — quando publicado, puxar métricas (curtidas, alcance, comentários) via Graph API.
-9. **Banco de ideias** — feed de ideias geradas proativamente pela IA com base em sazonalidade (frio = mais gás, calor = mais água).
-10. **Aprovação multinível** — usar workflow de aprovações já existente para posts antes de publicar.
+**4. Editor de templates personalizados**
+- Botão **"Novo template"** abre modal com: nome, plataforma, categoria, legenda (textarea), hashtags, dica/observação.
+- Suporte a inserir placeholders via botões rápidos.
+- Templates do sistema (seed) são read-only com badge "Padrão"; usuários só editam/excluem os próprios.
 
 ### Detalhes técnicos
 
-**Migration (Parte 1):**
+**Migração SQL — nova tabela `marketing_templates`:**
 ```sql
-CREATE TABLE public.marketing_imagens (
+CREATE TABLE public.marketing_templates (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  empresa_id uuid NOT NULL,
-  unidade_id uuid,
-  url text NOT NULL,
-  titulo text,
-  tags text,
-  origem text NOT NULL CHECK (origem IN ('ia','importada')),
-  prompt text,
-  favorito boolean DEFAULT false,
+  empresa_id uuid,                          -- NULL = template padrão do sistema
+  nome text NOT NULL,
+  plataforma text NOT NULL,                 -- instagram|facebook|whatsapp|reels
+  categoria text NOT NULL,                  -- promocao|institucional|data|engajamento|lancamento
+  legenda text NOT NULL,
+  hashtags text,
+  dica text,
+  is_padrao boolean NOT NULL DEFAULT false,
+  favorito boolean NOT NULL DEFAULT false,
   created_by uuid,
-  created_at timestamptz DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now()
 );
-ALTER TABLE public.marketing_imagens ENABLE ROW LEVEL SECURITY;
--- Policies: SELECT/INSERT/UPDATE/DELETE para usuários da mesma empresa
-```
+ALTER TABLE public.marketing_templates ENABLE ROW LEVEL SECURITY;
 
-**Arquivos a alterar:**
-- `src/pages/marketing/BibliotecaConteudos.tsx` — adicionar tabs e seção Galeria
-- `src/components/marketing/GaleriaImagens.tsx` — novo componente
-- `src/components/marketing/GerarImagemModal.tsx` — novo modal
-- `supabase/functions/marketing-ai/index.ts` — adicionar tipo `imagem`
-- `src/routes/marketingRoutes.ts` — restaurar `DashboardMarketing` no menu
+-- SELECT: vê padrões (empresa_id NULL) + próprios da empresa
+CREATE POLICY "view_templates" ON public.marketing_templates FOR SELECT
+  USING (is_padrao = true OR empresa_id = public.get_user_empresa_id());
+-- INSERT/UPDATE/DELETE: só nos próprios da empresa, nunca nos padrões
+CREATE POLICY "manage_own_templates" ON public.marketing_templates
+  FOR ALL USING (empresa_id = public.get_user_empresa_id() AND is_padrao = false)
+  WITH CHECK (empresa_id = public.get_user_empresa_id() AND is_padrao = false);
+```
++ INSERT dos 12-15 templates seed com `is_padrao = true` e `empresa_id = NULL`.
+
+**Arquivos novos:**
+- `src/components/marketing/TemplatesBiblioteca.tsx` — grid + filtros
+- `src/components/marketing/TemplateCard.tsx` — card individual
+- `src/components/marketing/AplicarTemplateModal.tsx` — preencher variáveis + preview + ação final
+- `src/components/marketing/EditorTemplateModal.tsx` — criar/editar template próprio
+- `src/lib/templatePlaceholders.ts` — utilitário de detecção/substituição de `{{var}}`
+
+**Arquivos alterados:**
+- `src/pages/marketing/BibliotecaConteudos.tsx` — adicionar tab "Templates"
+- `src/pages/marketing/AgendamentoPosts.tsx` — aceitar query params `?template_id=` e `?legenda=` para pré-preencher
+- `src/integrations/supabase/types.ts` — regenerado automaticamente
 
 ### Critérios de aceite
-
-- Tab "Galeria" visível em `/marketing/conteudos`.
-- Importar imagem do dispositivo funciona e aparece na grid.
-- Gerar imagem com IA funciona e salva no bucket + tabela.
-- Botão "Usar neste post" leva a fluxo de criação de post com a imagem anexada.
-- RLS isola imagens por empresa.
-- Auditoria entregue como lista priorizada (quick wins implementados nesta entrega; itens 5-10 ficam como roadmap para você aprovar individualmente).
-
-### Pergunta antes de executar
-
-Quer que eu já implemente os **4 quick wins** (Dashboard, vincular imagem em conteúdo, preview de post, calendário visual) junto com a Galeria, ou prefere **apenas a Galeria** nesta primeira entrega e os ajustes em seguida?
+- Tab "Templates" visível com grid filtrável por plataforma e categoria.
+- Pelo menos 12 templates padrão disponíveis ao abrir.
+- "Usar template" abre modal com substituição de variáveis e preview real.
+- Salvar gera registro em `marketing_conteudos` ou navega para o agendador já preenchido.
+- Usuário pode criar/editar/excluir os próprios templates; não pode mexer nos padrões.
+- RLS isola templates da empresa; padrões são compartilhados.
 
