@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { P45_TO_P13, P20_TO_P13, formatCurrency, formatNumber } from "@/lib/transp-utils";
 import { toast } from "sonner";
-import { Plus, ShoppingCart, Download, RefreshCw, BarChart3, Package } from "lucide-react";
+import { Plus, ShoppingCart, Download, RefreshCw, BarChart3, Package, List } from "lucide-react";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ComprasAnaliseGLP } from "@/components/transportadora/compras/ComprasAnaliseGLP";
@@ -21,6 +21,7 @@ import { ComparativoFornecedoresUnit } from "@/components/transportadora/compras
 import { ComprasListaTable } from "@/components/transportadora/compras/ComprasListaTable";
 import { ResumoPorLoja } from "@/components/transportadora/compras/ResumoPorLoja";
 import { ResumoProdutosPrecos } from "@/components/transportadora/compras/ResumoProdutosPrecos";
+import { ComprasSimplesTable } from "@/components/transportadora/compras/ComprasSimplesTable";
 
 const AGUA_TO_P13 = 1;
 
@@ -455,6 +456,7 @@ export default function TranspCompras() {
             <TabsTrigger value="compras" className="gap-1.5"><ShoppingCart className="h-4 w-4" />Compras</TabsTrigger>
             <TabsTrigger value="analise" className="gap-1.5"><BarChart3 className="h-4 w-4" />Análise GLP</TabsTrigger>
             <TabsTrigger value="produtos" className="gap-1.5"><Package className="h-4 w-4" />Produtos</TabsTrigger>
+            <TabsTrigger value="simples" className="gap-1.5"><List className="h-4 w-4" />Visão Simples</TabsTrigger>
           </TabsList>
 
           <TabsContent value="compras" className="space-y-4 mt-4">
@@ -525,6 +527,10 @@ export default function TranspCompras() {
 
           <TabsContent value="produtos" className="mt-4">
             <ComprasProdutos compras={compras} />
+          </TabsContent>
+
+          <TabsContent value="simples" className="mt-4">
+            <ComprasSimplesTable compras={comprasPeriodo} />
           </TabsContent>
         </Tabs>
 
