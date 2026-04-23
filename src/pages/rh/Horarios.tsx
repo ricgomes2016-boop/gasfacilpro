@@ -96,6 +96,19 @@ function EscalasTab() {
   const [bulkDias, setBulkDias] = useState<boolean[]>([true, true, true, true, true, true, false]);
   const [bulkSaving, setBulkSaving] = useState(false);
 
+  // Estado: linhas extras (entregadores adicionados manualmente à grade)
+  const [extraEntregadorIds, setExtraEntregadorIds] = useState<string[]>([]);
+  const [addRowOpen, setAddRowOpen] = useState(false);
+
+  // Estado: sugestão IA
+  const [iaOpen, setIaOpen] = useState(false);
+  const [iaLoading, setIaLoading] = useState(false);
+  const [iaProposta, setIaProposta] = useState<{
+    escalas: Array<{ entregador_id: string; data: string; turno_inicio: string; turno_fim: string; almoco_inicio: string | null; almoco_fim: string | null; rota_definida_id: string | null }>;
+    resumo: string;
+  } | null>(null);
+  const [iaApplying, setIaApplying] = useState(false);
+
   const [filtroSemana, setFiltroSemana] = useState(() => {
     const hoje = getBrasiliaDate();
     return format(startOfWeek(hoje, { weekStartsOn: 1 }), "yyyy-MM-dd");
@@ -297,9 +310,15 @@ function EscalasTab() {
   // Resumo
   const totalEscalas = escalas.length;
   const entregadoresEscalados = new Set(escalas.map((e) => e.entregador_id)).size;
-  const horasTotais = escalas.reduce((acc, e) => {
-    return acc + calcHoras(e.turno_inicio, e.turno_fim, e.almoco_inicio, e.almoco_fim);
-  }, 0);
+  const horasCalc = escalas.reduce(
+    (acc, e) => {
+      const c = calcHoras(e.turno_inicio, e.turno_fim, e.almoco_inicio, e.almoco_fim);
+      return { total: acc.total + c.horas, estimadas: acc.estimadas + (c.estimado ? 1 : 0) };
+    },
+    { total: 0, estimadas: 0 }
+  );
+  const horasTotais = horasCalc.total;
+  const escalasComAlmocoEstimado = horasCalc.estimadas;
   const diasSemCobertura = diasDaSemana.filter(
     (d) => !escalas.some((e) => e.data === format(d, "yyyy-MM-dd"))
   ).length;
