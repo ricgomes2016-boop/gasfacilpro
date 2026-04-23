@@ -1,0 +1,74 @@
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { Loader2, Facebook, Instagram } from "lucide-react";
+import { useState } from "react";
+
+interface Props {
+  unidadeId?: string | null;
+  onConnected?: () => void;
+}
+
+export function ConectarRedeSocialButton({ unidadeId, onConnected }: Props) {
+  const [loading, setLoading] = useState(false);
+
+  const handleConnect = async () => {
+    setLoading(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        toast({ title: "Faça login para conectar", variant: "destructive" });
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("meta-oauth-start", {
+        body: { unidade_id: unidadeId, return_url: window.location.href },
+      });
+
+      if (error || !data?.url) {
+        throw new Error(error?.message || "Não foi possível iniciar OAuth");
+      }
+
+      const popup = window.open(data.url, "meta-oauth", "width=600,height=750");
+
+      const onMessage = (ev: MessageEvent) => {
+        if (ev.data?.type === "meta-oauth") {
+          window.removeEventListener("message", onMessage);
+          if (ev.data.ok) {
+            toast({ title: "Conta conectada com sucesso! 🎉" });
+            onConnected?.();
+          } else {
+            toast({ title: "Falha ao conectar", variant: "destructive" });
+          }
+          try { popup?.close(); } catch {}
+        }
+      };
+      window.addEventListener("message", onMessage);
+
+      // Fallback: detecta fechamento manual
+      const interval = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(interval);
+          window.removeEventListener("message", onMessage);
+          onConnected?.();
+        }
+      }, 1000);
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button onClick={handleConnect} disabled={loading} className="gap-2">
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+        <span className="flex items-center gap-1">
+          <Instagram className="h-4 w-4" />
+          <Facebook className="h-4 w-4" />
+        </span>
+      )}
+      Conectar Instagram + Facebook
+    </Button>
+  );
+}
