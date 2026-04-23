@@ -509,7 +509,7 @@ function EscalasTab() {
               <Table className="min-w-[800px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="sticky left-0 bg-background z-10 min-w-[160px] border-r">
+                    <TableHead className="sticky left-0 bg-background z-10 w-32 max-w-[128px] sm:w-40 sm:max-w-[160px] px-2 border-r text-xs">
                       Entregador
                     </TableHead>
                     {diasDaSemana.map((d) => {
