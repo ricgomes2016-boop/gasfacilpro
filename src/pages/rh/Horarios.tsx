@@ -74,6 +74,8 @@ function EscalasTab() {
   const [data, setData] = useState("");
   const [turnoInicio, setTurnoInicio] = useState("08:00");
   const [turnoFim, setTurnoFim] = useState("18:00");
+  const [almocoInicio, setAlmocoInicio] = useState("");
+  const [almocoFim, setAlmocoFim] = useState("");
   const [observacoes, setObservacoes] = useState("");
 
   // Modal "Aplicar Escala da Semana"
@@ -82,6 +84,8 @@ function EscalasTab() {
   const [bulkRotaId, setBulkRotaId] = useState("");
   const [bulkInicio, setBulkInicio] = useState("08:00");
   const [bulkFim, setBulkFim] = useState("18:00");
+  const [bulkAlmocoInicio, setBulkAlmocoInicio] = useState("");
+  const [bulkAlmocoFim, setBulkAlmocoFim] = useState("");
   const [bulkDias, setBulkDias] = useState<boolean[]>([true, true, true, true, true, true, false]);
   const [bulkSaving, setBulkSaving] = useState(false);
 
