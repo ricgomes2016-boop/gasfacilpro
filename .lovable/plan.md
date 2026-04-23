@@ -1,54 +1,68 @@
 
 
-## Badge "Conectado via OAuth" + Publicação Automática
+## Multi-Tenant para Conexão Meta + Limpeza
 
-### Estado atual
-- `RedesSociais.tsx` já mostra um badge `🔗 OAuth` / `Manual`, mas pequeno (text-[10px]) e sem destaque visual.
-- Edge function `meta-publish-cron` existe e está pronta para processar agendamentos vencidos de contas OAuth, **mas nunca é disparada** — falta registrar o `pg_cron` que chama a função a cada 5 minutos.
-- `meta-publish-post` já publica corretamente em IG Business e Facebook Page usando o token salvo.
+### Resposta à pergunta 2
+O app Meta do SaaS é **um só, do produto** (não da Central Gás). Cada empresa cliente autoriza esse app a postar nas Páginas/Instagrams **dela** via OAuth — os tokens já ficam isolados por `empresa_id` em `social_accounts` com RLS. Funciona como Hootsuite, Buffer, mLabs etc.
+
+A Central Gás é apenas a **primeira empresa testadora** enquanto o app está em modo Desenvolvimento da Meta. Para os demais clientes funcionarem, precisamos: (a) passar pelo App Review da Meta para liberar produção, e (b) implementar algumas melhorias de UX e segurança listadas abaixo.
 
 ### O que será entregue
 
-**1. Badge "Conectado via OAuth" mais visível (`src/pages/marketing/RedesSociais.tsx`)**
-- Substituir o badge atual por um destacado verde com ícone de check (`CheckCircle2` do lucide), texto "Conectado via OAuth" e tooltip explicando "Publicação automática habilitada".
-- Contas manuais ganham badge cinza "Cadastro manual" com tooltip "Apenas lembrete, não publica automaticamente".
-- Quando OAuth, exibir também a data da última renovação de token (`token_expires_at`) em pequeno abaixo do nome.
+**1. Limpar cron duplicado**
+- SQL via insert tool: `SELECT cron.unschedule('meta-publish-cron');` (mantém só `meta-publish-cron-job`).
 
-**2. Agendamento da publicação automática (nova migration SQL)**
-- Garantir extensões `pg_cron` e `pg_net` ativas.
-- Registrar job `meta-publish-cron-job` rodando `*/5 * * * *` que faz `net.http_post` para `https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/meta-publish-cron` com header `Authorization: Bearer <ANON_KEY>`.
-- Como o conteúdo do SQL contém URL e chave específicas do projeto, será aplicado via tool de insert SQL (não migration), conforme instrução de `schedule-jobs-supabase-edge-functions`.
+**2. Reforçar isolamento por empresa no callback OAuth**
+- Em `meta-oauth-callback`: validar que o `state.empresa_id` corresponde a uma empresa real e que o `state.user_id` ainda pertence àquela empresa (anti-replay).
+- Adicionar `nonce` aleatório no `state` (gerado no `meta-oauth-start`, persistido em tabela `oauth_states` com TTL 10 min) para evitar reuso.
+- Validar `ts` do state (rejeitar se >15 min).
 
-**3. Selo "Publicação automática" no agendador (`src/pages/marketing/AgendamentoPosts.tsx`)**
-- Quando o usuário seleciona uma `social_account` no formulário de agendar post, mostrar abaixo do select um chip verde "✓ Será publicado automaticamente" se `conectado_via === 'oauth'`, ou um chip âmbar "⚠ Apenas lembrete — publique manualmente" se `manual`.
-- Ajuda o usuário a entender por que alguns posts publicam sozinhos e outros não.
+**3. Tela de status do app Meta (`/marketing/redes-sociais`)**
+- Card no topo informando o estado do app Meta:
+  - "🟡 Modo Desenvolvimento — só Facebooks cadastrados como testadores conseguem conectar. Solicite acesso ao admin do SaaS."
+  - "🟢 Aprovado pela Meta — qualquer empresa pode conectar."
+- Estado controlado por flag em `configuracoes_globais` (nova linha `meta_app_review_status: 'dev' | 'approved'`).
 
-**4. Coluna de status na lista de agendamentos**
-- Já existe coluna `status` em `marketing_agendamentos` (`agendado | publicado | erro`). Garantir que a UI da lista mostre badge colorido por status e, quando `erro`, exibir tooltip com `erro_mensagem`.
+**4. Guia visual no botão Conectar quando empresa ≠ testadora**
+- Se a tentativa de OAuth falhar com erro Meta tipo `(#10) Application does not have permission` ou redirect com erro, exibir modal explicando:
+  - "Seu Facebook ainda não está autorizado como testador no nosso app Meta. Envie seu Facebook ID para o suporte do SaaS adicionar."
+  - Botão "Copiar meu Facebook ID" (extraído do callback, se houver) e link para `https://findmyfbid.com`.
+
+**5. Documento interno: passos de App Review**
+- Criar `docs/meta-app-review.md` com checklist do que a Meta exige:
+  - Vídeo de demonstração de cada permissão (`pages_manage_posts`, `instagram_content_publish` etc.)
+  - URL da política de privacidade do SaaS
+  - Termos de uso
+  - Conta de teste para o revisor da Meta
+  - Justificativa de uso de cada escopo
+
+**6. Painel super-admin: lista de conexões OAuth por empresa**
+- Em `/admin` (rota existente), nova aba **"Integrações Meta"** mostrando: empresa, contas conectadas, data de expiração do token, última publicação. Permite ao super-admin do SaaS ver quem está usando.
+- Apenas role `super_admin` enxerga.
+
+**7. Cron de renovação preventiva de tokens (`meta-refresh-tokens`)**
+- Edge function nova rodando 1x/dia que pega contas com `token_expires_at` < 7 dias e chama `/oauth/access_token?grant_type=fb_exchange_token` para renovar mais 60 dias.
+- Atualiza `access_token` e `token_expires_at`.
+- Se renovação falhar (usuário revogou), marca conta como `ativo=false` e cria notificação para o admin daquela empresa reconectar.
 
 ### Detalhes técnicos
-- **Arquivo alterado**: `src/pages/marketing/RedesSociais.tsx` — substituir bloco de badges (linhas 175–182) e adicionar Tooltip.
-- **Arquivo alterado**: `src/pages/marketing/AgendamentoPosts.tsx` — adicionar chip informativo abaixo do select de conta.
-- **SQL via insert tool** (conteúdo com chave/URL específicos):
-  ```sql
-  CREATE EXTENSION IF NOT EXISTS pg_cron;
-  CREATE EXTENSION IF NOT EXISTS pg_net;
-  SELECT cron.schedule(
-    'meta-publish-cron-job',
-    '*/5 * * * *',
-    $$ SELECT net.http_post(
-        url:='https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/meta-publish-cron',
-        headers:='{"Content-Type":"application/json","Authorization":"Bearer <ANON_KEY>"}'::jsonb,
-        body:='{}'::jsonb
-    ); $$
-  );
-  ```
-- **Sem novas dependências, sem mudança de schema, sem novo secret.**
+- **Nova tabela**: `oauth_states (nonce uuid pk, user_id uuid, empresa_id uuid, expires_at timestamptz, used_at timestamptz)` com TTL e RLS service-role only.
+- **Arquivos novos**:
+  - `supabase/functions/meta-refresh-tokens/index.ts`
+  - `src/components/admin/MetaIntegrationsPanel.tsx`
+  - `src/components/marketing/MetaAppStatusBanner.tsx`
+  - `docs/meta-app-review.md`
+- **Arquivos alterados**:
+  - `supabase/functions/meta-oauth-start/index.ts` — gerar e gravar nonce
+  - `supabase/functions/meta-oauth-callback/index.ts` — validar nonce, ts, empresa
+  - `src/pages/marketing/RedesSociais.tsx` — banner de status + tratamento de erro de testador
 
 ### Critérios de aceite
-- Conta OAuth aparece com badge verde "Conectado via OAuth" + ícone de check; conta manual aparece com badge cinza "Cadastro manual".
-- Job `meta-publish-cron-job` listado em `cron.job` rodando a cada 5 min.
-- Post agendado para conta OAuth com `data_agendada` no passado é publicado automaticamente em até 5 min e seu status muda para `publicado` com `external_post_id` preenchido.
-- Erros de publicação salvam `status='erro'` e `erro_mensagem`, e a lista exibe tooltip com a causa.
-- No formulário de agendamento, ao escolher a conta, o usuário vê imediatamente se aquele post irá publicar sozinho ou ficará só como lembrete.
+- Cron `meta-publish-cron` (duplicado) removido; só `meta-publish-cron-job` ativo.
+- OAuth com state expirado ou nonce reusado é rejeitado com erro claro.
+- Banner em `/marketing/redes-sociais` mostra se o app Meta está em modo dev ou aprovado.
+- Empresa não-testadora vê instruções claras de como pedir acesso em vez de erro genérico.
+- Super-admin vê painel com todas as conexões OAuth por empresa.
+- Tokens com vencimento <7 dias são renovados automaticamente; falhas geram notificação para reconectar.
+- Documento `meta-app-review.md` com checklist pronto para submeter à Meta.
 
