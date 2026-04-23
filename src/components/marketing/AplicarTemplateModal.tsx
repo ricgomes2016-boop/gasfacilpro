@@ -9,10 +9,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "@/hooks/use-toast";
-import { detectPlaceholders, applyPlaceholders, labelFor } from "@/lib/templatePlaceholders";
+import { detectPlaceholders, applyPlaceholders, labelFor, suggestSchedule } from "@/lib/templatePlaceholders";
 import { PostPreview } from "./PostPreview";
 import { SeletorImagemGaleria } from "./SeletorImagemGaleria";
-import { Image as ImageIcon, X, Save, CalendarPlus, Eye } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Image as ImageIcon, X, Save, CalendarPlus, Eye, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -59,6 +60,13 @@ export function AplicarTemplateModal({ open, onOpenChange, template }: Props) {
 
   const textoCompleto = [legendaFinal, hashtagsFinal].filter(Boolean).join("\n\n");
 
+  // Variáveis pendentes (sem valor preenchido)
+  const pendentes = useMemo(
+    () => placeholders.filter((k) => !values[k]?.trim()),
+    [placeholders, values]
+  );
+  const preenchidas = placeholders.filter((k) => values[k]?.trim());
+
   const salvarMut = useMutation({
     mutationFn: async () => {
       const payload: any = {
@@ -83,9 +91,18 @@ export function AplicarTemplateModal({ open, onOpenChange, template }: Props) {
   });
 
   const agendar = () => {
+    if (pendentes.length > 0) {
+      const ok = confirm(
+        `Existem ${pendentes.length} variável(eis) sem preenchimento (${pendentes.map(labelFor).join(", ")}).\n\nElas aparecerão como {{${pendentes[0]}}} no post. Deseja continuar mesmo assim?`
+      );
+      if (!ok) return;
+    }
+    const sugestao = suggestSchedule(template.plataforma);
     const params = new URLSearchParams();
     params.set("legenda", textoCompleto);
     params.set("plataforma", template.plataforma);
+    params.set("data", sugestao.data);
+    params.set("hora", sugestao.hora);
     if (imagemUrl) params.set("imagem", imagemUrl);
     navigate(`/marketing/agendamentos?${params.toString()}`);
   };
@@ -104,17 +121,48 @@ export function AplicarTemplateModal({ open, onOpenChange, template }: Props) {
             <div className="space-y-3">
               {placeholders.length > 0 && (
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Variáveis</Label>
-                  {placeholders.map((key) => (
-                    <div key={key}>
-                      <Label className="text-xs text-muted-foreground">{labelFor(key)}</Label>
-                      <Input
-                        value={values[key] || ""}
-                        onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
-                        placeholder={`Ex: ${labelFor(key)}`}
-                      />
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Variáveis detectadas</Label>
+                    <div className="flex gap-1">
+                      <Badge variant="outline" className="text-[10px] gap-1">
+                        <CheckCircle2 className="h-3 w-3 text-green-600" />
+                        {preenchidas.length}/{placeholders.length}
+                      </Badge>
+                      {pendentes.length > 0 && (
+                        <Badge variant="outline" className="text-[10px] gap-1 border-amber-500/40 text-amber-600">
+                          <AlertTriangle className="h-3 w-3" />
+                          {pendentes.length} pendente(s)
+                        </Badge>
+                      )}
                     </div>
-                  ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Revise e confirme os valores que serão substituídos no post antes de agendar.
+                  </p>
+                  {placeholders.map((key) => {
+                    const filled = !!values[key]?.trim();
+                    return (
+                      <div key={key}>
+                        <Label className="text-xs flex items-center gap-1.5">
+                          {filled ? (
+                            <CheckCircle2 className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <AlertTriangle className="h-3 w-3 text-amber-500" />
+                          )}
+                          <span className={filled ? "text-foreground" : "text-amber-600"}>
+                            {labelFor(key)}
+                          </span>
+                          <code className="text-[10px] text-muted-foreground">{`{{${key}}}`}</code>
+                        </Label>
+                        <Input
+                          value={values[key] || ""}
+                          onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
+                          placeholder={`Ex: ${labelFor(key)}`}
+                          className={!filled ? "border-amber-500/40" : ""}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
