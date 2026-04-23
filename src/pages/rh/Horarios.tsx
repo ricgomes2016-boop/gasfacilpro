@@ -1235,95 +1235,89 @@ function CoberturaTab() {
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <TooltipProvider delayDuration={150}>
-              <table className="w-full border-collapse text-xs min-w-[600px]">
+              <table className="border-collapse text-xs">
                 <thead>
                   <tr>
-                    <th className="text-left p-1.5 font-medium text-muted-foreground sticky left-0 bg-background w-16">Hora</th>
-                    {diasDaSemana.map((d, i) => (
-                      <th key={i} className="p-1.5 font-medium text-center">
-                        <div>{DIAS_LABEL[i]}</div>
-                        <div className="text-[10px] text-muted-foreground">{format(d, "dd/MM")}</div>
-                      </th>
-                    ))}
+                    <th className="text-left p-1.5 font-medium text-muted-foreground sticky left-0 bg-background z-10 w-20 min-w-[80px] border-b">Dia</th>
+                    {Array.from({ length: HORA_FIM - HORA_INICIO + 1 }, (_, i) => HORA_INICIO + i).map((h) => {
+                      const isPico = picosHora.includes(h);
+                      return (
+                        <th key={h} className="p-1 font-medium text-center min-w-[80px] border-b">
+                          {isPico && <Star className="h-3 w-3 text-warning fill-warning mx-auto mb-0.5" />}
+                          <div className="text-[11px] font-mono text-muted-foreground">{String(h).padStart(2, "0")}h</div>
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
-                  {Array.from({ length: HORA_FIM - HORA_INICIO + 1 }, (_, i) => HORA_INICIO + i).map((h) => {
-                    const isPico = picosHora.includes(h);
-                    return (
-                      <tr key={h}>
-                        <td className="p-1.5 sticky left-0 bg-background font-mono text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            {isPico && <Star className="h-3 w-3 text-warning fill-warning" />}
-                            {String(h).padStart(2, "0")}:00
-                          </div>
-                        </td>
-                        {Array.from({ length: 7 }, (_, d) => {
-                          const lista = cobertura[d][h];
-                          const count = lista.length;
-                          const acima = picoMedio > 0 && count > picoMedio;
-                          return (
-                            <td key={d} className="p-0.5 align-top">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div
-                                    className={cn(
-                                      "min-h-9 sm:min-w-[90px] rounded flex flex-col items-center justify-start py-1 px-1 cursor-default transition-all hover:ring-2 hover:ring-primary/40",
-                                      celulaClasse(count),
-                                      isPico && count === 0 && "ring-1 ring-destructive/40"
-                                    )}
-                                  >
-                                    <div className="flex items-center gap-1 font-semibold">
-                                      <span>{count}</span>
-                                      {acima && <Flame className="h-3 w-3 text-destructive" />}
-                                    </div>
-                                    {count > 0 && (
-                                      <div className="hidden sm:flex flex-col items-stretch w-full mt-0.5 leading-tight">
-                                        {lista.slice(0, 3).map((p, idx) => (
-                                          <span
-                                            key={idx}
-                                            className="text-[10px] text-muted-foreground truncate text-center"
-                                            title={p.nome}
-                                          >
-                                            {p.nome.split(" ")[0]}
-                                            {p.outraUnidade && "*"}
-                                          </span>
-                                        ))}
-                                        {count > 3 && (
-                                          <span className="text-[10px] text-muted-foreground/80 text-center">
-                                            +{count - 3}
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="max-w-xs">
-                                  <div className="text-xs font-semibold mb-1">
-                                    {DIAS_LABEL[d]} · {String(h).padStart(2, "0")}:00
-                                  </div>
-                                  {count === 0 ? (
-                                    <div className="text-xs text-muted-foreground">Sem cobertura</div>
-                                  ) : (
-                                    <ul className="text-xs space-y-0.5">
-                                      {lista.map((p, idx) => (
-                                        <li key={idx}>
-                                          • {p.nome}
-                                          {p.outraUnidade && p.unidade && (
-                                            <span className="text-muted-foreground"> ({p.unidade})</span>
-                                          )}
-                                        </li>
-                                      ))}
-                                    </ul>
+                  {Array.from({ length: 7 }, (_, d) => d).map((d) => (
+                    <tr key={d}>
+                      <td className="p-1.5 sticky left-0 bg-background z-10 border-b align-top">
+                        <div className="font-medium text-sm">{DIAS_LABEL[d]}</div>
+                        <div className="text-[10px] text-muted-foreground">{format(diasDaSemana[d], "dd/MM")}</div>
+                      </td>
+                      {Array.from({ length: HORA_FIM - HORA_INICIO + 1 }, (_, i) => HORA_INICIO + i).map((h) => {
+                        const isPico = picosHora.includes(h);
+                        const lista = cobertura[d][h];
+                        const count = lista.length;
+                        const acima = picoMedio > 0 && count > picoMedio;
+                        return (
+                          <td key={h} className="p-0.5 align-top border-b">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className={cn(
+                                    "h-auto min-h-[60px] min-w-[78px] rounded flex flex-col items-center justify-start py-1 px-1 cursor-default transition-all hover:ring-2 hover:ring-primary/40",
+                                    celulaClasse(count),
+                                    isPico && count === 0 && "ring-1 ring-destructive/40"
                                   )}
-                                </TooltipContent>
-                              </Tooltip>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
+                                >
+                                  <div className="flex items-center gap-1 font-semibold">
+                                    <span>{count}</span>
+                                    {acima && <Flame className="h-3 w-3 text-destructive" />}
+                                  </div>
+                                  {count > 0 && (
+                                    <div className="flex flex-col items-stretch w-full mt-0.5 leading-tight">
+                                      {lista.map((p, idx) => (
+                                        <span
+                                          key={idx}
+                                          className="text-[10px] text-muted-foreground truncate text-center"
+                                          title={p.nome}
+                                        >
+                                          {p.nome.split(" ")[0]}
+                                          {p.outraUnidade && "*"}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                <div className="text-xs font-semibold mb-1">
+                                  {DIAS_LABEL[d]} · {String(h).padStart(2, "0")}:00
+                                </div>
+                                {count === 0 ? (
+                                  <div className="text-xs text-muted-foreground">Sem cobertura</div>
+                                ) : (
+                                  <ul className="text-xs space-y-0.5">
+                                    {lista.map((p, idx) => (
+                                      <li key={idx}>
+                                        • {p.nome}
+                                        {p.outraUnidade && p.unidade && (
+                                          <span className="text-muted-foreground"> ({p.unidade})</span>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </TooltipContent>
+                            </Tooltip>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </TooltipProvider>
