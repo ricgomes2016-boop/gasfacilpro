@@ -212,6 +212,8 @@ function EscalasTab() {
     setBulkRotaId("");
     setBulkInicio("08:00");
     setBulkFim("18:00");
+    setBulkAlmocoInicio("");
+    setBulkAlmocoFim("");
     setBulkDias([true, true, true, true, true, true, false]);
     setBulkOpen(true);
   };
