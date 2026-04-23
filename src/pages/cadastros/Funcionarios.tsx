@@ -72,6 +72,7 @@ const emptyForm = {
   regime_pagamento: "mensal",
   valor_diaria: "",
   entra_na_escala: false,
+  is_transporte: false,
 };
 
 export default function Funcionarios() {
