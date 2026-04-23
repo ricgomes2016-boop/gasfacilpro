@@ -291,10 +291,7 @@ function EscalasTab() {
   const totalEscalas = escalas.length;
   const entregadoresEscalados = new Set(escalas.map((e) => e.entregador_id)).size;
   const horasTotais = escalas.reduce((acc, e) => {
-    const [hi, mi] = e.turno_inicio.split(":").map(Number);
-    const [hf, mf] = e.turno_fim.split(":").map(Number);
-    const diff = (hf * 60 + mf - (hi * 60 + mi)) / 60;
-    return acc + Math.max(0, diff);
+    return acc + calcHoras(e.turno_inicio, e.turno_fim, e.almoco_inicio, e.almoco_fim);
   }, 0);
   const diasSemCobertura = diasDaSemana.filter(
     (d) => !escalas.some((e) => e.data === format(d, "yyyy-MM-dd"))
