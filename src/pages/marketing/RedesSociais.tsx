@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Share2, Instagram, Facebook, Youtube, Music2, Check, X, Sparkles, Zap, Info, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Share2, Instagram, Facebook, Youtube, Music2, Check, X, Sparkles, Zap, CheckCircle2, Link2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,9 +20,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ConectarRedeSocialButton } from "@/components/marketing/ConectarRedeSocialButton";
 import { CriarPaginaWizard } from "@/components/marketing/CriarPaginaWizard";
 import { MetaAppStatusBanner } from "@/components/marketing/MetaAppStatusBanner";
+import { ConectarRedesModal } from "@/components/marketing/ConectarRedesModal";
 
 const plataformas = [
   { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500" },
@@ -38,6 +38,7 @@ export default function RedesSociais() {
   const empresaId = empresa?.id;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [conectarModalOpen, setConectarModalOpen] = useState(false);
   const [form, setForm] = useState({ plataforma: "instagram", nome_conta: "", username: "" });
 
   const { data: accounts = [], isLoading } = useQuery({
@@ -101,20 +102,23 @@ export default function RedesSociais() {
       <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-6">
         <MetaAppStatusBanner />
 
-        {/* Hero — conexão real */}
+        {/* Hero — botão único de conexão */}
         <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/0">
           <CardContent className="p-5 md:p-6">
             <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <Zap className="h-5 w-5 text-primary" />
-                  <h3 className="font-semibold">Conectar oficialmente (Meta)</h3>
+                  <h3 className="font-semibold">Conectar rede social</h3>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Conecte Instagram + Facebook via OAuth para publicar automaticamente os posts agendados.
+                  Faça login direto na plataforma e pronto — posts agendados publicam sozinhos.
                 </p>
               </div>
-              <ConectarRedeSocialButton unidadeId={unidadeAtual?.id} onConnected={refresh} />
+              <Button size="lg" onClick={() => setConectarModalOpen(true)} className="gap-2">
+                <Link2 className="h-4 w-4" />
+                Conectar rede social
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -128,21 +132,12 @@ export default function RedesSociais() {
             <div className="flex-1">
               <h4 className="font-medium text-sm">Não tem página ainda? Criamos com você</h4>
               <p className="text-xs text-muted-foreground">
-                Guia passo a passo com sugestões de nome, bio e logo (Instagram, Facebook, TikTok, YouTube, WhatsApp Business)
+                Guia passo a passo com sugestões de nome, bio e logo
               </p>
             </div>
             <Button variant="ghost" size="sm">Abrir →</Button>
           </CardContent>
         </Card>
-
-        {/* Avisos */}
-        <div className="text-xs text-muted-foreground flex items-start gap-2 p-3 rounded-lg bg-muted/40 border border-border/40">
-          <Info className="h-4 w-4 shrink-0 mt-0.5" />
-          <div className="space-y-0.5">
-            <p><strong>Instagram via API</strong>: requer conta Business/Creator vinculada a uma Página do Facebook.</p>
-            <p><strong>TikTok / YouTube</strong>: integrações oficiais em breve (exigem aprovação caso a caso).</p>
-          </div>
-        </div>
 
         {/* Lista de contas */}
         <div className="flex justify-between items-center">
@@ -282,6 +277,14 @@ export default function RedesSociais() {
         </Dialog>
 
         <CriarPaginaWizard open={wizardOpen} onOpenChange={setWizardOpen} />
+
+        <ConectarRedesModal
+          open={conectarModalOpen}
+          onOpenChange={setConectarModalOpen}
+          unidadeId={unidadeAtual?.id}
+          contasConectadas={accounts as any}
+          onConnected={refresh}
+        />
       </div>
     </MainLayout>
   );
