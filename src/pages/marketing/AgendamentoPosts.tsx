@@ -54,7 +54,7 @@ export default function AgendamentoPosts() {
   const [form, setForm] = useState({
     plataforma: "instagram",
     texto: "",
-    imagem_url: "",
+    midia_url: "",
     data_agendamento: "",
     hora: "10:00",
   });
@@ -63,7 +63,7 @@ export default function AgendamentoPosts() {
   useEffect(() => {
     const img = searchParams.get("imagem");
     if (img) {
-      setForm((f) => ({ ...f, imagem_url: img }));
+      setForm((f) => ({ ...f, midia_url: img }));
       setDialogOpen(true);
       searchParams.delete("imagem");
       setSearchParams(searchParams, { replace: true });
@@ -88,7 +88,7 @@ export default function AgendamentoPosts() {
         empresa_id: empresaId!, unidade_id: unidadeAtual?.id || null,
         plataforma: form.plataforma, texto: form.texto, data_agendamento: dataHora, status: "agendado",
       };
-      if (form.imagem_url) payload.imagem_url = form.imagem_url;
+      if (form.midia_url) payload.midia_url = form.midia_url;
       const { error } = await supabase.from("marketing_agendamentos").insert(payload);
       if (error) throw error;
     },
@@ -96,7 +96,7 @@ export default function AgendamentoPosts() {
       queryClient.invalidateQueries({ queryKey: ["mkt-agendamentos"] });
       toast({ title: "Post agendado!" });
       setDialogOpen(false);
-      setForm({ plataforma: "instagram", texto: "", imagem_url: "", data_agendamento: "", hora: "10:00" });
+      setForm({ plataforma: "instagram", texto: "", midia_url: "", data_agendamento: "", hora: "10:00" });
     },
     onError: (e: any) => toast({ title: "Erro ao agendar", description: e.message, variant: "destructive" }),
   });
@@ -189,8 +189,8 @@ export default function AgendamentoPosts() {
                   return (
                     <Card key={ag.id} className="border-border/50">
                       <CardContent className="p-4 flex items-start gap-3">
-                        {ag.imagem_url ? (
-                          <img src={ag.imagem_url} alt="" className="h-14 w-14 rounded-lg object-cover shrink-0" />
+                        {ag.midia_url ? (
+                          <img src={ag.midia_url} alt="" className="h-14 w-14 rounded-lg object-cover shrink-0" />
                         ) : (
                           <div className="text-2xl mt-1">{plataformaEmoji[ag.plataforma] || "📝"}</div>
                         )}
@@ -238,12 +238,12 @@ export default function AgendamentoPosts() {
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Imagem (opcional)</label>
-                  {form.imagem_url ? (
+                  {form.midia_url ? (
                     <div className="relative">
-                      <img src={form.imagem_url} alt="" className="w-full max-h-48 object-cover rounded-lg border border-border" />
+                      <img src={form.midia_url} alt="" className="w-full max-h-48 object-cover rounded-lg border border-border" />
                       <Button
                         variant="destructive" size="icon" className="absolute top-1.5 right-1.5 h-7 w-7"
-                        onClick={() => setForm((f) => ({ ...f, imagem_url: "" }))}
+                        onClick={() => setForm((f) => ({ ...f, midia_url: "" }))}
                       >
                         <X className="h-3.5 w-3.5" />
                       </Button>
@@ -282,7 +282,7 @@ export default function AgendamentoPosts() {
                   <Eye className="h-3.5 w-3.5" /> Preview
                 </label>
                 <div className="bg-muted/30 rounded-lg p-3 sticky top-0">
-                  <PostPreview plataforma={form.plataforma} imagemUrl={form.imagem_url || null} texto={form.texto} />
+                  <PostPreview plataforma={form.plataforma} imagemUrl={form.midia_url || null} texto={form.texto} />
                 </div>
               </div>
             </div>
@@ -299,7 +299,7 @@ export default function AgendamentoPosts() {
         <SeletorImagemGaleria
           open={seletorOpen}
           onOpenChange={setSeletorOpen}
-          onSelect={(url) => setForm((f) => ({ ...f, imagem_url: url }))}
+          onSelect={(url) => setForm((f) => ({ ...f, midia_url: url }))}
         />
       </div>
     </MainLayout>
