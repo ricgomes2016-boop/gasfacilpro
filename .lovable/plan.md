@@ -1,130 +1,90 @@
 
-## Objetivo
 
-Corrigir o fluxo OFX do `/contador/financeiro` para ficar realmente profissional: importar de forma segura, salvar os lançamentos com a conta bancária correta, respeitar segurança do portal do contador e mostrar o resultado imediatamente na tela.
+## Gestão de Marketing — Galeria de Imagens + Auditoria do Módulo
 
-## Diagnóstico do problema atual
+### Parte 1 — Galeria de Imagens na Biblioteca
 
-1. **A tabela já existe na tela**, mas o fluxo não está fechando corretamente entre importação e exibição.
-2. **Os lançamentos importados não estão sendo vinculados em `conta_bancaria_id`**, então as abas dinâmicas por conta não se formam como esperado.
-3. **O importador está engolindo erros de insert**, podendo mostrar sucesso mesmo quando o banco recusou a gravação.
-4. **O portal do contador provavelmente não tem permissões RLS suficientes** para ler/gravar `extrato_bancario` e `contas_bancarias` no escopo das empresas vinculadas ao contador.
-5. **Após importar, a tela não se reposiciona para o contexto certo** (aba Extratos, período, unidade/conta importada), então para o usuário parece que “nada aconteceu”.
+**Nova aba "Galeria" em `/marketing/conteudos`**
 
-## O que vou implementar
+Reformular `BibliotecaConteudos.tsx` com tabs no topo:
+- **Conteúdos** (atual: textos, posts, roteiros)
+- **Galeria** (nova: imagens geradas + importadas)
 
-### 1. Corrigir a persistência do OFX
-Em `src/components/contador/DialogImportarOFX.tsx`:
+**Funcionalidades da Galeria:**
+- Grid responsivo (2 col mobile / 3-4 col desktop) com preview quadrado das imagens.
+- Cada card: imagem, badge de origem (Gerada IA / Importada), data, ações (usar em post, baixar, copiar URL, favoritar, excluir).
+- Filtros: origem (todas / IA / importadas), favoritas, busca por título/tag.
+- Botão **"Importar Imagem"** (upload via `ImageUpload` existente, bucket `marketing-assets` que já existe e é público).
+- Botão **"Gerar com IA"** → abre modal usando edge function `marketing-ai` com `modalities: ["image","text"]` (Nano Banana já documentado no contexto).
+- Botão **"Usar neste post"** em cada imagem → navega para `/marketing/agendamentos` com a URL da imagem pré-anexada, ou abre modal de novo post.
 
-- Parar de considerar importação como sucesso sem validar `error` de cada `insert`.
-- Se qualquer lote falhar, exibir erro real e não mostrar toast de sucesso.
-- Ao criar/identificar uma conta bancária, capturar o `id` retornado e salvar cada lançamento com:
-  - `unidade_id`
-  - `conta_bancaria_id`
-  - `data`
-  - `descricao`
-  - `valor`
-  - `tipo`
-  - `conciliado`
-- Incluir no callback final um payload com:
-  - unidades importadas
-  - contas importadas
-  - período do arquivo
-  - quantidade real gravada
-  - ids das contas bancárias usadas/criadas
+**Backend:**
+- Nova tabela `marketing_imagens` (id, empresa_id, unidade_id, url, titulo, tags, origem `'ia'|'importada'`, prompt, favorito, created_by, created_at) com RLS por empresa/unidade.
+- Bucket `marketing-assets` (já existe, público) — pasta `imagens/{empresa_id}/`.
+- Edge function `marketing-ai` ganha rota `?tipo=imagem` que gera via Nano Banana, salva no bucket e insere em `marketing_imagens`.
 
-Resultado: os dados vão existir de verdade no banco e a tela saberá exatamente o que acabou de ser importado.
+### Parte 2 — Auditoria do Módulo de Marketing
 
-### 2. Ajustar segurança do portal do contador
-Criar migração de banco para permitir acesso seguro do contador somente às empresas às quais ele já está vinculado:
+**O que já existe (verificado nos arquivos):**
+- `/marketing/conteudos` — Biblioteca de textos/roteiros
+- `/marketing/agendamentos` — Agenda de posts
+- `/marketing/campanhas` — Campanhas (compartilhada com clientes)
+- `/marketing/configuracoes` — Configurações
+- `/clientes/marketing` — Criação de conteúdo com IA (textos, vídeos, roteiros TikTok/Reels)
+- Edge function `marketing-ai` com suporte a textos e roteiros de vídeo cena-a-cena
 
-- `SELECT` em `extrato_bancario` para contador vinculado à empresa da unidade.
-- `INSERT` em `extrato_bancario` para contador vinculado à empresa da unidade.
-- `UPDATE` em `extrato_bancario` para contador vinculado à empresa da unidade.
-- `SELECT` em `contas_bancarias` no mesmo escopo.
-- `INSERT` em `contas_bancarias` no mesmo escopo.
+**Ajustes propostos (quick wins):**
+1. **Dashboard de Marketing reativado** — recolocar `/marketing` no menu com KPIs: posts agendados, taxa de publicação, conteúdos gerados no mês, imagens na galeria.
+2. **Vincular conteúdo + imagem** — ao criar post de "imagem" na Biblioteca, permitir anexar uma imagem da Galeria (campo `imagem_url` em `marketing_conteudos`).
+3. **Preview real do post** — mostrar mockup de Instagram/Facebook com imagem + legenda + hashtags antes de salvar.
+4. **Calendário visual** em `/marketing/agendamentos` com drag-and-drop de posts entre dias.
 
-Implementação com política baseada em `contador_has_empresa(...)` + relação via `unidades`, sem abrir acesso global.
+**Novas funcionalidades sugeridas (médio prazo):**
+5. **Templates de post** — modelos prontos por categoria (promoção, institucional, datas comemorativas).
+6. **Hashtag sugerida por IA** baseada no conteúdo + nicho (gás/água/delivery local).
+7. **Integração de publicação automática** — conectar com Meta Graph API para publicar direto no Instagram/Facebook (já há infraestrutura WhatsApp Meta).
+8. **Análise de performance** — quando publicado, puxar métricas (curtidas, alcance, comentários) via Graph API.
+9. **Banco de ideias** — feed de ideias geradas proativamente pela IA com base em sazonalidade (frio = mais gás, calor = mais água).
+10. **Aprovação multinível** — usar workflow de aprovações já existente para posts antes de publicar.
 
-Resultado: o contador conseguirá importar e enxergar os extratos no próprio portal, sem quebrar isolamento entre empresas.
+### Detalhes técnicos
 
-### 3. Fazer a tela mostrar o resultado imediatamente
-Em `src/pages/contador/ContadorFinanceiro.tsx`:
-
-- Trocar o `onConcluido` simples por um handler com payload da importação.
-- Após importação bem-sucedida:
-  - abrir automaticamente a aba **Extratos**
-  - ajustar o período para cobrir o intervalo importado
-  - se necessário, limpar o filtro de unidade para “Todas as lojas” quando o arquivo afetar mais de uma unidade
-  - selecionar automaticamente a aba da conta importada quando houver uma conta principal
-  - disparar novo `fetchExtratos()` só depois do contexto correto estar definido
-
-Resultado: o usuário importa e vê os dados na sequência, na mesma tela, sem precisar “adivinhar” filtro, período ou aba.
-
-### 4. Melhorar a confirmação visual da importação
-Ainda em `ContadorFinanceiro.tsx`:
-
-- Adicionar um banner de “Última importação concluída” acima da planilha com:
-  - total de lançamentos gravados
-  - número de contas
-  - período importado
-  - unidades afetadas
-- Exibir CTA contextual quando a importação gerou dados mas o filtro ativo está escondendo parte deles.
-
-Resultado: a tela passa a comunicar claramente o que foi importado e onde os dados estão.
-
-### 5. Garantir que as abas por conta funcionem de verdade
-Na integração entre `DialogImportarOFX.tsx` e `ContadorFinanceiro.tsx`:
-
-- Persistir `conta_bancaria_id` em todos os lançamentos importados.
-- Recarregar `contas_bancarias` junto com `extrato_bancario`.
-- Manter o label das abas no formato:
-  `[UNIDADE] · [BANCO] ····[4 últimos]`
-- Só usar “Sem conta vinculada” quando realmente não houver conta.
-
-Resultado: a planilha deixa de cair toda em “Sem conta vinculada” e passa a refletir as contas do OFX.
-
-## Arquivos afetados
-
-- **Editar** `src/components/contador/DialogImportarOFX.tsx`
-  - validar erros reais
-  - salvar `conta_bancaria_id`
-  - retornar payload da importação
-- **Editar** `src/pages/contador/ContadorFinanceiro.tsx`
-  - sincronizar aba/período/unidade após importação
-  - mostrar banner profissional de resultado
-  - focar automaticamente nos dados recém-importados
-- **Migração** em `supabase/migrations/...sql`
-  - políticas RLS para `extrato_bancario`
-  - políticas RLS para `contas_bancarias`
-
-## Detalhes técnicos
-
-```text
-Importar OFX
-   ↓
-detectar/criar conta bancária
-   ↓
-insert extrato_bancario com conta_bancaria_id
-   ↓
-retornar payload da importação
-   ↓
-ContadorFinanceiro ajusta:
-- aba = Extratos
-- período = intervalo importado
-- unidade = todas ou unidade correta
-- tab da conta = conta importada
-   ↓
-fetchExtratos()
-   ↓
-planilha mostra dados imediatamente
+**Migration (Parte 1):**
+```sql
+CREATE TABLE public.marketing_imagens (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  empresa_id uuid NOT NULL,
+  unidade_id uuid,
+  url text NOT NULL,
+  titulo text,
+  tags text,
+  origem text NOT NULL CHECK (origem IN ('ia','importada')),
+  prompt text,
+  favorito boolean DEFAULT false,
+  created_by uuid,
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE public.marketing_imagens ENABLE ROW LEVEL SECURITY;
+-- Policies: SELECT/INSERT/UPDATE/DELETE para usuários da mesma empresa
 ```
 
-## Critérios de aceite
+**Arquivos a alterar:**
+- `src/pages/marketing/BibliotecaConteudos.tsx` — adicionar tabs e seção Galeria
+- `src/components/marketing/GaleriaImagens.tsx` — novo componente
+- `src/components/marketing/GerarImagemModal.tsx` — novo modal
+- `supabase/functions/marketing-ai/index.ts` — adicionar tipo `imagem`
+- `src/routes/marketingRoutes.ts` — restaurar `DashboardMarketing` no menu
 
-- ✓ O contador consegue importar OFX pelo portal e os registros são realmente gravados.
-- ✓ Nenhum toast de sucesso aparece quando houver erro de banco.
-- ✓ Os lançamentos importados aparecem imediatamente na aba **Extratos**.
-- ✓ As abas dinâmicas por conta passam a funcionar porque os lançamentos ficam vinculados à conta bancária.
-- ✓ O período e o contexto visual são ajustados automaticamente para não “sumir” com os dados recém-importados.
-- ✓ O acesso continua seguro, limitado às empresas vinculadas ao contador.
+### Critérios de aceite
+
+- Tab "Galeria" visível em `/marketing/conteudos`.
+- Importar imagem do dispositivo funciona e aparece na grid.
+- Gerar imagem com IA funciona e salva no bucket + tabela.
+- Botão "Usar neste post" leva a fluxo de criação de post com a imagem anexada.
+- RLS isola imagens por empresa.
+- Auditoria entregue como lista priorizada (quick wins implementados nesta entrega; itens 5-10 ficam como roadmap para você aprovar individualmente).
+
+### Pergunta antes de executar
+
+Quer que eu já implemente os **4 quick wins** (Dashboard, vincular imagem em conteúdo, preview de post, calendário visual) junto com a Galeria, ou prefere **apenas a Galeria** nesta primeira entrega e os ajustes em seguida?
+
