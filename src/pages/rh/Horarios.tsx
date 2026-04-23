@@ -46,17 +46,24 @@ interface Escala {
   rotas_definidas: { nome: string } | null;
 }
 
-// Calcula horas líquidas (turno - almoço quando definido)
-function calcHoras(inicio: string, fim: string, almIni?: string | null, almFim?: string | null): number {
+// Calcula horas líquidas com 3 cenários:
+// 1) Almoço cadastrado → desconta intervalo real
+// 2) Sem almoço, turno ≤ 6h → turno cheio (CLT não exige intervalo)
+// 3) Sem almoço, turno > 6h → desconta 1h estimada (CLT mínimo)
+function calcHoras(inicio: string, fim: string, almIni?: string | null, almFim?: string | null): { horas: number; estimado: boolean } {
   const toMin = (t: string) => {
     const [h, m] = t.split(":").map(Number);
     return h * 60 + m;
   };
-  let total = toMin(fim) - toMin(inicio);
+  const turnoMin = Math.max(0, toMin(fim) - toMin(inicio));
   if (almIni && almFim) {
-    total -= Math.max(0, toMin(almFim) - toMin(almIni));
+    const alm = Math.max(0, toMin(almFim) - toMin(almIni));
+    return { horas: Math.max(0, turnoMin - alm) / 60, estimado: false };
   }
-  return Math.max(0, total) / 60;
+  if (turnoMin > 360) {
+    return { horas: Math.max(0, turnoMin - 60) / 60, estimado: true };
+  }
+  return { horas: turnoMin / 60, estimado: false };
 }
 
 function EscalasTab() {
