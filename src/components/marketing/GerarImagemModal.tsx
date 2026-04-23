@@ -22,7 +22,7 @@ const exemplos = [
 ];
 
 export function GerarImagemModal({ open, onOpenChange }: Props) {
-  const { empresa, unidadeAtual } = useEmpresa();
+  const { empresa } = useEmpresa();
   const qc = useQueryClient();
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,7 +37,6 @@ export function GerarImagemModal({ open, onOpenChange }: Props) {
           imagePrompt: prompt,
           save: true,
           empresa_id: empresa.id,
-          unidade_id: unidadeAtual?.id || null,
         },
       });
       if (error) throw error;

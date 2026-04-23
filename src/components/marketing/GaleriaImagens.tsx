@@ -19,7 +19,7 @@ import { GerarImagemModal } from "./GerarImagemModal";
 export function GaleriaImagens() {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const { empresa, unidadeAtual } = useEmpresa();
+  const { empresa } = useEmpresa();
   const empresaId = empresa?.id;
   const fileRef = useRef<HTMLInputElement>(null);
   const [busca, setBusca] = useState("");
@@ -86,7 +86,6 @@ export function GaleriaImagens() {
       const { data: pub } = supabase.storage.from("marketing-assets").getPublicUrl(path);
       const { error: insErr } = await supabase.from("marketing_imagens").insert({
         empresa_id: empresaId,
-        unidade_id: unidadeAtual?.id || null,
         url: pub.publicUrl,
         origem: "importada",
         titulo: file.name,
