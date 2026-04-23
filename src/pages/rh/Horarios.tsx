@@ -1263,18 +1263,39 @@ function CoberturaTab() {
                           const count = lista.length;
                           const acima = picoMedio > 0 && count > picoMedio;
                           return (
-                            <td key={d} className="p-0.5">
+                            <td key={d} className="p-0.5 align-top">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div
                                     className={cn(
-                                      "h-9 rounded flex items-center justify-center gap-1 cursor-default transition-all hover:ring-2 hover:ring-primary/40",
+                                      "min-h-9 sm:min-w-[90px] rounded flex flex-col items-center justify-start py-1 px-1 cursor-default transition-all hover:ring-2 hover:ring-primary/40",
                                       celulaClasse(count),
                                       isPico && count === 0 && "ring-1 ring-destructive/40"
                                     )}
                                   >
-                                    <span>{count}</span>
-                                    {acima && <Flame className="h-3 w-3 text-destructive" />}
+                                    <div className="flex items-center gap-1 font-semibold">
+                                      <span>{count}</span>
+                                      {acima && <Flame className="h-3 w-3 text-destructive" />}
+                                    </div>
+                                    {count > 0 && (
+                                      <div className="hidden sm:flex flex-col items-stretch w-full mt-0.5 leading-tight">
+                                        {lista.slice(0, 3).map((p, idx) => (
+                                          <span
+                                            key={idx}
+                                            className="text-[10px] text-muted-foreground truncate text-center"
+                                            title={p.nome}
+                                          >
+                                            {p.nome.split(" ")[0]}
+                                            {p.outraUnidade && "*"}
+                                          </span>
+                                        ))}
+                                        {count > 3 && (
+                                          <span className="text-[10px] text-muted-foreground/80 text-center">
+                                            +{count - 3}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className="max-w-xs">
