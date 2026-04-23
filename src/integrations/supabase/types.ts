@@ -2372,6 +2372,30 @@ export type Database = {
           },
         ]
       }
+      configuracoes_globais: {
+        Row: {
+          chave: string
+          descricao: string | null
+          updated_at: string
+          updated_by: string | null
+          valor: Json
+        }
+        Insert: {
+          chave: string
+          descricao?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valor: Json
+        }
+        Update: {
+          chave?: string
+          descricao?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valor?: Json
+        }
+        Relationships: []
+      }
       configuracoes_visuais: {
         Row: {
           comprovante: Json | null
@@ -6203,6 +6227,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      oauth_states: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          expires_at: string
+          nonce: string
+          return_url: string | null
+          unidade_id: string | null
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          expires_at?: string
+          nonce?: string
+          return_url?: string | null
+          unidade_id?: string | null
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          expires_at?: string
+          nonce?: string
+          return_url?: string | null
+          unidade_id?: string | null
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       onboarding_checklists: {
         Row: {
