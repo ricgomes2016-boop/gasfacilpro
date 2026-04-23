@@ -9,10 +9,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "@/hooks/use-toast";
-import { detectPlaceholders, applyPlaceholders, labelFor } from "@/lib/templatePlaceholders";
+import { detectPlaceholders, applyPlaceholders, labelFor, suggestSchedule } from "@/lib/templatePlaceholders";
 import { PostPreview } from "./PostPreview";
 import { SeletorImagemGaleria } from "./SeletorImagemGaleria";
-import { Image as ImageIcon, X, Save, CalendarPlus, Eye } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Image as ImageIcon, X, Save, CalendarPlus, Eye, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -59,6 +60,13 @@ export function AplicarTemplateModal({ open, onOpenChange, template }: Props) {
 
   const textoCompleto = [legendaFinal, hashtagsFinal].filter(Boolean).join("\n\n");
 
+  // Variáveis pendentes (sem valor preenchido)
+  const pendentes = useMemo(
+    () => placeholders.filter((k) => !values[k]?.trim()),
+    [placeholders, values]
+  );
+  const preenchidas = placeholders.filter((k) => values[k]?.trim());
+
   const salvarMut = useMutation({
     mutationFn: async () => {
       const payload: any = {
@@ -83,9 +91,18 @@ export function AplicarTemplateModal({ open, onOpenChange, template }: Props) {
   });
 
   const agendar = () => {
+    if (pendentes.length > 0) {
+      const ok = confirm(
+        `Existem ${pendentes.length} variável(eis) sem preenchimento (${pendentes.map(labelFor).join(", ")}).\n\nElas aparecerão como {{${pendentes[0]}}} no post. Deseja continuar mesmo assim?`
+      );
+      if (!ok) return;
+    }
+    const sugestao = suggestSchedule(template.plataforma);
     const params = new URLSearchParams();
     params.set("legenda", textoCompleto);
     params.set("plataforma", template.plataforma);
+    params.set("data", sugestao.data);
+    params.set("hora", sugestao.hora);
     if (imagemUrl) params.set("imagem", imagemUrl);
     navigate(`/marketing/agendamentos?${params.toString()}`);
   };
