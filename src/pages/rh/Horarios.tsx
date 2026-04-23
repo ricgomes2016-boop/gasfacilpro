@@ -162,12 +162,23 @@ function EscalasTab() {
       return;
     }
 
+    if ((almocoInicio && !almocoFim) || (!almocoInicio && almocoFim)) {
+      toast({ title: "Preencha ambos os horários do almoço", variant: "destructive" });
+      return;
+    }
+    if (almocoInicio && almocoFim && (almocoInicio <= turnoInicio || almocoFim >= turnoFim)) {
+      toast({ title: "Almoço deve estar dentro do turno", variant: "destructive" });
+      return;
+    }
+
     const payload = {
       entregador_id: entregadorId,
       rota_definida_id: rotaId && rotaId !== "none" ? rotaId : null,
       data,
       turno_inicio: turnoInicio,
       turno_fim: turnoFim,
+      almoco_inicio: almocoInicio || null,
+      almoco_fim: almocoFim || null,
       observacoes: observacoes || null,
       unidade_id: unidadeAtual?.id || null,
     };
