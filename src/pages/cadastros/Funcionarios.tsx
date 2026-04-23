@@ -291,6 +291,7 @@ export default function Funcionarios() {
       regime_pagamento: fAny.regime_pagamento || "mensal",
       valor_diaria: fAny.valor_diaria?.toString() || "",
       entra_na_escala: !!fAny.entra_na_escala,
+      is_transporte: !!fAny.is_transporte,
     });
     setEditId(f.id);
     setOpen(true);
