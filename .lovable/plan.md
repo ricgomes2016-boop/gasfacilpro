@@ -1,111 +1,54 @@
 
 
-## Conexão e Criação de Páginas em Redes Sociais
+## Badge "Conectado via OAuth" + Publicação Automática
 
-### Resposta direta às perguntas
-
-**1. Conectar conta de rede social existente?**
-Sim, é totalmente possível via OAuth oficial das próprias plataformas (Meta Graph API para Instagram/Facebook, WhatsApp Cloud API já existente no projeto). O usuário autoriza uma vez e o sistema passa a publicar/agendar/ler métricas em nome dele.
-
-**2. Criar uma página/conta nova direto pelo sistema?**
-**Não é possível** criar contas de Instagram, Facebook, TikTok ou YouTube via API — todas as plataformas exigem cadastro manual no app/site oficial por questões de verificação humana, anti-spam e termos de uso.
-O que dá para fazer é **guiar o usuário no processo** (passo a passo dentro do sistema com links diretos) e, **após criada**, conectá-la automaticamente.
+### Estado atual
+- `RedesSociais.tsx` já mostra um badge `🔗 OAuth` / `Manual`, mas pequeno (text-[10px]) e sem destaque visual.
+- Edge function `meta-publish-cron` existe e está pronta para processar agendamentos vencidos de contas OAuth, **mas nunca é disparada** — falta registrar o `pg_cron` que chama a função a cada 5 minutos.
+- `meta-publish-post` já publica corretamente em IG Business e Facebook Page usando o token salvo.
 
 ### O que será entregue
 
-**Parte A — Conexão real via OAuth (Meta: Instagram + Facebook)**
+**1. Badge "Conectado via OAuth" mais visível (`src/pages/marketing/RedesSociais.tsx`)**
+- Substituir o badge atual por um destacado verde com ícone de check (`CheckCircle2` do lucide), texto "Conectado via OAuth" e tooltip explicando "Publicação automática habilitada".
+- Contas manuais ganham badge cinza "Cadastro manual" com tooltip "Apenas lembrete, não publica automaticamente".
+- Quando OAuth, exibir também a data da última renovação de token (`token_expires_at`) em pequeno abaixo do nome.
 
-Aproveita a infraestrutura Meta já existente no projeto (WhatsApp Cloud API, App ID configurado).
+**2. Agendamento da publicação automática (nova migration SQL)**
+- Garantir extensões `pg_cron` e `pg_net` ativas.
+- Registrar job `meta-publish-cron-job` rodando `*/5 * * * *` que faz `net.http_post` para `https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/meta-publish-cron` com header `Authorization: Bearer <ANON_KEY>`.
+- Como o conteúdo do SQL contém URL e chave específicas do projeto, será aplicado via tool de insert SQL (não migration), conforme instrução de `schedule-jobs-supabase-edge-functions`.
 
-1. **Tela `/marketing/redes-sociais` reformulada** (já existe como cadastro manual — vira hub de conexão real):
-   - Botão **"Conectar Instagram + Facebook"** → abre fluxo OAuth da Meta solicitando escopos: `pages_show_list`, `pages_manage_posts`, `pages_read_engagement`, `instagram_basic`, `instagram_content_publish`, `business_management`.
-   - Botão **"Conectar WhatsApp Business"** → reaproveita integração existente.
-   - Botões **TikTok** e **YouTube** com tooltip "Em breve" (APIs exigem aprovação caso a caso e ficam para fase 2).
+**3. Selo "Publicação automática" no agendador (`src/pages/marketing/AgendamentoPosts.tsx`)**
+- Quando o usuário seleciona uma `social_account` no formulário de agendar post, mostrar abaixo do select um chip verde "✓ Será publicado automaticamente" se `conectado_via === 'oauth'`, ou um chip âmbar "⚠ Apenas lembrete — publique manualmente" se `manual`.
+- Ajuda o usuário a entender por que alguns posts publicam sozinhos e outros não.
 
-2. **Edge functions novas:**
-   - `meta-oauth-start` — gera URL de autorização Meta com `state` assinado.
-   - `meta-oauth-callback` — troca `code` por access token de longa duração (60 dias), descobre páginas FB e contas IG vinculadas, salva criptografado em `social_accounts`.
-   - `meta-publish-post` — publica post (imagem + legenda) no IG/FB usando token salvo.
-   - `meta-refresh-token` — renova tokens antes de expirar (cron diário).
-
-3. **Tabela `social_accounts` estendida** (já existe):
-```sql
-ALTER TABLE social_accounts ADD COLUMN access_token text;
-ALTER TABLE social_accounts ADD COLUMN refresh_token text;
-ALTER TABLE social_accounts ADD COLUMN token_expires_at timestamptz;
-ALTER TABLE social_accounts ADD COLUMN page_id text;          -- FB Page ID
-ALTER TABLE social_accounts ADD COLUMN ig_business_id text;   -- IG Business Account ID
-ALTER TABLE social_accounts ADD COLUMN scopes text[];
-ALTER TABLE social_accounts ADD COLUMN conectado_via text DEFAULT 'manual'; -- 'oauth'|'manual'
-```
-RLS já aplicada por `empresa_id`.
-
-4. **Integração com agendador**: posts agendados em `marketing_agendamentos` que tenham `social_account_id` com `conectado_via='oauth'` são publicados automaticamente via cron (`meta-publish-cron` rodando a cada 5 min). Posts em contas manuais continuam como lembrete.
-
-**Parte B — Guia "Criar nova página" (assistente passo a passo)**
-
-Como APIs não criam contas, oferecemos um **wizard de criação assistida**:
-
-1. Card **"Não tem página ainda? Criamos com você"** na tela de Redes Sociais.
-2. Modal com escolha de plataforma (Instagram, Facebook, TikTok, YouTube, WhatsApp Business).
-3. Para cada plataforma, exibe:
-   - Checklist de pré-requisitos (e-mail, telefone, logo, descrição da empresa).
-   - Sugestão de nome/@handle baseada no nome da empresa (`{empresa.nome} + cidade`).
-   - Sugestão de bio/descrição gerada por IA (reusa edge function `marketing-ai`).
-   - Sugestão de foto de perfil (logo da empresa salvo no sistema) e capa.
-   - Link direto que abre o fluxo de cadastro oficial em nova aba (ex.: `https://www.instagram.com/accounts/emailsignup/`, `https://www.facebook.com/pages/create`, `https://business.tiktok.com/portal/registration`, `https://www.youtube.com/create_channel`, `https://business.whatsapp.com/`).
-   - Após criar, botão **"Já criei, conectar agora"** que dispara o OAuth da Parte A.
+**4. Coluna de status na lista de agendamentos**
+- Já existe coluna `status` em `marketing_agendamentos` (`agendado | publicado | erro`). Garantir que a UI da lista mostre badge colorido por status e, quando `erro`, exibir tooltip com `erro_mensagem`.
 
 ### Detalhes técnicos
-
-**Secret necessário (Meta App):**
-- `META_APP_ID` (já existe no projeto — verificar)
-- `META_APP_SECRET` (precisa adicionar via `add_secret` se ainda não houver)
-- `META_OAUTH_REDIRECT_URI` = `https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/meta-oauth-callback`
-
-**Configuração no Meta Developer Console** (passo manual do usuário, com guia exibido na UI):
-1. Adicionar a redirect URI acima em "Valid OAuth Redirect URIs" do app Meta.
-2. Solicitar revisão dos escopos `instagram_content_publish`, `pages_manage_posts` (Meta exige App Review para sair do modo dev).
-3. Vincular conta Instagram Business à Página do Facebook.
-
-**Arquivos novos:**
-- `supabase/functions/meta-oauth-start/index.ts`
-- `supabase/functions/meta-oauth-callback/index.ts`
-- `supabase/functions/meta-publish-post/index.ts`
-- `supabase/functions/meta-publish-cron/index.ts`
-- `src/pages/marketing/RedesSociaisHub.tsx` (substitui `RedesSociais.tsx` atual mantendo compatibilidade)
-- `src/components/marketing/CriarPaginaWizard.tsx`
-- `src/components/marketing/ConectarRedeSocialButton.tsx`
-
-**Arquivos alterados:**
-- `src/pages/marketing/AgendamentoPosts.tsx` — mostrar selo "Publicação automática" quando conta estiver via OAuth.
-- `supabase/migrations/...` — alterações em `social_accounts`.
-
-### Limites a comunicar ao usuário (importante)
-
-- **Instagram via API**: só publica em contas **Instagram Business** ou **Creator** vinculadas a uma Página do Facebook. Conta pessoal não funciona.
-- **Stories e Reels via API**: Reels suportado, Stories tem limitações (só conta Business com >100 seguidores em alguns mercados).
-- **TikTok/YouTube**: APIs existem mas exigem aprovação individual (semanas a meses) — entram como roadmap.
-- **App Meta em modo Desenvolvimento** publica só nas contas dos testadores cadastrados; produção exige App Review.
+- **Arquivo alterado**: `src/pages/marketing/RedesSociais.tsx` — substituir bloco de badges (linhas 175–182) e adicionar Tooltip.
+- **Arquivo alterado**: `src/pages/marketing/AgendamentoPosts.tsx` — adicionar chip informativo abaixo do select de conta.
+- **SQL via insert tool** (conteúdo com chave/URL específicos):
+  ```sql
+  CREATE EXTENSION IF NOT EXISTS pg_cron;
+  CREATE EXTENSION IF NOT EXISTS pg_net;
+  SELECT cron.schedule(
+    'meta-publish-cron-job',
+    '*/5 * * * *',
+    $$ SELECT net.http_post(
+        url:='https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/meta-publish-cron',
+        headers:='{"Content-Type":"application/json","Authorization":"Bearer <ANON_KEY>"}'::jsonb,
+        body:='{}'::jsonb
+    ); $$
+  );
+  ```
+- **Sem novas dependências, sem mudança de schema, sem novo secret.**
 
 ### Critérios de aceite
-
-- Botão "Conectar Instagram + Facebook" abre OAuth Meta e salva tokens criptografados.
-- Após conectar, contas aparecem na lista com badge "Conectado via OAuth" e nome real puxado da Meta.
-- Posts agendados em conta OAuth são publicados automaticamente no horário marcado.
-- Wizard "Criar nova página" guia em 5 plataformas com sugestões de IA (nome, bio, foto).
-- Botão "Já criei, conectar agora" dispara OAuth direto após cadastro externo.
-- Tela exibe alertas claros sobre pré-requisitos (IG Business, App Review, etc.).
-
-### Pergunta antes de executar
-
-A integração OAuth com Meta exige que você (ou eu, com sua autorização) configure no painel do Meta Developer:
-1. A **redirect URI** no app Meta existente.
-2. Adicionar o secret **`META_APP_SECRET`** no Lovable Cloud (eu solicito via tool quando aprovar).
-3. Solicitar **App Review** para os escopos de publicação (processo da Meta, leva dias/semanas).
-
-Quer que eu implemente:
-- **(A) Tudo de uma vez** — OAuth Meta (IG+FB) + Wizard "Criar página" + cron de publicação automática.
-- **(B) Apenas o Wizard "Criar página" agora** (sem OAuth) — entrega rápida, sem dependências externas, e deixamos a publicação automática para uma segunda etapa quando você tiver o App Review aprovado.
-- **(C) Apenas o OAuth de leitura** (conectar contas e ler métricas, sem publicar) — mais fácil de aprovar na Meta, e a publicação fica manual por enquanto.
+- Conta OAuth aparece com badge verde "Conectado via OAuth" + ícone de check; conta manual aparece com badge cinza "Cadastro manual".
+- Job `meta-publish-cron-job` listado em `cron.job` rodando a cada 5 min.
+- Post agendado para conta OAuth com `data_agendada` no passado é publicado automaticamente em até 5 min e seu status muda para `publicado` com `external_post_id` preenchido.
+- Erros de publicação salvam `status='erro'` e `erro_mensagem`, e a lista exibe tooltip com a causa.
+- No formulário de agendamento, ao escolher a conta, o usuário vê imediatamente se aquele post irá publicar sozinho ou ficará só como lembrete.
 
