@@ -1,16 +1,21 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Calendar, Clock, Trash2, CheckCircle2, XCircle, AlertCircle, Sparkles, Loader2 } from "lucide-react";
+import {
+  Plus, Calendar as CalendarIcon, Clock, Trash2, CheckCircle2, XCircle, AlertCircle,
+  Sparkles, Loader2, Image as ImageIcon, X, List, LayoutGrid, Eye,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,6 +25,9 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { SeletorImagemGaleria } from "@/components/marketing/SeletorImagemGaleria";
+import { PostPreview } from "@/components/marketing/PostPreview";
+import { CalendarioPosts } from "@/components/marketing/CalendarioPosts";
 
 const FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/marketing-ai`;
 
@@ -39,14 +47,28 @@ export default function AgendamentoPosts() {
   const { empresa } = useEmpresa();
   const { unidadeAtual } = useUnidade();
   const empresaId = empresa?.id;
+  const [searchParams, setSearchParams] = useSearchParams();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [seletorOpen, setSeletorOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [form, setForm] = useState({
     plataforma: "instagram",
     texto: "",
+    midia_url: "",
     data_agendamento: "",
     hora: "10:00",
   });
+
+  // Receber imagem via query param (vinda da Galeria → "Usar em post")
+  useEffect(() => {
+    const img = searchParams.get("imagem");
+    if (img) {
+      setForm((f) => ({ ...f, midia_url: img }));
+      setDialogOpen(true);
+      searchParams.delete("imagem");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const { data: agendamentos = [] } = useQuery({
     queryKey: ["mkt-agendamentos", empresaId],
@@ -62,19 +84,21 @@ export default function AgendamentoPosts() {
   const addMut = useMutation({
     mutationFn: async () => {
       const dataHora = `${form.data_agendamento}T${form.hora}:00`;
-      const { error } = await supabase.from("marketing_agendamentos").insert({
+      const payload: any = {
         empresa_id: empresaId!, unidade_id: unidadeAtual?.id || null,
         plataforma: form.plataforma, texto: form.texto, data_agendamento: dataHora, status: "agendado",
-      });
+      };
+      if (form.midia_url) payload.midia_url = form.midia_url;
+      const { error } = await supabase.from("marketing_agendamentos").insert(payload);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mkt-agendamentos"] });
       toast({ title: "Post agendado!" });
       setDialogOpen(false);
-      setForm({ plataforma: "instagram", texto: "", data_agendamento: "", hora: "10:00" });
+      setForm({ plataforma: "instagram", texto: "", midia_url: "", data_agendamento: "", hora: "10:00" });
     },
-    onError: () => toast({ title: "Erro ao agendar", variant: "destructive" }),
+    onError: (e: any) => toast({ title: "Erro ao agendar", description: e.message, variant: "destructive" }),
   });
 
   const cancelMut = useMutation({
@@ -123,95 +147,160 @@ export default function AgendamentoPosts() {
   return (
     <MainLayout>
       <Header title="Agendamento de Posts" subtitle="Agende publicações nas suas redes sociais" />
-      <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-4">
+      <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-4">
         <div className="flex justify-between items-center">
           <p className="text-sm text-muted-foreground">{agendamentos.filter((a: any) => a.status === "agendado").length} agendado(s)</p>
           <Button onClick={() => setDialogOpen(true)} size="sm"><Plus className="h-4 w-4 mr-1" /> Novo Agendamento</Button>
         </div>
 
-        {agendamentos.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="py-12 text-center">
-              <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
-              <h3 className="text-lg font-semibold mb-2">Nenhum agendamento</h3>
-              <p className="text-sm text-muted-foreground mb-4">Agende seu primeiro post</p>
-              <Button onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 mr-1" /> Agendar Post</Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {agendamentos.map((ag: any) => {
-              const st = statusConfig[ag.status] || statusConfig.agendado;
-              const StIcon = st.icon;
-              return (
-                <Card key={ag.id} className="border-border/50">
-                  <CardContent className="p-4 flex items-start gap-3">
-                    <div className="text-2xl mt-1">{plataformaEmoji[ag.plataforma] || "📝"}</div>
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <p className="text-sm font-medium line-clamp-2">{ag.texto?.slice(0, 120) || "Post sem texto"}</p>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="outline" className={`text-[10px] ${st.color}`}><StIcon className="h-3 w-3 mr-1" />{st.label}</Badge>
-                        <span className="text-xs text-muted-foreground capitalize">{ag.plataforma}</span>
-                        <span className="text-xs text-muted-foreground">{format(new Date(ag.data_agendamento), "dd/MM/yyyy · HH:mm", { locale: ptBR })}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      {ag.status === "agendado" && (
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => cancelMut.mutate(ag.id)}><XCircle className="h-4 w-4 text-amber-500" /></Button>
-                      )}
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(ag.id)}><Trash2 className="h-4 w-4" /></Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+        <Tabs defaultValue="calendario" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="calendario" className="gap-1.5">
+              <LayoutGrid className="h-4 w-4" /> Calendário
+            </TabsTrigger>
+            <TabsTrigger value="lista" className="gap-1.5">
+              <List className="h-4 w-4" /> Lista
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="calendario">
+            <Card className="border-border/50">
+              <CardContent className="p-3 md:p-4">
+                <CalendarioPosts agendamentos={agendamentos} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="lista">
+            {agendamentos.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="py-12 text-center">
+                  <CalendarIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
+                  <h3 className="text-lg font-semibold mb-2">Nenhum agendamento</h3>
+                  <p className="text-sm text-muted-foreground mb-4">Agende seu primeiro post</p>
+                  <Button onClick={() => setDialogOpen(true)}><Plus className="h-4 w-4 mr-1" /> Agendar Post</Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {agendamentos.map((ag: any) => {
+                  const st = statusConfig[ag.status] || statusConfig.agendado;
+                  const StIcon = st.icon;
+                  return (
+                    <Card key={ag.id} className="border-border/50">
+                      <CardContent className="p-4 flex items-start gap-3">
+                        {ag.midia_url ? (
+                          <img src={ag.midia_url} alt="" className="h-14 w-14 rounded-lg object-cover shrink-0" />
+                        ) : (
+                          <div className="text-2xl mt-1">{plataformaEmoji[ag.plataforma] || "📝"}</div>
+                        )}
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <p className="text-sm font-medium line-clamp-2">{ag.texto?.slice(0, 120) || "Post sem texto"}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className={`text-[10px] ${st.color}`}><StIcon className="h-3 w-3 mr-1" />{st.label}</Badge>
+                            <span className="text-xs text-muted-foreground capitalize">{plataformaEmoji[ag.plataforma]} {ag.plataforma}</span>
+                            <span className="text-xs text-muted-foreground">{format(new Date(ag.data_agendamento), "dd/MM/yyyy · HH:mm", { locale: ptBR })}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          {ag.status === "agendado" && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => cancelMut.mutate(ag.id)}><XCircle className="h-4 w-4 text-amber-500" /></Button>
+                          )}
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(ag.id)}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Novo Agendamento</DialogTitle></DialogHeader>
-            <div className="space-y-4 py-2">
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">Plataforma</label>
-                <Select value={form.plataforma} onValueChange={(v) => setForm((f) => ({ ...f, plataforma: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="instagram">📸 Instagram</SelectItem>
-                    <SelectItem value="facebook">📘 Facebook</SelectItem>
-                    <SelectItem value="tiktok">🎵 TikTok</SelectItem>
-                    <SelectItem value="youtube">▶️ YouTube</SelectItem>
-                    <SelectItem value="whatsapp">💬 WhatsApp</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-sm font-medium">Texto do Post</label>
-                  <Button variant="ghost" size="sm" onClick={generateWithAI} disabled={isGenerating} className="gap-1.5 h-7 text-xs text-primary">
-                    {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                    Gerar com IA
-                  </Button>
-                </div>
-                <Textarea value={form.texto} onChange={(e) => setForm((f) => ({ ...f, texto: e.target.value }))} placeholder="Digite ou gere com IA..." rows={4} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+            <div className="grid md:grid-cols-2 gap-4 py-2">
+              {/* Form */}
+              <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Data</label>
-                  <Input type="date" value={form.data_agendamento} onChange={(e) => setForm((f) => ({ ...f, data_agendamento: e.target.value }))} />
+                  <label className="text-sm font-medium mb-1.5 block">Plataforma</label>
+                  <Select value={form.plataforma} onValueChange={(v) => setForm((f) => ({ ...f, plataforma: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="instagram">📸 Instagram</SelectItem>
+                      <SelectItem value="facebook">📘 Facebook</SelectItem>
+                      <SelectItem value="tiktok">🎵 TikTok</SelectItem>
+                      <SelectItem value="youtube">▶️ YouTube</SelectItem>
+                      <SelectItem value="whatsapp">💬 WhatsApp</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Hora</label>
-                  <Input type="time" value={form.hora} onChange={(e) => setForm((f) => ({ ...f, hora: e.target.value }))} />
+                  <label className="text-sm font-medium mb-1.5 block">Imagem (opcional)</label>
+                  {form.midia_url ? (
+                    <div className="relative">
+                      <img src={form.midia_url} alt="" className="w-full max-h-48 object-cover rounded-lg border border-border" />
+                      <Button
+                        variant="destructive" size="icon" className="absolute top-1.5 right-1.5 h-7 w-7"
+                        onClick={() => setForm((f) => ({ ...f, midia_url: "" }))}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button variant="outline" size="sm" onClick={() => setSeletorOpen(true)} className="w-full">
+                      <ImageIcon className="h-4 w-4 mr-1.5" /> Escolher da Galeria
+                    </Button>
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-sm font-medium">Texto do Post</label>
+                    <Button variant="ghost" size="sm" onClick={generateWithAI} disabled={isGenerating} className="gap-1.5 h-7 text-xs text-primary">
+                      {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                      Gerar com IA
+                    </Button>
+                  </div>
+                  <Textarea value={form.texto} onChange={(e) => setForm((f) => ({ ...f, texto: e.target.value }))} placeholder="Digite ou gere com IA..." rows={5} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">Data</label>
+                    <Input type="date" value={form.data_agendamento} onChange={(e) => setForm((f) => ({ ...f, data_agendamento: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">Hora</label>
+                    <Input type="time" value={form.hora} onChange={(e) => setForm((f) => ({ ...f, hora: e.target.value }))} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Preview */}
+              <div>
+                <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5">
+                  <Eye className="h-3.5 w-3.5" /> Preview
+                </label>
+                <div className="bg-muted/30 rounded-lg p-3 sticky top-0">
+                  <PostPreview plataforma={form.plataforma} imagemUrl={form.midia_url || null} texto={form.texto} />
                 </div>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={() => addMut.mutate()} disabled={!form.texto || !form.data_agendamento || addMut.isPending}>Agendar</Button>
+              <Button onClick={() => addMut.mutate()} disabled={!form.texto || !form.data_agendamento || addMut.isPending}>
+                {addMut.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                Agendar
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <SeletorImagemGaleria
+          open={seletorOpen}
+          onOpenChange={setSeletorOpen}
+          onSelect={(url) => setForm((f) => ({ ...f, midia_url: url }))}
+        />
       </div>
     </MainLayout>
   );
