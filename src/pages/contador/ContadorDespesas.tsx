@@ -44,6 +44,7 @@ export default function ContadorDespesas() {
   const [uploading, setUploading] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
 
