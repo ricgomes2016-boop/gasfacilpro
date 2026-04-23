@@ -223,6 +223,14 @@ function EscalasTab() {
       toast({ title: "Selecione um entregador", variant: "destructive" });
       return;
     }
+    if ((bulkAlmocoInicio && !bulkAlmocoFim) || (!bulkAlmocoInicio && bulkAlmocoFim)) {
+      toast({ title: "Preencha ambos os horários do almoço", variant: "destructive" });
+      return;
+    }
+    if (bulkAlmocoInicio && bulkAlmocoFim && (bulkAlmocoInicio <= bulkInicio || bulkAlmocoFim >= bulkFim)) {
+      toast({ title: "Almoço deve estar dentro do turno", variant: "destructive" });
+      return;
+    }
     const diasSelecionados = bulkDias
       .map((checked, idx) => checked ? idx : -1)
       .filter((i) => i >= 0);
@@ -245,6 +253,8 @@ function EscalasTab() {
         data: dia,
         turno_inicio: bulkInicio,
         turno_fim: bulkFim,
+        almoco_inicio: bulkAlmocoInicio || null,
+        almoco_fim: bulkAlmocoFim || null,
         unidade_id: unidadeAtual?.id || null,
       });
       if (error) {
