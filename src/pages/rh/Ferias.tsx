@@ -83,25 +83,31 @@ export default function Ferias() {
     },
   });
 
-  // Programação: todos os funcionários da empresa (sem filtro de unidade)
+  // Programação: funcionários da unidade selecionada, agrupados por loja
   const { data: funcionariosTodos = [], isLoading: loadingProg } = useQuery({
-    queryKey: ["funcionarios-todos-ferias-prog"],
+    queryKey: ["funcionarios-todos-ferias-prog", unidadeAtual?.id],
+    enabled: !!unidadeAtual?.id,
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("funcionarios")
         .select("id, nome, cargo, data_admissao, salario, unidade_id")
         .eq("ativo", true)
         .order("nome");
+      if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
+      const { data } = await q;
       return data || [];
     },
   });
 
   const { data: feriasTodos = [] } = useQuery({
-    queryKey: ["ferias-todos-prog"],
+    queryKey: ["ferias-todos-prog", unidadeAtual?.id],
+    enabled: !!unidadeAtual?.id,
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("ferias")
-        .select("funcionario_id, periodo_aquisitivo_inicio, data_inicio, dias_gozados, dias_vendidos");
+        .select("funcionario_id, periodo_aquisitivo_inicio, data_inicio, dias_gozados, dias_vendidos, unidade_id");
+      if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
+      const { data } = await q;
       return data || [];
     },
   });
