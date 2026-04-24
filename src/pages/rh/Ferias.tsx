@@ -436,63 +436,78 @@ export default function Ferias() {
                 ) : programacao.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">Nenhum funcionário encontrado</p>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="min-w-[160px]">Funcionário</TableHead>
-                          <TableHead>Admissão</TableHead>
-                          <TableHead>Vencimento</TableHead>
-                          <TableHead>Vencidas</TableHead>
-                          <TableHead>Proporcional</TableHead>
-                          <TableHead>Início Aquis.</TableHead>
-                          <TableHead>Fim Aquis.</TableHead>
-                          <TableHead>Início Gozo</TableHead>
-                          <TableHead>Dias</TableHead>
-                          <TableHead>Abono</TableHead>
-                          <TableHead>13º Prop.</TableHead>
-                          <TableHead>Direito</TableHead>
-                          <TableHead>Gozo</TableHead>
-                          <TableHead>Restantes</TableHead>
-                          <TableHead>Limite p/ Gozo</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {programacao.map((p) => (
-                          <TableRow key={p.id}>
-                            <TableCell className="font-medium whitespace-nowrap">{p.nome}</TableCell>
-                            <TableCell className="text-xs whitespace-nowrap">{format(p.admissao, "dd/MM/yyyy")}</TableCell>
-                            <TableCell className="text-xs whitespace-nowrap">{format(p.fimAquisitivo, "dd/MM/yyyy")}</TableCell>
-                            <TableCell>
-                              {p.vencidas
-                                ? <Badge variant="destructive">Sim</Badge>
-                                : <Badge variant="outline">Não</Badge>}
-                            </TableCell>
-                            <TableCell className="text-xs">{p.proporcional.toFixed(1)} dias</TableCell>
-                            <TableCell className="text-xs whitespace-nowrap">{format(p.inicioAquisitivo, "dd/MM/yyyy")}</TableCell>
-                            <TableCell className="text-xs whitespace-nowrap">{format(p.fimAquisitivo, "dd/MM/yyyy")}</TableCell>
-                            <TableCell className="text-xs whitespace-nowrap">
-                              {p.regAtual?.data_inicio ? format(parseISO(p.regAtual.data_inicio), "dd/MM/yyyy") : "—"}
-                            </TableCell>
-                            <TableCell>{p.regAtual?.dias_gozados ?? 0}</TableCell>
-                            <TableCell>{p.regAtual?.dias_vendidos ?? 0}</TableCell>
-                            <TableCell className="text-xs">R$ {p.decimoTerceiro.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</TableCell>
-                            <TableCell>30</TableCell>
-                            <TableCell>{p.totalGozo}</TableCell>
-                            <TableCell>
-                              <span className={p.diasRestantes > 0 ? "font-semibold text-primary" : "text-muted-foreground"}>
-                                {p.diasRestantes}
-                              </span>
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              <Badge variant={corLimite(p.diasParaLimite, p.vencidas)}>
-                                {format(p.limiteConcessivo, "dd/MM/yyyy")}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                  <div className="space-y-8">
+                    {programacaoPorUnidade.map(([uid, grupo]) => (
+                      <div key={uid} className="space-y-2">
+                        <div className="flex items-center justify-between border-b pb-2">
+                          <h3 className="font-semibold text-base flex items-center gap-2">
+                            <Users className="h-4 w-4 text-primary" />
+                            {grupo.unidadeNome}
+                          </h3>
+                          <span className="text-xs text-muted-foreground">
+                            Total de empregados: <strong>{grupo.itens.length}</strong>
+                          </span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="min-w-[160px]">Empregado</TableHead>
+                                <TableHead>Admissão</TableHead>
+                                <TableHead>Vencto. férias</TableHead>
+                                <TableHead>Fer. venc.</TableHead>
+                                <TableHead>Fer. pro.</TableHead>
+                                <TableHead>Início aquis.</TableHead>
+                                <TableHead>Fim aquis.</TableHead>
+                                <TableHead>Início gozo</TableHead>
+                                <TableHead>Dias</TableHead>
+                                <TableHead>Abono</TableHead>
+                                <TableHead>13º</TableHead>
+                                <TableHead>Dias dir.</TableHead>
+                                <TableHead>Dias goz.</TableHead>
+                                <TableHead>Dias rest.</TableHead>
+                                <TableHead>Limite p/ gozo</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {grupo.itens.map((p) => (
+                                <TableRow key={p.id}>
+                                  <TableCell className="font-medium whitespace-nowrap">{p.nome}</TableCell>
+                                  <TableCell className="text-xs whitespace-nowrap">{format(p.admissao, "dd/MM/yyyy")}</TableCell>
+                                  <TableCell className="text-xs whitespace-nowrap">{format(p.fimAquisitivo, "dd/MM/yyyy")}</TableCell>
+                                  <TableCell>
+                                    {p.vencidas
+                                      ? <Badge variant="destructive">Sim</Badge>
+                                      : <Badge variant="outline">Não</Badge>}
+                                  </TableCell>
+                                  <TableCell className="text-xs">{p.proporcional.toFixed(1)}</TableCell>
+                                  <TableCell className="text-xs whitespace-nowrap">{format(p.inicioAquisitivo, "dd/MM/yyyy")}</TableCell>
+                                  <TableCell className="text-xs whitespace-nowrap">{format(p.fimAquisitivo, "dd/MM/yyyy")}</TableCell>
+                                  <TableCell className="text-xs whitespace-nowrap">
+                                    {p.regAtual?.data_inicio ? format(parseISO(p.regAtual.data_inicio), "dd/MM/yyyy") : "—"}
+                                  </TableCell>
+                                  <TableCell>{p.regAtual?.dias_gozados ?? 0}</TableCell>
+                                  <TableCell>{p.regAtual?.dias_vendidos ?? 0}</TableCell>
+                                  <TableCell className="text-xs">R$ {p.decimoTerceiro.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</TableCell>
+                                  <TableCell>30</TableCell>
+                                  <TableCell>{p.totalGozo}</TableCell>
+                                  <TableCell>
+                                    <span className={p.diasRestantes > 0 ? "font-semibold text-primary" : "text-muted-foreground"}>
+                                      {p.diasRestantes}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="whitespace-nowrap">
+                                    <Badge variant={corLimite(p.diasParaLimite, p.vencidas)}>
+                                      {format(p.limiteConcessivo, "dd/MM/yyyy")}
+                                    </Badge>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>
