@@ -211,7 +211,7 @@ export default function Ferias() {
 
   const programacao = useMemo(() => {
     const hoje = new Date();
-    return funcionarios
+    return funcionariosTodos
       .filter((f: any) => f.data_admissao)
       .map((f: any) => {
         const admissao = parseISO(f.data_admissao);
@@ -223,7 +223,7 @@ export default function Ferias() {
         const mesesNoCiclo = Math.min(12, Math.max(0, differenceInMonths(hoje, inicioAquisitivo)));
         const proporcional = (mesesNoCiclo / 12) * 30;
 
-        const regsCiclo = ferias.filter((r: any) =>
+        const regsCiclo = feriasTodos.filter((r: any) =>
           r.funcionario_id === f.id &&
           r.periodo_aquisitivo_inicio &&
           Math.abs(differenceInDays(parseISO(r.periodo_aquisitivo_inicio), inicioAquisitivo)) <= 30
@@ -262,7 +262,7 @@ export default function Ferias() {
       .filter((p) => !filtroNome || p.nome.toLowerCase().includes(filtroNome.toLowerCase()))
       .filter((p) => !apenasPendentes || p.vencidas || p.diasParaLimite < 60)
       .sort((a, b) => a.limiteConcessivo.getTime() - b.limiteConcessivo.getTime());
-  }, [funcionarios, ferias, filtroNome, apenasPendentes]);
+  }, [funcionariosTodos, feriasTodos, filtroNome, apenasPendentes]);
 
   // Agrupa programação por unidade (loja)
   const programacaoPorUnidade = useMemo(() => {
