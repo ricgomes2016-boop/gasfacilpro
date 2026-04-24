@@ -106,9 +106,9 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Gestor can only create entregador users
-      if (isGestor && role !== "entregador") {
-        return new Response(JSON.stringify({ error: "Gestor só pode criar usuários com perfil entregador" }), {
+      // Gestor cannot create admin/super_admin users
+      if (isGestor && !isSuperAdmin && (role === "admin" || role === "super_admin")) {
+        return new Response(JSON.stringify({ error: "Gestor não pode criar usuários administradores" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
