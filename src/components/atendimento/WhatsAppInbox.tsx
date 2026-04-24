@@ -42,6 +42,15 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { unreadByConversation, setSelectedConversaId, markAsRead } = useWhatsAppNotifications();
+
+  // Sync selection with global context + cleanup on unmount
+  useEffect(() => {
+    setSelectedConversaId(selectedId);
+    if (selectedId) markAsRead(selectedId);
+  }, [selectedId, setSelectedConversaId, markAsRead]);
+
+  useEffect(() => () => { setSelectedConversaId(null); }, [setSelectedConversaId]);
 
   useEffect(() => {
     const fetchConversas = async () => {
