@@ -531,7 +531,61 @@ export default function Ferias() {
                                 <TableRow key={p.id}>
                                   <TableCell className="font-medium whitespace-nowrap">{p.nome}</TableCell>
                                   <TableCell className="text-xs whitespace-nowrap">{format(p.admissao, "dd/MM/yyyy")}</TableCell>
-                                  <TableCell className="text-xs whitespace-nowrap">{format(p.fimAquisitivo, "dd/MM/yyyy")}</TableCell>
+                                  <TableCell className="text-xs whitespace-nowrap">
+                                    <Popover
+                                      open={editandoVencto === p.id}
+                                      onOpenChange={(o) => {
+                                        if (o) {
+                                          setEditandoVencto(p.id);
+                                          setNovoVencto(format(p.fimAquisitivo, "yyyy-MM-dd"));
+                                        } else {
+                                          setEditandoVencto(null);
+                                        }
+                                      }}
+                                    >
+                                      <PopoverTrigger asChild>
+                                        <button className="inline-flex items-center gap-1 hover:underline group">
+                                          <span className={p.vencimentoOverride ? "font-semibold text-primary" : ""}>
+                                            {format(p.fimAquisitivo, "dd/MM/yyyy")}
+                                          </span>
+                                          <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </button>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-64 p-3 space-y-2" align="start">
+                                        <Label className="text-xs">Vencimento das férias</Label>
+                                        <Input
+                                          type="date"
+                                          value={novoVencto}
+                                          onChange={(e) => setNovoVencto(e.target.value)}
+                                          className="h-8"
+                                        />
+                                        <div className="flex gap-1 justify-between pt-1">
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-7 text-xs"
+                                            onClick={() => updateVencimento.mutate({ funcionarioId: p.id, data: null })}
+                                            disabled={updateVencimento.isPending || !p.vencimentoOverride}
+                                          >
+                                            <X className="h-3 w-3 mr-1" /> Resetar
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            className="h-7 text-xs"
+                                            onClick={() => updateVencimento.mutate({ funcionarioId: p.id, data: novoVencto })}
+                                            disabled={updateVencimento.isPending || !novoVencto}
+                                          >
+                                            <Check className="h-3 w-3 mr-1" /> Salvar
+                                          </Button>
+                                        </div>
+                                        {p.vencimentoOverride && (
+                                          <p className="text-[10px] text-muted-foreground">
+                                            Calc. automático: {format(p.fimAquisitivoCalc, "dd/MM/yyyy")}
+                                          </p>
+                                        )}
+                                      </PopoverContent>
+                                    </Popover>
+                                  </TableCell>
                                   <TableCell>
                                     {p.vencidas
                                       ? <Badge variant="destructive">Sim</Badge>
