@@ -285,14 +285,15 @@ export default function CentralAtendimento() {
             </div>
           </div>
           <Button
+            asChild
             size="sm"
             className="bg-green-600 hover:bg-green-700 text-white gap-2"
-            onClick={() => {
-              const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-              const url = isMobile ? "https://wa.me/" : "https://web.whatsapp.com";
-              window.open(url, "_blank", "noopener,noreferrer");
-            }}
           >
+            <a
+              href="https://wa.me/554335241094"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
             <MessageSquare className="h-4 w-4" /> Abrir WhatsApp
           </Button>
         </div>
