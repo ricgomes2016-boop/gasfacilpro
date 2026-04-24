@@ -83,6 +83,29 @@ export default function Ferias() {
     },
   });
 
+  // Programação: todos os funcionários da empresa (sem filtro de unidade)
+  const { data: funcionariosTodos = [], isLoading: loadingProg } = useQuery({
+    queryKey: ["funcionarios-todos-ferias-prog"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("funcionarios")
+        .select("id, nome, cargo, data_admissao, salario, unidade_id")
+        .eq("ativo", true)
+        .order("nome");
+      return data || [];
+    },
+  });
+
+  const { data: feriasTodos = [] } = useQuery({
+    queryKey: ["ferias-todos-prog"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("ferias")
+        .select("funcionario_id, periodo_aquisitivo_inicio, data_inicio, dias_gozados, dias_vendidos");
+      return data || [];
+    },
+  });
+
   const criarFerias = useMutation({
     mutationFn: async () => {
       const inicio = parseISO(form.periodo_aquisitivo_inicio);
@@ -188,7 +211,7 @@ export default function Ferias() {
 
   const programacao = useMemo(() => {
     const hoje = new Date();
-    return funcionarios
+    return funcionariosTodos
       .filter((f: any) => f.data_admissao)
       .map((f: any) => {
         const admissao = parseISO(f.data_admissao);
@@ -200,7 +223,7 @@ export default function Ferias() {
         const mesesNoCiclo = Math.min(12, Math.max(0, differenceInMonths(hoje, inicioAquisitivo)));
         const proporcional = (mesesNoCiclo / 12) * 30;
 
-        const regsCiclo = ferias.filter((r: any) =>
+        const regsCiclo = feriasTodos.filter((r: any) =>
           r.funcionario_id === f.id &&
           r.periodo_aquisitivo_inicio &&
           Math.abs(differenceInDays(parseISO(r.periodo_aquisitivo_inicio), inicioAquisitivo)) <= 30
@@ -239,7 +262,7 @@ export default function Ferias() {
       .filter((p) => !filtroNome || p.nome.toLowerCase().includes(filtroNome.toLowerCase()))
       .filter((p) => !apenasPendentes || p.vencidas || p.diasParaLimite < 60)
       .sort((a, b) => a.limiteConcessivo.getTime() - b.limiteConcessivo.getTime());
-  }, [funcionarios, ferias, filtroNome, apenasPendentes]);
+  }, [funcionariosTodos, feriasTodos, filtroNome, apenasPendentes]);
 
   // Agrupa programação por unidade (loja)
   const programacaoPorUnidade = useMemo(() => {
@@ -431,10 +454,14 @@ export default function Ferias() {
                   </Button>
                 </div>
 
-                {isLoading ? (
+                {loadingProg ? (
                   <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                ) : funcionariosTodos.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">Nenhum funcionário ativo cadastrado</p>
                 ) : programacao.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Nenhum funcionário encontrado</p>
+                  <p className="text-center text-muted-foreground py-8">
+                    Nenhum funcionário com data de admissão preenchida. Edite o cadastro em RH/Funcionários.
+                  </p>
                 ) : (
                   <div className="space-y-8">
                     {programacaoPorUnidade.map(([uid, grupo]) => (
