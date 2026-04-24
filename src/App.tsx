@@ -77,9 +77,11 @@ const App = () => (
               <DeliveryNotificationProvider>
                 <ClienteProvider>
                   <ValeGasProvider>
+                    <WhatsAppNotificationProvider>
                     <Toaster />
                     <Sonner />
                     <CallerIdPopup />
+                    <WhatsAppFloatingChat />
                     <ErrorBoundary>
                       <Suspense fallback={<PageLoader />}>
                         <SubdomainGuard>
