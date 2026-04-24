@@ -4346,6 +4346,7 @@ export type Database = {
           cpf: string | null
           created_at: string
           data_admissao: string | null
+          data_vencimento_ferias_override: string | null
           email: string | null
           endereco: string | null
           entra_na_escala: boolean
@@ -4369,6 +4370,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           data_admissao?: string | null
+          data_vencimento_ferias_override?: string | null
           email?: string | null
           endereco?: string | null
           entra_na_escala?: boolean
@@ -4392,6 +4394,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           data_admissao?: string | null
+          data_vencimento_ferias_override?: string | null
           email?: string | null
           endereco?: string | null
           entra_na_escala?: boolean
