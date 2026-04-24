@@ -454,10 +454,14 @@ export default function Ferias() {
                   </Button>
                 </div>
 
-                {isLoading ? (
+                {loadingProg ? (
                   <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                ) : funcionariosTodos.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">Nenhum funcionário ativo cadastrado</p>
                 ) : programacao.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Nenhum funcionário encontrado</p>
+                  <p className="text-center text-muted-foreground py-8">
+                    Nenhum funcionário com data de admissão preenchida. Edite o cadastro em RH/Funcionários.
+                  </p>
                 ) : (
                   <div className="space-y-8">
                     {programacaoPorUnidade.map(([uid, grupo]) => (
