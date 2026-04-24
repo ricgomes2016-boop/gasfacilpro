@@ -1,30 +1,33 @@
-## Atualização Meta WhatsApp - Central Gás
+## Objetivo
+Permitir responder conversas WhatsApp diretamente dentro da página `/atendimento`, sem abrir WhatsApp Web externo, reaproveitando a lógica já pronta de `CaixaDeEntrada.tsx` (que usa Meta Cloud API + Realtime).
 
-### 1. Banco de dados (UPDATE em `integracoes_whatsapp`)
-Atualizar o registro da unidade Central Gás:
-- `meta_phone_number_id` = `1068574169676609`
-- `meta_waba_id` = `1738917314133461`
-- `numero_telefone` = `4335241094`
-- `status_conexao` = `conectado`
+## Mudanças
 
-### 2. Secret `META_WHATSAPP_TOKEN`
-Substituir pelo novo token (24h) fornecido pelo usuário:
-`EAAU1lGElzwwBRRMBxXrZCFgy4KI5BgXVwHXv08B03dac6L42FGkCx0tClPYz8BYJl34qELuiKSv4YqX1xafossEKpYs2Xk4YKEKb2qdfZAi9nzZBZAIXbKIXmggjVZBekpIKjy4XP7WLc2WUkkZB6PqHfeT2BfJDeZBtR4ZB40FsNCDqkm6zlOZBZCWp3cL5wfZAQsVeH61ez6tyMGhvXyC3Tewrv2NX0LKMOYRr60bzBCRfpupTg2ZBcohwXeAmMZCjhZCUbyQKlKtpgLjNCNIfiEaWCmvfSnzSfDrb8FaFA8CkkZD`
+### 1. ➕ Novo componente reutilizável
+**Arquivo:** `src/components/atendimento/WhatsAppInbox.tsx`
+- Extrai toda a lógica de chat de `CaixaDeEntrada.tsx` (lista de conversas, mensagens, envio via edge `whatsapp-send`, Realtime)
+- Sem `MainLayout` — recebe prop `className` para se adaptar ao container pai
+- Altura ajustável via prop (não fixa em `100vh-3.5rem`)
 
-### 3. UI: Botão "Abrir WhatsApp Web" 
+### 2. ✏️ Refatorar página `/chat`
+**Arquivo:** `src/pages/atendimento/CaixaDeEntrada.tsx`
+- Vira wrapper fino: `<MainLayout><WhatsAppInbox className="h-[calc(100vh-3.5rem)]" /></MainLayout>`
+- Rota `/chat` continua funcionando igual
+
+### 3. ✏️ Embutir em `/atendimento`
 **Arquivo:** `src/pages/atendimento/CentralAtendimento.tsx`
-- Botão verde com ícone `MessageCircle` no header da página
-- Comportamento:
-  - Desktop → abre `https://web.whatsapp.com` em nova aba
-  - Mobile (detectado via `useIsMobile`) → abre `https://wa.me/` (com número do cliente selecionado se houver)
-- Justificativa: o número fixo 43 3524-1094 não pode ser cadastrado no app WhatsApp do celular devido restrições da Meta Cloud API; o botão habilita atendimento humano via WhatsApp Web como workaround
+- Adicionar seção "Chat WhatsApp" com `<WhatsAppInbox />` embutido (altura ~600px com card)
+- Trocar botão atual "Abrir WhatsApp" (link `wa.me`) por **"Abrir Chat"** que rola até o painel embutido (`scrollIntoView`)
+- Manter um link discreto secundário para `web.whatsapp.com` (opcional)
 
-### 4. Memória `mem://technical/project-metadata`
-Atualizar com novos IDs:
-- Phone ID: `1068574169676609` (anteriormente `11210081644...`)
-- WABA ID: `1738917314133461`
-- Token: 24h (avisar que precisa de System User token para produção)
+## Garantias de estabilidade
+- Não toca em `App.tsx`, providers, rotas
+- Não mexe em edge functions (`whatsapp-send` já funciona)
+- Não mexe em banco/RLS/token Meta (já permanente)
+- Mensagens em tempo real via canal Supabase já existente
+- Mobile: lista colapsa quando conversa selecionada (comportamento atual preservado)
 
-### ⚠️ Nota importante para o usuário
-Token de 24h funciona para teste imediato, mas para produção é necessário gerar token permanente via:
-**Meta Business Manager → Configurações → Usuários do Sistema → Criar System User → Gerar Token** com permissões `whatsapp_business_messaging` + `whatsapp_business_management`.
+## Arquivos afetados
+- ➕ `src/components/atendimento/WhatsAppInbox.tsx`
+- ✏️ `src/pages/atendimento/CaixaDeEntrada.tsx`
+- ✏️ `src/pages/atendimento/CentralAtendimento.tsx`
