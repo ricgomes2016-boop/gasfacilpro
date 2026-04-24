@@ -13,14 +13,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarDays, PlusCircle, AlertTriangle, Printer, Users, Umbrella } from "lucide-react";
+import { CalendarDays, PlusCircle, AlertTriangle, Printer, Users, Umbrella, Search, CalendarRange } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "sonner";
-import { useState } from "react";
-import { format, differenceInDays, addYears, parseISO } from "date-fns";
+import { useState, useMemo } from "react";
+import { format, differenceInDays, differenceInMonths, addYears, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
 
