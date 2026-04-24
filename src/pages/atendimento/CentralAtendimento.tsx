@@ -294,7 +294,8 @@ export default function CentralAtendimento() {
               target="_blank"
               rel="noopener noreferrer"
             >
-            <MessageSquare className="h-4 w-4" /> Abrir WhatsApp
+              <MessageSquare className="h-4 w-4" /> Abrir WhatsApp
+            </a>
           </Button>
         </div>
 
