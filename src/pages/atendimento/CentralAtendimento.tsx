@@ -117,6 +117,7 @@ export default function CentralAtendimento() {
   const [whatsappDestinatario, setWhatsappDestinatario] = useState("");
   const navigate = useNavigate();
   const { unidadeAtual } = useUnidade();
+  const inboxRef = useRef<HTMLDivElement>(null);
 
   const hoje = useMemo(() => new Date(), []);
   const inicioHoje = startOfDay(hoje).toISOString();
@@ -273,7 +274,7 @@ export default function CentralAtendimento() {
       <Header title="Central de Atendimento" subtitle="Dashboard operacional em tempo real" />
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
 
-        {/* Atalho WhatsApp Web — número fixo (43)3524-1094 não cadastrável no app por restrição Meta */}
+        {/* Atalho Chat WhatsApp interno — número fixo (43)3524-1094 não cadastrável no app por restrição Meta */}
         <div className="flex flex-wrap items-center justify-between gap-3 bg-green-500/10 border border-green-500/30 rounded-lg p-3">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-500/20 rounded-full">
@@ -282,23 +283,26 @@ export default function CentralAtendimento() {
             <div>
               <p className="text-sm font-medium">WhatsApp Central Gás · (43) 3524-1094</p>
               <p className="text-xs text-muted-foreground">
-                Atendimento humano via WhatsApp Web (número fixo não pode ser cadastrado no app Meta).
+                Atendimento humano direto no sistema, sem precisar abrir o WhatsApp Web.
               </p>
             </div>
           </div>
           <Button
-            asChild
             size="sm"
+            onClick={() => inboxRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
             className="bg-green-600 hover:bg-green-700 text-white gap-2"
           >
-            <a
-              href="https://wa.me/554335241094"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <MessageSquare className="h-4 w-4" /> Abrir WhatsApp
-            </a>
+            <MessageSquare className="h-4 w-4" /> Abrir Chat
           </Button>
+        </div>
+
+        {/* Chat WhatsApp embutido */}
+        <div ref={inboxRef} className="space-y-2">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-green-600" />
+            <h2 className="text-sm font-semibold">Chat WhatsApp</h2>
+          </div>
+          <WhatsAppInbox className="h-[600px]" />
         </div>
 
         {/* Banner de permissão de notificações desktop */}
