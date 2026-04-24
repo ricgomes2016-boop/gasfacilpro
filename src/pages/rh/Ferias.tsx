@@ -221,6 +221,7 @@ export default function Ferias() {
         return {
           id: f.id,
           nome: f.nome,
+          unidade_id: f.unidade_id,
           admissao,
           inicioAquisitivo,
           fimAquisitivo,
@@ -239,6 +240,18 @@ export default function Ferias() {
       .filter((p) => !apenasPendentes || p.vencidas || p.diasParaLimite < 60)
       .sort((a, b) => a.limiteConcessivo.getTime() - b.limiteConcessivo.getTime());
   }, [funcionarios, ferias, filtroNome, apenasPendentes]);
+
+  // Agrupa programação por unidade (loja)
+  const programacaoPorUnidade = useMemo(() => {
+    const grupos = new Map<string, { unidadeNome: string; itens: typeof programacao }>();
+    for (const p of programacao) {
+      const uid = p.unidade_id || "sem-unidade";
+      const nomeUnidade = unidadesList.find((u: any) => u.id === p.unidade_id)?.nome || "Sem unidade";
+      if (!grupos.has(uid)) grupos.set(uid, { unidadeNome: nomeUnidade, itens: [] });
+      grupos.get(uid)!.itens.push(p);
+    }
+    return Array.from(grupos.entries()).sort((a, b) => a[1].unidadeNome.localeCompare(b[1].unidadeNome));
+  }, [programacao, unidadesList]);
 
   const corLimite = (dias: number, vencidas: boolean): "default" | "secondary" | "destructive" | "outline" => {
     if (vencidas) return "destructive";
