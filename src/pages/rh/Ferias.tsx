@@ -83,6 +83,29 @@ export default function Ferias() {
     },
   });
 
+  // Programação: todos os funcionários da empresa (sem filtro de unidade)
+  const { data: funcionariosTodos = [], isLoading: loadingProg } = useQuery({
+    queryKey: ["funcionarios-todos-ferias-prog"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("funcionarios")
+        .select("id, nome, cargo, data_admissao, salario, unidade_id")
+        .eq("ativo", true)
+        .order("nome");
+      return data || [];
+    },
+  });
+
+  const { data: feriasTodos = [] } = useQuery({
+    queryKey: ["ferias-todos-prog"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("ferias")
+        .select("funcionario_id, periodo_aquisitivo_inicio, data_inicio, dias_gozados, dias_vendidos");
+      return data || [];
+    },
+  });
+
   const criarFerias = useMutation({
     mutationFn: async () => {
       const inicio = parseISO(form.periodo_aquisitivo_inicio);
