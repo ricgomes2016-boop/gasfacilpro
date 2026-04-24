@@ -94,7 +94,12 @@ serve(async (req) => {
 
     if (customers.data.length === 0) {
       logStep("No Stripe customer found");
-      return new Response(JSON.stringify({ subscribed: false }), {
+      return new Response(JSON.stringify({
+        subscribed: false,
+        product_id: null,
+        subscription_end: null,
+        unit_quantity: 0,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
