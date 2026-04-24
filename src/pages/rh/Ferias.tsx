@@ -174,6 +174,70 @@ export default function Ferias() {
     toast.success("Recibo de férias gerado!");
   };
 
+  // ===== Programação de Férias =====
+  const [filtroNome, setFiltroNome] = useState("");
+  const [apenasPendentes, setApenasPendentes] = useState(false);
+
+  const programacao = useMemo(() => {
+    const hoje = new Date();
+    return funcionarios
+      .filter((f: any) => f.data_admissao)
+      .map((f: any) => {
+        const admissao = parseISO(f.data_admissao);
+        const anosCompletos = Math.floor(differenceInDays(hoje, admissao) / 365.25);
+        const inicioAquisitivo = addYears(admissao, anosCompletos);
+        const fimAquisitivo = addYears(inicioAquisitivo, 1);
+        const limiteConcessivo = addYears(fimAquisitivo, 1);
+
+        const mesesNoCiclo = Math.min(12, Math.max(0, differenceInMonths(hoje, inicioAquisitivo)));
+        const proporcional = (mesesNoCiclo / 12) * 30;
+
+        const regsCiclo = ferias.filter((r: any) =>
+          r.funcionario_id === f.id &&
+          r.periodo_aquisitivo_inicio &&
+          Math.abs(differenceInDays(parseISO(r.periodo_aquisitivo_inicio), inicioAquisitivo)) <= 30
+        );
+        const regAtual: any = regsCiclo[0];
+        const totalGozo = regsCiclo.reduce((s: number, r: any) => s + (Number(r.dias_gozados) || 0), 0);
+        const totalAbono = regsCiclo.reduce((s: number, r: any) => s + (Number(r.dias_vendidos) || 0), 0);
+
+        const inicioAno = new Date(hoje.getFullYear(), 0, 1);
+        const baseInicio13 = admissao > inicioAno ? admissao : inicioAno;
+        const meses13 = Math.min(12, Math.max(0, differenceInMonths(hoje, baseInicio13) + 1));
+        const salario = Number(f.salario) || 0;
+        const decimoTerceiro = (meses13 / 12) * salario;
+
+        const vencidas = hoje > limiteConcessivo && totalGozo < 30;
+        const diasParaLimite = differenceInDays(limiteConcessivo, hoje);
+
+        return {
+          id: f.id,
+          nome: f.nome,
+          admissao,
+          inicioAquisitivo,
+          fimAquisitivo,
+          limiteConcessivo,
+          proporcional,
+          regAtual,
+          totalGozo,
+          totalAbono,
+          decimoTerceiro,
+          vencidas,
+          diasParaLimite,
+          diasRestantes: Math.max(0, 30 - totalGozo - totalAbono),
+        };
+      })
+      .filter((p) => !filtroNome || p.nome.toLowerCase().includes(filtroNome.toLowerCase()))
+      .filter((p) => !apenasPendentes || p.vencidas || p.diasParaLimite < 60)
+      .sort((a, b) => a.limiteConcessivo.getTime() - b.limiteConcessivo.getTime());
+  }, [funcionarios, ferias, filtroNome, apenasPendentes]);
+
+  const corLimite = (dias: number, vencidas: boolean): "default" | "secondary" | "destructive" | "outline" => {
+    if (vencidas) return "destructive";
+    if (dias < 60) return "secondary";
+    return "outline";
+  };
+
   return (
     <MainLayout>
       <Header title="Controle de Férias" subtitle="Período aquisitivo, agendamento e alertas" />
