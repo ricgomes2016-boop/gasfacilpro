@@ -11,6 +11,8 @@ import { ValeGasProvider } from "@/contexts/ValeGasContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { UnidadeProvider } from "@/contexts/UnidadeContext";
 import { EmpresaProvider } from "@/contexts/EmpresaContext";
+import { WhatsAppNotificationProvider } from "@/contexts/WhatsAppNotificationContext";
+import { WhatsAppFloatingChat } from "@/components/atendimento/WhatsAppFloatingChat";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageLoader } from "@/components/ui/page-loader";
@@ -75,9 +77,11 @@ const App = () => (
               <DeliveryNotificationProvider>
                 <ClienteProvider>
                   <ValeGasProvider>
+                    <WhatsAppNotificationProvider>
                     <Toaster />
                     <Sonner />
                     <CallerIdPopup />
+                    <WhatsAppFloatingChat />
                     <ErrorBoundary>
                       <Suspense fallback={<PageLoader />}>
                         <SubdomainGuard>
@@ -151,6 +155,7 @@ const App = () => (
                         </SubdomainGuard>
                       </Suspense>
                     </ErrorBoundary>
+                    </WhatsAppNotificationProvider>
                   </ValeGasProvider>
                 </ClienteProvider>
               </DeliveryNotificationProvider>

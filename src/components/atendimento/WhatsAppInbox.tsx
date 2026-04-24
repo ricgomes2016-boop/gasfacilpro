@@ -11,6 +11,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { useWhatsAppNotifications } from "@/contexts/WhatsAppNotificationContext";
 
 interface Conversa {
   id: string;
@@ -40,6 +42,15 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { unreadByConversation, setSelectedConversaId, markAsRead } = useWhatsAppNotifications();
+
+  // Sync selection with global context + cleanup on unmount
+  useEffect(() => {
+    setSelectedConversaId(selectedId);
+    if (selectedId) markAsRead(selectedId);
+  }, [selectedId, setSelectedConversaId, markAsRead]);
+
+  useEffect(() => () => { setSelectedConversaId(null); }, [setSelectedConversaId]);
 
   useEffect(() => {
     const fetchConversas = async () => {
@@ -122,9 +133,14 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     }
   };
 
-  const filtered = conversas.filter((c) =>
-    c.titulo.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = conversas
+    .filter((c) => c.titulo.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      const ua = unreadByConversation[a.id] || 0;
+      const ub = unreadByConversation[b.id] || 0;
+      if (ua !== ub) return ub - ua;
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
 
   const selectedConversa = conversas.find((c) => c.id === selectedId);
   const isOutgoing = (role: string) => role === "assistant" || role === "human";
@@ -194,7 +210,14 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground truncate">{c.titulo}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-medium text-foreground truncate">{c.titulo}</p>
+                      {(unreadByConversation[c.id] || 0) > 0 && (
+                        <Badge variant="destructive" className="h-4 min-w-[16px] px-1 text-[9px] rounded-full flex items-center justify-center flex-shrink-0">
+                          {unreadByConversation[c.id]}
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex items-center gap-1 mt-0.5">
                       <Clock className="h-2.5 w-2.5 text-muted-foreground" />
                       <span className="text-[10px] text-muted-foreground">

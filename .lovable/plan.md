@@ -1,33 +1,52 @@
 ## Objetivo
-Permitir responder conversas WhatsApp diretamente dentro da página `/atendimento`, sem abrir WhatsApp Web externo, reaproveitando a lógica já pronta de `CaixaDeEntrada.tsx` (que usa Meta Cloud API + Realtime).
+Tornar o chat WhatsApp acessível em qualquer tela do sistema (estilo WhatsApp Business), com badges de não-lidas na lista de conversas e toasts ao receber mensagens novas — sem quebrar a responsividade do `/atendimento`.
 
-## Mudanças
+## Arquivos
 
-### 1. ➕ Novo componente reutilizável
-**Arquivo:** `src/components/atendimento/WhatsAppInbox.tsx`
-- Extrai toda a lógica de chat de `CaixaDeEntrada.tsx` (lista de conversas, mensagens, envio via edge `whatsapp-send`, Realtime)
-- Sem `MainLayout` — recebe prop `className` para se adaptar ao container pai
-- Altura ajustável via prop (não fixa em `100vh-3.5rem`)
+### 1. ➕ Novo: `src/contexts/WhatsAppNotificationContext.tsx`
+- Context global que escuta `ai_mensagens` via Supabase Realtime (canal único, montado uma vez)
+- Mantém:
+  - `unreadByConversation: Record<string, number>`
+  - `totalUnread: number`
+  - `markAsRead(conversaId)` — zera contagem e grava timestamp em `localStorage` (`wa_last_read_<id>`)
+  - `selectedConversaId` / `setSelectedConversaId` — para evitar contar como "não lida" a conversa aberta
+- Ao receber INSERT com `role` diferente de `assistant`/`human` (mensagem do cliente):
+  - Se conversa NÃO está aberta no widget: incrementa contagem + dispara `toast` (sonner) com nome + preview
+  - Se está aberta: marca como lida automaticamente
+- Beep curto opcional via Web Audio API (sem asset)
+- Inicializa contagens ao montar comparando `created_at` com `wa_last_read_<id>` do localStorage
 
-### 2. ✏️ Refatorar página `/chat`
-**Arquivo:** `src/pages/atendimento/CaixaDeEntrada.tsx`
-- Vira wrapper fino: `<MainLayout><WhatsAppInbox className="h-[calc(100vh-3.5rem)]" /></MainLayout>`
-- Rota `/chat` continua funcionando igual
+### 2. ➕ Novo: `src/components/atendimento/WhatsAppFloatingChat.tsx`
+- FAB fixo no canto inferior direito com ícone WhatsApp + badge `totalUnread`
+- Desktop (≥md): clique abre `Sheet` lateral direito (~720px, 80vh) renderizando `<WhatsAppInbox />`
+- Mobile (<md): `Sheet` full-screen
+- Esconder em rotas: `/auth`, `/cliente`, `/entregador`, `/contador`, `/transportadora`, `/centralgascp`, `/fortegas`, `/japagas`
+- Conecta ao context para sincronizar `selectedConversaId`
 
-### 3. ✏️ Embutir em `/atendimento`
-**Arquivo:** `src/pages/atendimento/CentralAtendimento.tsx`
-- Adicionar seção "Chat WhatsApp" com `<WhatsAppInbox />` embutido (altura ~600px com card)
-- Trocar botão atual "Abrir WhatsApp" (link `wa.me`) por **"Abrir Chat"** que rola até o painel embutido (`scrollIntoView`)
-- Manter um link discreto secundário para `web.whatsapp.com` (opcional)
+### 3. ✏️ Editar: `src/components/atendimento/WhatsAppInbox.tsx`
+- Consumir `useWhatsAppNotifications()`:
+  - Badge com `unreadByConversation[id]` ao lado de cada conversa
+  - Ordenar: não-lidas primeiro, depois por `updated_at`
+  - Ao selecionar conversa: `setSelectedConversaId(id)` + `markAsRead(id)`
+  - Ao desmontar: `setSelectedConversaId(null)`
+- Lógica de envio e Realtime da conversa aberta permanece igual
 
-## Garantias de estabilidade
-- Não toca em `App.tsx`, providers, rotas
-- Não mexe em edge functions (`whatsapp-send` já funciona)
-- Não mexe em banco/RLS/token Meta (já permanente)
-- Mensagens em tempo real via canal Supabase já existente
-- Mobile: lista colapsa quando conversa selecionada (comportamento atual preservado)
+### 4. ✏️ Editar: `src/App.tsx` (mudança MÍNIMA)
+- Importar `WhatsAppNotificationProvider` e `WhatsAppFloatingChat`
+- Adicionar 1 provider dentro de `UnidadeProvider` (igual padrão dos outros)
+- Renderizar `<WhatsAppFloatingChat />` ao lado de `<CallerIdPopup />`
+- **NÃO** mexer em rotas, helpers ou estrutura
 
-## Arquivos afetados
-- ➕ `src/components/atendimento/WhatsAppInbox.tsx`
-- ✏️ `src/pages/atendimento/CaixaDeEntrada.tsx`
-- ✏️ `src/pages/atendimento/CentralAtendimento.tsx`
+### 5. ✏️ Editar: `src/pages/atendimento/CentralAtendimento.tsx`
+- Manter painel embutido `<WhatsAppInbox />` já existente
+- Adicionar nota "Disponível também via botão flutuante em qualquer tela"
+
+## Garantias
+- ✅ Sem refatorar `App.tsx`/providers/rotas — apenas adicionar 1 provider + 1 widget
+- ✅ Sem migrations (estado de "lido" via `localStorage`, pois `ai_mensagens` não tem coluna `lida`)
+- ✅ Sem mexer em banco, RLS, edge functions, token Meta
+- ✅ Mobile: FAB visível, Sheet full-screen, lista colapsa ao abrir conversa
+- ✅ Desktop: FAB canto, Sheet lateral 720px, layout `/atendimento` intacto
+- ✅ Toasts via `sonner` (já no projeto)
+- ✅ Realtime global único, sem duplicar canais
+- ✅ FAB escondido em portais cliente/entregador/contador/transportadora/auth/públicos
