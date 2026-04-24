@@ -90,7 +90,7 @@ export default function Ferias() {
     queryFn: async () => {
       let q = supabase
         .from("funcionarios")
-        .select("id, nome, cargo, data_admissao, salario, unidade_id")
+        .select("id, nome, cargo, data_admissao, salario, unidade_id, data_vencimento_ferias_override")
         .eq("ativo", true)
         .order("nome");
       if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
