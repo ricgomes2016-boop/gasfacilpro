@@ -57,9 +57,17 @@ export default function Ferias() {
   const { data: funcionarios = [] } = useQuery({
     queryKey: ["funcionarios-ferias", unidadeAtual?.id],
     queryFn: async () => {
-      let q = supabase.from("funcionarios").select("id, nome, cargo, data_admissao, salario").eq("ativo", true).order("nome");
+      let q = supabase.from("funcionarios").select("id, nome, cargo, data_admissao, salario, codigo, unidade_id").eq("ativo", true).order("nome");
       if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
       const { data } = await q;
+      return data || [];
+    },
+  });
+
+  const { data: unidadesList = [] } = useQuery({
+    queryKey: ["unidades-ferias-prog"],
+    queryFn: async () => {
+      const { data } = await supabase.from("unidades").select("id, nome").eq("ativo", true).order("nome");
       return data || [];
     },
   });
