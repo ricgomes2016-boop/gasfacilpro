@@ -57,7 +57,7 @@ export default function Ferias() {
   const { data: funcionarios = [] } = useQuery({
     queryKey: ["funcionarios-ferias", unidadeAtual?.id],
     queryFn: async () => {
-      let q = supabase.from("funcionarios").select("id, nome, cargo, data_admissao, salario, codigo, unidade_id").eq("ativo", true).order("nome");
+      let q = supabase.from("funcionarios").select("id, nome, cargo, data_admissao, salario, unidade_id").eq("ativo", true).order("nome");
       if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
       const { data } = await q;
       return data || [];
