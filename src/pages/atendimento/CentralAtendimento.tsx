@@ -21,6 +21,8 @@ import {
 import { format, formatDistanceToNow, differenceInMinutes, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { WhatsAppInbox } from "@/components/atendimento/WhatsAppInbox";
+import { useRef } from "react";
 
 // === Types ===
 
