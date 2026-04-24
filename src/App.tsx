@@ -155,6 +155,7 @@ const App = () => (
                         </SubdomainGuard>
                       </Suspense>
                     </ErrorBoundary>
+                    </WhatsAppNotificationProvider>
                   </ValeGasProvider>
                 </ClienteProvider>
               </DeliveryNotificationProvider>
