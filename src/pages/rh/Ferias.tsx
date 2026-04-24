@@ -13,14 +13,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarDays, PlusCircle, AlertTriangle, Printer, Users, Umbrella } from "lucide-react";
+import { CalendarDays, PlusCircle, AlertTriangle, Printer, Users, Umbrella, Search, CalendarRange } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "sonner";
-import { useState } from "react";
-import { format, differenceInDays, addYears, parseISO } from "date-fns";
+import { useState, useMemo } from "react";
+import { format, differenceInDays, differenceInMonths, addYears, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
 
@@ -173,142 +174,310 @@ export default function Ferias() {
     toast.success("Recibo de férias gerado!");
   };
 
+  // ===== Programação de Férias =====
+  const [filtroNome, setFiltroNome] = useState("");
+  const [apenasPendentes, setApenasPendentes] = useState(false);
+
+  const programacao = useMemo(() => {
+    const hoje = new Date();
+    return funcionarios
+      .filter((f: any) => f.data_admissao)
+      .map((f: any) => {
+        const admissao = parseISO(f.data_admissao);
+        const anosCompletos = Math.floor(differenceInDays(hoje, admissao) / 365.25);
+        const inicioAquisitivo = addYears(admissao, anosCompletos);
+        const fimAquisitivo = addYears(inicioAquisitivo, 1);
+        const limiteConcessivo = addYears(fimAquisitivo, 1);
+
+        const mesesNoCiclo = Math.min(12, Math.max(0, differenceInMonths(hoje, inicioAquisitivo)));
+        const proporcional = (mesesNoCiclo / 12) * 30;
+
+        const regsCiclo = ferias.filter((r: any) =>
+          r.funcionario_id === f.id &&
+          r.periodo_aquisitivo_inicio &&
+          Math.abs(differenceInDays(parseISO(r.periodo_aquisitivo_inicio), inicioAquisitivo)) <= 30
+        );
+        const regAtual: any = regsCiclo[0];
+        const totalGozo = regsCiclo.reduce((s: number, r: any) => s + (Number(r.dias_gozados) || 0), 0);
+        const totalAbono = regsCiclo.reduce((s: number, r: any) => s + (Number(r.dias_vendidos) || 0), 0);
+
+        const inicioAno = new Date(hoje.getFullYear(), 0, 1);
+        const baseInicio13 = admissao > inicioAno ? admissao : inicioAno;
+        const meses13 = Math.min(12, Math.max(0, differenceInMonths(hoje, baseInicio13) + 1));
+        const salario = Number(f.salario) || 0;
+        const decimoTerceiro = (meses13 / 12) * salario;
+
+        const vencidas = hoje > limiteConcessivo && totalGozo < 30;
+        const diasParaLimite = differenceInDays(limiteConcessivo, hoje);
+
+        return {
+          id: f.id,
+          nome: f.nome,
+          admissao,
+          inicioAquisitivo,
+          fimAquisitivo,
+          limiteConcessivo,
+          proporcional,
+          regAtual,
+          totalGozo,
+          totalAbono,
+          decimoTerceiro,
+          vencidas,
+          diasParaLimite,
+          diasRestantes: Math.max(0, 30 - totalGozo - totalAbono),
+        };
+      })
+      .filter((p) => !filtroNome || p.nome.toLowerCase().includes(filtroNome.toLowerCase()))
+      .filter((p) => !apenasPendentes || p.vencidas || p.diasParaLimite < 60)
+      .sort((a, b) => a.limiteConcessivo.getTime() - b.limiteConcessivo.getTime());
+  }, [funcionarios, ferias, filtroNome, apenasPendentes]);
+
+  const corLimite = (dias: number, vencidas: boolean): "default" | "secondary" | "destructive" | "outline" => {
+    if (vencidas) return "destructive";
+    if (dias < 60) return "secondary";
+    return "outline";
+  };
+
   return (
     <MainLayout>
       <Header title="Controle de Férias" subtitle="Período aquisitivo, agendamento e alertas" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        <div className="flex items-center justify-between">
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2"><PlusCircle className="h-4 w-4" />Registrar Férias</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>Registrar Férias</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>Funcionário</Label>
-                  <Select value={form.funcionario_id} onValueChange={v => setForm(p => ({ ...p, funcionario_id: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      {funcionarios.map(f => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Início Período Aquisitivo</Label>
-                  <Input type="date" value={form.periodo_aquisitivo_inicio} onChange={e => setForm(p => ({ ...p, periodo_aquisitivo_inicio: e.target.value }))} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><Label>Início Gozo</Label><Input type="date" value={form.data_inicio} onChange={e => setForm(p => ({ ...p, data_inicio: e.target.value }))} /></div>
-                  <div><Label>Fim Gozo</Label><Input type="date" value={form.data_fim} onChange={e => setForm(p => ({ ...p, data_fim: e.target.value }))} /></div>
-                </div>
-                <div>
-                  <Label>Dias Vendidos (Abono Pecuniário)</Label>
-                  <Input type="number" min={0} max={10} value={form.dias_vendidos} onChange={e => setForm(p => ({ ...p, dias_vendidos: Number(e.target.value) }))} />
-                </div>
-                <div><Label>Observações</Label><Textarea value={form.observacoes} onChange={e => setForm(p => ({ ...p, observacoes: e.target.value }))} /></div>
-                <Button className="w-full" onClick={() => criarFerias.mutate()} disabled={!form.funcionario_id || !form.periodo_aquisitivo_inicio}>
-                  Salvar
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+        <Tabs defaultValue="registros" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="registros" className="gap-2"><CalendarDays className="h-4 w-4" />Registros</TabsTrigger>
+            <TabsTrigger value="programacao" className="gap-2"><CalendarRange className="h-4 w-4" />Programação</TabsTrigger>
+          </TabsList>
 
-        {/* Alertas de férias vencidas */}
-        {feriasVencidas.length > 0 && (
-          <Card className="border-destructive">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-destructive flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" /> Férias Vencidas — Atenção!
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="text-sm space-y-1">
-                {feriasVencidas.map((f: any) => (
-                  <li key={f.id}>
-                    <span className="font-medium">{f.funcionarios?.nome}</span> — período aquisitivo encerrado em {format(parseISO(f.periodo_aquisitivo_fim), "dd/MM/yyyy")}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
+          <TabsContent value="registros" className="space-y-4 md:space-y-6">
+            <div className="flex items-center justify-between">
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2"><PlusCircle className="h-4 w-4" />Registrar Férias</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader><DialogTitle>Registrar Férias</DialogTitle></DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Funcionário</Label>
+                      <Select value={form.funcionario_id} onValueChange={v => setForm(p => ({ ...p, funcionario_id: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          {funcionarios.map(f => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Início Período Aquisitivo</Label>
+                      <Input type="date" value={form.periodo_aquisitivo_inicio} onChange={e => setForm(p => ({ ...p, periodo_aquisitivo_inicio: e.target.value }))} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><Label>Início Gozo</Label><Input type="date" value={form.data_inicio} onChange={e => setForm(p => ({ ...p, data_inicio: e.target.value }))} /></div>
+                      <div><Label>Fim Gozo</Label><Input type="date" value={form.data_fim} onChange={e => setForm(p => ({ ...p, data_fim: e.target.value }))} /></div>
+                    </div>
+                    <div>
+                      <Label>Dias Vendidos (Abono Pecuniário)</Label>
+                      <Input type="number" min={0} max={10} value={form.dias_vendidos} onChange={e => setForm(p => ({ ...p, dias_vendidos: Number(e.target.value) }))} />
+                    </div>
+                    <div><Label>Observações</Label><Textarea value={form.observacoes} onChange={e => setForm(p => ({ ...p, observacoes: e.target.value }))} /></div>
+                    <Button className="w-full" onClick={() => criarFerias.mutate()} disabled={!form.funcionario_id || !form.periodo_aquisitivo_inicio}>
+                      Salvar
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Registros</CardTitle>
-              <CalendarDays className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent><div className="text-2xl font-bold">{ferias.length}</div></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Férias Vencidas</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent><div className="text-2xl font-bold text-destructive">{feriasVencidas.length}</div></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Em Gozo</CardTitle>
-              <Umbrella className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent><div className="text-2xl font-bold text-primary">{ferias.filter((f: any) => f.status === "em_gozo").length}</div></CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" />Férias dos Funcionários</CardTitle></CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
-            ) : ferias.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">Nenhum registro de férias</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Funcionário</TableHead>
-                    <TableHead>Período Aquisitivo</TableHead>
-                    <TableHead>Gozo</TableHead>
-                    <TableHead>Dias</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {ferias.map((f: any) => {
-                    const st = statusMap[f.status] || statusMap.pendente;
-                    return (
-                      <TableRow key={f.id}>
-                        <TableCell className="font-medium">{f.funcionarios?.nome || "—"}</TableCell>
-                        <TableCell className="text-xs">
-                          {format(parseISO(f.periodo_aquisitivo_inicio), "dd/MM/yy")} — {format(parseISO(f.periodo_aquisitivo_fim), "dd/MM/yy")}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {f.data_inicio && f.data_fim
-                            ? `${format(parseISO(f.data_inicio), "dd/MM/yy")} — ${format(parseISO(f.data_fim), "dd/MM/yy")}`
-                            : "Não agendado"}
-                        </TableCell>
-                        <TableCell>{f.dias_gozados}{f.dias_vendidos > 0 && ` + ${f.dias_vendidos} vendidos`}</TableCell>
-                        <TableCell>R$ {(Number(f.valor_ferias) + Number(f.valor_abono)).toLocaleString("pt-BR")}</TableCell>
-                        <TableCell><Badge variant={st.variant}>{st.label}</Badge></TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" className="gap-1" onClick={() => handlePrintRecibo(f)}>
-                            <Printer className="h-3 w-3" /> Recibo
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+            {feriasVencidas.length > 0 && (
+              <Card className="border-destructive">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-destructive flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" /> Férias Vencidas — Atenção!
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="text-sm space-y-1">
+                    {feriasVencidas.map((f: any) => (
+                      <li key={f.id}>
+                        <span className="font-medium">{f.funcionarios?.nome}</span> — período aquisitivo encerrado em {format(parseISO(f.periodo_aquisitivo_fim), "dd/MM/yyyy")}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Total Registros</CardTitle>
+                  <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent><div className="text-2xl font-bold">{ferias.length}</div></CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Férias Vencidas</CardTitle>
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                </CardHeader>
+                <CardContent><div className="text-2xl font-bold text-destructive">{feriasVencidas.length}</div></CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">Em Gozo</CardTitle>
+                  <Umbrella className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent><div className="text-2xl font-bold text-primary">{ferias.filter((f: any) => f.status === "em_gozo").length}</div></CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader><CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" />Férias dos Funcionários</CardTitle></CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                ) : ferias.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">Nenhum registro de férias</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Funcionário</TableHead>
+                        <TableHead>Período Aquisitivo</TableHead>
+                        <TableHead>Gozo</TableHead>
+                        <TableHead>Dias</TableHead>
+                        <TableHead>Valor</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {ferias.map((f: any) => {
+                        const st = statusMap[f.status] || statusMap.pendente;
+                        return (
+                          <TableRow key={f.id}>
+                            <TableCell className="font-medium">{f.funcionarios?.nome || "—"}</TableCell>
+                            <TableCell className="text-xs">
+                              {format(parseISO(f.periodo_aquisitivo_inicio), "dd/MM/yy")} — {format(parseISO(f.periodo_aquisitivo_fim), "dd/MM/yy")}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {f.data_inicio && f.data_fim
+                                ? `${format(parseISO(f.data_inicio), "dd/MM/yy")} — ${format(parseISO(f.data_fim), "dd/MM/yy")}`
+                                : "Não agendado"}
+                            </TableCell>
+                            <TableCell>{f.dias_gozados}{f.dias_vendidos > 0 && ` + ${f.dias_vendidos} vendidos`}</TableCell>
+                            <TableCell>R$ {(Number(f.valor_ferias) + Number(f.valor_abono)).toLocaleString("pt-BR")}</TableCell>
+                            <TableCell><Badge variant={st.variant}>{st.label}</Badge></TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="sm" className="gap-1" onClick={() => handlePrintRecibo(f)}>
+                                <Printer className="h-3 w-3" /> Recibo
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="programacao" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CalendarRange className="h-5 w-5" />Programação de Férias
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar funcionário..."
+                      value={filtroNome}
+                      onChange={e => setFiltroNome(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  <Button
+                    variant={apenasPendentes ? "default" : "outline"}
+                    onClick={() => setApenasPendentes(v => !v)}
+                    className="gap-2"
+                  >
+                    <AlertTriangle className="h-4 w-4" />
+                    {apenasPendentes ? "Mostrando pendentes" : "Apenas pendentes/vencidas"}
+                  </Button>
+                </div>
+
+                {isLoading ? (
+                  <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                ) : programacao.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">Nenhum funcionário encontrado</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[160px]">Funcionário</TableHead>
+                          <TableHead>Admissão</TableHead>
+                          <TableHead>Vencimento</TableHead>
+                          <TableHead>Vencidas</TableHead>
+                          <TableHead>Proporcional</TableHead>
+                          <TableHead>Início Aquis.</TableHead>
+                          <TableHead>Fim Aquis.</TableHead>
+                          <TableHead>Início Gozo</TableHead>
+                          <TableHead>Dias</TableHead>
+                          <TableHead>Abono</TableHead>
+                          <TableHead>13º Prop.</TableHead>
+                          <TableHead>Direito</TableHead>
+                          <TableHead>Gozo</TableHead>
+                          <TableHead>Restantes</TableHead>
+                          <TableHead>Limite p/ Gozo</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {programacao.map((p) => (
+                          <TableRow key={p.id}>
+                            <TableCell className="font-medium whitespace-nowrap">{p.nome}</TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">{format(p.admissao, "dd/MM/yyyy")}</TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">{format(p.fimAquisitivo, "dd/MM/yyyy")}</TableCell>
+                            <TableCell>
+                              {p.vencidas
+                                ? <Badge variant="destructive">Sim</Badge>
+                                : <Badge variant="outline">Não</Badge>}
+                            </TableCell>
+                            <TableCell className="text-xs">{p.proporcional.toFixed(1)} dias</TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">{format(p.inicioAquisitivo, "dd/MM/yyyy")}</TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">{format(p.fimAquisitivo, "dd/MM/yyyy")}</TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">
+                              {p.regAtual?.data_inicio ? format(parseISO(p.regAtual.data_inicio), "dd/MM/yyyy") : "—"}
+                            </TableCell>
+                            <TableCell>{p.regAtual?.dias_gozados ?? 0}</TableCell>
+                            <TableCell>{p.regAtual?.dias_vendidos ?? 0}</TableCell>
+                            <TableCell className="text-xs">R$ {p.decimoTerceiro.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</TableCell>
+                            <TableCell>30</TableCell>
+                            <TableCell>{p.totalGozo}</TableCell>
+                            <TableCell>
+                              <span className={p.diasRestantes > 0 ? "font-semibold text-primary" : "text-muted-foreground"}>
+                                {p.diasRestantes}
+                              </span>
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              <Badge variant={corLimite(p.diasParaLimite, p.vencidas)}>
+                                {format(p.limiteConcessivo, "dd/MM/yyyy")}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </MainLayout>
   );
