@@ -215,6 +215,24 @@ export default function Ferias() {
   // ===== Programação de Férias =====
   const [filtroNome, setFiltroNome] = useState("");
   const [apenasPendentes, setApenasPendentes] = useState(false);
+  const [editandoVencto, setEditandoVencto] = useState<string | null>(null);
+  const [novoVencto, setNovoVencto] = useState("");
+
+  const updateVencimento = useMutation({
+    mutationFn: async ({ funcionarioId, data }: { funcionarioId: string; data: string | null }) => {
+      const { error } = await supabase
+        .from("funcionarios")
+        .update({ data_vencimento_ferias_override: data })
+        .eq("id", funcionarioId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Vencimento de férias atualizado");
+      queryClient.invalidateQueries({ queryKey: ["funcionarios-todos-ferias-prog"] });
+      setEditandoVencto(null);
+    },
+    onError: (e: any) => toast.error(e.message || "Erro ao salvar"),
+  });
 
   const programacao = useMemo(() => {
     const hoje = new Date();
