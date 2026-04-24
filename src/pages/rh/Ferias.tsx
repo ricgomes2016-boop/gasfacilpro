@@ -223,7 +223,10 @@ export default function Ferias() {
         const admissao = parseISO(f.data_admissao);
         const anosCompletos = Math.floor(differenceInDays(hoje, admissao) / 365.25);
         const inicioAquisitivo = addYears(admissao, anosCompletos);
-        const fimAquisitivo = addYears(inicioAquisitivo, 1);
+        const fimAquisitivoCalc = addYears(inicioAquisitivo, 1);
+        const fimAquisitivo = f.data_vencimento_ferias_override
+          ? parseISO(f.data_vencimento_ferias_override)
+          : fimAquisitivoCalc;
         const limiteConcessivo = addYears(fimAquisitivo, 1);
 
         const mesesNoCiclo = Math.min(12, Math.max(0, differenceInMonths(hoje, inicioAquisitivo)));
