@@ -13,7 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarDays, PlusCircle, AlertTriangle, Printer, Users, Umbrella, Search, CalendarRange } from "lucide-react";
+import { CalendarDays, PlusCircle, AlertTriangle, Printer, Users, Umbrella, Search, CalendarRange, Pencil, Check, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -90,7 +91,7 @@ export default function Ferias() {
     queryFn: async () => {
       let q = supabase
         .from("funcionarios")
-        .select("id, nome, cargo, data_admissao, salario, unidade_id")
+        .select("id, nome, cargo, data_admissao, salario, unidade_id, data_vencimento_ferias_override")
         .eq("ativo", true)
         .order("nome");
       if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
@@ -214,6 +215,24 @@ export default function Ferias() {
   // ===== Programação de Férias =====
   const [filtroNome, setFiltroNome] = useState("");
   const [apenasPendentes, setApenasPendentes] = useState(false);
+  const [editandoVencto, setEditandoVencto] = useState<string | null>(null);
+  const [novoVencto, setNovoVencto] = useState("");
+
+  const updateVencimento = useMutation({
+    mutationFn: async ({ funcionarioId, data }: { funcionarioId: string; data: string | null }) => {
+      const { error } = await supabase
+        .from("funcionarios")
+        .update({ data_vencimento_ferias_override: data })
+        .eq("id", funcionarioId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Vencimento de férias atualizado");
+      queryClient.invalidateQueries({ queryKey: ["funcionarios-todos-ferias-prog"] });
+      setEditandoVencto(null);
+    },
+    onError: (e: any) => toast.error(e.message || "Erro ao salvar"),
+  });
 
   const programacao = useMemo(() => {
     const hoje = new Date();
@@ -223,7 +242,10 @@ export default function Ferias() {
         const admissao = parseISO(f.data_admissao);
         const anosCompletos = Math.floor(differenceInDays(hoje, admissao) / 365.25);
         const inicioAquisitivo = addYears(admissao, anosCompletos);
-        const fimAquisitivo = addYears(inicioAquisitivo, 1);
+        const fimAquisitivoCalc = addYears(inicioAquisitivo, 1);
+        const fimAquisitivo = f.data_vencimento_ferias_override
+          ? parseISO(f.data_vencimento_ferias_override)
+          : fimAquisitivoCalc;
         const limiteConcessivo = addYears(fimAquisitivo, 1);
 
         const mesesNoCiclo = Math.min(12, Math.max(0, differenceInMonths(hoje, inicioAquisitivo)));
@@ -254,6 +276,8 @@ export default function Ferias() {
           admissao,
           inicioAquisitivo,
           fimAquisitivo,
+          fimAquisitivoCalc,
+          vencimentoOverride: f.data_vencimento_ferias_override as string | null,
           limiteConcessivo,
           proporcional,
           regAtual,
@@ -507,7 +531,61 @@ export default function Ferias() {
                                 <TableRow key={p.id}>
                                   <TableCell className="font-medium whitespace-nowrap">{p.nome}</TableCell>
                                   <TableCell className="text-xs whitespace-nowrap">{format(p.admissao, "dd/MM/yyyy")}</TableCell>
-                                  <TableCell className="text-xs whitespace-nowrap">{format(p.fimAquisitivo, "dd/MM/yyyy")}</TableCell>
+                                  <TableCell className="text-xs whitespace-nowrap">
+                                    <Popover
+                                      open={editandoVencto === p.id}
+                                      onOpenChange={(o) => {
+                                        if (o) {
+                                          setEditandoVencto(p.id);
+                                          setNovoVencto(format(p.fimAquisitivo, "yyyy-MM-dd"));
+                                        } else {
+                                          setEditandoVencto(null);
+                                        }
+                                      }}
+                                    >
+                                      <PopoverTrigger asChild>
+                                        <button className="inline-flex items-center gap-1 hover:underline group">
+                                          <span className={p.vencimentoOverride ? "font-semibold text-primary" : ""}>
+                                            {format(p.fimAquisitivo, "dd/MM/yyyy")}
+                                          </span>
+                                          <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </button>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-64 p-3 space-y-2" align="start">
+                                        <Label className="text-xs">Vencimento das férias</Label>
+                                        <Input
+                                          type="date"
+                                          value={novoVencto}
+                                          onChange={(e) => setNovoVencto(e.target.value)}
+                                          className="h-8"
+                                        />
+                                        <div className="flex gap-1 justify-between pt-1">
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-7 text-xs"
+                                            onClick={() => updateVencimento.mutate({ funcionarioId: p.id, data: null })}
+                                            disabled={updateVencimento.isPending || !p.vencimentoOverride}
+                                          >
+                                            <X className="h-3 w-3 mr-1" /> Resetar
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            className="h-7 text-xs"
+                                            onClick={() => updateVencimento.mutate({ funcionarioId: p.id, data: novoVencto })}
+                                            disabled={updateVencimento.isPending || !novoVencto}
+                                          >
+                                            <Check className="h-3 w-3 mr-1" /> Salvar
+                                          </Button>
+                                        </div>
+                                        {p.vencimentoOverride && (
+                                          <p className="text-[10px] text-muted-foreground">
+                                            Calc. automático: {format(p.fimAquisitivoCalc, "dd/MM/yyyy")}
+                                          </p>
+                                        )}
+                                      </PopoverContent>
+                                    </Popover>
+                                  </TableCell>
                                   <TableCell>
                                     {p.vencidas
                                       ? <Badge variant="destructive">Sim</Badge>
