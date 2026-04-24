@@ -257,6 +257,8 @@ export default function Ferias() {
           admissao,
           inicioAquisitivo,
           fimAquisitivo,
+          fimAquisitivoCalc,
+          vencimentoOverride: f.data_vencimento_ferias_override as string | null,
           limiteConcessivo,
           proporcional,
           regAtual,
