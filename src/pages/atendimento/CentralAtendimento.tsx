@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +22,7 @@ import { format, formatDistanceToNow, differenceInMinutes, startOfDay, endOfDay 
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { WhatsAppInbox } from "@/components/atendimento/WhatsAppInbox";
-import { useRef } from "react";
+
 
 // === Types ===
 
