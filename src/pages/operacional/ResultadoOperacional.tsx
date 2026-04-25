@@ -237,8 +237,8 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
               <span className="text-xs font-bold">Valores</span>
             </div>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="w-full max-w-full max-h-[600px] overflow-x-auto overflow-y-auto overscroll-x-contain">
+          <CardContent className="p-0 min-w-0 max-w-full overflow-hidden">
+            <div className="w-full min-w-0 max-w-full max-h-[600px] overflow-x-auto overflow-y-auto overscroll-x-contain">
               <Table className="min-w-[420px]">
                 <TableBody>
                   {custosAgrupados.map((grupo, gi) => (
@@ -288,8 +288,8 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
           <CardHeader className="py-2 px-3 bg-muted/60 border-b">
             <CardTitle className="text-xs font-bold uppercase tracking-widest">Vendas por Canal</CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
+          <CardContent className="p-0 min-w-0 max-w-full overflow-hidden">
+            <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
             <Table className="min-w-[680px]">
               <TableHeader>
                 <TableRow className="bg-muted/30">
@@ -332,7 +332,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
             </div>
 
             {/* Resumo abaixo dos canais */}
-            <div className="border-t mt-2 w-full max-w-full overflow-x-auto overscroll-x-contain">
+            <div className="border-t mt-2 w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
               <Table className="min-w-[360px]">
                 <TableBody>
                   <TableRow>
