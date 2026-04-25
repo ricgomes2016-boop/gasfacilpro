@@ -1052,10 +1052,10 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
   const vendaContent = (
     <>
-      <div className={cn("p-3 md:p-4 space-y-3 md:space-y-4", useNewView && "bg-muted/20")}> 
+      <div className="p-3 md:p-4 space-y-3 md:space-y-4"> 
         <CaixaBloqueadoBanner />
 
-        <div className="venda-sale-nav venda-gasmais-card venda-tone-confirmar space-y-3 rounded-lg border border-primary/15 bg-card/80 p-3 shadow-sm">
+        <div className="space-y-3 rounded-lg border bg-card p-3 shadow-sm">
           <VendaStepper
             customer={customer}
             itens={itens}
@@ -1083,7 +1083,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         </div>
 
         {useNewView ? (
-          <div className={cn("venda-dashboard-shell space-y-3 p-3 md:space-y-4 md:p-4", STEP_TONE_CLASS[activeStep])}>
+          <div className="space-y-3 md:space-y-4">
             {activeStep === "cliente" && (
               <div className="venda-step-panel grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]" onKeyDown={handleStepEnterNavigation}>
                 <div className="space-y-3 md:space-y-4 min-w-0">
