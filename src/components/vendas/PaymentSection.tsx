@@ -40,15 +40,15 @@ interface PaymentSectionProps {
 }
 
 const formasPagamento = [
-  { value: "dinheiro", label: "Dinheiro", icon: "💵", Icon: Banknote, tone: "bg-success/15 text-success ring-success/20" },
-  { value: "pix", label: "PIX", icon: "📱", Icon: Smartphone, tone: "bg-success/15 text-success ring-success/20" },
-  { value: "pix_maquininha", label: "PIX Maquininha", icon: "📱", Icon: CreditCard, tone: "bg-accent/15 text-accent-foreground ring-accent/25" },
-  { value: "cartao_debito", label: "Cartão Débito", icon: "💳", Icon: WalletCards, tone: "bg-primary/15 text-primary ring-primary/20" },
-  { value: "cartao_credito", label: "Cartão Crédito", icon: "💳", Icon: CreditCard, tone: "bg-warning/15 text-warning ring-warning/20" },
-  { value: "boleto", label: "Boleto", icon: "📄", Icon: FileText, tone: "bg-muted text-foreground ring-border" },
-  { value: "vale_gas", label: "Vale Gás", icon: "🔥", Icon: Flame, tone: "bg-destructive/15 text-destructive ring-destructive/20" },
-  { value: "cheque", label: "Cheque", icon: "🧾", Icon: ReceiptText, tone: "bg-secondary text-secondary-foreground ring-border" },
-  { value: "fiado", label: "Fiado / A Prazo", icon: "📝", Icon: AlertCircle, tone: "bg-warning/15 text-warning ring-warning/20" },
+  { value: "dinheiro", label: "Dinheiro", icon: "💵", Icon: Banknote, tone: "bg-success/15 text-success ring-success/25", cardTone: "border-success/25 bg-success/5 hover:border-success/45 hover:bg-success/10", selectedTone: "border-success bg-success/15 text-success ring-success/30", valueTone: "text-success" },
+  { value: "pix", label: "PIX", icon: "📱", Icon: Smartphone, tone: "bg-success/15 text-success ring-success/25", cardTone: "border-success/25 bg-success/5 hover:border-success/45 hover:bg-success/10", selectedTone: "border-success bg-success/15 text-success ring-success/30", valueTone: "text-success" },
+  { value: "pix_maquininha", label: "PIX Maquininha", icon: "📱", Icon: CreditCard, tone: "bg-accent/15 text-accent ring-accent/25", cardTone: "border-accent/25 bg-accent/5 hover:border-accent/45 hover:bg-accent/10", selectedTone: "border-accent bg-accent/15 text-accent ring-accent/30", valueTone: "text-accent" },
+  { value: "cartao_debito", label: "Cartão Débito", icon: "💳", Icon: WalletCards, tone: "bg-primary/15 text-primary ring-primary/25", cardTone: "border-primary/25 bg-primary/5 hover:border-primary/45 hover:bg-primary/10", selectedTone: "border-primary bg-primary/15 text-primary ring-primary/30", valueTone: "text-primary" },
+  { value: "cartao_credito", label: "Cartão Crédito", icon: "💳", Icon: CreditCard, tone: "bg-warning/15 text-warning ring-warning/25", cardTone: "border-warning/25 bg-warning/5 hover:border-warning/45 hover:bg-warning/10", selectedTone: "border-warning bg-warning/15 text-warning ring-warning/30", valueTone: "text-warning" },
+  { value: "boleto", label: "Boleto", icon: "📄", Icon: FileText, tone: "bg-muted text-foreground ring-border", cardTone: "border-border bg-muted/25 hover:border-primary/35 hover:bg-muted/45", selectedTone: "border-primary bg-primary/10 text-primary ring-primary/25", valueTone: "text-foreground" },
+  { value: "vale_gas", label: "Vale Gás", icon: "🔥", Icon: Flame, tone: "bg-destructive/15 text-destructive ring-destructive/25", cardTone: "border-destructive/25 bg-destructive/5 hover:border-destructive/45 hover:bg-destructive/10", selectedTone: "border-destructive bg-destructive/15 text-destructive ring-destructive/30", valueTone: "text-destructive" },
+  { value: "cheque", label: "Cheque", icon: "🧾", Icon: ReceiptText, tone: "bg-secondary text-secondary-foreground ring-border", cardTone: "border-secondary bg-secondary/45 hover:border-primary/35 hover:bg-secondary/70", selectedTone: "border-primary bg-primary/10 text-primary ring-primary/25", valueTone: "text-secondary-foreground" },
+  { value: "fiado", label: "Fiado / A Prazo", icon: "📝", Icon: AlertCircle, tone: "bg-warning/15 text-warning ring-warning/25", cardTone: "border-warning/25 bg-warning/5 hover:border-warning/45 hover:bg-warning/10", selectedTone: "border-warning bg-warning/15 text-warning ring-warning/30", valueTone: "text-warning" },
   
 ];
 

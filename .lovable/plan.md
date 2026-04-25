@@ -1,36 +1,27 @@
-Plano para aplicar um tema global moderno sem deixar o sistema “branco puro”
+Vou ajustar a etapa Pagamento da tela Nova Venda para ficar visualmente mais parecida com os cards de Ações Rápidas do dashboard: mais colorida, com melhor contraste, hover evidente e seleção destacada.
 
-1. Criar um fundo global mais moderno
-- Ajustar os tokens globais em `src/index.css` para usar um fundo levemente azulado/cinza no modo claro, em vez de branco puro.
-- Manter o conteúdo principal legível, com texto nítido e contraste alto.
-- Adicionar um tratamento visual discreto no `body`/layout com gradientes suaves e radiais, sem pesar a interface.
+Plano de implementação:
 
-2. Atualizar o layout principal do ERP
-- Alterar `MainLayout` para aplicar uma classe global de superfície do sistema.
-- Garantir que todas as páginas internas recebam o novo fundo automaticamente, sem precisar alterar página por página.
-- Preservar a Sidebar preta e a barra inferior mobile já ajustadas.
+1. Atualizar os atalhos de formas de pagamento
+- Transformar cada card de pagamento em um card colorido por tipo: dinheiro/PIX verde, cartões azul/laranja, boleto neutro, vale gás vermelho, cheque/fiado com tons próprios.
+- Aplicar fundo suave colorido, borda colorida e ícone dentro de um bloco destacado, seguindo o padrão visual dos cards de ação rápida do dashboard.
+- Melhorar hover com borda mais forte, fundo colorido leve, sombra e deslocamento sutil.
+- Melhorar estado selecionado com anel/ring, borda ativa e texto em cor forte.
 
-3. Melhorar cards e áreas de conteúdo
-- Manter os cards com fundo claro/branco para contraste, mas com bordas e sombras consistentes com a Nova Venda.
-- Criar/ajustar utilitários globais para cards e superfícies internas, evitando excesso de branco chapado.
-- Reforçar sombras de forma elegante para destacar os cards sobre o novo fundo.
+2. Colorir o card/box de adicionar pagamento
+- Trocar o container neutro da seção “Adicionar novo pagamento” por uma superfície com fundo levemente colorido, borda mais visível e sombra consistente.
+- Manter legibilidade dos campos Select e valor, sem deixar a tela pesada.
 
-4. Ajustar a tela Nova Venda para combinar com o novo tema
-- Preservar o padrão atual de cards/sombras da Nova Venda.
-- Ajustar apenas o fundo externo e áreas de seção para integrar com o tema global.
-- Evitar mexer na lógica de venda, produtos, pagamentos ou fluxo do pedido.
+3. Ajustar o botão de adicionar pagamento
+- Deixar o botão “+” mais chamativo, com gradiente/fundo primário, sombra e hover consistente com a identidade do sistema.
+- Garantir que em mobile ele continue com tamanho confortável e sem quebrar o layout.
 
-5. Garantir compatibilidade com tema GásMais e modo escuro
-- Atualizar `theme-gasmais.css` para seguir o mesmo padrão de fundo moderno quando o tema GásMais estiver ativo.
-- Manter o modo escuro consistente, sem reduzir contraste das fontes.
-- Evitar que o tema global afete páginas públicas/portais de forma indesejada quando já tiverem tema próprio.
+4. Melhorar lista de pagamentos adicionados
+- Aplicar o mesmo padrão visual aos pagamentos já adicionados: ícone colorido, borda/sombra leve e melhor separação entre forma e valor.
+- Manter o botão de remover bem visível, mas sem dominar o card.
 
-Detalhes técnicos
-- Arquivos principais previstos:
-  - `src/index.css`
-  - `src/components/layout/MainLayout.tsx`
-  - `src/styles/theme-gasmais.css`
-  - ajustes pontuais em `src/pages/vendas/NovaVenda.tsx`, se necessário
-- Não haverá mudança estrutural em `App.tsx`, providers ou rotas.
-- Não haverá alteração de banco de dados.
-- O foco será visual: fundo global, contraste, bordas, sombras e consistência entre desktop/mobile.
+Detalhes técnicos:
+- Principal arquivo a alterar: `src/components/vendas/PaymentSection.tsx`.
+- Não vou refatorar a estrutura da tela nem alterar lógica de pagamento.
+- Vou reaproveitar `cn`, os tons já existentes e classes utilitárias atuais para preservar estabilidade.
+- Não haverá alteração de banco de dados nem backend.
