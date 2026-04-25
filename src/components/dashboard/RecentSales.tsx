@@ -61,9 +61,9 @@ export function RecentSales() {
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Vendas do Dia</CardTitle>
+    <Card className="w-full min-w-0 border-border/60 shadow-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Vendas do Dia</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -73,17 +73,17 @@ export function RecentSales() {
         ) : sales.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">Nenhuma venda hoje</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {sales.map((sale) => (
               <div
                 key={sale.id}
-                className="flex items-center justify-between rounded-lg border border-border p-4 transition-colors hover:bg-muted/50"
+                className="flex min-w-0 flex-col gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div className="flex-1">
-                  <p className="font-medium text-foreground">{sale.customer}</p>
-                  <p className="text-sm text-muted-foreground">{sale.produtos}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium text-foreground">{sale.customer}</p>
+                  <p className="line-clamp-2 text-sm text-muted-foreground">{sale.produtos}</p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex shrink-0 items-center justify-between gap-4 sm:justify-end">
                   <Badge variant={statusConfig[sale.status].variant}>
                     {statusConfig[sale.status].label}
                   </Badge>
