@@ -528,7 +528,7 @@ export function Sidebar() {
         </nav>
 
         {/* User + Logout */}
-        <div className="flex-shrink-0 border-t border-sidebar-border/50 p-2">
+        <div className="flex-shrink-0 border-t border-sidebar-border p-2">
           {collapsed ? (
             <div className="flex flex-col items-center gap-2">
               <Tooltip>
@@ -548,7 +548,7 @@ export function Sidebar() {
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={handleSignOut}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl text-sidebar-foreground/40 transition-colors hover:text-destructive hover:bg-destructive/10"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl text-sidebar-foreground/65 transition-colors hover:text-destructive hover:bg-destructive/10"
                   >
                     <LogOut className="h-4 w-4" />
                   </motion.button>
@@ -560,22 +560,22 @@ export function Sidebar() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="rounded-xl bg-sidebar-accent/40 p-3"
+              className="rounded-xl bg-sidebar-accent border border-sidebar-border p-3"
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0">
                   <span className="text-xs font-bold text-primary">{userInitial}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-bold tracking-[-0.02em] text-sidebar-foreground truncate">{userName}</p>
-                  <p className="text-[10px] font-medium text-sidebar-foreground/45 truncate uppercase tracking-wider">Administrador</p>
+                  <p className="text-[13px] font-extrabold text-sidebar-foreground truncate">{userName}</p>
+                  <p className="text-[10px] font-semibold text-sidebar-foreground/65 truncate uppercase tracking-wider">Administrador</p>
                 </div>
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={handleSignOut}
-                    className="h-8 w-8 rounded-lg text-sidebar-foreground/40 hover:text-destructive hover:bg-destructive/10"
+                    className="h-8 w-8 rounded-lg text-sidebar-foreground/65 hover:text-destructive hover:bg-destructive/10"
                   >
                     <LogOut className="h-4 w-4" />
                   </Button>
