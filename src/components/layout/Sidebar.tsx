@@ -224,7 +224,7 @@ export function Sidebar() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
           themeClass,
-          "fixed left-0 top-0 z-40 hidden md:flex h-screen flex-col bg-sidebar border-r border-sidebar-border shadow-2xl"
+          "fixed left-0 top-0 z-40 hidden lg:flex h-screen flex-col bg-sidebar border-r border-sidebar-border shadow-2xl"
         )}
       >
         {/* Header */}
@@ -342,8 +342,8 @@ export function Sidebar() {
                           className={cn(
                             "flex h-10 w-10 items-center justify-center rounded-xl mx-auto transition-all duration-200",
                             isItemActive
-                              ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
-                              : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                              ? "bg-primary text-primary-foreground shadow-md shadow-primary/35 ring-1 ring-primary/35"
+                              : "text-sidebar-foreground/85 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                           )}
                         >
                           <item.icon className={cn("h-[18px] w-[18px]", isItemActive ? "" : menuIconColors[item.label] || "")} />
@@ -353,8 +353,8 @@ export function Sidebar() {
                           className={cn(
                             "flex h-10 w-10 items-center justify-center rounded-xl mx-auto transition-all duration-200",
                             isChildActive
-                              ? "bg-primary/10 text-primary"
-                              : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                              ? "bg-primary/20 text-primary ring-1 ring-primary/35"
+                              : "text-sidebar-foreground/85 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                           )}
                         >
                           <item.icon className={cn("h-[18px] w-[18px]", isChildActive ? "" : menuIconColors[item.label] || "")} />
