@@ -565,6 +565,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
                   }
                 }}
                 className="pl-10 pr-10 w-full"
+                data-venda-enter-skip
               />
               {isSearching && (
                 <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
@@ -687,6 +688,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
               placeholder="Nome do cliente"
               value={value.nome}
               onChange={(e) => handleFieldChange("nome", e.target.value)}
+              data-venda-enter-next
             />
           </div>
           <div className="min-w-0">
@@ -699,6 +701,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
                 onChange={(e) => handleFieldChange("telefone", formatPhone(e.target.value))}
                 className="pl-10 w-full"
                 maxLength={16}
+                data-venda-enter-next
               />
             </div>
           </div>
@@ -728,6 +731,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
                     }, 200);
                   }}
                   className="pl-10 w-full"
+                  data-venda-enter-next
                 />
                 {isSearchingAddress && (
                   <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
@@ -778,6 +782,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
               onChange={(e) => handleFieldChange("numero", e.target.value)}
               onBlur={handleAddressBlur}
               className="w-full"
+              data-venda-enter-next
             />
           </div>
         </div>
@@ -790,6 +795,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
               placeholder="Apto, Bloco..."
               value={value.complemento}
               onChange={(e) => handleFieldChange("complemento", e.target.value)}
+              data-venda-enter-next
             />
           </div>
           <div>
@@ -798,6 +804,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
               placeholder="Bairro"
               value={value.bairro}
               onChange={(e) => handleFieldChange("bairro", e.target.value)}
+              data-venda-enter-next
             />
           </div>
         </div>
@@ -811,6 +818,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
               value={value.cep}
               onChange={handleCEPChange}
               maxLength={9}
+              data-venda-enter-next
             />
           </div>
         </div>
