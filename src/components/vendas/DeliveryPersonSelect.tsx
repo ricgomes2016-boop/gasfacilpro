@@ -173,8 +173,10 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
                   {getInitials(entregador.nome) || <UserRound className="h-5 w-5" />}
                 </div>
                 <div className="min-w-0 w-full">
-                  <div className="flex items-center justify-center gap-2">
-                    <p className="truncate text-sm font-semibold text-primary-foreground drop-shadow-sm">{entregador.nome}</p>
+                  <div className="flex items-start justify-center gap-2">
+                    <p className="max-w-full whitespace-normal break-words text-center text-sm font-semibold leading-snug text-primary-foreground drop-shadow-sm">
+                      {entregador.nome}
+                    </p>
                     {selected && <CheckCircle2 className="h-4 w-4 shrink-0 text-primary-foreground drop-shadow-sm" />}
                   </div>
                   <div className="mt-1">{getStatusBadge(entregador.status)}</div>
