@@ -1,36 +1,28 @@
-Plano para deixar a tela Nova Venda visivelmente mais moderna, mantendo cada etapa com sua própria cor.
+Plano para deixar o menu com fundo preto e ajustar as fontes
 
-1. Criar um visual premium por etapa
-- Trocar o fundo atual do container da etapa por cores mais profundas e elegantes, inspiradas nos cards de Acesso Rápido do dashboard.
-- Manter as cores por etapa: Cliente amber, Produtos teal, Pagamento indigo, Entregador rose e Confirmar emerald.
-- Usar uma base escura/saturada com luzes decorativas sutis para dar profundidade, mas sem deixar o card interno pesado.
+1. Menu lateral desktop
+- Trocar o fundo atual semitransparente do `Sidebar` para preto/near-black consistente.
+- Ajustar bordas e divisórias para tons escuros sutis, evitando o visual acinzentado claro.
+- Deixar textos principais em branco com boa hierarquia: títulos mais fortes, itens de menu legíveis e submenus com contraste maior.
+- Manter o destaque do item ativo com a cor primária do sistema, sem mudar rotas ou comportamento.
 
-2. Modernizar os cards internos com glassmorphism real
-- Aumentar raio de borda, transparência, blur e sombra dos cards principais.
-- Deixar os cards internos claramente transparentes, com borda branca suave e brilho interno.
-- Remover interferências antigas que ainda deixam alguns blocos com aparência acinzentada ou “chapada”.
+2. Submenus e estados de interação
+- Melhorar hover, item ativo e submenu aberto para funcionar bem sobre fundo preto.
+- Ajustar opacidade das fontes dos submenus para não ficarem apagadas.
+- Preservar os ícones coloridos atuais, pois ajudam na identificação visual dos módulos.
 
-3. Padronizar texto branco e hierarquia visual
-- Garantir títulos, labels, textos auxiliares, totais, badges, cabeçalhos de tabela e estados vazios em branco ou branco translúcido.
-- Ajustar ícones e chips para parecerem parte do glass card, não como componentes padrão cinza.
-- Preservar campos editáveis com fundo claro ou semitransparente legível para digitação.
+3. Rodapé do usuário e seletor de unidade
+- Adaptar o card do usuário e o seletor de loja para o novo fundo preto.
+- Garantir que nome, cargo, botão de sair e loja selecionada tenham contraste suficiente.
 
-4. Melhorar atalhos e botões
-- Transformar atalhos de produtos, pagamentos e entregadores em mini-cards modernos com hover mais evidente, elevação leve e estado selecionado com borda branca/anel luminoso.
-- Ajustar botões principais do fluxo para combinar com a cor da etapa e ter aparência mais premium.
-- Manter sem alterações na lógica de clique, busca, pagamento ou finalização.
+4. Menu mobile
+- Aplicar o mesmo padrão preto ao menu lateral mobile (`MobileNav`) para manter consistência entre desktop e celular.
+- Ajustar fontes e estados ativos/hover no mobile com o mesmo padrão visual.
 
-5. Ajustes pontuais no layout da Nova Venda
-- Refinar o bloco do stepper/topo para não destoar do visual moderno.
-- Adicionar classes auxiliares apenas onde necessário para separar shell, cards de apoio e controles.
-- Não alterar rotas, providers, banco de dados, regras de venda ou fluxo operacional.
+5. Barra inferior mobile
+- Se necessário, ajustar a `MobileBottomBar` para combinar com o novo menu preto, mantendo legibilidade dos botões Chat, IA e Calc.
 
-Arquivos previstos:
-- `src/index.css`
-- `src/pages/vendas/NovaVenda.tsx` somente se for necessário adicionar classes de apoio ao layout
-- Possíveis ajustes mínimos nos componentes de venda apenas para classes visuais: `ProductSearch`, `PaymentSection`, `DeliveryPersonSelect`, `OrderSummary`, `CustomerSearch`, `CustomerHistory`
-
-Validação:
-- Conferir a tela `/vendas/nova` no viewport atual.
-- Verificar pelo menos as etapas Cliente, Produtos, Pagamento, Entregador e Confirmar.
-- Rodar verificação TypeScript para garantir que as mudanças visuais não quebraram a aplicação.
+Arquivos previstos
+- `src/components/layout/Sidebar.tsx`
+- `src/components/layout/MobileNav.tsx`
+- `src/components/layout/MobileBottomBar.tsx`
