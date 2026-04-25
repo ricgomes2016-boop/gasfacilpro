@@ -55,6 +55,7 @@ interface UserOption {
 }
 
 export default function Entregadores() {
+  const emptyForm = { nome: "", cpf: "", cnh: "", telefone: "", email: "", user_id: "", funcionario_id: "", terminal_id: "", foto_url: "" };
   const [entregadores, setEntregadores] = useState<Entregador[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -65,9 +66,7 @@ export default function Entregadores() {
   const [terminais, setTerminais] = useState<TerminalOption[]>([]);
   const { unidadeAtual } = useUnidade();
   const [fotoFile, setFotoFile] = useState<File | null>(null);
-  const [form, setForm] = useState({
-    nome: "", cpf: "", cnh: "", telefone: "", email: "", user_id: "", funcionario_id: "", terminal_id: "", foto_url: "",
-  });
+  const [form, setForm] = useState(emptyForm);
 
   const fetchEntregadores = async () => {
     let query = supabase
@@ -148,6 +147,11 @@ export default function Entregadores() {
   const handleSave = async () => {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
 
+    let fotoUrl = form.foto_url || null;
+    if (fotoFile) {
+      fotoUrl = await uploadFotoEntregador(fotoFile, editId || crypto.randomUUID());
+    }
+
     const payload: any = {
       nome: form.nome,
       cpf: form.cpf || null,
@@ -157,6 +161,7 @@ export default function Entregadores() {
       user_id: form.user_id || null,
       funcionario_id: form.funcionario_id || null,
       terminal_id: form.terminal_id || null,
+      foto_url: fotoUrl,
     };
     if (unidadeAtual?.id) {
       payload.unidade_id = unidadeAtual.id;
@@ -174,7 +179,8 @@ export default function Entregadores() {
 
     setOpen(false);
     setEditId(null);
-    setForm({ nome: "", cpf: "", cnh: "", telefone: "", email: "", user_id: "", funcionario_id: "", terminal_id: "" });
+    setFotoFile(null);
+    setForm(emptyForm);
     fetchEntregadores();
   };
 
@@ -185,7 +191,9 @@ export default function Entregadores() {
       telefone: e.telefone || "", email: e.email || "",
       user_id: e.user_id || "", funcionario_id: e.funcionario_id || "",
       terminal_id: e.terminal_id || "",
+      foto_url: e.foto_url || "",
     });
+    setFotoFile(null);
     setOpen(true);
   };
 
@@ -225,7 +233,7 @@ export default function Entregadores() {
       <Header title="Entregadores" subtitle="Cadastro de entregadores" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditId(null); setForm({ nome: "", cpf: "", cnh: "", telefone: "", email: "", user_id: "", funcionario_id: "", terminal_id: "" }); } }}>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditId(null); setFotoFile(null); setForm(emptyForm); } }}>
             <DialogTrigger asChild>
               <Button className="gap-2"><Plus className="h-4 w-4" />Novo Entregador</Button>
             </DialogTrigger>
