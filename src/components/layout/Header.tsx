@@ -66,17 +66,17 @@ export function Header({ title, subtitle }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 md:h-16 items-center justify-between gap-2 border-b border-border bg-background/95 px-2 md:px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60 max-w-full">
-      <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+    <header className="sticky top-0 z-30 flex h-14 md:h-16 w-full max-w-full items-center justify-between gap-2 overflow-hidden border-b border-border bg-background/95 px-2 md:px-4 xl:px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
         {/* Mobile menu */}
         <MobileNav />
         
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 min-w-0">
-            <h1 className="text-base md:text-xl font-bold text-foreground truncate">{title}</h1>
-            <BuildVersionBadge className="hidden md:inline-flex shrink-0" />
+          <div className="flex items-center gap-2 min-w-0 max-w-full">
+            <h1 className="text-base md:text-lg xl:text-xl font-bold text-foreground truncate min-w-0">{title}</h1>
+            <BuildVersionBadge className="hidden xl:inline-flex shrink-0" />
           </div>
-          <p className="text-xs md:text-sm text-muted-foreground truncate hidden sm:block">
+          <p className="text-xs md:text-sm text-muted-foreground truncate hidden sm:block max-w-full">
             {empresa && <span className="font-medium">{empresa.nome}</span>}
             {subtitle && <span>{empresa ? " — " : ""}{subtitle}</span>}
             {unidadeAtual && <span className="ml-2 text-primary font-medium">• {unidadeAtual.nome}</span>}
@@ -84,12 +84,12 @@ export function Header({ title, subtitle }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-0 sm:gap-1 md:gap-4 shrink-0 min-w-0">
+      <div className="flex items-center justify-end gap-0.5 sm:gap-1 xl:gap-2 shrink-0 min-w-0">
         {/* Unidade Selector */}
         <UnidadeSelector />
 
         {/* Command Palette (⌘K) — desktop only */}
-        <div className="hidden md:block">
+        <div className="hidden xl:block shrink-0">
           <CommandPalette />
         </div>
 
@@ -109,7 +109,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 hidden sm:inline-flex"
+          className="h-9 w-9 hidden xl:inline-flex shrink-0"
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
           title={resolvedTheme === "dark" ? "Modo claro" : "Modo escuro"}
         >
@@ -119,7 +119,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
+            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 shrink-0">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
                 <User className="h-4 w-4 text-primary-foreground" />
               </div>
