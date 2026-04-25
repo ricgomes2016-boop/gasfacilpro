@@ -214,6 +214,18 @@
     border: 1px solid hsl(var(--venda-tone) / 0.24);
   }
 
+  .theme-gasmais .venda-step-tab[data-active="true"] {
+    background: linear-gradient(135deg, hsl(var(--venda-tone)), hsl(var(--venda-tone-strong)));
+    color: hsl(var(--primary-foreground));
+    border-color: hsl(var(--venda-tone) / 0.5);
+    box-shadow: 0 8px 18px -12px hsl(var(--venda-tone) / 0.8);
+  }
+
+  .theme-gasmais .venda-step-tab[data-done="true"]:not([data-active="true"]) {
+    background: hsl(var(--venda-tone) / 0.12);
+    color: hsl(var(--venda-tone-strong));
+  }
+
   .theme-gasmais .venda-step-tab.venda-tone-cliente:not(:disabled):hover,
   .theme-gasmais .venda-step-tab.venda-tone-produtos:not(:disabled):hover,
   .theme-gasmais .venda-step-tab.venda-tone-pagamento:not(:disabled):hover,
