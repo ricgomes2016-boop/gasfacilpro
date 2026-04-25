@@ -366,6 +366,59 @@
     border-color: hsl(var(--venda-tone) / 0.55);
   }
 
+  .venda-tone-cliente .venda-card table thead tr,
+  .venda-tone-produtos .venda-card table thead tr,
+  .venda-tone-pagamento .venda-card table thead tr,
+  .venda-tone-entregador .venda-card table thead tr,
+  .venda-tone-confirmar .venda-card table thead tr {
+    background: linear-gradient(90deg, hsl(var(--venda-tone) / 0.12), hsl(var(--venda-tone-strong) / 0.08));
+  }
+
+  .venda-tone-cliente .venda-card table tbody tr,
+  .venda-tone-produtos .venda-card table tbody tr,
+  .venda-tone-pagamento .venda-card table tbody tr,
+  .venda-tone-entregador .venda-card table tbody tr,
+  .venda-tone-confirmar .venda-card table tbody tr {
+    transition: background-color 0.18s ease;
+  }
+
+  .venda-tone-cliente .venda-card table tbody tr:hover,
+  .venda-tone-produtos .venda-card table tbody tr:hover,
+  .venda-tone-pagamento .venda-card table tbody tr:hover,
+  .venda-tone-entregador .venda-card table tbody tr:hover,
+  .venda-tone-confirmar .venda-card table tbody tr:hover {
+    background-color: hsl(var(--venda-tone) / 0.075);
+  }
+
+  .venda-tone-cliente .venda-card .bg-primary\/10,
+  .venda-tone-produtos .venda-card .bg-primary\/10,
+  .venda-tone-pagamento .venda-card .bg-primary\/10,
+  .venda-tone-entregador .venda-card .bg-primary\/10,
+  .venda-tone-confirmar .venda-card .bg-primary\/10,
+  .venda-tone-cliente .venda-card .bg-primary\/12,
+  .venda-tone-produtos .venda-card .bg-primary\/12,
+  .venda-tone-pagamento .venda-card .bg-primary\/12,
+  .venda-tone-entregador .venda-card .bg-primary\/12,
+  .venda-tone-confirmar .venda-card .bg-primary\/12 {
+    background-color: hsl(var(--venda-tone) / 0.14);
+  }
+
+  .venda-tone-cliente .venda-card .text-primary,
+  .venda-tone-produtos .venda-card .text-primary,
+  .venda-tone-pagamento .venda-card .text-primary,
+  .venda-tone-entregador .venda-card .text-primary,
+  .venda-tone-confirmar .venda-card .text-primary {
+    color: hsl(var(--venda-tone-strong));
+  }
+
+  .venda-tone-cliente .venda-card .border-primary,
+  .venda-tone-produtos .venda-card .border-primary,
+  .venda-tone-pagamento .venda-card .border-primary,
+  .venda-tone-entregador .venda-card .border-primary,
+  .venda-tone-confirmar .venda-card .border-primary {
+    border-color: hsl(var(--venda-tone) / 0.55);
+  }
+
   .gradient-primary {
     background: var(--gradient-primary);
   }
