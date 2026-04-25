@@ -693,16 +693,17 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const handleStepEnterNavigation = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.defaultPrevented || event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
     const target = event.target as HTMLElement;
-    if (target.closest("#ai-send-btn") || target.closest('[role="combobox"]') || target.closest("button")) return;
+    if (target.closest("#ai-send-btn") || target.closest("[data-venda-enter-skip]") || target.closest('[role="combobox"]') || target.closest("button")) return;
     if (target instanceof HTMLTextAreaElement) return;
     if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) return;
     if (target.type === "file" || target.type === "checkbox" || target.type === "radio") return;
+    if (!target.matches("[data-venda-enter-next]")) return;
 
     const panel = target.closest(".venda-step-panel");
     if (!panel) return;
 
     const focusables = Array.from(
-      panel.querySelectorAll<HTMLElement>('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])')
+      panel.querySelectorAll<HTMLElement>('[data-venda-enter-next]:not([disabled])')
     ).filter((el) => el.offsetParent !== null && !el.closest('[aria-hidden="true"]'));
     const index = focusables.indexOf(target);
     const next = focusables[index + 1];
@@ -992,7 +993,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               <Calendar className="h-3 w-3" />
               Data de Entrega
             </Label>
-            <Input type="date" value={dataEntrega} onChange={(e) => setDataEntrega(e.target.value)} className="mt-1" />
+            <Input type="date" value={dataEntrega} onChange={(e) => setDataEntrega(e.target.value)} className="mt-1" data-venda-enter-next />
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Canal de Venda</Label>
@@ -1021,6 +1022,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             onChange={(e) => setAiCommand(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !aiLoading && handleAiCommand()}
             className="bg-background flex-1 min-w-0"
+              data-venda-enter-skip
             disabled={aiLoading || isListening}
           />
           <div className="flex items-center gap-1">

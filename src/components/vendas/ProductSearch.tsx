@@ -241,7 +241,7 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
         </div>
 
         {/* Search Input */}
-        <div className="relative rounded-lg border bg-background p-2 shadow-sm">
+        <div className="venda-modern-surface relative rounded-lg border p-2 shadow-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={inputRef}
@@ -252,6 +252,7 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
               searchProdutos(e.target.value);
             }}
             className="h-11 border-0 bg-transparent pl-9 shadow-none focus-visible:ring-0"
+            data-venda-enter-skip
           />
 
           {/* Autocomplete Results */}
@@ -280,7 +281,7 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
 
         {/* Items Table */}
         {itens.length > 0 ? (
-          <div className="overflow-x-auto rounded-lg border bg-background shadow-sm">
+          <div className="venda-modern-surface overflow-x-auto rounded-lg border shadow-sm">
             <Table className="min-w-0">
               <TableHeader>
                 <TableRow className="bg-muted/60 hover:bg-muted/60">
@@ -329,6 +330,7 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
                             onChange(newItens);
                           }}
                           className="w-10 sm:w-16 text-center h-7 text-sm px-1"
+                          data-venda-enter-next
                         />
                         <Button
                           variant="outline"
@@ -348,6 +350,7 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
                         value={item.preco_unitario}
                         onChange={(e) => updatePrecoUnitario(index, Number(e.target.value))}
                         className="w-16 sm:w-24 text-right h-8 text-sm px-1 sm:px-3"
+                        data-venda-enter-next
                       />
                     </TableCell>
                     <TableCell className="text-right font-semibold hidden sm:table-cell">

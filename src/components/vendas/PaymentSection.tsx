@@ -245,7 +245,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
               {pagamentos.map((pag) => (
                 <div
                   key={pag.id}
-                  className="flex items-center justify-between gap-3 rounded-lg border bg-background p-3 shadow-sm"
+                  className="venda-modern-surface flex items-center justify-between gap-3 rounded-lg border p-3 shadow-sm"
                 >
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <span className="text-lg">{getFormaIcon(pag.forma)}</span>
@@ -284,7 +284,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
           )}
 
           {/* Adicionar novo pagamento */}
-          <div className="rounded-lg border bg-muted/20 p-3 shadow-sm space-y-3">
+          <div className="venda-modern-surface rounded-lg border p-3 shadow-sm space-y-3">
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
               {formasPagamento.map((fp) => {
                 const Icon = fp.Icon;
@@ -333,6 +333,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
                   value={valorDisplay}
                   onChange={handleValorChange}
                   className="h-11 bg-background pl-9"
+                  data-venda-enter-next
                 />
               </div>
               <Button onClick={addPagamento} size="icon" className="h-11 w-11 shrink-0 shadow-sm">
@@ -350,16 +351,16 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
 
             {/* Cheque extra fields */}
             {forma === "cheque" && (
-              <div className="p-3 bg-muted/30 rounded-lg space-y-2 border border-dashed">
+                <div className="venda-modern-surface p-3 rounded-lg space-y-2 border border-dashed">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dados do Cheque</p>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-xs">Nº Cheque *</Label>
-                    <Input value={chequeNumero} onChange={e => setChequeNumero(e.target.value)} placeholder="000001" className="h-8 text-sm" />
+                    <Input value={chequeNumero} onChange={e => setChequeNumero(e.target.value)} placeholder="000001" className="h-8 text-sm" data-venda-enter-next />
                   </div>
                   <div>
                     <Label className="text-xs">Banco *</Label>
-                    <Input value={chequeBanco} onChange={e => setChequeBanco(e.target.value)} placeholder="Itaú, BB..." className="h-8 text-sm" />
+                    <Input value={chequeBanco} onChange={e => setChequeBanco(e.target.value)} placeholder="Itaú, BB..." className="h-8 text-sm" data-venda-enter-next />
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -379,7 +380,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
 
             {/* Fiado extra fields */}
             {forma === "fiado" && (
-              <div className="p-3 bg-muted/30 rounded-lg space-y-2 border border-dashed">
+                <div className="venda-modern-surface p-3 rounded-lg space-y-2 border border-dashed">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dados do Fiado</p>
                 <div>
                   <Label className="text-xs">Data de Vencimento</Label>
@@ -390,6 +391,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
                     min={getBrasiliaDateString()}
                     className="h-8 text-sm"
                     placeholder={format(addDays(new Date(), 30), "yyyy-MM-dd")}
+                    data-venda-enter-next
                   />
                   <p className="text-xs text-muted-foreground mt-1">Se não informado, vencimento será em 30 dias ({format(addDays(new Date(), 30), "dd/MM/yyyy")})</p>
                 </div>

@@ -184,9 +184,10 @@
   .venda-tone-pagamento .venda-card,
   .venda-tone-entregador .venda-card,
   .venda-tone-confirmar .venda-card {
-    border-color: hsl(var(--venda-tone) / 0.28);
-    background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.045) 100%);
-    box-shadow: 0 14px 28px -18px hsl(var(--venda-tone) / 0.58), 0 8px 18px -16px hsl(222 47% 11% / 0.28);
+    border-color: hsl(222 47% 11% / 0.34);
+    background:
+      linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.07) 54%, hsl(var(--venda-tone-strong) / 0.045) 100%);
+    box-shadow: 0 16px 32px -20px hsl(var(--venda-tone) / 0.62), 0 10px 22px -18px hsl(222 47% 11% / 0.42);
   }
 
   .venda-tone-cliente .venda-card::before,
@@ -279,10 +280,33 @@
   .venda-tone-confirmar .venda-card input,
   .venda-tone-confirmar .venda-card textarea,
   .venda-tone-confirmar .venda-card button[role="combobox"] {
-    border-color: hsl(var(--venda-tone) / 0.28);
-    background-color: hsl(var(--background));
+    border-color: hsl(222 47% 11% / 0.42);
+    background-color: hsl(var(--card) / 0.96);
     color: hsl(var(--foreground));
+    font-weight: 520;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  }
+
+  .venda-tone-cliente .venda-card label,
+  .venda-tone-produtos .venda-card label,
+  .venda-tone-pagamento .venda-card label,
+  .venda-tone-entregador .venda-card label,
+  .venda-tone-confirmar .venda-card label {
+    color: hsl(var(--foreground) / 0.78);
+    font-weight: 650;
+  }
+
+  .venda-tone-cliente .venda-card p,
+  .venda-tone-cliente .venda-card span,
+  .venda-tone-produtos .venda-card p,
+  .venda-tone-produtos .venda-card span,
+  .venda-tone-pagamento .venda-card p,
+  .venda-tone-pagamento .venda-card span,
+  .venda-tone-entregador .venda-card p,
+  .venda-tone-entregador .venda-card span,
+  .venda-tone-confirmar .venda-card p,
+  .venda-tone-confirmar .venda-card span {
+    text-rendering: optimizeLegibility;
   }
 
   .venda-tone-cliente .venda-card input:focus-visible,
@@ -300,8 +324,37 @@
   .venda-tone-confirmar .venda-card input:focus-visible,
   .venda-tone-confirmar .venda-card textarea:focus-visible,
   .venda-tone-confirmar .venda-card button[role="combobox"]:focus-visible {
-    border-color: hsl(var(--venda-tone) / 0.7);
-    box-shadow: 0 0 0 3px hsl(var(--venda-tone) / 0.18);
+    border-color: hsl(var(--venda-tone) / 0.82);
+    box-shadow: 0 0 0 3px hsl(var(--venda-tone) / 0.22);
+  }
+
+  .dark .venda-tone-cliente .venda-card,
+  .dark .venda-tone-produtos .venda-card,
+  .dark .venda-tone-pagamento .venda-card,
+  .dark .venda-tone-entregador .venda-card,
+  .dark .venda-tone-confirmar .venda-card {
+    border-color: hsl(220 14% 82% / 0.24);
+    background:
+      linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.11) 56%, hsl(var(--venda-tone-strong) / 0.075) 100%);
+  }
+
+  .dark .venda-tone-cliente .venda-card input,
+  .dark .venda-tone-cliente .venda-card textarea,
+  .dark .venda-tone-cliente .venda-card button[role="combobox"],
+  .dark .venda-tone-produtos .venda-card input,
+  .dark .venda-tone-produtos .venda-card textarea,
+  .dark .venda-tone-produtos .venda-card button[role="combobox"],
+  .dark .venda-tone-pagamento .venda-card input,
+  .dark .venda-tone-pagamento .venda-card textarea,
+  .dark .venda-tone-pagamento .venda-card button[role="combobox"],
+  .dark .venda-tone-entregador .venda-card input,
+  .dark .venda-tone-entregador .venda-card textarea,
+  .dark .venda-tone-entregador .venda-card button[role="combobox"],
+  .dark .venda-tone-confirmar .venda-card input,
+  .dark .venda-tone-confirmar .venda-card textarea,
+  .dark .venda-tone-confirmar .venda-card button[role="combobox"] {
+    border-color: hsl(220 14% 86% / 0.32);
+    background-color: hsl(var(--background) / 0.72);
   }
 
   .theme-gasmais .venda-tone-cliente { --venda-tone: 199 89% 48%; --venda-tone-strong: 217 91% 56%; }
@@ -318,9 +371,10 @@
   .theme-gasmais .venda-tone-confirmar .venda-card {
     position: relative;
     overflow: hidden;
-    border-color: hsl(var(--venda-tone) / 0.32);
-    background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.035) 100%);
-    box-shadow: 0 12px 26px -16px hsl(var(--venda-tone) / 0.55), 0 6px 18px -14px hsl(222 47% 11% / 0.35);
+    border-color: hsl(222 47% 11% / 0.36);
+    background:
+      linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.075) 52%, hsl(var(--venda-tone-strong) / 0.05) 100%);
+    box-shadow: 0 14px 30px -18px hsl(var(--venda-tone) / 0.62), 0 8px 20px -16px hsl(222 47% 11% / 0.46);
   }
 
   .theme-gasmais .venda-gasmais-card::before,
@@ -478,8 +532,8 @@
 
   .venda-product-shortcut,
   .venda-payment-shortcut {
-    border-color: hsl(var(--venda-tone) / 0.24);
-    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--venda-tone) / 0.055) 100%);
+    border-color: hsl(222 47% 11% / 0.28);
+    background: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.08) 100%);
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
   }
 
@@ -495,6 +549,24 @@
     outline: 2px solid hsl(var(--venda-tone));
     outline-offset: 2px;
     box-shadow: 0 0 0 4px hsl(var(--venda-tone) / 0.18);
+  }
+
+  .venda-modern-surface {
+    border-color: hsl(222 47% 11% / 0.24);
+    background: linear-gradient(145deg, hsl(var(--card) / 0.98), hsl(var(--venda-tone) / 0.06));
+  }
+
+  .dark .theme-gasmais .venda-gasmais-card,
+  .dark .theme-gasmais .venda-tone-cliente .venda-card,
+  .dark .theme-gasmais .venda-tone-produtos .venda-card,
+  .dark .theme-gasmais .venda-tone-pagamento .venda-card,
+  .dark .theme-gasmais .venda-tone-entregador .venda-card,
+  .dark .theme-gasmais .venda-tone-confirmar .venda-card,
+  .dark .venda-product-shortcut,
+  .dark .venda-payment-shortcut,
+  .dark .venda-modern-surface {
+    border-color: hsl(220 14% 86% / 0.24);
+    background: linear-gradient(145deg, hsl(var(--card) / 0.96), hsl(var(--venda-tone) / 0.12));
   }
 
   .gradient-primary {
