@@ -214,12 +214,16 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
         });
       });
 
+      const totalQtdeP13 = Object.values(canalMap).reduce((s, d) => s + d.qtde, 0);
+      const totalCustoP13 = Object.values(canalMap).reduce((s, d) => s + d.custoTotal, 0);
+      const precoMedioCompraP13Global = totalQtdeP13 > 0 ? totalCustoP13 / totalQtdeP13 : 0;
+
       const canaisP13 = Object.entries(canalMap).map(([canal, d]) => ({
         canal, qtde: d.qtde,
         precoVenda: d.qtde > 0 ? d.totalRS / d.qtde : 0,
         totalRS: d.totalRS,
-        precoCompra: d.qtde > 0 ? d.custoTotal / d.qtde : 0,
-        margemRS: d.totalRS - d.custoTotal,
+        precoCompra: precoMedioCompraP13Global,
+        margemRS: d.totalRS - (d.qtde * precoMedioCompraP13Global),
         tonelagem: Number(d.tonelagem.toFixed(2)),
         tipo: "canal" as const,
       }));
