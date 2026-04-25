@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +26,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [dre, setDre] = useState<DRELine[]>([]);
   const [meses, setMeses] = useState<string[]>([]);
+  const [mesesVisiveis, setMesesVisiveis] = useState<string[]>([]);
   const [periodoMeses, setPeriodoMeses] = useState("3");
 
   useEffect(() => { fetchData(); }, [unidadeAtual, periodoMeses]);
@@ -88,6 +89,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       }
 
       setMeses(mesesCalc);
+      setMesesVisiveis(mesesCalc);
 
       const deducoes = receitaBruta.map(r => r * 0.05);
       const receitaLiquida = receitaBruta.map((r, i) => r - deducoes[i]);
@@ -116,9 +118,45 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
     }
   };
 
+  const visibleIndexes = useMemo(() => {
+    const selected = mesesVisiveis.length > 0 ? mesesVisiveis : meses;
+    return meses.map((mes, index) => selected.includes(mes) ? index : -1).filter(index => index >= 0);
+  }, [meses, mesesVisiveis]);
+
+  const mesesExibidos = useMemo(() => visibleIndexes.map(index => meses[index]), [meses, visibleIndexes]);
+
+  const dreExibida = useMemo(() => dre.map(item => ({
+    ...item,
+    valores: visibleIndexes.map(index => item.valores[index] || 0),
+  })), [dre, visibleIndexes]);
+
+  const periodoLabel = mesesExibidos.length > 0 ? `${mesesExibidos[0]} — ${mesesExibidos[mesesExibidos.length - 1]}` : "Sem meses";
+
   const formatCurrency = (value: number) => {
-    const formatted = Math.abs(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    return value < 0 ? `(${formatted})` : formatted;
+    const safeValue = Number.isFinite(value) ? value : 0;
+    const formatted = Math.abs(safeValue).toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return safeValue < 0 ? `(${formatted})` : formatted;
+  };
+
+  const formatCompactCurrency = (value: number) => {
+    const safeValue = Number.isFinite(value) ? value : 0;
+    const formatted = `R$ ${(Math.abs(safeValue) / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}k`;
+    return safeValue < 0 ? `-${formatted}` : formatted;
+  };
+
+  const formatPercent = (value: number) => `${(Number.isFinite(value) ? Math.abs(value) : 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+
+  const toggleMes = (mes: string) => {
+    setMesesVisiveis(prev => {
+      const current = prev.length > 0 ? prev : meses;
+      if (current.includes(mes)) return current.length === 1 ? current : current.filter(m => m !== mes);
+      return meses.filter(m => current.includes(m) || m === mes);
+    });
   };
 
   if (loading) {
