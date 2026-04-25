@@ -31,6 +31,7 @@ interface CanalVenda {
   precoCompra: number;
   margemRS: number;
   tonelagem: number;
+  tipo?: "canal" | "produto";
 }
 
 const mesesOptions = Array.from({ length: 12 }, (_, i) => ({
@@ -130,33 +131,82 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
         setPrecoVendaP13(Number(p13.preco) || 0);
       }
 
+      const getCustoUnitario = (prod?: { preco: number; precoCusto: number }) =>
+        prod?.precoCusto && prod.precoCusto > 0 ? prod.precoCusto : (prod?.preco || 0) * 0.7;
+
+      const classificarProduto = (nome: string) => {
+        const n = nome.toLowerCase();
+        if (n.includes("p13") || n.includes("13kg")) return "p13";
+        if (n.includes("p20") || n.includes("20kg")) return "P20";
+        if (n.includes("p45") || n.includes("45kg")) return "P45";
+        if (n.includes("água") || n.includes("agua")) return "Água";
+        if (n.includes("regulador")) return "Regulador";
+        if ((n.includes("galão") || n.includes("galao")) && n.includes("vazio")) return "Galão vazio";
+        return null;
+      };
+
       const canalMap: Record<string, { qtde: number; totalRS: number; custoTotal: number; tonelagem: number }> = {};
+      const produtosTotais: Record<string, { qtde: number; totalRS: number; custoTotal: number; tonelagem: number }> = {
+        P20: { qtde: 0, totalRS: 0, custoTotal: 0, tonelagem: 0 },
+        P45: { qtde: 0, totalRS: 0, custoTotal: 0, tonelagem: 0 },
+        Água: { qtde: 0, totalRS: 0, custoTotal: 0, tonelagem: 0 },
+        Regulador: { qtde: 0, totalRS: 0, custoTotal: 0, tonelagem: 0 },
+        "Galão vazio": { qtde: 0, totalRS: 0, custoTotal: 0, tonelagem: 0 },
+      };
       pedidos.forEach(pedido => {
         const canal = pedido.canal_venda || "Venda Direta";
-        if (!canalMap[canal]) canalMap[canal] = { qtde: 0, totalRS: 0, custoTotal: 0, tonelagem: 0 };
-        canalMap[canal].totalRS += Number(pedido.valor_total) || 0;
         (pedido.pedido_itens || []).forEach((item: any) => {
           const prod = produtoMap.get(item.produto_id);
           const qty = item.quantidade || 0;
-          canalMap[canal].qtde += qty;
-          const custoUnit = prod?.precoCusto && prod.precoCusto > 0 ? prod.precoCusto : (prod?.preco || 0) * 0.7;
-          canalMap[canal].custoTotal += qty * custoUnit;
           const nomeProd = prod?.nome?.toLowerCase() || "";
-          if (nomeProd.includes("p13") || nomeProd.includes("13kg")) canalMap[canal].tonelagem += qty * 13 / 1000;
-          else if (nomeProd.includes("p45") || nomeProd.includes("45kg")) canalMap[canal].tonelagem += qty * 45 / 1000;
-          else if (nomeProd.includes("p20") || nomeProd.includes("20kg")) canalMap[canal].tonelagem += qty * 20 / 1000;
-          else if (nomeProd.includes("p05") || nomeProd.includes("5kg")) canalMap[canal].tonelagem += qty * 5 / 1000;
+          const produtoTipo = classificarProduto(nomeProd);
+          const precoVendaUnit = Number(item.preco_unitario) || prod?.preco || 0;
+          const totalItem = qty * precoVendaUnit;
+          const custoUnit = getCustoUnitario(prod);
+          const tonelagem = nomeProd.includes("p45") || nomeProd.includes("45kg") ? qty * 45 / 1000
+            : nomeProd.includes("p20") || nomeProd.includes("20kg") ? qty * 20 / 1000
+            : nomeProd.includes("p13") || nomeProd.includes("13kg") ? qty * 13 / 1000
+            : 0;
+
+          if (produtoTipo === "p13") {
+            if (!canalMap[canal]) canalMap[canal] = { qtde: 0, totalRS: 0, custoTotal: 0, tonelagem: 0 };
+            canalMap[canal].qtde += qty;
+            canalMap[canal].totalRS += totalItem;
+            canalMap[canal].custoTotal += qty * custoUnit;
+            canalMap[canal].tonelagem += tonelagem;
+          } else if (produtoTipo && produtosTotais[produtoTipo]) {
+            produtosTotais[produtoTipo].qtde += qty;
+            produtosTotais[produtoTipo].totalRS += totalItem;
+            produtosTotais[produtoTipo].custoTotal += qty * custoUnit;
+            produtosTotais[produtoTipo].tonelagem += tonelagem;
+          }
         });
       });
 
-      setCanais(Object.entries(canalMap).map(([canal, d]) => ({
+      const canaisP13 = Object.entries(canalMap).map(([canal, d]) => ({
         canal, qtde: d.qtde,
         precoVenda: d.qtde > 0 ? d.totalRS / d.qtde : 0,
         totalRS: d.totalRS,
         precoCompra: d.qtde > 0 ? d.custoTotal / d.qtde : 0,
         margemRS: d.totalRS - d.custoTotal,
         tonelagem: Number(d.tonelagem.toFixed(2)),
-      })));
+        tipo: "canal" as const,
+      }));
+      const linhasProdutos = Object.entries(produtosTotais)
+        .map(([canal, d]) => ({
+          canal,
+          qtde: d.qtde,
+          precoVenda: d.qtde > 0 ? d.totalRS / d.qtde : 0,
+          totalRS: d.totalRS,
+          precoCompra: d.qtde > 0 ? d.custoTotal / d.qtde : 0,
+          margemRS: d.totalRS - d.custoTotal,
+          tonelagem: Number(d.tonelagem.toFixed(2)),
+          tipo: "produto" as const,
+        }));
+      const comercioIndex = canaisP13.findIndex(c => c.canal.toLowerCase().includes("comércio") || c.canal.toLowerCase().includes("comercio"));
+      setCanais(comercioIndex >= 0
+        ? [...canaisP13.slice(0, comercioIndex + 1), ...linhasProdutos, ...canaisP13.slice(comercioIndex + 1)]
+        : [...canaisP13, ...linhasProdutos]);
     } catch (e) {
       console.error(e);
     } finally {
