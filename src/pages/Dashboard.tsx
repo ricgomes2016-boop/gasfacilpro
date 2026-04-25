@@ -146,20 +146,20 @@ export default function Dashboard() {
   return (
     <MainLayout>
       <Header title="Dashboard" subtitle="Bem-vindo ao GásPro - Sua revenda de gás" />
-      <div className={`${themeClass} p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6`}>
+      <div className={`${themeClass} w-full min-w-0 max-w-full space-y-4 overflow-x-hidden p-3 sm:p-4 md:space-y-6 md:p-6`}>
         {/* Banner promocional do tema GásMais (dispensável) */}
         <GasmaisThemeBanner />
 
         {/* ── Hero Gradient Card ── */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 p-4 sm:p-6 md:p-8 text-white shadow-xl">
+        <div className="relative w-full min-w-0 overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 p-4 sm:p-6 md:p-8 text-white shadow-xl">
           <div className="absolute right-0 top-0 opacity-10">
             <Flame className="h-56 w-56 -mt-8 -mr-8" strokeWidth={0.8} />
           </div>
           <div className="absolute left-1/2 bottom-0 opacity-5">
             <Flame className="h-40 w-40 mb-[-2rem]" strokeWidth={0.6} />
           </div>
-          <div className="relative z-10 flex items-start justify-between gap-4">
-            <div>
+          <div className="relative z-10 flex min-w-0 items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <Flame className="h-5 w-5" />
                 <span className="text-sm font-medium text-white/80">Gás Fácil</span>
@@ -167,14 +167,14 @@ export default function Dashboard() {
               <h1 className="text-2xl md:text-3xl font-bold mb-0.5">
                 {greeting.text}! {greeting.emoji}
               </h1>
-              <p className="text-sm text-white/70 capitalize">{todayFormatted}</p>
+              <p className="text-sm text-white/70 capitalize line-clamp-2">{todayFormatted}</p>
             </div>
             <VoiceAssistant userName={greeting.text} />
           </div>
 
           {/* KPIs embutidos no hero (apenas tema GásMais) */}
           {isGasmais && (
-            <div className="relative z-10 mt-6 grid gap-3 grid-cols-2 lg:grid-cols-4">
+            <div className="relative z-10 mt-6 grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard
                 title={`Vendas ${periodLabel}`}
                 value={`R$ ${(stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
@@ -234,7 +234,7 @@ export default function Dashboard() {
 
         {/* Cards coloridos modernos animados (apenas tema GásMais) */}
         {isGasmais && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid w-full min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[
               {
                 title: "Vendas Hoje",
@@ -268,7 +268,7 @@ export default function Dashboard() {
             ].map((c, i) => (
               <div
                 key={c.title}
-                className="animate-fade-in"
+                className="h-full min-w-0 animate-fade-in"
                 style={{ animationDelay: `${i * 80}ms`, animationFillMode: "backwards" }}
               >
                 <StatCard {...c} colored />
@@ -284,7 +284,7 @@ export default function Dashboard() {
         <NotesWidget />
 
         {/* Filtro de período */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-3">
           <Tabs value={period} onValueChange={(v) => setPeriod(v as Period)}>
             <TabsList>
               <TabsTrigger value="hoje">Hoje</TabsTrigger>
@@ -298,7 +298,7 @@ export default function Dashboard() {
         <StockAlerts />
 
         {/* Cards extras (no GásMais os 4 principais já estão no hero) */}
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
           {!isGasmais && (
             <>
               <StatCard
@@ -350,11 +350,11 @@ export default function Dashboard() {
         <QuickActions />
 
         {/* Gráfico vendas/hora + Meta diária */}
-        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-4 md:gap-6 xl:grid-cols-3">
+          <div className="min-w-0 xl:col-span-2">
             <SalesChart />
           </div>
-          <div className="space-y-4 md:space-y-6">
+          <div className="min-w-0 space-y-4 md:space-y-6">
             <AiInsightsWidget />
             <DailySalesGoal />
             <DeliveryDriverStatus />
@@ -362,15 +362,19 @@ export default function Dashboard() {
         </div>
 
         {/* Vendas recentes */}
-        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-4 md:gap-6">
+          <div className="min-w-0">
             <RecentSales />
           </div>
         </div>
 
-        <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
-          <StockOverview />
-          <DeliveriesMap />
+        <div className="grid w-full min-w-0 grid-cols-1 gap-4 md:gap-6 xl:grid-cols-2">
+          <div className="min-w-0">
+            <StockOverview />
+          </div>
+          <div className="min-w-0">
+            <DeliveriesMap />
+          </div>
         </div>
       </div>
     </MainLayout>
