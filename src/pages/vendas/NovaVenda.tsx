@@ -1055,7 +1055,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       <div className={cn("p-3 md:p-4 space-y-3 md:space-y-4", useNewView && "bg-muted/20")}> 
         <CaixaBloqueadoBanner />
 
-        <div className="venda-gasmais-card venda-tone-confirmar space-y-3 rounded-lg border border-primary/15 bg-card/80 p-3 shadow-sm">
+        <div className="venda-sale-nav venda-gasmais-card venda-tone-confirmar space-y-3 rounded-lg border border-primary/15 bg-card/80 p-3 shadow-sm">
           <VendaStepper
             customer={customer}
             itens={itens}
