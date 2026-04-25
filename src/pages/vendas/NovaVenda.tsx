@@ -1059,7 +1059,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         {useNewView ? (
           <div className="space-y-3 md:space-y-4">
             {activeStep === "cliente" && (
-              <div className="grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+              <div className="venda-step-panel grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
                 <div className="space-y-3 md:space-y-4 min-w-0">
                   {aiCommandCard}
                   {metaCard}
@@ -1071,22 +1071,22 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               </div>
             )}
             {activeStep === "produtos" && (
-              <div className="venda-tone-produtos mx-auto max-w-5xl">
+              <div className="venda-step-panel venda-tone-produtos mx-auto max-w-5xl">
                 <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
               </div>
             )}
             {activeStep === "pagamento" && (
-              <div className="venda-tone-pagamento mx-auto max-w-4xl">
+              <div className="venda-step-panel venda-tone-pagamento mx-auto max-w-4xl">
                 <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} />
               </div>
             )}
             {activeStep === "entregador" && (
-              <div className="venda-tone-entregador mx-auto max-w-4xl">
+              <div className="venda-step-panel venda-tone-entregador mx-auto max-w-4xl">
                 <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} endereco={customer.endereco} />
               </div>
             )}
             {activeStep === "confirmar" && (
-              <div className="venda-tone-confirmar mx-auto max-w-xl">
+              <div className="venda-step-panel venda-tone-confirmar mx-auto max-w-xl">
                 <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
               </div>
             )}
