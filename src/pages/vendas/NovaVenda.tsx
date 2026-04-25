@@ -620,15 +620,24 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const produtosPreenchidos = itens.length > 0;
   const pagamentoPreenchido = totalPagoVenda >= totalVenda && totalVenda > 0;
   const entregadorPreenchido = !!entregador.id;
+  const firstPendingStep: VendaStepId = !clientePreenchido
+    ? "cliente"
+    : !produtosPreenchidos
+    ? "produtos"
+    : !pagamentoPreenchido
+    ? "pagamento"
+    : !entregadorPreenchido
+    ? "entregador"
+    : "confirmar";
 
   useEffect(() => {
     if (!useNewView) return;
-    if (!clientePreenchido) setActiveStep("cliente");
-    else if (!produtosPreenchidos) setActiveStep("produtos");
-    else if (!pagamentoPreenchido) setActiveStep("pagamento");
-    else if (!entregadorPreenchido) setActiveStep("entregador");
-    else setActiveStep("confirmar");
-  }, [useNewView, clientePreenchido, produtosPreenchidos, pagamentoPreenchido, entregadorPreenchido]);
+    const activeIndex = VENDA_STEPS.indexOf(activeStep);
+    const pendingIndex = VENDA_STEPS.indexOf(firstPendingStep);
+    if (activeIndex > pendingIndex || firstPendingStep === "confirmar") {
+      setActiveStep(firstPendingStep);
+    }
+  }, [useNewView, activeStep, firstPendingStep]);
 
   const canOpenStep = (step: VendaStepId) => {
     if (step === "cliente") return true;
@@ -641,7 +650,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const toggleViewMode = () => {
     const next = !useNewView;
     setUseNewView(next);
-    localStorage.setItem(VIEW_KEY, next ? "new" : "old");
+    saveViewMode(next);
   };
 
 
