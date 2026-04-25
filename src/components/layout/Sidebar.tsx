@@ -404,7 +404,7 @@ export function Sidebar() {
                           "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200 relative overflow-hidden",
                           isItemActive
                             ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/30"
-                            : "bg-gradient-to-r from-primary/10 via-primary/5 to-transparent text-primary border border-primary/20 hover:from-primary/20 hover:border-primary/40"
+                            : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/15 hover:border-primary/50"
                         )}
                       >
                         <motion.div
@@ -423,7 +423,7 @@ export function Sidebar() {
                         "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200 relative",
                         isItemActive
                           ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
-                          : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                          : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                       )}
                     >
                       <item.icon className={cn(
@@ -440,8 +440,8 @@ export function Sidebar() {
                       className={cn(
                         "group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200",
                         isChildActive
-                          ? "bg-primary/8 text-primary"
-                          : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                          ? "bg-primary/15 text-primary"
+                          : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                       )}
                     >
                       <item.icon className={cn(
@@ -471,7 +471,7 @@ export function Sidebar() {
                         transition={{ duration: 0.25, ease: "easeInOut" }}
                         className="overflow-hidden"
                       >
-                        <div className="ml-5 mt-0.5 space-y-0.5 border-l-2 border-sidebar-border/40 pl-3 py-1 max-h-[400px] overflow-y-auto scrollbar-thin">
+                        <div className="ml-5 mt-0.5 space-y-0.5 border-l-2 border-sidebar-border pl-3 py-1 max-h-[400px] overflow-y-auto scrollbar-thin">
                           {item.submenu?.map((subItem, subIdx) => {
                             const SubIcon = subItem.icon;
                             const subActive = isActive(subItem.path);
@@ -487,7 +487,7 @@ export function Sidebar() {
                                     href={subItem.externalUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200 text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                                      className="group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold transition-all duration-200 text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                   >
                                     <SubIcon className={cn(
                                       "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
@@ -503,7 +503,7 @@ export function Sidebar() {
                                       "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
                                       subActive
                                         ? "bg-primary text-primary-foreground shadow-sm"
-                                        : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                                        : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                     )}
                                   >
                                     <SubIcon className={cn(
