@@ -309,6 +309,7 @@ export default function Funcionarios() {
       login_email: "",
       login_password: "",
       terminal_id: entregador?.terminal_id || "",
+      foto_url: entregador?.foto_url || "",
       unidade_id: f.unidade_id || "",
       tipo_vinculo: fAny.tipo_vinculo || "clt",
       regime_pagamento: fAny.regime_pagamento || "mensal",
@@ -316,6 +317,7 @@ export default function Funcionarios() {
       entra_na_escala: !!fAny.entra_na_escala,
       is_transporte: !!fAny.is_transporte,
     });
+    setFotoFile(null);
     setEditId(f.id);
     setOpen(true);
   };
@@ -370,7 +372,7 @@ export default function Funcionarios() {
       <Header title="Funcionários" subtitle="Gerencie a equipe da empresa" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
-          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); setFotoFile(null); } }}>
             <DialogTrigger asChild>
               <Button className="gap-2"><Plus className="h-4 w-4" />Novo Funcionário</Button>
             </DialogTrigger>
@@ -557,6 +559,24 @@ export default function Funcionarios() {
                       <div className="space-y-2">
                         <Label>CNH</Label>
                         <Input value={form.cnh} onChange={e => setForm({...form, cnh: e.target.value})} placeholder="Número da CNH" />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-1">
+                          <Image className="h-3.5 w-3.5" />
+                          Foto do entregador
+                        </Label>
+                        <div className="flex items-center gap-3">
+                          {form.foto_url && !fotoFile && (
+                            <img src={form.foto_url} alt={form.nome} className="h-14 w-14 rounded-full object-cover" />
+                          )}
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setFotoFile(e.target.files?.[0] || null)}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">Use JPG, PNG ou WebP até 2MB.</p>
                       </div>
 
                       {/* Login credentials - only show if no user linked yet */}
