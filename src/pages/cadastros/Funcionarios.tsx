@@ -134,6 +134,19 @@ export default function Funcionarios() {
     fetchTerminais();
   }, [unidadeAtual?.id]);
 
+  const uploadFotoEntregador = async (file: File, funcionarioId: string) => {
+    if (!file.type.startsWith("image/")) throw new Error("Envie apenas arquivos de imagem.");
+    if (file.size > 2 * 1024 * 1024) throw new Error("A foto deve ter no máximo 2MB.");
+
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `entregadores/${funcionarioId}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (error) throw error;
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    return data.publicUrl;
+  };
+
   const getEntregadorForFuncionario = (funcId: string) =>
     entregadores.find(e => e.funcionario_id === funcId);
 
@@ -198,6 +211,7 @@ export default function Funcionarios() {
       // Sync entregador record
       if (form.is_entregador && funcionarioId) {
         let userId = existingEntregador?.user_id || null;
+        let fotoUrl = form.foto_url || existingEntregador?.foto_url || null;
 
         // Create auth user if needed
         if (needsNewUser) {
@@ -227,6 +241,10 @@ export default function Funcionarios() {
           userId = createData.user_id;
         }
 
+        if (fotoFile) {
+          fotoUrl = await uploadFotoEntregador(fotoFile, funcionarioId);
+        }
+
         const existing = entregadores.find(e => e.funcionario_id === funcionarioId);
         const entregadorPayload: any = {
           nome: form.nome,
@@ -236,6 +254,7 @@ export default function Funcionarios() {
           email: form.login_email || form.email || null,
           user_id: userId,
           terminal_id: form.terminal_id || null,
+          foto_url: fotoUrl,
           funcionario_id: funcionarioId,
           ativo: true,
         };
@@ -261,6 +280,7 @@ export default function Funcionarios() {
       }
       setOpen(false);
       setForm(emptyForm);
+      setFotoFile(null);
       setEditId(null);
       fetchFuncionarios();
       fetchEntregadores();
