@@ -261,7 +261,7 @@ export function Sidebar() {
               variant="ghost"
               size="icon"
               onClick={toggle}
-                className="h-8 w-8 flex-shrink-0 rounded-lg text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                className="h-8 w-8 flex-shrink-0 rounded-lg text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent"
             >
               {collapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -343,7 +343,7 @@ export function Sidebar() {
                             "flex h-10 w-10 items-center justify-center rounded-xl mx-auto transition-all duration-200",
                             isItemActive
                               ? "bg-primary text-primary-foreground shadow-md shadow-primary/35 ring-1 ring-primary/35"
-                              : "text-sidebar-foreground/85 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
+                              : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                           )}
                         >
                           <item.icon className={cn("h-[18px] w-[18px]", isItemActive ? "" : menuIconColors[item.label] || "")} />
@@ -354,7 +354,7 @@ export function Sidebar() {
                             "flex h-10 w-10 items-center justify-center rounded-xl mx-auto transition-all duration-200",
                             isChildActive
                               ? "bg-primary/20 text-primary ring-1 ring-primary/35"
-                              : "text-sidebar-foreground/85 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
+                              : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                           )}
                         >
                           <item.icon className={cn("h-[18px] w-[18px]", isChildActive ? "" : menuIconColors[item.label] || "")} />
@@ -423,7 +423,7 @@ export function Sidebar() {
                         "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200 relative",
                         isItemActive
                           ? "bg-primary text-primary-foreground shadow-md shadow-primary/35 ring-1 ring-primary/35"
-                          : "text-sidebar-foreground/95 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
+                            : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                       )}
                     >
                       <item.icon className={cn(
@@ -441,7 +441,7 @@ export function Sidebar() {
                         "group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200",
                         isChildActive
                           ? "bg-primary/20 text-primary ring-1 ring-primary/35"
-                          : "text-sidebar-foreground/95 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
+                          : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                       )}
                     >
                       <item.icon className={cn(
@@ -487,7 +487,7 @@ export function Sidebar() {
                                     href={subItem.externalUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                      className="group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold transition-all duration-200 text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                      className="group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-bold transition-all duration-200 text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                   >
                                     <SubIcon className={cn(
                                       "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
@@ -503,7 +503,7 @@ export function Sidebar() {
                                       "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
                                       subActive
                                         ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/35"
-                                        : "text-sidebar-foreground/85 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
+                                        : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                                     )}
                                   >
                                     <SubIcon className={cn(
@@ -548,7 +548,7 @@ export function Sidebar() {
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={handleSignOut}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl text-sidebar-foreground/65 transition-colors hover:text-destructive hover:bg-destructive/10"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl text-sidebar-foreground transition-colors hover:text-destructive hover:bg-destructive/10"
                   >
                     <LogOut className="h-4 w-4" />
                   </motion.button>
@@ -568,14 +568,14 @@ export function Sidebar() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-extrabold text-sidebar-foreground truncate">{userName}</p>
-                  <p className="text-[10px] font-semibold text-sidebar-foreground/65 truncate uppercase tracking-wider">Administrador</p>
+                  <p className="text-[10px] font-bold text-sidebar-foreground truncate uppercase tracking-wider">Administrador</p>
                 </div>
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={handleSignOut}
-                    className="h-8 w-8 rounded-lg text-sidebar-foreground/65 hover:text-destructive hover:bg-destructive/10"
+                    className="h-8 w-8 rounded-lg text-sidebar-foreground hover:text-destructive hover:bg-destructive/10"
                   >
                     <LogOut className="h-4 w-4" />
                   </Button>
