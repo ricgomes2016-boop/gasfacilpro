@@ -251,6 +251,21 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
   const totalCompraP13 = canaisP13.reduce((s, c) => s + (c.precoCompra * c.qtde), 0);
   const precoMedioVendaP13 = qtdP13 > 0 ? totalVendaP13 / qtdP13 : precoVendaP13;
   const precoMedioCompraP13 = qtdP13 > 0 ? totalCompraP13 / qtdP13 : precoCompraP13;
+  const referenciasP13 = [
+    { label: "Preço Médio Compra", value: fmt(precoMedioCompraP13) },
+    { label: "Preço Médio Venda", value: fmt(precoMedioVendaP13) },
+    { label: "Margem Bruta", value: fmt(precoMedioVendaP13 - precoMedioCompraP13), highlight: true },
+  ];
+  const referenciasProdutos = produtosReferencia.flatMap(p => [
+    { label: `Preço Médio Compra ${p.canal}`, value: fmt(p.precoCompra) },
+    { label: `Preço Médio Venda ${p.canal}`, value: fmt(p.precoVenda) },
+    { label: `Margem Bruta ${p.canal}`, value: fmt(p.precoVenda - p.precoCompra), highlight: p.precoVenda >= p.precoCompra },
+  ]);
+  const referenciasGerais = [
+    { label: "Tonelagem Total", value: `${totalTonelagem.toFixed(2)} ton` },
+    { label: "Ticket Médio", value: totalQtde > 0 ? fmt(receitaBruta / totalQtde) : "0,00" },
+    { label: "Margem Líquida", value: receitaBruta > 0 ? `${((lucroLiquido / receitaBruta) * 100).toFixed(1)}%` : "0,0%", highlight: lucroLiquido >= 0 },
+  ];
 
   const content = (
     <div className="space-y-4 w-full min-w-0 max-w-full overflow-hidden">
@@ -297,13 +312,13 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
           </CardHeader>
           <CardContent className="p-0 min-w-0 max-w-full overflow-hidden">
             <div className="w-full min-w-0 max-w-full overflow-visible">
-              <Table className="min-w-full table-fixed">
+              <Table className="w-full table-auto">
                 <TableBody>
                   {custosAgrupados.map((grupo, gi) => (
                     <> 
                       {grupo.items.map((c, ci) => (
                         <TableRow key={c.id} className="hover:bg-muted/30">
-                          <TableCell className="w-[62%] py-1.5 px-3 text-xs border-r align-top">
+                          <TableCell className="py-1.5 pl-2 pr-1.5 sm:px-3 text-xs border-r align-top">
                             <div className="flex items-start gap-1.5 min-w-0">
                               <span className="shrink-0 text-muted-foreground w-4 text-right text-[10px]">{gi * 10 + ci + 1}</span>
                               <span className="min-w-0 break-words leading-snug">{c.nome}</span>
@@ -312,17 +327,17 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className={`w-[38%] py-1.5 px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${c.valor > 0 ? "" : "text-muted-foreground"}`}>
+                          <TableCell className={`w-[118px] sm:w-[132px] py-1.5 pl-1.5 pr-2 sm:px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${c.valor > 0 ? "" : "text-muted-foreground"}`}>
                             {c.valor > 0 ? `R$ ${fmt(c.valor)}` : "—"}
                           </TableCell>
                         </TableRow>
                       ))}
                       {/* Subtotal do grupo */}
                       <TableRow className="bg-muted/40 border-t">
-                        <TableCell className="py-1 px-3 text-xs font-bold border-r text-muted-foreground uppercase tracking-wider">
+                        <TableCell className="py-1 pl-2 pr-1.5 sm:px-3 text-xs font-bold border-r text-muted-foreground uppercase tracking-wider leading-snug">
                           {grupo.label}
                         </TableCell>
-                        <TableCell className="py-1 px-3 text-right text-xs tabular-nums font-bold">
+                        <TableCell className="py-1 pl-1.5 pr-2 sm:px-3 text-right text-xs tabular-nums font-bold whitespace-nowrap">
                           R$ {fmt(grupo.total)}
                         </TableCell>
                       </TableRow>
@@ -330,8 +345,8 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                   ))}
                   {/* TOTAL GERAL */}
                   <TableRow className="bg-destructive/5 border-t-2 border-destructive/20">
-                    <TableCell className="py-2 px-3 font-bold text-sm border-r">Total</TableCell>
-                    <TableCell className="py-2 px-3 text-right font-bold text-sm tabular-nums text-destructive">
+                    <TableCell className="py-2 pl-2 pr-1.5 sm:px-3 font-bold text-sm border-r">Total</TableCell>
+                    <TableCell className="py-2 pl-1.5 pr-2 sm:px-3 text-right font-bold text-sm tabular-nums text-destructive whitespace-nowrap">
                       R$ {fmt(totalCustos)}
                     </TableCell>
                   </TableRow>
