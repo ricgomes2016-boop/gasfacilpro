@@ -284,7 +284,7 @@ export default function Dashboard() {
         <NotesWidget />
 
         {/* Filtro de período */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-3">
           <Tabs value={period} onValueChange={(v) => setPeriod(v as Period)}>
             <TabsList>
               <TabsTrigger value="hoje">Hoje</TabsTrigger>
@@ -298,7 +298,7 @@ export default function Dashboard() {
         <StockAlerts />
 
         {/* Cards extras (no GásMais os 4 principais já estão no hero) */}
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
           {!isGasmais && (
             <>
               <StatCard
@@ -350,11 +350,11 @@ export default function Dashboard() {
         <QuickActions />
 
         {/* Gráfico vendas/hora + Meta diária */}
-        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-4 md:gap-6 xl:grid-cols-3">
+          <div className="min-w-0 xl:col-span-2">
             <SalesChart />
           </div>
-          <div className="space-y-4 md:space-y-6">
+          <div className="min-w-0 space-y-4 md:space-y-6">
             <AiInsightsWidget />
             <DailySalesGoal />
             <DeliveryDriverStatus />
@@ -362,15 +362,19 @@ export default function Dashboard() {
         </div>
 
         {/* Vendas recentes */}
-        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-4 md:gap-6">
+          <div className="min-w-0">
             <RecentSales />
           </div>
         </div>
 
-        <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
-          <StockOverview />
-          <DeliveriesMap />
+        <div className="grid w-full min-w-0 grid-cols-1 gap-4 md:gap-6 xl:grid-cols-2">
+          <div className="min-w-0">
+            <StockOverview />
+          </div>
+          <div className="min-w-0">
+            <DeliveriesMap />
+          </div>
         </div>
       </div>
     </MainLayout>
