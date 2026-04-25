@@ -1083,7 +1083,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         </div>
 
         {useNewView ? (
-          <div className="space-y-3 md:space-y-4">
+          <div className="venda-dashboard-shell space-y-3 p-3 md:space-y-4 md:p-4">
             {activeStep === "cliente" && (
               <div className="venda-step-panel grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]" onKeyDown={handleStepEnterNavigation}>
                 <div className="space-y-3 md:space-y-4 min-w-0">
