@@ -297,7 +297,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
           )}
 
           {/* Adicionar novo pagamento */}
-          <div className="venda-modern-surface rounded-lg border p-3 shadow-sm space-y-3">
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 shadow-sm shadow-primary/10 space-y-3">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9">
               {formasPagamento.map((fp) => {
                 const Icon = fp.Icon;
@@ -309,14 +309,15 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
                     aria-pressed={selected}
                     onClick={() => handleFormaChange(fp.value)}
                     className={cn(
-                      "venda-payment-shortcut flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-lg border bg-background p-2 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
-                      selected && "border-primary bg-primary/10 text-primary shadow-md ring-2 ring-primary/25"
+                      "venda-payment-shortcut flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-lg border p-2 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                      fp.cardTone,
+                      selected && cn("shadow-md ring-2", fp.selectedTone)
                     )}
                   >
                     <span className={cn("flex h-10 w-10 items-center justify-center rounded-lg ring-1", fp.tone)}>
                       <Icon className="h-5 w-5" />
                     </span>
-                    <span className="text-[11px] font-bold leading-tight text-foreground">{fp.label}</span>
+                    <span className={cn("text-[11px] font-bold leading-tight", selected ? fp.valueTone : "text-foreground")}>{fp.label}</span>
                   </button>
                 );
               })}
@@ -349,7 +350,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
                   data-venda-enter-next
                 />
               </div>
-              <Button onClick={addPagamento} size="icon" className="h-11 w-11 shrink-0 shadow-sm">
+              <Button onClick={addPagamento} size="icon" className="h-11 w-11 shrink-0 bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30">
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
