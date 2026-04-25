@@ -231,30 +231,11 @@
     color: hsl(var(--venda-tone-strong));
   }
 
-  .theme-gasmais .venda-tone-cliente {
-    --venda-tone: 217 91% 60%;
-    --venda-tone-strong: 221 83% 53%;
-  }
-
-  .theme-gasmais .venda-tone-produtos {
-    --venda-tone: 24 95% 53%;
-    --venda-tone-strong: 22 95% 45%;
-  }
-
-  .theme-gasmais .venda-tone-pagamento {
-    --venda-tone: 152 69% 40%;
-    --venda-tone-strong: 158 64% 33%;
-  }
-
-  .theme-gasmais .venda-tone-entregador {
-    --venda-tone: 45 93% 47%;
-    --venda-tone-strong: 38 92% 50%;
-  }
-
-  .theme-gasmais .venda-tone-confirmar {
-    --venda-tone: var(--primary);
-    --venda-tone-strong: 22 95% 45%;
-  }
+  .theme-gasmais .venda-tone-cliente { --venda-tone: 199 89% 48%; --venda-tone-strong: 217 91% 56%; }
+  .theme-gasmais .venda-tone-produtos { --venda-tone: 18 92% 55%; --venda-tone-strong: 346 77% 49%; }
+  .theme-gasmais .venda-tone-pagamento { --venda-tone: 160 84% 39%; --venda-tone-strong: 188 86% 36%; }
+  .theme-gasmais .venda-tone-entregador { --venda-tone: 43 96% 50%; --venda-tone-strong: 32 95% 44%; }
+  .theme-gasmais .venda-tone-confirmar { --venda-tone: 24 95% 53%; --venda-tone-strong: 12 88% 48%; }
 
   .theme-gasmais .venda-gasmais-card,
   .theme-gasmais .venda-tone-cliente .venda-card,
