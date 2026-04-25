@@ -26,7 +26,7 @@
     --secondary-foreground: 220 20% 10%;
 
     --muted: 220 15% 96%;
-    --muted-foreground: 220 10% 45%;
+    --muted-foreground: 220 12% 32%;
 
     --accent: 215 90% 52%;
     --accent-foreground: 0 0% 100%;
@@ -86,7 +86,7 @@
     --secondary-foreground: 220 15% 95%;
 
     --muted: 220 22% 12%;
-    --muted-foreground: 220 10% 55%;
+    --muted-foreground: 220 12% 76%;
 
     --accent: 215 90% 52%;
     --accent-foreground: 0 0% 100%;
@@ -151,7 +151,7 @@
 
 @layer utilities {
   .venda-card {
-    @apply border bg-card text-card-foreground shadow-sm;
+    @apply border bg-card text-card-foreground shadow-lg shadow-foreground/10;
   }
 
   .venda-tone-cliente,
