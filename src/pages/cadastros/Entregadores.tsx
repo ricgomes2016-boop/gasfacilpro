@@ -270,6 +270,20 @@ export default function Entregadores() {
 
                 <div>
                   <Label className="flex items-center gap-1">
+                    <Image className="h-3.5 w-3.5" />
+                    Foto do entregador
+                  </Label>
+                  <div className="mt-2 flex items-center gap-3">
+                    {form.foto_url && !fotoFile && (
+                      <img src={form.foto_url} alt={form.nome} className="h-14 w-14 rounded-full object-cover" />
+                    )}
+                    <Input type="file" accept="image/*" onChange={(e) => setFotoFile(e.target.files?.[0] || null)} />
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">Use JPG, PNG ou WebP até 2MB.</p>
+                </div>
+
+                <div>
+                  <Label className="flex items-center gap-1">
                     <UserCheck className="h-3.5 w-3.5" />
                     Funcionário Vinculado
                   </Label>
