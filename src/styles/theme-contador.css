@@ -12,7 +12,7 @@
   --popover-foreground: 250 20% 96%;
 
   --muted: 252 25% 18%;
-  --muted-foreground: 250 15% 70%;
+  --muted-foreground: 250 18% 84%;
 
   --primary: 265 85% 65%;
   --primary-foreground: 0 0% 100%;
@@ -26,8 +26,8 @@
   --destructive: 0 75% 60%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 252 30% 22%;
-  --input: 252 30% 22%;
+  --border: 252 30% 30%;
+  --input: 252 30% 32%;
   --ring: 265 85% 65%;
 
   --sidebar-background: 252 50% 6%;
