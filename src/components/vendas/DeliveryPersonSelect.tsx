@@ -139,7 +139,7 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
           </SelectContent>
         </Select>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {loading && (
             <div className="venda-modern-surface col-span-full rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
               Carregando entregadores...
@@ -160,7 +160,7 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
                 onClick={() => handleSelect(entregador.id)}
                 aria-pressed={selected}
                 className={cn(
-                  "group flex min-h-[104px] items-center gap-3 rounded-xl border border-primary-foreground/15 p-3 text-left shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2",
+                  "group flex min-h-[132px] flex-col items-center justify-center gap-3 rounded-xl border border-primary-foreground/15 p-3 text-center shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2",
                   colors.bg,
                   colors.ring,
                   selected && "scale-[1.02] border-primary-foreground/40 shadow-xl ring-2 ring-offset-2 ring-offset-background"
@@ -172,8 +172,8 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
                 )}>
                   {getInitials(entregador.nome) || <UserRound className="h-5 w-5" />}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0 w-full">
+                  <div className="flex items-center justify-center gap-2">
                     <p className="truncate text-sm font-semibold text-primary-foreground drop-shadow-sm">{entregador.nome}</p>
                     {selected && <CheckCircle2 className="h-4 w-4 shrink-0 text-primary-foreground drop-shadow-sm" />}
                   </div>
