@@ -43,7 +43,8 @@ export function OrderSummary({
           <span className="truncate">Resumo da Venda</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 w-full min-w-0 p-4">
+      <CardContent className="grid w-full min-w-0 gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="space-y-3 min-w-0">
         {/* Canal de venda */}
         <div className="flex items-center justify-between gap-2 text-sm w-full min-w-0">
           <span className="text-muted-foreground shrink-0">Canal</span>
@@ -124,9 +125,10 @@ export function OrderSummary({
             </div>
           </>
         )}
+        </div>
 
         {/* Ações */}
-        <div className="space-y-2 pt-3">
+        <div className="space-y-2 rounded-lg border bg-background/80 p-3 shadow-sm lg:self-start">
           <Button
             className="w-full h-11 shadow-sm shadow-primary/20"
             size="lg"
