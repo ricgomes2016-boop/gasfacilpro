@@ -133,10 +133,10 @@ export function MobileNav() {
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[280px] p-0 border-r border-sidebar-border/50 bg-sidebar/95 backdrop-blur-xl">
+      <SheetContent side="left" className="w-[280px] p-0 border-r border-sidebar-border bg-sidebar">
         <div className="h-full flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-sidebar-border/50">
+          <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
             <div className="flex items-center gap-3">
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
@@ -150,8 +150,8 @@ export function MobileNav() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <h2 className="font-bold text-sidebar-foreground text-[17px] tracking-[-0.03em]">Gás Fácil</h2>
-                <p className="text-[9px] font-semibold text-primary/60 uppercase tracking-[0.2em]">ERP Pro</p>
+                <h2 className="font-extrabold text-sidebar-foreground text-[17px]">Gás Fácil</h2>
+                <p className="text-[9px] font-bold text-primary uppercase tracking-[0.2em]">ERP Pro</p>
               </motion.div>
             </div>
           </div>
@@ -178,8 +178,8 @@ export function MobileNav() {
                         className={cn(
                           "group flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200",
                           hasActiveChild
-                            ? "bg-primary/8 text-primary"
-                            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                            ? "bg-primary/15 text-primary"
+                            : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                         )}
                       >
                         <div className="flex items-center gap-3">
@@ -207,7 +207,7 @@ export function MobileNav() {
                             transition={{ duration: 0.25, ease: "easeInOut" }}
                             className="overflow-hidden"
                           >
-                            <div className="ml-5 space-y-0.5 border-l-2 border-sidebar-border/40 pl-3 py-1">
+                            <div className="ml-5 space-y-0.5 border-l-2 border-sidebar-border pl-3 py-1">
                               {item.submenu?.map((sub, subIdx) => {
                                 const SubIcon = sub.icon;
                                 const subActive = isActive(sub.path);
