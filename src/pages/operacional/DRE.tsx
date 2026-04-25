@@ -295,7 +295,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
               <YAxis tickFormatter={v => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
               <Tooltip
                 formatter={(value: number, name: string) => [
-                  `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+                  formatCurrency(value),
                   name === "receita" ? "Receita" : "Resultado"
                 ]}
                 contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: 12 }}
@@ -319,28 +319,28 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       {/* Tabela DRE Principal */}
       <Card className="min-w-0 max-w-full overflow-hidden border-border/80">
         <CardContent className="p-0 min-w-0 max-w-full overflow-hidden">
-          <div className="hidden md:block w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
-            <table className="w-full min-w-[640px] border-separate border-spacing-0 text-[13px]">
-              <thead>
+          <div className="hidden md:block w-full min-w-0 max-w-full max-h-[620px] overflow-auto overscroll-x-contain">
+            <table className="w-full min-w-[760px] border-separate border-spacing-0 text-[13px]">
+              <thead className="sticky top-0 z-30">
                 <tr className="bg-muted/70">
-                  <th className="sticky left-0 z-20 min-w-[220px] bg-muted/95 px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground shadow-[1px_0_0_hsl(var(--border))]">
+                  <th className="sticky left-0 z-40 w-[280px] min-w-[280px] bg-muted px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground shadow-[1px_0_0_hsl(var(--border))]">
                     Descrição
                   </th>
-                  {meses.map(m => (
-                    <th key={m} className="min-w-[96px] px-2.5 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                  {mesesExibidos.map(m => (
+                    <th key={m} className="w-[112px] min-w-[112px] whitespace-nowrap bg-muted px-3 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
                       {m}
                     </th>
                   ))}
-                  <th className="min-w-[116px] bg-muted/90 px-3 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-foreground">
+                  <th className="w-[132px] min-w-[132px] whitespace-nowrap bg-muted px-3 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-foreground">
                     Acumulado
                   </th>
-                  <th className="min-w-[64px] px-2.5 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                  <th className="w-[72px] min-w-[72px] whitespace-nowrap bg-muted px-2.5 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
                     AV%
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {dre.map((item, index) => {
+                {dreExibida.map((item, index) => {
                   const total = item.valores.reduce((s, v) => s + v, 0);
                   const av = totalReceita > 0 ? (total / totalReceita) * 100 : 0;
                   const isSubtotal = item.tipo === "subtotal";
@@ -353,7 +353,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                       key={index}
                       className={`border-b border-border/50 transition-colors ${rowBg} ${isResultado ? "ring-1 ring-inset ring-primary/20" : ""} ${!isSubtotal && !isResultado ? "hover:bg-muted/20" : ""}`}
                     >
-                      <td className={`sticky left-0 z-10 border-b border-border/50 px-3 py-2.5 shadow-[1px_0_0_hsl(var(--border))] ${rowBg}`}>
+                      <td className={`sticky left-0 z-10 w-[280px] min-w-[280px] border-b border-border/50 px-3 py-2.5 shadow-[1px_0_0_hsl(var(--border))] ${rowBg}`}>
                         <span className={`block leading-snug ${item.indent && !isSubtotal ? "pl-3 text-muted-foreground" : ""} ${isSubtotal || isResultado ? "text-[12px] font-bold uppercase tracking-wide" : "font-medium"} ${isResultado ? "text-primary" : ""}`}>
                           {item.categoria}
                         </span>
@@ -361,16 +361,16 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                       {item.valores.map((v, i) => (
                         <td
                           key={i}
-                          className={`border-b border-border/50 px-2.5 py-2.5 text-right tabular-nums ${isSubtotal || isResultado ? "font-bold" : "font-medium"} ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-green-600" : ""}`}
+                          className={`w-[112px] min-w-[112px] border-b border-border/50 px-3 py-2.5 text-right tabular-nums whitespace-nowrap ${isSubtotal || isResultado ? "font-bold" : "font-medium"} ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-green-600" : ""}`}
                         >
                           {formatCurrency(v)}
                         </td>
                       ))}
-                      <td className={`border-b border-border/50 bg-muted/20 px-3 py-2.5 text-right font-bold tabular-nums ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-green-600" : ""}`}>
+                      <td className={`w-[132px] min-w-[132px] border-b border-border/50 bg-muted/20 px-3 py-2.5 text-right font-bold tabular-nums whitespace-nowrap ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-green-600" : ""}`}>
                         {formatCurrency(total)}
                       </td>
                       <td className={`border-b border-border/50 px-2.5 py-2.5 text-right text-xs tabular-nums ${isSubtotal || isResultado ? "font-bold" : "text-muted-foreground"}`}>
-                        {Math.abs(av).toFixed(1)}%
+                        {formatPercent(av)}
                       </td>
                     </tr>
                   );
