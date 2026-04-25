@@ -2,7 +2,15 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const formatCurrency = (value: number): string =>
-  Math.abs(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  Math.abs(Number.isFinite(value) ? value : 0).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+const formatSignedCurrency = (value: number): string =>
+  value < 0 ? `(${formatCurrency(value)})` : formatCurrency(value);
 
 interface ExportOptions {
   title: string;
@@ -49,8 +57,8 @@ export function exportDREtoPdf(dre: DRELine[], meses: string[], periodo: string)
     const total = item.valores.reduce((s, v) => s + v, 0);
     return [
       item.categoria,
-      ...item.valores.map(v => (v < 0 ? `(${formatCurrency(v)})` : formatCurrency(v))),
-      total < 0 ? `(${formatCurrency(total)})` : formatCurrency(total),
+      ...item.valores.map(formatSignedCurrency),
+      formatSignedCurrency(total),
     ];
   });
 
@@ -60,6 +68,10 @@ export function exportDREtoPdf(dre: DRELine[], meses: string[], periodo: string)
     body,
     styles: { fontSize: 9, cellPadding: 2 },
     headStyles: { fillColor: [41, 98, 89], textColor: 255, fontStyle: "bold" },
+    columnStyles: {
+      0: { cellWidth: 58 },
+      ...Object.fromEntries(Array.from({ length: meses.length + 1 }, (_, i) => [i + 1, { halign: "right" }])),
+    },
     didParseCell: (data: any) => {
       if (data.section === "body") {
         const row = dre[data.row.index];

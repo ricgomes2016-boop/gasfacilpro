@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +26,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [dre, setDre] = useState<DRELine[]>([]);
   const [meses, setMeses] = useState<string[]>([]);
+  const [mesesVisiveis, setMesesVisiveis] = useState<string[]>([]);
   const [periodoMeses, setPeriodoMeses] = useState("3");
 
   useEffect(() => { fetchData(); }, [unidadeAtual, periodoMeses]);
@@ -88,6 +89,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       }
 
       setMeses(mesesCalc);
+      setMesesVisiveis(mesesCalc);
 
       const deducoes = receitaBruta.map(r => r * 0.05);
       const receitaLiquida = receitaBruta.map((r, i) => r - deducoes[i]);
@@ -116,9 +118,39 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
     }
   };
 
+  const visibleIndexes = useMemo(() => {
+    const selected = mesesVisiveis.length > 0 ? mesesVisiveis : meses;
+    return meses.map((mes, index) => selected.includes(mes) ? index : -1).filter(index => index >= 0);
+  }, [meses, mesesVisiveis]);
+
+  const mesesExibidos = useMemo(() => visibleIndexes.map(index => meses[index]), [meses, visibleIndexes]);
+
+  const dreExibida = useMemo(() => dre.map(item => ({
+    ...item,
+    valores: visibleIndexes.map(index => item.valores[index] || 0),
+  })), [dre, visibleIndexes]);
+
+  const periodoLabel = mesesExibidos.length > 0 ? `${mesesExibidos[0]} — ${mesesExibidos[mesesExibidos.length - 1]}` : "Sem meses";
+
   const formatCurrency = (value: number) => {
-    const formatted = Math.abs(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    return value < 0 ? `(${formatted})` : formatted;
+    const safeValue = Number.isFinite(value) ? value : 0;
+    const formatted = Math.abs(safeValue).toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return safeValue < 0 ? `(${formatted})` : formatted;
+  };
+
+  const formatPercent = (value: number) => `${(Number.isFinite(value) ? Math.abs(value) : 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+
+  const toggleMes = (mes: string) => {
+    setMesesVisiveis(prev => {
+      const current = prev.length > 0 ? prev : meses;
+      if (current.includes(mes)) return current.length === 1 ? current : current.filter(m => m !== mes);
+      return meses.filter(m => current.includes(m) || m === mes);
+    });
   };
 
   if (loading) {
@@ -132,15 +164,15 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
     );
   }
 
-  const totalReceita = dre.find(d => d.categoria.includes("Receita Bruta"))?.valores.reduce((s, v) => s + v, 0) || 0;
-  const totalLucro = dre.find(d => d.tipo === "resultado")?.valores.reduce((s, v) => s + v, 0) || 0;
+  const totalReceita = dreExibida.find(d => d.categoria.includes("Receita Bruta"))?.valores.reduce((s, v) => s + v, 0) || 0;
+  const totalLucro = dreExibida.find(d => d.tipo === "resultado")?.valores.reduce((s, v) => s + v, 0) || 0;
   const totalDesp = Math.abs(totalReceita - totalLucro);
   const margemLiquida = totalReceita > 0 ? (totalLucro / totalReceita) * 100 : 0;
-  const lucroArr = dre.find(d => d.tipo === "resultado")?.valores || [];
-  const receitaArr = dre.find(d => d.categoria.includes("Receita Bruta"))?.valores || [];
+  const lucroArr = dreExibida.find(d => d.tipo === "resultado")?.valores || [];
+  const receitaArr = dreExibida.find(d => d.categoria.includes("Receita Bruta"))?.valores || [];
 
   // Evolução mensal
-  const chartData = meses.map((mes, i) => ({
+  const chartData = mesesExibidos.map((mes, i) => ({
     mes,
     receita: receitaArr[i] || 0,
     lucro: lucroArr[i] || 0,
@@ -157,7 +189,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
   const content = (
     <div className="space-y-5 w-full min-w-0 max-w-full overflow-hidden">
       {/* Top bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between w-full min-w-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between w-full min-w-0">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto min-w-0">
           <Select value={periodoMeses} onValueChange={setPeriodoMeses}>
             <SelectTrigger className="h-10 sm:h-9 min-w-0 flex-1 sm:flex-none sm:w-44"><SelectValue /></SelectTrigger>
@@ -168,11 +200,36 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
             </SelectContent>
           </Select>
           <Badge variant="outline" className="text-xs font-medium max-w-full truncate">
-            {meses[0]} — {meses[meses.length - 1]}
+            {periodoLabel}
           </Badge>
         </div>
+        <div className="w-full min-w-0 sm:max-w-[520px]">
+          <div className="flex items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Button type="button" variant="outline" size="sm" className="h-8 shrink-0 px-2.5 text-xs" onClick={() => setMesesVisiveis(meses)}>
+              Todos
+            </Button>
+            <Button type="button" variant="outline" size="sm" className="h-8 shrink-0 px-2.5 text-xs" onClick={() => setMesesVisiveis(meses.slice(-3))}>
+              Últimos 3
+            </Button>
+            {meses.map(mes => {
+              const active = mesesExibidos.includes(mes);
+              return (
+                <Button
+                  key={mes}
+                  type="button"
+                  variant={active ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 shrink-0 px-2.5 text-xs"
+                  onClick={() => toggleMes(mes)}
+                >
+                  {mes}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto">
-          <Button variant="outline" size="sm" className="h-10 sm:h-9 min-w-0" onClick={() => exportDREtoPdf(dre, meses, `${meses[0]} a ${meses[meses.length - 1]}`)}>
+          <Button variant="outline" size="sm" className="h-10 sm:h-9 min-w-0" onClick={() => exportDREtoPdf(dreExibida, mesesExibidos, periodoLabel)}>
             <FileDown className="h-4 w-4 mr-1.5" /> Exportar PDF
           </Button>
           <Button variant="outline" size="sm" className="h-10 sm:h-9 min-w-0" onClick={handlePrint}>
@@ -200,7 +257,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
           value={totalLucro}
           icon={totalLucro >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
           color={totalLucro >= 0 ? "green" : "red"}
-          badge={variacao !== 0 ? `${variacao > 0 ? "+" : ""}${variacao.toFixed(1)}%` : undefined}
+          badge={variacao !== 0 ? `${variacao > 0 ? "+" : ""}${variacao.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%` : undefined}
         />
         <KPICard
           label="Margem Líquida"
@@ -232,7 +289,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
               <YAxis tickFormatter={v => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
               <Tooltip
                 formatter={(value: number, name: string) => [
-                  `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+                  formatCurrency(value),
                   name === "receita" ? "Receita" : "Resultado"
                 ]}
                 contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: 12 }}
@@ -256,28 +313,28 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       {/* Tabela DRE Principal */}
       <Card className="min-w-0 max-w-full overflow-hidden border-border/80">
         <CardContent className="p-0 min-w-0 max-w-full overflow-hidden">
-          <div className="hidden md:block w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
-            <table className="w-full min-w-[640px] border-separate border-spacing-0 text-[13px]">
-              <thead>
+          <div className="hidden md:block w-full min-w-0 max-w-full max-h-[620px] overflow-auto overscroll-x-contain">
+            <table className="w-full min-w-[760px] border-separate border-spacing-0 text-[13px]">
+              <thead className="sticky top-0 z-30">
                 <tr className="bg-muted/70">
-                  <th className="sticky left-0 z-20 min-w-[220px] bg-muted/95 px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground shadow-[1px_0_0_hsl(var(--border))]">
+                  <th className="sticky left-0 z-40 w-[280px] min-w-[280px] bg-muted px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground shadow-[1px_0_0_hsl(var(--border))]">
                     Descrição
                   </th>
-                  {meses.map(m => (
-                    <th key={m} className="min-w-[96px] px-2.5 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                  {mesesExibidos.map(m => (
+                    <th key={m} className="w-[112px] min-w-[112px] whitespace-nowrap bg-muted px-3 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
                       {m}
                     </th>
                   ))}
-                  <th className="min-w-[116px] bg-muted/90 px-3 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-foreground">
+                  <th className="w-[132px] min-w-[132px] whitespace-nowrap bg-muted px-3 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-foreground">
                     Acumulado
                   </th>
-                  <th className="min-w-[64px] px-2.5 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                  <th className="w-[72px] min-w-[72px] whitespace-nowrap bg-muted px-2.5 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
                     AV%
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {dre.map((item, index) => {
+                {dreExibida.map((item, index) => {
                   const total = item.valores.reduce((s, v) => s + v, 0);
                   const av = totalReceita > 0 ? (total / totalReceita) * 100 : 0;
                   const isSubtotal = item.tipo === "subtotal";
@@ -290,7 +347,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                       key={index}
                       className={`border-b border-border/50 transition-colors ${rowBg} ${isResultado ? "ring-1 ring-inset ring-primary/20" : ""} ${!isSubtotal && !isResultado ? "hover:bg-muted/20" : ""}`}
                     >
-                      <td className={`sticky left-0 z-10 border-b border-border/50 px-3 py-2.5 shadow-[1px_0_0_hsl(var(--border))] ${rowBg}`}>
+                      <td className={`sticky left-0 z-10 w-[280px] min-w-[280px] border-b border-border/50 px-3 py-2.5 shadow-[1px_0_0_hsl(var(--border))] ${rowBg}`}>
                         <span className={`block leading-snug ${item.indent && !isSubtotal ? "pl-3 text-muted-foreground" : ""} ${isSubtotal || isResultado ? "text-[12px] font-bold uppercase tracking-wide" : "font-medium"} ${isResultado ? "text-primary" : ""}`}>
                           {item.categoria}
                         </span>
@@ -298,16 +355,16 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                       {item.valores.map((v, i) => (
                         <td
                           key={i}
-                          className={`border-b border-border/50 px-2.5 py-2.5 text-right tabular-nums ${isSubtotal || isResultado ? "font-bold" : "font-medium"} ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-green-600" : ""}`}
+                          className={`w-[112px] min-w-[112px] border-b border-border/50 px-3 py-2.5 text-right tabular-nums whitespace-nowrap ${isSubtotal || isResultado ? "font-bold" : "font-medium"} ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-green-600" : ""}`}
                         >
                           {formatCurrency(v)}
                         </td>
                       ))}
-                      <td className={`border-b border-border/50 bg-muted/20 px-3 py-2.5 text-right font-bold tabular-nums ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-green-600" : ""}`}>
+                      <td className={`w-[132px] min-w-[132px] border-b border-border/50 bg-muted/20 px-3 py-2.5 text-right font-bold tabular-nums whitespace-nowrap ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-green-600" : ""}`}>
                         {formatCurrency(total)}
                       </td>
                       <td className={`border-b border-border/50 px-2.5 py-2.5 text-right text-xs tabular-nums ${isSubtotal || isResultado ? "font-bold" : "text-muted-foreground"}`}>
-                        {Math.abs(av).toFixed(1)}%
+                        {formatPercent(av)}
                       </td>
                     </tr>
                   );
@@ -317,7 +374,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
           </div>
 
           <div className="md:hidden w-full min-w-0 max-w-full divide-y divide-border/60 overflow-hidden">
-            {dre.map((item, index) => {
+            {dreExibida.map((item, index) => {
               const total = item.valores.reduce((s, v) => s + v, 0);
               const av = totalReceita > 0 ? (total / totalReceita) * 100 : 0;
               const isSubtotal = item.tipo === "subtotal";
@@ -325,26 +382,28 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
               const isNegative = total < 0;
 
               return (
-                <div key={index} className={`${isResultado ? "bg-primary/10" : isSubtotal ? "bg-muted/45" : "bg-card"} p-3 min-w-0`}>
-                  <div className="flex min-w-0 items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
+                <div key={index} className={`${isResultado ? "bg-primary/10" : isSubtotal ? "bg-muted/45" : "bg-card"} p-3 min-w-0 max-w-full overflow-hidden`}>
+                  <div className="grid min-w-0 grid-cols-1 gap-2 min-[390px]:grid-cols-[minmax(0,1fr)_auto] min-[390px]:items-start">
+                    <div className="min-w-0">
                       <p className={`break-words leading-snug ${item.indent && !isSubtotal ? "pl-2 text-muted-foreground" : ""} ${isSubtotal || isResultado ? "text-xs font-bold uppercase tracking-wide" : "text-sm font-semibold"} ${isResultado ? "text-primary" : ""}`}>
                         {item.categoria}
                       </p>
-                      <p className="mt-1 text-[11px] text-muted-foreground">AV {Math.abs(av).toFixed(1)}%</p>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Acumulado</p>
-                      <p className={`text-sm font-bold tabular-nums ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-green-600" : ""}`}>
+                    <div className="min-w-0 rounded-md border border-border/60 bg-background/35 px-2.5 py-2 text-left min-[390px]:w-[132px] min-[390px]:text-right">
+                      <div className="flex items-center justify-between gap-2 min-[390px]:block">
+                        <p className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Acumulado</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">AV {formatPercent(av)}</p>
+                      </div>
+                      <p className={`mt-1 break-words text-sm font-bold tabular-nums ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-green-600" : ""}`}>
                         {formatCurrency(total)}
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 min-[390px]:grid-cols-3">
+                  <div className="mt-3 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 min-[390px]:grid-cols-3">
                     {item.valores.map((v, i) => (
-                      <div key={`${item.categoria}-${meses[i]}`} className="min-w-0 rounded-md border border-border/70 bg-background/45 px-2 py-1.5">
-                        <p className="text-[10px] font-semibold uppercase text-muted-foreground">{meses[i]}</p>
-                        <p className={`truncate text-xs font-semibold tabular-nums ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-green-600" : ""}`}>
+                      <div key={`${item.categoria}-${mesesExibidos[i]}`} className="min-w-0 max-w-full rounded-md border border-border/70 bg-background/45 px-2 py-1.5">
+                        <p className="text-[10px] font-semibold uppercase text-muted-foreground">{mesesExibidos[i]}</p>
+                        <p className={`break-words text-[11px] font-semibold tabular-nums leading-snug min-[390px]:text-xs ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-green-600" : ""}`}>
                           {formatCurrency(v)}
                         </p>
                       </div>
@@ -367,7 +426,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
               <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
               <YAxis tickFormatter={v => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
               <Tooltip
-                formatter={(value: number) => [`R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, "Resultado"]}
+                formatter={(value: number) => [formatCurrency(value), "Resultado"]}
                 contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: 12 }}
               />
               <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
@@ -409,8 +468,8 @@ function KPICard({ label, value, icon, color, isPercent, badge }: {
   const c = colorMap[color];
 
   const display = isPercent
-    ? `${value.toFixed(1)}%`
-    : `${(Math.abs(value) / 1000).toFixed(1)}k`;
+    ? `${(Number.isFinite(value) ? value : 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
+    : `R$ ${(Math.abs(Number.isFinite(value) ? value : 0) / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}k`;
 
   return (
     <Card className="relative overflow-hidden min-w-0">
