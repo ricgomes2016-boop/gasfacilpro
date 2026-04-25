@@ -180,8 +180,8 @@
   }
 
   .venda-dashboard-shell {
-    --venda-dashboard-bg: 18 73% 51%;
-    --venda-dashboard-bg-strong: 6 68% 47%;
+    --venda-dashboard-bg: var(--venda-tone);
+    --venda-dashboard-bg-strong: var(--venda-tone-strong);
     --venda-glass: 0 0% 100%;
     position: relative;
     isolation: isolate;
@@ -191,7 +191,8 @@
       radial-gradient(circle at 88% 8%, hsl(var(--venda-glass) / 0.14) 0 4.5rem, transparent 4.65rem),
       radial-gradient(circle at 68% 100%, hsl(var(--venda-glass) / 0.08) 0 7rem, transparent 7.2rem),
       linear-gradient(135deg, hsl(var(--venda-dashboard-bg)), hsl(var(--venda-dashboard-bg-strong)));
-    box-shadow: 0 24px 48px -28px hsl(6 68% 36% / 0.72), 0 12px 28px -20px hsl(222 47% 11% / 0.5);
+    box-shadow: 0 24px 48px -28px hsl(var(--venda-dashboard-bg-strong) / 0.72), 0 12px 28px -20px hsl(222 47% 11% / 0.5);
+    transition: background 0.24s ease, box-shadow 0.24s ease;
   }
 
   .venda-dashboard-shell::before {
