@@ -476,6 +476,27 @@
     box-shadow: 0 10px 18px -14px hsl(var(--venda-tone) / 0.9);
   }
 
+  .venda-product-shortcut,
+  .venda-payment-shortcut {
+    border-color: hsl(var(--venda-tone) / 0.24);
+    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--venda-tone) / 0.055) 100%);
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .venda-product-shortcut:hover,
+  .venda-payment-shortcut:hover,
+  .venda-payment-shortcut[aria-pressed="true"] {
+    border-color: hsl(var(--venda-tone) / 0.55);
+    box-shadow: 0 12px 20px -16px hsl(var(--venda-tone) / 0.85);
+  }
+
+  .venda-product-shortcut:focus-visible,
+  .venda-payment-shortcut:focus-visible {
+    outline: 2px solid hsl(var(--venda-tone));
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px hsl(var(--venda-tone) / 0.18);
+  }
+
   .gradient-primary {
     background: var(--gradient-primary);
   }

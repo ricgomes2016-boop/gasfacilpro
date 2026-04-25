@@ -10,8 +10,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Package, Search, Trash2, Plus, Minus, ShoppingBasket } from "lucide-react";
+import { Package, Search, Trash2, Plus, Minus, ShoppingBasket, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import gasP13Img from "@/assets/products/gas-p13.png";
+import gasP20Img from "@/assets/products/gas-p20.png";
+import gasP45Img from "@/assets/products/gas-p45.png";
+import agua20lImg from "@/assets/products/agua-20l.png";
 
 interface Produto {
   id: string;
@@ -36,11 +40,20 @@ interface ProductSearchProps {
   clienteId?: string | null;
 }
 
+const produtosPrincipais = [
+  { label: "Gás P13", aliases: ["gas p13", "gás p13", "p13"], image: gasP13Img },
+  { label: "Gás P20", aliases: ["gas p20", "gás p20", "p20"], image: gasP20Img },
+  { label: "Gás P45", aliases: ["gas p45", "gás p45", "p45"], image: gasP45Img },
+  { label: "Água Mineral 20L", aliases: ["agua mineral 20", "água mineral 20", "agua 20", "20l"], image: agua20lImg },
+  { label: "Kit Regulador 13kg", aliases: ["kit regulador", "regulador 13", "regulador"], image: null },
+];
+
 export function ProductSearch({ itens, onChange, unidadeId, clienteId }: ProductSearchProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<Produto[]>([]);
   const [showResults, setShowResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -55,6 +68,37 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
 
   const normalize = (s: string) =>
     s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+  const buscarProdutoPrincipal = async (atalho: typeof produtosPrincipais[number]) => {
+    try {
+      let query = supabase
+        .from("produtos")
+        .select("id, nome, preco, estoque")
+        .eq("ativo", true)
+        .or("tipo_botijao.is.null,tipo_botijao.neq.vazio")
+        .limit(100);
+
+      if (unidadeId) query = query.eq("unidade_id", unidadeId);
+
+      const { data, error } = await query;
+      if (error || !data) return;
+
+      const produto = data.find((p) => {
+        const nome = normalize(p.nome);
+        return atalho.aliases.some((alias) => nome.includes(normalize(alias)));
+      });
+
+      if (produto) {
+        await addItem(produto);
+      } else {
+        setSearchTerm(atalho.label);
+        searchProdutos(atalho.label);
+        inputRef.current?.focus();
+      }
+    } catch (error) {
+      console.error("Erro ao buscar produto principal:", error);
+    }
+  };
 
   const searchProdutos = async (term: string) => {
     if (term.length < 2) {
@@ -176,10 +220,31 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
         </div>
       </CardHeader>
       <CardContent className="space-y-4 p-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          {produtosPrincipais.map((produto) => (
+            <button
+              key={produto.label}
+              type="button"
+              onClick={() => buscarProdutoPrincipal(produto)}
+              className="venda-product-shortcut group min-h-[132px] rounded-lg border bg-background p-3 text-center shadow-sm"
+            >
+              <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-lg bg-primary/10 transition-transform group-hover:scale-105">
+                {produto.image ? (
+                  <img src={produto.image} alt={produto.label} className="h-14 w-14 object-contain" loading="lazy" />
+                ) : (
+                  <Wrench className="h-8 w-8 text-primary" />
+                )}
+              </span>
+              <span className="mt-2 block text-xs font-semibold leading-tight text-foreground">{produto.label}</span>
+            </button>
+          ))}
+        </div>
+
         {/* Search Input */}
         <div className="relative rounded-lg border bg-background p-2 shadow-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            ref={inputRef}
             placeholder="Buscar produto por nome..."
             value={searchTerm}
             onChange={(e) => {

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -683,10 +683,34 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
   const handleSelecionarEntregador = (id: string, nome: string) => {
     setEntregador({ id, nome });
+    if (useNewView) setActiveStep("confirmar");
     toast({
       title: "Entregador selecionado!",
       description: `${nome} foi atribuído a esta venda.`,
     });
+  };
+
+  const handleStepEnterNavigation = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.defaultPrevented || event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("#ai-send-btn") || target.closest('[role="combobox"]') || target.closest("button")) return;
+    if (target instanceof HTMLTextAreaElement) return;
+    if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) return;
+    if (target.type === "file" || target.type === "checkbox" || target.type === "radio") return;
+
+    const panel = target.closest(".venda-step-panel");
+    if (!panel) return;
+
+    const focusables = Array.from(
+      panel.querySelectorAll<HTMLElement>('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])')
+    ).filter((el) => el.offsetParent !== null && !el.closest('[aria-hidden="true"]'));
+    const index = focusables.indexOf(target);
+    const next = focusables[index + 1];
+
+    if (next) {
+      event.preventDefault();
+      next.focus();
+    }
   };
 
   const handleFinalizar = async () => {
@@ -1059,7 +1083,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         {useNewView ? (
           <div className="space-y-3 md:space-y-4">
             {activeStep === "cliente" && (
-              <div className="venda-step-panel grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+              <div className="venda-step-panel grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]" onKeyDown={handleStepEnterNavigation}>
                 <div className="space-y-3 md:space-y-4 min-w-0">
                   {aiCommandCard}
                   {metaCard}
@@ -1071,12 +1095,12 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               </div>
             )}
             {activeStep === "produtos" && (
-              <div className="venda-step-panel venda-tone-produtos mx-auto max-w-5xl">
+              <div className="venda-step-panel venda-tone-produtos mx-auto max-w-5xl" onKeyDown={handleStepEnterNavigation}>
                 <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
               </div>
             )}
             {activeStep === "pagamento" && (
-              <div className="venda-step-panel venda-tone-pagamento mx-auto max-w-4xl">
+              <div className="venda-step-panel venda-tone-pagamento mx-auto max-w-4xl" onKeyDown={handleStepEnterNavigation}>
                 <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} />
               </div>
             )}
