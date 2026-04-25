@@ -170,15 +170,15 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
     );
   }
 
-  const totalReceita = dre.find(d => d.categoria.includes("Receita Bruta"))?.valores.reduce((s, v) => s + v, 0) || 0;
-  const totalLucro = dre.find(d => d.tipo === "resultado")?.valores.reduce((s, v) => s + v, 0) || 0;
+  const totalReceita = dreExibida.find(d => d.categoria.includes("Receita Bruta"))?.valores.reduce((s, v) => s + v, 0) || 0;
+  const totalLucro = dreExibida.find(d => d.tipo === "resultado")?.valores.reduce((s, v) => s + v, 0) || 0;
   const totalDesp = Math.abs(totalReceita - totalLucro);
   const margemLiquida = totalReceita > 0 ? (totalLucro / totalReceita) * 100 : 0;
-  const lucroArr = dre.find(d => d.tipo === "resultado")?.valores || [];
-  const receitaArr = dre.find(d => d.categoria.includes("Receita Bruta"))?.valores || [];
+  const lucroArr = dreExibida.find(d => d.tipo === "resultado")?.valores || [];
+  const receitaArr = dreExibida.find(d => d.categoria.includes("Receita Bruta"))?.valores || [];
 
   // Evolução mensal
-  const chartData = meses.map((mes, i) => ({
+  const chartData = mesesExibidos.map((mes, i) => ({
     mes,
     receita: receitaArr[i] || 0,
     lucro: lucroArr[i] || 0,
@@ -195,7 +195,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
   const content = (
     <div className="space-y-5 w-full min-w-0 max-w-full overflow-hidden">
       {/* Top bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between w-full min-w-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between w-full min-w-0">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto min-w-0">
           <Select value={periodoMeses} onValueChange={setPeriodoMeses}>
             <SelectTrigger className="h-10 sm:h-9 min-w-0 flex-1 sm:flex-none sm:w-44"><SelectValue /></SelectTrigger>
@@ -206,11 +206,36 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
             </SelectContent>
           </Select>
           <Badge variant="outline" className="text-xs font-medium max-w-full truncate">
-            {meses[0]} — {meses[meses.length - 1]}
+            {periodoLabel}
           </Badge>
         </div>
+        <div className="w-full min-w-0 sm:max-w-[520px]">
+          <div className="flex items-center gap-2 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Button type="button" variant="outline" size="sm" className="h-8 shrink-0 px-2.5 text-xs" onClick={() => setMesesVisiveis(meses)}>
+              Todos
+            </Button>
+            <Button type="button" variant="outline" size="sm" className="h-8 shrink-0 px-2.5 text-xs" onClick={() => setMesesVisiveis(meses.slice(-3))}>
+              Últimos 3
+            </Button>
+            {meses.map(mes => {
+              const active = mesesExibidos.includes(mes);
+              return (
+                <Button
+                  key={mes}
+                  type="button"
+                  variant={active ? "default" : "outline"}
+                  size="sm"
+                  className="h-8 shrink-0 px-2.5 text-xs"
+                  onClick={() => toggleMes(mes)}
+                >
+                  {mes}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto">
-          <Button variant="outline" size="sm" className="h-10 sm:h-9 min-w-0" onClick={() => exportDREtoPdf(dre, meses, `${meses[0]} a ${meses[meses.length - 1]}`)}>
+          <Button variant="outline" size="sm" className="h-10 sm:h-9 min-w-0" onClick={() => exportDREtoPdf(dreExibida, mesesExibidos, periodoLabel)}>
             <FileDown className="h-4 w-4 mr-1.5" /> Exportar PDF
           </Button>
           <Button variant="outline" size="sm" className="h-10 sm:h-9 min-w-0" onClick={handlePrint}>
