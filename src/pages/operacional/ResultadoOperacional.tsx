@@ -442,17 +442,22 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
           <CardContent className="p-0">
             <Table>
               <TableBody>
-                {[
-                  { label: "Preço Compra P13", value: fmt(precoCompraP13) },
-                  { label: "Preço Venda P13", value: fmt(precoVendaP13) },
-                  { label: "Margem Bruta P13", value: fmt(precoVendaP13 - precoCompraP13), highlight: true },
-                  { label: "Tonelagem Total", value: `${totalTonelagem.toFixed(2)} ton` },
-                  { label: "Ticket Médio", value: totalQtde > 0 ? fmt(receitaBruta / totalQtde) : "0,00" },
-                  { label: "Margem Líquida", value: receitaBruta > 0 ? `${((lucroLiquido / receitaBruta) * 100).toFixed(1)}%` : "0,0%", highlight: lucroLiquido >= 0 },
-                ].map((row, i) => (
+                  {[
+                    { label: "Preço Compra P13", value: fmt(precoMedioCompraP13) },
+                    { label: "Preço Médio Venda P13", value: fmt(precoMedioVendaP13) },
+                    { label: "Margem Bruta P13", value: fmt(precoMedioVendaP13 - precoMedioCompraP13), highlight: true },
+                    ...produtosReferencia.flatMap(p => [
+                      { label: `Preço Compra ${p.canal}`, value: fmt(p.precoCompra) },
+                      { label: `Preço Médio Venda ${p.canal}`, value: fmt(p.precoVenda) },
+                      { label: `Margem Bruta ${p.canal}`, value: fmt(p.precoVenda - p.precoCompra), highlight: p.precoVenda >= p.precoCompra },
+                    ]),
+                    { label: "Tonelagem Total", value: `${totalTonelagem.toFixed(2)} ton` },
+                    { label: "Ticket Médio", value: totalQtde > 0 ? fmt(receitaBruta / totalQtde) : "0,00" },
+                    { label: "Margem Líquida", value: receitaBruta > 0 ? `${((lucroLiquido / receitaBruta) * 100).toFixed(1)}%` : "0,0%", highlight: lucroLiquido >= 0 },
+                  ].map((row, i) => (
                   <TableRow key={i}>
-                    <TableCell className="py-1 px-3 text-xs">{row.label}</TableCell>
-                    <TableCell className={`py-1 px-3 text-right text-xs tabular-nums font-medium ${row.highlight ? "text-green-600" : ""}`}>
+                    <TableCell className="py-1.5 px-3 text-xs leading-snug">{row.label}</TableCell>
+                    <TableCell className={`py-1.5 px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${row.highlight ? "text-green-600" : ""}`}>
                       {row.value}
                     </TableCell>
                   </TableRow>
