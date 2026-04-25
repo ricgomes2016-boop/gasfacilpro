@@ -224,14 +224,14 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
 
   return (
     <>
-      <Card>
-        <CardHeader className="pb-4">
+      <Card className="venda-card">
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <CreditCard className="h-5 w-5" />
             Pagamento
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           {/* Lista de pagamentos adicionados */}
           {pagamentos.length > 0 && (
             <div className="space-y-2">
