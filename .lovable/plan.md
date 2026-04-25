@@ -1,35 +1,36 @@
-Plano para deixar o fluxo de venda com visual igual ao card do dashboard enviado:
+Plano para deixar a tela Nova Venda visivelmente mais moderna, mantendo cada etapa com sua própria cor.
 
-1. Criar um fundo principal do fluxo de venda no estilo dashboard
-   - Aplicar um fundo laranja/vermelho moderno na área da etapa ativa da venda.
-   - Usar a mesma sensação visual do exemplo: superfície quente, bordas arredondadas, sombras suaves e decoração discreta tipo chama/círculos no fundo.
-   - Manter sem gradiente nos cards internos, conforme pedido anterior; o efeito visual ficará no container principal e nas transparências.
+1. Criar um visual premium por etapa
+- Trocar o fundo atual do container da etapa por cores mais profundas e elegantes, inspiradas nos cards de Acesso Rápido do dashboard.
+- Manter as cores por etapa: Cliente amber, Produtos teal, Pagamento indigo, Entregador rose e Confirmar emerald.
+- Usar uma base escura/saturada com luzes decorativas sutis para dar profundidade, mas sem deixar o card interno pesado.
 
-2. Transformar os cards internos em “glass cards” transparentes
-   - Alterar `.venda-card`, `.venda-modern-surface`, atalhos de produto e atalhos de pagamento para usar fundo branco transparente sobre o laranja.
-   - Bordas claras/translúcidas, parecidas com o dashboard.
-   - Remover aparência clara/cinza atual que está deixando diferente do modelo.
+2. Modernizar os cards internos com glassmorphism real
+- Aumentar raio de borda, transparência, blur e sombra dos cards principais.
+- Deixar os cards internos claramente transparentes, com borda branca suave e brilho interno.
+- Remover interferências antigas que ainda deixam alguns blocos com aparência acinzentada ou “chapada”.
 
-3. Padronizar textos brancos e nítidos dentro dos cards
-   - Forçar títulos, labels, textos, valores e ícones principais do fluxo de venda para branco ou branco translúcido.
-   - Ajustar `text-muted-foreground`, badges, totais, cabeçalhos de tabela e estados vazios para não ficarem cinza apagado sobre o fundo laranja.
-   - Preservar contraste em campos editáveis para manter leitura e digitação fáceis.
+3. Padronizar texto branco e hierarquia visual
+- Garantir títulos, labels, textos auxiliares, totais, badges, cabeçalhos de tabela e estados vazios em branco ou branco translúcido.
+- Ajustar ícones e chips para parecerem parte do glass card, não como componentes padrão cinza.
+- Preservar campos editáveis com fundo claro ou semitransparente legível para digitação.
 
-4. Ajustar atalhos e estados selecionados
-   - Produtos principais e formas de pagamento ficarão como mini-cards transparentes, com ícone/foto e texto branco.
-   - Estado selecionado/hover usará borda branca mais forte e leve fundo branco translúcido.
-   - Manter a lógica atual de clique e atalhos; a mudança é visual.
+4. Melhorar atalhos e botões
+- Transformar atalhos de produtos, pagamentos e entregadores em mini-cards modernos com hover mais evidente, elevação leve e estado selecionado com borda branca/anel luminoso.
+- Ajustar botões principais do fluxo para combinar com a cor da etapa e ter aparência mais premium.
+- Manter sem alterações na lógica de clique, busca, pagamento ou finalização.
 
-5. Preservar estabilidade do fluxo
-   - Não alterar rotas, providers, regras de venda, banco de dados ou lógica de pagamento/produto.
-   - Alterações previstas principalmente em `src/index.css`; se necessário, pequenos ajustes de classes nos componentes de venda para garantir que todos os subtítulos e estados sigam o padrão.
+5. Ajustes pontuais no layout da Nova Venda
+- Refinar o bloco do stepper/topo para não destoar do visual moderno.
+- Adicionar classes auxiliares apenas onde necessário para separar shell, cards de apoio e controles.
+- Não alterar rotas, providers, banco de dados, regras de venda ou fluxo operacional.
 
 Arquivos previstos:
 - `src/index.css`
-- Possíveis ajustes pontuais em:
-  - `src/pages/vendas/NovaVenda.tsx`
-  - `src/components/vendas/ProductSearch.tsx`
-  - `src/components/vendas/PaymentSection.tsx`
-  - `src/components/vendas/DeliveryPersonSelect.tsx`
-  - `src/components/vendas/OrderSummary.tsx`
-  - `src/components/vendas/CustomerSearch.tsx`
+- `src/pages/vendas/NovaVenda.tsx` somente se for necessário adicionar classes de apoio ao layout
+- Possíveis ajustes mínimos nos componentes de venda apenas para classes visuais: `ProductSearch`, `PaymentSection`, `DeliveryPersonSelect`, `OrderSummary`, `CustomerSearch`, `CustomerHistory`
+
+Validação:
+- Conferir a tela `/vendas/nova` no viewport atual.
+- Verificar pelo menos as etapas Cliente, Produtos, Pagamento, Entregador e Confirmar.
+- Rodar verificação TypeScript para garantir que as mudanças visuais não quebraram a aplicação.
