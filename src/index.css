@@ -179,6 +179,45 @@
     --venda-tone-strong: 161 94% 30%;
   }
 
+  .venda-dashboard-shell {
+    --venda-dashboard-bg: 18 73% 51%;
+    --venda-dashboard-bg-strong: 6 68% 47%;
+    --venda-glass: 0 0% 100%;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: 1.5rem;
+    background:
+      radial-gradient(circle at 88% 8%, hsl(var(--venda-glass) / 0.14) 0 4.5rem, transparent 4.65rem),
+      radial-gradient(circle at 68% 100%, hsl(var(--venda-glass) / 0.08) 0 7rem, transparent 7.2rem),
+      linear-gradient(135deg, hsl(var(--venda-dashboard-bg)), hsl(var(--venda-dashboard-bg-strong)));
+    box-shadow: 0 24px 48px -28px hsl(6 68% 36% / 0.72), 0 12px 28px -20px hsl(222 47% 11% / 0.5);
+  }
+
+  .venda-dashboard-shell::before {
+    content: "";
+    position: absolute;
+    inset: auto -2rem -6rem auto;
+    width: 18rem;
+    height: 18rem;
+    border: 0.65rem solid hsl(var(--venda-glass) / 0.08);
+    border-radius: 9999px;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .venda-dashboard-shell::after {
+    content: "";
+    position: absolute;
+    inset: -5rem 0 auto auto;
+    width: 12rem;
+    height: 12rem;
+    border-radius: 42% 58% 46% 54%;
+    border: 0.45rem solid hsl(var(--venda-glass) / 0.09);
+    pointer-events: none;
+    z-index: -1;
+  }
+
   .venda-tone-cliente .venda-card,
   .venda-tone-produtos .venda-card,
   .venda-tone-pagamento .venda-card,
@@ -218,6 +257,28 @@
   .venda-tone-confirmar .venda-card {
     position: relative;
     overflow: hidden;
+  }
+
+  .venda-dashboard-shell .venda-gasmais-card,
+  .venda-dashboard-shell .venda-card,
+  .venda-dashboard-shell .venda-modern-surface,
+  .venda-dashboard-shell .venda-product-shortcut,
+  .venda-dashboard-shell .venda-payment-shortcut {
+    border-color: hsl(var(--venda-glass) / 0.25) !important;
+    background-color: hsl(var(--venda-glass) / 0.12) !important;
+    color: hsl(var(--venda-glass)) !important;
+    box-shadow: inset 0 1px 0 hsl(var(--venda-glass) / 0.13), 0 18px 32px -24px hsl(0 0% 0% / 0.36) !important;
+    backdrop-filter: blur(10px);
+  }
+
+  .venda-dashboard-shell .venda-card::before,
+  .venda-dashboard-shell .venda-gasmais-card::before {
+    background-color: transparent !important;
+  }
+
+  .venda-dashboard-shell .venda-card > [class*="border-b"] {
+    border-color: hsl(var(--venda-glass) / 0.18) !important;
+    background-color: hsl(var(--venda-glass) / 0.06) !important;
   }
 
   .venda-step-tab.venda-tone-cliente,
@@ -315,6 +376,44 @@
   .venda-tone-confirmar .venda-card p,
   .venda-tone-confirmar .venda-card span {
     text-rendering: optimizeLegibility;
+  }
+
+  .venda-dashboard-shell .venda-card,
+  .venda-dashboard-shell .venda-card h1,
+  .venda-dashboard-shell .venda-card h2,
+  .venda-dashboard-shell .venda-card h3,
+  .venda-dashboard-shell .venda-card p,
+  .venda-dashboard-shell .venda-card span,
+  .venda-dashboard-shell .venda-card label,
+  .venda-dashboard-shell .venda-card th,
+  .venda-dashboard-shell .venda-card td,
+  .venda-dashboard-shell .venda-card .text-foreground,
+  .venda-dashboard-shell .venda-card .text-foreground\/80,
+  .venda-dashboard-shell .venda-card .text-muted-foreground,
+  .venda-dashboard-shell .venda-card .text-primary,
+  .venda-dashboard-shell .venda-gasmais-card,
+  .venda-dashboard-shell .venda-gasmais-card .text-muted-foreground,
+  .venda-dashboard-shell .venda-gasmais-card .text-primary {
+    color: hsl(var(--venda-glass) / 0.94) !important;
+  }
+
+  .venda-dashboard-shell .venda-card .text-muted-foreground,
+  .venda-dashboard-shell .venda-card [class*="text-muted-foreground"],
+  .venda-dashboard-shell .venda-gasmais-card .text-muted-foreground {
+    color: hsl(var(--venda-glass) / 0.72) !important;
+  }
+
+  .venda-dashboard-shell .venda-card input,
+  .venda-dashboard-shell .venda-card textarea,
+  .venda-dashboard-shell .venda-card button[role="combobox"] {
+    border-color: hsl(var(--venda-glass) / 0.36) !important;
+    background-color: hsl(var(--venda-glass) / 0.92) !important;
+    color: hsl(222 47% 11%) !important;
+  }
+
+  .venda-dashboard-shell .venda-card input::placeholder,
+  .venda-dashboard-shell .venda-card textarea::placeholder {
+    color: hsl(222 20% 38% / 0.72) !important;
   }
 
   .venda-tone-cliente .venda-card input:focus-visible,
@@ -548,6 +647,32 @@
   .venda-payment-shortcut[aria-pressed="true"] {
     border-color: hsl(var(--venda-tone) / 0.55);
     box-shadow: 0 12px 20px -16px hsl(var(--venda-tone) / 0.85);
+  }
+
+  .venda-dashboard-shell .venda-product-shortcut:hover,
+  .venda-dashboard-shell .venda-payment-shortcut:hover,
+  .venda-dashboard-shell .venda-payment-shortcut[aria-pressed="true"],
+  .venda-dashboard-shell .venda-modern-surface:hover {
+    border-color: hsl(var(--venda-glass) / 0.45) !important;
+    background-color: hsl(var(--venda-glass) / 0.18) !important;
+    box-shadow: inset 0 1px 0 hsl(var(--venda-glass) / 0.16), 0 18px 34px -22px hsl(0 0% 0% / 0.42) !important;
+  }
+
+  .venda-dashboard-shell .venda-product-shortcut .bg-primary\/10,
+  .venda-dashboard-shell .venda-payment-shortcut .bg-primary\/10,
+  .venda-dashboard-shell .venda-card .bg-primary\/10,
+  .venda-dashboard-shell .venda-card .bg-primary\/12,
+  .venda-dashboard-shell .venda-card .bg-muted\/20,
+  .venda-dashboard-shell .venda-card .bg-muted\/30,
+  .venda-dashboard-shell .venda-card .bg-muted\/50,
+  .venda-dashboard-shell .venda-card .bg-muted\/60,
+  .venda-dashboard-shell .venda-card .bg-background {
+    background-color: hsl(var(--venda-glass) / 0.14) !important;
+  }
+
+  .venda-dashboard-shell .venda-card table thead tr,
+  .venda-dashboard-shell .venda-card table tbody tr:hover {
+    background-color: hsl(var(--venda-glass) / 0.12) !important;
   }
 
   .venda-product-shortcut:focus-visible,
