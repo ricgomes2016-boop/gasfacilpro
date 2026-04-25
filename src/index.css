@@ -550,8 +550,16 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .venda-step-panel {
+    .venda-step-panel,
+    .venda-step-tab,
+    .venda-tone-cliente .venda-card button,
+    .venda-tone-produtos .venda-card button,
+    .venda-tone-pagamento .venda-card button,
+    .venda-tone-entregador .venda-card button,
+    .venda-tone-confirmar .venda-card button {
       animation: none;
+      transition: none;
+      transform: none;
     }
   }
 }
