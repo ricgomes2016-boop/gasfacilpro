@@ -958,7 +958,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   }, [initialClienteId, embedded]);
 
   const metaCard = (
-    <Card className="venda-card border-primary/20 bg-card/95">
+    <Card className="venda-card venda-gasmais-card venda-tone-cliente border-primary/20 bg-card/95">
       <CardContent className="p-3 md:p-4">
         <div className="grid gap-3 md:grid-cols-2">
           <div>
@@ -985,7 +985,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   );
 
   const aiCommandCard = (
-    <Card className="venda-card border-primary/40 bg-primary/5 shadow-primary/10">
+    <Card className="venda-card venda-gasmais-card venda-tone-confirmar border-primary/40 bg-primary/5 shadow-primary/10">
       <CardContent className="py-3 md:py-4">
         <div className="flex flex-wrap items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary shrink-0" />
@@ -1027,7 +1027,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       <div className={cn("p-3 md:p-4 space-y-3 md:space-y-4", useNewView && "bg-muted/20")}> 
         <CaixaBloqueadoBanner />
 
-        <div className="space-y-3 rounded-lg border border-primary/15 bg-card/80 p-3 shadow-sm">
+        <div className="venda-gasmais-card venda-tone-confirmar space-y-3 rounded-lg border border-primary/15 bg-card/80 p-3 shadow-sm">
           <VendaStepper
             customer={customer}
             itens={itens}
@@ -1061,36 +1061,36 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
                 <div className="space-y-3 md:space-y-4 min-w-0">
                   {aiCommandCard}
                   {metaCard}
-                  <CustomerSearch value={customer} onChange={setCustomer} />
+                  <div className="venda-tone-cliente"><CustomerSearch value={customer} onChange={setCustomer} /></div>
                 </div>
-                <div className="min-w-0 xl:sticky xl:top-4 self-start">
+                <div className="venda-tone-cliente min-w-0 xl:sticky xl:top-4 self-start">
                   <CustomerHistory clienteId={customer.id} />
                 </div>
               </div>
             )}
             {activeStep === "produtos" && (
               <div className="grid gap-3 md:gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-                <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
+                <div className="venda-tone-produtos"><ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} /></div>
                 <div className="space-y-3 min-w-0">
                   {metaCard}
-                  <CustomerHistory clienteId={customer.id} />
+                  <div className="venda-tone-cliente"><CustomerHistory clienteId={customer.id} /></div>
                 </div>
               </div>
             )}
             {activeStep === "pagamento" && (
               <div className="grid gap-3 md:gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-                <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} />
-                <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
+                <div className="venda-tone-pagamento"><PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} /></div>
+                <div className="venda-tone-confirmar"><OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} /></div>
               </div>
             )}
             {activeStep === "entregador" && (
               <div className="grid gap-3 md:gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} endereco={customer.endereco} />
-                <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
+                <div className="venda-tone-entregador"><DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} endereco={customer.endereco} /></div>
+                <div className="venda-tone-confirmar"><OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} /></div>
               </div>
             )}
             {activeStep === "confirmar" && (
-              <div className="mx-auto max-w-xl">
+              <div className="venda-tone-confirmar mx-auto max-w-xl">
                 <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
               </div>
             )}
