@@ -133,7 +133,7 @@ export function MobileNav() {
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[280px] p-0 border-r border-sidebar-border bg-sidebar">
+      <SheetContent side="left" className="w-[min(86vw,320px)] p-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
         <div className="h-full flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
@@ -188,7 +188,7 @@ export function MobileNav() {
                             !hasActiveChild && "group-hover:scale-110",
                             !hasActiveChild && (menuIconColors[item.label] || "")
                           )} />
-                          <span>{item.label}</span>
+                          <span className="min-w-0 truncate">{item.label}</span>
                         </div>
                         <motion.div
                           animate={{ rotate: isSubmenuOpen ? 180 : 0 }}
@@ -231,7 +231,7 @@ export function MobileNav() {
                                           "group-hover:scale-110",
                                           subMenuIconColors[sub.label] || ""
                                         )} />
-                                        <span>{sub.label}</span>
+                                        <span className="min-w-0 truncate">{sub.label}</span>
                                       </a>
                                     ) : (
                                       <Link
@@ -249,7 +249,7 @@ export function MobileNav() {
                                           !subActive && "group-hover:scale-110",
                                           !subActive && (subMenuIconColors[sub.label] || "")
                                         )} />
-                                        <span>{sub.label}</span>
+                                        <span className="min-w-0 truncate">{sub.label}</span>
                                       </Link>
                                     )}
                                   </motion.div>
@@ -285,7 +285,7 @@ export function MobileNav() {
                         !isActive(item.path!) && "group-hover:scale-110",
                         !isActive(item.path!) && (menuIconColors[item.label] || "")
                       )} />
-                      <span>{item.label}</span>
+                      <span className="min-w-0 truncate">{item.label}</span>
                     </Link>
                   </motion.div>
                 );
