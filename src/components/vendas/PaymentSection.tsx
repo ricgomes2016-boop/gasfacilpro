@@ -378,7 +378,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
           {totalVenda > 0 && (
             <div
               className={cn(
-                "p-3 rounded-lg flex items-center gap-2 text-sm",
+                "rounded-lg border p-3 flex items-center gap-2 text-sm font-medium shadow-sm",
                 diferenca > 0 && "bg-destructive/10 text-destructive",
                 diferenca < 0 && "bg-warning/10 text-warning",
                 diferenca === 0 && "bg-success/10 text-success"
