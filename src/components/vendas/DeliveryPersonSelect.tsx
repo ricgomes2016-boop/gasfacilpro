@@ -96,14 +96,14 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
   };
 
   return (
-    <Card>
-      <CardHeader className="pb-4">
+    <Card className="venda-card">
+      <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Truck className="h-5 w-5" />
           Entregador
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         <Select value={value || undefined} onValueChange={handleSelect} disabled={loading}>
           <SelectTrigger>
             <SelectValue placeholder={loading ? "Carregando..." : "Selecione o entregador"} />
