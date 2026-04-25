@@ -1,27 +1,23 @@
-Plano para ajustar os cards de /vendas/nova usando as cores do Acesso Rápido do dashboard:
+Plano para deixar os cards de `/vendas/nova` sem gradiente:
 
-1. Mapear as etapas da venda para as cores do Acesso Rápido
-   - Cliente: amarelo/âmbar, igual ao card “Clientes”.
-   - Produtos: teal, igual ao card “Estoque”.
-   - Pagamento: indigo, igual ao card “Financeiro”.
-   - Entregador: rose, igual ao card “Entregas”.
-   - Confirmar: emerald, igual ao card “Nova Venda”.
+1. Remover gradientes dos cards principais
+   - Trocar o `background` com `radial-gradient`/`linear-gradient` de `.venda-card` por uma cor sólida moderna.
+   - Manter a paleta por etapa baseada no Acesso Rápido do dashboard, usando `hsl(var(--venda-tone) / ...)` em baixa opacidade.
+   - Preservar bordas escuras, sombras e contraste de texto.
 
-2. Atualizar os tokens visuais do fluxo de venda
-   - Ajustar as variáveis CSS `--venda-tone` e `--venda-tone-strong` em `src/index.css` para refletirem as cores Tailwind usadas no `QuickActions.tsx`.
-   - Manter a estrutura atual do fluxo, sem refatorar rotas ou lógica de venda.
+2. Remover gradientes de atalhos e superfícies internas
+   - Ajustar `.venda-product-shortcut`, `.venda-payment-shortcut` e `.venda-modern-surface` para usarem `background-color` sólido.
+   - Manter estados hover/selecionado/foco acessível com borda e sombra no tom da etapa.
 
-3. Aplicar a paleta nos cards e atalhos
-   - Padronizar `.venda-card`, `.venda-product-shortcut`, `.venda-payment-shortcut` e `.venda-modern-surface` para usarem os mesmos tons do Acesso Rápido.
-   - Preservar o estilo moderno com gradientes, sombras e bordas mais nítidas.
-   - Garantir que os atalhos de produto e pagamento sigam a cor da etapa onde estão.
+3. Remover gradientes de cabeçalhos e tabelas dentro dos cards
+   - Substituir fundos em `border-b` e `table thead tr` por cores sólidas suaves.
+   - Manter a barra superior colorida dos cards, mas sem gradiente, usando uma única cor da etapa.
 
-4. Ajustar estados visuais
-   - Hover, seleção, foco acessível e stepper continuarão usando a cor da etapa.
-   - Manter contraste adequado no modo claro e escuro.
+4. Ajustar modo escuro e tema GásMais
+   - Aplicar o mesmo padrão sem gradiente também nos blocos `.dark` e `.theme-gasmais`.
+   - Garantir boa legibilidade em claro/escuro sem alterar lógica da venda.
 
-Arquivos previstos:
+Arquivo previsto:
 - `src/index.css`
-- Consulta/validação visual contra `src/components/dashboard/QuickActions.tsx`
 
-Não haverá alteração de banco de dados nem de regras de negócio.
+Não haverá alteração de rotas, componentes React, banco de dados ou regras de negócio.
