@@ -988,7 +988,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     <Card className="venda-card venda-gasmais-card venda-tone-cliente border-primary/20 bg-card/95">
       <CardContent className="p-3 md:p-4">
         <div className="grid gap-3 md:grid-cols-2">
-          <div>
+          <div className="py-[8px]">
             <Label className="text-xs text-muted-foreground flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               Data de Entrega
