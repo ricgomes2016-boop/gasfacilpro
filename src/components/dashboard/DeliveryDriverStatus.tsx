@@ -42,19 +42,19 @@ export function DeliveryDriverStatus() {
   ];
 
   return (
-    <Card>
+    <Card className="w-full min-w-0 border-border/60 shadow-sm">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
+        <CardTitle className="flex min-w-0 items-center gap-2 text-base">
           <Truck className="h-4 w-4" /> Entregadores ({data?.total ?? 0})
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid min-w-0 grid-cols-3 gap-2">
           {items.map((item) => (
-            <div key={item.label} className="text-center">
+            <div key={item.label} className="min-w-0 rounded-lg border border-border/60 bg-muted/20 p-3 text-center">
               <item.icon className={`h-5 w-5 mx-auto mb-1 ${item.color}`} />
               <p className="text-2xl font-bold">{item.value}</p>
-              <p className="text-xs text-muted-foreground">{item.label}</p>
+              <p className="truncate text-xs text-muted-foreground">{item.label}</p>
             </div>
           ))}
         </div>
