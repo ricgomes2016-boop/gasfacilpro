@@ -378,6 +378,44 @@
     text-rendering: optimizeLegibility;
   }
 
+  .venda-dashboard-shell .venda-card,
+  .venda-dashboard-shell .venda-card h1,
+  .venda-dashboard-shell .venda-card h2,
+  .venda-dashboard-shell .venda-card h3,
+  .venda-dashboard-shell .venda-card p,
+  .venda-dashboard-shell .venda-card span,
+  .venda-dashboard-shell .venda-card label,
+  .venda-dashboard-shell .venda-card th,
+  .venda-dashboard-shell .venda-card td,
+  .venda-dashboard-shell .venda-card .text-foreground,
+  .venda-dashboard-shell .venda-card .text-foreground\/80,
+  .venda-dashboard-shell .venda-card .text-muted-foreground,
+  .venda-dashboard-shell .venda-card .text-primary,
+  .venda-dashboard-shell .venda-gasmais-card,
+  .venda-dashboard-shell .venda-gasmais-card .text-muted-foreground,
+  .venda-dashboard-shell .venda-gasmais-card .text-primary {
+    color: hsl(var(--venda-glass) / 0.94) !important;
+  }
+
+  .venda-dashboard-shell .venda-card .text-muted-foreground,
+  .venda-dashboard-shell .venda-card [class*="text-muted-foreground"],
+  .venda-dashboard-shell .venda-gasmais-card .text-muted-foreground {
+    color: hsl(var(--venda-glass) / 0.72) !important;
+  }
+
+  .venda-dashboard-shell .venda-card input,
+  .venda-dashboard-shell .venda-card textarea,
+  .venda-dashboard-shell .venda-card button[role="combobox"] {
+    border-color: hsl(var(--venda-glass) / 0.36) !important;
+    background-color: hsl(var(--venda-glass) / 0.92) !important;
+    color: hsl(222 47% 11%) !important;
+  }
+
+  .venda-dashboard-shell .venda-card input::placeholder,
+  .venda-dashboard-shell .venda-card textarea::placeholder {
+    color: hsl(222 20% 38% / 0.72) !important;
+  }
+
   .venda-tone-cliente .venda-card input:focus-visible,
   .venda-tone-cliente .venda-card textarea:focus-visible,
   .venda-tone-cliente .venda-card button[role="combobox"]:focus-visible,
