@@ -93,7 +93,7 @@ export function StatCard({
     return (
       <div
         className={cn(
-          "group relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
+          "group relative flex h-full min-h-[148px] min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
           t.ring
         )}
       >
@@ -104,16 +104,16 @@ export function StatCard({
             t.glow
           )}
         />
-        <div className="relative flex items-start justify-between gap-3">
-          <div className="min-w-0">
+        <div className="relative flex w-full min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {title}
             </p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+            <p className="mt-2 break-words text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl">
               {value}
             </p>
             {subtitle && (
-              <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+              <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{subtitle}</p>
             )}
             {trend && (
               <span
@@ -151,16 +151,16 @@ export function StatCard({
   // Hero tile (translucent on orange gradient) — GásMais inside hero
   if (isGasmais && onHero) {
     return (
-      <div className="rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 p-4 transition-all hover:bg-white/15">
+      <div className="flex h-full min-h-[132px] min-w-0 flex-col rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 p-4 transition-all hover:bg-white/15">
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 mb-3">
           <Icon className="h-4 w-4 text-white" />
         </div>
-        <p className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-none">
+        <p className="break-words text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight">
           {value}
         </p>
-        <p className="mt-2 text-sm font-medium text-white/90">{title}</p>
+        <p className="mt-2 text-sm font-medium text-white/90 line-clamp-2">{title}</p>
         {subtitle && (
-          <p className="text-xs text-white/60 mt-0.5">{subtitle}</p>
+          <p className="text-xs text-white/60 mt-0.5 line-clamp-2">{subtitle}</p>
         )}
       </div>
     );
@@ -168,13 +168,13 @@ export function StatCard({
 
   if (isGasmais) {
     return (
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:shadow-md">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+      <div className="flex h-full min-h-[148px] min-w-0 rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:shadow-md">
+        <div className="flex w-full min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {title}
             </p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+            <p className="mt-2 break-words text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl">
               {value}
             </p>
             {trend && (
