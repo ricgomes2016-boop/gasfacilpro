@@ -65,6 +65,21 @@ const initialCustomerData: CustomerData = {
 const DRAFT_KEY = "nova-venda-rascunho";
 const VIEW_KEY = "nova-venda-view-mode";
 type VendaStepId = "cliente" | "produtos" | "pagamento" | "entregador" | "confirmar";
+const VENDA_STEPS: VendaStepId[] = ["cliente", "produtos", "pagamento", "entregador", "confirmar"];
+
+function getSavedViewMode() {
+  try {
+    return localStorage.getItem(VIEW_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveViewMode(useNewView: boolean) {
+  try {
+    localStorage.setItem(VIEW_KEY, useNewView ? "new" : "old");
+  } catch {}
+}
 
 function saveDraft(data: { customer: CustomerData; itens: ItemVenda[]; pagamentos: Pagamento[]; canalVenda: string; entregador: { id: string | null; nome: string | null } }) {
   try {
@@ -188,8 +203,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [pendingReceiptData, setPendingReceiptData] = useState<any>(null);
   const [useNewView, setUseNewView] = useState(() => {
-    const saved = localStorage.getItem(VIEW_KEY);
-    return saved ? saved === "new" : false;
+    const saved = getSavedViewMode();
+    return saved ? saved === "new" : isGasmais;
   });
   const [activeStep, setActiveStep] = useState<VendaStepId>("cliente");
   const recognitionRef = useRef<any>(null);
@@ -198,7 +213,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const draftLoaded = useRef(false);
 
   useEffect(() => {
-    if (!localStorage.getItem(VIEW_KEY) && isGasmais) setUseNewView(true);
+    if (!getSavedViewMode() && isGasmais) setUseNewView(true);
   }, [isGasmais]);
 
   // #5 - Load draft on mount
