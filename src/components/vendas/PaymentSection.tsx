@@ -40,15 +40,15 @@ interface PaymentSectionProps {
 }
 
 const formasPagamento = [
-  { value: "dinheiro", label: "Dinheiro", icon: "💵", Icon: Banknote, tone: "bg-success/15 text-success ring-success/20" },
-  { value: "pix", label: "PIX", icon: "📱", Icon: Smartphone, tone: "bg-success/15 text-success ring-success/20" },
-  { value: "pix_maquininha", label: "PIX Maquininha", icon: "📱", Icon: CreditCard, tone: "bg-accent/15 text-accent-foreground ring-accent/25" },
-  { value: "cartao_debito", label: "Cartão Débito", icon: "💳", Icon: WalletCards, tone: "bg-primary/15 text-primary ring-primary/20" },
-  { value: "cartao_credito", label: "Cartão Crédito", icon: "💳", Icon: CreditCard, tone: "bg-warning/15 text-warning ring-warning/20" },
-  { value: "boleto", label: "Boleto", icon: "📄", Icon: FileText, tone: "bg-muted text-foreground ring-border" },
-  { value: "vale_gas", label: "Vale Gás", icon: "🔥", Icon: Flame, tone: "bg-destructive/15 text-destructive ring-destructive/20" },
-  { value: "cheque", label: "Cheque", icon: "🧾", Icon: ReceiptText, tone: "bg-secondary text-secondary-foreground ring-border" },
-  { value: "fiado", label: "Fiado / A Prazo", icon: "📝", Icon: AlertCircle, tone: "bg-warning/15 text-warning ring-warning/20" },
+  { value: "dinheiro", label: "Dinheiro", icon: "💵", Icon: Banknote, tone: "bg-success/15 text-success ring-success/25", cardTone: "border-success/25 bg-success/5 hover:border-success/45 hover:bg-success/10", selectedTone: "border-success bg-success/15 text-success ring-success/30", valueTone: "text-success" },
+  { value: "pix", label: "PIX", icon: "📱", Icon: Smartphone, tone: "bg-success/15 text-success ring-success/25", cardTone: "border-success/25 bg-success/5 hover:border-success/45 hover:bg-success/10", selectedTone: "border-success bg-success/15 text-success ring-success/30", valueTone: "text-success" },
+  { value: "pix_maquininha", label: "PIX Maquininha", icon: "📱", Icon: CreditCard, tone: "bg-accent/15 text-accent ring-accent/25", cardTone: "border-accent/25 bg-accent/5 hover:border-accent/45 hover:bg-accent/10", selectedTone: "border-accent bg-accent/15 text-accent ring-accent/30", valueTone: "text-accent" },
+  { value: "cartao_debito", label: "Cartão Débito", icon: "💳", Icon: WalletCards, tone: "bg-primary/15 text-primary ring-primary/25", cardTone: "border-primary/25 bg-primary/5 hover:border-primary/45 hover:bg-primary/10", selectedTone: "border-primary bg-primary/15 text-primary ring-primary/30", valueTone: "text-primary" },
+  { value: "cartao_credito", label: "Cartão Crédito", icon: "💳", Icon: CreditCard, tone: "bg-warning/15 text-warning ring-warning/25", cardTone: "border-warning/25 bg-warning/5 hover:border-warning/45 hover:bg-warning/10", selectedTone: "border-warning bg-warning/15 text-warning ring-warning/30", valueTone: "text-warning" },
+  { value: "boleto", label: "Boleto", icon: "📄", Icon: FileText, tone: "bg-muted text-foreground ring-border", cardTone: "border-border bg-muted/25 hover:border-primary/35 hover:bg-muted/45", selectedTone: "border-primary bg-primary/10 text-primary ring-primary/25", valueTone: "text-foreground" },
+  { value: "vale_gas", label: "Vale Gás", icon: "🔥", Icon: Flame, tone: "bg-destructive/15 text-destructive ring-destructive/25", cardTone: "border-destructive/25 bg-destructive/5 hover:border-destructive/45 hover:bg-destructive/10", selectedTone: "border-destructive bg-destructive/15 text-destructive ring-destructive/30", valueTone: "text-destructive" },
+  { value: "cheque", label: "Cheque", icon: "🧾", Icon: ReceiptText, tone: "bg-secondary text-secondary-foreground ring-border", cardTone: "border-secondary bg-secondary/45 hover:border-primary/35 hover:bg-secondary/70", selectedTone: "border-primary bg-primary/10 text-primary ring-primary/25", valueTone: "text-secondary-foreground" },
+  { value: "fiado", label: "Fiado / A Prazo", icon: "📝", Icon: AlertCircle, tone: "bg-warning/15 text-warning ring-warning/25", cardTone: "border-warning/25 bg-warning/5 hover:border-warning/45 hover:bg-warning/10", selectedTone: "border-warning bg-warning/15 text-warning ring-warning/30", valueTone: "text-warning" },
   
 ];
 
@@ -201,6 +201,10 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
     return formasPagamento.find((f) => f.value === formaValue)?.icon || "💰";
   };
 
+  const getFormaConfig = (formaValue: string) => {
+    return formasPagamento.find((f) => f.value === formaValue) || formasPagamento[0];
+  };
+
   const handleFormaChange = (value: string) => {
     setForma(value);
     resetExtraFields();
@@ -242,13 +246,21 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
           {/* Lista de pagamentos adicionados */}
           {pagamentos.length > 0 && (
             <div className="space-y-2">
-              {pagamentos.map((pag) => (
+              {pagamentos.map((pag) => {
+                const formaConfig = getFormaConfig(pag.forma);
+                const Icon = formaConfig.Icon;
+                return (
                 <div
                   key={pag.id}
-                  className="venda-modern-surface flex items-center justify-between gap-3 rounded-lg border p-3 shadow-sm"
+                  className={cn(
+                    "flex items-center justify-between gap-3 rounded-lg border p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
+                    formaConfig.cardTone
+                  )}
                 >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="text-lg">{getFormaIcon(pag.forma)}</span>
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1", formaConfig.tone)}>
+                      <Icon className="h-5 w-5" />
+                    </span>
                     <div className="min-w-0">
                       <span className="font-medium text-sm">{getFormaLabel(pag.forma)}</span>
                       {pag.cheque_numero && (
@@ -268,23 +280,24 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
                         <img src={pag.cheque_foto_url} alt="Cheque" className="h-6 w-8 rounded object-cover border" />
                       </a>
                     )}
-                    <span className="font-semibold">R$ {pag.valor.toFixed(2)}</span>
+                    <span className={cn("font-semibold", formaConfig.valueTone)}>R$ {pag.valor.toFixed(2)}</span>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      className="h-7 w-7 text-destructive hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => removePagamento(pag.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
           {/* Adicionar novo pagamento */}
-          <div className="venda-modern-surface rounded-lg border p-3 shadow-sm space-y-3">
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 shadow-sm shadow-primary/10 space-y-3">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9">
               {formasPagamento.map((fp) => {
                 const Icon = fp.Icon;
@@ -296,14 +309,15 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
                     aria-pressed={selected}
                     onClick={() => handleFormaChange(fp.value)}
                     className={cn(
-                      "venda-payment-shortcut flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-lg border bg-background p-2 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
-                      selected && "border-primary bg-primary/10 text-primary shadow-md ring-2 ring-primary/25"
+                      "venda-payment-shortcut flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-lg border p-2 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                      fp.cardTone,
+                      selected && cn("shadow-md ring-2", fp.selectedTone)
                     )}
                   >
                     <span className={cn("flex h-10 w-10 items-center justify-center rounded-lg ring-1", fp.tone)}>
                       <Icon className="h-5 w-5" />
                     </span>
-                    <span className="text-[11px] font-bold leading-tight text-foreground">{fp.label}</span>
+                    <span className={cn("text-[11px] font-bold leading-tight", selected ? fp.valueTone : "text-foreground")}>{fp.label}</span>
                   </button>
                 );
               })}
@@ -336,7 +350,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
                   data-venda-enter-next
                 />
               </div>
-              <Button onClick={addPagamento} size="icon" className="h-11 w-11 shrink-0 shadow-sm">
+              <Button onClick={addPagamento} size="icon" className="h-11 w-11 shrink-0 bg-primary text-primary-foreground shadow-md shadow-primary/25 hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30">
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
