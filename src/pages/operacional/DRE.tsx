@@ -380,7 +380,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
           </div>
 
           <div className="md:hidden w-full min-w-0 max-w-full divide-y divide-border/60 overflow-hidden">
-            {dre.map((item, index) => {
+            {dreExibida.map((item, index) => {
               const total = item.valores.reduce((s, v) => s + v, 0);
               const av = totalReceita > 0 ? (total / totalReceita) * 100 : 0;
               const isSubtotal = item.tipo === "subtotal";
@@ -388,26 +388,28 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
               const isNegative = total < 0;
 
               return (
-                <div key={index} className={`${isResultado ? "bg-primary/10" : isSubtotal ? "bg-muted/45" : "bg-card"} p-3 min-w-0`}>
-                  <div className="flex min-w-0 items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
+                <div key={index} className={`${isResultado ? "bg-primary/10" : isSubtotal ? "bg-muted/45" : "bg-card"} p-3 min-w-0 max-w-full overflow-hidden`}>
+                  <div className="grid min-w-0 grid-cols-1 gap-2 min-[390px]:grid-cols-[minmax(0,1fr)_auto] min-[390px]:items-start">
+                    <div className="min-w-0">
                       <p className={`break-words leading-snug ${item.indent && !isSubtotal ? "pl-2 text-muted-foreground" : ""} ${isSubtotal || isResultado ? "text-xs font-bold uppercase tracking-wide" : "text-sm font-semibold"} ${isResultado ? "text-primary" : ""}`}>
                         {item.categoria}
                       </p>
-                      <p className="mt-1 text-[11px] text-muted-foreground">AV {Math.abs(av).toFixed(1)}%</p>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Acumulado</p>
-                      <p className={`text-sm font-bold tabular-nums ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-green-600" : ""}`}>
+                    <div className="min-w-0 rounded-md border border-border/60 bg-background/35 px-2.5 py-2 text-left min-[390px]:w-[132px] min-[390px]:text-right">
+                      <div className="flex items-center justify-between gap-2 min-[390px]:block">
+                        <p className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Acumulado</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">AV {formatPercent(av)}</p>
+                      </div>
+                      <p className={`mt-1 break-words text-sm font-bold tabular-nums ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-green-600" : ""}`}>
                         {formatCurrency(total)}
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 min-[390px]:grid-cols-3">
+                  <div className="mt-3 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 min-[390px]:grid-cols-3">
                     {item.valores.map((v, i) => (
-                      <div key={`${item.categoria}-${meses[i]}`} className="min-w-0 rounded-md border border-border/70 bg-background/45 px-2 py-1.5">
-                        <p className="text-[10px] font-semibold uppercase text-muted-foreground">{meses[i]}</p>
-                        <p className={`truncate text-xs font-semibold tabular-nums ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-green-600" : ""}`}>
+                      <div key={`${item.categoria}-${mesesExibidos[i]}`} className="min-w-0 max-w-full rounded-md border border-border/70 bg-background/45 px-2 py-1.5">
+                        <p className="text-[10px] font-semibold uppercase text-muted-foreground">{mesesExibidos[i]}</p>
+                        <p className={`break-words text-[11px] font-semibold tabular-nums leading-snug min-[390px]:text-xs ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-green-600" : ""}`}>
                           {formatCurrency(v)}
                         </p>
                       </div>
@@ -430,7 +432,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
               <XAxis dataKey="mes" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
               <YAxis tickFormatter={v => `${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
               <Tooltip
-                formatter={(value: number) => [`R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, "Resultado"]}
+                formatter={(value: number) => [formatCurrency(value), "Resultado"]}
                 contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: 12 }}
               />
               <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
