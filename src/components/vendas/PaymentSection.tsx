@@ -201,6 +201,10 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
     return formasPagamento.find((f) => f.value === formaValue)?.icon || "💰";
   };
 
+  const getFormaConfig = (formaValue: string) => {
+    return formasPagamento.find((f) => f.value === formaValue) || formasPagamento[0];
+  };
+
   const handleFormaChange = (value: string) => {
     setForma(value);
     resetExtraFields();
@@ -242,13 +246,21 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
           {/* Lista de pagamentos adicionados */}
           {pagamentos.length > 0 && (
             <div className="space-y-2">
-              {pagamentos.map((pag) => (
+              {pagamentos.map((pag) => {
+                const formaConfig = getFormaConfig(pag.forma);
+                const Icon = formaConfig.Icon;
+                return (
                 <div
                   key={pag.id}
-                  className="venda-modern-surface flex items-center justify-between gap-3 rounded-lg border p-3 shadow-sm"
+                  className={cn(
+                    "flex items-center justify-between gap-3 rounded-lg border p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
+                    formaConfig.cardTone
+                  )}
                 >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="text-lg">{getFormaIcon(pag.forma)}</span>
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1", formaConfig.tone)}>
+                      <Icon className="h-5 w-5" />
+                    </span>
                     <div className="min-w-0">
                       <span className="font-medium text-sm">{getFormaLabel(pag.forma)}</span>
                       {pag.cheque_numero && (
@@ -268,18 +280,19 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
                         <img src={pag.cheque_foto_url} alt="Cheque" className="h-6 w-8 rounded object-cover border" />
                       </a>
                     )}
-                    <span className="font-semibold">R$ {pag.valor.toFixed(2)}</span>
+                    <span className={cn("font-semibold", formaConfig.valueTone)}>R$ {pag.valor.toFixed(2)}</span>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      className="h-7 w-7 text-destructive hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => removePagamento(pag.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
