@@ -309,15 +309,16 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
                     aria-pressed={selected}
                     onClick={() => handleFormaChange(fp.value)}
                     className={cn(
-                      "venda-payment-shortcut flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-lg border p-2 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                      fp.cardTone,
-                      selected && cn("shadow-md ring-2", fp.selectedTone)
+                      "venda-payment-shortcut group flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-transparent p-2 text-center shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+                      fp.quickTone,
+                      fp.quickRing,
+                      selected && "ring-2 ring-offset-2"
                     )}
                   >
-                    <span className={cn("flex h-10 w-10 items-center justify-center rounded-lg ring-1", fp.tone)}>
-                      <Icon className="h-5 w-5" />
+                    <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-foreground/15 ring-1 ring-primary-foreground/25">
+                      <Icon className="h-5 w-5 drop-shadow-sm" strokeWidth={2.25} />
                     </span>
-                    <span className={cn("text-[11px] font-bold leading-tight", selected ? fp.valueTone : "text-foreground")}>{fp.label}</span>
+                    <span className="text-[11px] font-bold leading-tight text-center">{fp.label}</span>
                   </button>
                 );
               })}
