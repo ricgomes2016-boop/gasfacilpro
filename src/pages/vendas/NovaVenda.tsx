@@ -36,6 +36,7 @@ import { PaymentSection, Pagamento } from "@/components/vendas/PaymentSection";
 import { OrderSummary } from "@/components/vendas/OrderSummary";
 import { CustomerHistory } from "@/components/vendas/CustomerHistory";
 import { DeliveryPersonSelect } from "@/components/vendas/DeliveryPersonSelect";
+import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 
 interface CustomerData {
   id: string | null;
@@ -62,6 +63,8 @@ const initialCustomerData: CustomerData = {
 };
 
 const DRAFT_KEY = "nova-venda-rascunho";
+const VIEW_KEY = "nova-venda-view-mode";
+type VendaStepId = "cliente" | "produtos" | "pagamento" | "entregador" | "confirmar";
 
 function saveDraft(data: { customer: CustomerData; itens: ItemVenda[]; pagamentos: Pagamento[]; canalVenda: string; entregador: { id: string | null; nome: string | null } }) {
   try {
@@ -82,18 +85,26 @@ function clearDraft() {
 }
 
 // Stepper component
-function VendaStepper({ customer, itens, pagamentos, totalVenda }: {
+function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelecionado = false, activeStep, onStepClick, compact = false }: {
   customer: CustomerData;
   itens: ItemVenda[];
   pagamentos: Pagamento[];
   totalVenda: number;
+  entregadorSelecionado?: boolean;
+  activeStep?: VendaStepId;
+  onStepClick?: (step: VendaStepId) => void;
+  compact?: boolean;
 }) {
   const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
-  const steps = [
-    { label: "Cliente", done: !!customer.nome, icon: User },
-    { label: "Produtos", done: itens.length > 0, icon: PackageIcon },
-    { label: "Pagamento", done: totalPago >= totalVenda && totalVenda > 0, icon: CreditCard },
-    { label: "Confirmar", done: totalPago >= totalVenda && totalVenda > 0 && itens.length > 0, icon: CheckCircle },
+  const clienteOk = !!customer.nome.trim();
+  const produtosOk = itens.length > 0;
+  const pagamentoOk = totalPago >= totalVenda && totalVenda > 0;
+  const steps: Array<{ id: VendaStepId; label: string; done: boolean; enabled: boolean; icon: typeof User }> = [
+    { id: "cliente", label: "Cliente", done: clienteOk, enabled: true, icon: User },
+    { id: "produtos", label: "Produtos", done: produtosOk, enabled: clienteOk, icon: PackageIcon },
+    { id: "pagamento", label: "Pagamento", done: pagamentoOk, enabled: clienteOk && produtosOk, icon: CreditCard },
+    { id: "entregador", label: "Entregador", done: entregadorSelecionado, enabled: clienteOk && produtosOk && pagamentoOk, icon: ShoppingBag },
+    { id: "confirmar", label: "Confirmar", done: pagamentoOk && produtosOk, enabled: clienteOk && produtosOk && pagamentoOk && entregadorSelecionado, icon: CheckCircle },
   ];
 
   return (
@@ -102,13 +113,24 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda }: {
         const Icon = step.icon;
         return (
           <div key={step.label} className="flex items-center gap-1 flex-1">
-            <div className={cn(
-              "flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium transition-colors",
-              step.done ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
-            )}>
+            <button
+              type="button"
+              disabled={!step.enabled || !onStepClick}
+              onClick={() => onStepClick?.(step.id)}
+              className={cn(
+                "flex items-center gap-1.5 rounded-full text-xs font-medium transition-colors disabled:cursor-not-allowed",
+                compact ? "px-2 py-1" : "px-2.5 py-1.5",
+                activeStep === step.id
+                  ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+                  : step.done
+                  ? "bg-primary/15 text-primary"
+                  : "bg-muted text-muted-foreground",
+                step.enabled && onStepClick && activeStep !== step.id && "hover:bg-primary/10"
+              )}
+            >
               {step.done ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
               <span className="hidden sm:inline">{step.label}</span>
-            </div>
+            </button>
             {i < steps.length - 1 && (
               <div className={cn("h-0.5 flex-1 rounded", step.done ? "bg-primary/30" : "bg-muted")} />
             )}
