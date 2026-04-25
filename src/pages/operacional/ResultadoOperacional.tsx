@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,10 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Settings2, FileDown, Printer } from "lucide-react";
+import { AlertTriangle, Loader2, Settings2, FileDown, Printer } from "lucide-react";
 import { exportROtoPdf, handlePrint } from "@/services/reportPdfService";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -52,8 +53,11 @@ const grupoLabels: Record<string, string> = {
 
 export default function ResultadoOperacional({ embedded = false }: { embedded?: boolean }) {
   const { unidadeAtual } = useUnidade();
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const custosTableRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
+  const [custosWidthInsufficient, setCustosWidthInsufficient] = useState(false);
   const now = new Date();
   const [mesSelecionado, setMesSelecionado] = useState(String(now.getMonth()));
   const [anoSelecionado, setAnoSelecionado] = useState(String(now.getFullYear()));
@@ -63,6 +67,33 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
   const [precoVendaP13, setPrecoVendaP13] = useState(0);
 
   useEffect(() => { fetchData(); }, [unidadeAtual, mesSelecionado, anoSelecionado]);
+
+  useEffect(() => {
+    if (!isMobile) {
+      setCustosWidthInsufficient(false);
+      return;
+    }
+
+    const root = custosTableRef.current;
+    if (!root) return;
+
+    const checkOverflow = () => {
+      const fields = Array.from(root.querySelectorAll<HTMLElement>("[data-cost-overflow-check='true']"));
+      const hasOverflow = fields.some((field) => field.scrollWidth > field.clientWidth + 1);
+      setCustosWidthInsufficient(hasOverflow);
+    };
+
+    const frame = requestAnimationFrame(checkOverflow);
+    const observer = new ResizeObserver(checkOverflow);
+    observer.observe(root);
+    window.addEventListener("resize", checkOverflow);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("resize", checkOverflow);
+    };
+  }, [isMobile, custos]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -309,9 +340,15 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
               <CardTitle className="text-xs font-bold uppercase tracking-widest">Custos / Despesas</CardTitle>
               <span className="text-xs font-bold">Valores</span>
             </div>
+            {custosWidthInsufficient && (
+              <div className="mt-2 flex items-start gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-1.5 text-[10px] leading-snug text-muted-foreground">
+                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-destructive" />
+                <span>Largura insuficiente no celular: alguns nomes ou valores podem precisar de mais espaço.</span>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="p-0 min-w-0 max-w-full overflow-hidden">
-            <div className="w-full min-w-0 max-w-full overflow-visible">
+            <div ref={custosTableRef} className="w-full min-w-0 max-w-full overflow-visible">
               <Table className="w-full table-auto">
                 <TableBody>
                   {custosAgrupados.map((grupo, gi) => (
@@ -321,13 +358,13 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                           <TableCell className="py-1.5 pl-2 pr-1.5 sm:px-3 text-xs border-r align-top">
                             <div className="flex items-start gap-1.5 min-w-0">
                               <span className="shrink-0 text-muted-foreground w-4 text-right text-[10px]">{gi * 10 + ci + 1}</span>
-                              <span className="min-w-0 break-words leading-snug">{c.nome}</span>
+                              <span data-cost-overflow-check="true" className="min-w-0 break-words leading-snug">{c.nome}</span>
                               {c.valorReal > 0 && (
                                 <span className="text-[9px] text-green-600 bg-green-500/10 px-1 rounded">auto</span>
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className={`w-[118px] sm:w-[132px] py-1.5 pl-1.5 pr-2 sm:px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${c.valor > 0 ? "" : "text-muted-foreground"}`}>
+                          <TableCell data-cost-overflow-check="true" className={`w-[118px] sm:w-[132px] py-1.5 pl-1.5 pr-2 sm:px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${c.valor > 0 ? "" : "text-muted-foreground"}`}>
                             {c.valor > 0 ? `R$ ${fmt(c.valor)}` : "—"}
                           </TableCell>
                         </TableRow>
