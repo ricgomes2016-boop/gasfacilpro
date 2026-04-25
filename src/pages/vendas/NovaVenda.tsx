@@ -911,6 +911,71 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     loadCliente();
   }, [initialClienteId, embedded]);
 
+  const metaCard = (
+    <Card className="venda-card border-primary/20 bg-card/95">
+      <CardContent className="p-3 md:p-4">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              Data de Entrega
+            </Label>
+            <Input type="date" value={dataEntrega} onChange={(e) => setDataEntrega(e.target.value)} className="mt-1" />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Canal de Venda</Label>
+            <Select value={canalVenda} onValueChange={setCanalVenda}>
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {allChannels.map((ch) => (
+                  <SelectItem key={ch.value} value={ch.value}>{ch.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const aiCommandCard = (
+    <Card className="venda-card border-primary/40 bg-primary/5 shadow-primary/10">
+      <CardContent className="py-3 md:py-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Sparkles className="h-5 w-5 text-primary shrink-0" />
+          <Input
+            placeholder='Ex: "2 P13 para Maria, Rua Ceará 30, Centro"'
+            value={aiCommand}
+            onChange={(e) => setAiCommand(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !aiLoading && handleAiCommand()}
+            className="bg-background flex-1 min-w-0"
+            disabled={aiLoading || isListening}
+          />
+          <div className="flex items-center gap-1">
+            <Button variant={isListening ? "destructive" : "outline"} size="icon" onClick={isListening ? stopListening : startListening} disabled={aiLoading} className={`shrink-0 h-9 w-9 ${isListening ? "animate-pulse" : ""}`} title={isListening ? "Parar gravação" : "Comando por voz"}>
+              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => photoInputRef.current?.click()} disabled={aiLoading || photoLoading} className="shrink-0 h-9 w-9" title="Lançar vendas por foto">
+              {photoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => cameraInputRef.current?.click()} disabled={aiLoading || photoLoading} className="shrink-0 h-9 w-9" title="Tirar foto da anotação">
+              {photoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+            </Button>
+            <Button id="ai-send-btn" onClick={handleAiCommand} disabled={aiLoading || !aiCommand.trim()} size="sm" className="shrink-0 gap-1">
+              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              <span className="hidden sm:inline">{aiLoading ? "..." : "Enviar"}</span>
+            </Button>
+          </div>
+        </div>
+        <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
+        <p className="text-xs text-muted-foreground mt-2 ml-7">
+          {photoLoading ? "📸 Processando foto..." : isListening ? "🔴 Ouvindo... Fale o comando." : "💡 Digite, 🎤 dite, ou 📷 tire foto de anotações."}
+        </p>
+      </CardContent>
+    </Card>
+  );
+
   const vendaContent = (
     <>
       <div className="p-3 md:p-4 space-y-3 md:space-y-4">
