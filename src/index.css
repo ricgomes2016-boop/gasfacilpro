@@ -649,6 +649,32 @@
     box-shadow: 0 12px 20px -16px hsl(var(--venda-tone) / 0.85);
   }
 
+  .venda-dashboard-shell .venda-product-shortcut:hover,
+  .venda-dashboard-shell .venda-payment-shortcut:hover,
+  .venda-dashboard-shell .venda-payment-shortcut[aria-pressed="true"],
+  .venda-dashboard-shell .venda-modern-surface:hover {
+    border-color: hsl(var(--venda-glass) / 0.45) !important;
+    background-color: hsl(var(--venda-glass) / 0.18) !important;
+    box-shadow: inset 0 1px 0 hsl(var(--venda-glass) / 0.16), 0 18px 34px -22px hsl(0 0% 0% / 0.42) !important;
+  }
+
+  .venda-dashboard-shell .venda-product-shortcut .bg-primary\/10,
+  .venda-dashboard-shell .venda-payment-shortcut .bg-primary\/10,
+  .venda-dashboard-shell .venda-card .bg-primary\/10,
+  .venda-dashboard-shell .venda-card .bg-primary\/12,
+  .venda-dashboard-shell .venda-card .bg-muted\/20,
+  .venda-dashboard-shell .venda-card .bg-muted\/30,
+  .venda-dashboard-shell .venda-card .bg-muted\/50,
+  .venda-dashboard-shell .venda-card .bg-muted\/60,
+  .venda-dashboard-shell .venda-card .bg-background {
+    background-color: hsl(var(--venda-glass) / 0.14) !important;
+  }
+
+  .venda-dashboard-shell .venda-card table thead tr,
+  .venda-dashboard-shell .venda-card table tbody tr:hover {
+    background-color: hsl(var(--venda-glass) / 0.12) !important;
+  }
+
   .venda-product-shortcut:focus-visible,
   .venda-payment-shortcut:focus-visible {
     outline: 2px solid hsl(var(--venda-tone));
