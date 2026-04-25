@@ -98,20 +98,20 @@ export function QuickActions() {
   const navigate = useNavigate();
 
   return (
-    <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
+    <Card className="w-full min-w-0 max-w-full border-border/50 bg-card/80 backdrop-blur-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold">⚡ Acesso Rápido</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-5 sm:grid-cols-5 md:grid-cols-10 gap-3">
+        <div className="grid w-full min-w-0 grid-cols-2 gap-3 xs:grid-cols-3 sm:grid-cols-5 lg:grid-cols-10">
           {actions.map((a) => (
             <button
               key={a.path}
               onClick={() => navigate(a.path)}
-              className={`group flex flex-col items-center gap-1.5 rounded-xl p-3 shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2 ${a.bg} ${a.ring}`}
+              className={`group flex min-h-[82px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl p-3 shadow-lg transition-all duration-200 hover:scale-[1.03] hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2 ${a.bg} ${a.ring}`}
             >
               <a.icon className="h-5 w-5 drop-shadow-sm" strokeWidth={2.25} />
-              <span className="text-[10px] sm:text-[11px] font-semibold leading-tight text-center tracking-tight">
+              <span className="line-clamp-2 text-center text-[10px] font-semibold leading-tight tracking-tight sm:text-[11px]">
                 {a.label}
               </span>
             </button>
