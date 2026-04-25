@@ -263,7 +263,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
           value={totalLucro}
           icon={totalLucro >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
           color={totalLucro >= 0 ? "green" : "red"}
-          badge={variacao !== 0 ? `${variacao > 0 ? "+" : ""}${variacao.toFixed(1)}%` : undefined}
+          badge={variacao !== 0 ? `${variacao > 0 ? "+" : ""}${variacao.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%` : undefined}
         />
         <KPICard
           label="Margem Líquida"
@@ -474,8 +474,8 @@ function KPICard({ label, value, icon, color, isPercent, badge }: {
   const c = colorMap[color];
 
   const display = isPercent
-    ? `${value.toFixed(1)}%`
-    : `${(Math.abs(value) / 1000).toFixed(1)}k`;
+    ? `${(Number.isFinite(value) ? value : 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
+    : `R$ ${(Math.abs(Number.isFinite(value) ? value : 0) / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}k`;
 
   return (
     <Card className="relative overflow-hidden min-w-0">
