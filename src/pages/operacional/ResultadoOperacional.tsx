@@ -195,42 +195,42 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
   }
 
   const content = (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full min-w-0 max-w-full overflow-hidden">
       {/* Header / Filtros */}
-      <div className="flex flex-wrap gap-3 items-center">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-bold tracking-tight uppercase">Resultado Operacional</h2>
-          <Badge variant="secondary" className="font-semibold text-sm">{mesLabel}</Badge>
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center w-full min-w-0">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          <h2 className="text-base sm:text-lg font-bold tracking-tight uppercase leading-tight">Resultado Operacional</h2>
+          <Badge variant="secondary" className="font-semibold text-xs sm:text-sm max-w-full truncate">{mesLabel}</Badge>
         </div>
-        <div className="flex gap-2 ml-auto items-center">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:ml-auto sm:items-center w-full sm:w-auto min-w-0">
           <Select value={mesSelecionado} onValueChange={setMesSelecionado}>
-            <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="Mês" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-36 h-10 sm:h-8 text-xs min-w-0"><SelectValue placeholder="Mês" /></SelectTrigger>
             <SelectContent>
               {mesesOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={anoSelecionado} onValueChange={setAnoSelecionado}>
-            <SelectTrigger className="w-24 h-8 text-xs"><SelectValue placeholder="Ano" /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-24 h-10 sm:h-8 text-xs min-w-0"><SelectValue placeholder="Ano" /></SelectTrigger>
             <SelectContent>
               {[2024, 2025, 2026].map(a => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => navigate("/config/categorias-despesa")}>
+          <Button variant="ghost" size="sm" className="h-10 sm:h-8 text-xs min-w-0" onClick={() => navigate("/config/categorias-despesa")}>
             <Settings2 className="h-3.5 w-3.5 mr-1" /> Categorias
           </Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => exportROtoPdf(receitaBruta, custoMatPrima, lucroBruto, lucroLiquido, totalCustos, custosAgrupados, canais, mesLabel)}>
+          <Button variant="outline" size="sm" className="h-10 sm:h-8 text-xs min-w-0" onClick={() => exportROtoPdf(receitaBruta, custoMatPrima, lucroBruto, lucroLiquido, totalCustos, custosAgrupados, canais, mesLabel)}>
             <FileDown className="h-3.5 w-3.5 mr-1" /> PDF
           </Button>
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={handlePrint}>
+          <Button variant="outline" size="sm" className="h-10 sm:h-8 text-xs min-w-0 col-span-2 sm:col-span-1" onClick={handlePrint}>
             <Printer className="h-3.5 w-3.5 mr-1" /> Imprimir
           </Button>
         </div>
       </div>
 
       {/* Layout principal: 2 colunas - Custos à esquerda, Canais à direita */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2 w-full min-w-0">
         {/* COLUNA ESQUERDA: Custos / Despesas */}
-        <Card className="border-border">
+        <Card className="border-border min-w-0 overflow-hidden">
           <CardHeader className="py-2 px-3 bg-muted/60 border-b">
             <div className="flex items-center justify-between">
               <CardTitle className="text-xs font-bold uppercase tracking-widest">Custos / Despesas</CardTitle>
@@ -238,8 +238,8 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="max-h-[600px] overflow-y-auto">
-              <Table>
+            <div className="max-h-[600px] overflow-auto">
+              <Table className="min-w-[420px]">
                 <TableBody>
                   {custosAgrupados.map((grupo, gi) => (
                     <> 
@@ -284,12 +284,13 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
         </Card>
 
         {/* COLUNA DIREITA: Canais de Venda */}
-        <Card className="border-border">
+        <Card className="border-border min-w-0 overflow-hidden">
           <CardHeader className="py-2 px-3 bg-muted/60 border-b">
             <CardTitle className="text-xs font-bold uppercase tracking-widest">Vendas por Canal</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
+            <div className="overflow-x-auto">
+            <Table className="min-w-[680px]">
               <TableHeader>
                 <TableRow className="bg-muted/30">
                   <TableHead className="py-1 px-2 text-[10px] font-bold uppercase">Canal</TableHead>
@@ -328,6 +329,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                 )}
               </TableBody>
             </Table>
+            </div>
 
             {/* Resumo abaixo dos canais */}
             <div className="border-t mt-2">
