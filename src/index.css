@@ -235,6 +235,35 @@
     color: hsl(var(--venda-tone-strong));
   }
 
+  .theme-gasmais .venda-tone-produtos .venda-card .bg-primary\/12,
+  .theme-gasmais .venda-tone-pagamento .venda-card .bg-primary\/12,
+  .theme-gasmais .venda-tone-entregador .venda-card .bg-primary\/12,
+  .theme-gasmais .venda-tone-confirmar .venda-card .bg-primary\/12 {
+    background-color: hsl(var(--venda-tone) / 0.14);
+    color: hsl(var(--venda-tone-strong));
+  }
+
+  .theme-gasmais .venda-tone-produtos .venda-card .text-primary,
+  .theme-gasmais .venda-tone-pagamento .venda-card .text-primary,
+  .theme-gasmais .venda-tone-entregador .venda-card .text-primary,
+  .theme-gasmais .venda-tone-confirmar .venda-card .text-primary {
+    color: hsl(var(--venda-tone-strong));
+  }
+
+  .theme-gasmais .venda-tone-produtos .venda-card .bg-primary,
+  .theme-gasmais .venda-tone-pagamento .venda-card .bg-primary,
+  .theme-gasmais .venda-tone-entregador .venda-card .bg-primary,
+  .theme-gasmais .venda-tone-confirmar .venda-card .bg-primary {
+    background: linear-gradient(135deg, hsl(var(--venda-tone)), hsl(var(--venda-tone-strong)));
+  }
+
+  .theme-gasmais .venda-tone-produtos .venda-card .border-primary,
+  .theme-gasmais .venda-tone-pagamento .venda-card .border-primary,
+  .theme-gasmais .venda-tone-entregador .venda-card .border-primary,
+  .theme-gasmais .venda-tone-confirmar .venda-card .border-primary {
+    border-color: hsl(var(--venda-tone) / 0.55);
+  }
+
   .gradient-primary {
     background: var(--gradient-primary);
   }
