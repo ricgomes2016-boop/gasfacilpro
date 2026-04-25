@@ -143,12 +143,6 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
     return safeValue < 0 ? `(${formatted})` : formatted;
   };
 
-  const formatCompactCurrency = (value: number) => {
-    const safeValue = Number.isFinite(value) ? value : 0;
-    const formatted = `R$ ${(Math.abs(safeValue) / 1000).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}k`;
-    return safeValue < 0 ? `-${formatted}` : formatted;
-  };
-
   const formatPercent = (value: number) => `${(Number.isFinite(value) ? Math.abs(value) : 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 
   const toggleMes = (mes: string) => {
