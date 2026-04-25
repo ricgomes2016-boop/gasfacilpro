@@ -349,9 +349,10 @@
   .theme-gasmais .venda-tone-confirmar .venda-card {
     position: relative;
     overflow: hidden;
-    border-color: hsl(var(--venda-tone) / 0.32);
-    background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.035) 100%);
-    box-shadow: 0 12px 26px -16px hsl(var(--venda-tone) / 0.55), 0 6px 18px -14px hsl(222 47% 11% / 0.35);
+    border-color: hsl(222 47% 11% / 0.36);
+    background:
+      linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.075) 52%, hsl(var(--venda-tone-strong) / 0.05) 100%);
+    box-shadow: 0 14px 30px -18px hsl(var(--venda-tone) / 0.62), 0 8px 20px -16px hsl(222 47% 11% / 0.46);
   }
 
   .theme-gasmais .venda-gasmais-card::before,
@@ -509,8 +510,8 @@
 
   .venda-product-shortcut,
   .venda-payment-shortcut {
-    border-color: hsl(var(--venda-tone) / 0.24);
-    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--venda-tone) / 0.055) 100%);
+    border-color: hsl(222 47% 11% / 0.28);
+    background: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.08) 100%);
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
   }
 
@@ -526,6 +527,24 @@
     outline: 2px solid hsl(var(--venda-tone));
     outline-offset: 2px;
     box-shadow: 0 0 0 4px hsl(var(--venda-tone) / 0.18);
+  }
+
+  .venda-modern-surface {
+    border-color: hsl(222 47% 11% / 0.24);
+    background: linear-gradient(145deg, hsl(var(--card) / 0.98), hsl(var(--venda-tone) / 0.06));
+  }
+
+  .dark .theme-gasmais .venda-gasmais-card,
+  .dark .theme-gasmais .venda-tone-cliente .venda-card,
+  .dark .theme-gasmais .venda-tone-produtos .venda-card,
+  .dark .theme-gasmais .venda-tone-pagamento .venda-card,
+  .dark .theme-gasmais .venda-tone-entregador .venda-card,
+  .dark .theme-gasmais .venda-tone-confirmar .venda-card,
+  .dark .venda-product-shortcut,
+  .dark .venda-payment-shortcut,
+  .dark .venda-modern-surface {
+    border-color: hsl(220 14% 86% / 0.24);
+    background: linear-gradient(145deg, hsl(var(--card) / 0.96), hsl(var(--venda-tone) / 0.12));
   }
 
   .gradient-primary {
