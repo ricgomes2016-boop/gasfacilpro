@@ -457,20 +457,41 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
           <CardContent className="p-0">
             <Table>
               <TableBody>
-                  {[
-                    { label: "Preço Compra P13", value: fmt(precoMedioCompraP13) },
-                    { label: "Preço Médio Venda P13", value: fmt(precoMedioVendaP13) },
-                    { label: "Margem Bruta P13", value: fmt(precoMedioVendaP13 - precoMedioCompraP13), highlight: true },
-                    ...produtosReferencia.flatMap(p => [
-                      { label: `Preço Compra ${p.canal}`, value: fmt(p.precoCompra) },
-                      { label: `Preço Médio Venda ${p.canal}`, value: fmt(p.precoVenda) },
-                      { label: `Margem Bruta ${p.canal}`, value: fmt(p.precoVenda - p.precoCompra), highlight: p.precoVenda >= p.precoCompra },
-                    ]),
-                    { label: "Tonelagem Total", value: `${totalTonelagem.toFixed(2)} ton` },
-                    { label: "Ticket Médio", value: totalQtde > 0 ? fmt(receitaBruta / totalQtde) : "0,00" },
-                    { label: "Margem Líquida", value: receitaBruta > 0 ? `${((lucroLiquido / receitaBruta) * 100).toFixed(1)}%` : "0,0%", highlight: lucroLiquido >= 0 },
-                  ].map((row, i) => (
-                  <TableRow key={i}>
+                <TableRow className="bg-muted/40">
+                  <TableCell colSpan={2} className="py-1.5 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    P13 por canal de venda
+                  </TableCell>
+                </TableRow>
+                {referenciasP13.map((row, i) => (
+                  <TableRow key={`p13-${i}`}>
+                    <TableCell className="py-1.5 px-3 text-xs leading-snug">{row.label}</TableCell>
+                    <TableCell className={`py-1.5 px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${row.highlight ? "text-green-600" : ""}`}>
+                      {row.value}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {referenciasProdutos.length > 0 && (
+                  <TableRow className="bg-muted/40">
+                    <TableCell colSpan={2} className="py-1.5 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Demais produtos: P20, P45, água, regulador e galão vazio
+                    </TableCell>
+                  </TableRow>
+                )}
+                {referenciasProdutos.map((row, i) => (
+                  <TableRow key={`produto-${i}`}>
+                    <TableCell className="py-1.5 px-3 text-xs leading-snug">{row.label}</TableCell>
+                    <TableCell className={`py-1.5 px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${row.highlight ? "text-green-600" : ""}`}>
+                      {row.value}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="bg-muted/40">
+                  <TableCell colSpan={2} className="py-1.5 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Indicadores gerais
+                  </TableCell>
+                </TableRow>
+                {referenciasGerais.map((row, i) => (
+                  <TableRow key={`geral-${i}`}>
                     <TableCell className="py-1.5 px-3 text-xs leading-snug">{row.label}</TableCell>
                     <TableCell className={`py-1.5 px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${row.highlight ? "text-green-600" : ""}`}>
                       {row.value}
