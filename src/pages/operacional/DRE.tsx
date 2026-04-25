@@ -155,34 +155,34 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
     : 0;
 
   const content = (
-    <div className="space-y-5">
+    <div className="space-y-5 w-full min-w-0 max-w-full overflow-hidden">
       {/* Top bar */}
-      <div className="flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between w-full min-w-0">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto min-w-0">
           <Select value={periodoMeses} onValueChange={setPeriodoMeses}>
-            <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-10 sm:h-9 min-w-0 flex-1 sm:flex-none sm:w-44"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="3">Últimos 3 meses</SelectItem>
               <SelectItem value="6">Últimos 6 meses</SelectItem>
               <SelectItem value="12">Últimos 12 meses</SelectItem>
             </SelectContent>
           </Select>
-          <Badge variant="outline" className="text-xs font-medium">
+          <Badge variant="outline" className="text-xs font-medium max-w-full truncate">
             {meses[0]} — {meses[meses.length - 1]}
           </Badge>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => exportDREtoPdf(dre, meses, `${meses[0]} a ${meses[meses.length - 1]}`)}>
+        <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto">
+          <Button variant="outline" size="sm" className="h-10 sm:h-9 min-w-0" onClick={() => exportDREtoPdf(dre, meses, `${meses[0]} a ${meses[meses.length - 1]}`)}>
             <FileDown className="h-4 w-4 mr-1.5" /> Exportar PDF
           </Button>
-          <Button variant="outline" size="sm" onClick={handlePrint}>
+          <Button variant="outline" size="sm" className="h-10 sm:h-9 min-w-0" onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-1.5" /> Imprimir
           </Button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4 w-full min-w-0">
         <KPICard
           label="Receita Bruta"
           value={totalReceita}
@@ -212,7 +212,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       </div>
 
       {/* Gráfico de Evolução */}
-      <Card>
+      <Card className="min-w-0 overflow-hidden">
         <CardContent className="pt-5">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Evolução Mensal</p>
           <ResponsiveContainer width="100%" height={200}>
@@ -254,13 +254,13 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       </Card>
 
       {/* Tabela DRE Principal */}
-      <Card>
+      <Card className="min-w-0 overflow-hidden">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="bg-muted/60 border-b-2 border-border">
-                  <th className="text-left py-2.5 px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground sticky left-0 bg-muted/60 z-10 min-w-[260px]">
+                  <th className="text-left py-2.5 px-3 sm:px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground sticky left-0 bg-muted/60 z-10 min-w-[210px] sm:min-w-[260px]">
                     Descrição
                   </th>
                   {meses.map(m => (
@@ -294,7 +294,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                         ${!isSubtotal && !isResultado ? "hover:bg-muted/20" : ""}
                       `}
                     >
-                      <td className={`py-2 px-4 sticky left-0 z-10 ${isResultado ? "bg-primary/5" : isSubtotal ? "bg-muted/30" : "bg-card"}`}>
+                      <td className={`py-2 px-3 sm:px-4 sticky left-0 z-10 ${isResultado ? "bg-primary/5" : isSubtotal ? "bg-muted/30" : "bg-card"}`}>
                         <span className={`
                           ${item.indent && !isSubtotal ? "pl-4" : ""}
                           ${isSubtotal || isResultado ? "font-bold text-xs uppercase tracking-wide" : "text-sm"}
@@ -337,7 +337,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       </Card>
 
       {/* Margem por Mês - barras */}
-      <Card>
+      <Card className="min-w-0 overflow-hidden">
         <CardContent className="pt-5">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Resultado por Mês</p>
           <ResponsiveContainer width="100%" height={180}>
@@ -366,7 +366,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
   return (
     <MainLayout>
       <Header title="DRE" subtitle="Demonstrativo de Resultados do Exercício" />
-      <div className="p-4 md:p-6">{content}</div>
+      <div className="p-3 sm:p-4 md:p-6 w-full min-w-0 max-w-full overflow-x-hidden">{content}</div>
     </MainLayout>
   );
 }
@@ -392,7 +392,7 @@ function KPICard({ label, value, icon, color, isPercent, badge }: {
     : `${(Math.abs(value) / 1000).toFixed(1)}k`;
 
   return (
-    <Card className="relative overflow-hidden">
+    <Card className="relative overflow-hidden min-w-0">
       <div className={`absolute inset-0 bg-gradient-to-br ${c.gradient} to-transparent pointer-events-none`} />
       <CardContent className="pt-4 pb-3">
         <div className="flex items-center justify-between mb-1">
@@ -407,10 +407,10 @@ function KPICard({ label, value, icon, color, isPercent, badge }: {
             </Badge>
           )}
         </div>
-        <p className={`text-xl font-bold tabular-nums ${value < 0 && !isPercent ? "text-destructive" : c.text}`}>
+        <p className={`text-lg sm:text-xl font-bold tabular-nums truncate ${value < 0 && !isPercent ? "text-destructive" : c.text}`}>
           {value < 0 && !isPercent ? `-${display}` : display}
         </p>
-        <p className="text-[11px] text-muted-foreground mt-0.5">{label}</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{label}</p>
       </CardContent>
     </Card>
   );
