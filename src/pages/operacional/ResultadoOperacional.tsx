@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,10 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Settings2, FileDown, Printer } from "lucide-react";
+import { AlertTriangle, Loader2, Settings2, FileDown, Printer } from "lucide-react";
 import { exportROtoPdf, handlePrint } from "@/services/reportPdfService";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -52,8 +53,11 @@ const grupoLabels: Record<string, string> = {
 
 export default function ResultadoOperacional({ embedded = false }: { embedded?: boolean }) {
   const { unidadeAtual } = useUnidade();
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const custosTableRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
+  const [custosWidthInsufficient, setCustosWidthInsufficient] = useState(false);
   const now = new Date();
   const [mesSelecionado, setMesSelecionado] = useState(String(now.getMonth()));
   const [anoSelecionado, setAnoSelecionado] = useState(String(now.getFullYear()));
@@ -63,6 +67,33 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
   const [precoVendaP13, setPrecoVendaP13] = useState(0);
 
   useEffect(() => { fetchData(); }, [unidadeAtual, mesSelecionado, anoSelecionado]);
+
+  useEffect(() => {
+    if (!isMobile) {
+      setCustosWidthInsufficient(false);
+      return;
+    }
+
+    const root = custosTableRef.current;
+    if (!root) return;
+
+    const checkOverflow = () => {
+      const fields = Array.from(root.querySelectorAll<HTMLElement>("[data-cost-overflow-check='true']"));
+      const hasOverflow = fields.some((field) => field.scrollWidth > field.clientWidth + 1);
+      setCustosWidthInsufficient(hasOverflow);
+    };
+
+    const frame = requestAnimationFrame(checkOverflow);
+    const observer = new ResizeObserver(checkOverflow);
+    observer.observe(root);
+    window.addEventListener("resize", checkOverflow);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("resize", checkOverflow);
+    };
+  }, [isMobile, custos, totalCustos]);
 
   const fetchData = async () => {
     setLoading(true);
