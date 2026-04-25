@@ -377,7 +377,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
             <table className="w-max min-w-full border-separate border-spacing-0 text-[12px]">
               <thead className="sticky top-0 z-30">
                 <tr>
-                  <th className="sticky left-0 z-40 w-[168px] min-w-[168px] bg-muted px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground shadow-[1px_0_0_hsl(var(--border))]">
+                  <th className="sticky left-0 z-40 w-[170px] min-w-[170px] bg-card px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground shadow-[2px_0_0_hsl(var(--border))]">
                     DRE
                   </th>
                   {mesesExibidos.map(m => (
@@ -385,10 +385,10 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                       {m}
                     </th>
                   ))}
-                  <th className="w-[64px] min-w-[64px] bg-muted px-2.5 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                  <th className="w-[76px] min-w-[76px] bg-muted px-3 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
                     AV
                   </th>
-                  <th className="w-[118px] min-w-[118px] bg-muted px-2.5 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-foreground">
+                  <th className="w-[136px] min-w-[136px] bg-muted px-3 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-foreground">
                     Acum.
                   </th>
                 </tr>
@@ -401,11 +401,12 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                   const isResultado = item.tipo === "resultado";
                   const isNegative = total < 0;
                   const rowBg = isResultado ? "bg-primary/10" : isSubtotal ? "bg-muted/45" : "bg-card";
+                  const fixedCellBg = isResultado ? "bg-primary" : isSubtotal ? "bg-muted" : "bg-card";
 
                   return (
                     <tr key={index} className={`${rowBg} ${isResultado ? "ring-1 ring-inset ring-primary/20" : ""}`}>
-                      <td className={`sticky left-0 z-10 w-[168px] min-w-[168px] border-b border-border/50 px-3 py-3 align-middle shadow-[1px_0_0_hsl(var(--border))] ${rowBg}`}>
-                        <span className={`block whitespace-normal break-words leading-snug ${item.indent && !isSubtotal ? "pl-2 text-muted-foreground" : ""} ${isSubtotal || isResultado ? "text-[11px] font-bold uppercase" : "text-[12px] font-semibold"} ${isResultado ? "text-primary" : ""}`}>
+                      <td className={`sticky left-0 z-20 w-[170px] min-w-[170px] border-b border-border/50 px-3 py-3 align-middle shadow-[2px_0_0_hsl(var(--border))] ${fixedCellBg}`}>
+                        <span className={`block whitespace-normal break-words leading-snug ${item.indent && !isSubtotal ? "pl-2 text-muted-foreground" : ""} ${isSubtotal || isResultado ? "text-[11px] font-bold uppercase" : "text-[12px] font-semibold"} ${isResultado ? "text-primary-foreground" : ""}`}>
                           {item.categoria}
                         </span>
                       </td>
@@ -417,10 +418,10 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                           {formatCurrency(v)}
                         </td>
                       ))}
-                      <td className={`w-[64px] min-w-[64px] border-b border-border/50 px-2.5 py-3 text-right align-middle text-[11px] tabular-nums ${isSubtotal || isResultado ? "font-bold" : "text-muted-foreground"}`}>
+                      <td className={`w-[76px] min-w-[76px] border-b border-border/50 px-3 py-3 text-right align-middle text-[11px] tabular-nums whitespace-nowrap ${isSubtotal || isResultado ? "font-bold" : "text-muted-foreground"}`}>
                         {formatPercent(av)}
                       </td>
-                      <td className={`w-[118px] min-w-[118px] border-b border-border/50 bg-muted/20 px-2.5 py-3 text-right align-middle text-[12px] font-bold tabular-nums whitespace-nowrap ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-green-600" : ""}`}>
+                      <td className={`w-[136px] min-w-[136px] border-b border-border/50 bg-muted/20 px-3 py-3 text-right align-middle text-[12px] font-bold tabular-nums whitespace-nowrap ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-green-600" : ""}`}>
                         {formatCurrency(total)}
                       </td>
                     </tr>
