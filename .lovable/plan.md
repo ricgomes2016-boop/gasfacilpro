@@ -1,36 +1,38 @@
-Plano de ajuste para `Vendas > Nova Venda`
+Plano para ajustar `Vendas > Nova Venda`
 
-1. Corrigir e reforçar o avanço automático da versão nova
-- Manter o fluxo guiado nas etapas:
-  - Cliente
-  - Produtos
-  - Pagamento
-  - Entregador
-  - Confirmar
-- Garantir que a tela avance automaticamente quando:
-  - Cliente estiver preenchido/selecionado → Produtos
-  - Houver pelo menos um produto → Pagamento
-  - O pagamento estiver completo, com valor pago maior ou igual ao total da venda → Entregador
-  - O entregador estiver selecionado → Confirmar
-- Evitar que a etapa volte indevidamente quando o usuário estiver conferindo uma etapa já liberada, preservando a navegação manual entre etapas habilitadas.
+1. Liberar clique nas etapas do topo
+- Ajustar o comportamento do stepper para que as abas `Cliente`, `Produtos`, `Pagamento`, `Entregador` e `Confirmar` sejam clicáveis na versão nova.
+- Manter a proteção básica para não abrir etapas impossíveis quando ainda não houver dados mínimos, evitando erros de fluxo.
+- Permitir voltar para etapas anteriores já preenchidas, sem o avanço automático empurrar o usuário imediatamente para outra etapa enquanto ele estiver revisando.
+- Corrigir o rótulo visual para `Confirmar`.
 
-2. Ajustar a etapa final
-- Na etapa final `Confirmar`, exibir o card `Resumo da Venda` com os botões de finalizar, agendar e cancelar.
-- Manter a validação atual de finalização, sem alterar regras de venda, estoque, pagamento ou caixa.
+2. Refinar a lógica de avanço automático
+- Manter o avanço automático quando o usuário completa uma etapa pela primeira vez:
+  - Cliente preenchido → Produtos
+  - Produto adicionado → Pagamento
+  - Pagamento completo → Entregador
+  - Entregador selecionado → Confirmar
+- Evitar que essa lógica impeça o clique manual em etapas anteriores já liberadas.
 
-3. Persistir a escolha entre versão nova e antiga
-- Usar o `localStorage` com a chave já existente `nova-venda-view-mode`.
-- Ao clicar no botão discreto `Versão nova` / `Versão antiga`, salvar imediatamente a escolha do usuário.
-- Ao recarregar a página ou abrir novamente `Vendas > Nova Venda`, restaurar automaticamente a última versão escolhida.
-- Se não existir escolha salva e o tema GásMais estiver ativo, a tela poderá iniciar na versão nova como padrão, mas sem sobrescrever a preferência manual do usuário.
+3. Aplicar visual dos cards no tema GásMais
+- Em `NovaVenda.tsx`, usar o estado `isGasmais` já disponível para aplicar classes específicas quando o tema GásMais estiver ativo.
+- Criar um padrão de card semelhante aos cards coloridos do Dashboard GásMais:
+  - borda mais nítida
+  - sombra mais presente
+  - topo com faixa/gradiente de cor
+  - leve brilho/realce com tons do tema
+- Aplicar esse padrão nos blocos principais da tela nova: IA, dados/meta da venda, busca de cliente, histórico, produtos, pagamento, entregador e resumo.
 
-4. Ajustar o comportamento do stepper
-- Permitir clique apenas nas etapas já liberadas.
-- Marcar visualmente etapas concluídas e etapa atual.
-- Impedir acesso direto a etapas dependentes sem preencher os dados anteriores.
+4. Cores das etapas/card por contexto
+- Usar tons próximos aos cards/abas do dashboard:
+  - Cliente: azul
+  - Produtos: laranja
+  - Pagamento: verde/emerald
+  - Entregador: âmbar
+  - Confirmar: primário/laranja GásMais
+- No tema padrão, preservar o visual atual com tokens neutros (`bg-card`, `border`, `primary`) para não descaracterizar o ERP.
 
 Detalhes técnicos
 - Alterar principalmente `src/pages/vendas/NovaVenda.tsx`.
-- Refinar os estados `useNewView`, `activeStep`, `clientePreenchido`, `produtosPreenchidos`, `pagamentoPreenchido` e `entregadorPreenchido`.
-- Manter a chave `nova-venda-view-mode` para compatibilidade com o que já foi implementado.
-- Não mexer em rotas, `App.tsx`, provedores, banco de dados, autenticação ou lógica de finalização da venda.
+- Se necessário, adicionar pequenas classes utilitárias em `src/index.css` ou `src/styles/theme-gasmais.css`, mantendo tudo escopado ao tema GásMais.
+- Não alterar rotas, provedores, banco de dados, autenticação ou regras de finalização da venda.
