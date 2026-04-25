@@ -3520,6 +3520,7 @@ export type Database = {
           cpf: string | null
           created_at: string
           email: string | null
+          foto_url: string | null
           funcionario_id: string | null
           id: string
           latitude: number | null
@@ -3540,6 +3541,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           email?: string | null
+          foto_url?: string | null
           funcionario_id?: string | null
           id?: string
           latitude?: number | null
@@ -3560,6 +3562,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           email?: string | null
+          foto_url?: string | null
           funcionario_id?: string | null
           id?: string
           latitude?: number | null
