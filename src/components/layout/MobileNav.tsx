@@ -129,7 +129,7 @@ export function MobileNav() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 rounded-xl">
+        <Button variant="ghost" size="icon" className="lg:hidden h-9 w-9 rounded-xl">
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
@@ -178,8 +178,8 @@ export function MobileNav() {
                         className={cn(
                           "group flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200",
                           hasActiveChild
-                            ? "bg-primary/15 text-primary"
-                            : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                            ? "bg-primary/20 text-primary ring-1 ring-primary/35"
+                            : "text-sidebar-foreground/95 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                         )}
                       >
                         <div className="flex items-center gap-3">
@@ -240,8 +240,8 @@ export function MobileNav() {
                                         className={cn(
                                           "group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
                                           subActive
-                                            ? "bg-primary text-primary-foreground shadow-sm"
-                                            : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                            ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/35"
+                                            : "text-sidebar-foreground/85 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                                         )}
                                       >
                                         <SubIcon className={cn(
@@ -276,8 +276,8 @@ export function MobileNav() {
                       className={cn(
                         "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200",
                         isActive(item.path!)
-                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
-                          : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/35 ring-1 ring-primary/35"
+                          : "text-sidebar-foreground/95 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                       )}
                     >
                       <Icon className={cn(
