@@ -103,7 +103,7 @@ export function QuickActions() {
         <CardTitle className="text-base font-semibold">⚡ Acesso Rápido</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid w-full min-w-0 grid-cols-2 gap-3 xs:grid-cols-3 sm:grid-cols-5 lg:grid-cols-10">
+        <div className="grid w-full min-w-0 grid-cols-2 gap-3 min-[420px]:grid-cols-3 sm:grid-cols-5 lg:grid-cols-10">
           {actions.map((a) => (
             <button
               key={a.path}
