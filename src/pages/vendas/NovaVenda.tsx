@@ -989,14 +989,14 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       <CardContent className="p-3 md:p-4">
         <div className="grid gap-3 md:grid-cols-2">
           <div className="py-[8px]">
-            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+            <Label className="text-xs font-semibold text-foreground flex items-center gap-1">
               <Calendar className="h-3 w-3" />
               Data de Entrega
             </Label>
             <Input type="date" value={dataEntrega} onChange={(e) => setDataEntrega(e.target.value)} className="mt-1" data-venda-enter-next />
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Canal de Venda</Label>
+            <Label className="text-xs font-semibold text-foreground">Canal de Venda</Label>
             <Select value={canalVenda} onValueChange={setCanalVenda}>
               <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -1043,7 +1043,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         </div>
         <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
         <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
-        <p className="text-xs text-muted-foreground mt-2 ml-7">
+        <p className="text-xs font-medium text-foreground mt-2 ml-7">
           {photoLoading ? "📸 Processando foto..." : isListening ? "🔴 Ouvindo... Fale o comando." : "💡 Digite, 🎤 dite, ou 📷 tire foto de anotações."}
         </p>
       </CardContent>
@@ -1055,7 +1055,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       <div className="p-3 md:p-4 space-y-3 md:space-y-4"> 
         <CaixaBloqueadoBanner />
 
-        <div className="space-y-3 rounded-lg border bg-card p-3 shadow-sm">
+        <div className="space-y-3 rounded-lg border bg-card p-3 shadow-lg shadow-foreground/10">
           <VendaStepper
             customer={customer}
             itens={itens}
@@ -1071,7 +1071,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               #{proximoNumero ?? "—"}
             </Badge>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={toggleViewMode} className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" size="sm" onClick={toggleViewMode} className="h-8 px-2 text-xs font-semibold text-foreground hover:text-primary">
                 {useNewView ? "Versão antiga" : "Versão nova"}
               </Button>
               <Button variant="outline" size="sm" onClick={() => setShowNovaVendaModal(true)} className="gap-1.5 text-xs">
