@@ -599,7 +599,9 @@
   .dark .venda-payment-shortcut,
   .dark .venda-modern-surface {
     border-color: hsl(220 14% 86% / 0.24);
-    background: linear-gradient(145deg, hsl(var(--card) / 0.96), hsl(var(--venda-tone) / 0.12));
+    background:
+      radial-gradient(circle at top right, hsl(var(--venda-tone) / 0.18), transparent 38%),
+      linear-gradient(145deg, hsl(var(--card) / 0.96), hsl(var(--venda-tone) / 0.13));
   }
 
   .gradient-primary {
