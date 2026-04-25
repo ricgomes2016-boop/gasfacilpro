@@ -231,6 +231,35 @@
     color: hsl(var(--venda-tone-strong));
   }
 
+  .venda-step-tab,
+  .venda-tone-cliente .venda-card button,
+  .venda-tone-produtos .venda-card button,
+  .venda-tone-pagamento .venda-card button,
+  .venda-tone-entregador .venda-card button,
+  .venda-tone-confirmar .venda-card button {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .venda-step-tab:not(:disabled):hover,
+  .venda-tone-cliente .venda-card button:not(:disabled):hover,
+  .venda-tone-produtos .venda-card button:not(:disabled):hover,
+  .venda-tone-pagamento .venda-card button:not(:disabled):hover,
+  .venda-tone-entregador .venda-card button:not(:disabled):hover,
+  .venda-tone-confirmar .venda-card button:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+
+  .venda-step-tab:focus-visible,
+  .venda-tone-cliente .venda-card button:focus-visible,
+  .venda-tone-produtos .venda-card button:focus-visible,
+  .venda-tone-pagamento .venda-card button:focus-visible,
+  .venda-tone-entregador .venda-card button:focus-visible,
+  .venda-tone-confirmar .venda-card button:focus-visible {
+    outline: 2px solid hsl(var(--venda-tone));
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px hsl(var(--venda-tone) / 0.18);
+  }
+
   .venda-step-panel {
     animation: vendaStepEnter 0.28s ease-out both;
   }
@@ -419,6 +448,34 @@
     border-color: hsl(var(--venda-tone) / 0.55);
   }
 
+  .venda-tone-cliente .venda-card [data-state="checked"],
+  .venda-tone-cliente .venda-card [data-state="on"],
+  .venda-tone-cliente .venda-card [aria-selected="true"],
+  .venda-tone-produtos .venda-card [data-state="checked"],
+  .venda-tone-produtos .venda-card [data-state="on"],
+  .venda-tone-produtos .venda-card [aria-selected="true"],
+  .venda-tone-pagamento .venda-card [data-state="checked"],
+  .venda-tone-pagamento .venda-card [data-state="on"],
+  .venda-tone-pagamento .venda-card [aria-selected="true"],
+  .venda-tone-entregador .venda-card [data-state="checked"],
+  .venda-tone-entregador .venda-card [data-state="on"],
+  .venda-tone-entregador .venda-card [aria-selected="true"],
+  .venda-tone-confirmar .venda-card [data-state="checked"],
+  .venda-tone-confirmar .venda-card [data-state="on"],
+  .venda-tone-confirmar .venda-card [aria-selected="true"] {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .venda-tone-cliente .venda-card button[class*="bg-primary"],
+  .venda-tone-produtos .venda-card button[class*="bg-primary"],
+  .venda-tone-pagamento .venda-card button[class*="bg-primary"],
+  .venda-tone-entregador .venda-card button[class*="bg-primary"],
+  .venda-tone-confirmar .venda-card button[class*="bg-primary"] {
+    background: linear-gradient(135deg, hsl(var(--venda-tone)), hsl(var(--venda-tone-strong)));
+    color: hsl(var(--primary-foreground));
+    box-shadow: 0 10px 18px -14px hsl(var(--venda-tone) / 0.9);
+  }
+
   .gradient-primary {
     background: var(--gradient-primary);
   }
@@ -493,8 +550,16 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .venda-step-panel {
+    .venda-step-panel,
+    .venda-step-tab,
+    .venda-tone-cliente .venda-card button,
+    .venda-tone-produtos .venda-card button,
+    .venda-tone-pagamento .venda-card button,
+    .venda-tone-entregador .venda-card button,
+    .venda-tone-confirmar .venda-card button {
       animation: none;
+      transition: none;
+      transform: none;
     }
   }
 }
