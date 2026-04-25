@@ -41,11 +41,11 @@ interface ProductSearchProps {
 }
 
 const produtosPrincipais = [
-  { label: "Gás P13", aliases: ["gas p13", "gás p13", "p13"], image: gasP13Img },
-  { label: "Gás P20", aliases: ["gas p20", "gás p20", "p20"], image: gasP20Img },
-  { label: "Gás P45", aliases: ["gas p45", "gás p45", "p45"], image: gasP45Img },
-  { label: "Água Mineral 20L", aliases: ["agua mineral 20", "água mineral 20", "agua 20", "20l"], image: agua20lImg },
-  { label: "Kit Regulador 13kg", aliases: ["kit regulador", "regulador 13", "regulador"], image: null },
+  { label: "Gás P13", aliases: ["gas p13", "gás p13", "p13"], image: gasP13Img, quickTone: "bg-gradient-to-br from-emerald-500 to-emerald-600 text-primary-foreground shadow-emerald-500/25", quickRing: "ring-emerald-400/40" },
+  { label: "Gás P20", aliases: ["gas p20", "gás p20", "p20"], image: gasP20Img, quickTone: "bg-gradient-to-br from-sky-500 to-sky-600 text-primary-foreground shadow-sky-500/25", quickRing: "ring-sky-400/40" },
+  { label: "Gás P45", aliases: ["gas p45", "gás p45", "p45"], image: gasP45Img, quickTone: "bg-gradient-to-br from-violet-500 to-violet-600 text-primary-foreground shadow-violet-500/25", quickRing: "ring-violet-400/40" },
+  { label: "Água Mineral 20L", aliases: ["agua mineral 20", "água mineral 20", "agua 20", "20l"], image: agua20lImg, quickTone: "bg-gradient-to-br from-teal-500 to-teal-600 text-primary-foreground shadow-teal-500/25", quickRing: "ring-teal-400/40" },
+  { label: "Kit Regulador 13kg", aliases: ["kit regulador", "regulador 13", "regulador"], image: null, quickTone: "bg-gradient-to-br from-orange-500 to-orange-600 text-primary-foreground shadow-orange-500/25", quickRing: "ring-orange-400/40" },
 ];
 
 export function ProductSearch({ itens, onChange, unidadeId, clienteId }: ProductSearchProps) {
@@ -226,16 +226,16 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
               key={produto.label}
               type="button"
               onClick={() => buscarProdutoPrincipal(produto)}
-              className="venda-product-shortcut group min-h-[132px] rounded-lg border bg-background p-3 text-center shadow-sm"
+              className={`venda-product-shortcut group min-h-[132px] rounded-xl border border-transparent p-3 text-center shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${produto.quickTone} ${produto.quickRing}`}
             >
-              <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-lg bg-primary/10 transition-transform group-hover:scale-105">
+              <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-lg bg-primary-foreground/15 ring-1 ring-primary-foreground/25 transition-transform group-hover:scale-105">
                 {produto.image ? (
                   <img src={produto.image} alt={produto.label} className="h-14 w-14 object-contain" loading="lazy" />
                 ) : (
-                  <Wrench className="h-8 w-8 text-primary" />
+                  <Wrench className="h-8 w-8 drop-shadow-sm" />
                 )}
               </span>
-              <span className="mt-2 block text-xs font-semibold leading-tight text-foreground">{produto.label}</span>
+              <span className="mt-2 block text-xs font-semibold leading-tight text-center">{produto.label}</span>
             </button>
           ))}
         </div>
