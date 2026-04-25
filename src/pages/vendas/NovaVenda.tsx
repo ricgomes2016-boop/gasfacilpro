@@ -853,7 +853,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
   const vendaContent = (
     <>
-      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className="p-3 md:p-4 space-y-3 md:space-y-4">
         <CaixaBloqueadoBanner />
 
         {/* #8 - Progress stepper */}
@@ -871,8 +871,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         </div>
 
         {/* #2 - AI Command Bar responsive */}
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="pt-4 pb-4">
+        <Card className="venda-card border-primary/40 bg-primary/5">
+          <CardContent className="py-3 md:py-4">
             <div className="flex flex-wrap items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary shrink-0" />
               <Input
@@ -961,10 +961,10 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
 
         {/* Layout Principal */}
-        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-4 md:space-y-6">
-            <Card>
-              <CardContent className="pt-6">
+        <div className="grid gap-3 md:gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-3 md:space-y-4">
+            <Card className="venda-card">
+              <CardContent className="p-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <Label className="text-xs text-muted-foreground flex items-center gap-1">
@@ -994,7 +994,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} />
           </div>
 
-          <div className="lg:sticky lg:top-4 space-y-4 md:space-y-6 self-start">
+          <div className="lg:sticky lg:top-4 space-y-3 md:space-y-4 self-start">
             <OrderSummary
               itens={itens}
               pagamentos={pagamentos}
