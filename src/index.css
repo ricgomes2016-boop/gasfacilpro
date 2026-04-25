@@ -231,6 +231,50 @@
     color: hsl(var(--venda-tone-strong));
   }
 
+  .venda-step-panel {
+    animation: vendaStepEnter 0.28s ease-out both;
+  }
+
+  .venda-tone-cliente .venda-card input,
+  .venda-tone-cliente .venda-card textarea,
+  .venda-tone-cliente .venda-card button[role="combobox"],
+  .venda-tone-produtos .venda-card input,
+  .venda-tone-produtos .venda-card textarea,
+  .venda-tone-produtos .venda-card button[role="combobox"],
+  .venda-tone-pagamento .venda-card input,
+  .venda-tone-pagamento .venda-card textarea,
+  .venda-tone-pagamento .venda-card button[role="combobox"],
+  .venda-tone-entregador .venda-card input,
+  .venda-tone-entregador .venda-card textarea,
+  .venda-tone-entregador .venda-card button[role="combobox"],
+  .venda-tone-confirmar .venda-card input,
+  .venda-tone-confirmar .venda-card textarea,
+  .venda-tone-confirmar .venda-card button[role="combobox"] {
+    border-color: hsl(var(--venda-tone) / 0.28);
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  }
+
+  .venda-tone-cliente .venda-card input:focus-visible,
+  .venda-tone-cliente .venda-card textarea:focus-visible,
+  .venda-tone-cliente .venda-card button[role="combobox"]:focus-visible,
+  .venda-tone-produtos .venda-card input:focus-visible,
+  .venda-tone-produtos .venda-card textarea:focus-visible,
+  .venda-tone-produtos .venda-card button[role="combobox"]:focus-visible,
+  .venda-tone-pagamento .venda-card input:focus-visible,
+  .venda-tone-pagamento .venda-card textarea:focus-visible,
+  .venda-tone-pagamento .venda-card button[role="combobox"]:focus-visible,
+  .venda-tone-entregador .venda-card input:focus-visible,
+  .venda-tone-entregador .venda-card textarea:focus-visible,
+  .venda-tone-entregador .venda-card button[role="combobox"]:focus-visible,
+  .venda-tone-confirmar .venda-card input:focus-visible,
+  .venda-tone-confirmar .venda-card textarea:focus-visible,
+  .venda-tone-confirmar .venda-card button[role="combobox"]:focus-visible {
+    border-color: hsl(var(--venda-tone) / 0.7);
+    box-shadow: 0 0 0 3px hsl(var(--venda-tone) / 0.18);
+  }
+
   .theme-gasmais .venda-tone-cliente { --venda-tone: 199 89% 48%; --venda-tone-strong: 217 91% 56%; }
   .theme-gasmais .venda-tone-produtos { --venda-tone: 18 92% 55%; --venda-tone-strong: 346 77% 49%; }
   .theme-gasmais .venda-tone-pagamento { --venda-tone: 160 84% 39%; --venda-tone-strong: 188 86% 36%; }
