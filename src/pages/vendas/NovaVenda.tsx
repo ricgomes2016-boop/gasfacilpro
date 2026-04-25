@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -690,8 +690,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     });
   };
 
-  const handleStepEnterNavigation = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
+  const handleStepEnterNavigation = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.defaultPrevented || event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
     const target = event.target as HTMLElement;
     if (target.closest("#ai-send-btn") || target.closest('[role="combobox"]') || target.closest("button")) return;
     if (target instanceof HTMLTextAreaElement) return;
@@ -1083,7 +1083,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         {useNewView ? (
           <div className="space-y-3 md:space-y-4">
             {activeStep === "cliente" && (
-              <div className="venda-step-panel grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+              <div className="venda-step-panel grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]" onKeyDown={handleStepEnterNavigation}>
                 <div className="space-y-3 md:space-y-4 min-w-0">
                   {aiCommandCard}
                   {metaCard}
