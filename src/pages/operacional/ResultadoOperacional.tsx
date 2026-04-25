@@ -238,7 +238,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="max-h-[600px] overflow-auto">
+            <div className="w-full max-w-full max-h-[600px] overflow-x-auto overflow-y-auto overscroll-x-contain">
               <Table className="min-w-[420px]">
                 <TableBody>
                   {custosAgrupados.map((grupo, gi) => (
@@ -289,7 +289,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
             <CardTitle className="text-xs font-bold uppercase tracking-widest">Vendas por Canal</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
             <Table className="min-w-[680px]">
               <TableHeader>
                 <TableRow className="bg-muted/30">
@@ -332,7 +332,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
             </div>
 
             {/* Resumo abaixo dos canais */}
-            <div className="border-t mt-2 overflow-x-auto">
+            <div className="border-t mt-2 w-full max-w-full overflow-x-auto overscroll-x-contain">
               <Table className="min-w-[360px]">
                 <TableBody>
                   <TableRow>
