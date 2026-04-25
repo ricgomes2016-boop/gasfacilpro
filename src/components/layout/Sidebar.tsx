@@ -224,11 +224,11 @@ export function Sidebar() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
           themeClass,
-          "fixed left-0 top-0 z-40 hidden md:flex h-screen flex-col bg-sidebar/80 backdrop-blur-xl border-r border-sidebar-border/50"
+          "fixed left-0 top-0 z-40 hidden md:flex h-screen flex-col bg-sidebar border-r border-sidebar-border shadow-2xl"
         )}
       >
         {/* Header */}
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border/50 px-3">
+        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-3">
           <Link to="/dashboard" className="flex items-center gap-3 group">
             <motion.div
               whileHover={{ scale: 1.05, rotate: 2 }}
@@ -246,10 +246,10 @@ export function Sidebar() {
                   transition={{ duration: 0.2 }}
                   className="flex flex-col"
                 >
-                  <span className="text-[17px] font-bold tracking-[-0.03em] text-sidebar-foreground">
+                  <span className="text-[17px] font-extrabold text-sidebar-foreground">
                     Gás Fácil
                   </span>
-                  <span className="text-[9px] font-semibold text-primary/60 uppercase tracking-[0.2em]">
+                  <span className="text-[9px] font-bold text-primary uppercase tracking-[0.2em]">
                     ERP Pro
                   </span>
                 </motion.div>
@@ -261,7 +261,7 @@ export function Sidebar() {
               variant="ghost"
               size="icon"
               onClick={toggle}
-              className="h-8 w-8 flex-shrink-0 rounded-lg text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/80"
+                className="h-8 w-8 flex-shrink-0 rounded-lg text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             >
               {collapsed ? (
                 <ChevronRight className="h-4 w-4" />
