@@ -516,14 +516,14 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
   const showNewClientHint = !isSearching && value.nome.trim().length >= 2 && !value.id && !showResults;
 
   return (
-    <Card className="w-full min-w-0 max-w-full overflow-hidden">
-      <CardHeader className="pb-4">
+    <Card className="venda-card w-full min-w-0 max-w-full overflow-hidden">
+      <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <User className="h-5 w-5 shrink-0" />
           <span className="truncate">Cliente</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 w-full min-w-0 max-w-full">
+      <CardContent className="space-y-3 w-full min-w-0 max-w-full">
         {/* Combobox de busca multicampo */}
         <div className="relative min-w-0" ref={searchRef}>
           <Label className="text-xs text-muted-foreground">Buscar cliente</Label>
