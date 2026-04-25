@@ -332,8 +332,8 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
             </div>
 
             {/* Resumo abaixo dos canais */}
-            <div className="border-t mt-2">
-              <Table>
+            <div className="border-t mt-2 overflow-x-auto">
+              <Table className="min-w-[360px]">
                 <TableBody>
                   <TableRow>
                     <TableCell className="py-1 px-3 text-xs font-semibold">Receita Bruta</TableCell>
@@ -375,9 +375,9 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
       </div>
 
       {/* Rodapé: Indicadores e Ponto de Equilíbrio */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 w-full min-w-0">
         {/* Dados do Representante / Referência */}
-        <Card>
+        <Card className="min-w-0 overflow-hidden sm:col-span-2 lg:col-span-1">
           <CardHeader className="py-2 px-3 bg-muted/60 border-b">
             <CardTitle className="text-xs font-bold uppercase tracking-widest">Dados de Referência</CardTitle>
           </CardHeader>
@@ -405,14 +405,14 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
         </Card>
 
         {/* Ponto de Equilíbrio */}
-        <Card className="flex flex-col items-center justify-center py-6">
+        <Card className="flex min-w-0 flex-col items-center justify-center py-6 px-3 text-center">
           <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Ponto de Equilíbrio</p>
           <p className="text-3xl font-black tabular-nums text-primary">{pontoEquilibrio.toLocaleString("pt-BR")}</p>
           <p className="text-xs text-muted-foreground">unidades / mês</p>
         </Card>
 
         {/* Qtde Disk / Direta */}
-        <Card className="flex flex-col items-center justify-center py-6">
+        <Card className="flex min-w-0 flex-col items-center justify-center py-6 px-3 text-center">
           <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Qtde Vendida Total</p>
           <p className="text-3xl font-black tabular-nums">{totalQtde.toLocaleString("pt-BR")}</p>
           <p className="text-xs text-muted-foreground">unidades no período</p>
@@ -425,7 +425,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
   return (
     <MainLayout>
       <Header title="Resultado Operacional" subtitle={mesLabel} />
-      <div className="p-3 md:p-6">{content}</div>
+      <div className="p-3 md:p-6 w-full min-w-0 max-w-full overflow-x-hidden">{content}</div>
     </MainLayout>
   );
 }
