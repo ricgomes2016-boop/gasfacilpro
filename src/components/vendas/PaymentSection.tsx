@@ -40,15 +40,15 @@ interface PaymentSectionProps {
 }
 
 const formasPagamento = [
-  { value: "dinheiro", label: "Dinheiro", icon: "💵", Icon: Banknote },
-  { value: "pix", label: "PIX", icon: "📱", Icon: Smartphone },
-  { value: "pix_maquininha", label: "PIX Maquininha", icon: "📱", Icon: CreditCard },
-  { value: "cartao_debito", label: "Cartão Débito", icon: "💳", Icon: WalletCards },
-  { value: "cartao_credito", label: "Cartão Crédito", icon: "💳", Icon: CreditCard },
-  { value: "boleto", label: "Boleto", icon: "📄", Icon: FileText },
-  { value: "vale_gas", label: "Vale Gás", icon: "🔥", Icon: Flame },
-  { value: "cheque", label: "Cheque", icon: "🧾", Icon: ReceiptText },
-  { value: "fiado", label: "Fiado / A Prazo", icon: "📝", Icon: AlertCircle },
+  { value: "dinheiro", label: "Dinheiro", icon: "💵", Icon: Banknote, tone: "bg-success/15 text-success ring-success/20" },
+  { value: "pix", label: "PIX", icon: "📱", Icon: Smartphone, tone: "bg-success/15 text-success ring-success/20" },
+  { value: "pix_maquininha", label: "PIX Maquininha", icon: "📱", Icon: CreditCard, tone: "bg-accent/15 text-accent-foreground ring-accent/25" },
+  { value: "cartao_debito", label: "Cartão Débito", icon: "💳", Icon: WalletCards, tone: "bg-primary/15 text-primary ring-primary/20" },
+  { value: "cartao_credito", label: "Cartão Crédito", icon: "💳", Icon: CreditCard, tone: "bg-warning/15 text-warning ring-warning/20" },
+  { value: "boleto", label: "Boleto", icon: "📄", Icon: FileText, tone: "bg-muted text-foreground ring-border" },
+  { value: "vale_gas", label: "Vale Gás", icon: "🔥", Icon: Flame, tone: "bg-destructive/15 text-destructive ring-destructive/20" },
+  { value: "cheque", label: "Cheque", icon: "🧾", Icon: ReceiptText, tone: "bg-secondary text-secondary-foreground ring-border" },
+  { value: "fiado", label: "Fiado / A Prazo", icon: "📝", Icon: AlertCircle, tone: "bg-warning/15 text-warning ring-warning/20" },
   
 ];
 
@@ -285,7 +285,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
 
           {/* Adicionar novo pagamento */}
           <div className="venda-modern-surface rounded-lg border p-3 shadow-sm space-y-3">
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-9">
               {formasPagamento.map((fp) => {
                 const Icon = fp.Icon;
                 const selected = forma === fp.value;
@@ -296,14 +296,14 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
                     aria-pressed={selected}
                     onClick={() => handleFormaChange(fp.value)}
                     className={cn(
-                      "venda-payment-shortcut flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-lg border bg-background p-2 text-center shadow-sm",
-                      selected && "border-primary bg-primary/10 text-primary shadow-md ring-2 ring-primary/20"
+                      "venda-payment-shortcut flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-lg border bg-background p-2 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
+                      selected && "border-primary bg-primary/10 text-primary shadow-md ring-2 ring-primary/25"
                     )}
                   >
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                    <span className={cn("flex h-10 w-10 items-center justify-center rounded-lg ring-1", fp.tone)}>
                       <Icon className="h-5 w-5" />
                     </span>
-                    <span className="text-[11px] font-semibold leading-tight">{fp.label}</span>
+                    <span className="text-[11px] font-bold leading-tight text-foreground">{fp.label}</span>
                   </button>
                 );
               })}
