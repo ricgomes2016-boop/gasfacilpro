@@ -174,7 +174,7 @@ export default function Dashboard() {
 
           {/* KPIs embutidos no hero (apenas tema GásMais) */}
           {isGasmais && (
-            <div className="relative z-10 mt-6 grid w-full min-w-0 auto-rows-fr grid-cols-1 items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="relative z-10 mt-6 grid w-full min-w-0 auto-rows-fr grid-cols-1 items-stretch gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               <StatCard
                 title={`Vendas ${periodLabel}`}
                 value={`R$ ${(stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
