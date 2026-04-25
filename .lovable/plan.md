@@ -1,40 +1,27 @@
-Plano para ajustar a tela /vendas/nova:
+Plano para ajustar os cards de /vendas/nova usando as cores do Acesso Rápido do dashboard:
 
-1. Melhorar contraste dos inputs e textos
-- Escurecer as bordas dos inputs, textareas e selects dentro do fluxo de Nova Venda.
-- Manter o foco acessível com anel/outline colorido pela etapa atual.
-- Aumentar nitidez visual de labels, textos principais, itens de tabela, totais e badges sem deixar a interface pesada.
-- Ajustar claro e escuro separadamente para preservar legibilidade nos dois modos.
+1. Mapear as etapas da venda para as cores do Acesso Rápido
+   - Cliente: amarelo/âmbar, igual ao card “Clientes”.
+   - Produtos: teal, igual ao card “Estoque”.
+   - Pagamento: indigo, igual ao card “Financeiro”.
+   - Entregador: rose, igual ao card “Entregas”.
+   - Confirmar: emerald, igual ao card “Nova Venda”.
 
-2. Refinar o atalho da tecla Enter
-- Alterar a lógica atual em `NovaVenda.tsx` para avançar apenas entre campos relevantes de preenchimento da venda.
-- Ignorar Enter quando o foco estiver em:
-  - botões;
-  - selects;
-  - comboboxes;
-  - campos de busca/autocomplete de cliente/produto/endereço;
-  - textarea;
-  - inputs de arquivo, checkbox e radio.
-- Marcar os campos realmente navegáveis com um atributo específico, por exemplo `data-venda-enter-next`, para evitar que o Enter passe por botões de atalho, cards de produto, ícones de pagamento ou controles de tabela.
-- Aplicar esse atributo principalmente em campos como nome, telefone, endereço, número, complemento, bairro, CEP, data de entrega, canal quando aplicável, valor do pagamento e campos extras de cheque/fiado.
-- Quando não houver próximo campo relevante, manter o comportamento padrão ou não interferir.
+2. Atualizar os tokens visuais do fluxo de venda
+   - Ajustar as variáveis CSS `--venda-tone` e `--venda-tone-strong` em `src/index.css` para refletirem as cores Tailwind usadas no `QuickActions.tsx`.
+   - Manter a estrutura atual do fluxo, sem refatorar rotas ou lógica de venda.
 
-3. Padronizar fundos dos cards com visual moderno do tema GásMais
-- Unificar o fundo dos cards das etapas com gradientes suaves baseados em `--venda-tone` e `--venda-tone-strong`.
-- Aplicar a mesma lógica aos cards principais, cards internos, atalhos de produto, atalhos de pagamento, blocos de status e containers de tabela.
-- Evitar fundos muito claros/acinzentados soltos (`bg-muted/20`, `bg-background`) onde eles quebram a paleta, substituindo por classes/estilos consistentes da venda.
-- Preservar o topo colorido e as sombras já existentes, mas com bordas mais escuras e modernas.
+3. Aplicar a paleta nos cards e atalhos
+   - Padronizar `.venda-card`, `.venda-product-shortcut`, `.venda-payment-shortcut` e `.venda-modern-surface` para usarem os mesmos tons do Acesso Rápido.
+   - Preservar o estilo moderno com gradientes, sombras e bordas mais nítidas.
+   - Garantir que os atalhos de produto e pagamento sigam a cor da etapa onde estão.
 
-4. Arquivos previstos
-- `src/pages/vendas/NovaVenda.tsx`: ajustar o handler do Enter e marcar campos relevantes.
-- `src/components/vendas/CustomerSearch.tsx`: adicionar marcação nos inputs relevantes e melhorar classes de legibilidade quando necessário.
-- `src/components/vendas/ProductSearch.tsx`: impedir que Enter interfira na busca e manter estilo padronizado em atalhos/tabela.
-- `src/components/vendas/PaymentSection.tsx`: marcar campo de valor e campos extras, preservar Enter padrão em ícones/selects.
-- `src/components/vendas/DeliveryPersonSelect.tsx`: manter seleção por clique sem Enter avançando por cards.
-- `src/components/vendas/OrderSummary.tsx`: harmonizar cards/totais/badges com a paleta.
-- `src/index.css`: centralizar os novos estilos de borda, contraste, fundo e estados claro/escuro.
+4. Ajustar estados visuais
+   - Hover, seleção, foco acessível e stepper continuarão usando a cor da etapa.
+   - Manter contraste adequado no modo claro e escuro.
 
-5. Validação
-- Rodar verificação TypeScript após as alterações.
-- Conferir se o Enter não aciona seleção indevida em busca, combobox, select, botões e cards clicáveis.
-- Conferir visual em modo claro e escuro, especialmente bordas dos inputs, contraste de texto e fundo dos cards.
+Arquivos previstos:
+- `src/index.css`
+- Consulta/validação visual contra `src/components/dashboard/QuickActions.tsx`
+
+Não haverá alteração de banco de dados nem de regras de negócio.

@@ -155,28 +155,28 @@
   }
 
   .venda-tone-cliente {
-    --venda-tone: 199 89% 48%;
-    --venda-tone-strong: 217 91% 56%;
-  }
-
-  .venda-tone-produtos {
-    --venda-tone: 18 92% 55%;
-    --venda-tone-strong: 346 77% 49%;
-  }
-
-  .venda-tone-pagamento {
-    --venda-tone: 160 84% 39%;
-    --venda-tone-strong: 188 86% 36%;
-  }
-
-  .venda-tone-entregador {
-    --venda-tone: 43 96% 50%;
+    --venda-tone: 38 92% 50%;
     --venda-tone-strong: 32 95% 44%;
   }
 
+  .venda-tone-produtos {
+    --venda-tone: 173 80% 40%;
+    --venda-tone-strong: 175 84% 32%;
+  }
+
+  .venda-tone-pagamento {
+    --venda-tone: 239 84% 67%;
+    --venda-tone-strong: 243 75% 59%;
+  }
+
+  .venda-tone-entregador {
+    --venda-tone: 350 89% 60%;
+    --venda-tone-strong: 347 77% 50%;
+  }
+
   .venda-tone-confirmar {
-    --venda-tone: 24 95% 53%;
-    --venda-tone-strong: 12 88% 48%;
+    --venda-tone: 160 84% 39%;
+    --venda-tone-strong: 161 94% 30%;
   }
 
   .venda-tone-cliente .venda-card,
@@ -367,11 +367,11 @@
     background-color: hsl(var(--background) / 0.72);
   }
 
-  .theme-gasmais .venda-tone-cliente { --venda-tone: 199 89% 48%; --venda-tone-strong: 217 91% 56%; }
-  .theme-gasmais .venda-tone-produtos { --venda-tone: 18 92% 55%; --venda-tone-strong: 346 77% 49%; }
-  .theme-gasmais .venda-tone-pagamento { --venda-tone: 160 84% 39%; --venda-tone-strong: 188 86% 36%; }
-  .theme-gasmais .venda-tone-entregador { --venda-tone: 43 96% 50%; --venda-tone-strong: 32 95% 44%; }
-  .theme-gasmais .venda-tone-confirmar { --venda-tone: 24 95% 53%; --venda-tone-strong: 12 88% 48%; }
+  .theme-gasmais .venda-tone-cliente { --venda-tone: 38 92% 50%; --venda-tone-strong: 32 95% 44%; }
+  .theme-gasmais .venda-tone-produtos { --venda-tone: 173 80% 40%; --venda-tone-strong: 175 84% 32%; }
+  .theme-gasmais .venda-tone-pagamento { --venda-tone: 239 84% 67%; --venda-tone-strong: 243 75% 59%; }
+  .theme-gasmais .venda-tone-entregador { --venda-tone: 350 89% 60%; --venda-tone-strong: 347 77% 50%; }
+  .theme-gasmais .venda-tone-confirmar { --venda-tone: 160 84% 39%; --venda-tone-strong: 161 94% 30%; }
 
   .theme-gasmais .venda-gasmais-card,
   .theme-gasmais .venda-tone-cliente .venda-card,
