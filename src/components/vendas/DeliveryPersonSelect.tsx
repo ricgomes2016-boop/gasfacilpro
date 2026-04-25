@@ -126,7 +126,7 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
           </SelectContent>
         </Select>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {loading && (
             <div className="venda-modern-surface col-span-full rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
               Carregando entregadores...
@@ -145,13 +145,13 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
                 type="button"
                 onClick={() => handleSelect(entregador.id)}
                 className={cn(
-                  "venda-modern-surface group flex min-h-[96px] items-center gap-3 rounded-lg border p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md",
+                   "venda-modern-surface group flex min-h-[104px] items-center gap-3 rounded-lg border p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md",
                   selected && "border-primary bg-primary/10 shadow-md ring-2 ring-primary/20"
                 )}
               >
                 <div className={cn(
-                  "flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground transition-colors",
-                  selected ? "bg-primary text-primary-foreground" : "group-hover:bg-primary/15 group-hover:text-primary"
+                   "flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary ring-1 ring-primary/20 transition-colors",
+                   selected ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" : "group-hover:bg-primary/15 group-hover:text-primary"
                 )}>
                   {getInitials(entregador.nome) || <UserRound className="h-5 w-5" />}
                 </div>
