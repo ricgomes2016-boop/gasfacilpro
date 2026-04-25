@@ -93,7 +93,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
       observer.disconnect();
       window.removeEventListener("resize", checkOverflow);
     };
-  }, [isMobile, custos, totalCustos]);
+  }, [isMobile, custos]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -340,9 +340,15 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
               <CardTitle className="text-xs font-bold uppercase tracking-widest">Custos / Despesas</CardTitle>
               <span className="text-xs font-bold">Valores</span>
             </div>
+            {custosWidthInsufficient && (
+              <div className="mt-2 flex items-start gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-1.5 text-[10px] leading-snug text-muted-foreground">
+                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-destructive" />
+                <span>Largura insuficiente no celular: alguns nomes ou valores podem precisar de mais espaço.</span>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="p-0 min-w-0 max-w-full overflow-hidden">
-            <div className="w-full min-w-0 max-w-full overflow-visible">
+            <div ref={custosTableRef} className="w-full min-w-0 max-w-full overflow-visible">
               <Table className="w-full table-auto">
                 <TableBody>
                   {custosAgrupados.map((grupo, gi) => (
@@ -352,13 +358,13 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
                           <TableCell className="py-1.5 pl-2 pr-1.5 sm:px-3 text-xs border-r align-top">
                             <div className="flex items-start gap-1.5 min-w-0">
                               <span className="shrink-0 text-muted-foreground w-4 text-right text-[10px]">{gi * 10 + ci + 1}</span>
-                              <span className="min-w-0 break-words leading-snug">{c.nome}</span>
+                              <span data-cost-overflow-check="true" className="min-w-0 break-words leading-snug">{c.nome}</span>
                               {c.valorReal > 0 && (
                                 <span className="text-[9px] text-green-600 bg-green-500/10 px-1 rounded">auto</span>
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className={`w-[118px] sm:w-[132px] py-1.5 pl-1.5 pr-2 sm:px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${c.valor > 0 ? "" : "text-muted-foreground"}`}>
+                          <TableCell data-cost-overflow-check="true" className={`w-[118px] sm:w-[132px] py-1.5 pl-1.5 pr-2 sm:px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${c.valor > 0 ? "" : "text-muted-foreground"}`}>
                             {c.valor > 0 ? `R$ ${fmt(c.valor)}` : "—"}
                           </TableCell>
                         </TableRow>
