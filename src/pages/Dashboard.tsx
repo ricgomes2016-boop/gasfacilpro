@@ -150,27 +150,91 @@ export default function Dashboard() {
         {/* Banner promocional do tema GásMais (dispensável) */}
         <GasmaisThemeBanner />
 
-        {/* ── Hero moderno ── */}
-        <div className="relative w-full min-w-0 overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm sm:p-6 md:p-7">
-          <div className="absolute right-0 top-0 h-full w-1/3 bg-primary/5" />
-          <div className="relative z-10 flex w-full min-w-0 items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="mb-1 flex min-w-0 items-center gap-2">
-                <Flame className="h-5 w-5 shrink-0 text-primary" />
-                <span className="truncate text-sm font-medium text-muted-foreground">Gás Fácil</span>
+        {/* ── Hero Gradient Card ── */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 p-4 sm:p-6 md:p-8 text-white shadow-xl">
+          <div className="absolute right-0 top-0 opacity-10">
+            <Flame className="h-56 w-56 -mt-8 -mr-8" strokeWidth={0.8} />
+          </div>
+          <div className="absolute left-1/2 bottom-0 opacity-5">
+            <Flame className="h-40 w-40 mb-[-2rem]" strokeWidth={0.6} />
+          </div>
+          <div className="relative z-10 flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Flame className="h-5 w-5" />
+                <span className="text-sm font-medium text-white/80">Gás Fácil</span>
               </div>
-              <h1 className="mb-0.5 text-2xl font-bold text-foreground md:text-3xl">
+              <h1 className="text-2xl md:text-3xl font-bold mb-0.5">
                 {greeting.text}! {greeting.emoji}
               </h1>
-              <p className="truncate text-sm capitalize text-muted-foreground">{todayFormatted}</p>
+              <p className="text-sm text-white/70 capitalize">{todayFormatted}</p>
             </div>
             <VoiceAssistant userName={greeting.text} />
           </div>
+
+          {/* KPIs embutidos no hero (apenas tema GásMais) */}
+          {isGasmais && (
+            <div className="relative z-10 mt-6 grid gap-3 grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                title={`Vendas ${periodLabel}`}
+                value={`R$ ${(stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                icon={DollarSign}
+                subtitle={`${stats?.totalPedidos ?? 0} pedidos`}
+                onHero
+              />
+              <StatCard
+                title="Pedidos"
+                value={stats?.totalPedidos ?? 0}
+                icon={ShoppingCart}
+                subtitle={periodLabel}
+                onHero
+              />
+              <StatCard
+                title="Pendentes"
+                value={stats?.pendentes ?? 0}
+                icon={Truck}
+                subtitle="em aberto"
+                onHero
+              />
+              <StatCard
+                title="Clientes Ativos"
+                value={stats?.clientesAtivos ?? 0}
+                icon={Users}
+                subtitle="cadastrados"
+                onHero
+              />
+              <StatCard
+                title="Ticket Médio"
+                value={`R$ ${(stats?.ticketMedio ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                icon={TrendingUp}
+                subtitle="por pedido"
+                onHero
+              />
+              {period === "hoje" && (
+                <>
+                  <StatCard
+                    title="Entradas Caixa"
+                    value={`R$ ${(caixaDiario?.total_entradas_caixa ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                    icon={DollarSign}
+                    subtitle="hoje"
+                    onHero
+                  />
+                  <StatCard
+                    title="Diferença Caixa"
+                    value={`R$ ${(caixaDiario?.diferenca_calculada ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                    icon={Flame}
+                    subtitle={(caixaDiario?.diferenca_calculada ?? 0) !== 0 ? "atenção" : "ok"}
+                    onHero
+                  />
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Cards coloridos modernos animados (apenas tema GásMais) */}
         {isGasmais && (
-          <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               {
                 title: "Vendas Hoje",
@@ -234,8 +298,8 @@ export default function Dashboard() {
         <StockAlerts />
 
         {/* Cards extras (no GásMais os 4 principais já estão no hero) */}
-        {!isGasmais && (
-          <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
+          {!isGasmais && (
             <>
               <StatCard
                 title={`Vendas ${periodLabel}`}
@@ -253,10 +317,8 @@ export default function Dashboard() {
               <StatCard title="Pendentes" value={stats?.pendentes ?? 0} icon={Truck} variant="warning" />
               <StatCard title="Clientes Ativos" value={stats?.clientesAtivos ?? 0} icon={Users} />
             </>
-          </div>
-        )}
-        {!isGasmais && (
-          <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          )}
+          {!isGasmais && (
             <>
               <StatCard
                 title="Ticket Médio"
@@ -281,18 +343,18 @@ export default function Dashboard() {
                 </>
               )}
             </>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Atalhos rápidos */}
         <QuickActions />
 
         {/* Gráfico vendas/hora + Meta diária */}
-        <div className="grid w-full min-w-0 items-start gap-4 md:gap-6 lg:grid-cols-3">
-          <div className="min-w-0 lg:col-span-2">
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
             <SalesChart />
           </div>
-          <div className="min-w-0 space-y-4 md:space-y-6">
+          <div className="space-y-4 md:space-y-6">
             <AiInsightsWidget />
             <DailySalesGoal />
             <DeliveryDriverStatus />
@@ -300,11 +362,13 @@ export default function Dashboard() {
         </div>
 
         {/* Vendas recentes */}
-        <div className="w-full min-w-0">
-          <RecentSales />
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <RecentSales />
+          </div>
         </div>
 
-        <div className="grid w-full min-w-0 items-start gap-4 md:gap-6 lg:grid-cols-2">
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
           <StockOverview />
           <DeliveriesMap />
         </div>

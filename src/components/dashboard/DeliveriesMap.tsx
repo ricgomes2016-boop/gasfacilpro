@@ -54,9 +54,9 @@ export function DeliveriesMap() {
   });
 
   return (
-    <Card className="h-full w-full min-w-0 border-border/60 shadow-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">Entregas do Dia</CardTitle>
+    <Card>
+      <CardHeader>
+        <CardTitle>Entregas do Dia</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -74,11 +74,11 @@ export function DeliveriesMap() {
               return (
                 <div
                   key={delivery.id}
-                  className="flex min-w-0 items-center gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 transition-colors hover:bg-muted/50"
+                  className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted/50"
                 >
-                  <StatusIcon className={`h-5 w-5 shrink-0 ${colorClass}`} />
-                  <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 text-sm font-medium text-foreground">
+                  <StatusIcon className={`h-5 w-5 ${colorClass}`} />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">
                       {delivery.address}
                     </p>
                     <p className="text-xs text-muted-foreground">
