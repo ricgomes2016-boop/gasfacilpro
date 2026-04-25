@@ -31,6 +31,19 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
   const [loading, setLoading] = useState(true);
   const { unidadeAtual } = useUnidade();
 
+  const quickActionColors = [
+    { bg: "bg-gradient-to-br from-emerald-500 to-emerald-600 text-primary-foreground shadow-emerald-500/25", ring: "ring-emerald-400/40" },
+    { bg: "bg-gradient-to-br from-sky-500 to-sky-600 text-primary-foreground shadow-sky-500/25", ring: "ring-sky-400/40" },
+    { bg: "bg-gradient-to-br from-violet-500 to-violet-600 text-primary-foreground shadow-violet-500/25", ring: "ring-violet-400/40" },
+    { bg: "bg-gradient-to-br from-amber-500 to-amber-600 text-primary-foreground shadow-amber-500/25", ring: "ring-amber-400/40" },
+    { bg: "bg-gradient-to-br from-teal-500 to-teal-600 text-primary-foreground shadow-teal-500/25", ring: "ring-teal-400/40" },
+    { bg: "bg-gradient-to-br from-rose-500 to-rose-600 text-primary-foreground shadow-rose-500/25", ring: "ring-rose-400/40" },
+    { bg: "bg-gradient-to-br from-indigo-500 to-indigo-600 text-primary-foreground shadow-indigo-500/25", ring: "ring-indigo-400/40" },
+    { bg: "bg-gradient-to-br from-orange-500 to-orange-600 text-primary-foreground shadow-orange-500/25", ring: "ring-orange-400/40" },
+    { bg: "bg-gradient-to-br from-cyan-500 to-cyan-600 text-primary-foreground shadow-cyan-500/25", ring: "ring-cyan-400/40" },
+    { bg: "bg-gradient-to-br from-fuchsia-500 to-fuchsia-600 text-primary-foreground shadow-fuchsia-500/25", ring: "ring-fuchsia-400/40" },
+  ];
+
   useEffect(() => {
     const fetchEntregadores = async () => {
       try {
@@ -137,28 +150,32 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
               Nenhum entregador disponível
             </div>
           )}
-          {entregadores.map((entregador) => {
+          {entregadores.map((entregador, index) => {
             const selected = value === entregador.id;
+            const colors = quickActionColors[index % quickActionColors.length];
             return (
               <button
                 key={entregador.id}
                 type="button"
                 onClick={() => handleSelect(entregador.id)}
+                aria-pressed={selected}
                 className={cn(
-                   "venda-modern-surface group flex min-h-[104px] items-center gap-3 rounded-lg border p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md",
-                  selected && "border-primary bg-primary/10 shadow-md ring-2 ring-primary/20"
+                  "group flex min-h-[104px] items-center gap-3 rounded-xl border border-primary-foreground/15 p-3 text-left shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2",
+                  colors.bg,
+                  colors.ring,
+                  selected && "scale-[1.02] border-primary-foreground/40 shadow-xl ring-2 ring-offset-2 ring-offset-background"
                 )}
               >
                 <div className={cn(
-                   "flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary ring-1 ring-primary/20 transition-colors",
-                   selected ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" : "group-hover:bg-primary/15 group-hover:text-primary"
+                  "flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15 text-sm font-bold text-primary-foreground ring-1 ring-primary-foreground/25 transition-colors",
+                  selected ? "bg-primary-foreground/25 shadow-md" : "group-hover:bg-primary-foreground/20"
                 )}>
                   {getInitials(entregador.nome) || <UserRound className="h-5 w-5" />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-semibold">{entregador.nome}</p>
-                    {selected && <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />}
+                    <p className="truncate text-sm font-semibold text-primary-foreground drop-shadow-sm">{entregador.nome}</p>
+                    {selected && <CheckCircle2 className="h-4 w-4 shrink-0 text-primary-foreground drop-shadow-sm" />}
                   </div>
                   <div className="mt-1">{getStatusBadge(entregador.status)}</div>
                 </div>
