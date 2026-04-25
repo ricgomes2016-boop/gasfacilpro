@@ -182,65 +182,65 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
   }
 
   const content = (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full min-w-0 max-w-full overflow-hidden">
       {/* Ações */}
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={() => exportPEtoPdf(peUnidades, peReais, margemContribuicao, margemPercentual, totalCustosFixos, precoVendaUnit, custoVariavelUnit, custosFixos, vendasMesAtual)}>
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end w-full min-w-0">
+        <Button variant="outline" size="sm" className="h-10 sm:h-9 min-w-0" onClick={() => exportPEtoPdf(peUnidades, peReais, margemContribuicao, margemPercentual, totalCustosFixos, precoVendaUnit, custoVariavelUnit, custosFixos, vendasMesAtual)}>
           <FileDown className="h-4 w-4 mr-2" /> PDF
         </Button>
-        <Button variant="outline" size="sm" onClick={handlePrint}>
+        <Button variant="outline" size="sm" className="h-10 sm:h-9 min-w-0" onClick={handlePrint}>
           <Printer className="h-4 w-4 mr-2" /> Imprimir
         </Button>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <Card className="relative overflow-hidden">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 w-full min-w-0">
+        <Card className="relative overflow-hidden min-w-0">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none" />
           <CardContent className="pt-4 pb-4 px-4">
             <div className="flex items-center gap-2 mb-1">
               <Package className="h-4 w-4 text-blue-500" />
               <p className="text-xs text-muted-foreground">PE Unidades</p>
             </div>
-            <p className="text-2xl font-bold tabular-nums">{peUnidades.toLocaleString("pt-BR")}</p>
+            <p className="text-xl sm:text-2xl font-bold tabular-nums truncate">{peUnidades.toLocaleString("pt-BR")}</p>
             <p className="text-xs text-muted-foreground">un./mês</p>
           </CardContent>
         </Card>
-        <Card className="relative overflow-hidden">
+        <Card className="relative overflow-hidden min-w-0">
           <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent pointer-events-none" />
           <CardContent className="pt-4 pb-4 px-4">
             <div className="flex items-center gap-2 mb-1">
               <DollarSign className="h-4 w-4 text-green-500" />
               <p className="text-xs text-muted-foreground">PE Faturamento</p>
             </div>
-            <p className="text-2xl font-bold tabular-nums">R$ {(peReais / 1000).toFixed(1)}k</p>
+            <p className="text-xl sm:text-2xl font-bold tabular-nums truncate">R$ {(peReais / 1000).toFixed(1)}k</p>
             <p className="text-xs text-muted-foreground">receita mínima</p>
           </CardContent>
         </Card>
-        <Card className="relative overflow-hidden">
+        <Card className="relative overflow-hidden min-w-0">
           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none" />
           <CardContent className="pt-4 pb-4 px-4">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp className="h-4 w-4 text-purple-500" />
               <p className="text-xs text-muted-foreground">Margem Contrib.</p>
             </div>
-            <p className="text-2xl font-bold tabular-nums">R$ {margemContribuicao.toFixed(2)}</p>
+            <p className="text-xl sm:text-2xl font-bold tabular-nums truncate">R$ {margemContribuicao.toFixed(2)}</p>
             <p className="text-xs text-muted-foreground">{margemPercentual.toFixed(1)}% por un.</p>
           </CardContent>
         </Card>
-        <Card className="relative overflow-hidden">
+        <Card className="relative overflow-hidden min-w-0">
           <div className="absolute inset-0 bg-gradient-to-br from-destructive/5 to-transparent pointer-events-none" />
           <CardContent className="pt-4 pb-4 px-4">
             <div className="flex items-center gap-2 mb-1">
               <AlertTriangle className="h-4 w-4 text-destructive" />
               <p className="text-xs text-muted-foreground">Custos Fixos</p>
             </div>
-            <p className="text-2xl font-bold tabular-nums">R$ {(totalCustosFixos / 1000).toFixed(1)}k</p>
+            <p className="text-xl sm:text-2xl font-bold tabular-nums truncate">R$ {(totalCustosFixos / 1000).toFixed(1)}k</p>
             <p className="text-xs text-muted-foreground">mensais</p>
           </CardContent>
         </Card>
         {/* Status do mês */}
-        <Card className={`relative overflow-hidden ${atingiuPE ? "border-green-500/30" : "border-amber-500/30"}`}>
+        <Card className={`relative overflow-hidden min-w-0 col-span-2 lg:col-span-1 ${atingiuPE ? "border-green-500/30" : "border-amber-500/30"}`}>
           <div className={`absolute inset-0 bg-gradient-to-br ${atingiuPE ? "from-green-500/5" : "from-amber-500/5"} to-transparent pointer-events-none`} />
           <CardContent className="pt-4 pb-4 px-4">
             <div className="flex items-center gap-2 mb-1">
@@ -267,14 +267,15 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
       </div>
 
       {/* Gráfico */}
-      <Card>
+      <Card className="min-w-0 overflow-hidden">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Calculator className="h-4 w-4 text-primary" />
             Gráfico de Ponto de Equilíbrio
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="min-w-0 overflow-x-auto">
+          <div className="min-w-[520px] sm:min-w-0">
           <ResponsiveContainer width="100%" height={300}>
             <ComposedChart data={chartData}>
               <defs>
@@ -305,14 +306,15 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
               )}
             </ComposedChart>
           </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full min-w-0">
         {/* Parâmetros de Venda */}
-        <Card>
+        <Card className="min-w-0 overflow-hidden">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
               <CardTitle className="text-base">Parâmetros de Venda</CardTitle>
               {vendasMesAtual > 0 && (
                 <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-700 border-green-200">
@@ -335,7 +337,7 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Margem de Contribuição</span>
-                <span className="font-medium">R$ {margemContribuicao.toFixed(2)} ({margemPercentual.toFixed(1)}%)</span>
+                <span className="font-medium text-right">R$ {margemContribuicao.toFixed(2)} ({margemPercentual.toFixed(1)}%)</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">PE em Unidades</span>
@@ -350,16 +352,16 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
         </Card>
 
         {/* Custos Fixos */}
-        <Card>
+        <Card className="min-w-0 overflow-hidden">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
               <CardTitle className="text-base">Custos Fixos Mensais</CardTitle>
               <Badge variant="outline">R$ {totalCustosFixos.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="max-h-[350px] overflow-y-auto">
-              <Table>
+            <div className="max-h-[350px] overflow-auto">
+              <Table className="min-w-[420px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Descrição</TableHead>
@@ -394,10 +396,10 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
                 </TableBody>
               </Table>
             </div>
-            <div className="flex gap-2">
-              <Input placeholder="Descrição" value={novoDesc} onChange={(e) => setNovoDesc(e.target.value)} className="flex-1 h-8 text-sm" />
-              <Input type="number" step="0.01" placeholder="Valor" value={novoValor} onChange={(e) => setNovoValor(e.target.value)} className="w-28 h-8 text-sm" />
-              <Button size="sm" variant="outline" className="h-8" onClick={addCusto}><Plus className="h-3 w-3" /></Button>
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_7rem_auto] gap-2 w-full min-w-0">
+              <Input placeholder="Descrição" value={novoDesc} onChange={(e) => setNovoDesc(e.target.value)} className="w-full min-w-0 h-10 sm:h-8 text-sm" />
+              <Input type="number" step="0.01" placeholder="Valor" value={novoValor} onChange={(e) => setNovoValor(e.target.value)} className="w-full min-w-0 h-10 sm:h-8 text-sm" />
+              <Button size="sm" variant="outline" className="h-10 sm:h-8 w-full sm:w-auto" onClick={addCusto}><Plus className="h-3 w-3" /></Button>
             </div>
           </CardContent>
         </Card>
@@ -409,7 +411,7 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
   return (
     <MainLayout>
       <Header title="Ponto de Equilíbrio" subtitle="Análise de break-even da operação" />
-      <div className="p-4 md:p-6">{content}</div>
+      <div className="p-3 sm:p-4 md:p-6 w-full min-w-0 max-w-full overflow-x-hidden">{content}</div>
     </MainLayout>
   );
 }
