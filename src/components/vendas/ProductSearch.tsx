@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Package, Search, Trash2, Plus, Minus } from "lucide-react";
+import { Package, Search, Trash2, Plus, Minus, ShoppingBasket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Produto {
@@ -161,16 +161,23 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
   const total = itens.reduce((acc, item) => acc + item.total, 0);
 
   return (
-    <Card ref={searchRef} className="venda-card">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Package className="h-5 w-5" />
-          Produtos
-        </CardTitle>
+    <Card ref={searchRef} className="venda-card overflow-hidden">
+      <CardHeader className="border-b bg-muted/30 p-4 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/12 text-primary">
+              <Package className="h-5 w-5" />
+            </span>
+            Produtos
+          </CardTitle>
+          <div className="rounded-md border bg-background px-3 py-1.5 text-sm font-semibold text-primary shadow-sm">
+            Total R$ {total.toFixed(2)}
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4 p-4">
         {/* Search Input */}
-        <div className="relative">
+        <div className="relative rounded-lg border bg-background p-2 shadow-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar produto por nome..."
@@ -179,16 +186,16 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
               setSearchTerm(e.target.value);
               searchProdutos(e.target.value);
             }}
-            className="pl-10"
+            className="h-11 border-0 bg-transparent pl-9 shadow-none focus-visible:ring-0"
           />
 
           {/* Autocomplete Results */}
           {showResults && searchResults.length > 0 && (
-            <div className="absolute z-50 w-full min-w-0 mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
+            <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-72 w-full min-w-0 overflow-y-auto rounded-lg border border-border bg-popover shadow-xl">
               {searchResults.map((produto) => (
                 <button
                   key={produto.id}
-                  className="w-full min-w-0 px-4 py-3 text-left hover:bg-accent transition-colors border-b border-border last:border-0 flex justify-between items-center gap-2"
+                  className="w-full min-w-0 px-4 py-3 text-left hover:bg-primary/10 transition-colors border-b border-border last:border-0 flex justify-between items-center gap-2"
                   onClick={() => addItem(produto)}
                 >
                   <div className="min-w-0 flex-1">
