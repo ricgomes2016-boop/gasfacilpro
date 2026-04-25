@@ -374,23 +374,23 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
           </div>
 
           <div className="md:hidden w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
-            <table className="w-max min-w-full border-separate border-spacing-0 text-[11px]">
+            <table className="w-max min-w-full border-separate border-spacing-0 text-[12px]">
               <thead className="sticky top-0 z-30">
                 <tr>
-                  <th className="sticky left-0 z-40 w-[142px] min-w-[142px] bg-muted px-2.5 py-2.5 text-left text-[10px] font-bold uppercase tracking-wide text-muted-foreground shadow-[1px_0_0_hsl(var(--border))]">
+                  <th className="sticky left-0 z-40 w-[168px] min-w-[168px] bg-muted px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground shadow-[1px_0_0_hsl(var(--border))]">
                     DRE
                   </th>
-                  <th className="w-[104px] min-w-[104px] bg-muted px-2 py-2.5 text-right text-[10px] font-bold uppercase tracking-wide text-foreground">
-                    Acum.
-                  </th>
-                  <th className="w-[52px] min-w-[52px] bg-muted px-2 py-2.5 text-right text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                    AV
-                  </th>
                   {mesesExibidos.map(m => (
-                    <th key={m} className="w-[92px] min-w-[92px] bg-muted px-2 py-2.5 text-right text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                    <th key={m} className="w-[104px] min-w-[104px] bg-muted px-2.5 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
                       {m}
                     </th>
                   ))}
+                  <th className="w-[64px] min-w-[64px] bg-muted px-2.5 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                    AV
+                  </th>
+                  <th className="w-[118px] min-w-[118px] bg-muted px-2.5 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-foreground">
+                    Acum.
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -404,25 +404,25 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
 
                   return (
                     <tr key={index} className={`${rowBg} ${isResultado ? "ring-1 ring-inset ring-primary/20" : ""}`}>
-                      <td className={`sticky left-0 z-10 w-[142px] min-w-[142px] border-b border-border/50 px-2.5 py-2.5 align-middle shadow-[1px_0_0_hsl(var(--border))] ${rowBg}`}>
-                        <span className={`block whitespace-normal break-words leading-snug ${item.indent && !isSubtotal ? "pl-2 text-muted-foreground" : ""} ${isSubtotal || isResultado ? "text-[10px] font-bold uppercase" : "font-semibold"} ${isResultado ? "text-primary" : ""}`}>
+                      <td className={`sticky left-0 z-10 w-[168px] min-w-[168px] border-b border-border/50 px-3 py-3 align-middle shadow-[1px_0_0_hsl(var(--border))] ${rowBg}`}>
+                        <span className={`block whitespace-normal break-words leading-snug ${item.indent && !isSubtotal ? "pl-2 text-muted-foreground" : ""} ${isSubtotal || isResultado ? "text-[11px] font-bold uppercase" : "text-[12px] font-semibold"} ${isResultado ? "text-primary" : ""}`}>
                           {item.categoria}
                         </span>
-                      </td>
-                      <td className={`w-[104px] min-w-[104px] border-b border-border/50 bg-muted/20 px-2 py-2.5 text-right align-middle text-[11px] font-bold tabular-nums whitespace-nowrap ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-green-600" : ""}`}>
-                        {formatCurrency(total)}
-                      </td>
-                      <td className={`w-[52px] min-w-[52px] border-b border-border/50 px-2 py-2.5 text-right align-middle text-[10px] tabular-nums ${isSubtotal || isResultado ? "font-bold" : "text-muted-foreground"}`}>
-                        {formatPercent(av)}
                       </td>
                       {item.valores.map((v, i) => (
                         <td
                           key={`${item.categoria}-${mesesExibidos[i]}`}
-                          className={`w-[92px] min-w-[92px] border-b border-border/50 px-2 py-2.5 text-right align-middle text-[11px] tabular-nums whitespace-nowrap ${isSubtotal || isResultado ? "font-bold" : "font-medium"} ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-green-600" : ""}`}
+                          className={`w-[104px] min-w-[104px] border-b border-border/50 px-2.5 py-3 text-right align-middle text-[12px] tabular-nums whitespace-nowrap ${isSubtotal || isResultado ? "font-bold" : "font-medium"} ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-green-600" : ""}`}
                         >
                           {formatCurrency(v)}
                         </td>
                       ))}
+                      <td className={`w-[64px] min-w-[64px] border-b border-border/50 px-2.5 py-3 text-right align-middle text-[11px] tabular-nums ${isSubtotal || isResultado ? "font-bold" : "text-muted-foreground"}`}>
+                        {formatPercent(av)}
+                      </td>
+                      <td className={`w-[118px] min-w-[118px] border-b border-border/50 bg-muted/20 px-2.5 py-3 text-right align-middle text-[12px] font-bold tabular-nums whitespace-nowrap ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-green-600" : ""}`}>
+                        {formatCurrency(total)}
+                      </td>
                     </tr>
                   );
                 })}
