@@ -16,7 +16,7 @@ export function UnidadeSelector() {
   const { unidades, unidadeAtual, loading, setUnidadeAtual } = useUnidade();
 
   if (loading) {
-    return <Skeleton className="h-9 w-32" />;
+    return <Skeleton className="h-9 w-24 md:w-28 shrink-0" />;
   }
 
   if (unidades.length === 0) {
@@ -26,12 +26,12 @@ export function UnidadeSelector() {
   // If only one unidade, just show it without dropdown
   if (unidades.length === 1) {
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50">
-        <Building2 className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium truncate max-w-[120px]">
+      <div className="flex h-9 items-center gap-1.5 min-w-0 max-w-[120px] md:max-w-[150px] xl:max-w-[220px] shrink-0 px-2 xl:px-3 py-1.5 rounded-md bg-muted/50">
+        <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+        <span className="text-xs md:text-sm font-medium truncate min-w-0">
           {unidadeAtual?.nome}
         </span>
-        <Badge variant="outline" className="text-xs capitalize">
+        <Badge variant="outline" className="text-xs capitalize hidden xl:inline-flex shrink-0">
           {unidadeAtual?.tipo}
         </Badge>
       </div>
@@ -41,12 +41,12 @@ export function UnidadeSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="default" size="sm" className="gap-1 sm:gap-2 h-9 px-2 sm:px-3 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md min-w-0 max-w-[140px] sm:max-w-none">
+        <Button variant="default" size="sm" className="gap-1 h-9 px-2 xl:px-3 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md min-w-0 max-w-[112px] sm:max-w-[130px] lg:max-w-[150px] xl:max-w-[220px] shrink-0">
           <Building2 className="h-4 w-4 shrink-0" />
-          <span className="truncate max-w-[70px] sm:max-w-[120px] lg:max-w-[180px] font-semibold text-xs sm:text-sm">
+          <span className="truncate min-w-0 font-semibold text-xs sm:text-sm">
             {unidadeAtual?.nome || "Selecionar"}
           </span>
-          <Badge variant="outline" className="text-xs capitalize hidden md:inline-flex border-primary-foreground/30 text-primary-foreground shrink-0">
+          <Badge variant="outline" className="text-xs capitalize hidden xl:inline-flex border-primary-foreground/30 text-primary-foreground shrink-0">
             {unidadeAtual?.tipo}
           </Badge>
           <ChevronDown className="h-3.5 w-3.5 opacity-70 shrink-0" />
