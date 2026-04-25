@@ -8,10 +8,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Truck, Sparkles } from "lucide-react";
+import { Truck, Sparkles, CheckCircle2, UserRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SugestaoEntregador } from "@/components/sugestao/SugestaoEntregador";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { cn } from "@/lib/utils";
 
 interface Entregador {
   id: string;
@@ -95,33 +96,79 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
     }
   };
 
+  const getInitials = (nome: string) =>
+    nome
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase())
+      .join("") || "E";
+
   return (
-    <Card className="venda-card">
-      <CardHeader className="pb-3">
+    <Card className="venda-card overflow-hidden">
+      <CardHeader className="border-b bg-muted/30 p-4 pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Truck className="h-5 w-5" />
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/12 text-primary">
+            <Truck className="h-5 w-5" />
+          </span>
           Entregador
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4 p-4">
         <Select value={value || undefined} onValueChange={handleSelect} disabled={loading}>
-          <SelectTrigger>
+          <SelectTrigger className="sr-only">
             <SelectValue placeholder={loading ? "Carregando..." : "Selecione o entregador"} />
           </SelectTrigger>
           <SelectContent>
             {entregadores.map((entregador) => (
-              <SelectItem key={entregador.id} value={entregador.id}>
-                <div className="flex items-center gap-2">
-                  <span>{entregador.nome}</span>
-                  {getStatusBadge(entregador.status)}
-                </div>
-              </SelectItem>
+              <SelectItem key={entregador.id} value={entregador.id}>{entregador.nome}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {loading && (
+            <div className="col-span-full rounded-lg border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+              Carregando entregadores...
+            </div>
+          )}
+          {!loading && entregadores.length === 0 && (
+            <div className="col-span-full rounded-lg border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+              Nenhum entregador disponível
+            </div>
+          )}
+          {entregadores.map((entregador) => {
+            const selected = value === entregador.id;
+            return (
+              <button
+                key={entregador.id}
+                type="button"
+                onClick={() => handleSelect(entregador.id)}
+                className={cn(
+                  "group flex min-h-[96px] items-center gap-3 rounded-lg border bg-background p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md",
+                  selected && "border-primary bg-primary/10 shadow-md ring-2 ring-primary/20"
+                )}
+              >
+                <div className={cn(
+                  "flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground transition-colors",
+                  selected ? "bg-primary text-primary-foreground" : "group-hover:bg-primary/15 group-hover:text-primary"
+                )}>
+                  {getInitials(entregador.nome) || <UserRound className="h-5 w-5" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-semibold">{entregador.nome}</p>
+                    {selected && <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />}
+                  </div>
+                  <div className="mt-1">{getStatusBadge(entregador.status)}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
         {endereco && endereco.length > 10 && (
-          <div className="pt-2">
+          <div className="rounded-lg border bg-muted/20 p-3">
             <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
               <Sparkles className="h-3 w-3" />
               Sugestão automática
