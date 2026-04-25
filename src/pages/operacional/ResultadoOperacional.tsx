@@ -244,6 +244,14 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
     );
   }
 
+  const canaisP13 = canais.filter(c => c.tipo !== "produto");
+  const produtosReferencia = canais.filter(c => c.tipo === "produto" && c.qtde > 0);
+  const qtdP13 = canaisP13.reduce((s, c) => s + c.qtde, 0);
+  const totalVendaP13 = canaisP13.reduce((s, c) => s + c.totalRS, 0);
+  const totalCompraP13 = canaisP13.reduce((s, c) => s + (c.precoCompra * c.qtde), 0);
+  const precoMedioVendaP13 = qtdP13 > 0 ? totalVendaP13 / qtdP13 : precoVendaP13;
+  const precoMedioCompraP13 = qtdP13 > 0 ? totalCompraP13 / qtdP13 : precoCompraP13;
+
   const content = (
     <div className="space-y-4 w-full min-w-0 max-w-full overflow-hidden">
       {/* Header / Filtros */}
@@ -288,23 +296,23 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
             </div>
           </CardHeader>
           <CardContent className="p-0 min-w-0 max-w-full overflow-hidden">
-            <div className="w-full min-w-0 max-w-full max-h-[600px] overflow-x-auto overflow-y-auto overscroll-x-contain">
-              <Table className="min-w-[420px]">
+            <div className="w-full min-w-0 max-w-full overflow-visible">
+              <Table className="min-w-full table-fixed">
                 <TableBody>
                   {custosAgrupados.map((grupo, gi) => (
                     <> 
                       {grupo.items.map((c, ci) => (
                         <TableRow key={c.id} className="hover:bg-muted/30">
-                          <TableCell className="py-1 px-3 text-xs border-r">
-                            <div className="flex items-center gap-1">
-                              <span className="text-muted-foreground w-4 text-right text-[10px]">{gi * 10 + ci + 1}</span>
-                              <span>{c.nome}</span>
+                          <TableCell className="w-[62%] py-1.5 px-3 text-xs border-r align-top">
+                            <div className="flex items-start gap-1.5 min-w-0">
+                              <span className="shrink-0 text-muted-foreground w-4 text-right text-[10px]">{gi * 10 + ci + 1}</span>
+                              <span className="min-w-0 break-words leading-snug">{c.nome}</span>
                               {c.valorReal > 0 && (
                                 <span className="text-[9px] text-green-600 bg-green-500/10 px-1 rounded">auto</span>
                               )}
                             </div>
                           </TableCell>
-                          <TableCell className={`py-1 px-3 text-right text-xs tabular-nums font-medium ${c.valor > 0 ? "" : "text-muted-foreground"}`}>
+                          <TableCell className={`w-[38%] py-1.5 px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${c.valor > 0 ? "" : "text-muted-foreground"}`}>
                             {c.valor > 0 ? `R$ ${fmt(c.valor)}` : "—"}
                           </TableCell>
                         </TableRow>
@@ -434,17 +442,22 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
           <CardContent className="p-0">
             <Table>
               <TableBody>
-                {[
-                  { label: "Preço Compra P13", value: fmt(precoCompraP13) },
-                  { label: "Preço Venda P13", value: fmt(precoVendaP13) },
-                  { label: "Margem Bruta P13", value: fmt(precoVendaP13 - precoCompraP13), highlight: true },
-                  { label: "Tonelagem Total", value: `${totalTonelagem.toFixed(2)} ton` },
-                  { label: "Ticket Médio", value: totalQtde > 0 ? fmt(receitaBruta / totalQtde) : "0,00" },
-                  { label: "Margem Líquida", value: receitaBruta > 0 ? `${((lucroLiquido / receitaBruta) * 100).toFixed(1)}%` : "0,0%", highlight: lucroLiquido >= 0 },
-                ].map((row, i) => (
+                  {[
+                    { label: "Preço Compra P13", value: fmt(precoMedioCompraP13) },
+                    { label: "Preço Médio Venda P13", value: fmt(precoMedioVendaP13) },
+                    { label: "Margem Bruta P13", value: fmt(precoMedioVendaP13 - precoMedioCompraP13), highlight: true },
+                    ...produtosReferencia.flatMap(p => [
+                      { label: `Preço Compra ${p.canal}`, value: fmt(p.precoCompra) },
+                      { label: `Preço Médio Venda ${p.canal}`, value: fmt(p.precoVenda) },
+                      { label: `Margem Bruta ${p.canal}`, value: fmt(p.precoVenda - p.precoCompra), highlight: p.precoVenda >= p.precoCompra },
+                    ]),
+                    { label: "Tonelagem Total", value: `${totalTonelagem.toFixed(2)} ton` },
+                    { label: "Ticket Médio", value: totalQtde > 0 ? fmt(receitaBruta / totalQtde) : "0,00" },
+                    { label: "Margem Líquida", value: receitaBruta > 0 ? `${((lucroLiquido / receitaBruta) * 100).toFixed(1)}%` : "0,0%", highlight: lucroLiquido >= 0 },
+                  ].map((row, i) => (
                   <TableRow key={i}>
-                    <TableCell className="py-1 px-3 text-xs">{row.label}</TableCell>
-                    <TableCell className={`py-1 px-3 text-right text-xs tabular-nums font-medium ${row.highlight ? "text-green-600" : ""}`}>
+                    <TableCell className="py-1.5 px-3 text-xs leading-snug">{row.label}</TableCell>
+                    <TableCell className={`py-1.5 px-3 text-right text-xs tabular-nums font-medium whitespace-nowrap ${row.highlight ? "text-green-600" : ""}`}>
                       {row.value}
                     </TableCell>
                   </TableRow>
