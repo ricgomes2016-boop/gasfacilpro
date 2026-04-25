@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Plus, Search, Edit, Trash2, Phone, Briefcase, Truck,
-  LinkIcon, CreditCard, Mail, Lock, Loader2, UserCheck, Building2,
+  LinkIcon, CreditCard, Mail, Lock, Loader2, UserCheck, Building2, Image,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -50,6 +50,7 @@ interface Entregador {
   terminal_id: string | null;
   cnh: string | null;
   status: string | null;
+  foto_url: string | null;
 }
 
 interface TerminalOption {
@@ -66,6 +67,7 @@ const emptyForm = {
   login_email: "",
   login_password: "",
   terminal_id: "",
+  foto_url: "",
   unidade_id: "",
   // Vínculo e regime
   tipo_vinculo: "clt",
@@ -86,6 +88,7 @@ export default function Funcionarios() {
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [terminais, setTerminais] = useState<TerminalOption[]>([]);
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
   const { unidadeAtual, unidades } = useUnidade();
   const [unidadesDialog, setUnidadesDialog] = useState<{ userId: string; nome: string } | null>(null);
 
@@ -109,7 +112,7 @@ export default function Funcionarios() {
   const fetchEntregadores = async () => {
     let query = supabase
       .from("entregadores")
-      .select("id, nome, funcionario_id, user_id, terminal_id, cnh, status")
+      .select("id, nome, funcionario_id, user_id, terminal_id, cnh, status, foto_url")
       .eq("ativo", true);
 
     if (unidadeAtual?.id) {
