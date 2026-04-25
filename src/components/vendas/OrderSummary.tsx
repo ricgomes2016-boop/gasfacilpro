@@ -34,14 +34,16 @@ export function OrderSummary({
   const pagamentoCompleto = totalPago >= total && total > 0;
 
   return (
-    <Card className="venda-card w-full min-w-0 max-w-full">
-      <CardHeader className="pb-3">
+    <Card className="venda-card w-full min-w-0 max-w-full overflow-hidden">
+      <CardHeader className="border-b bg-muted/30 p-4 pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          <ShoppingCart className="h-5 w-5 shrink-0" />
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/12 text-primary">
+            <ShoppingCart className="h-5 w-5 shrink-0" />
+          </span>
           <span className="truncate">Resumo da Venda</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 w-full min-w-0">
+      <CardContent className="space-y-3 w-full min-w-0 p-4">
         {/* Canal de venda */}
         <div className="flex items-center justify-between gap-2 text-sm w-full min-w-0">
           <span className="text-muted-foreground shrink-0">Canal</span>
@@ -81,9 +83,9 @@ export function OrderSummary({
               <span>- R$ {desconto.toFixed(2)}</span>
             </div>
           )}
-          <div className="flex justify-between text-lg font-bold pt-2 border-t">
+          <div className="flex justify-between text-lg font-bold pt-3 border-t">
             <span>Total</span>
-            <span className="text-primary">R$ {total.toFixed(2)}</span>
+            <span className="rounded-md bg-primary/10 px-2 py-1 text-primary">R$ {total.toFixed(2)}</span>
           </div>
         </div>
 
@@ -126,7 +128,7 @@ export function OrderSummary({
         {/* Ações */}
         <div className="space-y-2 pt-3">
           <Button
-            className="w-full h-11"
+            className="w-full h-11 shadow-sm shadow-primary/20"
             size="lg"
             onClick={onFinalizar}
             disabled={!pagamentoCompleto || itens.length === 0 || isLoading}
