@@ -150,6 +150,10 @@
 }
 
 @layer utilities {
+  .venda-card {
+    @apply border border-foreground/20 shadow-lg shadow-foreground/10;
+  }
+
   .gradient-primary {
     background: var(--gradient-primary);
   }
