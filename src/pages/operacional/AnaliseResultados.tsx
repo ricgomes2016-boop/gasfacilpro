@@ -217,23 +217,23 @@ export default function AnaliseResultados() {
   return (
     <MainLayout>
       <Header title="Análise de Resultados" subtitle="Visão completa da performance financeira e operacional" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-6">
+      <div className="p-3 sm:p-4 md:p-6 space-y-6 w-full min-w-0 max-w-full overflow-x-hidden">
 
         {/* Period Selector */}
-        <div className="flex flex-wrap gap-3 items-center">
+        <div className="flex flex-wrap gap-2 sm:gap-3 items-center w-full min-w-0">
           <Select value={mesSelecionado} onValueChange={setMesSelecionado}>
-            <SelectTrigger className="w-40"><SelectValue placeholder="Mês" /></SelectTrigger>
+            <SelectTrigger className="h-10 min-w-0 flex-1 sm:flex-none sm:w-40"><SelectValue placeholder="Mês" /></SelectTrigger>
             <SelectContent>
               {mesesOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={anoSelecionado} onValueChange={setAnoSelecionado}>
-            <SelectTrigger className="w-28"><SelectValue placeholder="Ano" /></SelectTrigger>
+            <SelectTrigger className="h-10 w-28 min-w-0"><SelectValue placeholder="Ano" /></SelectTrigger>
             <SelectContent>
               {[2024, 2025, 2026].map(a => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Badge variant="outline" className="text-xs font-normal">
+          <Badge variant="outline" className="text-xs font-normal max-w-full truncate">
             {mesLabel}
           </Badge>
         </div>
@@ -245,7 +245,7 @@ export default function AnaliseResultados() {
           </div>
         ) : overview && (
           <>
-            <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-5 w-full min-w-0">
               {/* Receita */}
               <Card className="relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent pointer-events-none" />
@@ -334,9 +334,9 @@ export default function AnaliseResultados() {
             </div>
 
             {/* Charts Row */}
-            <div className="grid gap-4 lg:grid-cols-5">
+            <div className="grid gap-4 lg:grid-cols-5 w-full min-w-0">
               {/* Evolution Chart */}
-              <Card className="lg:col-span-3">
+              <Card className="lg:col-span-3 min-w-0 overflow-hidden">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <Activity className="h-4 w-4 text-primary" />
@@ -374,7 +374,7 @@ export default function AnaliseResultados() {
               </Card>
 
               {/* Pie Chart - Expenses */}
-              <Card className="lg:col-span-2">
+              <Card className="lg:col-span-2 min-w-0 overflow-hidden">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">Despesas por Categoria</CardTitle>
                 </CardHeader>
@@ -418,31 +418,31 @@ export default function AnaliseResultados() {
         )}
 
         {/* Detailed Tabs */}
-        <Tabs defaultValue="resultado" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid h-auto">
-            <TabsTrigger value="resultado" className="flex items-center gap-2 py-2.5">
-              <BarChart3 className="h-4 w-4" />
+        <Tabs defaultValue="resultado" className="space-y-4 w-full min-w-0 max-w-full overflow-hidden">
+          <TabsList className="grid w-full min-w-0 grid-cols-3 lg:w-auto lg:inline-grid h-auto p-1">
+            <TabsTrigger value="resultado" className="flex min-w-0 items-center justify-center gap-1 sm:gap-2 px-1.5 sm:px-3 py-2.5 text-xs sm:text-sm">
+              <BarChart3 className="h-4 w-4 shrink-0" />
               <span className="hidden sm:inline">Resultado Operacional</span>
               <span className="sm:hidden">RO</span>
             </TabsTrigger>
-            <TabsTrigger value="dre" className="flex items-center gap-2 py-2.5">
-              <FileText className="h-4 w-4" />
+            <TabsTrigger value="dre" className="flex min-w-0 items-center justify-center gap-1 sm:gap-2 px-1.5 sm:px-3 py-2.5 text-xs sm:text-sm">
+              <FileText className="h-4 w-4 shrink-0" />
               <span>DRE</span>
             </TabsTrigger>
-            <TabsTrigger value="equilibrio" className="flex items-center gap-2 py-2.5">
-              <Calculator className="h-4 w-4" />
+            <TabsTrigger value="equilibrio" className="flex min-w-0 items-center justify-center gap-1 sm:gap-2 px-1.5 sm:px-3 py-2.5 text-xs sm:text-sm">
+              <Calculator className="h-4 w-4 shrink-0" />
               <span className="hidden sm:inline">Ponto de Equilíbrio</span>
               <span className="sm:hidden">PE</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="resultado">
+          <TabsContent value="resultado" className="w-full min-w-0 max-w-full overflow-hidden">
             <ResultadoOperacional embedded />
           </TabsContent>
-          <TabsContent value="dre">
+          <TabsContent value="dre" className="w-full min-w-0 max-w-full overflow-hidden">
             <DRE embedded />
           </TabsContent>
-          <TabsContent value="equilibrio">
+          <TabsContent value="equilibrio" className="w-full min-w-0 max-w-full overflow-hidden">
             <PontoEquilibrio embedded />
           </TabsContent>
         </Tabs>
