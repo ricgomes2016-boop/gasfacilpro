@@ -66,6 +66,13 @@ const DRAFT_KEY = "nova-venda-rascunho";
 const VIEW_KEY = "nova-venda-view-mode";
 type VendaStepId = "cliente" | "produtos" | "pagamento" | "entregador" | "confirmar";
 const VENDA_STEPS: VendaStepId[] = ["cliente", "produtos", "pagamento", "entregador", "confirmar"];
+const STEP_TONE_CLASS: Record<VendaStepId, string> = {
+  cliente: "venda-tone-cliente",
+  produtos: "venda-tone-produtos",
+  pagamento: "venda-tone-pagamento",
+  entregador: "venda-tone-entregador",
+  confirmar: "venda-tone-confirmar",
+};
 
 function getSavedViewMode() {
   try {
@@ -116,10 +123,10 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
   const pagamentoOk = totalPago >= totalVenda && totalVenda > 0;
   const steps: Array<{ id: VendaStepId; label: string; done: boolean; enabled: boolean; icon: typeof User }> = [
     { id: "cliente", label: "Cliente", done: clienteOk, enabled: true, icon: User },
-    { id: "produtos", label: "Produtos", done: produtosOk, enabled: clienteOk, icon: PackageIcon },
-    { id: "pagamento", label: "Pagamento", done: pagamentoOk, enabled: clienteOk && produtosOk, icon: CreditCard },
-    { id: "entregador", label: "Entregador", done: entregadorSelecionado, enabled: clienteOk && produtosOk && pagamentoOk, icon: ShoppingBag },
-    { id: "confirmar", label: "Confirmar", done: pagamentoOk && produtosOk, enabled: clienteOk && produtosOk && pagamentoOk && entregadorSelecionado, icon: CheckCircle },
+    { id: "produtos", label: "Produtos", done: produtosOk, enabled: true, icon: PackageIcon },
+    { id: "pagamento", label: "Pagamento", done: pagamentoOk, enabled: true, icon: CreditCard },
+    { id: "entregador", label: "Entregador", done: entregadorSelecionado, enabled: true, icon: ShoppingBag },
+    { id: "confirmar", label: "Confirmar", done: pagamentoOk && produtosOk && entregadorSelecionado, enabled: true, icon: CheckCircle },
   ];
 
   return (
@@ -134,6 +141,7 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
               onClick={() => onStepClick?.(step.id)}
               className={cn(
                 "flex items-center gap-1.5 rounded-full text-xs font-medium transition-colors disabled:cursor-not-allowed",
+                STEP_TONE_CLASS[step.id],
                 compact ? "px-2 py-1" : "px-2.5 py-1.5",
                 activeStep === step.id
                   ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
