@@ -128,12 +128,12 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {loading && (
-            <div className="col-span-full rounded-lg border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+            <div className="venda-modern-surface col-span-full rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
               Carregando entregadores...
             </div>
           )}
           {!loading && entregadores.length === 0 && (
-            <div className="col-span-full rounded-lg border border-dashed bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+            <div className="venda-modern-surface col-span-full rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
               Nenhum entregador disponível
             </div>
           )}
@@ -145,7 +145,7 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
                 type="button"
                 onClick={() => handleSelect(entregador.id)}
                 className={cn(
-                  "group flex min-h-[96px] items-center gap-3 rounded-lg border bg-background p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md",
+                  "venda-modern-surface group flex min-h-[96px] items-center gap-3 rounded-lg border p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md",
                   selected && "border-primary bg-primary/10 shadow-md ring-2 ring-primary/20"
                 )}
               >
@@ -168,7 +168,7 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
         </div>
 
         {endereco && endereco.length > 10 && (
-          <div className="rounded-lg border bg-muted/20 p-3">
+          <div className="venda-modern-surface rounded-lg border p-3">
             <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
               <Sparkles className="h-3 w-3" />
               Sugestão automática
