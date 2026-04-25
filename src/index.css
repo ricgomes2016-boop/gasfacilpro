@@ -53,9 +53,9 @@
     --sidebar-foreground: 220 14% 96%;
     --sidebar-primary: 187 65% 38%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 36% 10%;
+    --sidebar-accent: 222 34% 12%;
     --sidebar-accent-foreground: 220 14% 96%;
-    --sidebar-border: 222 24% 18%;
+    --sidebar-border: 222 22% 22%;
     --sidebar-ring: 187 65% 38%;
 
     /* Gradients */
@@ -111,9 +111,9 @@
     --sidebar-foreground: 220 14% 96%;
     --sidebar-primary: 187 55% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 36% 10%;
+    --sidebar-accent: 222 34% 12%;
     --sidebar-accent-foreground: 220 14% 96%;
-    --sidebar-border: 222 24% 18%;
+    --sidebar-border: 222 22% 22%;
     --sidebar-ring: 187 55% 42%;
   }
 }
