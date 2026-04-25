@@ -254,24 +254,24 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
       </Card>
 
       {/* Tabela DRE Principal */}
-      <Card className="min-w-0 overflow-hidden">
+      <Card className="min-w-0 max-w-full overflow-hidden border-border/80">
         <CardContent className="p-0 min-w-0 max-w-full overflow-hidden">
-          <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
-            <table className="w-full min-w-[720px] text-sm">
+          <div className="hidden md:block w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
+            <table className="w-full min-w-[640px] border-separate border-spacing-0 text-[13px]">
               <thead>
-                <tr className="bg-muted/60 border-b-2 border-border">
-                  <th className="text-left py-2.5 px-3 sm:px-4 text-xs font-bold uppercase tracking-wider text-muted-foreground sticky left-0 bg-muted/60 z-10 min-w-[210px] sm:min-w-[260px]">
+                <tr className="bg-muted/70">
+                  <th className="sticky left-0 z-20 min-w-[220px] bg-muted/95 px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted-foreground shadow-[1px_0_0_hsl(var(--border))]">
                     Descrição
                   </th>
                   {meses.map(m => (
-                    <th key={m} className="text-right py-2.5 px-3 text-xs font-bold uppercase tracking-wider text-muted-foreground min-w-[110px]">
+                    <th key={m} className="min-w-[96px] px-2.5 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
                       {m}
                     </th>
                   ))}
-                  <th className="text-right py-2.5 px-4 text-xs font-bold uppercase tracking-wider min-w-[120px] bg-muted/80">
+                  <th className="min-w-[116px] bg-muted/90 px-3 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-foreground">
                     Acumulado
                   </th>
-                  <th className="text-right py-2.5 px-3 text-xs font-bold uppercase tracking-wider text-muted-foreground min-w-[70px]">
+                  <th className="min-w-[64px] px-2.5 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
                     AV%
                   </th>
                 </tr>
@@ -283,48 +283,30 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                   const isSubtotal = item.tipo === "subtotal";
                   const isResultado = item.tipo === "resultado";
                   const isNegative = total < 0;
+                  const rowBg = isResultado ? "bg-primary/10" : isSubtotal ? "bg-muted/45" : "bg-card";
 
                   return (
                     <tr
                       key={index}
-                      className={`
-                        border-b border-border/50 transition-colors
-                        ${isResultado ? "bg-primary/5 border-t-2 border-b-2 border-primary/20" : ""}
-                        ${isSubtotal ? "bg-muted/30 border-t" : ""}
-                        ${!isSubtotal && !isResultado ? "hover:bg-muted/20" : ""}
-                      `}
+                      className={`border-b border-border/50 transition-colors ${rowBg} ${isResultado ? "ring-1 ring-inset ring-primary/20" : ""} ${!isSubtotal && !isResultado ? "hover:bg-muted/20" : ""}`}
                     >
-                      <td className={`py-2 px-3 sm:px-4 sticky left-0 z-10 ${isResultado ? "bg-primary/5" : isSubtotal ? "bg-muted/30" : "bg-card"}`}>
-                        <span className={`
-                          ${item.indent && !isSubtotal ? "pl-4" : ""}
-                          ${isSubtotal || isResultado ? "font-bold text-xs uppercase tracking-wide" : "text-sm"}
-                          ${isResultado ? "text-primary" : ""}
-                        `}>
+                      <td className={`sticky left-0 z-10 border-b border-border/50 px-3 py-2.5 shadow-[1px_0_0_hsl(var(--border))] ${rowBg}`}>
+                        <span className={`block leading-snug ${item.indent && !isSubtotal ? "pl-3 text-muted-foreground" : ""} ${isSubtotal || isResultado ? "text-[12px] font-bold uppercase tracking-wide" : "font-medium"} ${isResultado ? "text-primary" : ""}`}>
                           {item.categoria}
                         </span>
                       </td>
                       {item.valores.map((v, i) => (
                         <td
                           key={i}
-                          className={`py-2 px-3 text-right tabular-nums
-                            ${isSubtotal || isResultado ? "font-bold" : "font-medium"}
-                            ${isNegative || v < 0 ? "text-destructive" : ""}
-                            ${isResultado && v >= 0 ? "text-green-600" : ""}
-                          `}
+                          className={`border-b border-border/50 px-2.5 py-2.5 text-right tabular-nums ${isSubtotal || isResultado ? "font-bold" : "font-medium"} ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-green-600" : ""}`}
                         >
                           {formatCurrency(v)}
                         </td>
                       ))}
-                      <td className={`py-2 px-4 text-right tabular-nums font-bold bg-muted/10
-                        ${isNegative ? "text-destructive" : ""}
-                        ${isResultado && total >= 0 ? "text-green-600" : ""}
-                        ${isResultado && total < 0 ? "text-destructive" : ""}
-                      `}>
+                      <td className={`border-b border-border/50 bg-muted/20 px-3 py-2.5 text-right font-bold tabular-nums ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-green-600" : ""}`}>
                         {formatCurrency(total)}
                       </td>
-                      <td className={`py-2 px-3 text-right tabular-nums text-xs
-                        ${isSubtotal || isResultado ? "font-bold" : "text-muted-foreground"}
-                      `}>
+                      <td className={`border-b border-border/50 px-2.5 py-2.5 text-right text-xs tabular-nums ${isSubtotal || isResultado ? "font-bold" : "text-muted-foreground"}`}>
                         {Math.abs(av).toFixed(1)}%
                       </td>
                     </tr>
@@ -332,6 +314,45 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
                 })}
               </tbody>
             </table>
+          </div>
+
+          <div className="md:hidden w-full min-w-0 max-w-full divide-y divide-border/60 overflow-hidden">
+            {dre.map((item, index) => {
+              const total = item.valores.reduce((s, v) => s + v, 0);
+              const av = totalReceita > 0 ? (total / totalReceita) * 100 : 0;
+              const isSubtotal = item.tipo === "subtotal";
+              const isResultado = item.tipo === "resultado";
+              const isNegative = total < 0;
+
+              return (
+                <div key={index} className={`${isResultado ? "bg-primary/10" : isSubtotal ? "bg-muted/45" : "bg-card"} p-3 min-w-0`}>
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className={`break-words leading-snug ${item.indent && !isSubtotal ? "pl-2 text-muted-foreground" : ""} ${isSubtotal || isResultado ? "text-xs font-bold uppercase tracking-wide" : "text-sm font-semibold"} ${isResultado ? "text-primary" : ""}`}>
+                        {item.categoria}
+                      </p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">AV {Math.abs(av).toFixed(1)}%</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Acumulado</p>
+                      <p className={`text-sm font-bold tabular-nums ${isNegative ? "text-destructive" : ""} ${isResultado && total >= 0 ? "text-green-600" : ""}`}>
+                        {formatCurrency(total)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 min-[390px]:grid-cols-3">
+                    {item.valores.map((v, i) => (
+                      <div key={`${item.categoria}-${meses[i]}`} className="min-w-0 rounded-md border border-border/70 bg-background/45 px-2 py-1.5">
+                        <p className="text-[10px] font-semibold uppercase text-muted-foreground">{meses[i]}</p>
+                        <p className={`truncate text-xs font-semibold tabular-nums ${v < 0 ? "text-destructive" : ""} ${isResultado && v >= 0 ? "text-green-600" : ""}`}>
+                          {formatCurrency(v)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
