@@ -600,6 +600,34 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   };
 
   const totalVenda = itens.reduce((acc, item) => acc + item.total, 0);
+  const totalPagoVenda = pagamentos.reduce((acc, p) => acc + p.valor, 0);
+  const clientePreenchido = !!customer.nome.trim();
+  const produtosPreenchidos = itens.length > 0;
+  const pagamentoPreenchido = totalPagoVenda >= totalVenda && totalVenda > 0;
+  const entregadorPreenchido = !!entregador.id;
+
+  useEffect(() => {
+    if (!useNewView) return;
+    if (!clientePreenchido) setActiveStep("cliente");
+    else if (!produtosPreenchidos) setActiveStep("produtos");
+    else if (!pagamentoPreenchido) setActiveStep("pagamento");
+    else if (!entregadorPreenchido) setActiveStep("entregador");
+    else setActiveStep("confirmar");
+  }, [useNewView, clientePreenchido, produtosPreenchidos, pagamentoPreenchido, entregadorPreenchido]);
+
+  const canOpenStep = (step: VendaStepId) => {
+    if (step === "cliente") return true;
+    if (step === "produtos") return clientePreenchido;
+    if (step === "pagamento") return clientePreenchido && produtosPreenchidos;
+    if (step === "entregador") return clientePreenchido && produtosPreenchidos && pagamentoPreenchido;
+    return clientePreenchido && produtosPreenchidos && pagamentoPreenchido && entregadorPreenchido;
+  };
+
+  const toggleViewMode = () => {
+    const next = !useNewView;
+    setUseNewView(next);
+    localStorage.setItem(VIEW_KEY, next ? "new" : "old");
+  };
 
 
   // Nova Venda modal state
