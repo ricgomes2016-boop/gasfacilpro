@@ -280,7 +280,7 @@ export function Sidebar() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className="border-b border-sidebar-border/50 p-3"
+              className="border-b border-sidebar-border p-3"
             >
               <Select
                 value={unidadeAtual?.id || ""}
@@ -289,7 +289,7 @@ export function Sidebar() {
                   if (u) setUnidadeAtual(u);
                 }}
               >
-                <SelectTrigger className="bg-sidebar-accent/50 border-sidebar-border/50 text-sidebar-foreground text-xs h-9 rounded-lg">
+                <SelectTrigger className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs font-semibold h-9 rounded-lg shadow-sm">
                   <Store className="mr-2 h-3.5 w-3.5 text-primary" />
                   <SelectValue placeholder="Selecione a loja" />
                 </SelectTrigger>
@@ -308,10 +308,10 @@ export function Sidebar() {
 
         {/* Collapsed Store Icon */}
         {collapsed && (
-          <div className="border-b border-sidebar-border/50 p-3 flex justify-center">
+          <div className="border-b border-sidebar-border p-3 flex justify-center">
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-accent/50 cursor-pointer hover:bg-sidebar-accent transition-colors">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-accent cursor-pointer hover:bg-sidebar-accent/80 transition-colors">
                   <Store className="h-4 w-4 text-primary" />
                 </div>
               </TooltipTrigger>
@@ -343,7 +343,7 @@ export function Sidebar() {
                             "flex h-10 w-10 items-center justify-center rounded-xl mx-auto transition-all duration-200",
                             isItemActive
                               ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
-                              : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/80"
+                              : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                           )}
                         >
                           <item.icon className={cn("h-[18px] w-[18px]", isItemActive ? "" : menuIconColors[item.label] || "")} />
@@ -354,7 +354,7 @@ export function Sidebar() {
                             "flex h-10 w-10 items-center justify-center rounded-xl mx-auto transition-all duration-200",
                             isChildActive
                               ? "bg-primary/10 text-primary"
-                              : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/80"
+                              : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                           )}
                         >
                           <item.icon className={cn("h-[18px] w-[18px]", isChildActive ? "" : menuIconColors[item.label] || "")} />
