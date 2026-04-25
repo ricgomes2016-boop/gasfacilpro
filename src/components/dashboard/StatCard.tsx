@@ -151,17 +151,21 @@ export function StatCard({
   // Hero tile (translucent on orange gradient) — GásMais inside hero
   if (isGasmais && onHero) {
     return (
-      <div className="flex h-full min-h-[132px] min-w-0 flex-col rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 p-4 transition-all hover:bg-white/15">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 mb-3">
+      <div className="flex h-full min-h-[138px] min-w-0 flex-col justify-between rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 p-4 transition-all hover:bg-white/15">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15">
           <Icon className="h-4 w-4 text-white" />
         </div>
-        <p className="break-words text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight">
-          {value}
-        </p>
-        <p className="mt-2 text-sm font-medium text-white/90 line-clamp-2">{title}</p>
-        {subtitle && (
-          <p className="text-xs text-white/60 mt-0.5 line-clamp-2">{subtitle}</p>
-        )}
+        <div className="mt-3 min-w-0 flex-1">
+          <p className="break-words text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight">
+            {value}
+          </p>
+        </div>
+        <div className="mt-3 min-h-[40px] min-w-0">
+          <p className="text-sm font-medium text-white/90 line-clamp-1">{title}</p>
+          {subtitle && (
+            <p className="text-xs text-white/60 mt-0.5 line-clamp-1">{subtitle}</p>
+          )}
+        </div>
       </div>
     );
   }
