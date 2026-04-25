@@ -208,12 +208,12 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "rounded-xl p-6 shadow-md transition-all duration-200 hover:shadow-lg",
+        "flex h-full min-h-[148px] min-w-0 rounded-xl p-5 shadow-md transition-all duration-200 hover:shadow-lg sm:p-6",
         variantStyles[variant]
       )}
     >
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex w-full min-w-0 items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <p
             className={cn(
               "text-sm font-medium",
@@ -222,11 +222,11 @@ export function StatCard({
           >
             {title}
           </p>
-          <p className="mt-2 text-3xl font-bold">{value}</p>
+          <p className="mt-2 break-words text-2xl font-bold leading-tight sm:text-3xl">{value}</p>
           {trend && (
             <p
               className={cn(
-                "mt-2 text-sm font-medium",
+                "mt-2 text-sm font-medium line-clamp-2",
                 trend.isPositive
                   ? isColored
                     ? "opacity-90"
@@ -243,7 +243,7 @@ export function StatCard({
         </div>
         <div
           className={cn(
-            "rounded-lg p-3",
+            "flex-shrink-0 rounded-lg p-3",
             iconVariantStyles[variant]
           )}
         >
