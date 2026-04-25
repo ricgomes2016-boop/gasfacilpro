@@ -379,9 +379,7 @@
     position: relative;
     overflow: hidden;
     border-color: hsl(222 47% 11% / 0.36);
-    background:
-      radial-gradient(circle at top right, hsl(var(--venda-tone) / 0.18), transparent 34%),
-      linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.085) 52%, hsl(var(--venda-tone-strong) / 0.06) 100%);
+    background-color: hsl(var(--venda-tone) / 0.06);
     box-shadow: 0 14px 30px -18px hsl(var(--venda-tone) / 0.62), 0 8px 20px -16px hsl(222 47% 11% / 0.46);
   }
 
@@ -395,7 +393,7 @@
     position: absolute;
     inset: 0 0 auto;
     height: 3px;
-    background: linear-gradient(90deg, hsl(var(--venda-tone)), hsl(var(--venda-tone-strong)));
+    background-color: hsl(var(--venda-tone));
     pointer-events: none;
   }
 
@@ -447,7 +445,7 @@
   .theme-gasmais .venda-tone-pagamento .venda-card .bg-primary,
   .theme-gasmais .venda-tone-entregador .venda-card .bg-primary,
   .theme-gasmais .venda-tone-confirmar .venda-card .bg-primary {
-    background: linear-gradient(135deg, hsl(var(--venda-tone)), hsl(var(--venda-tone-strong)));
+    background-color: hsl(var(--venda-tone));
   }
 
   .theme-gasmais .venda-tone-produtos .venda-card .border-primary,
