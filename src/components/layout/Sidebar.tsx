@@ -224,7 +224,7 @@ export function Sidebar() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
           themeClass,
-          "fixed left-0 top-0 z-40 hidden lg:flex h-screen flex-col bg-sidebar border-r border-sidebar-border shadow-2xl"
+          "fixed left-0 top-0 z-40 hidden xl:flex h-screen flex-col bg-sidebar border-r border-sidebar-border shadow-2xl"
         )}
       >
         {/* Header */}
