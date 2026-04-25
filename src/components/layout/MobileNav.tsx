@@ -224,7 +224,7 @@ export function MobileNav() {
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={() => setOpen(false)}
-                                        className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200 text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                                        className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-semibold transition-all duration-200 text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                       >
                                         <SubIcon className={cn(
                                           "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
@@ -241,7 +241,7 @@ export function MobileNav() {
                                           "group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
                                           subActive
                                             ? "bg-primary text-primary-foreground shadow-sm"
-                                            : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                                            : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                         )}
                                       >
                                         <SubIcon className={cn(
@@ -277,7 +277,7 @@ export function MobileNav() {
                         "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200",
                         isActive(item.path!)
                           ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
-                          : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                          : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                       )}
                     >
                       <Icon className={cn(
@@ -294,21 +294,21 @@ export function MobileNav() {
           </nav>
 
           {/* User Footer */}
-          <div className="flex-shrink-0 border-t border-sidebar-border/50 p-3">
-            <div className="flex items-center gap-3 rounded-xl bg-sidebar-accent/40 p-3">
+          <div className="flex-shrink-0 border-t border-sidebar-border p-3">
+            <div className="flex items-center gap-3 rounded-xl bg-sidebar-accent border border-sidebar-border p-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0">
                 <span className="text-xs font-bold text-primary">{userInitial}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-bold tracking-[-0.02em] text-sidebar-foreground truncate">{userName}</p>
-                <p className="text-[10px] font-medium text-sidebar-foreground/45 uppercase tracking-wider">Administrador</p>
+                <p className="text-[13px] font-extrabold text-sidebar-foreground truncate">{userName}</p>
+                <p className="text-[10px] font-semibold text-sidebar-foreground/65 uppercase tracking-wider">Administrador</p>
               </div>
               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleSignOut}
-                  className="h-8 w-8 rounded-lg text-sidebar-foreground/40 hover:text-destructive hover:bg-destructive/10"
+                  className="h-8 w-8 rounded-lg text-sidebar-foreground/65 hover:text-destructive hover:bg-destructive/10"
                 >
                   <LogOut className="h-4 w-4" />
                 </Button>
