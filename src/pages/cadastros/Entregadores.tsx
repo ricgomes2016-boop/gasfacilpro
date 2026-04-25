@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Truck, Plus, Search, Edit, Trash2, Phone, LinkIcon, UserCheck, CreditCard } from "lucide-react";
+import { Truck, Plus, Search, Edit, Trash2, Phone, LinkIcon, UserCheck, CreditCard, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -32,6 +32,7 @@ interface Entregador {
   user_id: string | null;
   funcionario_id: string | null;
   terminal_id: string | null;
+  foto_url: string | null;
 }
 
 interface TerminalOption {
@@ -54,6 +55,7 @@ interface UserOption {
 }
 
 export default function Entregadores() {
+  const emptyForm = { nome: "", cpf: "", cnh: "", telefone: "", email: "", user_id: "", funcionario_id: "", terminal_id: "", foto_url: "" };
   const [entregadores, setEntregadores] = useState<Entregador[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -63,9 +65,8 @@ export default function Entregadores() {
   const [funcionarios, setFuncionarios] = useState<FuncionarioOption[]>([]);
   const [terminais, setTerminais] = useState<TerminalOption[]>([]);
   const { unidadeAtual } = useUnidade();
-  const [form, setForm] = useState({
-    nome: "", cpf: "", cnh: "", telefone: "", email: "", user_id: "", funcionario_id: "", terminal_id: "",
-  });
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
+  const [form, setForm] = useState(emptyForm);
 
   const fetchEntregadores = async () => {
     let query = supabase
@@ -130,8 +131,26 @@ export default function Entregadores() {
     fetchTerminais();
   }, [unidadeAtual?.id]);
 
+  const uploadFotoEntregador = async (file: File, entregadorId: string) => {
+    if (!file.type.startsWith("image/")) throw new Error("Envie apenas arquivos de imagem.");
+    if (file.size > 2 * 1024 * 1024) throw new Error("A foto deve ter no máximo 2MB.");
+
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `entregadores/${entregadorId}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (error) throw error;
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    return data.publicUrl;
+  };
+
   const handleSave = async () => {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
+
+    let fotoUrl = form.foto_url || null;
+    if (fotoFile) {
+      fotoUrl = await uploadFotoEntregador(fotoFile, editId || crypto.randomUUID());
+    }
 
     const payload: any = {
       nome: form.nome,
@@ -142,6 +161,7 @@ export default function Entregadores() {
       user_id: form.user_id || null,
       funcionario_id: form.funcionario_id || null,
       terminal_id: form.terminal_id || null,
+      foto_url: fotoUrl,
     };
     if (unidadeAtual?.id) {
       payload.unidade_id = unidadeAtual.id;
@@ -159,7 +179,8 @@ export default function Entregadores() {
 
     setOpen(false);
     setEditId(null);
-    setForm({ nome: "", cpf: "", cnh: "", telefone: "", email: "", user_id: "", funcionario_id: "", terminal_id: "" });
+    setFotoFile(null);
+    setForm(emptyForm);
     fetchEntregadores();
   };
 
@@ -170,7 +191,9 @@ export default function Entregadores() {
       telefone: e.telefone || "", email: e.email || "",
       user_id: e.user_id || "", funcionario_id: e.funcionario_id || "",
       terminal_id: e.terminal_id || "",
+      foto_url: e.foto_url || "",
     });
+    setFotoFile(null);
     setOpen(true);
   };
 
@@ -210,7 +233,7 @@ export default function Entregadores() {
       <Header title="Entregadores" subtitle="Cadastro de entregadores" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
-          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditId(null); setForm({ nome: "", cpf: "", cnh: "", telefone: "", email: "", user_id: "", funcionario_id: "", terminal_id: "" }); } }}>
+          <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditId(null); setFotoFile(null); setForm(emptyForm); } }}>
             <DialogTrigger asChild>
               <Button className="gap-2"><Plus className="h-4 w-4" />Novo Entregador</Button>
             </DialogTrigger>
@@ -243,6 +266,20 @@ export default function Entregadores() {
                     <Label>E-mail</Label>
                     <Input value={form.email} onChange={e => setForm({...form, email: e.target.value})} type="email" />
                   </div>
+                </div>
+
+                <div>
+                  <Label className="flex items-center gap-1">
+                    <Image className="h-3.5 w-3.5" />
+                    Foto do entregador
+                  </Label>
+                  <div className="mt-2 flex items-center gap-3">
+                    {form.foto_url && !fotoFile && (
+                      <img src={form.foto_url} alt={form.nome} className="h-14 w-14 rounded-full object-cover" />
+                    )}
+                    <Input type="file" accept="image/*" onChange={(e) => setFotoFile(e.target.files?.[0] || null)} />
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">Use JPG, PNG ou WebP até 2MB.</p>
                 </div>
 
                 <div>

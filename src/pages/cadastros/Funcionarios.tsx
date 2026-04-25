@@ -19,7 +19,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Plus, Search, Edit, Trash2, Phone, Briefcase, Truck,
-  LinkIcon, CreditCard, Mail, Lock, Loader2, UserCheck, Building2,
+  LinkIcon, CreditCard, Mail, Lock, Loader2, UserCheck, Building2, Image,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -50,6 +50,7 @@ interface Entregador {
   terminal_id: string | null;
   cnh: string | null;
   status: string | null;
+  foto_url: string | null;
 }
 
 interface TerminalOption {
@@ -66,6 +67,7 @@ const emptyForm = {
   login_email: "",
   login_password: "",
   terminal_id: "",
+  foto_url: "",
   unidade_id: "",
   // Vínculo e regime
   tipo_vinculo: "clt",
@@ -86,6 +88,7 @@ export default function Funcionarios() {
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [terminais, setTerminais] = useState<TerminalOption[]>([]);
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
   const { unidadeAtual, unidades } = useUnidade();
   const [unidadesDialog, setUnidadesDialog] = useState<{ userId: string; nome: string } | null>(null);
 
@@ -109,7 +112,7 @@ export default function Funcionarios() {
   const fetchEntregadores = async () => {
     let query = supabase
       .from("entregadores")
-      .select("id, nome, funcionario_id, user_id, terminal_id, cnh, status")
+      .select("id, nome, funcionario_id, user_id, terminal_id, cnh, status, foto_url")
       .eq("ativo", true);
 
     if (unidadeAtual?.id) {
@@ -130,6 +133,19 @@ export default function Funcionarios() {
     fetchEntregadores();
     fetchTerminais();
   }, [unidadeAtual?.id]);
+
+  const uploadFotoEntregador = async (file: File, funcionarioId: string) => {
+    if (!file.type.startsWith("image/")) throw new Error("Envie apenas arquivos de imagem.");
+    if (file.size > 2 * 1024 * 1024) throw new Error("A foto deve ter no máximo 2MB.");
+
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `entregadores/${funcionarioId}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (error) throw error;
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    return data.publicUrl;
+  };
 
   const getEntregadorForFuncionario = (funcId: string) =>
     entregadores.find(e => e.funcionario_id === funcId);
@@ -195,6 +211,7 @@ export default function Funcionarios() {
       // Sync entregador record
       if (form.is_entregador && funcionarioId) {
         let userId = existingEntregador?.user_id || null;
+        let fotoUrl = form.foto_url || existingEntregador?.foto_url || null;
 
         // Create auth user if needed
         if (needsNewUser) {
@@ -224,6 +241,10 @@ export default function Funcionarios() {
           userId = createData.user_id;
         }
 
+        if (fotoFile) {
+          fotoUrl = await uploadFotoEntregador(fotoFile, funcionarioId);
+        }
+
         const existing = entregadores.find(e => e.funcionario_id === funcionarioId);
         const entregadorPayload: any = {
           nome: form.nome,
@@ -233,6 +254,7 @@ export default function Funcionarios() {
           email: form.login_email || form.email || null,
           user_id: userId,
           terminal_id: form.terminal_id || null,
+          foto_url: fotoUrl,
           funcionario_id: funcionarioId,
           ativo: true,
         };
@@ -258,6 +280,7 @@ export default function Funcionarios() {
       }
       setOpen(false);
       setForm(emptyForm);
+      setFotoFile(null);
       setEditId(null);
       fetchFuncionarios();
       fetchEntregadores();
@@ -286,6 +309,7 @@ export default function Funcionarios() {
       login_email: "",
       login_password: "",
       terminal_id: entregador?.terminal_id || "",
+      foto_url: entregador?.foto_url || "",
       unidade_id: f.unidade_id || "",
       tipo_vinculo: fAny.tipo_vinculo || "clt",
       regime_pagamento: fAny.regime_pagamento || "mensal",
@@ -293,6 +317,7 @@ export default function Funcionarios() {
       entra_na_escala: !!fAny.entra_na_escala,
       is_transporte: !!fAny.is_transporte,
     });
+    setFotoFile(null);
     setEditId(f.id);
     setOpen(true);
   };
@@ -347,7 +372,7 @@ export default function Funcionarios() {
       <Header title="Funcionários" subtitle="Gerencie a equipe da empresa" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
-          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); setFotoFile(null); } }}>
             <DialogTrigger asChild>
               <Button className="gap-2"><Plus className="h-4 w-4" />Novo Funcionário</Button>
             </DialogTrigger>
@@ -534,6 +559,24 @@ export default function Funcionarios() {
                       <div className="space-y-2">
                         <Label>CNH</Label>
                         <Input value={form.cnh} onChange={e => setForm({...form, cnh: e.target.value})} placeholder="Número da CNH" />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-1">
+                          <Image className="h-3.5 w-3.5" />
+                          Foto do entregador
+                        </Label>
+                        <div className="flex items-center gap-3">
+                          {form.foto_url && !fotoFile && (
+                            <img src={form.foto_url} alt={form.nome} className="h-14 w-14 rounded-full object-cover" />
+                          )}
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setFotoFile(e.target.files?.[0] || null)}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">Use JPG, PNG ou WebP até 2MB.</p>
                       </div>
 
                       {/* Login credentials - only show if no user linked yet */}
