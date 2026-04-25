@@ -18,6 +18,7 @@ interface Entregador {
   id: string;
   nome: string;
   status: string | null;
+  foto_url?: string | null;
 }
 
 interface DeliveryPersonSelectProps {
@@ -49,7 +50,7 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
       try {
         let query = supabase
           .from("entregadores")
-          .select("id, nome, status")
+          .select("id, nome, status, foto_url")
           .eq("ativo", true)
           .order("nome");
 
@@ -167,10 +168,16 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
                 )}
               >
                 <div className={cn(
-                  "flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15 text-sm font-bold text-primary-foreground ring-1 ring-primary-foreground/25 transition-colors",
+                  "flex h-16 w-16 shrink-0 overflow-hidden rounded-full bg-primary-foreground/15 text-sm font-bold text-primary-foreground ring-1 ring-primary-foreground/25 transition-colors",
                   selected ? "bg-primary-foreground/25 shadow-md" : "group-hover:bg-primary-foreground/20"
                 )}>
-                  {getInitials(entregador.nome) || <UserRound className="h-5 w-5" />}
+                  {entregador.foto_url ? (
+                    <img src={entregador.foto_url} alt={entregador.nome} className="h-full w-full object-cover" loading="lazy" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center">
+                      {getInitials(entregador.nome) || <UserRound className="h-5 w-5" />}
+                    </span>
+                  )}
                 </div>
                 <div className="min-w-0 w-full">
                   <div className="flex items-start justify-center gap-2">
