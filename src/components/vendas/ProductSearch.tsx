@@ -215,10 +215,10 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
 
         {/* Items Table */}
         {itens.length > 0 ? (
-          <div className="border rounded-lg overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border bg-background shadow-sm">
             <Table className="min-w-0">
               <TableHeader>
-                <TableRow className="bg-muted/50">
+                <TableRow className="bg-muted/60 hover:bg-muted/60">
                   <TableHead className="w-12 hidden sm:table-cell">Cód.</TableHead>
                   <TableHead className="px-2 sm:px-4">Produto</TableHead>
                   <TableHead className="w-[110px] sm:w-28 text-center px-1 sm:px-4">Qtd</TableHead>
@@ -229,7 +229,7 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
               </TableHeader>
               <TableBody>
                 {itens.map((item, index) => (
-                  <TableRow key={item.id}>
+                  <TableRow key={item.id} className="hover:bg-primary/5">
                     <TableCell className="font-mono text-xs text-muted-foreground hidden sm:table-cell">
                       {item.produto_id.slice(0, 4)}
                     </TableCell>
@@ -304,9 +304,9 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
             </Table>
           </div>
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <Package className="h-10 w-10 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Nenhum produto adicionado</p>
+          <div className="rounded-lg border border-dashed bg-muted/20 py-10 text-center text-muted-foreground">
+            <ShoppingBasket className="h-11 w-11 mx-auto mb-3 text-primary/70" />
+            <p className="text-sm font-medium text-foreground">Nenhum produto adicionado</p>
             <p className="text-xs">Busque e selecione produtos acima</p>
           </div>
         )}
