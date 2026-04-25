@@ -274,7 +274,7 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
             Gráfico de Ponto de Equilíbrio
           </CardTitle>
         </CardHeader>
-        <CardContent className="min-w-0 overflow-x-auto">
+        <CardContent className="min-w-0 w-full max-w-full overflow-x-auto overscroll-x-contain">
           <div className="min-w-[520px] sm:min-w-0">
           <ResponsiveContainer width="100%" height={300}>
             <ComposedChart data={chartData}>
@@ -360,7 +360,7 @@ export default function PontoEquilibrio({ embedded = false }: { embedded?: boole
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="max-h-[350px] overflow-auto">
+            <div className="w-full max-w-full max-h-[350px] overflow-x-auto overflow-y-auto overscroll-x-contain">
               <Table className="min-w-[420px]">
                 <TableHeader>
                   <TableRow>
