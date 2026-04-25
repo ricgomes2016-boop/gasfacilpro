@@ -66,6 +66,13 @@ const DRAFT_KEY = "nova-venda-rascunho";
 const VIEW_KEY = "nova-venda-view-mode";
 type VendaStepId = "cliente" | "produtos" | "pagamento" | "entregador" | "confirmar";
 const VENDA_STEPS: VendaStepId[] = ["cliente", "produtos", "pagamento", "entregador", "confirmar"];
+const STEP_TONE_CLASS: Record<VendaStepId, string> = {
+  cliente: "venda-tone-cliente",
+  produtos: "venda-tone-produtos",
+  pagamento: "venda-tone-pagamento",
+  entregador: "venda-tone-entregador",
+  confirmar: "venda-tone-confirmar",
+};
 
 function getSavedViewMode() {
   try {
@@ -116,10 +123,10 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
   const pagamentoOk = totalPago >= totalVenda && totalVenda > 0;
   const steps: Array<{ id: VendaStepId; label: string; done: boolean; enabled: boolean; icon: typeof User }> = [
     { id: "cliente", label: "Cliente", done: clienteOk, enabled: true, icon: User },
-    { id: "produtos", label: "Produtos", done: produtosOk, enabled: clienteOk, icon: PackageIcon },
-    { id: "pagamento", label: "Pagamento", done: pagamentoOk, enabled: clienteOk && produtosOk, icon: CreditCard },
-    { id: "entregador", label: "Entregador", done: entregadorSelecionado, enabled: clienteOk && produtosOk && pagamentoOk, icon: ShoppingBag },
-    { id: "confirmar", label: "Confirmar", done: pagamentoOk && produtosOk, enabled: clienteOk && produtosOk && pagamentoOk && entregadorSelecionado, icon: CheckCircle },
+    { id: "produtos", label: "Produtos", done: produtosOk, enabled: true, icon: PackageIcon },
+    { id: "pagamento", label: "Pagamento", done: pagamentoOk, enabled: true, icon: CreditCard },
+    { id: "entregador", label: "Entregador", done: entregadorSelecionado, enabled: true, icon: ShoppingBag },
+    { id: "confirmar", label: "Confirmar", done: pagamentoOk && produtosOk && entregadorSelecionado, enabled: true, icon: CheckCircle },
   ];
 
   return (
@@ -130,10 +137,14 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
           <div key={step.label} className="flex items-center gap-1 flex-1">
             <button
               type="button"
+              data-active={activeStep === step.id}
+              data-done={step.done}
               disabled={!step.enabled || !onStepClick}
               onClick={() => onStepClick?.(step.id)}
               className={cn(
                 "flex items-center gap-1.5 rounded-full text-xs font-medium transition-colors disabled:cursor-not-allowed",
+                "venda-step-tab",
+                STEP_TONE_CLASS[step.id],
                 compact ? "px-2 py-1" : "px-2.5 py-1.5",
                 activeStep === step.id
                   ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
@@ -211,6 +222,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const draftLoaded = useRef(false);
+  const previousStepState = useRef({ cliente: false, produtos: false, pagamento: false, entregador: false });
 
   useEffect(() => {
     if (!getSavedViewMode() && isGasmais) setUseNewView(true);
@@ -631,20 +643,32 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     : "confirmar";
 
   useEffect(() => {
-    if (!useNewView) return;
-    const activeIndex = VENDA_STEPS.indexOf(activeStep);
-    const pendingIndex = VENDA_STEPS.indexOf(firstPendingStep);
-    if (activeIndex > pendingIndex || firstPendingStep === "confirmar") {
-      setActiveStep(firstPendingStep);
+    const current = {
+      cliente: clientePreenchido,
+      produtos: produtosPreenchidos,
+      pagamento: pagamentoPreenchido,
+      entregador: entregadorPreenchido,
+    };
+
+    if (!useNewView) {
+      previousStepState.current = current;
+      return;
     }
-  }, [useNewView, activeStep, firstPendingStep]);
+
+    const previous = previousStepState.current;
+    let nextStep: VendaStepId | null = null;
+
+    if (!previous.cliente && current.cliente && activeStep === "cliente") nextStep = "produtos";
+    else if (!previous.produtos && current.produtos && activeStep === "produtos") nextStep = "pagamento";
+    else if (!previous.pagamento && current.pagamento && activeStep === "pagamento") nextStep = "entregador";
+    else if (!previous.entregador && current.entregador && activeStep === "entregador") nextStep = "confirmar";
+
+    previousStepState.current = current;
+    if (nextStep) setActiveStep(nextStep);
+  }, [useNewView, activeStep, clientePreenchido, produtosPreenchidos, pagamentoPreenchido, entregadorPreenchido]);
 
   const canOpenStep = (step: VendaStepId) => {
-    if (step === "cliente") return true;
-    if (step === "produtos") return clientePreenchido;
-    if (step === "pagamento") return clientePreenchido && produtosPreenchidos;
-    if (step === "entregador") return clientePreenchido && produtosPreenchidos && pagamentoPreenchido;
-    return clientePreenchido && produtosPreenchidos && pagamentoPreenchido && entregadorPreenchido;
+    return VENDA_STEPS.includes(step);
   };
 
   const toggleViewMode = () => {
@@ -936,7 +960,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   }, [initialClienteId, embedded]);
 
   const metaCard = (
-    <Card className="venda-card border-primary/20 bg-card/95">
+    <Card className="venda-card venda-gasmais-card venda-tone-cliente border-primary/20 bg-card/95">
       <CardContent className="p-3 md:p-4">
         <div className="grid gap-3 md:grid-cols-2">
           <div>
@@ -963,7 +987,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   );
 
   const aiCommandCard = (
-    <Card className="venda-card border-primary/40 bg-primary/5 shadow-primary/10">
+    <Card className="venda-card venda-gasmais-card venda-tone-confirmar border-primary/40 bg-primary/5 shadow-primary/10">
       <CardContent className="py-3 md:py-4">
         <div className="flex flex-wrap items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary shrink-0" />
@@ -1005,7 +1029,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       <div className={cn("p-3 md:p-4 space-y-3 md:space-y-4", useNewView && "bg-muted/20")}> 
         <CaixaBloqueadoBanner />
 
-        <div className="space-y-3 rounded-lg border border-primary/15 bg-card/80 p-3 shadow-sm">
+        <div className="venda-gasmais-card venda-tone-confirmar space-y-3 rounded-lg border border-primary/15 bg-card/80 p-3 shadow-sm">
           <VendaStepper
             customer={customer}
             itens={itens}
@@ -1039,36 +1063,36 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
                 <div className="space-y-3 md:space-y-4 min-w-0">
                   {aiCommandCard}
                   {metaCard}
-                  <CustomerSearch value={customer} onChange={setCustomer} />
+                  <div className="venda-tone-cliente"><CustomerSearch value={customer} onChange={setCustomer} /></div>
                 </div>
-                <div className="min-w-0 xl:sticky xl:top-4 self-start">
+                <div className="venda-tone-cliente min-w-0 xl:sticky xl:top-4 self-start">
                   <CustomerHistory clienteId={customer.id} />
                 </div>
               </div>
             )}
             {activeStep === "produtos" && (
               <div className="grid gap-3 md:gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-                <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
+                <div className="venda-tone-produtos"><ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} /></div>
                 <div className="space-y-3 min-w-0">
                   {metaCard}
-                  <CustomerHistory clienteId={customer.id} />
+                  <div className="venda-tone-cliente"><CustomerHistory clienteId={customer.id} /></div>
                 </div>
               </div>
             )}
             {activeStep === "pagamento" && (
               <div className="grid gap-3 md:gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-                <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} />
-                <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
+                <div className="venda-tone-pagamento"><PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} /></div>
+                <div className="venda-tone-confirmar"><OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} /></div>
               </div>
             )}
             {activeStep === "entregador" && (
               <div className="grid gap-3 md:gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} endereco={customer.endereco} />
-                <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
+                <div className="venda-tone-entregador"><DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} endereco={customer.endereco} /></div>
+                <div className="venda-tone-confirmar"><OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} /></div>
               </div>
             )}
             {activeStep === "confirmar" && (
-              <div className="mx-auto max-w-xl">
+              <div className="venda-tone-confirmar mx-auto max-w-xl">
                 <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
               </div>
             )}

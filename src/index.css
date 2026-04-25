@@ -154,6 +154,87 @@
     @apply border border-foreground/20 shadow-lg shadow-foreground/10;
   }
 
+  .theme-gasmais .venda-tone-cliente {
+    --venda-tone: 217 91% 60%;
+    --venda-tone-strong: 221 83% 53%;
+  }
+
+  .theme-gasmais .venda-tone-produtos {
+    --venda-tone: 24 95% 53%;
+    --venda-tone-strong: 22 95% 45%;
+  }
+
+  .theme-gasmais .venda-tone-pagamento {
+    --venda-tone: 152 69% 40%;
+    --venda-tone-strong: 158 64% 33%;
+  }
+
+  .theme-gasmais .venda-tone-entregador {
+    --venda-tone: 45 93% 47%;
+    --venda-tone-strong: 38 92% 50%;
+  }
+
+  .theme-gasmais .venda-tone-confirmar {
+    --venda-tone: var(--primary);
+    --venda-tone-strong: 22 95% 45%;
+  }
+
+  .theme-gasmais .venda-gasmais-card,
+  .theme-gasmais .venda-tone-cliente .venda-card,
+  .theme-gasmais .venda-tone-produtos .venda-card,
+  .theme-gasmais .venda-tone-pagamento .venda-card,
+  .theme-gasmais .venda-tone-entregador .venda-card,
+  .theme-gasmais .venda-tone-confirmar .venda-card {
+    position: relative;
+    overflow: hidden;
+    border-color: hsl(var(--venda-tone) / 0.32);
+    background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.035) 100%);
+    box-shadow: 0 12px 26px -16px hsl(var(--venda-tone) / 0.55), 0 6px 18px -14px hsl(222 47% 11% / 0.35);
+  }
+
+  .theme-gasmais .venda-gasmais-card::before,
+  .theme-gasmais .venda-tone-cliente .venda-card::before,
+  .theme-gasmais .venda-tone-produtos .venda-card::before,
+  .theme-gasmais .venda-tone-pagamento .venda-card::before,
+  .theme-gasmais .venda-tone-entregador .venda-card::before,
+  .theme-gasmais .venda-tone-confirmar .venda-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: linear-gradient(90deg, hsl(var(--venda-tone)), hsl(var(--venda-tone-strong)));
+    pointer-events: none;
+  }
+
+  .theme-gasmais .venda-step-tab.venda-tone-cliente,
+  .theme-gasmais .venda-step-tab.venda-tone-produtos,
+  .theme-gasmais .venda-step-tab.venda-tone-pagamento,
+  .theme-gasmais .venda-step-tab.venda-tone-entregador,
+  .theme-gasmais .venda-step-tab.venda-tone-confirmar {
+    border: 1px solid hsl(var(--venda-tone) / 0.24);
+  }
+
+  .theme-gasmais .venda-step-tab[data-active="true"] {
+    background: linear-gradient(135deg, hsl(var(--venda-tone)), hsl(var(--venda-tone-strong)));
+    color: hsl(var(--primary-foreground));
+    border-color: hsl(var(--venda-tone) / 0.5);
+    box-shadow: 0 8px 18px -12px hsl(var(--venda-tone) / 0.8);
+  }
+
+  .theme-gasmais .venda-step-tab[data-done="true"]:not([data-active="true"]) {
+    background: hsl(var(--venda-tone) / 0.12);
+    color: hsl(var(--venda-tone-strong));
+  }
+
+  .theme-gasmais .venda-step-tab.venda-tone-cliente:not(:disabled):hover,
+  .theme-gasmais .venda-step-tab.venda-tone-produtos:not(:disabled):hover,
+  .theme-gasmais .venda-step-tab.venda-tone-pagamento:not(:disabled):hover,
+  .theme-gasmais .venda-step-tab.venda-tone-entregador:not(:disabled):hover,
+  .theme-gasmais .venda-step-tab.venda-tone-confirmar:not(:disabled):hover {
+    background: hsl(var(--venda-tone) / 0.12);
+    color: hsl(var(--venda-tone-strong));
+  }
+
   .gradient-primary {
     background: var(--gradient-primary);
   }
