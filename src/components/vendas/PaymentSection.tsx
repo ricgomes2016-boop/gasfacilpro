@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { CreditCard, Plus, Trash2, AlertCircle, CheckCircle2, Camera, ImageIcon, Loader2, Info } from "lucide-react";
+import { CreditCard, Plus, Trash2, AlertCircle, CheckCircle2, Camera, ImageIcon, Loader2, Info, Banknote, Smartphone, ReceiptText, Flame, FileText, WalletCards } from "lucide-react";
 import { cn, getBrasiliaDateString } from "@/lib/utils";
 import { formatCurrency, parseCurrency } from "@/hooks/useInputMasks";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,15 +40,15 @@ interface PaymentSectionProps {
 }
 
 const formasPagamento = [
-  { value: "dinheiro", label: "Dinheiro", icon: "💵" },
-  { value: "pix", label: "PIX", icon: "📱" },
-  { value: "pix_maquininha", label: "PIX Maquininha", icon: "📱" },
-  { value: "cartao_debito", label: "Cartão Débito", icon: "💳" },
-  { value: "cartao_credito", label: "Cartão Crédito", icon: "💳" },
-  { value: "boleto", label: "Boleto", icon: "📄" },
-  { value: "vale_gas", label: "Vale Gás", icon: "🔥" },
-  { value: "cheque", label: "Cheque", icon: "🧾" },
-  { value: "fiado", label: "Fiado / A Prazo", icon: "📝" },
+  { value: "dinheiro", label: "Dinheiro", icon: "💵", Icon: Banknote },
+  { value: "pix", label: "PIX", icon: "📱", Icon: Smartphone },
+  { value: "pix_maquininha", label: "PIX Maquininha", icon: "📱", Icon: CreditCard },
+  { value: "cartao_debito", label: "Cartão Débito", icon: "💳", Icon: WalletCards },
+  { value: "cartao_credito", label: "Cartão Crédito", icon: "💳", Icon: CreditCard },
+  { value: "boleto", label: "Boleto", icon: "📄", Icon: FileText },
+  { value: "vale_gas", label: "Vale Gás", icon: "🔥", Icon: Flame },
+  { value: "cheque", label: "Cheque", icon: "🧾", Icon: ReceiptText },
+  { value: "fiado", label: "Fiado / A Prazo", icon: "📝", Icon: AlertCircle },
   
 ];
 
@@ -285,6 +285,29 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
 
           {/* Adicionar novo pagamento */}
           <div className="rounded-lg border bg-muted/20 p-3 shadow-sm space-y-3">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
+              {formasPagamento.map((fp) => {
+                const Icon = fp.Icon;
+                const selected = forma === fp.value;
+                return (
+                  <button
+                    key={fp.value}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => handleFormaChange(fp.value)}
+                    className={cn(
+                      "venda-payment-shortcut flex min-h-[82px] flex-col items-center justify-center gap-1.5 rounded-lg border bg-background p-2 text-center shadow-sm",
+                      selected && "border-primary bg-primary/10 text-primary shadow-md ring-2 ring-primary/20"
+                    )}
+                  >
+                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span className="text-[11px] font-semibold leading-tight">{fp.label}</span>
+                  </button>
+                );
+              })}
+            </div>
             <div className="flex flex-wrap gap-2">
               <Select value={forma} onValueChange={handleFormaChange}>
                 <SelectTrigger className="h-11 flex-1 min-w-[180px] bg-background">
