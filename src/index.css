@@ -185,9 +185,7 @@
   .venda-tone-entregador .venda-card,
   .venda-tone-confirmar .venda-card {
     border-color: hsl(222 47% 11% / 0.34);
-    background:
-      radial-gradient(circle at top right, hsl(var(--venda-tone) / 0.16), transparent 34%),
-      linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.075) 54%, hsl(var(--venda-tone-strong) / 0.055) 100%);
+    background-color: hsl(var(--venda-tone) / 0.055);
     box-shadow: 0 16px 32px -20px hsl(var(--venda-tone) / 0.62), 0 10px 22px -18px hsl(222 47% 11% / 0.42);
   }
 
@@ -197,7 +195,7 @@
   .venda-tone-entregador .venda-card > [class*="border-b"],
   .venda-tone-confirmar .venda-card > [class*="border-b"] {
     border-color: hsl(var(--venda-tone) / 0.22);
-    background: linear-gradient(90deg, hsl(var(--venda-tone) / 0.13), hsl(var(--venda-tone-strong) / 0.075));
+    background-color: hsl(var(--venda-tone) / 0.12);
   }
 
   .venda-tone-cliente .venda-card::before,
@@ -209,7 +207,7 @@
     position: absolute;
     inset: 0 0 auto;
     height: 3px;
-    background: linear-gradient(90deg, hsl(var(--venda-tone)), hsl(var(--venda-tone-strong)));
+    background-color: hsl(var(--venda-tone));
     pointer-events: none;
   }
 
@@ -344,8 +342,7 @@
   .dark .venda-tone-entregador .venda-card,
   .dark .venda-tone-confirmar .venda-card {
     border-color: hsl(220 14% 82% / 0.24);
-    background:
-      linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.11) 56%, hsl(var(--venda-tone-strong) / 0.075) 100%);
+    background-color: hsl(var(--venda-tone) / 0.12);
   }
 
   .dark .venda-tone-cliente .venda-card input,
