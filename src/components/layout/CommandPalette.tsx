@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/command";
 import { menuItems } from "./menuItems";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, ShoppingCart, Search, ArrowRight, Sparkles } from "lucide-react";
+import { Users, ShoppingCart, Search, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface SearchResult {
@@ -161,10 +161,10 @@ export function CommandPalette() {
       {/* Trigger button */}
       <button
         onClick={() => setOpen(true)}
-        className="hidden md:flex items-center gap-2 h-9 w-64 rounded-lg border border-border bg-muted/50 px-3 text-sm text-muted-foreground hover:bg-muted transition-colors"
+        className="hidden xl:flex items-center gap-2 h-9 w-44 2xl:w-64 min-w-0 rounded-lg border border-border bg-muted/50 px-3 text-sm text-muted-foreground hover:bg-muted transition-colors"
       >
-        <Search className="h-4 w-4" />
-        <span className="flex-1 text-left">Buscar...</span>
+        <Search className="h-4 w-4 shrink-0" />
+        <span className="flex-1 min-w-0 truncate text-left">Buscar...</span>
         <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-background px-1.5 font-mono text-[10px] font-medium opacity-60 sm:flex">
           <span className="text-xs">⌘</span>K
         </kbd>

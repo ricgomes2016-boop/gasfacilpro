@@ -1,21 +1,32 @@
-Plano para ajustar a tela `/vendas/nova`:
+Plano para ajustar o cabeçalho da tela `/vendas/nova`:
 
-1. Deixar os cards mais nítidos
-   - Aplicar um estilo visual específico para os cards da tela de nova venda, com borda mais escura/contrastante e sombra mais perceptível.
-   - Usar uma borda escura suave em vez de preto puro para manter legibilidade no tema atual, por exemplo `border-slate-900/20` ou equivalente compatível com o design.
-   - Aplicar o mesmo padrão nos principais blocos: comando por IA, dados da venda, cliente, entregador, produtos, pagamento, resumo da venda e histórico do cliente.
+1. Reduzir a pressão visual do cabeçalho global
+   - Ajustar `src/components/layout/Header.tsx` para que o lado direito não fique espremido em larguras médias como a atual.
+   - Diminuir gaps excessivos e larguras fixas que competem por espaço.
+   - Manter o título e subtítulo com truncamento seguro, sem quebrar o layout.
 
-2. Reduzir espaçamentos excessivos
-   - Diminuir o padding geral da página de `p-4 md:p-6` para algo mais compacto, mantendo conforto no mobile.
-   - Reduzir gaps verticais entre seções de `space-y-4 md:space-y-6` para um padrão mais fechado.
-   - Ajustar gaps do grid principal e dos grupos internos para deixar a tela menos “espalhada”.
+2. Priorizar ações importantes por tamanho de tela
+   - Em desktop largo: manter seletor de unidade, busca, chat, notificações, tema, calculadora e usuário.
+   - Em telas médias: reduzir/ocultar elementos menos críticos, especialmente a busca grande (`CommandPalette`) e/ou botões duplicados, para liberar espaço.
+   - Em mobile: preservar o padrão existente com menu mobile e barra inferior, sem adicionar poluição no topo.
 
-3. Preservar responsividade
-   - Manter o layout em 3 colunas no desktop e empilhado no mobile.
-   - Não mexer em rotas, providers ou estrutura global do app.
-   - Evitar alterações funcionais: apenas aparência, bordas, sombras e margens.
+3. Compactar componentes específicos do header
+   - Ajustar `CommandPalette` para não ocupar sempre `w-64`; usar largura responsiva menor em telas médias.
+   - Ajustar `UnidadeSelector` para ter limite de largura mais previsível e não empurrar os demais botões.
+   - Evitar alterações funcionais nos menus, notificações, chat, calculadora e autenticação.
+
+4. Manter estabilidade do app
+   - Não alterar `App.tsx`, rotas, providers ou regras globais.
+   - Não mexer em banco de dados.
+   - Fazer somente mudanças visuais/responsivas no cabeçalho.
 
 Detalhes técnicos:
-- Alterar `src/pages/vendas/NovaVenda.tsx` para aplicar classes compactas e uma classe reutilizável local para cards da tela.
-- Alterar componentes usados nessa tela quando necessário: `CustomerSearch`, `DeliveryPersonSelect`, `ProductSearch`, `PaymentSection`, `OrderSummary` e `CustomerHistory`, apenas para receber o novo visual de card/spacing.
-- Não alterar o componente global `Card` para não afetar outras telas do sistema.
+- Arquivos previstos:
+  - `src/components/layout/Header.tsx`
+  - `src/components/layout/CommandPalette.tsx`
+  - `src/components/layout/UnidadeSelector.tsx`
+- Estratégia provável:
+  - Trocar `md:gap-4` por gaps menores/responsivos no grupo de ações.
+  - Exibir a busca do Command Palette apenas em `xl` ou reduzir sua largura em `lg`.
+  - Usar classes como `hidden lg:block`, `w-40 xl:w-64`, `max-w-*`, `shrink-0`, `min-w-0` e truncamento controlado.
+  - Se necessário, ocultar o toggle de tema ou itens secundários em telas médias, mantendo acesso por outros pontos já existentes.
