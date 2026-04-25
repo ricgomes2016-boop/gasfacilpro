@@ -32,7 +32,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       <Sidebar />
       <main
         className={cn(
-          "transition-all duration-300 ml-0 pb-12 xl:pb-0",
+          "transition-all duration-300 ml-0 pb-16 xl:pb-0",
           collapsed ? "xl:ml-16" : "xl:ml-[260px]"
         )}
       >
