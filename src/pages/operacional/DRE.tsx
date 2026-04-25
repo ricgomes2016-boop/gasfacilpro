@@ -255,8 +255,8 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
 
       {/* Tabela DRE Principal */}
       <Card className="min-w-0 overflow-hidden">
-        <CardContent className="p-0">
-          <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
+        <CardContent className="p-0 min-w-0 max-w-full overflow-hidden">
+          <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
             <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="bg-muted/60 border-b-2 border-border">
