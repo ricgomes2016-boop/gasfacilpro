@@ -730,6 +730,24 @@
   .venda-tone-confirmar,
   .theme-gasmais .venda-tone-confirmar { --venda-tone: 152 70% 43%; --venda-tone-strong: 156 78% 32%; --venda-tone-deep: 158 68% 20%; }
 
+  .venda-sale-nav {
+    border-color: hsl(var(--venda-tone) / 0.32) !important;
+    background:
+      radial-gradient(circle at 92% 10%, hsl(var(--venda-tone) / 0.16), transparent 7rem),
+      linear-gradient(135deg, hsl(222 47% 8% / 0.96), hsl(222 47% 5% / 0.98)) !important;
+    box-shadow: 0 16px 36px -28px hsl(var(--venda-tone) / 0.75), inset 0 1px 0 hsl(0 0% 100% / 0.06) !important;
+  }
+
+  .venda-sale-nav .venda-step-tab[data-active="true"] {
+    color: hsl(0 0% 100%) !important;
+    border-color: hsl(var(--venda-tone) / 0.62) !important;
+  }
+
+  .venda-sale-nav .venda-step-tab[data-done="true"]:not([data-active="true"]) {
+    background: hsl(0 0% 100% / 0.08) !important;
+    color: hsl(0 0% 100% / 0.82) !important;
+  }
+
   .venda-dashboard-shell {
     border: 1px solid hsl(var(--venda-tone) / 0.38);
     border-radius: 1.25rem;
@@ -769,11 +787,12 @@
 
   .venda-dashboard-shell .venda-card {
     border-radius: 1rem;
+    background-image: linear-gradient(145deg, hsl(0 0% 100% / 0.18), hsl(0 0% 100% / 0.08)) !important;
   }
 
   .venda-dashboard-shell .venda-card > [class*="border-b"] {
     border-color: hsl(0 0% 100% / 0.2) !important;
-    background-color: hsl(0 0% 100% / 0.08) !important;
+    background-color: hsl(0 0% 100% / 0.1) !important;
   }
 
   .venda-dashboard-shell .venda-card,
