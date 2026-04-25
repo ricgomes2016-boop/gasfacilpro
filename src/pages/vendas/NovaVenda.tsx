@@ -36,6 +36,7 @@ import { PaymentSection, Pagamento } from "@/components/vendas/PaymentSection";
 import { OrderSummary } from "@/components/vendas/OrderSummary";
 import { CustomerHistory } from "@/components/vendas/CustomerHistory";
 import { DeliveryPersonSelect } from "@/components/vendas/DeliveryPersonSelect";
+import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 
 interface CustomerData {
   id: string | null;
@@ -62,6 +63,8 @@ const initialCustomerData: CustomerData = {
 };
 
 const DRAFT_KEY = "nova-venda-rascunho";
+const VIEW_KEY = "nova-venda-view-mode";
+type VendaStepId = "cliente" | "produtos" | "pagamento" | "entregador" | "confirmar";
 
 function saveDraft(data: { customer: CustomerData; itens: ItemVenda[]; pagamentos: Pagamento[]; canalVenda: string; entregador: { id: string | null; nome: string | null } }) {
   try {
@@ -82,18 +85,26 @@ function clearDraft() {
 }
 
 // Stepper component
-function VendaStepper({ customer, itens, pagamentos, totalVenda }: {
+function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelecionado = false, activeStep, onStepClick, compact = false }: {
   customer: CustomerData;
   itens: ItemVenda[];
   pagamentos: Pagamento[];
   totalVenda: number;
+  entregadorSelecionado?: boolean;
+  activeStep?: VendaStepId;
+  onStepClick?: (step: VendaStepId) => void;
+  compact?: boolean;
 }) {
   const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
-  const steps = [
-    { label: "Cliente", done: !!customer.nome, icon: User },
-    { label: "Produtos", done: itens.length > 0, icon: PackageIcon },
-    { label: "Pagamento", done: totalPago >= totalVenda && totalVenda > 0, icon: CreditCard },
-    { label: "Confirmar", done: totalPago >= totalVenda && totalVenda > 0 && itens.length > 0, icon: CheckCircle },
+  const clienteOk = !!customer.nome.trim();
+  const produtosOk = itens.length > 0;
+  const pagamentoOk = totalPago >= totalVenda && totalVenda > 0;
+  const steps: Array<{ id: VendaStepId; label: string; done: boolean; enabled: boolean; icon: typeof User }> = [
+    { id: "cliente", label: "Cliente", done: clienteOk, enabled: true, icon: User },
+    { id: "produtos", label: "Produtos", done: produtosOk, enabled: clienteOk, icon: PackageIcon },
+    { id: "pagamento", label: "Pagamento", done: pagamentoOk, enabled: clienteOk && produtosOk, icon: CreditCard },
+    { id: "entregador", label: "Entregador", done: entregadorSelecionado, enabled: clienteOk && produtosOk && pagamentoOk, icon: ShoppingBag },
+    { id: "confirmar", label: "Confirmar", done: pagamentoOk && produtosOk, enabled: clienteOk && produtosOk && pagamentoOk && entregadorSelecionado, icon: CheckCircle },
   ];
 
   return (
@@ -102,13 +113,24 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda }: {
         const Icon = step.icon;
         return (
           <div key={step.label} className="flex items-center gap-1 flex-1">
-            <div className={cn(
-              "flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium transition-colors",
-              step.done ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
-            )}>
+            <button
+              type="button"
+              disabled={!step.enabled || !onStepClick}
+              onClick={() => onStepClick?.(step.id)}
+              className={cn(
+                "flex items-center gap-1.5 rounded-full text-xs font-medium transition-colors disabled:cursor-not-allowed",
+                compact ? "px-2 py-1" : "px-2.5 py-1.5",
+                activeStep === step.id
+                  ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+                  : step.done
+                  ? "bg-primary/15 text-primary"
+                  : "bg-muted text-muted-foreground",
+                step.enabled && onStepClick && activeStep !== step.id && "hover:bg-primary/10"
+              )}
+            >
               {step.done ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
               <span className="hidden sm:inline">{step.label}</span>
-            </div>
+            </button>
             {i < steps.length - 1 && (
               <div className={cn("h-0.5 flex-1 rounded", step.done ? "bg-primary/30" : "bg-muted")} />
             )}
@@ -130,6 +152,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
+  const { isGasmais } = useDashboardTheme();
 
   const [dataEntrega, setDataEntrega] = useState(() => { const d = getBrasiliaDate(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; });
   const [canalVenda, setCanalVenda] = useState("telefone");
@@ -164,10 +187,19 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const [horaAgendamento, setHoraAgendamento] = useState("08:00");
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [pendingReceiptData, setPendingReceiptData] = useState<any>(null);
+  const [useNewView, setUseNewView] = useState(() => {
+    const saved = localStorage.getItem(VIEW_KEY);
+    return saved ? saved === "new" : false;
+  });
+  const [activeStep, setActiveStep] = useState<VendaStepId>("cliente");
   const recognitionRef = useRef<any>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const draftLoaded = useRef(false);
+
+  useEffect(() => {
+    if (!localStorage.getItem(VIEW_KEY) && isGasmais) setUseNewView(true);
+  }, [isGasmais]);
 
   // #5 - Load draft on mount
   useEffect(() => {
@@ -568,6 +600,34 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   };
 
   const totalVenda = itens.reduce((acc, item) => acc + item.total, 0);
+  const totalPagoVenda = pagamentos.reduce((acc, p) => acc + p.valor, 0);
+  const clientePreenchido = !!customer.nome.trim();
+  const produtosPreenchidos = itens.length > 0;
+  const pagamentoPreenchido = totalPagoVenda >= totalVenda && totalVenda > 0;
+  const entregadorPreenchido = !!entregador.id;
+
+  useEffect(() => {
+    if (!useNewView) return;
+    if (!clientePreenchido) setActiveStep("cliente");
+    else if (!produtosPreenchidos) setActiveStep("produtos");
+    else if (!pagamentoPreenchido) setActiveStep("pagamento");
+    else if (!entregadorPreenchido) setActiveStep("entregador");
+    else setActiveStep("confirmar");
+  }, [useNewView, clientePreenchido, produtosPreenchidos, pagamentoPreenchido, entregadorPreenchido]);
+
+  const canOpenStep = (step: VendaStepId) => {
+    if (step === "cliente") return true;
+    if (step === "produtos") return clientePreenchido;
+    if (step === "pagamento") return clientePreenchido && produtosPreenchidos;
+    if (step === "entregador") return clientePreenchido && produtosPreenchidos && pagamentoPreenchido;
+    return clientePreenchido && produtosPreenchidos && pagamentoPreenchido && entregadorPreenchido;
+  };
+
+  const toggleViewMode = () => {
+    const next = !useNewView;
+    setUseNewView(next);
+    localStorage.setItem(VIEW_KEY, next ? "new" : "old");
+  };
 
 
   // Nova Venda modal state
@@ -851,163 +911,162 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     loadCliente();
   }, [initialClienteId, embedded]);
 
+  const metaCard = (
+    <Card className="venda-card border-primary/20 bg-card/95">
+      <CardContent className="p-3 md:p-4">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <Label className="text-xs text-muted-foreground flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              Data de Entrega
+            </Label>
+            <Input type="date" value={dataEntrega} onChange={(e) => setDataEntrega(e.target.value)} className="mt-1" />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Canal de Venda</Label>
+            <Select value={canalVenda} onValueChange={setCanalVenda}>
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {allChannels.map((ch) => (
+                  <SelectItem key={ch.value} value={ch.value}>{ch.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const aiCommandCard = (
+    <Card className="venda-card border-primary/40 bg-primary/5 shadow-primary/10">
+      <CardContent className="py-3 md:py-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Sparkles className="h-5 w-5 text-primary shrink-0" />
+          <Input
+            placeholder='Ex: "2 P13 para Maria, Rua Ceará 30, Centro"'
+            value={aiCommand}
+            onChange={(e) => setAiCommand(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !aiLoading && handleAiCommand()}
+            className="bg-background flex-1 min-w-0"
+            disabled={aiLoading || isListening}
+          />
+          <div className="flex items-center gap-1">
+            <Button variant={isListening ? "destructive" : "outline"} size="icon" onClick={isListening ? stopListening : startListening} disabled={aiLoading} className={`shrink-0 h-9 w-9 ${isListening ? "animate-pulse" : ""}`} title={isListening ? "Parar gravação" : "Comando por voz"}>
+              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => photoInputRef.current?.click()} disabled={aiLoading || photoLoading} className="shrink-0 h-9 w-9" title="Lançar vendas por foto">
+              {photoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => cameraInputRef.current?.click()} disabled={aiLoading || photoLoading} className="shrink-0 h-9 w-9" title="Tirar foto da anotação">
+              {photoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+            </Button>
+            <Button id="ai-send-btn" onClick={handleAiCommand} disabled={aiLoading || !aiCommand.trim()} size="sm" className="shrink-0 gap-1">
+              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              <span className="hidden sm:inline">{aiLoading ? "..." : "Enviar"}</span>
+            </Button>
+          </div>
+        </div>
+        <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
+        <p className="text-xs text-muted-foreground mt-2 ml-7">
+          {photoLoading ? "📸 Processando foto..." : isListening ? "🔴 Ouvindo... Fale o comando." : "💡 Digite, 🎤 dite, ou 📷 tire foto de anotações."}
+        </p>
+      </CardContent>
+    </Card>
+  );
+
   const vendaContent = (
     <>
-      <div className="p-3 md:p-4 space-y-3 md:space-y-4">
+      <div className={cn("p-3 md:p-4 space-y-3 md:space-y-4", useNewView && "bg-muted/20")}> 
         <CaixaBloqueadoBanner />
 
-        {/* #8 - Progress stepper */}
-        <VendaStepper customer={customer} itens={itens} pagamentos={pagamentos} totalVenda={totalVenda} />
-
-        {/* Nova Venda button + badge */}
-        <div className="flex items-center justify-between">
-          <Badge variant="outline" className="text-xs">
-            #{proximoNumero ?? "—"}
-          </Badge>
-          <Button variant="outline" size="sm" onClick={() => setShowNovaVendaModal(true)} className="gap-1.5 text-xs">
-            <PlusCircle className="h-3.5 w-3.5" />
-            Nova Venda
-          </Button>
+        <div className="space-y-3 rounded-lg border border-primary/15 bg-card/80 p-3 shadow-sm">
+          <VendaStepper
+            customer={customer}
+            itens={itens}
+            pagamentos={pagamentos}
+            totalVenda={totalVenda}
+            entregadorSelecionado={entregadorPreenchido}
+            activeStep={useNewView ? activeStep : undefined}
+            onStepClick={useNewView ? (step) => canOpenStep(step) && setActiveStep(step) : undefined}
+            compact
+          />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Badge variant="outline" className="text-xs border-primary/30 bg-primary/5 text-primary">
+              #{proximoNumero ?? "—"}
+            </Badge>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={toggleViewMode} className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground">
+                {useNewView ? "Versão antiga" : "Versão nova"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowNovaVendaModal(true)} className="gap-1.5 text-xs">
+                <PlusCircle className="h-3.5 w-3.5" />
+                Nova Venda
+              </Button>
+            </div>
+          </div>
         </div>
 
-        {/* #2 - AI Command Bar responsive */}
-        <Card className="venda-card border-primary/40 bg-primary/5">
-          <CardContent className="py-3 md:py-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary shrink-0" />
-              <Input
-                placeholder='Ex: "2 P13 para Maria, Rua Ceará 30, Centro"'
-                value={aiCommand}
-                onChange={(e) => setAiCommand(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !aiLoading && handleAiCommand()}
-                className="bg-background flex-1 min-w-0"
-                disabled={aiLoading || isListening}
-              />
-              <div className="flex items-center gap-1">
-                <Button
-                  variant={isListening ? "destructive" : "outline"}
-                  size="icon"
-                  onClick={isListening ? stopListening : startListening}
-                  disabled={aiLoading}
-                  className={`shrink-0 h-9 w-9 ${isListening ? "animate-pulse" : ""}`}
-                  title={isListening ? "Parar gravação" : "Comando por voz"}
-                >
-                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => photoInputRef.current?.click()}
-                  disabled={aiLoading || photoLoading}
-                  className="shrink-0 h-9 w-9"
-                  title="Lançar vendas por foto"
-                >
-                  {photoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => cameraInputRef.current?.click()}
-                  disabled={aiLoading || photoLoading}
-                  className="shrink-0 h-9 w-9"
-                  title="Tirar foto da anotação"
-                >
-                  {photoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-                </Button>
-                <Button
-                  id="ai-send-btn"
-                  onClick={handleAiCommand}
-                  disabled={aiLoading || !aiCommand.trim()}
-                  size="sm"
-                  className="shrink-0 gap-1"
-                >
-                  {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  <span className="hidden sm:inline">{aiLoading ? "..." : "Enviar"}</span>
-                </Button>
+        {useNewView ? (
+          <div className="space-y-3 md:space-y-4">
+            {activeStep === "cliente" && (
+              <div className="grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+                <div className="space-y-3 md:space-y-4 min-w-0">
+                  {aiCommandCard}
+                  {metaCard}
+                  <CustomerSearch value={customer} onChange={setCustomer} />
+                </div>
+                <div className="min-w-0 xl:sticky xl:top-4 self-start">
+                  <CustomerHistory clienteId={customer.id} />
+                </div>
+              </div>
+            )}
+            {activeStep === "produtos" && (
+              <div className="grid gap-3 md:gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+                <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
+                <div className="space-y-3 min-w-0">
+                  {metaCard}
+                  <CustomerHistory clienteId={customer.id} />
+                </div>
+              </div>
+            )}
+            {activeStep === "pagamento" && (
+              <div className="grid gap-3 md:gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+                <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} />
+                <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
+              </div>
+            )}
+            {activeStep === "entregador" && (
+              <div className="grid gap-3 md:gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} endereco={customer.endereco} />
+                <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
+              </div>
+            )}
+            {activeStep === "confirmar" && (
+              <div className="mx-auto max-w-xl">
+                <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {aiCommandCard}
+            <div className="grid gap-3 md:gap-4 lg:grid-cols-3">
+              <div className="lg:col-span-2 space-y-3 md:space-y-4">
+                {metaCard}
+                <CustomerSearch value={customer} onChange={setCustomer} />
+                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} endereco={customer.endereco} />
+                <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
+                <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} />
+              </div>
+              <div className="lg:sticky lg:top-4 space-y-3 md:space-y-4 self-start">
+                <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
+                <CustomerHistory clienteId={customer.id} />
               </div>
             </div>
-            <input
-              ref={photoInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handlePhotoSales(file);
-                e.target.value = "";
-              }}
-            />
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handlePhotoSales(file);
-                e.target.value = "";
-              }}
-            />
-            <p className="text-xs text-muted-foreground mt-2 ml-7">
-              {photoLoading 
-                ? "📸 Processando foto..."
-                : isListening 
-                ? "🔴 Ouvindo... Fale o comando."
-                : "💡 Digite, 🎤 dite, ou 📷 tire foto de anotações."}
-            </p>
-          </CardContent>
-        </Card>
-
-
-        {/* Layout Principal */}
-        <div className="grid gap-3 md:gap-4 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-3 md:space-y-4">
-            <Card className="venda-card">
-              <CardContent className="p-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      Data de Entrega
-                    </Label>
-                    <Input type="date" value={dataEntrega} onChange={(e) => setDataEntrega(e.target.value)} className="mt-1" />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Canal de Venda</Label>
-                    <Select value={canalVenda} onValueChange={setCanalVenda}>
-                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {allChannels.map((ch) => (
-                          <SelectItem key={ch.value} value={ch.value}>{ch.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <CustomerSearch value={customer} onChange={setCustomer} />
-            <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} endereco={customer.endereco} />
-            <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
-            <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} />
-          </div>
-
-          <div className="lg:sticky lg:top-4 space-y-3 md:space-y-4 self-start">
-            <OrderSummary
-              itens={itens}
-              pagamentos={pagamentos}
-              entregadorNome={entregador.nome}
-              canalVenda={canalVenda}
-              onFinalizar={handleFinalizar}
-              onCancelar={handleCancelar}
-              onAgendar={handleAgendar}
-              isLoading={isLoading}
-            />
-            <CustomerHistory clienteId={customer.id} />
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {/* Dialog Agendamento */}

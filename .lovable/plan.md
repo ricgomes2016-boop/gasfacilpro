@@ -1,32 +1,56 @@
-Plano para ajustar o cabeçalho da tela `/vendas/nova`:
+Plano de implementação para `Vendas > Nova Venda`
 
-1. Reduzir a pressão visual do cabeçalho global
-   - Ajustar `src/components/layout/Header.tsx` para que o lado direito não fique espremido em larguras médias como a atual.
-   - Diminuir gaps excessivos e larguras fixas que competem por espaço.
-   - Manter o título e subtítulo com truncamento seguro, sem quebrar o layout.
+1. Criar um modo novo guiado por etapas
+- Manter a tela atual intacta como “versão antiga”.
+- Adicionar uma “versão nova” com fluxo visual por abas/etapas:
+  - Cliente
+  - Produtos
+  - Pagamento
+  - Entregador
+  - Confirmar
+- Ao abrir a nova versão, deixar visíveis imediatamente:
+  - Card da IA
+  - Card do Cliente
+  - Card Histórico do Cliente
 
-2. Priorizar ações importantes por tamanho de tela
-   - Em desktop largo: manter seletor de unidade, busca, chat, notificações, tema, calculadora e usuário.
-   - Em telas médias: reduzir/ocultar elementos menos críticos, especialmente a busca grande (`CommandPalette`) e/ou botões duplicados, para liberar espaço.
-   - Em mobile: preservar o padrão existente com menu mobile e barra inferior, sem adicionar poluição no topo.
+2. Avanço automático entre etapas
+- Quando o cliente estiver preenchido/selecionado, destacar/liberar a etapa “Produtos”.
+- Quando houver produto adicionado, avançar para “Pagamento”.
+- Quando o pagamento estiver preenchido, avançar para “Entregador”.
+- Quando o entregador for selecionado, avançar para “Confirmar”.
+- Na etapa final, exibir o card “Resumo da Venda” com os botões de finalizar, agendar e cancelar.
 
-3. Compactar componentes específicos do header
-   - Ajustar `CommandPalette` para não ocupar sempre `w-64`; usar largura responsiva menor em telas médias.
-   - Ajustar `UnidadeSelector` para ter limite de largura mais previsível e não empurrar os demais botões.
-   - Evitar alterações funcionais nos menus, notificações, chat, calculadora e autenticação.
+3. Melhorar a organização visual dos cards
+- Na versão nova, cada etapa exibirá apenas os cards relevantes para reduzir poluição visual.
+- A etapa inicial terá layout em duas colunas no desktop: IA/Cliente à esquerda e Histórico à direita.
+- Em telas menores, os cards ficam empilhados.
+- Aplicar cores do tema atual nos cards usando tokens `primary`, `card`, `muted`, `border` e `ring`, para funcionar tanto no tema padrão quanto no tema GásMais.
 
-4. Manter estabilidade do app
-   - Não alterar `App.tsx`, rotas, providers ou regras globais.
-   - Não mexer em banco de dados.
-   - Fazer somente mudanças visuais/responsivas no cabeçalho.
+4. Alternância discreta entre versões
+- Criar um botão discreto no topo da página, ao lado do número da próxima venda ou perto do stepper:
+  - “Versão nova” / “Versão antiga”
+- Salvar a preferência em `localStorage`, para o usuário continuar usando a versão escolhida nas próximas aberturas.
+- Se o tema GásMais estiver ativo, a tela poderá abrir por padrão na versão nova, mas o botão continuará permitindo voltar para a antiga.
 
-Detalhes técnicos:
-- Arquivos previstos:
-  - `src/components/layout/Header.tsx`
-  - `src/components/layout/CommandPalette.tsx`
-  - `src/components/layout/UnidadeSelector.tsx`
-- Estratégia provável:
-  - Trocar `md:gap-4` por gaps menores/responsivos no grupo de ações.
-  - Exibir a busca do Command Palette apenas em `xl` ou reduzir sua largura em `lg`.
-  - Usar classes como `hidden lg:block`, `w-40 xl:w-64`, `max-w-*`, `shrink-0`, `min-w-0` e truncamento controlado.
-  - Se necessário, ocultar o toggle de tema ou itens secundários em telas médias, mantendo acesso por outros pontos já existentes.
+5. Ajustar o stepper superior
+- Atualizar as abas atuais para incluir “Entregador”, ficando:
+  - Cliente
+  - Produtos
+  - Pagamento
+  - Entregador
+  - Confirmar
+- Na versão nova, permitir clicar nas etapas já liberadas para navegar manualmente sem perder dados.
+- Marcar visualmente etapas concluídas e a etapa atual.
+
+Detalhes técnicos
+- Alterar principalmente `src/pages/vendas/NovaVenda.tsx`.
+- Reutilizar os componentes existentes:
+  - `CustomerSearch`
+  - `CustomerHistory`
+  - `ProductSearch`
+  - `PaymentSection`
+  - `DeliveryPersonSelect`
+  - `OrderSummary`
+- Usar `useDashboardTheme()` para detectar o tema GásMais sem alterar o hook existente.
+- Não mexer em `App.tsx`, rotas, provedores, banco de dados ou autenticação.
+- Não alterar a lógica de finalização da venda; apenas reorganizar a experiência visual e a navegação entre cards.
