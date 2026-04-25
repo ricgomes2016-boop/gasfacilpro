@@ -129,11 +129,11 @@ export function MobileNav() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 rounded-xl">
+        <Button variant="ghost" size="icon" className="xl:hidden h-9 w-9 rounded-xl">
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[280px] p-0 border-r border-sidebar-border bg-sidebar">
+      <SheetContent side="left" className="w-[min(86vw,320px)] p-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
         <div className="h-full flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
@@ -178,8 +178,8 @@ export function MobileNav() {
                         className={cn(
                           "group flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200",
                           hasActiveChild
-                            ? "bg-primary/15 text-primary"
-                            : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                            ? "bg-primary/20 text-primary ring-1 ring-primary/35"
+                            : "text-sidebar-foreground/95 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                         )}
                       >
                         <div className="flex items-center gap-3">
@@ -188,7 +188,7 @@ export function MobileNav() {
                             !hasActiveChild && "group-hover:scale-110",
                             !hasActiveChild && (menuIconColors[item.label] || "")
                           )} />
-                          <span>{item.label}</span>
+                          <span className="min-w-0 truncate">{item.label}</span>
                         </div>
                         <motion.div
                           animate={{ rotate: isSubmenuOpen ? 180 : 0 }}
@@ -231,7 +231,7 @@ export function MobileNav() {
                                           "group-hover:scale-110",
                                           subMenuIconColors[sub.label] || ""
                                         )} />
-                                        <span>{sub.label}</span>
+                                        <span className="min-w-0 truncate">{sub.label}</span>
                                       </a>
                                     ) : (
                                       <Link
@@ -240,8 +240,8 @@ export function MobileNav() {
                                         className={cn(
                                           "group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
                                           subActive
-                                            ? "bg-primary text-primary-foreground shadow-sm"
-                                            : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                            ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/35"
+                                            : "text-sidebar-foreground/85 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                                         )}
                                       >
                                         <SubIcon className={cn(
@@ -249,7 +249,7 @@ export function MobileNav() {
                                           !subActive && "group-hover:scale-110",
                                           !subActive && (subMenuIconColors[sub.label] || "")
                                         )} />
-                                        <span>{sub.label}</span>
+                                        <span className="min-w-0 truncate">{sub.label}</span>
                                       </Link>
                                     )}
                                   </motion.div>
@@ -276,8 +276,8 @@ export function MobileNav() {
                       className={cn(
                         "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200",
                         isActive(item.path!)
-                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
-                          : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/35 ring-1 ring-primary/35"
+                          : "text-sidebar-foreground/95 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                       )}
                     >
                       <Icon className={cn(
@@ -285,7 +285,7 @@ export function MobileNav() {
                         !isActive(item.path!) && "group-hover:scale-110",
                         !isActive(item.path!) && (menuIconColors[item.label] || "")
                       )} />
-                      <span>{item.label}</span>
+                      <span className="min-w-0 truncate">{item.label}</span>
                     </Link>
                   </motion.div>
                 );

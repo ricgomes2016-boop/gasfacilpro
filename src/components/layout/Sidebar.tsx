@@ -224,7 +224,7 @@ export function Sidebar() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
           themeClass,
-          "fixed left-0 top-0 z-40 hidden md:flex h-screen flex-col bg-sidebar border-r border-sidebar-border shadow-2xl"
+          "fixed left-0 top-0 z-40 hidden xl:flex h-screen flex-col bg-sidebar border-r border-sidebar-border shadow-2xl"
         )}
       >
         {/* Header */}
@@ -342,8 +342,8 @@ export function Sidebar() {
                           className={cn(
                             "flex h-10 w-10 items-center justify-center rounded-xl mx-auto transition-all duration-200",
                             isItemActive
-                              ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
-                              : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                              ? "bg-primary text-primary-foreground shadow-md shadow-primary/35 ring-1 ring-primary/35"
+                              : "text-sidebar-foreground/85 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                           )}
                         >
                           <item.icon className={cn("h-[18px] w-[18px]", isItemActive ? "" : menuIconColors[item.label] || "")} />
@@ -353,8 +353,8 @@ export function Sidebar() {
                           className={cn(
                             "flex h-10 w-10 items-center justify-center rounded-xl mx-auto transition-all duration-200",
                             isChildActive
-                              ? "bg-primary/10 text-primary"
-                              : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                              ? "bg-primary/20 text-primary ring-1 ring-primary/35"
+                              : "text-sidebar-foreground/85 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                           )}
                         >
                           <item.icon className={cn("h-[18px] w-[18px]", isChildActive ? "" : menuIconColors[item.label] || "")} />
@@ -403,8 +403,8 @@ export function Sidebar() {
                         className={cn(
                           "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200 relative overflow-hidden",
                           isItemActive
-                            ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/30"
-                            : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/15 hover:border-primary/50"
+                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/35 ring-1 ring-primary/35"
+                            : "bg-primary/10 text-primary border border-primary/35 hover:bg-primary/20 hover:border-primary/60"
                         )}
                       >
                         <motion.div
@@ -422,8 +422,8 @@ export function Sidebar() {
                       className={cn(
                         "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200 relative",
                         isItemActive
-                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
-                          : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/35 ring-1 ring-primary/35"
+                          : "text-sidebar-foreground/95 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                       )}
                     >
                       <item.icon className={cn(
@@ -440,8 +440,8 @@ export function Sidebar() {
                       className={cn(
                         "group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200",
                         isChildActive
-                          ? "bg-primary/15 text-primary"
-                          : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                          ? "bg-primary/20 text-primary ring-1 ring-primary/35"
+                          : "text-sidebar-foreground/95 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                       )}
                     >
                       <item.icon className={cn(
@@ -502,8 +502,8 @@ export function Sidebar() {
                                     className={cn(
                                       "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
                                       subActive
-                                        ? "bg-primary text-primary-foreground shadow-sm"
-                                        : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                        ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/35"
+                                        : "text-sidebar-foreground/85 hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
                                     )}
                                   >
                                     <SubIcon className={cn(
