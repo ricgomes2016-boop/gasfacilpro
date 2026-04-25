@@ -152,6 +152,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
+  const { isGasmais } = useDashboardTheme();
 
   const [dataEntrega, setDataEntrega] = useState(() => { const d = getBrasiliaDate(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; });
   const [canalVenda, setCanalVenda] = useState("telefone");
@@ -186,10 +187,19 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const [horaAgendamento, setHoraAgendamento] = useState("08:00");
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [pendingReceiptData, setPendingReceiptData] = useState<any>(null);
+  const [useNewView, setUseNewView] = useState(() => {
+    const saved = localStorage.getItem(VIEW_KEY);
+    return saved ? saved === "new" : false;
+  });
+  const [activeStep, setActiveStep] = useState<VendaStepId>("cliente");
   const recognitionRef = useRef<any>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const draftLoaded = useRef(false);
+
+  useEffect(() => {
+    if (!localStorage.getItem(VIEW_KEY) && isGasmais) setUseNewView(true);
+  }, [isGasmais]);
 
   // #5 - Load draft on mount
   useEffect(() => {
