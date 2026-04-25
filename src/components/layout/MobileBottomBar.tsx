@@ -10,7 +10,7 @@ interface MobileBottomBarProps {
 
 export function MobileBottomBar({ onOpenAi, onOpenChat, onOpenCalc, chatUnread = 0 }: MobileBottomBarProps) {
   return (
-    <div className="fixed bottom-0 right-0 left-0 z-40 flex min-h-[52px] border-t border-sidebar-border bg-sidebar pb-[env(safe-area-inset-bottom)] shadow-2xl xl:hidden">
+    <div className="fixed bottom-0 right-0 left-0 z-40 flex min-h-[52px] border-t border-sidebar-border bg-sidebar pb-[env(safe-area-inset-bottom)] shadow-2xl md:hidden">
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={onOpenChat}
