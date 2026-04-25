@@ -137,6 +137,8 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
           <div key={step.label} className="flex items-center gap-1 flex-1">
             <button
               type="button"
+              data-active={activeStep === step.id}
+              data-done={step.done}
               disabled={!step.enabled || !onStepClick}
               onClick={() => onStepClick?.(step.id)}
               className={cn(
