@@ -186,8 +186,18 @@
   .venda-tone-confirmar .venda-card {
     border-color: hsl(222 47% 11% / 0.34);
     background:
-      linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.07) 54%, hsl(var(--venda-tone-strong) / 0.045) 100%);
+      radial-gradient(circle at top right, hsl(var(--venda-tone) / 0.16), transparent 34%),
+      linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.075) 54%, hsl(var(--venda-tone-strong) / 0.055) 100%);
     box-shadow: 0 16px 32px -20px hsl(var(--venda-tone) / 0.62), 0 10px 22px -18px hsl(222 47% 11% / 0.42);
+  }
+
+  .venda-tone-cliente .venda-card > [class*="border-b"],
+  .venda-tone-produtos .venda-card > [class*="border-b"],
+  .venda-tone-pagamento .venda-card > [class*="border-b"],
+  .venda-tone-entregador .venda-card > [class*="border-b"],
+  .venda-tone-confirmar .venda-card > [class*="border-b"] {
+    border-color: hsl(var(--venda-tone) / 0.22);
+    background: linear-gradient(90deg, hsl(var(--venda-tone) / 0.13), hsl(var(--venda-tone-strong) / 0.075));
   }
 
   .venda-tone-cliente .venda-card::before,
@@ -373,7 +383,8 @@
     overflow: hidden;
     border-color: hsl(222 47% 11% / 0.36);
     background:
-      linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.075) 52%, hsl(var(--venda-tone-strong) / 0.05) 100%);
+      radial-gradient(circle at top right, hsl(var(--venda-tone) / 0.18), transparent 34%),
+      linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.085) 52%, hsl(var(--venda-tone-strong) / 0.06) 100%);
     box-shadow: 0 14px 30px -18px hsl(var(--venda-tone) / 0.62), 0 8px 20px -16px hsl(222 47% 11% / 0.46);
   }
 
@@ -533,7 +544,9 @@
   .venda-product-shortcut,
   .venda-payment-shortcut {
     border-color: hsl(222 47% 11% / 0.28);
-    background: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.08) 100%);
+    background:
+      radial-gradient(circle at top, hsl(var(--venda-tone) / 0.16), transparent 44%),
+      linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.09) 100%);
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
   }
 
@@ -553,7 +566,27 @@
 
   .venda-modern-surface {
     border-color: hsl(222 47% 11% / 0.24);
-    background: linear-gradient(145deg, hsl(var(--card) / 0.98), hsl(var(--venda-tone) / 0.06));
+    background:
+      linear-gradient(145deg, hsl(var(--card) / 0.98), hsl(var(--venda-tone) / 0.075)),
+      linear-gradient(90deg, hsl(var(--venda-tone) / 0.045), hsl(var(--venda-tone-strong) / 0.045));
+  }
+
+  .venda-tone-cliente .venda-card .bg-background,
+  .venda-tone-produtos .venda-card .bg-background,
+  .venda-tone-pagamento .venda-card .bg-background,
+  .venda-tone-entregador .venda-card .bg-background,
+  .venda-tone-confirmar .venda-card .bg-background,
+  .venda-tone-cliente .venda-card .bg-muted\/20,
+  .venda-tone-produtos .venda-card .bg-muted\/20,
+  .venda-tone-pagamento .venda-card .bg-muted\/20,
+  .venda-tone-entregador .venda-card .bg-muted\/20,
+  .venda-tone-confirmar .venda-card .bg-muted\/20,
+  .venda-tone-cliente .venda-card .bg-muted\/30,
+  .venda-tone-produtos .venda-card .bg-muted\/30,
+  .venda-tone-pagamento .venda-card .bg-muted\/30,
+  .venda-tone-entregador .venda-card .bg-muted\/30,
+  .venda-tone-confirmar .venda-card .bg-muted\/30 {
+    background-color: hsl(var(--venda-tone) / 0.055);
   }
 
   .dark .theme-gasmais .venda-gasmais-card,
@@ -566,7 +599,9 @@
   .dark .venda-payment-shortcut,
   .dark .venda-modern-surface {
     border-color: hsl(220 14% 86% / 0.24);
-    background: linear-gradient(145deg, hsl(var(--card) / 0.96), hsl(var(--venda-tone) / 0.12));
+    background:
+      radial-gradient(circle at top right, hsl(var(--venda-tone) / 0.18), transparent 38%),
+      linear-gradient(145deg, hsl(var(--card) / 0.96), hsl(var(--venda-tone) / 0.13));
   }
 
   .gradient-primary {
