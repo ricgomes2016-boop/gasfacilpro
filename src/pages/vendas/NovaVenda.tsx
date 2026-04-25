@@ -141,6 +141,7 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
               onClick={() => onStepClick?.(step.id)}
               className={cn(
                 "flex items-center gap-1.5 rounded-full text-xs font-medium transition-colors disabled:cursor-not-allowed",
+                "venda-step-tab",
                 STEP_TONE_CLASS[step.id],
                 compact ? "px-2 py-1" : "px-2.5 py-1.5",
                 activeStep === step.id
@@ -219,6 +220,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const draftLoaded = useRef(false);
+  const previousStepState = useRef({ cliente: false, produtos: false, pagamento: false, entregador: false });
 
   useEffect(() => {
     if (!getSavedViewMode() && isGasmais) setUseNewView(true);
@@ -639,20 +641,32 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     : "confirmar";
 
   useEffect(() => {
-    if (!useNewView) return;
-    const activeIndex = VENDA_STEPS.indexOf(activeStep);
-    const pendingIndex = VENDA_STEPS.indexOf(firstPendingStep);
-    if (activeIndex > pendingIndex || firstPendingStep === "confirmar") {
-      setActiveStep(firstPendingStep);
+    const current = {
+      cliente: clientePreenchido,
+      produtos: produtosPreenchidos,
+      pagamento: pagamentoPreenchido,
+      entregador: entregadorPreenchido,
+    };
+
+    if (!useNewView) {
+      previousStepState.current = current;
+      return;
     }
-  }, [useNewView, activeStep, firstPendingStep]);
+
+    const previous = previousStepState.current;
+    let nextStep: VendaStepId | null = null;
+
+    if (!previous.cliente && current.cliente && activeStep === "cliente") nextStep = "produtos";
+    else if (!previous.produtos && current.produtos && activeStep === "produtos") nextStep = "pagamento";
+    else if (!previous.pagamento && current.pagamento && activeStep === "pagamento") nextStep = "entregador";
+    else if (!previous.entregador && current.entregador && activeStep === "entregador") nextStep = "confirmar";
+
+    previousStepState.current = current;
+    if (nextStep) setActiveStep(nextStep);
+  }, [useNewView, activeStep, clientePreenchido, produtosPreenchidos, pagamentoPreenchido, entregadorPreenchido]);
 
   const canOpenStep = (step: VendaStepId) => {
-    if (step === "cliente") return true;
-    if (step === "produtos") return clientePreenchido;
-    if (step === "pagamento") return clientePreenchido && produtosPreenchidos;
-    if (step === "entregador") return clientePreenchido && produtosPreenchidos && pagamentoPreenchido;
-    return clientePreenchido && produtosPreenchidos && pagamentoPreenchido && entregadorPreenchido;
+    return VENDA_STEPS.includes(step);
   };
 
   const toggleViewMode = () => {
