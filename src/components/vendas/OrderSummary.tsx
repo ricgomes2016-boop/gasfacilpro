@@ -47,7 +47,7 @@ export function OrderSummary({
         {/* Canal de venda */}
         <div className="flex items-center justify-between gap-2 text-sm w-full min-w-0">
           <span className="text-muted-foreground shrink-0">Canal</span>
-          <Badge variant="outline" className="truncate max-w-[60%]">{canalVenda}</Badge>
+          <Badge variant="outline" className="truncate max-w-[60%] border-primary/40 bg-primary/10 text-primary">{canalVenda}</Badge>
         </div>
 
         <Separator />
@@ -56,7 +56,7 @@ export function OrderSummary({
         <div className="space-y-2 w-full min-w-0">
           {itens.map((item) => (
             <div key={item.id} className="flex justify-between gap-2 text-sm w-full min-w-0">
-              <span className="text-muted-foreground truncate min-w-0 flex-1" title={`${item.quantidade}x ${item.nome}`}>
+            <span className="text-foreground/80 truncate min-w-0 flex-1" title={`${item.quantidade}x ${item.nome}`}>
                 {item.quantidade}x {item.nome}
               </span>
               <span className="shrink-0">R$ {item.total.toFixed(2)}</span>
@@ -85,7 +85,7 @@ export function OrderSummary({
           )}
           <div className="flex justify-between text-lg font-bold pt-3 border-t">
             <span>Total</span>
-            <span className="rounded-md bg-primary/10 px-2 py-1 text-primary">R$ {total.toFixed(2)}</span>
+              <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-primary shadow-sm">R$ {total.toFixed(2)}</span>
           </div>
         </div>
 
