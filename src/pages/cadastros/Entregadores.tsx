@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Truck, Plus, Search, Edit, Trash2, Phone, LinkIcon, UserCheck, CreditCard } from "lucide-react";
+import { Truck, Plus, Search, Edit, Trash2, Phone, LinkIcon, UserCheck, CreditCard, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -32,6 +32,7 @@ interface Entregador {
   user_id: string | null;
   funcionario_id: string | null;
   terminal_id: string | null;
+  foto_url: string | null;
 }
 
 interface TerminalOption {
@@ -63,8 +64,9 @@ export default function Entregadores() {
   const [funcionarios, setFuncionarios] = useState<FuncionarioOption[]>([]);
   const [terminais, setTerminais] = useState<TerminalOption[]>([]);
   const { unidadeAtual } = useUnidade();
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [form, setForm] = useState({
-    nome: "", cpf: "", cnh: "", telefone: "", email: "", user_id: "", funcionario_id: "", terminal_id: "",
+    nome: "", cpf: "", cnh: "", telefone: "", email: "", user_id: "", funcionario_id: "", terminal_id: "", foto_url: "",
   });
 
   const fetchEntregadores = async () => {
@@ -129,6 +131,19 @@ export default function Entregadores() {
     fetchFuncionarios();
     fetchTerminais();
   }, [unidadeAtual?.id]);
+
+  const uploadFotoEntregador = async (file: File, entregadorId: string) => {
+    if (!file.type.startsWith("image/")) throw new Error("Envie apenas arquivos de imagem.");
+    if (file.size > 2 * 1024 * 1024) throw new Error("A foto deve ter no máximo 2MB.");
+
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `entregadores/${entregadorId}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (error) throw error;
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    return data.publicUrl;
+  };
 
   const handleSave = async () => {
     if (!form.nome.trim()) { toast.error("Nome é obrigatório"); return; }
