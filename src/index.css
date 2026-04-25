@@ -259,6 +259,28 @@
     overflow: hidden;
   }
 
+  .venda-dashboard-shell .venda-gasmais-card,
+  .venda-dashboard-shell .venda-card,
+  .venda-dashboard-shell .venda-modern-surface,
+  .venda-dashboard-shell .venda-product-shortcut,
+  .venda-dashboard-shell .venda-payment-shortcut {
+    border-color: hsl(var(--venda-glass) / 0.25) !important;
+    background-color: hsl(var(--venda-glass) / 0.12) !important;
+    color: hsl(var(--venda-glass)) !important;
+    box-shadow: inset 0 1px 0 hsl(var(--venda-glass) / 0.13), 0 18px 32px -24px hsl(0 0% 0% / 0.36) !important;
+    backdrop-filter: blur(10px);
+  }
+
+  .venda-dashboard-shell .venda-card::before,
+  .venda-dashboard-shell .venda-gasmais-card::before {
+    background-color: transparent !important;
+  }
+
+  .venda-dashboard-shell .venda-card > [class*="border-b"] {
+    border-color: hsl(var(--venda-glass) / 0.18) !important;
+    background-color: hsl(var(--venda-glass) / 0.06) !important;
+  }
+
   .venda-step-tab.venda-tone-cliente,
   .venda-step-tab.venda-tone-produtos,
   .venda-step-tab.venda-tone-pagamento,
