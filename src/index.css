@@ -179,6 +179,45 @@
     --venda-tone-strong: 161 94% 30%;
   }
 
+  .venda-dashboard-shell {
+    --venda-dashboard-bg: 18 73% 51%;
+    --venda-dashboard-bg-strong: 6 68% 47%;
+    --venda-glass: 0 0% 100%;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: 1.5rem;
+    background:
+      radial-gradient(circle at 88% 8%, hsl(var(--venda-glass) / 0.14) 0 4.5rem, transparent 4.65rem),
+      radial-gradient(circle at 68% 100%, hsl(var(--venda-glass) / 0.08) 0 7rem, transparent 7.2rem),
+      linear-gradient(135deg, hsl(var(--venda-dashboard-bg)), hsl(var(--venda-dashboard-bg-strong)));
+    box-shadow: 0 24px 48px -28px hsl(6 68% 36% / 0.72), 0 12px 28px -20px hsl(222 47% 11% / 0.5);
+  }
+
+  .venda-dashboard-shell::before {
+    content: "";
+    position: absolute;
+    inset: auto -2rem -6rem auto;
+    width: 18rem;
+    height: 18rem;
+    border: 0.65rem solid hsl(var(--venda-glass) / 0.08);
+    border-radius: 9999px;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .venda-dashboard-shell::after {
+    content: "";
+    position: absolute;
+    inset: -5rem 0 auto auto;
+    width: 12rem;
+    height: 12rem;
+    border-radius: 42% 58% 46% 54%;
+    border: 0.45rem solid hsl(var(--venda-glass) / 0.09);
+    pointer-events: none;
+    z-index: -1;
+  }
+
   .venda-tone-cliente .venda-card,
   .venda-tone-produtos .venda-card,
   .venda-tone-pagamento .venda-card,
