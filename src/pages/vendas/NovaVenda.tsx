@@ -1102,17 +1102,17 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               </div>
             )}
             {activeStep === "pagamento" && (
-              <div className="venda-step-panel venda-tone-pagamento mx-auto max-w-4xl" onKeyDown={handleStepEnterNavigation}>
+              <div className="venda-step-panel venda-tone-pagamento mx-auto w-full max-w-6xl" onKeyDown={handleStepEnterNavigation}>
                 <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} />
               </div>
             )}
             {activeStep === "entregador" && (
-              <div className="venda-step-panel venda-tone-entregador mx-auto max-w-4xl">
+              <div className="venda-step-panel venda-tone-entregador mx-auto w-full max-w-6xl">
                 <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} endereco={customer.endereco} />
               </div>
             )}
             {activeStep === "confirmar" && (
-              <div className="venda-step-panel venda-tone-confirmar mx-auto max-w-xl">
+              <div className="venda-step-panel venda-tone-confirmar mx-auto w-full max-w-3xl">
                 <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
               </div>
             )}
