@@ -202,6 +202,13 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
     onChange(newItens);
   };
 
+  const isProdutoPrincipalSelecionado = (atalho: typeof produtosPrincipais[number]) => {
+    return itens.some((item) => {
+      const nome = normalize(item.nome);
+      return atalho.aliases.some((alias) => nome.includes(normalize(alias)));
+    });
+  };
+
   const total = itens.reduce((acc, item) => acc + item.total, 0);
 
   return (
@@ -221,12 +228,15 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
       </CardHeader>
       <CardContent className="space-y-4 p-4">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-          {produtosPrincipais.map((produto) => (
+          {produtosPrincipais.map((produto) => {
+            const selected = isProdutoPrincipalSelecionado(produto);
+            return (
             <button
               key={produto.label}
               type="button"
+              aria-pressed={selected}
               onClick={() => buscarProdutoPrincipal(produto)}
-              className={`venda-product-shortcut group min-h-[132px] rounded-xl border border-transparent p-3 text-center shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${produto.quickTone} ${produto.quickRing}`}
+              className={`venda-product-shortcut group min-h-[132px] rounded-xl border border-transparent p-3 text-center shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${produto.quickTone} ${produto.quickRing} ${selected ? "ring-2 ring-offset-2 shadow-xl scale-[1.02]" : ""}`}
             >
               <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-lg bg-primary-foreground/15 ring-1 ring-primary-foreground/25 transition-transform group-hover:scale-105">
                 {produto.image ? (
@@ -237,7 +247,8 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
               </span>
               <span className="mt-2 block text-xs font-semibold leading-tight text-center">{produto.label}</span>
             </button>
-          ))}
+            );
+          })}
         </div>
 
         {/* Search Input */}
