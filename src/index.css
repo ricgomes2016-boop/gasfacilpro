@@ -460,7 +460,7 @@
   .venda-tone-pagamento .venda-card table thead tr,
   .venda-tone-entregador .venda-card table thead tr,
   .venda-tone-confirmar .venda-card table thead tr {
-    background: linear-gradient(90deg, hsl(var(--venda-tone) / 0.12), hsl(var(--venda-tone-strong) / 0.08));
+    background-color: hsl(var(--venda-tone) / 0.11);
   }
 
   .venda-tone-cliente .venda-card table tbody tr,
@@ -531,7 +531,7 @@
   .venda-tone-pagamento .venda-card button[class*="bg-primary"],
   .venda-tone-entregador .venda-card button[class*="bg-primary"],
   .venda-tone-confirmar .venda-card button[class*="bg-primary"] {
-    background: linear-gradient(135deg, hsl(var(--venda-tone)), hsl(var(--venda-tone-strong)));
+    background-color: hsl(var(--venda-tone));
     color: hsl(var(--primary-foreground));
     box-shadow: 0 10px 18px -14px hsl(var(--venda-tone) / 0.9);
   }
@@ -539,9 +539,7 @@
   .venda-product-shortcut,
   .venda-payment-shortcut {
     border-color: hsl(222 47% 11% / 0.28);
-    background:
-      radial-gradient(circle at top, hsl(var(--venda-tone) / 0.16), transparent 44%),
-      linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.09) 100%);
+    background-color: hsl(var(--venda-tone) / 0.075);
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
   }
 
@@ -561,9 +559,7 @@
 
   .venda-modern-surface {
     border-color: hsl(222 47% 11% / 0.24);
-    background:
-      linear-gradient(145deg, hsl(var(--card) / 0.98), hsl(var(--venda-tone) / 0.075)),
-      linear-gradient(90deg, hsl(var(--venda-tone) / 0.045), hsl(var(--venda-tone-strong) / 0.045));
+    background-color: hsl(var(--venda-tone) / 0.055);
   }
 
   .venda-tone-cliente .venda-card .bg-background,
@@ -594,9 +590,7 @@
   .dark .venda-payment-shortcut,
   .dark .venda-modern-surface {
     border-color: hsl(220 14% 86% / 0.24);
-    background:
-      radial-gradient(circle at top right, hsl(var(--venda-tone) / 0.18), transparent 38%),
-      linear-gradient(145deg, hsl(var(--card) / 0.96), hsl(var(--venda-tone) / 0.13));
+    background-color: hsl(var(--venda-tone) / 0.12);
   }
 
   .gradient-primary {
