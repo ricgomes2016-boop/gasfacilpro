@@ -1,38 +1,42 @@
-Plano para ajustar `Vendas > Nova Venda`
+Plano de ajuste da tela /vendas/nova
 
-1. Liberar clique nas etapas do topo
-- Ajustar o comportamento do stepper para que as abas `Cliente`, `Produtos`, `Pagamento`, `Entregador` e `Confirmar` sejam clicáveis na versão nova.
-- Manter a proteção básica para não abrir etapas impossíveis quando ainda não houver dados mínimos, evitando erros de fluxo.
-- Permitir voltar para etapas anteriores já preenchidas, sem o avanço automático empurrar o usuário imediatamente para outra etapa enquanto ele estiver revisando.
-- Corrigir o rótulo visual para `Confirmar`.
+1. Manter apenas os cards da etapa selecionada
+- Preservar a etapa Cliente como está: card IA, dados/canal, card cliente e histórico do cliente.
+- Na etapa Produtos, remover o Histórico do Cliente e o card Data de Entrega/Canal de Venda.
+- Na etapa Pagamento, remover o Resumo da Venda lateral, deixando somente o card Pagamento.
+- Na etapa Entregador, remover o Resumo da Venda lateral, deixando somente o card Entregador.
+- Na etapa Confirmar, manter o Resumo da Venda centralizado.
 
-2. Refinar a lógica de avanço automático
-- Manter o avanço automático quando o usuário completa uma etapa pela primeira vez:
-  - Cliente preenchido → Produtos
-  - Produto adicionado → Pagamento
-  - Pagamento completo → Entregador
-  - Entregador selecionado → Confirmar
-- Evitar que essa lógica impeça o clique manual em etapas anteriores já liberadas.
+2. Modernizar o card Produtos
+- Atualizar `ProductSearch` para um visual mais moderno, com cabeçalho destacado, busca mais evidente e lista/tabela com acabamento mais limpo.
+- Aproveitar as classes de tom da etapa (`venda-tone-produtos`) para que, no tema GásMais, o card use tons laranja modernos iguais às abas/indicadores da dashboard.
+- Melhorar estados vazios e destaque do total/itens sem alterar a lógica de estoque, busca ou edição de preço.
 
-3. Aplicar visual dos cards no tema GásMais
-- Em `NovaVenda.tsx`, usar o estado `isGasmais` já disponível para aplicar classes específicas quando o tema GásMais estiver ativo.
-- Criar um padrão de card semelhante aos cards coloridos do Dashboard GásMais:
-  - borda mais nítida
-  - sombra mais presente
-  - topo com faixa/gradiente de cor
-  - leve brilho/realce com tons do tema
-- Aplicar esse padrão nos blocos principais da tela nova: IA, dados/meta da venda, busca de cliente, histórico, produtos, pagamento, entregador e resumo.
+3. Modernizar o card Pagamento
+- Atualizar `PaymentSection` visualmente com cabeçalho mais forte, blocos de pagamento adicionados mais claros e status de falta/troco/pago com aparência moderna.
+- Manter as formas de pagamento, modais PIX/cartão, cheque, fiado e validações existentes.
+- Aplicar o tom verde da etapa (`venda-tone-pagamento`) no tema GásMais.
 
-4. Cores das etapas/card por contexto
-- Usar tons próximos aos cards/abas do dashboard:
-  - Cliente: azul
-  - Produtos: laranja
-  - Pagamento: verde/emerald
-  - Entregador: âmbar
-  - Confirmar: primário/laranja GásMais
-- No tema padrão, preservar o visual atual com tokens neutros (`bg-card`, `border`, `primary`) para não descaracterizar o ERP.
+4. Melhorar seleção de Entregador
+- Transformar `DeliveryPersonSelect` na tela nova em uma grade/lista clicável de entregadores.
+- Exibir avatar/foto visual com iniciais do entregador, nome e status.
+- Permitir seleção clicando no avatar, no nome ou no card inteiro.
+- Manter a sugestão automática existente abaixo, quando houver endereço.
+- Aplicar o tom amarelo/amber da etapa (`venda-tone-entregador`) no tema GásMais.
+
+5. Melhorar cores da etapa Confirmar
+- Manter a estrutura do `OrderSummary`, mas reforçar cores modernas baseadas no tema aplicado.
+- No GásMais, usar destaque do tom de confirmação/primary para bordas, topo do card, total e botão principal.
+- Preservar os botões Finalizar Venda, Agendar Entrega e Cancelar, bem como as validações existentes.
 
 Detalhes técnicos
-- Alterar principalmente `src/pages/vendas/NovaVenda.tsx`.
-- Se necessário, adicionar pequenas classes utilitárias em `src/index.css` ou `src/styles/theme-gasmais.css`, mantendo tudo escopado ao tema GásMais.
-- Não alterar rotas, provedores, banco de dados, autenticação ou regras de finalização da venda.
+- Arquivos principais a alterar:
+  - `src/pages/vendas/NovaVenda.tsx`
+  - `src/components/vendas/ProductSearch.tsx`
+  - `src/components/vendas/PaymentSection.tsx`
+  - `src/components/vendas/DeliveryPersonSelect.tsx`
+  - `src/components/vendas/OrderSummary.tsx`
+  - `src/index.css` para utilitários visuais escopados ao `.theme-gasmais`, se necessário.
+- Não alterar rotas, providers, `App.tsx`, nem arquivos gerados de integração.
+- Manter a versão antiga funcional; os ajustes de mostrar somente o card ativo serão aplicados à versão nova guiada.
+- Após implementar, rodar verificação de TypeScript/build para confirmar que a tela continua compilando.

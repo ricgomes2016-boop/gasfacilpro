@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Package, Search, Trash2, Plus, Minus } from "lucide-react";
+import { Package, Search, Trash2, Plus, Minus, ShoppingBasket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Produto {
@@ -161,16 +161,23 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
   const total = itens.reduce((acc, item) => acc + item.total, 0);
 
   return (
-    <Card ref={searchRef} className="venda-card">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Package className="h-5 w-5" />
-          Produtos
-        </CardTitle>
+    <Card ref={searchRef} className="venda-card overflow-hidden">
+      <CardHeader className="border-b bg-muted/30 p-4 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/12 text-primary">
+              <Package className="h-5 w-5" />
+            </span>
+            Produtos
+          </CardTitle>
+          <div className="rounded-md border bg-background px-3 py-1.5 text-sm font-semibold text-primary shadow-sm">
+            Total R$ {total.toFixed(2)}
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4 p-4">
         {/* Search Input */}
-        <div className="relative">
+        <div className="relative rounded-lg border bg-background p-2 shadow-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar produto por nome..."
@@ -179,16 +186,16 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
               setSearchTerm(e.target.value);
               searchProdutos(e.target.value);
             }}
-            className="pl-10"
+            className="h-11 border-0 bg-transparent pl-9 shadow-none focus-visible:ring-0"
           />
 
           {/* Autocomplete Results */}
           {showResults && searchResults.length > 0 && (
-            <div className="absolute z-50 w-full min-w-0 mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
+            <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-72 w-full min-w-0 overflow-y-auto rounded-lg border border-border bg-popover shadow-xl">
               {searchResults.map((produto) => (
                 <button
                   key={produto.id}
-                  className="w-full min-w-0 px-4 py-3 text-left hover:bg-accent transition-colors border-b border-border last:border-0 flex justify-between items-center gap-2"
+                  className="w-full min-w-0 px-4 py-3 text-left hover:bg-primary/10 transition-colors border-b border-border last:border-0 flex justify-between items-center gap-2"
                   onClick={() => addItem(produto)}
                 >
                   <div className="min-w-0 flex-1">
@@ -208,10 +215,10 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
 
         {/* Items Table */}
         {itens.length > 0 ? (
-          <div className="border rounded-lg overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border bg-background shadow-sm">
             <Table className="min-w-0">
               <TableHeader>
-                <TableRow className="bg-muted/50">
+                <TableRow className="bg-muted/60 hover:bg-muted/60">
                   <TableHead className="w-12 hidden sm:table-cell">Cód.</TableHead>
                   <TableHead className="px-2 sm:px-4">Produto</TableHead>
                   <TableHead className="w-[110px] sm:w-28 text-center px-1 sm:px-4">Qtd</TableHead>
@@ -222,7 +229,7 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
               </TableHeader>
               <TableBody>
                 {itens.map((item, index) => (
-                  <TableRow key={item.id}>
+                  <TableRow key={item.id} className="hover:bg-primary/5">
                     <TableCell className="font-mono text-xs text-muted-foreground hidden sm:table-cell">
                       {item.produto_id.slice(0, 4)}
                     </TableCell>
@@ -297,9 +304,9 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
             </Table>
           </div>
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <Package className="h-10 w-10 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Nenhum produto adicionado</p>
+          <div className="rounded-lg border border-dashed bg-muted/20 py-10 text-center text-muted-foreground">
+            <ShoppingBasket className="h-11 w-11 mx-auto mb-3 text-primary/70" />
+            <p className="text-sm font-medium text-foreground">Nenhum produto adicionado</p>
             <p className="text-xs">Busque e selecione produtos acima</p>
           </div>
         )}

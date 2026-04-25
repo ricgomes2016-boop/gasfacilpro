@@ -224,21 +224,28 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
 
   return (
     <>
-      <Card className="venda-card">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CreditCard className="h-5 w-5" />
-            Pagamento
-          </CardTitle>
+      <Card className="venda-card overflow-hidden">
+        <CardHeader className="border-b bg-muted/30 p-4 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/12 text-primary">
+                <CreditCard className="h-5 w-5" />
+              </span>
+              Pagamento
+            </CardTitle>
+            <div className="rounded-md border bg-background px-3 py-1.5 text-sm font-semibold text-primary shadow-sm">
+              Total R$ {totalVenda.toFixed(2)}
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4 p-4">
           {/* Lista de pagamentos adicionados */}
           {pagamentos.length > 0 && (
             <div className="space-y-2">
               {pagamentos.map((pag) => (
                 <div
                   key={pag.id}
-                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                  className="flex items-center justify-between gap-3 rounded-lg border bg-background p-3 shadow-sm"
                 >
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <span className="text-lg">{getFormaIcon(pag.forma)}</span>
@@ -277,10 +284,10 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
           )}
 
           {/* Adicionar novo pagamento */}
-          <div className="space-y-3">
+          <div className="rounded-lg border bg-muted/20 p-3 shadow-sm space-y-3">
             <div className="flex flex-wrap gap-2">
               <Select value={forma} onValueChange={handleFormaChange}>
-                <SelectTrigger className="flex-1 min-w-[140px]">
+                <SelectTrigger className="h-11 flex-1 min-w-[180px] bg-background">
                   <SelectValue placeholder="Forma de pagamento" />
                 </SelectTrigger>
                 <SelectContent>
@@ -294,7 +301,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
                   ))}
                 </SelectContent>
               </Select>
-              <div className="relative flex-shrink-0 w-28 sm:w-32">
+              <div className="relative flex-shrink-0 w-32 sm:w-36">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                   R$
                 </span>
@@ -302,10 +309,10 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
                   placeholder="0,00"
                   value={valorDisplay}
                   onChange={handleValorChange}
-                  className="pl-9"
+                  className="h-11 bg-background pl-9"
                 />
               </div>
-              <Button onClick={addPagamento} size="icon" className="shrink-0">
+              <Button onClick={addPagamento} size="icon" className="h-11 w-11 shrink-0 shadow-sm">
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
@@ -371,7 +378,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
           {totalVenda > 0 && (
             <div
               className={cn(
-                "p-3 rounded-lg flex items-center gap-2 text-sm",
+                "rounded-lg border p-3 flex items-center gap-2 text-sm font-medium shadow-sm",
                 diferenca > 0 && "bg-destructive/10 text-destructive",
                 diferenca < 0 && "bg-warning/10 text-warning",
                 diferenca === 0 && "bg-success/10 text-success"
