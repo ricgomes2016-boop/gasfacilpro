@@ -133,10 +133,10 @@ export function MobileNav() {
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[280px] p-0 border-r border-sidebar-border/50 bg-sidebar/95 backdrop-blur-xl">
+      <SheetContent side="left" className="w-[280px] p-0 border-r border-sidebar-border bg-sidebar">
         <div className="h-full flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-sidebar-border/50">
+          <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
             <div className="flex items-center gap-3">
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
@@ -150,8 +150,8 @@ export function MobileNav() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <h2 className="font-bold text-sidebar-foreground text-[17px] tracking-[-0.03em]">Gás Fácil</h2>
-                <p className="text-[9px] font-semibold text-primary/60 uppercase tracking-[0.2em]">ERP Pro</p>
+                <h2 className="font-extrabold text-sidebar-foreground text-[17px]">Gás Fácil</h2>
+                <p className="text-[9px] font-bold text-primary uppercase tracking-[0.2em]">ERP Pro</p>
               </motion.div>
             </div>
           </div>
@@ -178,8 +178,8 @@ export function MobileNav() {
                         className={cn(
                           "group flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200",
                           hasActiveChild
-                            ? "bg-primary/8 text-primary"
-                            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                            ? "bg-primary/15 text-primary"
+                            : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                         )}
                       >
                         <div className="flex items-center gap-3">
@@ -207,7 +207,7 @@ export function MobileNav() {
                             transition={{ duration: 0.25, ease: "easeInOut" }}
                             className="overflow-hidden"
                           >
-                            <div className="ml-5 space-y-0.5 border-l-2 border-sidebar-border/40 pl-3 py-1">
+                            <div className="ml-5 space-y-0.5 border-l-2 border-sidebar-border pl-3 py-1">
                               {item.submenu?.map((sub, subIdx) => {
                                 const SubIcon = sub.icon;
                                 const subActive = isActive(sub.path);
@@ -224,7 +224,7 @@ export function MobileNav() {
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={() => setOpen(false)}
-                                        className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200 text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                                        className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-semibold transition-all duration-200 text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                       >
                                         <SubIcon className={cn(
                                           "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
@@ -241,7 +241,7 @@ export function MobileNav() {
                                           "group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
                                           subActive
                                             ? "bg-primary text-primary-foreground shadow-sm"
-                                            : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                                            : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                         )}
                                       >
                                         <SubIcon className={cn(
@@ -277,7 +277,7 @@ export function MobileNav() {
                         "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200",
                         isActive(item.path!)
                           ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
-                          : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                          : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                       )}
                     >
                       <Icon className={cn(
@@ -294,21 +294,21 @@ export function MobileNav() {
           </nav>
 
           {/* User Footer */}
-          <div className="flex-shrink-0 border-t border-sidebar-border/50 p-3">
-            <div className="flex items-center gap-3 rounded-xl bg-sidebar-accent/40 p-3">
+          <div className="flex-shrink-0 border-t border-sidebar-border p-3">
+            <div className="flex items-center gap-3 rounded-xl bg-sidebar-accent border border-sidebar-border p-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0">
                 <span className="text-xs font-bold text-primary">{userInitial}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-bold tracking-[-0.02em] text-sidebar-foreground truncate">{userName}</p>
-                <p className="text-[10px] font-medium text-sidebar-foreground/45 uppercase tracking-wider">Administrador</p>
+                <p className="text-[13px] font-extrabold text-sidebar-foreground truncate">{userName}</p>
+                <p className="text-[10px] font-semibold text-sidebar-foreground/65 uppercase tracking-wider">Administrador</p>
               </div>
               <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleSignOut}
-                  className="h-8 w-8 rounded-lg text-sidebar-foreground/40 hover:text-destructive hover:bg-destructive/10"
+                  className="h-8 w-8 rounded-lg text-sidebar-foreground/65 hover:text-destructive hover:bg-destructive/10"
                 >
                   <LogOut className="h-4 w-4" />
                 </Button>

@@ -224,11 +224,11 @@ export function Sidebar() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
           themeClass,
-          "fixed left-0 top-0 z-40 hidden md:flex h-screen flex-col bg-sidebar/80 backdrop-blur-xl border-r border-sidebar-border/50"
+          "fixed left-0 top-0 z-40 hidden md:flex h-screen flex-col bg-sidebar border-r border-sidebar-border shadow-2xl"
         )}
       >
         {/* Header */}
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border/50 px-3">
+        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-3">
           <Link to="/dashboard" className="flex items-center gap-3 group">
             <motion.div
               whileHover={{ scale: 1.05, rotate: 2 }}
@@ -246,10 +246,10 @@ export function Sidebar() {
                   transition={{ duration: 0.2 }}
                   className="flex flex-col"
                 >
-                  <span className="text-[17px] font-bold tracking-[-0.03em] text-sidebar-foreground">
+                  <span className="text-[17px] font-extrabold text-sidebar-foreground">
                     Gás Fácil
                   </span>
-                  <span className="text-[9px] font-semibold text-primary/60 uppercase tracking-[0.2em]">
+                  <span className="text-[9px] font-bold text-primary uppercase tracking-[0.2em]">
                     ERP Pro
                   </span>
                 </motion.div>
@@ -261,7 +261,7 @@ export function Sidebar() {
               variant="ghost"
               size="icon"
               onClick={toggle}
-              className="h-8 w-8 flex-shrink-0 rounded-lg text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/80"
+                className="h-8 w-8 flex-shrink-0 rounded-lg text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             >
               {collapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -280,7 +280,7 @@ export function Sidebar() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className="border-b border-sidebar-border/50 p-3"
+              className="border-b border-sidebar-border p-3"
             >
               <Select
                 value={unidadeAtual?.id || ""}
@@ -289,7 +289,7 @@ export function Sidebar() {
                   if (u) setUnidadeAtual(u);
                 }}
               >
-                <SelectTrigger className="bg-sidebar-accent/50 border-sidebar-border/50 text-sidebar-foreground text-xs h-9 rounded-lg">
+                <SelectTrigger className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs font-semibold h-9 rounded-lg shadow-sm">
                   <Store className="mr-2 h-3.5 w-3.5 text-primary" />
                   <SelectValue placeholder="Selecione a loja" />
                 </SelectTrigger>
@@ -308,10 +308,10 @@ export function Sidebar() {
 
         {/* Collapsed Store Icon */}
         {collapsed && (
-          <div className="border-b border-sidebar-border/50 p-3 flex justify-center">
+          <div className="border-b border-sidebar-border p-3 flex justify-center">
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-accent/50 cursor-pointer hover:bg-sidebar-accent transition-colors">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-accent cursor-pointer hover:bg-sidebar-accent/80 transition-colors">
                   <Store className="h-4 w-4 text-primary" />
                 </div>
               </TooltipTrigger>
@@ -343,7 +343,7 @@ export function Sidebar() {
                             "flex h-10 w-10 items-center justify-center rounded-xl mx-auto transition-all duration-200",
                             isItemActive
                               ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
-                              : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/80"
+                              : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                           )}
                         >
                           <item.icon className={cn("h-[18px] w-[18px]", isItemActive ? "" : menuIconColors[item.label] || "")} />
@@ -354,7 +354,7 @@ export function Sidebar() {
                             "flex h-10 w-10 items-center justify-center rounded-xl mx-auto transition-all duration-200",
                             isChildActive
                               ? "bg-primary/10 text-primary"
-                              : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/80"
+                              : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                           )}
                         >
                           <item.icon className={cn("h-[18px] w-[18px]", isChildActive ? "" : menuIconColors[item.label] || "")} />
@@ -404,7 +404,7 @@ export function Sidebar() {
                           "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200 relative overflow-hidden",
                           isItemActive
                             ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/30"
-                            : "bg-gradient-to-r from-primary/10 via-primary/5 to-transparent text-primary border border-primary/20 hover:from-primary/20 hover:border-primary/40"
+                            : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/15 hover:border-primary/50"
                         )}
                       >
                         <motion.div
@@ -423,7 +423,7 @@ export function Sidebar() {
                         "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200 relative",
                         isItemActive
                           ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
-                          : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                          : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                       )}
                     >
                       <item.icon className={cn(
@@ -440,8 +440,8 @@ export function Sidebar() {
                       className={cn(
                         "group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200",
                         isChildActive
-                          ? "bg-primary/8 text-primary"
-                          : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                          ? "bg-primary/15 text-primary"
+                          : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                       )}
                     >
                       <item.icon className={cn(
@@ -471,7 +471,7 @@ export function Sidebar() {
                         transition={{ duration: 0.25, ease: "easeInOut" }}
                         className="overflow-hidden"
                       >
-                        <div className="ml-5 mt-0.5 space-y-0.5 border-l-2 border-sidebar-border/40 pl-3 py-1 max-h-[400px] overflow-y-auto scrollbar-thin">
+                        <div className="ml-5 mt-0.5 space-y-0.5 border-l-2 border-sidebar-border pl-3 py-1 max-h-[400px] overflow-y-auto scrollbar-thin">
                           {item.submenu?.map((subItem, subIdx) => {
                             const SubIcon = subItem.icon;
                             const subActive = isActive(subItem.path);
@@ -487,7 +487,7 @@ export function Sidebar() {
                                     href={subItem.externalUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200 text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                                      className="group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold transition-all duration-200 text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                   >
                                     <SubIcon className={cn(
                                       "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
@@ -503,7 +503,7 @@ export function Sidebar() {
                                       "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
                                       subActive
                                         ? "bg-primary text-primary-foreground shadow-sm"
-                                        : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
+                                        : "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                                     )}
                                   >
                                     <SubIcon className={cn(
@@ -528,7 +528,7 @@ export function Sidebar() {
         </nav>
 
         {/* User + Logout */}
-        <div className="flex-shrink-0 border-t border-sidebar-border/50 p-2">
+        <div className="flex-shrink-0 border-t border-sidebar-border p-2">
           {collapsed ? (
             <div className="flex flex-col items-center gap-2">
               <Tooltip>
@@ -548,7 +548,7 @@ export function Sidebar() {
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={handleSignOut}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl text-sidebar-foreground/40 transition-colors hover:text-destructive hover:bg-destructive/10"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl text-sidebar-foreground/65 transition-colors hover:text-destructive hover:bg-destructive/10"
                   >
                     <LogOut className="h-4 w-4" />
                   </motion.button>
@@ -560,22 +560,22 @@ export function Sidebar() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="rounded-xl bg-sidebar-accent/40 p-3"
+              className="rounded-xl bg-sidebar-accent border border-sidebar-border p-3"
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0">
                   <span className="text-xs font-bold text-primary">{userInitial}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-bold tracking-[-0.02em] text-sidebar-foreground truncate">{userName}</p>
-                  <p className="text-[10px] font-medium text-sidebar-foreground/45 truncate uppercase tracking-wider">Administrador</p>
+                  <p className="text-[13px] font-extrabold text-sidebar-foreground truncate">{userName}</p>
+                  <p className="text-[10px] font-semibold text-sidebar-foreground/65 truncate uppercase tracking-wider">Administrador</p>
                 </div>
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={handleSignOut}
-                    className="h-8 w-8 rounded-lg text-sidebar-foreground/40 hover:text-destructive hover:bg-destructive/10"
+                    className="h-8 w-8 rounded-lg text-sidebar-foreground/65 hover:text-destructive hover:bg-destructive/10"
                   >
                     <LogOut className="h-4 w-4" />
                   </Button>
