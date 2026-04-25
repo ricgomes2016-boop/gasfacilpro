@@ -126,10 +126,10 @@ export function DailyBriefingWidget() {
   // Always show the toggle row
   if (!enabled) {
     return (
-      <div className="flex items-center justify-between px-1 py-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-4 py-3 shadow-sm">
+        <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
           <VolumeX className="h-4 w-4" />
-          <span>Briefing IA desativado</span>
+          <span className="truncate">Briefing IA desativado</span>
         </div>
         <Switch checked={false} onCheckedChange={toggleEnabled} />
       </div>
@@ -138,10 +138,10 @@ export function DailyBriefingWidget() {
 
   if (dismissed) {
     return (
-      <div className="flex items-center justify-between px-1 py-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-4 py-3 shadow-sm">
+        <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
           <Bot className="h-4 w-4" />
-          <span>Briefing minimizado</span>
+          <span className="truncate">Briefing minimizado</span>
         </div>
         <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setDismissed(false); localStorage.removeItem(DISMISSED_KEY); }}>
           Reabrir
@@ -151,7 +151,7 @@ export function DailyBriefingWidget() {
   }
 
   return (
-    <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+    <Card className="relative w-full min-w-0 overflow-hidden border-border/60 bg-card shadow-sm">
       <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
         {briefing && !loading && (
           <Button
@@ -172,8 +172,8 @@ export function DailyBriefingWidget() {
         </Button>
       </div>
 
-      <CardContent className="pt-5 pb-4 pr-24">
-        <div className="flex items-start gap-3">
+      <CardContent className="pb-4 pr-24 pt-5">
+        <div className="flex min-w-0 items-start gap-3">
           <div className="p-2 rounded-full bg-primary/10 shrink-0 mt-0.5">
             <Bot className="h-5 w-5 text-primary" />
           </div>

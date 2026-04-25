@@ -62,18 +62,18 @@ export function DailySalesGoal() {
   const pct = Math.min((vendasHoje / objetivo) * 100, 100);
 
   return (
-    <Card>
+    <Card className="w-full min-w-0 border-border/60 shadow-sm">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
+        <CardTitle className="flex min-w-0 items-center gap-2 text-base">
           <Target className="h-4 w-4" /> Meta Diária
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">
+        <div className="flex min-w-0 justify-between gap-3 text-sm">
+          <span className="min-w-0 truncate text-muted-foreground">
             R$ {vendasHoje.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           </span>
-          <span className="font-medium">
+          <span className="shrink-0 font-medium">
             R$ {objetivo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           </span>
         </div>

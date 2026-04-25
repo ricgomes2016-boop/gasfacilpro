@@ -32,9 +32,9 @@ export function StockOverview() {
   const MAX_STOCK = 100;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Visão do Estoque</CardTitle>
+    <Card className="h-full w-full min-w-0 border-border/60 shadow-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Visão do Estoque</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -44,20 +44,20 @@ export function StockOverview() {
         ) : products.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">Nenhum produto cadastrado</p>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {products.slice(0, 6).map((item) => {
               const current = item.estoque ?? 0;
               const percentage = Math.min((current / MAX_STOCK) * 100, 100);
               const isLow = current < 10;
 
               return (
-                <div key={item.id} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">
+                <div key={item.id} className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
+                  <div className="flex min-w-0 items-center justify-between gap-3">
+                    <span className="min-w-0 truncate text-sm font-medium text-foreground">
                       {item.nome}
                     </span>
                     <span
-                      className={`text-sm font-semibold ${
+                      className={`shrink-0 text-sm font-semibold ${
                         isLow ? "text-destructive" : "text-muted-foreground"
                       }`}
                     >

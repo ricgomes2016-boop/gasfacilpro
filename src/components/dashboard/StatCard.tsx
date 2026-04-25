@@ -55,73 +55,39 @@ export function StatCard({
 }: StatCardProps) {
   const { isGasmais } = useDashboardTheme();
 
-  // Colored modern card (GásMais) — gradient + shadow + hover animation
+  // Colored modern card (GásMais) — standardized KPI tile
   if (isGasmais && colored) {
-    const tones: Record<NonNullable<StatCardProps["variant"]>, { bar: string; glow: string; icon: string; ring: string }> = {
-      primary: {
-        bar: "from-orange-500 to-orange-600",
-        glow: "from-orange-400 to-orange-600",
-        icon: "from-orange-500 to-orange-600 shadow-orange-500/30",
-        ring: "shadow-orange-500/10",
-      },
-      success: {
-        bar: "from-emerald-500 to-emerald-600",
-        glow: "from-emerald-400 to-emerald-600",
-        icon: "from-emerald-500 to-emerald-600 shadow-emerald-500/30",
-        ring: "shadow-emerald-500/10",
-      },
-      info: {
-        bar: "from-blue-500 to-blue-600",
-        glow: "from-blue-400 to-blue-600",
-        icon: "from-blue-500 to-blue-600 shadow-blue-500/30",
-        ring: "shadow-blue-500/10",
-      },
-      warning: {
-        bar: "from-amber-500 to-amber-600",
-        glow: "from-amber-400 to-amber-600",
-        icon: "from-amber-500 to-amber-600 shadow-amber-500/30",
-        ring: "shadow-amber-500/10",
-      },
-      default: {
-        bar: "from-slate-500 to-slate-600",
-        glow: "from-slate-400 to-slate-600",
-        icon: "from-slate-500 to-slate-600 shadow-slate-500/30",
-        ring: "shadow-slate-500/10",
-      },
+    const tones: Record<NonNullable<StatCardProps["variant"]>, { bar: string; icon: string; chip: string }> = {
+      primary: { bar: "bg-primary", icon: "bg-primary/10 text-primary", chip: "bg-primary/10 text-primary" },
+      success: { bar: "bg-success", icon: "bg-success/10 text-success", chip: "bg-success/10 text-success" },
+      info: { bar: "bg-info", icon: "bg-info/10 text-info", chip: "bg-info/10 text-info" },
+      warning: { bar: "bg-warning", icon: "bg-warning/10 text-warning", chip: "bg-warning/10 text-warning" },
+      default: { bar: "bg-muted", icon: "bg-muted text-muted-foreground", chip: "bg-muted text-muted-foreground" },
     };
     const t = tones[variant];
     return (
       <div
         className={cn(
-          "group relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
-          t.ring
+          "group relative flex min-h-[150px] w-full min-w-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-card p-4 shadow-sm transition-all duration-200 hover:border-primary/30 hover:shadow-md sm:p-5"
         )}
       >
-        <div className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r", t.bar)} />
-        <div
-          className={cn(
-            "pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full opacity-10 blur-2xl bg-gradient-to-br transition-opacity duration-500 group-hover:opacity-25",
-            t.glow
-          )}
-        />
-        <div className="relative flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <div className={cn("absolute inset-x-0 top-0 h-1", t.bar)} />
+        <div className="relative flex min-w-0 flex-1 items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium uppercase text-muted-foreground">
               {title}
             </p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+            <p className="mt-2 break-words text-2xl font-bold leading-tight text-foreground sm:text-3xl">
               {value}
             </p>
             {subtitle && (
-              <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
+              <p className="mt-1 truncate text-xs text-muted-foreground">{subtitle}</p>
             )}
             {trend && (
               <span
                 className={cn(
-                  "mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
-                  trend.isPositive
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                    : "bg-destructive/10 text-destructive"
+                  "mt-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
+                  trend.isPositive ? t.chip : "bg-destructive/10 text-destructive"
                 )}
               >
                 <span
@@ -136,7 +102,7 @@ export function StatCard({
           </div>
           <div
             className={cn(
-              "flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-md transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3",
+              "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105",
               t.icon
             )}
           >

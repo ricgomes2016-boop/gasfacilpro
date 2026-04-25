@@ -66,11 +66,11 @@ export function AiInsightsWidget() {
   const insights = data || [];
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="w-full min-w-0 overflow-hidden border-border/60 shadow-sm">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="h-5 w-5 text-primary" />
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <CardTitle className="flex min-w-0 items-center gap-2 text-base">
+            <Sparkles className="h-5 w-5 shrink-0 text-primary" />
             Insights IA
           </CardTitle>
           <Button
@@ -92,7 +92,7 @@ export function AiInsightsWidget() {
             <Skeleton className="h-16 w-full rounded-lg" />
           </>
         ) : insights.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground">
+          <div className="py-6 text-center text-muted-foreground">
             <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-30" />
             <p className="text-sm">Nenhum insight disponível</p>
             <Button variant="link" size="sm" onClick={() => refetch()}>
@@ -110,11 +110,11 @@ export function AiInsightsWidget() {
                   prioridadeCores[insight.prioridade] || prioridadeCores.baixa
                 )}
               >
-                <div className="flex items-start gap-2">
+                <div className="flex min-w-0 items-start gap-2">
                   <span className="text-lg leading-none mt-0.5">{insight.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground">{insight.titulo}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{insight.descricao}</p>
+                    <p className="line-clamp-2 text-sm font-semibold text-foreground">{insight.titulo}</p>
+                    <p className="mt-0.5 line-clamp-3 text-xs text-muted-foreground">{insight.descricao}</p>
                   </div>
                 </div>
               </div>

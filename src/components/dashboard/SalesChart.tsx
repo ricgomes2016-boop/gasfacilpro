@@ -50,15 +50,15 @@ export function SalesChart() {
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Vendas por Hora — {format(today, "dd/MM")}</CardTitle>
+    <Card className="h-full w-full min-w-0 border-border/60 shadow-sm">
+      <CardHeader className="pb-3">
+        <CardTitle className="truncate text-base">Vendas por Hora — {format(today, "dd/MM")}</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <Skeleton className="h-[200px] w-full" />
         ) : (
-          <ResponsiveContainer width="100%" height={200}>
+          <ResponsiveContainer width="100%" height={240}>
             <BarChart data={chartData}>
               <XAxis dataKey="hora" tick={{ fontSize: 11 }} interval={1} />
               <YAxis tick={{ fontSize: 11 }} width={50} tickFormatter={(v) => `R$${v}`} />
