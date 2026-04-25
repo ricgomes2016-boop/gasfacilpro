@@ -184,9 +184,10 @@
   .venda-tone-pagamento .venda-card,
   .venda-tone-entregador .venda-card,
   .venda-tone-confirmar .venda-card {
-    border-color: hsl(var(--venda-tone) / 0.28);
-    background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.045) 100%);
-    box-shadow: 0 14px 28px -18px hsl(var(--venda-tone) / 0.58), 0 8px 18px -16px hsl(222 47% 11% / 0.28);
+    border-color: hsl(222 47% 11% / 0.34);
+    background:
+      linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.07) 54%, hsl(var(--venda-tone-strong) / 0.045) 100%);
+    box-shadow: 0 16px 32px -20px hsl(var(--venda-tone) / 0.62), 0 10px 22px -18px hsl(222 47% 11% / 0.42);
   }
 
   .venda-tone-cliente .venda-card::before,
@@ -279,9 +280,10 @@
   .venda-tone-confirmar .venda-card input,
   .venda-tone-confirmar .venda-card textarea,
   .venda-tone-confirmar .venda-card button[role="combobox"] {
-    border-color: hsl(var(--venda-tone) / 0.28);
-    background-color: hsl(var(--background));
+    border-color: hsl(222 47% 11% / 0.42);
+    background-color: hsl(var(--card) / 0.96);
     color: hsl(var(--foreground));
+    font-weight: 520;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
   }
 
@@ -300,8 +302,37 @@
   .venda-tone-confirmar .venda-card input:focus-visible,
   .venda-tone-confirmar .venda-card textarea:focus-visible,
   .venda-tone-confirmar .venda-card button[role="combobox"]:focus-visible {
-    border-color: hsl(var(--venda-tone) / 0.7);
-    box-shadow: 0 0 0 3px hsl(var(--venda-tone) / 0.18);
+    border-color: hsl(var(--venda-tone) / 0.82);
+    box-shadow: 0 0 0 3px hsl(var(--venda-tone) / 0.22);
+  }
+
+  .dark .venda-tone-cliente .venda-card,
+  .dark .venda-tone-produtos .venda-card,
+  .dark .venda-tone-pagamento .venda-card,
+  .dark .venda-tone-entregador .venda-card,
+  .dark .venda-tone-confirmar .venda-card {
+    border-color: hsl(220 14% 82% / 0.24);
+    background:
+      linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--venda-tone) / 0.11) 56%, hsl(var(--venda-tone-strong) / 0.075) 100%);
+  }
+
+  .dark .venda-tone-cliente .venda-card input,
+  .dark .venda-tone-cliente .venda-card textarea,
+  .dark .venda-tone-cliente .venda-card button[role="combobox"],
+  .dark .venda-tone-produtos .venda-card input,
+  .dark .venda-tone-produtos .venda-card textarea,
+  .dark .venda-tone-produtos .venda-card button[role="combobox"],
+  .dark .venda-tone-pagamento .venda-card input,
+  .dark .venda-tone-pagamento .venda-card textarea,
+  .dark .venda-tone-pagamento .venda-card button[role="combobox"],
+  .dark .venda-tone-entregador .venda-card input,
+  .dark .venda-tone-entregador .venda-card textarea,
+  .dark .venda-tone-entregador .venda-card button[role="combobox"],
+  .dark .venda-tone-confirmar .venda-card input,
+  .dark .venda-tone-confirmar .venda-card textarea,
+  .dark .venda-tone-confirmar .venda-card button[role="combobox"] {
+    border-color: hsl(220 14% 86% / 0.32);
+    background-color: hsl(var(--background) / 0.72);
   }
 
   .theme-gasmais .venda-tone-cliente { --venda-tone: 199 89% 48%; --venda-tone-strong: 217 91% 56%; }
