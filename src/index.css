@@ -287,6 +287,28 @@
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
   }
 
+  .venda-tone-cliente .venda-card label,
+  .venda-tone-produtos .venda-card label,
+  .venda-tone-pagamento .venda-card label,
+  .venda-tone-entregador .venda-card label,
+  .venda-tone-confirmar .venda-card label {
+    color: hsl(var(--foreground) / 0.78);
+    font-weight: 650;
+  }
+
+  .venda-tone-cliente .venda-card p,
+  .venda-tone-cliente .venda-card span,
+  .venda-tone-produtos .venda-card p,
+  .venda-tone-produtos .venda-card span,
+  .venda-tone-pagamento .venda-card p,
+  .venda-tone-pagamento .venda-card span,
+  .venda-tone-entregador .venda-card p,
+  .venda-tone-entregador .venda-card span,
+  .venda-tone-confirmar .venda-card p,
+  .venda-tone-confirmar .venda-card span {
+    text-rendering: optimizeLegibility;
+  }
+
   .venda-tone-cliente .venda-card input:focus-visible,
   .venda-tone-cliente .venda-card textarea:focus-visible,
   .venda-tone-cliente .venda-card button[role="combobox"]:focus-visible,
