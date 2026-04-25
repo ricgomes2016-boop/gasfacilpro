@@ -28,11 +28,11 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   }, [isAiPage]);
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="system-surface min-h-screen overflow-x-hidden">
       <Sidebar />
       <main
         className={cn(
-          "transition-all duration-300 ml-0 pb-16 md:pb-0",
+          "relative min-h-screen transition-all duration-300 ml-0 pb-16 md:pb-0",
           collapsed ? "xl:ml-16" : "xl:ml-[260px]"
         )}
       >

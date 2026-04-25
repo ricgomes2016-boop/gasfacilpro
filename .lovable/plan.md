@@ -1,28 +1,36 @@
-Plano para deixar o menu com fundo preto e ajustar as fontes
+Plano para aplicar um tema global moderno sem deixar o sistema “branco puro”
 
-1. Menu lateral desktop
-- Trocar o fundo atual semitransparente do `Sidebar` para preto/near-black consistente.
-- Ajustar bordas e divisórias para tons escuros sutis, evitando o visual acinzentado claro.
-- Deixar textos principais em branco com boa hierarquia: títulos mais fortes, itens de menu legíveis e submenus com contraste maior.
-- Manter o destaque do item ativo com a cor primária do sistema, sem mudar rotas ou comportamento.
+1. Criar um fundo global mais moderno
+- Ajustar os tokens globais em `src/index.css` para usar um fundo levemente azulado/cinza no modo claro, em vez de branco puro.
+- Manter o conteúdo principal legível, com texto nítido e contraste alto.
+- Adicionar um tratamento visual discreto no `body`/layout com gradientes suaves e radiais, sem pesar a interface.
 
-2. Submenus e estados de interação
-- Melhorar hover, item ativo e submenu aberto para funcionar bem sobre fundo preto.
-- Ajustar opacidade das fontes dos submenus para não ficarem apagadas.
-- Preservar os ícones coloridos atuais, pois ajudam na identificação visual dos módulos.
+2. Atualizar o layout principal do ERP
+- Alterar `MainLayout` para aplicar uma classe global de superfície do sistema.
+- Garantir que todas as páginas internas recebam o novo fundo automaticamente, sem precisar alterar página por página.
+- Preservar a Sidebar preta e a barra inferior mobile já ajustadas.
 
-3. Rodapé do usuário e seletor de unidade
-- Adaptar o card do usuário e o seletor de loja para o novo fundo preto.
-- Garantir que nome, cargo, botão de sair e loja selecionada tenham contraste suficiente.
+3. Melhorar cards e áreas de conteúdo
+- Manter os cards com fundo claro/branco para contraste, mas com bordas e sombras consistentes com a Nova Venda.
+- Criar/ajustar utilitários globais para cards e superfícies internas, evitando excesso de branco chapado.
+- Reforçar sombras de forma elegante para destacar os cards sobre o novo fundo.
 
-4. Menu mobile
-- Aplicar o mesmo padrão preto ao menu lateral mobile (`MobileNav`) para manter consistência entre desktop e celular.
-- Ajustar fontes e estados ativos/hover no mobile com o mesmo padrão visual.
+4. Ajustar a tela Nova Venda para combinar com o novo tema
+- Preservar o padrão atual de cards/sombras da Nova Venda.
+- Ajustar apenas o fundo externo e áreas de seção para integrar com o tema global.
+- Evitar mexer na lógica de venda, produtos, pagamentos ou fluxo do pedido.
 
-5. Barra inferior mobile
-- Se necessário, ajustar a `MobileBottomBar` para combinar com o novo menu preto, mantendo legibilidade dos botões Chat, IA e Calc.
+5. Garantir compatibilidade com tema GásMais e modo escuro
+- Atualizar `theme-gasmais.css` para seguir o mesmo padrão de fundo moderno quando o tema GásMais estiver ativo.
+- Manter o modo escuro consistente, sem reduzir contraste das fontes.
+- Evitar que o tema global afete páginas públicas/portais de forma indesejada quando já tiverem tema próprio.
 
-Arquivos previstos
-- `src/components/layout/Sidebar.tsx`
-- `src/components/layout/MobileNav.tsx`
-- `src/components/layout/MobileBottomBar.tsx`
+Detalhes técnicos
+- Arquivos principais previstos:
+  - `src/index.css`
+  - `src/components/layout/MainLayout.tsx`
+  - `src/styles/theme-gasmais.css`
+  - ajustes pontuais em `src/pages/vendas/NovaVenda.tsx`, se necessário
+- Não haverá mudança estrutural em `App.tsx`, providers ou rotas.
+- Não haverá alteração de banco de dados.
+- O foco será visual: fundo global, contraste, bordas, sombras e consistência entre desktop/mobile.
