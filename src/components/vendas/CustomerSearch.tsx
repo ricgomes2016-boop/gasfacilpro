@@ -726,6 +726,21 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
               ) : null}
             </div>
           )}
+          {value.id && (
+            <div className="mt-2 flex justify-end">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={salvarClienteAtual}
+                disabled={isSavingCustomer}
+                className="h-8 gap-2"
+              >
+                {isSavingCustomer ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Salvar cliente
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Campos de identificação (sempre visíveis para edição/cadastro) */}
