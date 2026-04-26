@@ -371,15 +371,27 @@
   }
 
   .modern-panel {
-    @apply rounded-2xl border border-border/35 bg-card shadow-md shadow-foreground/5;
+    @apply rounded-2xl border border-border/45 bg-card shadow-md shadow-foreground/5;
   }
 
   .modern-soft-panel {
-    @apply rounded-2xl border border-border/30 bg-card shadow-sm shadow-foreground/5;
+    @apply rounded-2xl border border-border/40 bg-card shadow-sm shadow-foreground/5;
   }
 
   .modern-status-card {
-    @apply overflow-hidden rounded-2xl border border-border/35 bg-card shadow-md shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/10;
+    @apply overflow-hidden rounded-2xl border border-border/45 bg-card shadow-md shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/10;
+  }
+
+  .dashboard-shell {
+    @apply w-full min-w-0 max-w-full space-y-5 overflow-x-hidden p-3 sm:p-4 md:space-y-7 md:p-6;
+  }
+
+  .dashboard-hero {
+    @apply relative w-full min-w-0 overflow-hidden rounded-[2rem] border border-card/70 bg-gradient-to-br from-primary to-secondary p-5 text-primary-foreground shadow-lg shadow-primary/20 sm:p-6 md:p-8;
+  }
+
+  .calendar-pill {
+    @apply inline-flex h-10 min-w-10 items-center justify-center rounded-2xl border border-border/45 bg-card px-3 text-sm font-bold text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:text-primary hover:shadow-md;
   }
 
   .saas-table {
@@ -429,11 +441,11 @@
     opacity: 0.82;
   }
 
-  .kpi-card-primary { @apply border-primary/20 bg-card text-card-foreground shadow-primary/10; }
-  .kpi-card-info { @apply border-info/20 bg-card text-card-foreground shadow-info/10; }
-  .kpi-card-success { @apply border-success/20 bg-card text-card-foreground shadow-success/10; }
-  .kpi-card-warning { @apply border-warning/25 bg-card text-card-foreground shadow-warning/10; }
-  .kpi-card-destructive { @apply border-destructive/20 bg-card text-card-foreground shadow-destructive/10; }
+  .kpi-card-primary { @apply border-l-4 border-l-primary bg-card text-card-foreground shadow-primary/10; }
+  .kpi-card-info { @apply border-l-4 border-l-info bg-card text-card-foreground shadow-info/10; }
+  .kpi-card-success { @apply border-l-4 border-l-success bg-card text-card-foreground shadow-success/10; }
+  .kpi-card-warning { @apply border-l-4 border-l-warning bg-card text-card-foreground shadow-warning/10; }
+  .kpi-card-destructive { @apply border-l-4 border-l-destructive bg-card text-card-foreground shadow-destructive/10; }
   .kpi-card-muted { @apply border-border/70 bg-card; }
 
   .semantic-filter-panel {
