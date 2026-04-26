@@ -244,6 +244,17 @@ export default function ContasPagar() {
                       {cp.filtroStatus !== "todos" && <Badge variant="secondary" className="text-xs gap-1 py-0">{cp.filtroStatus}<button onClick={() => cp.setFiltroStatus("todos")}><X className="h-3 w-3" /></button></Badge>}
                     </div>
                   )}
+                  {cp.selecionadasPagamentoIds.size > 0 && (
+                    <div className="flex flex-col gap-2 rounded-lg border border-success/30 bg-success/10 p-3 text-success sm:flex-row sm:items-center sm:justify-between">
+                      <div className="text-sm font-semibold">
+                        {cp.selecionadasPagamentoIds.size} conta{cp.selecionadasPagamentoIds.size > 1 ? "s" : ""} selecionada{cp.selecionadasPagamentoIds.size > 1 ? "s" : ""} · R$ {cp.totalSelecionadoPagamento.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={cp.clearPagamentoSelection}>Limpar</Button>
+                        <Button size="sm" className="gap-2" onClick={cp.openPagarSelecionadasDialog}><DollarSign className="h-4 w-4" />Pagar selecionadas</Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="px-3 sm:px-6">
@@ -258,7 +269,7 @@ export default function ContasPagar() {
                       <Table className="border-separate border-spacing-y-2">
                         <TableHeader>
                           <TableRow className="border-success bg-success hover:bg-success [&_th]:text-success-foreground">
-                            <TableHead>Fornecedor</TableHead><TableHead>Descrição</TableHead>
+                            <TableHead className="w-10"><Checkbox checked={cp.todasPagaveisSelecionadas} onCheckedChange={cp.toggleAllPagamentoSelection} aria-label="Selecionar contas" /></TableHead><TableHead>Fornecedor</TableHead><TableHead>Descrição</TableHead>
                             <TableHead>Categoria</TableHead><TableHead>Vencimento</TableHead>
                             <TableHead>Valor</TableHead><TableHead>Status</TableHead>
                             <TableHead className="text-right">Ações</TableHead>
@@ -269,7 +280,7 @@ export default function ContasPagar() {
                             const groupTotal = items.reduce((s, c) => s + Number(c.valor), 0);
                             return [
                               <TableRow key={`grp-${fornecedor}`} className="border-0 [&>td]:border-y [&>td]:border-success/25 [&>td]:bg-success/10 [&>td:first-child]:rounded-l-lg [&>td:first-child]:border-l [&>td:last-child]:rounded-r-lg [&>td:last-child]:border-r">
-                                <TableCell colSpan={4} className="font-semibold text-success"><div className="flex items-center gap-2"><Building2 className="h-4 w-4" />{fornecedor}<Badge variant="outline" className="border-success/30 bg-success/10 text-xs text-success">{items.length}</Badge></div></TableCell>
+                                <TableCell colSpan={5} className="font-semibold text-success"><div className="flex items-center gap-2"><Building2 className="h-4 w-4" />{fornecedor}<Badge variant="outline" className="border-success/30 bg-success/10 text-xs text-success">{items.length}</Badge></div></TableCell>
                                 <TableCell className="font-bold">R$ {groupTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
                                 <TableCell colSpan={2} />
                               </TableRow>,
@@ -277,6 +288,7 @@ export default function ContasPagar() {
                                 const { label, variant } = getStatus(conta);
                                 return (
                                   <TableRow key={conta.id} className={getRowClass(label)}>
+                                    <TableCell><Checkbox checked={cp.selecionadasPagamentoIds.has(conta.id)} disabled={conta.status === "paga"} onCheckedChange={() => cp.togglePagamentoSelection(conta.id)} aria-label={`Selecionar ${conta.descricao}`} /></TableCell>
                                     <TableCell className="pl-10 text-muted-foreground text-sm">{conta.fornecedor}</TableCell>
                                     <TableCell>{conta.descricao}</TableCell>
                                     <TableCell><Badge variant="outline">{conta.categoria || "—"}</Badge></TableCell>
@@ -303,6 +315,7 @@ export default function ContasPagar() {
                             const { label, variant } = getStatus(conta);
                             return (
                               <TableRow key={conta.id} className={getRowClass(label)}>
+                                <TableCell><Checkbox checked={cp.selecionadasPagamentoIds.has(conta.id)} disabled={conta.status === "paga"} onCheckedChange={() => cp.togglePagamentoSelection(conta.id)} aria-label={`Selecionar ${conta.descricao}`} /></TableCell>
                                 <TableCell className="font-medium">{conta.fornecedor}</TableCell>
                                 <TableCell>{conta.descricao}</TableCell>
                                 <TableCell><Badge variant="outline">{conta.categoria || "—"}</Badge></TableCell>
@@ -334,6 +347,7 @@ export default function ContasPagar() {
                         return (
                           <div key={conta.id} className="border rounded-lg p-3">
                             <div className="flex items-start justify-between gap-2">
+                              <Checkbox checked={cp.selecionadasPagamentoIds.has(conta.id)} disabled={conta.status === "paga"} onCheckedChange={() => cp.togglePagamentoSelection(conta.id)} aria-label={`Selecionar ${conta.descricao}`} className="mt-1 shrink-0" />
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium truncate">{conta.descricao}</p>
                                 <p className="text-xs text-muted-foreground">{conta.fornecedor}</p>
@@ -376,12 +390,13 @@ export default function ContasPagar() {
         {/* Pagar */}
         <Dialog open={cp.pagarDialogOpen} onOpenChange={cp.setPagarDialogOpen}>
           <DialogContent className="max-w-md">
-            <DialogHeader><DialogTitle>Pagar Conta</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{cp.pagamentoEmLoteIds.size > 0 ? "Pagar Contas Selecionadas" : "Pagar Conta"}</DialogTitle></DialogHeader>
             {cp.pagarConta && (
               <div className="space-y-4 pt-2">
                 <div className="p-3 rounded-lg bg-muted/50 space-y-1">
                   <p className="text-sm font-medium">{cp.pagarConta.fornecedor}</p>
                   <p className="text-xs text-muted-foreground">{cp.pagarConta.descricao}</p>
+                  {cp.pagamentoEmLoteIds.size > 0 && <p className="text-xs font-medium text-success">{cp.pagamentoEmLoteIds.size} contas serão quitadas juntas</p>}
                   <p className="text-lg font-bold">R$ {Number(cp.pagarConta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
                 </div>
                 <div className="space-y-3">
