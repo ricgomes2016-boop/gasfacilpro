@@ -477,7 +477,7 @@ export default function ConselhosIA() {
             },
           ].map((kpi, i) => (
             <motion.div key={kpi.label} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }}>
-              <Card>
+              <Card className="modern-status-card">
                 <CardContent className="pt-5">
                   <div className="flex items-center justify-between">
                     <div>
@@ -494,7 +494,7 @@ export default function ConselhosIA() {
                         </p>
                       )}
                     </div>
-                    <kpi.icon className="h-8 w-8 text-primary/25" />
+                    <kpi.icon className={i === 0 ? "h-8 w-8 text-success/45" : i === 1 ? "h-8 w-8 text-warning/45" : i === 2 ? "h-8 w-8 text-info/45" : "h-8 w-8 text-destructive/45"} />
                   </div>
                 </CardContent>
               </Card>
@@ -503,9 +503,9 @@ export default function ConselhosIA() {
         </div>
 
         {/* Meta mensal */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm">
+        <Card className="modern-panel">
+          <CardHeader className="section-header-finance">
+            <CardTitle className="flex items-center gap-2 text-sm text-success-foreground">
               <TrendingUp className="h-4 w-4" />Meta Mensal de Faturamento
             </CardTitle>
           </CardHeader>
