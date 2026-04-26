@@ -215,12 +215,12 @@ export function Sidebar() {
   const userName = profile?.full_name || "Administrador";
   const userInitial = userName.charAt(0).toUpperCase();
 
-  const menuItemBase = "group flex items-center gap-3 rounded-full px-4 py-3 text-[13px] font-semibold transition-all duration-200";
-  const menuItemActive = "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25";
+  const menuItemBase = "group flex items-center gap-3.5 rounded-full px-4 py-3.5 text-[13px] font-semibold transition-all duration-200";
+  const menuItemActive = "bg-sidebar-accent/95 text-sidebar-accent-foreground shadow-lg shadow-foreground/10 ring-1 ring-sidebar-border/25";
   const menuItemIdle = "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15";
-  const collapsedItemBase = "mx-auto flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-200";
-  const subMenuItemBase = "group flex items-center gap-2.5 rounded-full px-3 py-2 text-[12px] font-semibold transition-all duration-200";
-  const subMenuItemActive = "bg-sidebar-accent/95 text-foreground shadow-sm ring-1 ring-sidebar-border/25";
+  const collapsedItemBase = "mx-auto flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200";
+  const subMenuItemBase = "group flex items-center gap-3 rounded-full px-3.5 py-2.5 text-[12px] font-semibold transition-all duration-200";
+  const subMenuItemActive = "bg-sidebar-accent/95 text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border/25";
   const subMenuItemIdle = "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15";
 
   const { themeClass } = useDashboardTheme();
@@ -232,7 +232,7 @@ export function Sidebar() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
           themeClass,
-          "fixed left-0 top-0 z-40 hidden h-screen flex-col overflow-hidden rounded-r-[2rem] border-r border-sidebar-border/15 bg-gradient-to-b from-primary via-primary/95 to-secondary shadow-2xl xl:flex"
+          "app-sidebar-premium fixed left-0 top-0 z-40 hidden h-screen flex-col overflow-hidden rounded-r-[2rem] border-r border-sidebar-border/15 shadow-2xl xl:flex"
         )}
       >
         {/* Header */}
@@ -243,7 +243,7 @@ export function Sidebar() {
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <img src={logoImg} alt="Gás Fácil" className="h-11 w-11 flex-shrink-0 rounded-2xl bg-sidebar-accent/95 object-contain p-1.5 shadow-lg shadow-foreground/20" />
+              <img src={logoImg} alt="Gás Fácil" className="h-11 w-11 flex-shrink-0 rounded-2xl bg-sidebar-accent/95 object-contain p-1.5 shadow-md shadow-foreground/10" />
             </motion.div>
             <AnimatePresence>
               {!collapsed && (
