@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -472,8 +472,6 @@ export default function Estoque() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
-        </div>
 
         {/* Daily stock tables - one per day, newest first */}
         {isLoading ? (
