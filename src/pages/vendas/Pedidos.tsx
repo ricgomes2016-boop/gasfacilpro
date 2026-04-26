@@ -521,11 +521,11 @@ export default function Pedidos() {
 
         {/* AI suggestion for pending orders */}
         {pedidosPendentes.length > 0 &&
-        <Card className="border-primary/20 bg-primary/5">
+        <Card className="modern-panel border-info/25 bg-info/5">
             <CardContent className="pt-4">
               <div className="flex items-center gap-3 mb-4">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Sparkles className="h-5 w-5 text-primary" />
+                <div className="status-card-icon status-card-icon-info">
+                  <Sparkles />
                 </div>
                 <div>
                   <p className="font-medium">Sugestão Inteligente</p>
@@ -582,7 +582,7 @@ export default function Pedidos() {
         }
 
         {/* Filters - #6 added entregador filter */}
-        <Card>
+          <Card className="modern-panel">
           <CardContent className="pt-3 md:pt-6">
             <div className="flex flex-col gap-3">
               <div className="relative">
@@ -638,36 +638,36 @@ export default function Pedidos() {
 
         {/* Stats - #3 responsive grid */}
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
-          <Card className="border-warning bg-warning text-warning-foreground">
+          <Card className="kpi-card kpi-card-warning">
             <CardContent className="flex min-h-24 items-center gap-3 p-3 md:p-4">
-              <div className="status-card-icon status-card-icon-warning-solid"><Clock /></div>
-              <div className="min-w-0"><p className="text-xl md:text-2xl font-bold">{contadores.pendente}</p><p className="text-xs text-warning-foreground/80">Pendentes</p></div>
+              <div className="status-card-icon status-card-icon-warning"><Clock /></div>
+              <div className="min-w-0"><p className="kpi-value text-warning">{contadores.pendente}</p><p className="kpi-label">Pendentes</p></div>
             </CardContent>
           </Card>
-          <Card className="border-info bg-info text-info-foreground">
+          <Card className="kpi-card kpi-card-info">
             <CardContent className="flex min-h-24 items-center gap-3 p-3 md:p-4">
-              <div className="status-card-icon status-card-icon-info-solid"><Truck /></div>
-              <div className="min-w-0"><p className="text-xl md:text-2xl font-bold">{contadores.em_rota}</p><p className="text-xs text-info-foreground/80">Em Rota</p></div>
+              <div className="status-card-icon status-card-icon-info"><Truck /></div>
+              <div className="min-w-0"><p className="kpi-value text-info">{contadores.em_rota}</p><p className="kpi-label">Em Rota</p></div>
             </CardContent>
           </Card>
-          <Card className="border-success bg-success text-success-foreground">
+          <Card className="kpi-card kpi-card-success">
             <CardContent className="flex min-h-24 items-center gap-3 p-3 md:p-4">
-              <div className="status-card-icon status-card-icon-success-solid"><CheckCircle /></div>
-              <div className="min-w-0"><p className="text-xl md:text-2xl font-bold">{contadores.entregue}</p><p className="text-xs text-success-foreground/80">Entregues</p></div>
+              <div className="status-card-icon status-card-icon-success"><CheckCircle /></div>
+              <div className="min-w-0"><p className="kpi-value text-success">{contadores.entregue}</p><p className="kpi-label">Entregues</p></div>
             </CardContent>
           </Card>
-          <Card className="border-destructive bg-destructive text-destructive-foreground">
+          <Card className="kpi-card kpi-card-destructive">
             <CardContent className="flex min-h-24 items-center gap-3 p-3 md:p-4">
-              <div className="status-card-icon status-card-icon-destructive-solid"><XCircle /></div>
-              <div className="min-w-0"><p className="text-xl md:text-2xl font-bold">{contadores.cancelado}</p><p className="text-xs text-destructive-foreground/80">Cancelados</p></div>
+              <div className="status-card-icon status-card-icon-destructive"><XCircle /></div>
+              <div className="min-w-0"><p className="kpi-value text-destructive">{contadores.cancelado}</p><p className="kpi-label">Cancelados</p></div>
             </CardContent>
           </Card>
-          <Card className="col-span-2 border-success bg-success text-success-foreground lg:col-span-1">
+          <Card className="kpi-card kpi-card-success col-span-2 lg:col-span-1">
             <CardContent className="flex min-h-24 items-center gap-3 p-3 md:p-4">
-              <div className="status-card-icon status-card-icon-success-solid"><DollarSign /></div>
+              <div className="status-card-icon status-card-icon-success"><DollarSign /></div>
               <div className="min-w-0">
-                <p className="truncate text-xl font-bold md:text-2xl">R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-                <p className="text-xs text-success-foreground/80">Total Vendas</p>
+                <p className="kpi-value text-success">R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                <p className="kpi-label">Total Vendas</p>
               </div>
             </CardContent>
           </Card>
@@ -690,7 +690,7 @@ export default function Pedidos() {
 
         {/* #7 - Batch actions bar */}
         {selecionados.size > 0 &&
-        <Card className="border-primary/30 bg-primary/5">
+        <Card className="modern-panel border-primary/25 bg-primary/5">
             <CardContent className="flex items-center gap-3 p-3 flex-wrap">
               <CheckSquare className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">{selecionados.size} selecionado(s)</span>
@@ -711,7 +711,7 @@ export default function Pedidos() {
         }
 
         {/* Table - #3 responsive with hidden columns on mobile */}
-        <Card className="overflow-hidden">
+        <Card className="modern-panel overflow-hidden">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Pedidos ({pedidosFiltrados.length})</CardTitle>

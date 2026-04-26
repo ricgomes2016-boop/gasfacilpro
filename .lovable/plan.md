@@ -1,31 +1,63 @@
-Plano para deixar os cards mais modernos e padronizar a tela de Estoque
+Vou corrigir a desconfiguração visual mantendo a lógica de cores semânticas, mas aplicando de forma mais equilibrada: menos blocos sólidos grandes e mais cards modernos com acentos/contexto.
 
-1. Padronizar cards do sistema
-- Atualizar o componente base `Card` para usar cantos mais modernos (`rounded-xl`), borda mais suave, sombra mais limpa e transições de hover discretas.
-- Ajustar `CardHeader` para acompanhar o novo raio dos cards, evitando aparência de borda quadrada no topo.
-- Criar/ajustar utilitários globais para que elementos internos com `border rounded-md` usados como “mini-cards” fiquem visualmente mais arredondados e consistentes, sem alterar inputs, selects, tooltips ou botões que dependem de `rounded-md`.
+Escopo da revisão
 
-2. Modernizar o Header global
-- Atualizar `src/components/layout/Header.tsx` com visual mais moderno: fundo translúcido com blur, borda inferior mais suave, altura responsiva e melhor espaçamento.
-- Melhorar a área do título/subtítulo com truncamento seguro e hierarquia visual mais limpa.
-- Manter todos os botões e ações atuais do header sem alterar comportamento.
+1. Contas a Pagar
+- Revisar os cards de KPI, filtros, resumo por fornecedor e lista principal.
+- Trocar cards muito “chapados” por cards modernos com fundo neutro, borda arredondada e ícone/valor com cor semântica.
+- Garantir que filtros e botões não quebrem no mobile/tablet.
 
-3. Melhorar o design visual da tela Estoque
-- Reestruturar a área superior de `/estoque` com um bloco visual moderno: título contextual, período, ações e filtros organizados em cards/painéis arredondados.
-- Melhorar os cards de resumo: cores sólidas/semânticas, ícones padronizados, melhor contraste e layout responsivo para mobile.
-- Ajustar os filtros de data e botões para não quebrarem de forma estranha em telas pequenas.
-- Manter as regras e cálculos atuais de estoque sem alterar dados ou consultas.
+2. Pedidos
+- Revisar alertas, sugestão inteligente, filtros, cards de status, barra de seleção em lote e tabela/lista mobile.
+- Reduzir excesso de cards sólidos com `bg-success/bg-warning/bg-info`; usar tons suaves e acentos coloridos.
+- Padronizar altura, espaçamento e arredondamento dos cards de status.
+- Corrigir áreas que ficaram muito fortes ou desalinhadas depois da última mudança.
 
-4. Verificação ampla no sistema
-- Procurar ocorrências de cards ou containers com aparência quadrada (`rounded-none`, `rounded-sm`, `rounded-md` em blocos visuais) e ajustar apenas onde forem cards/painéis, preservando componentes que precisam ser retos por design, como tabelas, inputs, menus e grupos de botões.
-- Conferir especialmente páginas com cards de status, dashboards, estoque, vendas, caixa e entregador.
+3. Cadastro de Clientes
+- Revisar toolbar, cards de estatísticas, filtros avançados e lista de clientes.
+- Aplicar cards semânticos modernos para: total, ativos, residenciais e comerciais.
+- Modernizar o painel de filtros para não parecer “remendado” ou quadrado.
 
-Detalhes técnicos
-- Arquivos principais previstos:
-  - `src/components/ui/card.tsx`
-  - `src/components/layout/Header.tsx`
-  - `src/index.css`
-  - `src/pages/Estoque.tsx`
-  - possivelmente componentes de estoque relacionados, como `src/components/estoque/EstoqueDiaTable.tsx`, se a tabela diária estiver com cards/painéis quadrados.
-- Não haverá mudança no banco de dados.
-- Não haverá alteração em autenticação, rotas ou estrutura principal do app, respeitando a regra de estabilidade do projeto.
+4. Toda Gestão de Clientes
+Vou revisar e ajustar, página por página, as rotas:
+- `/clientes/cadastro`
+- `/clientes/:id`
+- `/clientes/promocoes`
+- `/clientes/marketing`
+- `/clientes/campanhas`
+- `/clientes/fidelidade`
+- `/clientes/crm`
+- `/clientes/ranking`
+- `/clientes/credito`
+- `/clientes/contratos`
+- `/clientes/indicacao`
+- `/clientes/aplicativo`
+
+Nessas páginas, vou:
+- Corrigir cards com bordas quadradas ou estilos inconsistentes.
+- Substituir cores hardcoded antigas (`green`, `blue`, `orange`, `primary` excessivo) por tokens semânticos.
+- Evitar fundos sólidos em excesso; usar fundo neutro + ícones, badges e bordas coloridas.
+- Ajustar headers de seções para cores que combinem com o conteúdo, sem deixar páginas inteiras “verdes”.
+- Corrigir classes Tailwind dinâmicas inválidas, como `border-${cor}`, que podem não ser geradas corretamente.
+
+5. Auditoria visual geral
+- Procurar em `src/pages` e `src/components` por usos problemáticos de:
+  - `bg-primary` em cards/headers grandes
+  - `bg-success text-success-foreground` aplicado em muitos cards
+  - classes hardcoded como `bg-green-*`, `text-green-*`, `border-blue-*`
+  - headers sólidos sem contexto
+- Ajustar apenas as páginas afetadas, sem refatorar estrutura global, rotas ou providers.
+
+Diretriz visual
+
+```text
+Card principal: fundo neutro, borda suave, sombra moderna
+Status/KPI: acento semântico por ícone, borda ou faixa lateral
+Headers: cor semântica apenas quando fizer sentido
+Evitar: telas inteiras verdes ou muitos cards sólidos lado a lado
+```
+
+Validação
+- Rodar verificação TypeScript/build após as alterações.
+- Conferir que não houve quebra em rotas, imports ou componentes compartilhados.
+- Preservar a estabilidade do sistema: não alterar `App.tsx`, provider nesting nem rotas.

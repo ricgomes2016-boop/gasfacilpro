@@ -116,8 +116,8 @@ export function ChurnAnalysis() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-green-500/10">
-                <UserPlus className="h-6 w-6 text-green-500" />
+              <div className="p-3 rounded-lg bg-success/10">
+                <UserPlus className="h-6 w-6 text-success" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{data.novos30d}</p>
@@ -144,9 +144,9 @@ export function ChurnAnalysis() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-lg ${saldoLiquido >= 0 ? "bg-green-500/10" : "bg-destructive/10"}`}>
+              <div className={`p-3 rounded-lg ${saldoLiquido >= 0 ? "bg-success/10" : "bg-destructive/10"}`}>
                 {saldoLiquido >= 0 ? (
-                  <TrendingUp className="h-6 w-6 text-green-500" />
+                  <TrendingUp className="h-6 w-6 text-success" />
                 ) : (
                   <TrendingDown className="h-6 w-6 text-destructive" />
                 )}
@@ -164,8 +164,8 @@ export function ChurnAnalysis() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-yellow-500/10">
-                <AlertTriangle className="h-6 w-6 text-yellow-500" />
+              <div className="p-3 rounded-lg bg-warning/10">
+                <AlertTriangle className="h-6 w-6 text-warning" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{data.clientesRisco.length}</p>
@@ -181,7 +181,7 @@ export function ChurnAnalysis() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+              <AlertTriangle className="h-5 w-5 text-warning" />
               Clientes em risco de churn
             </CardTitle>
           </CardHeader>
@@ -204,7 +204,7 @@ export function ChurnAnalysis() {
                     <TableCell>{c.bairro || "-"}</TableCell>
                     <TableCell>{c.diasSemPedido === 999 ? "Nunca comprou" : `${c.diasSemPedido} dias`}</TableCell>
                     <TableCell>
-                      <Badge variant={c.diasSemPedido > 90 ? "destructive" : "outline"} className={c.diasSemPedido <= 90 ? "border-yellow-500 text-yellow-600" : ""}>
+                      <Badge variant={c.diasSemPedido > 90 ? "destructive" : "outline"} className={c.diasSemPedido <= 90 ? "border-warning text-warning" : ""}>
                         {c.diasSemPedido > 90 ? "Crítico" : "Atenção"}
                       </Badge>
                     </TableCell>

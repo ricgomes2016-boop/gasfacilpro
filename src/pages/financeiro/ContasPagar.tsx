@@ -120,10 +120,10 @@ export default function ContasPagar() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-              <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-xs sm:text-sm font-medium">Total a Pagar</CardTitle><CreditCard className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-lg sm:text-2xl font-bold">R$ {cp.totalAberto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="text-xs text-muted-foreground hidden sm:block">Em aberto</p></CardContent></Card>
-              <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-xs sm:text-sm font-medium">Vencidas</CardTitle><AlertCircle className="h-4 w-4 text-destructive" /></CardHeader><CardContent><div className="text-lg sm:text-2xl font-bold text-destructive">R$ {cp.totalVencido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="text-xs text-muted-foreground hidden sm:block">Atenção urgente</p></CardContent></Card>
-              <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-xs sm:text-sm font-medium">Pendentes</CardTitle><Clock className="h-4 w-4 text-warning" /></CardHeader><CardContent><div className="text-lg sm:text-2xl font-bold text-warning">R$ {cp.totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="text-xs text-muted-foreground hidden sm:block">A vencer</p></CardContent></Card>
-              <Card><CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-xs sm:text-sm font-medium">Pagas</CardTitle><CheckCircle2 className="h-4 w-4 text-success" /></CardHeader><CardContent><div className="text-lg sm:text-2xl font-bold text-success">R$ {cp.totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="text-xs text-muted-foreground hidden sm:block">Quitadas</p></CardContent></Card>
+              <Card className="kpi-card kpi-card-primary"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-primary"><CreditCard /></div><div className="min-w-0"><div className="kpi-value">R$ {cp.totalAberto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Total a Pagar</p></div></CardContent></Card>
+              <Card className="kpi-card kpi-card-destructive"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-destructive"><AlertCircle /></div><div className="min-w-0"><div className="kpi-value text-destructive">R$ {cp.totalVencido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Vencidas</p></div></CardContent></Card>
+              <Card className="kpi-card kpi-card-warning"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-warning"><Clock /></div><div className="min-w-0"><div className="kpi-value text-warning">R$ {cp.totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Pendentes</p></div></CardContent></Card>
+              <Card className="kpi-card kpi-card-success"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-success"><CheckCircle2 /></div><div className="min-w-0"><div className="kpi-value text-success">R$ {cp.totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Pagas</p></div></CardContent></Card>
             </div>
 
             {/* Resumo por Fornecedor */}
@@ -169,7 +169,7 @@ export default function ContasPagar() {
             )}
 
             {/* Main table/card list */}
-            <Card>
+              <Card className="modern-panel">
               <CardHeader className="px-3 sm:px-6">
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -179,7 +179,7 @@ export default function ContasPagar() {
                       <Input placeholder="Buscar conta..." className="pl-10 w-full sm:w-[250px]" value={cp.search} onChange={e => cp.setSearch(e.target.value)} />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-end gap-2 sm:gap-3">
+                  <div className="semantic-filter-panel grid grid-cols-2 sm:flex sm:flex-wrap items-end gap-2 sm:gap-3">
                     <div className="col-span-1">
                       <Label className="text-xs text-muted-foreground">Fornecedor</Label>
                       <Select value={cp.filtroFornecedor} onValueChange={cp.setFiltroFornecedor}>

@@ -167,7 +167,7 @@ export function ClienteHeatMap() {
                   <div className="text-sm">
                     <p className="font-bold">{c.bairro}</p>
                     <p>{c.count} cliente{c.count !== 1 ? "s" : ""}</p>
-                    <ul className="mt-1 text-xs text-gray-600">
+                    <ul className="mt-1 text-xs text-muted-foreground">
                       {c.clientes.map((n, i) => (
                         <li key={i}>• {n}</li>
                       ))}
