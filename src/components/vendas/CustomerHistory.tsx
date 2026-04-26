@@ -76,8 +76,8 @@ export function CustomerHistory({ clienteId }: CustomerHistoryProps) {
 
   return (
     <Card className="venda-card w-full min-w-0 max-w-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
+      <CardHeader className="pb-3 bg-primary text-primary-foreground">
+        <CardTitle className="flex items-center gap-2 text-base text-primary-foreground">
           <History className="h-5 w-5 shrink-0" />
           <span className="truncate">Histórico do Cliente</span>
         </CardTitle>
