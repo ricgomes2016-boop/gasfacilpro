@@ -51,13 +51,12 @@ export function VoiceInputButton({ onResult, disabled, className }: VoiceInputPr
   return (
     <Button
       type="button"
-      variant="ghost"
+      variant={isListening ? "destructive" : "microphone"}
       size="icon"
       onClick={toggleListening}
       disabled={disabled}
       className={cn(
         "shrink-0 relative",
-        isListening && "text-destructive",
         className,
       )}
       title={isListening ? "Parar gravação" : "Falar com voz"}
