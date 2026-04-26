@@ -291,12 +291,12 @@ export default function EntregadorDespesas() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1" onClick={() => cameraInputRef.current?.click()}>
-                    <Camera className="h-4 w-4 mr-2" />
+                  <Button variant="photo" className="flex-1" onClick={() => cameraInputRef.current?.click()}>
+                    <Camera className="h-4 w-4" />
                     Câmera
                   </Button>
-                  <Button variant="outline" className="flex-1" onClick={() => fileInputRef.current?.click()}>
-                    <Upload className="h-4 w-4 mr-2" />
+                  <Button variant="import" className="flex-1" onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="h-4 w-4" />
                     Galeria
                   </Button>
                   <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleSelecionarFoto} />
