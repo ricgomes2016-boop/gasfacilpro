@@ -321,16 +321,16 @@ export default function Estoque() {
     <MainLayout>
       <Header title="Estoque" subtitle="Controle de estoque do dia" />
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
-        <Card className="border-warning bg-warning text-warning-foreground">
+        <Card className="border-primary bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-primary/20">
           <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
             <div className="flex min-w-0 items-center gap-3">
               <div className="status-card-icon status-card-icon-warning-solid">
                 <Package />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase text-warning-foreground/75">Estoque operacional</p>
+                <p className="text-xs font-semibold uppercase text-primary-foreground/75">Estoque operacional</p>
                 <h2 className="truncate text-xl font-bold leading-tight sm:text-2xl">Controle diário de produtos</h2>
-                <p className="truncate text-sm font-medium text-warning-foreground/80">Período: {periodoLabel}</p>
+                <p className="truncate text-sm font-medium text-primary-foreground/80">Período: {periodoLabel}</p>
               </div>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -348,13 +348,13 @@ export default function Estoque() {
 
         {/* Summary cards */}
         <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
-          <Card className="modern-status-card border-warning bg-warning text-warning-foreground">
+          <Card className="modern-status-card border-primary bg-primary text-primary-foreground">
             <CardContent className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
               <div className="status-card-icon status-card-icon-warning-solid">
                 <Package />
               </div>
               <div>
-                <p className="text-xs font-medium text-warning-foreground/75 sm:text-sm">Cheios</p>
+                <p className="text-xs font-medium text-primary-foreground/75 sm:text-sm">Cheios</p>
                 <p className="text-lg sm:text-2xl font-bold">{getTotalCheios()}</p>
               </div>
             </CardContent>
