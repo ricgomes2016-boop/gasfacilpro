@@ -244,6 +244,17 @@ export default function ContasPagar() {
                       {cp.filtroStatus !== "todos" && <Badge variant="secondary" className="text-xs gap-1 py-0">{cp.filtroStatus}<button onClick={() => cp.setFiltroStatus("todos")}><X className="h-3 w-3" /></button></Badge>}
                     </div>
                   )}
+                  {cp.selecionadasPagamentoIds.size > 0 && (
+                    <div className="flex flex-col gap-2 rounded-lg border border-success/30 bg-success/10 p-3 text-success sm:flex-row sm:items-center sm:justify-between">
+                      <div className="text-sm font-semibold">
+                        {cp.selecionadasPagamentoIds.size} conta{cp.selecionadasPagamentoIds.size > 1 ? "s" : ""} selecionada{cp.selecionadasPagamentoIds.size > 1 ? "s" : ""} · R$ {cp.totalSelecionadoPagamento.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={cp.clearPagamentoSelection}>Limpar</Button>
+                        <Button size="sm" className="gap-2" onClick={cp.openPagarSelecionadasDialog}><DollarSign className="h-4 w-4" />Pagar selecionadas</Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="px-3 sm:px-6">
