@@ -481,7 +481,7 @@ export default function Produtos() {
                   <div className="space-y-2">
                     <Label>Tipo</Label>
                     <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-input bg-muted/50 text-sm">
-                      <Flame className="h-4 w-4 text-orange-500" />
+                      <Flame className="h-4 w-4 text-warning" />
                       <span>Cheio</span>
                       <span className="text-muted-foreground text-xs ml-auto">Par vazio criado automaticamente</span>
                     </div>
