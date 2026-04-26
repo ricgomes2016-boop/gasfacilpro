@@ -533,12 +533,12 @@ export default function ConselhosIA() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + i * 0.06 }}
-                className={`p-3 rounded-xl border border-border/50 bg-gradient-to-br ${s.gradient} text-left hover:shadow-md hover:border-primary/20 transition-all duration-200 group`}
+                className={`p-3 rounded-xl border text-left hover:shadow-md transition-all duration-200 group ${s.tone}`}
                 onClick={() => {
                   window.dispatchEvent(new CustomEvent("agent-prompt", { detail: s.prompt }));
                 }}
               >
-                <s.icon className="h-4 w-4 text-primary mb-1.5 group-hover:scale-110 transition-transform" />
+                <s.icon className="h-4 w-4 mb-1.5 group-hover:scale-110 transition-transform" />
                 <p className="text-xs font-medium">{s.label}</p>
               </motion.button>
             ))}
