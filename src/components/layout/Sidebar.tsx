@@ -7,7 +7,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import logoImg from "@/assets/gestech-logo-full.png";
 import logoMarkImg from "@/assets/gestech-logo-mark.png";
 import { Button } from "@/components/ui/button";
 import {
@@ -231,7 +230,7 @@ export function Sidebar() {
           <button
             type="button"
             onClick={() => (collapsed ? toggle() : navigate("/dashboard"))}
-            className={cn("group flex items-center justify-center gap-3 rounded-3xl bg-sidebar-accent/10 px-3 py-3 ring-1 ring-sidebar-border/15 transition-all hover:bg-sidebar-accent/15", collapsed && "bg-transparent px-0 py-0 ring-0 hover:bg-transparent")}
+            className={cn("group flex items-center justify-center gap-3 rounded-3xl bg-transparent px-2 py-2 transition-all", collapsed && "px-0 py-0")}
             title={collapsed ? "Expandir menu" : "Ir para o dashboard"}
           >
             <motion.div
@@ -239,7 +238,7 @@ export function Sidebar() {
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <img src={collapsed ? logoMarkImg : logoImg} alt="Gestech Gás" className={cn("flex-shrink-0 object-contain", collapsed ? "h-11 w-11" : "h-16 w-36")} />
+              <img src={logoMarkImg} alt="Gas Facil" className={cn("flex-shrink-0 object-contain", collapsed ? "h-11 w-11" : "h-12 w-12")} />
             </motion.div>
             <AnimatePresence>
               {!collapsed && (
@@ -248,9 +247,10 @@ export function Sidebar() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="flex flex-col"
+                  className="flex flex-col items-start leading-none"
                 >
-                  <span className="sr-only">Gestech Gás</span>
+                  <span className="text-[16px] font-extrabold tracking-normal text-sidebar-foreground">Gas Facil</span>
+                  <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-sidebar-foreground/60">ERP PRO</span>
                 </motion.div>
               )}
             </AnimatePresence>
