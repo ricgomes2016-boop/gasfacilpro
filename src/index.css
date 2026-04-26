@@ -273,6 +273,30 @@
     @apply min-w-0;
   }
 
+  .rounded-lg.border [class*="CardContent"],
+  .rounded-lg.border > div,
+  .rounded-lg.border p,
+  .rounded-lg.border h3,
+  .rounded-lg.border span {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .rounded-lg.border p,
+  .rounded-lg.border h3,
+  .rounded-lg.border span {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .rounded-lg.border .text-lg.font-bold,
+  .rounded-lg.border .text-xl.font-bold,
+  .rounded-lg.border .text-2xl.font-bold,
+  .rounded-lg.border .text-3xl.font-bold {
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
   @media (max-width: 420px) {
     .grid.grid-cols-2:has(> .rounded-lg.border),
     .grid.grid-cols-3:has(> .rounded-lg.border),
