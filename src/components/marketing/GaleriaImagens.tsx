@@ -144,8 +144,8 @@ export function GaleriaImagens() {
           <Star className="h-4 w-4 mr-1" /> Favoritas
         </Button>
         <input ref={fileRef} type="file" accept="image/*" onChange={handleImport} className="hidden" />
-        <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
-          {uploading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />}
+        <Button variant="import" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
           Importar
         </Button>
         <Button size="sm" onClick={() => setOpenGerar(true)}>
@@ -162,8 +162,8 @@ export function GaleriaImagens() {
             <h3 className="text-lg font-semibold mb-2">Nenhuma imagem ainda</h3>
             <p className="text-sm text-muted-foreground mb-4">Importe ou gere imagens com IA para usar nos seus posts</p>
             <div className="flex gap-2 justify-center">
-              <Button variant="outline" onClick={() => fileRef.current?.click()}>
-                <Upload className="h-4 w-4 mr-1" /> Importar
+              <Button variant="import" onClick={() => fileRef.current?.click()}>
+                <Upload className="h-4 w-4" /> Importar
               </Button>
               <Button onClick={() => setOpenGerar(true)}>
                 <Sparkles className="h-4 w-4 mr-1" /> Gerar com IA
