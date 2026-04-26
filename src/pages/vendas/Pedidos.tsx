@@ -721,7 +721,7 @@ export default function Pedidos() {
               </span>
             </div>
           </CardHeader>
-          <CardContent className="overflow-x-auto max-w-full p-0 md:p-6 [&_table]:saas-table [&_thead_tr]:saas-table-header">
+          <CardContent className="saas-table-scope overflow-x-auto max-w-full p-0 md:p-6">
             {isLoading ?
             <div className="space-y-3">
                 {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
