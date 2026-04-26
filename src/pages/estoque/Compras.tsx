@@ -629,14 +629,14 @@ export default function Compras() {
               <div className="flex gap-2 pt-2">
                 <input ref={xmlInputRef} type="file" accept=".xml" className="hidden" onChange={handleImportXML} />
                 <input ref={photoInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoCapture} />
-                <Button variant="outline" className="flex-1" onClick={() => xmlInputRef.current?.click()} disabled={isProcessingPhoto}>
-                  <Upload className="h-4 w-4 mr-2" />Importar XML
+                <Button variant="import" className="flex-1" onClick={() => xmlInputRef.current?.click()} disabled={isProcessingPhoto}>
+                  <Upload className="h-4 w-4" />Importar XML
                 </Button>
-                <Button variant="outline" className="flex-1" onClick={() => photoInputRef.current?.click()} disabled={isProcessingPhoto}>
+                <Button variant="photo" className="flex-1" onClick={() => photoInputRef.current?.click()} disabled={isProcessingPhoto}>
                   {isProcessingPhoto ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Camera className="h-4 w-4 mr-2" />
+                    <Camera className="h-4 w-4" />
                   )}
                   {isProcessingPhoto ? "Lendo NF..." : "Foto da NF"}
                 </Button>
