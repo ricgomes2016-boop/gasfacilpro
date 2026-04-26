@@ -235,8 +235,8 @@ export default function Despesas() {
           <div className="flex gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" disabled={scanning}>
-                  {scanning ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Camera className="h-4 w-4 mr-2" />}
+                <Button variant="photo" disabled={scanning}>
+                  {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                   {scanning ? "Processando..." : "Foto Despesa"}
                 </Button>
               </DropdownMenuTrigger>
