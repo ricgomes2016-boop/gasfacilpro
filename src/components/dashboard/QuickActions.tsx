@@ -17,90 +17,29 @@ interface QuickAction {
   label: string;
   icon: React.ElementType;
   path: string;
-  bg: string;
-  ring: string;
+  tone: string;
 }
 
 const actions: QuickAction[] = [
-  {
-    label: "Nova Venda",
-    icon: PlusCircle,
-    path: "/vendas/nova",
-    bg: "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-emerald-500/25",
-    ring: "ring-emerald-400/40",
-  },
-  {
-    label: "Abrir PDV",
-    icon: Monitor,
-    path: "/vendas/pdv",
-    bg: "bg-gradient-to-br from-sky-500 to-sky-600 text-white shadow-sky-500/25",
-    ring: "ring-sky-400/40",
-  },
-  {
-    label: "Pedidos",
-    icon: ShoppingCart,
-    path: "/vendas/pedidos",
-    bg: "bg-gradient-to-br from-violet-500 to-violet-600 text-white shadow-violet-500/25",
-    ring: "ring-violet-400/40",
-  },
-  {
-    label: "Clientes",
-    icon: Users,
-    path: "/clientes/cadastro",
-    bg: "bg-gradient-to-br from-amber-500 to-amber-600 text-white shadow-amber-500/25",
-    ring: "ring-amber-400/40",
-  },
-  {
-    label: "Estoque",
-    icon: Package,
-    path: "/estoque",
-    bg: "bg-gradient-to-br from-teal-500 to-teal-600 text-white shadow-teal-500/25",
-    ring: "ring-teal-400/40",
-  },
-  {
-    label: "Entregas",
-    icon: Truck,
-    path: "/entregas",
-    bg: "bg-gradient-to-br from-rose-500 to-rose-600 text-white shadow-rose-500/25",
-    ring: "ring-rose-400/40",
-  },
-  {
-    label: "Financeiro",
-    icon: DollarSign,
-    path: "/financeiro",
-    bg: "bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-indigo-500/25",
-    ring: "ring-indigo-400/40",
-  },
-  {
-    label: "Despesas",
-    icon: Receipt,
-    path: "/caixa/despesas",
-    bg: "bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-orange-500/25",
-    ring: "ring-orange-400/40",
-  },
-  {
-    label: "Relatórios",
-    icon: BarChart3,
-    path: "/vendas/relatorio",
-    bg: "bg-gradient-to-br from-cyan-500 to-cyan-600 text-white shadow-cyan-500/25",
-    ring: "ring-cyan-400/40",
-  },
-  {
-    label: "Notas Fiscais",
-    icon: FileText,
-    path: "/fiscal",
-    bg: "bg-gradient-to-br from-fuchsia-500 to-fuchsia-600 text-white shadow-fuchsia-500/25",
-    ring: "ring-fuchsia-400/40",
-  },
+  { label: "Nova Venda", icon: PlusCircle, path: "/vendas/nova", tone: "bg-success text-success-foreground shadow-success/25 focus-visible:ring-success/45" },
+  { label: "Abrir PDV", icon: Monitor, path: "/vendas/pdv", tone: "bg-info text-info-foreground shadow-info/25 focus-visible:ring-info/45" },
+  { label: "Pedidos", icon: ShoppingCart, path: "/vendas/pedidos", tone: "bg-primary text-primary-foreground shadow-primary/25 focus-visible:ring-primary/45" },
+  { label: "Clientes", icon: Users, path: "/clientes/cadastro", tone: "bg-warning text-warning-foreground shadow-warning/25 focus-visible:ring-warning/45" },
+  { label: "Estoque", icon: Package, path: "/estoque", tone: "bg-secondary text-secondary-foreground shadow-secondary/25 focus-visible:ring-secondary/45" },
+  { label: "Entregas", icon: Truck, path: "/entregas", tone: "bg-destructive text-destructive-foreground shadow-destructive/25 focus-visible:ring-destructive/45" },
+  { label: "Financeiro", icon: DollarSign, path: "/financeiro", tone: "bg-success text-success-foreground shadow-success/25 focus-visible:ring-success/45" },
+  { label: "Despesas", icon: Receipt, path: "/caixa/despesas", tone: "bg-warning text-warning-foreground shadow-warning/25 focus-visible:ring-warning/45" },
+  { label: "Relatórios", icon: BarChart3, path: "/vendas/relatorio", tone: "bg-info text-info-foreground shadow-info/25 focus-visible:ring-info/45" },
+  { label: "Notas Fiscais", icon: FileText, path: "/fiscal", tone: "bg-primary text-primary-foreground shadow-primary/25 focus-visible:ring-primary/45" },
 ];
 
 export function QuickActions() {
   const navigate = useNavigate();
 
   return (
-    <Card className="w-full min-w-0 max-w-full border-border/50 bg-card/80 backdrop-blur-sm">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold">⚡ Acesso Rápido</CardTitle>
+    <Card className="modern-panel w-full min-w-0 max-w-full bg-card/80 backdrop-blur-sm">
+      <CardHeader className="section-header-stock pb-3">
+        <CardTitle className="text-base font-semibold text-warning-foreground">⚡ Acesso Rápido</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid w-full min-w-0 grid-cols-2 gap-3 min-[420px]:grid-cols-3 sm:grid-cols-5 lg:grid-cols-10">
@@ -108,7 +47,7 @@ export function QuickActions() {
             <button
               key={a.path}
               onClick={() => navigate(a.path)}
-              className={`group flex min-h-[82px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl p-3 shadow-lg transition-all duration-200 hover:scale-[1.03] hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2 ${a.bg} ${a.ring}`}
+              className={`group flex min-h-[82px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl p-3 shadow-lg transition-all duration-200 hover:scale-[1.03] hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2 ${a.tone}`}
             >
               <a.icon className="h-5 w-5 drop-shadow-sm" strokeWidth={2.25} />
               <span className="line-clamp-2 text-center text-[10px] font-semibold leading-tight tracking-tight sm:text-[11px]">

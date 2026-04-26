@@ -19,11 +19,11 @@ interface StatCardProps {
 }
 
 const variantStyles = {
-  default: "bg-card",
-  primary: "bg-primary text-primary-foreground",
-  success: "bg-success text-success-foreground",
-  warning: "bg-warning text-warning-foreground",
-  info: "bg-info text-info-foreground",
+  default: "border-border/70 bg-card text-card-foreground",
+  primary: "border-primary bg-primary text-primary-foreground",
+  success: "border-success bg-success text-success-foreground",
+  warning: "border-warning bg-warning text-warning-foreground",
+  info: "border-info bg-info text-info-foreground",
 };
 
 const iconVariantStyles = {
@@ -59,34 +59,34 @@ export function StatCard({
   if (isGasmais && colored) {
     const tones: Record<NonNullable<StatCardProps["variant"]>, { bar: string; glow: string; icon: string; ring: string }> = {
       primary: {
-        bar: "from-orange-500 to-orange-600",
-        glow: "from-orange-400 to-orange-600",
-        icon: "from-orange-500 to-orange-600 shadow-orange-500/30",
-        ring: "shadow-orange-500/10",
+        bar: "from-primary to-primary",
+        glow: "from-primary to-primary",
+        icon: "from-primary to-primary shadow-primary/30",
+        ring: "shadow-primary/10",
       },
       success: {
-        bar: "from-emerald-500 to-emerald-600",
-        glow: "from-emerald-400 to-emerald-600",
-        icon: "from-emerald-500 to-emerald-600 shadow-emerald-500/30",
-        ring: "shadow-emerald-500/10",
+        bar: "from-success to-success",
+        glow: "from-success to-success",
+        icon: "from-success to-success shadow-success/30",
+        ring: "shadow-success/10",
       },
       info: {
-        bar: "from-blue-500 to-blue-600",
-        glow: "from-blue-400 to-blue-600",
-        icon: "from-blue-500 to-blue-600 shadow-blue-500/30",
-        ring: "shadow-blue-500/10",
+        bar: "from-info to-info",
+        glow: "from-info to-info",
+        icon: "from-info to-info shadow-info/30",
+        ring: "shadow-info/10",
       },
       warning: {
-        bar: "from-amber-500 to-amber-600",
-        glow: "from-amber-400 to-amber-600",
-        icon: "from-amber-500 to-amber-600 shadow-amber-500/30",
-        ring: "shadow-amber-500/10",
+        bar: "from-warning to-warning",
+        glow: "from-warning to-warning",
+        icon: "from-warning to-warning shadow-warning/30",
+        ring: "shadow-warning/10",
       },
       default: {
-        bar: "from-slate-500 to-slate-600",
-        glow: "from-slate-400 to-slate-600",
-        icon: "from-slate-500 to-slate-600 shadow-slate-500/30",
-        ring: "shadow-slate-500/10",
+        bar: "from-muted to-muted",
+        glow: "from-muted to-muted",
+        icon: "from-muted to-muted shadow-muted/30",
+        ring: "shadow-muted/10",
       },
     };
     const t = tones[variant];
@@ -120,14 +120,14 @@ export function StatCard({
                 className={cn(
                   "mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
                   trend.isPositive
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    ? "bg-success/10 text-success"
                     : "bg-destructive/10 text-destructive"
                 )}
               >
                 <span
                   className={cn(
                     "inline-block h-1.5 w-1.5 rounded-full animate-pulse",
-                    trend.isPositive ? "bg-emerald-500" : "bg-destructive"
+                    trend.isPositive ? "bg-success" : "bg-destructive"
                   )}
                 />
                 {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
@@ -212,7 +212,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "flex h-full min-h-[148px] min-w-0 rounded-xl p-5 shadow-md transition-all duration-200 hover:shadow-lg sm:p-6",
+        "modern-status-card flex h-full min-h-[148px] min-w-0 p-5 sm:p-6",
         variantStyles[variant]
       )}
     >

@@ -32,9 +32,9 @@ export function StockOverview() {
   const MAX_STOCK = 100;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Visão do Estoque</CardTitle>
+    <Card className="modern-panel">
+      <CardHeader className="section-header-stock">
+        <CardTitle className="text-warning-foreground">Visão do Estoque</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
