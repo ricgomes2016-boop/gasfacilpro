@@ -173,7 +173,7 @@ export default function ContratosRecorrentes() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <Package className="h-5 w-5 text-blue-600" />
+                <Package className="h-5 w-5 text-info" />
                 <div>
                   <p className="text-2xl font-bold">{ativos.reduce((s, c) => s + c.quantidade, 0)}</p>
                   <p className="text-xs text-muted-foreground">Unidades/ciclo</p>
@@ -184,7 +184,7 @@ export default function ContratosRecorrentes() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <RefreshCw className="h-5 w-5 text-green-600" />
+                <RefreshCw className="h-5 w-5 text-success" />
                 <div>
                   <p className="text-2xl font-bold">R$ {receitaMensal.toFixed(0)}</p>
                   <p className="text-xs text-muted-foreground">Receita recorrente/mês</p>

@@ -193,8 +193,8 @@ export default function ClientePerfilPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-lg bg-green-500/10">
-                  <ShoppingCart className="h-5 w-5 text-green-500" />
+                <div className="p-2.5 rounded-lg bg-success/10">
+                  <ShoppingCart className="h-5 w-5 text-success" />
                 </div>
                 <div>
                   <p className="text-xl font-bold">{totalPedidos}</p>
@@ -206,8 +206,8 @@ export default function ClientePerfilPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-lg bg-blue-500/10">
-                  <DollarSign className="h-5 w-5 text-blue-500" />
+                <div className="p-2.5 rounded-lg bg-info/10">
+                  <DollarSign className="h-5 w-5 text-info" />
                 </div>
                 <div>
                   <p className="text-xl font-bold">R$ {ticketMedio.toFixed(2)}</p>
@@ -219,8 +219,8 @@ export default function ClientePerfilPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-lg bg-yellow-500/10">
-                  <Calendar className="h-5 w-5 text-yellow-500" />
+                <div className="p-2.5 rounded-lg bg-warning/10">
+                  <Calendar className="h-5 w-5 text-warning" />
                 </div>
                 <div>
                   <p className="text-xl font-bold">
@@ -251,7 +251,7 @@ export default function ClientePerfilPage() {
                       rel="noopener noreferrer"
                     >
                       <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <Send className="h-3.5 w-3.5 text-green-500" />
+                        <Send className="h-3.5 w-3.5 text-success" />
                       </Button>
                     </a>
                   )}

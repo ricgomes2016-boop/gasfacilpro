@@ -129,8 +129,8 @@ export function ReguaRelacionamento() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-blue-500/10">
-                <Bell className="h-6 w-6 text-blue-500" />
+              <div className="p-3 rounded-lg bg-info/10">
+                <Bell className="h-6 w-6 text-info" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{lembretes.length}</p>
@@ -143,8 +143,8 @@ export function ReguaRelacionamento() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-lg bg-yellow-500/10">
-                <Clock className="h-6 w-6 text-yellow-500" />
+              <div className="p-3 rounded-lg bg-warning/10">
+                <Clock className="h-6 w-6 text-warning" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{reengajamento.length}</p>
@@ -211,8 +211,8 @@ export function ReguaRelacionamento() {
                       <Badge
                         variant={c.tipo === "urgente" ? "destructive" : "outline"}
                         className={
-                          c.tipo === "lembrete" ? "border-blue-500 text-blue-600" :
-                          c.tipo === "reengajamento" ? "border-yellow-500 text-yellow-600" : ""
+                          c.tipo === "lembrete" ? "border-info text-info" :
+                          c.tipo === "reengajamento" ? "border-yellow-500 text-warning" : ""
                         }
                       >
                         {c.tipo === "lembrete" ? "Lembrete" : c.tipo === "reengajamento" ? "Reengajar" : "Urgente"}

@@ -117,8 +117,8 @@ export default function AplicativoCliente() {
           </Card>
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                <ShoppingCart className="h-5 w-5 text-emerald-600" />
+              <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
+                <ShoppingCart className="h-5 w-5 text-success" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{stats.pedidosMes}</p>
@@ -128,8 +128,8 @@ export default function AplicativoCliente() {
           </Card>
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                <Star className="h-5 w-5 text-amber-600" />
+              <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
+                <Star className="h-5 w-5 text-warning" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{stats.avaliacaoMedia || "—"}</p>
@@ -139,8 +139,8 @@ export default function AplicativoCliente() {
           </Card>
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-blue-600" />
+              <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-info" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{stats.clientesAtivos}</p>
@@ -166,7 +166,7 @@ export default function AplicativoCliente() {
               <div className="flex gap-2">
                 <Input value={appLink} readOnly className="font-mono text-sm" />
                 <Button variant="outline" size="icon" onClick={handleCopy}>
-                  {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                  {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
 
