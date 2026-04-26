@@ -213,7 +213,7 @@ export default function PromocoesCupons() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-green-500/10"><CheckCircle className="h-6 w-6 text-green-500" /></div>
+                <div className="status-card-icon status-card-icon-success"><CheckCircle /></div>
                 <div><p className="text-2xl font-bold">{ativos}</p><p className="text-sm text-muted-foreground">Cupons Ativos</p></div>
               </div>
             </CardContent>
@@ -221,7 +221,7 @@ export default function PromocoesCupons() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-blue-500/10"><Users className="h-6 w-6 text-blue-500" /></div>
+                <div className="status-card-icon status-card-icon-info"><Users /></div>
                 <div><p className="text-2xl font-bold">{totalUsos}</p><p className="text-sm text-muted-foreground">Usos de Cupons</p></div>
               </div>
             </CardContent>
@@ -229,7 +229,7 @@ export default function PromocoesCupons() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-orange-500/10"><Megaphone className="h-6 w-6 text-orange-500" /></div>
+                <div className="status-card-icon status-card-icon-warning"><Megaphone /></div>
                 <div><p className="text-2xl font-bold">{promocoesAtivas}</p><p className="text-sm text-muted-foreground">Promoções Ativas</p></div>
               </div>
             </CardContent>
@@ -299,7 +299,7 @@ export default function PromocoesCupons() {
                           <div className="flex items-center gap-2">
                             <span className="font-mono font-bold">{c.codigo}</span>
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyCode(c.codigo)}>
-                              {copiedCode === c.codigo ? <CheckCircle className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                              {copiedCode === c.codigo ? <CheckCircle className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
                             </Button>
                           </div>
                           {c.descricao && <p className="text-xs text-muted-foreground">{c.descricao}</p>}
