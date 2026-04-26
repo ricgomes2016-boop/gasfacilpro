@@ -35,9 +35,9 @@ export function OrderSummary({
 
   return (
     <Card className="venda-card w-full min-w-0 max-w-full overflow-hidden">
-      <CardHeader className="border-b bg-muted/30 p-4 pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/12 text-primary">
+      <CardHeader className="border-b bg-primary p-4 pb-3 text-primary-foreground">
+        <CardTitle className="flex items-center gap-2 text-base text-primary-foreground">
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary-foreground/15 text-primary-foreground">
             <ShoppingCart className="h-5 w-5 shrink-0" />
           </span>
           <span className="truncate">Resumo da Venda</span>

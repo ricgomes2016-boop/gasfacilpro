@@ -229,15 +229,15 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
   return (
     <>
       <Card className="venda-card overflow-hidden">
-        <CardHeader className="border-b bg-muted/30 p-4 pb-3">
+        <CardHeader className="border-b bg-primary p-4 pb-3 text-primary-foreground">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/12 text-primary">
+            <CardTitle className="flex items-center gap-2 text-base text-primary-foreground">
+              <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary-foreground/15 text-primary-foreground">
                 <CreditCard className="h-5 w-5" />
               </span>
               Pagamento
             </CardTitle>
-            <div className="rounded-md border bg-background px-3 py-1.5 text-sm font-semibold text-primary shadow-sm">
+            <div className="rounded-md border border-primary-foreground/25 bg-primary-foreground px-3 py-1.5 text-sm font-semibold text-primary shadow-sm">
               Total R$ {totalVenda.toFixed(2)}
             </div>
           </div>
