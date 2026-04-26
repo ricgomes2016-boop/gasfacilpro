@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SugestaoEntregador } from "@/components/sugestao/SugestaoEntregador";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { cn } from "@/lib/utils";
+import { VendaSectionHeader } from "./VendaSectionHeader";
 
 interface Entregador {
   id: string;
@@ -120,14 +121,7 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
 
   return (
     <Card className="venda-card overflow-hidden">
-      <CardHeader className="border-b bg-primary p-4 pb-3 text-primary-foreground">
-        <CardTitle className="flex items-center gap-2 text-base text-primary-foreground">
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary-foreground/15 text-primary-foreground">
-            <Truck className="h-5 w-5" />
-          </span>
-          Entregador
-        </CardTitle>
-      </CardHeader>
+      <VendaSectionHeader title="Entregador" icon={<Truck className="h-5 w-5" />} />
       <CardContent className="space-y-4 p-4">
         <Select value={value || undefined} onValueChange={handleSelect} disabled={loading}>
           <SelectTrigger className="sr-only">
