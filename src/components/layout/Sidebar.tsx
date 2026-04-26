@@ -348,10 +348,8 @@ export function Sidebar() {
                         <Link
                           to={item.path}
                           className={cn(
-                            "mx-auto flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-200",
-                            isItemActive
-                              ? "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
-                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
+                            collapsedItemBase,
+                            isItemActive ? menuItemActive : menuItemIdle
                           )}
                         >
                           <item.icon className={cn("h-[18px] w-[18px]", isItemActive ? "" : menuIconColors[item.label] || "")} />
@@ -359,10 +357,8 @@ export function Sidebar() {
                       ) : (
                         <button
                           className={cn(
-                            "mx-auto flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-200",
-                            isChildActive
-                              ? "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
-                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
+                            collapsedItemBase,
+                            isChildActive ? menuItemActive : menuItemIdle
                           )}
                         >
                           <item.icon className={cn("h-[18px] w-[18px]", isChildActive ? "" : menuIconColors[item.label] || "")} />
@@ -380,8 +376,8 @@ export function Sidebar() {
                                 key={subItem.path}
                                 to={subItem.path}
                                 className={cn(
-                                  "flex items-center gap-2 text-xs px-2 py-1.5 rounded-md hover:bg-accent transition-colors",
-                                  isActive(subItem.path) && "bg-accent font-medium text-primary"
+                                  subMenuItemBase,
+                                  isActive(subItem.path) ? subMenuItemActive : subMenuItemIdle
                                 )}
                               >
                                 <SubIcon className={cn("h-3 w-3 flex-shrink-0", isActive(subItem.path) ? "" : subMenuIconColors[subItem.label] || menuIconColors[item.label] || "")} />
@@ -409,10 +405,9 @@ export function Sidebar() {
                       <Link
                         to={item.path}
                         className={cn(
-                          "group relative flex items-center gap-3 rounded-full px-4 py-3 text-[13px] font-semibold transition-all duration-200 overflow-hidden",
-                          isItemActive
-                            ? "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
-                            : "border border-sidebar-border/15 bg-sidebar-accent/10 text-sidebar-foreground/75 hover:bg-sidebar-accent/15 hover:text-sidebar-foreground"
+                          menuItemBase,
+                          "relative overflow-hidden",
+                          isItemActive ? menuItemActive : menuItemIdle
                         )}
                       >
                         <motion.div
