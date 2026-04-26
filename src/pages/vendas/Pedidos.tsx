@@ -479,8 +479,8 @@ export default function Pedidos() {
             <MapIcon className="h-4 w-4 mr-2 shrink-0" />
             <span className="truncate">Mapa Operacional</span>
           </Button>
-          <Button className="h-10 min-w-0" onClick={() => navigate("/vendas/nova")}>
-            <span className="truncate">Nova Venda</span>
+          <Button className="h-10 min-w-0 bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90 hover:shadow-accent/30" onClick={() => navigate("/vendas/nova")}>
+            <span className="truncate">+ Novo Pedido</span>
           </Button>
         </div>
 
@@ -721,7 +721,7 @@ export default function Pedidos() {
               </span>
             </div>
           </CardHeader>
-          <CardContent className="overflow-x-auto max-w-full p-0 md:p-6">
+          <CardContent className="overflow-x-auto max-w-full p-0 md:p-6 [&_table]:saas-table [&_thead_tr]:saas-table-header">
             {isLoading ?
             <div className="space-y-3">
                 {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
@@ -733,7 +733,7 @@ export default function Pedidos() {
               {/* Mobile cards */}
               <div className="space-y-3 md:hidden px-3 pb-3 w-full min-w-0">
                 {pedidosPaginados.map((pedido) => (
-                  <div key={pedido.id} className={`border rounded-lg p-3 space-y-2 w-full min-w-0 ${pedido.status === "cancelado" ? "opacity-60" : ""}`}>
+                  <div key={pedido.id} className={`border border-border/45 bg-card rounded-2xl p-3 space-y-2 w-full min-w-0 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${pedido.status === "cancelado" ? "opacity-60" : ""}`}>
                     <div className="flex items-start justify-between gap-2 w-full min-w-0">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} className="shrink-0" />
