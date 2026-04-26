@@ -246,15 +246,48 @@ export function useContasPagar() {
   // ===================== PAGAR =====================
 
   const openPagarDialog = (conta: ContaPagar) => {
+    setPagamentoEmLoteIds(new Set());
     setPagarConta(conta);
     setPagarForm({ formasPagamento: [{ forma: "", valor: String(conta.valor) }] });
+    setPagarDialogOpen(true);
+  };
+
+  const togglePagamentoSelection = (id: string) => {
+    setSelecionadasPagamentoIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAllPagamentoSelection = () => {
+    setSelecionadasPagamentoIds(prev => {
+      const next = new Set(prev);
+      if (contasPagaveisFiltradas.every(c => next.has(c.id))) contasPagaveisFiltradas.forEach(c => next.delete(c.id));
+      else contasPagaveisFiltradas.forEach(c => next.add(c.id));
+      return next;
+    });
+  };
+
+  const clearPagamentoSelection = () => setSelecionadasPagamentoIds(new Set());
+
+  const openPagarSelecionadasDialog = () => {
+    if (contasSelecionadasPagamento.length === 0) { toast.error("Selecione ao menos uma conta pendente"); return; }
+    const selecionadasAbertas = contasSelecionadasPagamento.filter(c => c.status !== "paga");
+    if (selecionadasAbertas.length === 0) { toast.error("As contas selecionadas já estão pagas"); return; }
+    const total = selecionadasAbertas.reduce((s, c) => s + Number(c.valor), 0);
+    setPagamentoEmLoteIds(new Set(selecionadasAbertas.map(c => c.id)));
+    setPagarConta({ ...selecionadasAbertas[0], fornecedor: `${selecionadasAbertas.length} contas selecionadas`, descricao: "Pagamento em lote", valor: total });
+    setPagarForm({ formasPagamento: [{ forma: "", valor: String(total) }] });
     setPagarDialogOpen(true);
   };
 
   const handlePagar = async () => {
     if (!pagarConta) return;
     const totalPago = pagarForm.formasPagamento.reduce((sum, f) => sum + (parseFloat(f.valor) || 0), 0);
-    const valorConta = Number(pagarConta.valor);
+    const isLote = pagamentoEmLoteIds.size > 0;
+    const contasLote = contas.filter(c => pagamentoEmLoteIds.has(c.id));
+    const valorConta = isLote ? contasLote.reduce((s, c) => s + Number(c.valor), 0) : Number(pagarConta.valor);
     if (totalPago <= 0) { toast.error("Informe o valor pago"); return; }
     if (totalPago > valorConta + 0.01) { toast.error("Valor pago excede o valor da conta"); return; }
 
@@ -263,7 +296,18 @@ export function useContasPagar() {
       .filter(f => f.forma && parseFloat(f.valor) > 0)
       .map(f => `${f.forma}: R$ ${parseFloat(f.valor).toFixed(2)}`).join(", ");
 
-    if (isParcial) {
+    if (isLote && isParcial) { toast.error("Pagamento em lote precisa quitar o total selecionado"); return; }
+
+    if (isLote) {
+      const { error } = await supabase.from("contas_pagar").update({
+        status: "paga",
+        observacoes: formasStr ? `Pago em lote via ${formasStr}` : "Pago em lote",
+      }).in("id", contasLote.map(c => c.id));
+      if (error) { toast.error("Erro ao confirmar pagamento em lote"); return; }
+      toast.success(`${contasLote.length} contas pagas!`);
+      setSelecionadasPagamentoIds(new Set());
+      setPagamentoEmLoteIds(new Set());
+    } else if (isParcial) {
       const restante = valorConta - totalPago;
       const obs = `${pagarConta.observacoes || ""}\nPago parcial R$ ${totalPago.toFixed(2)} em ${format(new Date(), "dd/MM/yyyy")} (${formasStr})`.trim();
       const { error } = await supabase.from("contas_pagar").update({ valor: restante, observacoes: obs }).eq("id", pagarConta.id);
