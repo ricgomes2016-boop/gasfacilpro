@@ -71,14 +71,14 @@ export function Header({ title, subtitle }: HeaderProps) {
   return (
     <>
     <header className={cn(
-      "fixed left-0 right-0 top-0 z-30 flex min-h-16 w-auto max-w-full items-center justify-between gap-2 overflow-hidden border-b border-border/35 bg-background/90 px-2.5 py-1.5 shadow-md shadow-foreground/5 backdrop-blur-xl transition-[left] duration-300 supports-[backdrop-filter]:bg-background/80 md:min-h-[4.5rem] md:px-4 xl:px-6",
+      "fixed left-0 right-0 top-0 z-30 flex min-h-16 w-auto max-w-full items-center justify-between gap-2 overflow-hidden border-b border-border/35 bg-background/88 px-2.5 py-2 shadow-sm shadow-foreground/5 backdrop-blur-xl transition-[left] duration-300 supports-[backdrop-filter]:bg-background/78 md:min-h-[4.75rem] md:px-4 xl:px-6",
       collapsed ? "xl:left-16" : "xl:left-[260px]",
     )}>
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
         {/* Mobile menu */}
         <MobileNav />
         
-        <div className="flex h-12 min-w-0 flex-1 flex-col justify-center rounded-2xl border border-border/35 bg-card px-3 py-1.5 shadow-sm shadow-foreground/5 md:h-14">
+        <div className="flex h-12 min-w-0 flex-1 flex-col justify-center rounded-2xl border border-border/45 bg-card px-4 py-1.5 shadow-sm shadow-foreground/5 md:h-14">
           <div className="flex min-w-0 max-w-full items-center gap-2">
             <h1 className="min-w-0 truncate text-base font-bold leading-none text-foreground md:text-lg xl:text-xl">{title}</h1>
             <BuildVersionBadge className="hidden xl:inline-flex shrink-0" />
@@ -91,7 +91,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex h-12 min-w-0 shrink-0 items-center justify-end gap-0.5 rounded-2xl border border-border/35 bg-card px-1 py-1 shadow-sm shadow-foreground/5 sm:gap-1 md:h-14 xl:gap-2">
+      <div className="flex h-12 min-w-0 shrink-0 items-center justify-end gap-0.5 rounded-2xl border border-border/45 bg-card px-1 py-1 shadow-sm shadow-foreground/5 sm:gap-1 md:h-14 xl:gap-2">
         {/* Unidade Selector */}
         <UnidadeSelector />
 
@@ -173,7 +173,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         </DropdownMenu>
       </div>
     </header>
-    <div aria-hidden="true" className="h-16 md:h-[4.5rem]" />
+    <div aria-hidden="true" className="h-16 md:h-[4.75rem]" />
     </>
   );
 }

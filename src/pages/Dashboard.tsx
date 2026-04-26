@@ -146,12 +146,12 @@ export default function Dashboard() {
   return (
     <MainLayout>
       <Header title="Dashboard" subtitle="Bem-vindo ao GásPro - Sua revenda de gás" />
-      <div className={`${themeClass} w-full min-w-0 max-w-full space-y-4 overflow-x-hidden p-3 sm:p-4 md:space-y-6 md:p-6`}>
+      <div className={`${themeClass} dashboard-shell`}>
         {/* Banner promocional do tema GásMais (dispensável) */}
         <GasmaisThemeBanner />
 
         {/* ── Hero Gradient Card ── */}
-        <div className="relative w-full min-w-0 overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary p-4 sm:p-6 md:p-8 text-primary-foreground shadow-xl shadow-primary/20">
+        <div className="dashboard-hero">
           <div className="absolute right-0 top-0 opacity-10">
             <Flame className="h-56 w-56 -mt-8 -mr-8" strokeWidth={0.8} />
           </div>
@@ -164,7 +164,7 @@ export default function Dashboard() {
                 <Flame className="h-5 w-5" />
                 <span className="text-sm font-medium text-primary-foreground/80">Gás Fácil</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-bold mb-0.5">
+              <h1 className="text-2xl md:text-3xl font-bold mb-0.5 text-primary-foreground">
                 {greeting.text}! {greeting.emoji}
               </h1>
               <p className="text-sm text-primary-foreground/70 capitalize line-clamp-2">{todayFormatted}</p>

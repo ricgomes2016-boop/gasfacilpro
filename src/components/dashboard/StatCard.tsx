@@ -19,11 +19,11 @@ interface StatCardProps {
 }
 
 const variantStyles = {
-  default: "border-border/35 bg-card text-card-foreground",
-  primary: "border-primary/20 bg-card text-card-foreground shadow-primary/10",
-  success: "border-success/20 bg-card text-card-foreground shadow-success/10",
-  warning: "border-warning/25 bg-card text-card-foreground shadow-warning/10",
-  info: "border-info/20 bg-card text-card-foreground shadow-info/10",
+  default: "border-border/45 bg-card text-card-foreground",
+  primary: "border-border/45 border-l-4 border-l-primary bg-card text-card-foreground shadow-primary/10",
+  success: "border-border/45 border-l-4 border-l-success bg-card text-card-foreground shadow-success/10",
+  warning: "border-border/45 border-l-4 border-l-warning bg-card text-card-foreground shadow-warning/10",
+  info: "border-border/45 border-l-4 border-l-info bg-card text-card-foreground shadow-info/10",
 };
 
 const iconVariantStyles = {
@@ -93,7 +93,7 @@ export function StatCard({
     return (
       <div
         className={cn(
-          "group relative flex h-full min-h-[148px] min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
+        "group relative flex h-full min-h-[148px] min-w-0 overflow-hidden rounded-2xl border border-border/45 bg-card p-5 shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-lg",
           t.ring
         )}
       >
@@ -151,19 +151,19 @@ export function StatCard({
   // Hero tile (translucent on orange gradient) — GásMais inside hero
   if (isGasmais && onHero) {
     return (
-      <div className="flex h-full min-h-[138px] min-w-0 flex-col justify-between rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 p-4 transition-all hover:bg-white/15">
+      <div className="flex h-full min-h-[138px] min-w-0 flex-col justify-between rounded-2xl bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/15 p-4 transition-all hover:bg-primary-foreground/15">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-primary-foreground">
           <Icon className="h-4 w-4" />
         </div>
         <div className="mt-3 min-w-0 flex-1">
-          <p className="break-words text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight">
+            <p className="break-words text-2xl sm:text-3xl font-bold text-primary-foreground tracking-tight leading-tight">
             {value}
           </p>
         </div>
         <div className="mt-3 min-h-[40px] min-w-0">
-          <p className="text-sm font-medium text-white/90 line-clamp-1">{title}</p>
+            <p className="text-sm font-medium text-primary-foreground/90 line-clamp-1">{title}</p>
           {subtitle && (
-            <p className="text-xs text-white/60 mt-0.5 line-clamp-1">{subtitle}</p>
+              <p className="text-xs text-primary-foreground/60 mt-0.5 line-clamp-1">{subtitle}</p>
           )}
         </div>
       </div>
@@ -172,7 +172,7 @@ export function StatCard({
 
   if (isGasmais) {
     return (
-      <div className="flex h-full min-h-[148px] min-w-0 rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:shadow-md">
+      <div className={cn("flex h-full min-h-[148px] min-w-0 rounded-2xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md", variantStyles[variant])}>
         <div className="flex w-full min-w-0 items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

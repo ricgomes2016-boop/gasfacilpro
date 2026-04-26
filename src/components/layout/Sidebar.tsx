@@ -224,18 +224,18 @@ export function Sidebar() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
           themeClass,
-          "fixed left-0 top-0 z-40 hidden xl:flex h-screen flex-col border-r border-sidebar-border/15 bg-gradient-to-b from-primary to-secondary shadow-2xl"
+          "fixed left-0 top-0 z-40 hidden xl:flex h-screen flex-col overflow-hidden border-r border-sidebar-border/15 bg-gradient-to-b from-primary via-primary to-secondary shadow-2xl"
         )}
       >
         {/* Header */}
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border/20 px-3">
+        <div className="flex h-20 items-center justify-between border-b border-sidebar-border/20 px-4">
           <Link to="/dashboard" className="flex items-center gap-3 group">
             <motion.div
               whileHover={{ scale: 1.05, rotate: 2 }}
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <img src={logoImg} alt="Gás Fácil" className="h-9 w-9 flex-shrink-0 rounded-xl object-contain shadow-md" />
+              <img src={logoImg} alt="Gás Fácil" className="h-11 w-11 flex-shrink-0 rounded-2xl bg-sidebar-accent/95 object-contain p-1.5 shadow-lg" />
             </motion.div>
             <AnimatePresence>
               {!collapsed && (
@@ -323,8 +323,8 @@ export function Sidebar() {
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-2 scrollbar-thin">
-          <div className="space-y-0.5">
+        <nav className="flex-1 overflow-y-auto p-3 scrollbar-thin">
+          <div className="space-y-1">
             {menuItems.map((item, idx) => {
               const hasSubmenu = !!item.submenu;
               const isOpen = isSubmenuOpen(item.label);
@@ -340,7 +340,7 @@ export function Sidebar() {
                         <Link
                           to={item.path}
                           className={cn(
-                            "flex h-10 w-10 items-center justify-center rounded-xl mx-auto transition-all duration-200",
+                            "flex h-10 w-10 items-center justify-center rounded-2xl mx-auto transition-all duration-200",
                             isItemActive
                               ? "bg-sidebar-accent/95 text-primary shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
                               : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/18 hover:ring-1 hover:ring-sidebar-border/20"
@@ -351,7 +351,7 @@ export function Sidebar() {
                       ) : (
                         <button
                           className={cn(
-                            "flex h-10 w-10 items-center justify-center rounded-xl mx-auto transition-all duration-200",
+                            "flex h-10 w-10 items-center justify-center rounded-2xl mx-auto transition-all duration-200",
                             isChildActive
                               ? "bg-sidebar-accent/95 text-primary ring-1 ring-sidebar-border/25"
                               : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/18 hover:ring-1 hover:ring-sidebar-border/20"
@@ -401,7 +401,7 @@ export function Sidebar() {
                       <Link
                         to={item.path}
                         className={cn(
-                          "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200 relative overflow-hidden",
+                          "group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-[13px] font-semibold transition-all duration-200 relative overflow-hidden",
                           isItemActive
                             ? "bg-sidebar-accent/95 text-primary shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
                             : "bg-sidebar-accent/15 text-sidebar-foreground border border-sidebar-border/20 hover:bg-sidebar-accent/25"
@@ -420,7 +420,7 @@ export function Sidebar() {
                     <Link
                       to={item.path}
                       className={cn(
-                        "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200 relative",
+                        "group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-[13px] font-semibold transition-all duration-200 relative",
                         isItemActive
                           ? "bg-sidebar-accent/95 text-primary shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
                             : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/18 hover:ring-1 hover:ring-sidebar-border/20"
@@ -438,7 +438,7 @@ export function Sidebar() {
                     <button
                       onClick={() => toggleSubmenu(item.label)}
                       className={cn(
-                        "group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200",
+                        "group flex w-full items-center gap-3 rounded-2xl px-3.5 py-3 text-[13px] font-semibold transition-all duration-200",
                         isChildActive
                           ? "bg-sidebar-accent/95 text-primary ring-1 ring-sidebar-border/25"
                           : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/18 hover:ring-1 hover:ring-sidebar-border/20"
