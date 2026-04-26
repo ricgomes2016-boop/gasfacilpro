@@ -224,11 +224,11 @@ export function Sidebar() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
           themeClass,
-          "fixed left-0 top-0 z-40 hidden xl:flex h-screen flex-col bg-sidebar border-r border-sidebar-border shadow-2xl"
+          "fixed left-0 top-0 z-40 hidden xl:flex h-screen flex-col border-r border-sidebar-border/15 bg-gradient-to-b from-primary to-secondary shadow-2xl"
         )}
       >
         {/* Header */}
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-3">
+        <div className="flex h-16 items-center justify-between border-b border-sidebar-border/20 px-3">
           <Link to="/dashboard" className="flex items-center gap-3 group">
             <motion.div
               whileHover={{ scale: 1.05, rotate: 2 }}
@@ -249,7 +249,7 @@ export function Sidebar() {
                   <span className="text-[17px] font-extrabold text-sidebar-foreground">
                     Gás Fácil
                   </span>
-                  <span className="text-[9px] font-bold text-primary uppercase tracking-[0.2em]">
+                  <span className="text-[9px] font-bold text-sidebar-foreground/75 uppercase tracking-[0.2em]">
                     ERP Pro
                   </span>
                 </motion.div>
@@ -261,7 +261,7 @@ export function Sidebar() {
               variant="ghost"
               size="icon"
               onClick={toggle}
-                className="h-8 w-8 flex-shrink-0 rounded-lg text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                className="h-8 w-8 flex-shrink-0 rounded-full text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/20"
             >
               {collapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -280,7 +280,7 @@ export function Sidebar() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className="border-b border-sidebar-border p-3"
+              className="border-b border-sidebar-border/20 p-3"
             >
               <Select
                 value={unidadeAtual?.id || ""}
@@ -289,8 +289,8 @@ export function Sidebar() {
                   if (u) setUnidadeAtual(u);
                 }}
               >
-                <SelectTrigger className="bg-sidebar-accent border-sidebar-border text-sidebar-foreground text-xs font-semibold h-9 rounded-lg shadow-sm">
-                  <Store className="mr-2 h-3.5 w-3.5 text-primary" />
+                <SelectTrigger className="bg-sidebar-accent/15 border-sidebar-border/25 text-sidebar-foreground text-xs font-semibold h-9 rounded-2xl shadow-sm">
+                  <Store className="mr-2 h-3.5 w-3.5 text-sidebar-foreground" />
                   <SelectValue placeholder="Selecione a loja" />
                 </SelectTrigger>
                 <SelectContent>
