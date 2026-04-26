@@ -850,7 +850,7 @@ export default function GestaoRotas() {
                           />
                         </TableCell>
                         <TableCell>
-                          <Badge className={vendido > 0 ? "bg-green-500 text-white" : ""}>{vendido}</Badge>
+                          <Badge variant={vendido > 0 ? "success" : "outline"}>{vendido}</Badge>
                         </TableCell>
                       </TableRow>
                     );
