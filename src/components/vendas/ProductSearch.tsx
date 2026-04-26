@@ -42,11 +42,11 @@ interface ProductSearchProps {
 }
 
 const produtosPrincipais = [
-  { label: "Gás P13", aliases: ["gas p13", "gás p13", "p13"], image: gasP13Img, quickTone: "bg-gradient-to-br from-emerald-500 to-emerald-600 text-primary-foreground shadow-emerald-500/25", quickRing: "ring-emerald-400/40" },
-  { label: "Gás P20", aliases: ["gas p20", "gás p20", "p20"], image: gasP20Img, quickTone: "bg-gradient-to-br from-sky-500 to-sky-600 text-primary-foreground shadow-sky-500/25", quickRing: "ring-sky-400/40" },
-  { label: "Gás P45", aliases: ["gas p45", "gás p45", "p45"], image: gasP45Img, quickTone: "bg-gradient-to-br from-violet-500 to-violet-600 text-primary-foreground shadow-violet-500/25", quickRing: "ring-violet-400/40" },
-  { label: "Água Mineral 20L", aliases: ["agua mineral 20", "água mineral 20", "agua 20", "20l"], image: agua20lImg, quickTone: "bg-gradient-to-br from-teal-500 to-teal-600 text-primary-foreground shadow-teal-500/25", quickRing: "ring-teal-400/40" },
-  { label: "Kit Regulador 13kg", aliases: ["kit regulador", "regulador 13", "regulador"], image: null, quickTone: "bg-gradient-to-br from-orange-500 to-orange-600 text-primary-foreground shadow-orange-500/25", quickRing: "ring-orange-400/40" },
+  { label: "Gás P13", aliases: ["gas p13", "gás p13", "p13"], image: gasP13Img, quickTone: "bg-warning text-warning-foreground shadow-warning/25", quickRing: "ring-warning/40" },
+  { label: "Gás P20", aliases: ["gas p20", "gás p20", "p20"], image: gasP20Img, quickTone: "bg-info text-info-foreground shadow-info/25", quickRing: "ring-info/40" },
+  { label: "Gás P45", aliases: ["gas p45", "gás p45", "p45"], image: gasP45Img, quickTone: "bg-primary text-primary-foreground shadow-primary/25", quickRing: "ring-primary/40" },
+  { label: "Água Mineral 20L", aliases: ["agua mineral 20", "água mineral 20", "agua 20", "20l"], image: agua20lImg, quickTone: "bg-info text-info-foreground shadow-info/25", quickRing: "ring-info/40" },
+  { label: "Kit Regulador 13kg", aliases: ["kit regulador", "regulador 13", "regulador"], image: null, quickTone: "bg-secondary text-secondary-foreground shadow-secondary/25", quickRing: "ring-secondary/40" },
 ];
 
 export function ProductSearch({ itens, onChange, unidadeId, clienteId }: ProductSearchProps) {
