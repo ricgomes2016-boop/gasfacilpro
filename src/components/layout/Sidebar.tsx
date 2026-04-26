@@ -423,10 +423,9 @@ export function Sidebar() {
                     <Link
                       to={item.path}
                       className={cn(
-                        "group relative flex items-center gap-3 rounded-full px-4 py-3 text-[13px] font-semibold transition-all duration-200",
-                        isItemActive
-                          ? "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
-                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
+                        menuItemBase,
+                        "relative",
+                        isItemActive ? menuItemActive : menuItemIdle
                       )}
                     >
                       <item.icon className={cn(
@@ -441,10 +440,9 @@ export function Sidebar() {
                     <button
                       onClick={() => toggleSubmenu(item.label)}
                       className={cn(
-                        "group flex w-full items-center gap-3 rounded-full px-4 py-3 text-[13px] font-semibold transition-all duration-200",
-                        isChildActive
-                          ? "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
-                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
+                        menuItemBase,
+                        "w-full",
+                        isChildActive ? menuItemActive : menuItemIdle
                       )}
                     >
                       <item.icon className={cn(
@@ -490,7 +488,7 @@ export function Sidebar() {
                                     href={subItem.externalUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                      className="group flex items-center gap-2.5 rounded-full px-3 py-2 text-[12px] font-semibold text-sidebar-foreground/70 transition-all duration-200 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground"
+                                      className={cn(subMenuItemBase, subMenuItemIdle)}
                                   >
                                     <SubIcon className={cn(
                                       "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
@@ -503,10 +501,8 @@ export function Sidebar() {
                                   <Link
                                     to={subItem.path!}
                                     className={cn(
-                                      "group flex items-center gap-2.5 rounded-full px-3 py-2 text-[12px] font-semibold transition-all duration-200",
-                                      subActive
-                                        ? "bg-sidebar-accent/95 text-foreground shadow-sm ring-1 ring-sidebar-border/25"
-                                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
+                                      subMenuItemBase,
+                                      subActive ? subMenuItemActive : subMenuItemIdle
                                     )}
                                   >
                                     <SubIcon className={cn(
