@@ -271,7 +271,7 @@ export function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3.5 py-5 scrollbar-thin">
+        <nav className="flex-1 overflow-y-auto px-3.5 py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="space-y-2">
             {menuItems.map((item, idx) => {
               const hasSubmenu = !!item.submenu;
@@ -412,7 +412,7 @@ export function Sidebar() {
                         transition={{ duration: 0.25, ease: "easeInOut" }}
                         className="overflow-hidden"
                       >
-                        <div className="ml-6 mt-2 max-h-[400px] space-y-1.5 overflow-y-auto border-l border-sidebar-border/20 py-1.5 pl-3 scrollbar-thin">
+                        <div className="ml-6 mt-2 max-h-[400px] space-y-1.5 overflow-y-auto border-l border-sidebar-border/20 py-1.5 pl-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                           {item.submenu?.map((subItem, subIdx) => {
                             const SubIcon = subItem.icon;
                             const subActive = isActive(subItem.path);
