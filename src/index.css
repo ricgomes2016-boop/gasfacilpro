@@ -368,7 +368,9 @@
   }
 
   .kpi-label {
-    @apply text-xs font-medium text-current/80;
+    @apply text-xs font-medium;
+    color: currentColor;
+    opacity: 0.82;
   }
 
   .kpi-card-primary { @apply border-transparent bg-primary text-primary-foreground shadow-primary/20; }
