@@ -162,12 +162,12 @@ export default function Dashboard() {
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <Flame className="h-5 w-5" />
-                <span className="text-sm font-medium text-white/80">Gás Fácil</span>
+                <span className="text-sm font-medium text-primary-foreground/80">Gás Fácil</span>
               </div>
               <h1 className="text-2xl md:text-3xl font-bold mb-0.5">
                 {greeting.text}! {greeting.emoji}
               </h1>
-              <p className="text-sm text-white/70 capitalize line-clamp-2">{todayFormatted}</p>
+              <p className="text-sm text-primary-foreground/70 capitalize line-clamp-2">{todayFormatted}</p>
             </div>
             <VoiceAssistant userName={greeting.text} />
           </div>
