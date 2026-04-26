@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ShoppingCart, Truck, CheckCircle, XCircle, CalendarClock } from "lucide-react";
 import type { ItemVenda } from "./ProductSearch";
 import type { Pagamento } from "./PaymentSection";
+import { VendaSectionHeader } from "./VendaSectionHeader";
 
 interface OrderSummaryProps {
   itens: ItemVenda[];
@@ -35,14 +36,7 @@ export function OrderSummary({
 
   return (
     <Card className="venda-card w-full min-w-0 max-w-full overflow-hidden">
-      <CardHeader className="border-b bg-primary p-4 pb-3 text-primary-foreground">
-        <CardTitle className="flex items-center gap-2 text-base text-primary-foreground">
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary-foreground/15 text-primary-foreground">
-            <ShoppingCart className="h-5 w-5 shrink-0" />
-          </span>
-          <span className="truncate">Resumo da Venda</span>
-        </CardTitle>
-      </CardHeader>
+      <VendaSectionHeader title="Resumo da Venda" icon={<ShoppingCart className="h-5 w-5 shrink-0" />} />
       <CardContent className="grid w-full min-w-0 gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="space-y-3 min-w-0">
         {/* Canal de venda */}
