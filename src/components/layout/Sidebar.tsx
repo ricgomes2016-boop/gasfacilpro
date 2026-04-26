@@ -215,12 +215,12 @@ export function Sidebar() {
   const userName = profile?.full_name || "Administrador";
   const userInitial = userName.charAt(0).toUpperCase();
 
-  const menuItemBase = "group flex items-center gap-3 rounded-full px-4 py-3 text-[13px] font-semibold transition-all duration-200";
-  const menuItemActive = "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25";
+  const menuItemBase = "group flex items-center gap-3.5 rounded-full px-4 py-3.5 text-[13px] font-semibold transition-all duration-200";
+  const menuItemActive = "bg-sidebar-accent/95 text-sidebar-accent-foreground shadow-lg shadow-foreground/10 ring-1 ring-sidebar-border/25";
   const menuItemIdle = "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15";
-  const collapsedItemBase = "mx-auto flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-200";
-  const subMenuItemBase = "group flex items-center gap-2.5 rounded-full px-3 py-2 text-[12px] font-semibold transition-all duration-200";
-  const subMenuItemActive = "bg-sidebar-accent/95 text-foreground shadow-sm ring-1 ring-sidebar-border/25";
+  const collapsedItemBase = "mx-auto flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200";
+  const subMenuItemBase = "group flex items-center gap-3 rounded-full px-3.5 py-2.5 text-[12px] font-semibold transition-all duration-200";
+  const subMenuItemActive = "bg-sidebar-accent/95 text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border/25";
   const subMenuItemIdle = "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15";
 
   const { themeClass } = useDashboardTheme();
@@ -232,7 +232,7 @@ export function Sidebar() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
           themeClass,
-          "fixed left-0 top-0 z-40 hidden h-screen flex-col overflow-hidden rounded-r-[2rem] border-r border-sidebar-border/15 bg-gradient-to-b from-primary via-primary/95 to-secondary shadow-2xl xl:flex"
+          "app-sidebar-premium fixed left-0 top-0 z-40 hidden h-screen flex-col overflow-hidden rounded-r-[2rem] border-r border-sidebar-border/15 shadow-2xl xl:flex"
         )}
       >
         {/* Header */}
@@ -243,7 +243,7 @@ export function Sidebar() {
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <img src={logoImg} alt="Gás Fácil" className="h-11 w-11 flex-shrink-0 rounded-2xl bg-sidebar-accent/95 object-contain p-1.5 shadow-lg shadow-foreground/20" />
+              <img src={logoImg} alt="Gás Fácil" className="h-11 w-11 flex-shrink-0 rounded-2xl bg-sidebar-accent/95 object-contain p-1.5 shadow-md shadow-foreground/10" />
             </motion.div>
             <AnimatePresence>
               {!collapsed && (
@@ -297,7 +297,7 @@ export function Sidebar() {
                   if (u) setUnidadeAtual(u);
                 }}
               >
-                <SelectTrigger className="h-10 rounded-2xl border-sidebar-border/20 bg-sidebar-accent/10 text-xs font-semibold text-sidebar-foreground shadow-sm shadow-foreground/10 hover:bg-sidebar-accent/15">
+              <SelectTrigger className="h-11 rounded-full border-sidebar-border/20 bg-sidebar-accent/10 px-4 text-xs font-semibold text-sidebar-foreground shadow-none hover:bg-sidebar-accent/15">
                   <Store className="mr-2 h-3.5 w-3.5" />
                   <SelectValue placeholder="Selecione a loja" />
                 </SelectTrigger>
@@ -331,8 +331,8 @@ export function Sidebar() {
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin">
-          <div className="space-y-1.5">
+        <nav className="flex-1 overflow-y-auto px-3.5 py-5 scrollbar-thin">
+          <div className="space-y-2">
             {menuItems.map((item, idx) => {
               const hasSubmenu = !!item.submenu;
               const isOpen = isSubmenuOpen(item.label);
@@ -472,7 +472,7 @@ export function Sidebar() {
                         transition={{ duration: 0.25, ease: "easeInOut" }}
                         className="overflow-hidden"
                       >
-                        <div className="ml-6 mt-1 max-h-[400px] space-y-1 overflow-y-auto border-l border-sidebar-border/20 py-1 pl-3 scrollbar-thin">
+                        <div className="ml-6 mt-2 max-h-[400px] space-y-1.5 overflow-y-auto border-l border-sidebar-border/20 py-1.5 pl-3 scrollbar-thin">
                           {item.submenu?.map((subItem, subIdx) => {
                             const SubIcon = subItem.icon;
                             const subActive = isActive(subItem.path);
@@ -527,13 +527,13 @@ export function Sidebar() {
         </nav>
 
         {/* User + Logout */}
-        <div className="flex-shrink-0 border-t border-sidebar-border/15 bg-gradient-to-t from-secondary/30 to-transparent p-3">
+        <div className="flex-shrink-0 border-t border-sidebar-border/15 bg-sidebar-accent/5 p-3">
           {collapsed ? (
             <div className="flex flex-col items-center gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 cursor-pointer">
-                    <span className="text-xs font-bold text-primary">{userInitial}</span>
+                  <div className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-sidebar-accent/90 shadow-sm shadow-foreground/10">
+                    <span className="text-xs font-bold text-sidebar-accent-foreground">{userInitial}</span>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="right">
@@ -559,11 +559,11 @@ export function Sidebar() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-                className="rounded-3xl border border-sidebar-border/15 bg-sidebar-accent/10 p-3 shadow-lg shadow-foreground/10 backdrop-blur-sm"
+                className="rounded-3xl border border-sidebar-border/15 bg-sidebar-accent/10 p-3 shadow-none backdrop-blur-sm"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-sidebar-accent/90">
-                  <span className="text-xs font-bold text-foreground">{userInitial}</span>
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-sidebar-accent/90 shadow-sm shadow-foreground/10">
+                  <span className="text-xs font-bold text-sidebar-accent-foreground">{userInitial}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-extrabold text-sidebar-foreground truncate">{userName}</p>
@@ -574,7 +574,7 @@ export function Sidebar() {
                     variant="ghost"
                     size="icon"
                     onClick={handleSignOut}
-                    className="h-8 w-8 rounded-lg text-sidebar-foreground hover:text-destructive hover:bg-destructive/10"
+                    className="h-8 w-8 rounded-full text-sidebar-foreground/75 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground"
                   >
                     <LogOut className="h-4 w-4" />
                   </Button>

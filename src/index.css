@@ -49,6 +49,8 @@
     --radius: 1rem;
 
     --sidebar-background: 174 61% 47%;
+    --sidebar-gradient-from: 174 61% 47%;
+    --sidebar-gradient-to: 243 100% 69%;
     --sidebar-foreground: 220 14% 96%;
     --sidebar-primary: 0 0% 100%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -106,14 +108,27 @@
     --input: 220 22% 16%;
     --ring: 187 55% 42%;
 
-    --sidebar-background: 222 47% 4%;
+    --sidebar-background: 174 61% 47%;
+    --sidebar-gradient-from: 174 61% 47%;
+    --sidebar-gradient-to: 243 100% 69%;
     --sidebar-foreground: 220 14% 96%;
-    --sidebar-primary: 187 55% 42%;
+    --sidebar-primary: 0 0% 100%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 34% 12%;
-    --sidebar-accent-foreground: 220 14% 96%;
-    --sidebar-border: 222 22% 22%;
-    --sidebar-ring: 187 55% 42%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 0 0% 18%;
+    --sidebar-border: 0 0% 100%;
+    --sidebar-ring: 0 0% 100%;
+  }
+}
+
+@layer components {
+  .app-sidebar-premium {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--sidebar-gradient-from)) 0%,
+      hsl(var(--sidebar-gradient-from) / 0.96) 42%,
+      hsl(var(--sidebar-gradient-to)) 100%
+    );
   }
 }
 
