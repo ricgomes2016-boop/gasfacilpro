@@ -229,8 +229,8 @@ export default function Clientes() {
     <MainLayout>
       <Header title="Clientes" subtitle="Gerencie seus clientes" />
       <div className="p-3 sm:p-4 md:p-6">
-        <Card>
-          <CardHeader>
+        <Card className="modern-panel">
+          <CardHeader className="bg-card">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2 flex-wrap min-w-0">
                 <Badge variant="outline" className="text-xs shrink-0">
@@ -281,7 +281,7 @@ export default function Clientes() {
                   className="hidden"
                   onChange={handleCsvFile}
                 />
-                <Button size="sm" onClick={handleNovo}>
+                <Button size="sm" onClick={handleNovo} className="bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90">
                   <Plus className="mr-1.5 h-4 w-4" />
                   Novo Cliente
                 </Button>
