@@ -966,8 +966,8 @@ export default function CadastroClientesCad() {
     <MainLayout>
       <Header title="Cadastro de Clientes" subtitle="Gerencie os clientes da revenda" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap gap-2">
+        <div className="modern-panel flex flex-wrap items-center justify-between gap-2 p-3">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <input
               ref={photoInputRef}
               type="file"
@@ -992,7 +992,7 @@ export default function CadastroClientesCad() {
             />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button variant="import" className="gap-2 flex-1 sm:flex-none">
                   <Camera className="h-4 w-4" />
                   Importar
                   <ChevronDown className="h-3 w-3" />
@@ -1013,11 +1013,11 @@ export default function CadastroClientesCad() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="outline" className="gap-2" onClick={() => setIsMesclarOpen(true)}>
+            <Button variant="outline" className="gap-2 flex-1 sm:flex-none" onClick={() => setIsMesclarOpen(true)}>
               <Merge className="h-4 w-4" />
               Mesclar
             </Button>
-            <Button className="gap-2" onClick={openCreateModal}>
+            <Button className="gap-2 flex-1 sm:flex-none" onClick={openCreateModal}>
               <Plus className="h-4 w-4" />
               Novo Cliente
             </Button>
@@ -1025,50 +1025,15 @@ export default function CadastroClientesCad() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Clientes Ativos</CardTitle>
-              <Users className="h-4 w-4 text-success" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-success">{stats.ativos}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.total > 0 ? Math.round((stats.ativos / stats.total) * 100) : 0}% do total
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Residenciais</CardTitle>
-              <Users className="h-4 w-4 text-info" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-info">{stats.residenciais}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Comerciais</CardTitle>
-              <Users className="h-4 w-4 text-warning" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-warning">{stats.comerciais}</div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <Card className="kpi-card kpi-card-primary"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-primary"><Users /></div><div className="min-w-0"><div className="kpi-value">{stats.total}</div><p className="kpi-label">Total</p></div></CardContent></Card>
+          <Card className="kpi-card kpi-card-success"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-success"><Users /></div><div className="min-w-0"><div className="kpi-value text-success">{stats.ativos}</div><p className="kpi-label">Ativos · {stats.total > 0 ? Math.round((stats.ativos / stats.total) * 100) : 0}%</p></div></CardContent></Card>
+          <Card className="kpi-card kpi-card-info"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-info"><Users /></div><div className="min-w-0"><div className="kpi-value text-info">{stats.residenciais}</div><p className="kpi-label">Residenciais</p></div></CardContent></Card>
+          <Card className="kpi-card kpi-card-warning"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-warning"><Users /></div><div className="min-w-0"><div className="kpi-value text-warning">{stats.comerciais}</div><p className="kpi-label">Comerciais</p></div></CardContent></Card>
         </div>
 
         {/* Client List */}
-        <Card>
+        <Card className="modern-panel">
           <CardHeader>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1099,7 +1064,7 @@ export default function CadastroClientesCad() {
 
               {/* Filtros avançados */}
               {showFilters && (
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 rounded-lg bg-muted/50 border">
+                <div className="semantic-filter-panel grid grid-cols-2 md:grid-cols-5 gap-3">
                   <div>
                     <Label className="text-xs font-medium">Tipo</Label>
                     <Select value={filterTipo} onValueChange={setFilterTipo}>
@@ -1193,7 +1158,7 @@ export default function CadastroClientesCad() {
                 {/* Mobile Cards */}
                 <div className="space-y-3 md:hidden">
                   {filteredClientes.map((cliente) => (
-                    <div key={cliente.id} className="rounded-lg border bg-card p-4 space-y-3">
+                    <div key={cliente.id} className="semantic-mobile-card">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
