@@ -446,8 +446,8 @@ export default function GestaoRotas() {
               </Button>
             </div>
 
-            <Card>
-              <CardContent className="p-0">
+            <Card className="modern-panel">
+              <CardContent className="p-0 md:p-4">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -475,15 +475,16 @@ export default function GestaoRotas() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <div className="flex flex-wrap gap-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
                               {rota.tipo === "atacado" && rota.cidades?.length > 0
                                 ? rota.cidades.map((c, i) => (
-                                    <Badge key={i} variant="outline" className="text-xs">
-                                      {c.nome} {c.km > 0 && `(${c.km}km)`}
+                                    <Badge key={i} variant="outline" className="border-primary/25 bg-primary/10 text-xs text-primary">
+                                      <span className="mr-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">{i + 1}</span>
+                                      {c.nome} {c.km > 0 && `(${c.km} km)`}
                                     </Badge>
                                   ))
                                 : (rota.bairros || []).map((b) => (
-                                    <Badge key={b} variant="outline" className="text-xs">{b}</Badge>
+                                    <Badge key={b} variant="outline" className="border-secondary/25 bg-secondary/10 text-xs text-secondary">{b}</Badge>
                                   ))
                               }
                             </div>
