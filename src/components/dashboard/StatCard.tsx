@@ -19,11 +19,11 @@ interface StatCardProps {
 }
 
 const variantStyles = {
-  default: "bg-card",
-  primary: "bg-primary text-primary-foreground",
-  success: "bg-success text-success-foreground",
-  warning: "bg-warning text-warning-foreground",
-  info: "bg-info text-info-foreground",
+  default: "border-border/70 bg-card text-card-foreground",
+  primary: "border-primary bg-primary text-primary-foreground",
+  success: "border-success bg-success text-success-foreground",
+  warning: "border-warning bg-warning text-warning-foreground",
+  info: "border-info bg-info text-info-foreground",
 };
 
 const iconVariantStyles = {
@@ -212,7 +212,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "flex h-full min-h-[148px] min-w-0 rounded-xl p-5 shadow-md transition-all duration-200 hover:shadow-lg sm:p-6",
+        "modern-status-card flex h-full min-h-[148px] min-w-0 p-5 sm:p-6",
         variantStyles[variant]
       )}
     >
