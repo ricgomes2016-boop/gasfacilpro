@@ -338,15 +338,15 @@
   }
 
   .modern-panel {
-    @apply rounded-2xl border border-border/50 bg-card shadow-md shadow-foreground/5;
+    @apply rounded-2xl border border-border/35 bg-card shadow-md shadow-foreground/5;
   }
 
   .modern-soft-panel {
-    @apply rounded-2xl border border-border/40 bg-card shadow-sm shadow-foreground/5;
+    @apply rounded-2xl border border-border/30 bg-card shadow-sm shadow-foreground/5;
   }
 
   .modern-status-card {
-    @apply overflow-hidden rounded-2xl border border-border/40 shadow-md shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/10;
+    @apply overflow-hidden rounded-2xl border border-border/35 bg-card shadow-md shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/10;
   }
 
   .saas-table {
@@ -367,14 +367,19 @@
   }
 
   .saas-table tbody td {
-    @apply border-y border-border/50 bg-card px-4 py-4 shadow-sm first:rounded-l-2xl first:border-l last:rounded-r-2xl last:border-r;
+    @apply border-y border-border/35 bg-card px-4 py-4 shadow-sm first:rounded-l-2xl first:border-l last:rounded-r-2xl last:border-r;
+  }
+
+  .status-pill,
+  [class*="badge-status"] {
+    @apply inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold shadow-sm;
   }
 
   .saas-table-scope table { @apply saas-table; }
   .saas-table-scope thead tr { @apply saas-table-header; }
 
   .kpi-card {
-    @apply modern-status-card border-transparent bg-primary text-primary-foreground shadow-primary/20;
+    @apply modern-status-card bg-card text-card-foreground;
   }
 
   .kpi-card-content {
@@ -391,11 +396,11 @@
     opacity: 0.82;
   }
 
-  .kpi-card-primary { @apply border-transparent bg-primary text-primary-foreground shadow-primary/20; }
-  .kpi-card-info { @apply border-transparent bg-info text-info-foreground shadow-info/20; }
-  .kpi-card-success { @apply border-transparent bg-success text-success-foreground shadow-success/20; }
-  .kpi-card-warning { @apply border-transparent bg-warning text-warning-foreground shadow-warning/20; }
-  .kpi-card-destructive { @apply border-transparent bg-destructive text-destructive-foreground shadow-destructive/20; }
+  .kpi-card-primary { @apply border-primary/20 bg-card text-card-foreground shadow-primary/10; }
+  .kpi-card-info { @apply border-info/20 bg-card text-card-foreground shadow-info/10; }
+  .kpi-card-success { @apply border-success/20 bg-card text-card-foreground shadow-success/10; }
+  .kpi-card-warning { @apply border-warning/25 bg-card text-card-foreground shadow-warning/10; }
+  .kpi-card-destructive { @apply border-destructive/20 bg-card text-card-foreground shadow-destructive/10; }
   .kpi-card-muted { @apply border-border/70 bg-card; }
 
   .semantic-filter-panel {
