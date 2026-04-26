@@ -94,7 +94,7 @@ export function BarcodeScanner({ onScan, isActive, onToggle, hideToggle }: Barco
       {!hideToggle && (
         <div className="flex items-center gap-2">
           <Button
-            variant={isActive ? "destructive" : "default"}
+            variant={isActive ? "destructive" : "photo"}
             size="sm"
             onClick={onToggle}
             className="gap-2"
