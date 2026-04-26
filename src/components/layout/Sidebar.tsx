@@ -224,18 +224,18 @@ export function Sidebar() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
           themeClass,
-          "fixed left-0 top-0 z-40 hidden xl:flex h-screen flex-col overflow-hidden border-r border-sidebar-border/15 bg-gradient-to-b from-primary via-primary to-secondary shadow-2xl"
+          "fixed left-0 top-0 z-40 hidden h-screen flex-col overflow-hidden rounded-r-[2rem] border-r border-sidebar-border/15 bg-gradient-to-b from-primary via-primary/95 to-secondary shadow-2xl xl:flex"
         )}
       >
         {/* Header */}
-        <div className="flex h-20 items-center justify-between border-b border-sidebar-border/20 px-4">
-          <Link to="/dashboard" className="flex items-center gap-3 group">
+        <div className="flex min-h-24 items-center justify-center border-b border-sidebar-border/15 px-4">
+          <Link to="/dashboard" className={cn("group flex items-center justify-center gap-3 rounded-3xl bg-sidebar-accent/10 px-3 py-3 ring-1 ring-sidebar-border/15 transition-all hover:bg-sidebar-accent/15", collapsed && "px-2")}>
             <motion.div
               whileHover={{ scale: 1.05, rotate: 2 }}
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <img src={logoImg} alt="Gás Fácil" className="h-11 w-11 flex-shrink-0 rounded-2xl bg-sidebar-accent/95 object-contain p-1.5 shadow-lg" />
+              <img src={logoImg} alt="Gás Fácil" className="h-11 w-11 flex-shrink-0 rounded-2xl bg-sidebar-accent/95 object-contain p-1.5 shadow-lg shadow-foreground/20" />
             </motion.div>
             <AnimatePresence>
               {!collapsed && (
@@ -256,12 +256,12 @@ export function Sidebar() {
               )}
             </AnimatePresence>
           </Link>
-          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="absolute right-3 top-3">
             <Button
               variant="ghost"
               size="icon"
               onClick={toggle}
-                className="h-8 w-8 flex-shrink-0 rounded-full text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/20"
+                className="h-8 w-8 flex-shrink-0 rounded-full text-sidebar-foreground/80 shadow-none hover:bg-sidebar-accent/15 hover:text-sidebar-foreground"
             >
               {collapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -280,7 +280,7 @@ export function Sidebar() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className="border-b border-sidebar-border/20 p-3"
+              className="border-b border-sidebar-border/15 px-4 py-3"
             >
               <Select
                 value={unidadeAtual?.id || ""}
@@ -289,8 +289,8 @@ export function Sidebar() {
                   if (u) setUnidadeAtual(u);
                 }}
               >
-                <SelectTrigger className="bg-sidebar-accent/15 border-sidebar-border/25 text-sidebar-foreground text-xs font-semibold h-9 rounded-2xl shadow-sm">
-                  <Store className="mr-2 h-3.5 w-3.5 text-sidebar-foreground" />
+                <SelectTrigger className="h-10 rounded-2xl border-sidebar-border/20 bg-sidebar-accent/10 text-xs font-semibold text-sidebar-foreground shadow-sm shadow-foreground/10 hover:bg-sidebar-accent/15">
+                  <Store className="mr-2 h-3.5 w-3.5" />
                   <SelectValue placeholder="Selecione a loja" />
                 </SelectTrigger>
                 <SelectContent>
@@ -308,11 +308,11 @@ export function Sidebar() {
 
         {/* Collapsed Store Icon */}
         {collapsed && (
-          <div className="border-b border-sidebar-border p-3 flex justify-center">
+          <div className="flex justify-center border-b border-sidebar-border/15 p-3">
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-accent cursor-pointer hover:bg-sidebar-accent/80 transition-colors">
-                  <Store className="h-4 w-4 text-primary" />
+                <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-2xl bg-sidebar-accent/90 text-primary transition-colors hover:bg-sidebar-accent">
+                  <Store className="h-4 w-4" />
                 </div>
               </TooltipTrigger>
               <TooltipContent side="right">
@@ -323,8 +323,8 @@ export function Sidebar() {
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-3 scrollbar-thin">
-          <div className="space-y-1">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin">
+          <div className="space-y-1.5">
             {menuItems.map((item, idx) => {
               const hasSubmenu = !!item.submenu;
               const isOpen = isSubmenuOpen(item.label);
@@ -340,10 +340,10 @@ export function Sidebar() {
                         <Link
                           to={item.path}
                           className={cn(
-                            "flex h-10 w-10 items-center justify-center rounded-2xl mx-auto transition-all duration-200",
+                            "mx-auto flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-200",
                             isItemActive
-                              ? "bg-sidebar-accent/95 text-primary shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
-                              : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/18 hover:ring-1 hover:ring-sidebar-border/20"
+                              ? "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                           )}
                         >
                           <item.icon className={cn("h-[18px] w-[18px]", isItemActive ? "" : menuIconColors[item.label] || "")} />
@@ -351,10 +351,10 @@ export function Sidebar() {
                       ) : (
                         <button
                           className={cn(
-                            "flex h-10 w-10 items-center justify-center rounded-2xl mx-auto transition-all duration-200",
+                            "mx-auto flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-200",
                             isChildActive
-                              ? "bg-sidebar-accent/95 text-primary ring-1 ring-sidebar-border/25"
-                              : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/18 hover:ring-1 hover:ring-sidebar-border/20"
+                              ? "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                           )}
                         >
                           <item.icon className={cn("h-[18px] w-[18px]", isChildActive ? "" : menuIconColors[item.label] || "")} />
@@ -401,10 +401,10 @@ export function Sidebar() {
                       <Link
                         to={item.path}
                         className={cn(
-                          "group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-[13px] font-semibold transition-all duration-200 relative overflow-hidden",
+                          "group relative flex items-center gap-3 rounded-full px-4 py-3 text-[13px] font-semibold transition-all duration-200 overflow-hidden",
                           isItemActive
-                            ? "bg-sidebar-accent/95 text-primary shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
-                            : "bg-sidebar-accent/15 text-sidebar-foreground border border-sidebar-border/20 hover:bg-sidebar-accent/25"
+                            ? "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
+                            : "border border-sidebar-border/15 bg-sidebar-accent/10 text-sidebar-foreground/75 hover:bg-sidebar-accent/15 hover:text-sidebar-foreground"
                         )}
                       >
                         <motion.div
@@ -420,10 +420,10 @@ export function Sidebar() {
                     <Link
                       to={item.path}
                       className={cn(
-                        "group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-[13px] font-semibold transition-all duration-200 relative",
+                        "group relative flex items-center gap-3 rounded-full px-4 py-3 text-[13px] font-semibold transition-all duration-200",
                         isItemActive
-                          ? "bg-sidebar-accent/95 text-primary shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
-                            : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/18 hover:ring-1 hover:ring-sidebar-border/20"
+                          ? "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                       )}
                     >
                       <item.icon className={cn(
@@ -438,10 +438,10 @@ export function Sidebar() {
                     <button
                       onClick={() => toggleSubmenu(item.label)}
                       className={cn(
-                        "group flex w-full items-center gap-3 rounded-2xl px-3.5 py-3 text-[13px] font-semibold transition-all duration-200",
+                        "group flex w-full items-center gap-3 rounded-full px-4 py-3 text-[13px] font-semibold transition-all duration-200",
                         isChildActive
-                          ? "bg-sidebar-accent/95 text-primary ring-1 ring-sidebar-border/25"
-                          : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/18 hover:ring-1 hover:ring-sidebar-border/20"
+                          ? "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                       )}
                     >
                       <item.icon className={cn(
@@ -471,7 +471,7 @@ export function Sidebar() {
                         transition={{ duration: 0.25, ease: "easeInOut" }}
                         className="overflow-hidden"
                       >
-                        <div className="ml-5 mt-0.5 space-y-0.5 border-l-2 border-sidebar-border/25 pl-3 py-1 max-h-[400px] overflow-y-auto scrollbar-thin">
+                        <div className="ml-6 mt-1 max-h-[400px] space-y-1 overflow-y-auto border-l border-sidebar-border/20 py-1 pl-3 scrollbar-thin">
                           {item.submenu?.map((subItem, subIdx) => {
                             const SubIcon = subItem.icon;
                             const subActive = isActive(subItem.path);
@@ -487,7 +487,7 @@ export function Sidebar() {
                                     href={subItem.externalUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                      className="group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[12px] font-bold transition-all duration-200 text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/18"
+                                      className="group flex items-center gap-2.5 rounded-full px-3 py-2 text-[12px] font-semibold text-sidebar-foreground/70 transition-all duration-200 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground"
                                   >
                                     <SubIcon className={cn(
                                       "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
@@ -500,10 +500,10 @@ export function Sidebar() {
                                   <Link
                                     to={subItem.path!}
                                     className={cn(
-                                      "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
+                                      "group flex items-center gap-2.5 rounded-full px-3 py-2 text-[12px] font-semibold transition-all duration-200",
                                       subActive
-                                        ? "bg-sidebar-accent/95 text-primary shadow-sm ring-1 ring-sidebar-border/25"
-                                        : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/18 hover:ring-1 hover:ring-sidebar-border/20"
+                                        ? "bg-sidebar-accent/95 text-foreground shadow-sm ring-1 ring-sidebar-border/25"
+                                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                                     )}
                                   >
                                     <SubIcon className={cn(
@@ -528,7 +528,7 @@ export function Sidebar() {
         </nav>
 
         {/* User + Logout */}
-        <div className="flex-shrink-0 border-t border-sidebar-border p-2">
+        <div className="flex-shrink-0 border-t border-sidebar-border/15 bg-gradient-to-t from-secondary/30 to-transparent p-3">
           {collapsed ? (
             <div className="flex flex-col items-center gap-2">
               <Tooltip>
@@ -548,7 +548,7 @@ export function Sidebar() {
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={handleSignOut}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl text-sidebar-foreground transition-colors hover:text-destructive hover:bg-destructive/10"
+                    className="flex h-10 w-10 items-center justify-center rounded-2xl text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/10 hover:text-sidebar-foreground"
                   >
                     <LogOut className="h-4 w-4" />
                   </motion.button>
@@ -560,15 +560,15 @@ export function Sidebar() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="rounded-2xl border border-sidebar-border/20 bg-sidebar-accent/15 p-3 shadow-lg shadow-foreground/10"
+                className="rounded-3xl border border-sidebar-border/15 bg-sidebar-accent/10 p-3 shadow-lg shadow-foreground/10 backdrop-blur-sm"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0">
-                  <span className="text-xs font-bold text-primary">{userInitial}</span>
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-sidebar-accent/90">
+                  <span className="text-xs font-bold text-foreground">{userInitial}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-extrabold text-sidebar-foreground truncate">{userName}</p>
-                  <p className="text-[10px] font-bold text-sidebar-foreground truncate uppercase tracking-wider">Administrador</p>
+                  <p className="truncate text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/70">Administrador</p>
                 </div>
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                   <Button
