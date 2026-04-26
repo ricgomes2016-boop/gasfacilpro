@@ -24,6 +24,8 @@ import { forceAppUpdate } from "@/lib/force-app-update";
 import { BuildVersionBadge } from "@/components/shared/BuildVersionBadge";
 import { GasmaisThemeQuickToggle } from "@/components/layout/GasmaisThemeQuickToggle";
 import { CalculatorPopover } from "@/components/shared/CalculatorPopover";
+import { useSidebarContext } from "@/contexts/SidebarContext";
+import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   title: string;
@@ -34,6 +36,7 @@ export function Header({ title, subtitle }: HeaderProps) {
   const { user, profile, roles, signOut } = useAuth();
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
+  const { collapsed } = useSidebarContext();
   const { resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -66,7 +69,11 @@ export function Header({ title, subtitle }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex min-h-16 w-full max-w-full items-center justify-between gap-2 overflow-hidden border-b border-border/60 bg-background/85 px-2.5 py-1.5 shadow-sm shadow-foreground/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 md:min-h-[4.5rem] md:px-4 xl:px-6">
+    <>
+    <header className={cn(
+      "fixed left-0 right-0 top-0 z-30 flex min-h-16 w-auto max-w-full items-center justify-between gap-2 overflow-hidden border-b border-border/60 bg-background/85 px-2.5 py-1.5 shadow-sm shadow-foreground/5 backdrop-blur-xl transition-[left] duration-300 supports-[backdrop-filter]:bg-background/70 md:min-h-[4.5rem] md:px-4 xl:px-6",
+      collapsed ? "xl:left-16" : "xl:left-[260px]",
+    )}>
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
         {/* Mobile menu */}
         <MobileNav />
@@ -166,5 +173,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         </DropdownMenu>
       </div>
     </header>
+    <div aria-hidden="true" className="h-16 md:h-[4.5rem]" />
+    </>
   );
 }
