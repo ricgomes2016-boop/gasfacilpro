@@ -424,7 +424,7 @@ function CTABanner() {
           <div className="relative">
             <div className="inline-flex items-center gap-1.5 mb-5">
               {[...Array(5)].map((_, i) => (
-                <Star key={i} className="h-4 w-4 fill-white text-white" />
+                <Star key={i} className="h-4 w-4 fill-current text-primary-foreground" />
               ))}
             </div>
             <h3 className="text-4xl md:text-6xl font-black text-white mb-5 leading-[1.05] tracking-tight">

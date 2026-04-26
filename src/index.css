@@ -210,6 +210,36 @@
     color: hsl(var(--muted-foreground) / 0.82);
   }
 
+  svg {
+    color: currentColor;
+  }
+
+  svg[stroke],
+  svg [stroke],
+  .lucide {
+    stroke: currentColor !important;
+  }
+
+  svg:not([fill]),
+  svg[fill="none"],
+  .lucide {
+    fill: none;
+  }
+
+  svg[fill="white"],
+  svg[fill="#fff"],
+  svg[fill="#ffffff"],
+  svg[fill="#FFFFFF"] {
+    fill: currentColor !important;
+  }
+
+  svg.text-white,
+  svg[class*="text-white"],
+  .lucide.text-white,
+  .lucide[class*="text-white"] {
+    color: inherit !important;
+  }
+
   /* Prevent iOS/Android auto-zoom on input focus by forcing >=16px font on mobile */
   @media (max-width: 767px) {
     input:not([type="checkbox"]):not([type="radio"]),
@@ -491,6 +521,19 @@
 
   :where(.bg-white) { background-color: hsl(var(--card)) !important; }
   :where(.text-white) { color: hsl(var(--primary-foreground)) !important; }
+  :where(.text-white) > svg,
+  :where(.text-white) .lucide,
+  :where(.text-white\/50) > svg,
+  :where(.text-white\/50) .lucide,
+  :where(.text-white\/70) > svg,
+  :where(.text-white\/70) .lucide,
+  :where(.text-white\/80) > svg,
+  :where(.text-white\/80) .lucide,
+  :where(.text-white\/90) > svg,
+  :where(.text-white\/90) .lucide {
+    color: currentColor !important;
+    stroke: currentColor !important;
+  }
   :where(.text-black,.text-gray-900,.text-slate-900) { color: hsl(var(--foreground)) !important; }
   :where(.text-gray-500,.text-gray-600,.text-slate-400,.text-slate-500,.text-slate-600) { color: hsl(var(--muted-foreground)) !important; }
   :where(.bg-gray-50,.bg-slate-50) { background-color: hsl(var(--muted) / 0.55) !important; }
