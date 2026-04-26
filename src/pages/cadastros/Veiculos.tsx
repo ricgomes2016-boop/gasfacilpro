@@ -58,10 +58,10 @@ interface Veiculo {
 }
 
 const statusOptions = [
-  { value: "ativo", label: "Ativo", color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" },
-  { value: "terceiro", label: "Terceiro", color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300" },
-  { value: "inativo", label: "Inativo", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" },
-  { value: "excluido", label: "Excluído", color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" },
+  { value: "ativo", label: "Ativo", color: "bg-success/10 text-success" },
+  { value: "terceiro", label: "Terceiro", color: "bg-info/10 text-info" },
+  { value: "inativo", label: "Inativo", color: "bg-warning/10 text-warning" },
+  { value: "excluido", label: "Excluído", color: "bg-destructive/10 text-destructive" },
 ];
 
 const emptyForm = { placa: "", modelo: "", marca: "", ano: "", km_atual: "", tipo: "moto", entregador_id: "", valor_fipe: "", status: "ativo" };
