@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logoImg from "@/assets/logo.png";
+import logoMarkImg from "@/assets/logo-mark.png";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -227,13 +228,18 @@ export function Sidebar() {
       >
         {/* Header */}
         <div className="flex min-h-24 items-center justify-center border-b border-sidebar-border/15 px-4">
-          <Link to="/dashboard" className={cn("group flex items-center justify-center gap-3 rounded-3xl bg-sidebar-accent/10 px-3 py-3 ring-1 ring-sidebar-border/15 transition-all hover:bg-sidebar-accent/15", collapsed && "px-2")}>
+          <button
+            type="button"
+            onClick={() => (collapsed ? toggle() : navigate("/dashboard"))}
+            className={cn("group flex items-center justify-center gap-3 rounded-3xl bg-sidebar-accent/10 px-3 py-3 ring-1 ring-sidebar-border/15 transition-all hover:bg-sidebar-accent/15", collapsed && "bg-transparent px-0 py-0 ring-0 hover:bg-transparent")}
+            title={collapsed ? "Expandir menu" : "Ir para o dashboard"}
+          >
             <motion.div
               whileHover={{ scale: 1.05, rotate: 2 }}
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <img src={logoImg} alt="Gás Fácil" className="h-11 w-11 flex-shrink-0 rounded-2xl bg-sidebar-accent/95 object-contain p-1.5 shadow-md shadow-foreground/10" />
+              <img src={collapsed ? logoMarkImg : logoImg} alt="Gás Fácil" className={cn("flex-shrink-0 object-contain", collapsed ? "h-10 w-10" : "h-11 w-11")} />
             </motion.div>
             <AnimatePresence>
               {!collapsed && (
@@ -253,7 +259,7 @@ export function Sidebar() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </Link>
+          </button>
           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="absolute right-3 top-3">
             <Button
               variant="ghost"
