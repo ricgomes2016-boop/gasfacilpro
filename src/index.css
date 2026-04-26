@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import "./styles/theme-gasmais.css";
 
 @tailwind base;
@@ -10,63 +11,63 @@
 
 @layer base {
   :root {
-    --background: 214 32% 96%;
-    --foreground: 222 47% 8%;
+    --background: 210 33% 97%;
+    --foreground: 215 28% 17%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 8%;
+    --card-foreground: 215 28% 17%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 8%;
+    --popover-foreground: 215 28% 17%;
 
-    --primary: 187 65% 38%;
+    --primary: 174 61% 47%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 95%;
-    --secondary-foreground: 222 47% 8%;
+    --secondary: 243 100% 69%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 214 24% 92%;
-    --muted-foreground: 222 32% 22%;
+    --muted: 220 23% 94%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 215 90% 52%;
+    --accent: 31 100% 63%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 69% 40%;
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 45 93% 47%;
+    --warning: 31 100% 63%;
     --warning-foreground: 0 0% 9%;
 
-    --info: 215 90% 52%;
+    --info: 243 100% 69%;
     --info-foreground: 0 0% 100%;
 
-    --border: 216 24% 78%;
-    --input: 216 24% 70%;
-    --ring: 187 65% 38%;
+    --border: 220 18% 88%;
+    --input: 220 18% 88%;
+    --ring: 174 61% 47%;
 
-    --radius: 0.625rem;
+    --radius: 1rem;
 
-    --sidebar-background: 222 47% 4%;
+    --sidebar-background: 174 61% 47%;
     --sidebar-foreground: 220 14% 96%;
-    --sidebar-primary: 187 65% 38%;
+    --sidebar-primary: 0 0% 100%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 34% 12%;
+    --sidebar-accent: 0 0% 100%;
     --sidebar-accent-foreground: 220 14% 96%;
-    --sidebar-border: 222 22% 22%;
-    --sidebar-ring: 187 65% 38%;
+    --sidebar-border: 0 0% 100%;
+    --sidebar-ring: 0 0% 100%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(190, 60%, 42%) 0%, hsl(170, 50%, 48%) 100%);
-    --gradient-dark: linear-gradient(135deg, hsl(190, 65%, 35%) 0%, hsl(170, 55%, 45%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+    --gradient-dark: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
 
     /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(220 30% 10% / 0.06);
-    --shadow-md: 0 10px 28px -18px hsl(220 35% 14% / 0.22), 0 2px 8px -4px hsl(220 35% 14% / 0.14);
-    --shadow-lg: 0 18px 45px -24px hsl(220 35% 14% / 0.32), 0 8px 18px -14px hsl(220 35% 14% / 0.2);
-    --shadow-glow: 0 0 20px hsl(187 65% 38% / 0.25);
+    --shadow-sm: 0 2px 8px hsl(220 35% 20% / 0.05);
+    --shadow-md: 0 12px 30px -18px hsl(220 35% 18% / 0.18), 0 4px 14px -8px hsl(220 35% 18% / 0.12);
+    --shadow-lg: 0 24px 55px -30px hsl(220 35% 18% / 0.26), 0 10px 24px -18px hsl(220 35% 18% / 0.16);
+    --shadow-glow: 0 0 22px hsl(var(--primary) / 0.22);
   }
 
   .dark {
@@ -131,7 +132,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
     font-optical-sizing: auto;
     font-synthesis: none;
@@ -141,10 +142,7 @@
     -moz-osx-font-smoothing: auto;
     overflow-x: hidden;
     max-width: 100vw;
-    background:
-      radial-gradient(circle at 18% -10%, hsl(var(--primary) / 0.10), transparent 34rem),
-      radial-gradient(circle at 88% 8%, hsl(var(--accent) / 0.08), transparent 28rem),
-      linear-gradient(180deg, hsl(var(--background)), hsl(216 28% 93%));
+    background: hsl(var(--background));
     background-attachment: fixed;
   }
 
@@ -226,10 +224,7 @@
 
 @layer utilities {
   .system-surface {
-    background:
-      radial-gradient(circle at 12% 0%, hsl(var(--primary) / 0.10), transparent 28rem),
-      radial-gradient(circle at 92% 10%, hsl(var(--accent) / 0.08), transparent 26rem),
-      linear-gradient(180deg, hsl(var(--background) / 0.98), hsl(var(--muted) / 0.72));
+    background: hsl(var(--background));
   }
 
   .dark .system-surface {
@@ -344,16 +339,40 @@
   }
 
   .modern-panel {
-    @apply rounded-xl border border-border/70 bg-card shadow-sm shadow-foreground/5;
+    @apply rounded-2xl border border-border/50 bg-card shadow-md shadow-foreground/5;
   }
 
   .modern-soft-panel {
-    @apply rounded-xl border border-border/60 bg-muted/35 shadow-sm shadow-foreground/5;
+    @apply rounded-2xl border border-border/40 bg-card shadow-sm shadow-foreground/5;
   }
 
   .modern-status-card {
-    @apply overflow-hidden rounded-xl border shadow-sm shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/10;
+    @apply overflow-hidden rounded-2xl border border-border/40 shadow-md shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/10;
   }
+
+  .saas-table {
+    @apply w-full border-separate border-spacing-y-2;
+  }
+
+  .saas-table thead tr,
+  .saas-table-header {
+    @apply bg-primary text-primary-foreground shadow-sm;
+  }
+
+  .saas-table th {
+    @apply border-0 px-4 py-3 text-xs font-bold uppercase tracking-wide text-primary-foreground first:rounded-l-2xl last:rounded-r-2xl;
+  }
+
+  .saas-table tbody tr {
+    @apply transition-all duration-200 hover:-translate-y-0.5;
+  }
+
+  .saas-table tbody td {
+    @apply border-y border-border/50 bg-card px-4 py-4 shadow-sm first:rounded-l-2xl first:border-l last:rounded-r-2xl last:border-r;
+  }
+
+  .saas-table-scope table { @apply saas-table; }
+  .saas-table-scope thead tr { @apply saas-table-header; }
 
   .kpi-card {
     @apply modern-status-card border-transparent bg-primary text-primary-foreground shadow-primary/20;

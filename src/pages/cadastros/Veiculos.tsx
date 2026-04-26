@@ -58,10 +58,10 @@ interface Veiculo {
 }
 
 const statusOptions = [
-  { value: "ativo", label: "Ativo", color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" },
-  { value: "terceiro", label: "Terceiro", color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300" },
-  { value: "inativo", label: "Inativo", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" },
-  { value: "excluido", label: "Excluído", color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" },
+  { value: "ativo", label: "Ativo", color: "bg-success/10 text-success" },
+  { value: "terceiro", label: "Terceiro", color: "bg-info/10 text-info" },
+  { value: "inativo", label: "Inativo", color: "bg-warning/10 text-warning" },
+  { value: "excluido", label: "Excluído", color: "bg-destructive/10 text-destructive" },
 ];
 
 const emptyForm = { placa: "", modelo: "", marca: "", ano: "", km_atual: "", tipo: "moto", entregador_id: "", valor_fipe: "", status: "ativo" };
@@ -235,7 +235,7 @@ export default function Veiculos() {
           </Tabs>
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
             <DialogTrigger asChild>
-              <Button className="gap-2"><Plus className="h-4 w-4" />Novo Veículo</Button>
+              <Button className="gap-2 bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90"><Plus className="h-4 w-4" />Novo Veículo</Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
@@ -315,42 +315,42 @@ export default function Veiculos() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-          <Card>
+          <Card className="modern-status-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs font-medium">Ativos</CardTitle>
               <Car className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{countByStatus("ativo")}</div></CardContent>
           </Card>
-          <Card>
+          <Card className="modern-status-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs font-medium">Terceiros</CardTitle>
               <ExternalLink className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{countByStatus("terceiro")}</div></CardContent>
           </Card>
-          <Card>
+          <Card className="modern-status-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs font-medium">GPS Online</CardTitle>
               <MapPin className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{gpsOnlineCount}</div></CardContent>
           </Card>
-          <Card>
+          <Card className="modern-status-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs font-medium">KM/L Médio</CardTitle>
               <Fuel className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{avgKmL > 0 ? avgKmL.toFixed(1) : "—"}</div></CardContent>
           </Card>
-          <Card>
+          <Card className="modern-status-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs font-medium">Com Entregador</CardTitle>
               <User className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{veiculos.filter(v => v.entregador_id && (v.status || "ativo") !== "excluido").length}</div></CardContent>
           </Card>
-          <Card>
+          <Card className="modern-status-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs font-medium">Valor FIPE</CardTitle>
               <Truck className="h-4 w-4 text-muted-foreground" />
@@ -360,7 +360,7 @@ export default function Veiculos() {
         </div>
 
         {/* Table */}
-        <Card>
+        <Card className="modern-panel">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Lista de Veículos</CardTitle>
