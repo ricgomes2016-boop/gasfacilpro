@@ -140,7 +140,9 @@
     -moz-osx-font-smoothing: auto;
     overflow-x: hidden;
     max-width: 100vw;
-    background: hsl(var(--background));
+    background:
+      radial-gradient(circle at top right, hsl(var(--secondary) / 0.06), transparent 30rem),
+      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(225 24% 98%) 100%);
     background-attachment: fixed;
   }
 
@@ -253,7 +255,8 @@
 @layer utilities {
   .system-surface {
     background:
-      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(210 33% 98%) 100%);
+      radial-gradient(circle at top right, hsl(var(--primary) / 0.08), transparent 32rem),
+      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(225 24% 98%) 100%);
   }
 
   .dark .system-surface {
