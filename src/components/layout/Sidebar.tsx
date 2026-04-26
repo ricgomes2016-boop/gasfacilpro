@@ -340,10 +340,10 @@ export function Sidebar() {
                         <Link
                           to={item.path}
                           className={cn(
-                            "flex h-10 w-10 items-center justify-center rounded-2xl mx-auto transition-all duration-200",
+                            "mx-auto flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-200",
                             isItemActive
-                              ? "bg-sidebar-accent/95 text-primary shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
-                              : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/18 hover:ring-1 hover:ring-sidebar-border/20"
+                              ? "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                           )}
                         >
                           <item.icon className={cn("h-[18px] w-[18px]", isItemActive ? "" : menuIconColors[item.label] || "")} />
@@ -351,10 +351,10 @@ export function Sidebar() {
                       ) : (
                         <button
                           className={cn(
-                            "flex h-10 w-10 items-center justify-center rounded-2xl mx-auto transition-all duration-200",
+                            "mx-auto flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-200",
                             isChildActive
-                              ? "bg-sidebar-accent/95 text-primary ring-1 ring-sidebar-border/25"
-                              : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/18 hover:ring-1 hover:ring-sidebar-border/20"
+                              ? "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                           )}
                         >
                           <item.icon className={cn("h-[18px] w-[18px]", isChildActive ? "" : menuIconColors[item.label] || "")} />
@@ -401,10 +401,10 @@ export function Sidebar() {
                       <Link
                         to={item.path}
                         className={cn(
-                          "group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-[13px] font-semibold transition-all duration-200 relative overflow-hidden",
+                          "group relative flex items-center gap-3 rounded-full px-4 py-3 text-[13px] font-semibold transition-all duration-200 overflow-hidden",
                           isItemActive
-                            ? "bg-sidebar-accent/95 text-primary shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
-                            : "bg-sidebar-accent/15 text-sidebar-foreground border border-sidebar-border/20 hover:bg-sidebar-accent/25"
+                            ? "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
+                            : "border border-sidebar-border/15 bg-sidebar-accent/10 text-sidebar-foreground/75 hover:bg-sidebar-accent/15 hover:text-sidebar-foreground"
                         )}
                       >
                         <motion.div
@@ -420,10 +420,10 @@ export function Sidebar() {
                     <Link
                       to={item.path}
                       className={cn(
-                        "group flex items-center gap-3 rounded-2xl px-3.5 py-3 text-[13px] font-semibold transition-all duration-200 relative",
+                        "group relative flex items-center gap-3 rounded-full px-4 py-3 text-[13px] font-semibold transition-all duration-200",
                         isItemActive
-                          ? "bg-sidebar-accent/95 text-primary shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
-                            : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/18 hover:ring-1 hover:ring-sidebar-border/20"
+                          ? "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                       )}
                     >
                       <item.icon className={cn(
@@ -438,10 +438,10 @@ export function Sidebar() {
                     <button
                       onClick={() => toggleSubmenu(item.label)}
                       className={cn(
-                        "group flex w-full items-center gap-3 rounded-2xl px-3.5 py-3 text-[13px] font-semibold transition-all duration-200",
+                        "group flex w-full items-center gap-3 rounded-full px-4 py-3 text-[13px] font-semibold transition-all duration-200",
                         isChildActive
-                          ? "bg-sidebar-accent/95 text-primary ring-1 ring-sidebar-border/25"
-                          : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/18 hover:ring-1 hover:ring-sidebar-border/20"
+                          ? "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                       )}
                     >
                       <item.icon className={cn(
