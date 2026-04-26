@@ -193,7 +193,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
       const rows = responses.flatMap(({ data, error }) => (!error && data ? data as any[] : []));
 
       if (rows.length > 0) {
-        const uniqueRows = Array.from(new Map(rows.map((c) => [c.id, c])).values());
+        const uniqueRows = Array.from(new globalThis.Map<string, any>(rows.map((c) => [c.id, c])).values());
         const mapped: Cliente[] = uniqueRows.map((c) => ({
           id: c.id,
           nome: c.nome,
