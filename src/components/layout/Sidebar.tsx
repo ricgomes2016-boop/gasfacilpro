@@ -215,6 +215,14 @@ export function Sidebar() {
   const userName = profile?.full_name || "Administrador";
   const userInitial = userName.charAt(0).toUpperCase();
 
+  const menuItemBase = "group flex items-center gap-3 rounded-full px-4 py-3 text-[13px] font-semibold transition-all duration-200";
+  const menuItemActive = "bg-sidebar-accent/95 text-foreground shadow-lg shadow-foreground/15 ring-1 ring-sidebar-border/25";
+  const menuItemIdle = "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15";
+  const collapsedItemBase = "mx-auto flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-200";
+  const subMenuItemBase = "group flex items-center gap-2.5 rounded-full px-3 py-2 text-[12px] font-semibold transition-all duration-200";
+  const subMenuItemActive = "bg-sidebar-accent/95 text-foreground shadow-sm ring-1 ring-sidebar-border/25";
+  const subMenuItemIdle = "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15";
+
   const { themeClass } = useDashboardTheme();
 
   return (
