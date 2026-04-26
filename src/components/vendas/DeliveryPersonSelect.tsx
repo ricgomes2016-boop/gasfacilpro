@@ -34,16 +34,11 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
   const { unidadeAtual } = useUnidade();
 
   const quickActionColors = [
-    { bg: "bg-gradient-to-br from-emerald-500 to-emerald-600 text-primary-foreground shadow-emerald-500/25", ring: "ring-emerald-400/40" },
-    { bg: "bg-gradient-to-br from-sky-500 to-sky-600 text-primary-foreground shadow-sky-500/25", ring: "ring-sky-400/40" },
-    { bg: "bg-gradient-to-br from-violet-500 to-violet-600 text-primary-foreground shadow-violet-500/25", ring: "ring-violet-400/40" },
-    { bg: "bg-gradient-to-br from-amber-500 to-amber-600 text-primary-foreground shadow-amber-500/25", ring: "ring-amber-400/40" },
-    { bg: "bg-gradient-to-br from-teal-500 to-teal-600 text-primary-foreground shadow-teal-500/25", ring: "ring-teal-400/40" },
-    { bg: "bg-gradient-to-br from-rose-500 to-rose-600 text-primary-foreground shadow-rose-500/25", ring: "ring-rose-400/40" },
-    { bg: "bg-gradient-to-br from-indigo-500 to-indigo-600 text-primary-foreground shadow-indigo-500/25", ring: "ring-indigo-400/40" },
-    { bg: "bg-gradient-to-br from-orange-500 to-orange-600 text-primary-foreground shadow-orange-500/25", ring: "ring-orange-400/40" },
-    { bg: "bg-gradient-to-br from-cyan-500 to-cyan-600 text-primary-foreground shadow-cyan-500/25", ring: "ring-cyan-400/40" },
-    { bg: "bg-gradient-to-br from-fuchsia-500 to-fuchsia-600 text-primary-foreground shadow-fuchsia-500/25", ring: "ring-fuchsia-400/40" },
+    { bg: "bg-info text-info-foreground shadow-info/25", ring: "ring-info/40" },
+    { bg: "bg-success text-success-foreground shadow-success/25", ring: "ring-success/40" },
+    { bg: "bg-warning text-warning-foreground shadow-warning/25", ring: "ring-warning/40" },
+    { bg: "bg-primary text-primary-foreground shadow-primary/25", ring: "ring-primary/40" },
+    { bg: "bg-secondary text-secondary-foreground shadow-secondary/25", ring: "ring-secondary/40" },
   ];
 
   useEffect(() => {
@@ -121,7 +116,7 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
 
   return (
     <Card className="venda-card overflow-hidden">
-      <VendaSectionHeader title="Entregador" icon={<Truck className="h-5 w-5" />} />
+      <VendaSectionHeader title="Entregador" icon={<Truck className="h-5 w-5" />} tone="warning" />
       <CardContent className="space-y-4 p-4">
         <Select value={value || undefined} onValueChange={handleSelect} disabled={loading}>
           <SelectTrigger className="sr-only">

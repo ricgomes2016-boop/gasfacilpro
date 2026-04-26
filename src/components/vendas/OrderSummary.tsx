@@ -36,7 +36,7 @@ export function OrderSummary({
 
   return (
     <Card className="venda-card w-full min-w-0 max-w-full overflow-hidden">
-      <VendaSectionHeader title="Resumo da Venda" icon={<ShoppingCart className="h-5 w-5 shrink-0" />} />
+      <VendaSectionHeader title="Resumo da Venda" icon={<ShoppingCart className="h-5 w-5 shrink-0" />} tone="success" />
       <CardContent className="grid w-full min-w-0 gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_280px]">
         <div className="space-y-3 min-w-0">
         {/* Canal de venda */}

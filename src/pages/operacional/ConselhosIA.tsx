@@ -41,7 +41,7 @@ interface ProactiveSuggestion {
   icon: React.ElementType;
   label: string;
   prompt: string;
-  gradient: string;
+  tone: string;
 }
 
 // ─── Config ─────────────────────────────────────────────────────────────────
@@ -62,29 +62,29 @@ function getProactiveSuggestions(): ProactiveSuggestion[] {
 
   if (hour < 12) {
     suggestions.push(
-      { id: "briefing", icon: Sparkles, label: "Briefing do dia", prompt: "Me dê um resumo completo de ontem e os alertas para hoje", gradient: "from-primary/10 to-primary/5" },
-      { id: "pendentes", icon: Clock, label: "Pedidos pendentes", prompt: "Quantos pedidos estão pendentes agora?", gradient: "from-yellow-500/10 to-amber-500/5" },
+      { id: "briefing", icon: Sparkles, label: "Briefing do dia", prompt: "Me dê um resumo completo de ontem e os alertas para hoje", tone: "border-info/25 bg-info/10 text-info" },
+      { id: "pendentes", icon: Clock, label: "Pedidos pendentes", prompt: "Quantos pedidos estão pendentes agora?", tone: "border-warning/25 bg-warning/10 text-warning" },
     );
   } else if (hour < 18) {
     suggestions.push(
-      { id: "vendas-hoje", icon: TrendingUp, label: "Vendas de hoje", prompt: "Qual o faturamento de hoje até agora? Compare com ontem", gradient: "from-emerald-500/10 to-green-500/5" },
-      { id: "entregas", icon: Zap, label: "Status entregas", prompt: "Quantos entregadores estão em rota e quantas entregas pendentes?", gradient: "from-blue-500/10 to-cyan-500/5" },
+      { id: "vendas-hoje", icon: TrendingUp, label: "Vendas de hoje", prompt: "Qual o faturamento de hoje até agora? Compare com ontem", tone: "border-success/25 bg-success/10 text-success" },
+      { id: "entregas", icon: Zap, label: "Status entregas", prompt: "Quantos entregadores estão em rota e quantas entregas pendentes?", tone: "border-info/25 bg-info/10 text-info" },
     );
   } else {
     suggestions.push(
-      { id: "fechamento", icon: Shield, label: "Fechamento do dia", prompt: "Resumo do dia: vendas, entregas, caixa e pendências", gradient: "from-indigo-500/10 to-violet-500/5" },
-      { id: "amanha", icon: Target, label: "Preparar amanhã", prompt: "Quais produtos estão em risco de ruptura e quais contas vencem amanhã?", gradient: "from-rose-500/10 to-pink-500/5" },
+      { id: "fechamento", icon: Shield, label: "Fechamento do dia", prompt: "Resumo do dia: vendas, entregas, caixa e pendências", tone: "border-primary/25 bg-primary/10 text-primary" },
+      { id: "amanha", icon: Target, label: "Preparar amanhã", prompt: "Quais produtos estão em risco de ruptura e quais contas vencem amanhã?", tone: "border-destructive/25 bg-destructive/10 text-destructive" },
     );
   }
 
   if (day >= 25) {
     suggestions.push(
-      { id: "mes", icon: TrendingUp, label: "Resumo do mês", prompt: "Resumo financeiro do mês: faturamento, despesas e resultado", gradient: "from-amber-500/10 to-yellow-500/5" },
+      { id: "mes", icon: TrendingUp, label: "Resumo do mês", prompt: "Resumo financeiro do mês: faturamento, despesas e resultado", tone: "border-warning/25 bg-warning/10 text-warning" },
     );
   }
 
   suggestions.push(
-    { id: "top-produtos", icon: Package, label: "Top produtos", prompt: "Quais os 5 produtos mais vendidos este mês?", gradient: "from-purple-500/10 to-fuchsia-500/5" },
+    { id: "top-produtos", icon: Package, label: "Top produtos", prompt: "Quais os 5 produtos mais vendidos este mês?", tone: "border-secondary/40 bg-secondary/60 text-secondary-foreground" },
   );
 
   return suggestions.slice(0, 4);
@@ -477,7 +477,7 @@ export default function ConselhosIA() {
             },
           ].map((kpi, i) => (
             <motion.div key={kpi.label} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }}>
-              <Card>
+              <Card className="modern-status-card">
                 <CardContent className="pt-5">
                   <div className="flex items-center justify-between">
                     <div>
@@ -494,7 +494,7 @@ export default function ConselhosIA() {
                         </p>
                       )}
                     </div>
-                    <kpi.icon className="h-8 w-8 text-primary/25" />
+                    <kpi.icon className={i === 0 ? "h-8 w-8 text-success/45" : i === 1 ? "h-8 w-8 text-warning/45" : i === 2 ? "h-8 w-8 text-info/45" : "h-8 w-8 text-destructive/45"} />
                   </div>
                 </CardContent>
               </Card>
@@ -503,9 +503,9 @@ export default function ConselhosIA() {
         </div>
 
         {/* Meta mensal */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm">
+        <Card className="modern-panel">
+          <CardHeader className="section-header-finance">
+            <CardTitle className="flex items-center gap-2 text-sm text-success-foreground">
               <TrendingUp className="h-4 w-4" />Meta Mensal de Faturamento
             </CardTitle>
           </CardHeader>
@@ -533,12 +533,12 @@ export default function ConselhosIA() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + i * 0.06 }}
-                className={`p-3 rounded-xl border border-border/50 bg-gradient-to-br ${s.gradient} text-left hover:shadow-md hover:border-primary/20 transition-all duration-200 group`}
+                className={`p-3 rounded-xl border text-left hover:shadow-md transition-all duration-200 group ${s.tone}`}
                 onClick={() => {
                   window.dispatchEvent(new CustomEvent("agent-prompt", { detail: s.prompt }));
                 }}
               >
-                <s.icon className="h-4 w-4 text-primary mb-1.5 group-hover:scale-110 transition-transform" />
+                <s.icon className="h-4 w-4 mb-1.5 group-hover:scale-110 transition-transform" />
                 <p className="text-xs font-medium">{s.label}</p>
               </motion.button>
             ))}

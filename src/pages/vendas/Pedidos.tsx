@@ -662,12 +662,12 @@ export default function Pedidos() {
               <div className="min-w-0"><p className="text-xl md:text-2xl font-bold">{contadores.cancelado}</p><p className="text-xs text-destructive-foreground/80">Cancelados</p></div>
             </CardContent>
           </Card>
-          <Card className="col-span-2 border-primary bg-primary text-primary-foreground lg:col-span-1">
+          <Card className="col-span-2 border-success bg-success text-success-foreground lg:col-span-1">
             <CardContent className="flex min-h-24 items-center gap-3 p-3 md:p-4">
-              <div className="status-card-icon status-card-icon-primary-solid"><DollarSign /></div>
+              <div className="status-card-icon status-card-icon-success-solid"><DollarSign /></div>
               <div className="min-w-0">
                 <p className="truncate text-xl font-bold md:text-2xl">R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-                <p className="text-xs text-primary-foreground/80">Total Vendas</p>
+                <p className="text-xs text-success-foreground/80">Total Vendas</p>
               </div>
             </CardContent>
           </Card>

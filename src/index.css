@@ -364,6 +364,23 @@
     --venda-tone-strong: var(--primary);
   }
 
+  .venda-tone-cliente { --venda-tone: var(--info); --venda-tone-strong: var(--info); }
+  .venda-tone-produtos { --venda-tone: var(--warning); --venda-tone-strong: var(--warning); }
+  .venda-tone-pagamento { --venda-tone: var(--success); --venda-tone-strong: var(--success); }
+  .venda-tone-entregador { --venda-tone: var(--secondary); --venda-tone-strong: var(--secondary); }
+  .venda-tone-confirmar { --venda-tone: var(--destructive); --venda-tone-strong: var(--destructive); }
+
+  .venda-step-tab[data-active="true"] {
+    background-color: hsl(var(--venda-tone));
+    color: hsl(var(--primary-foreground));
+    box-shadow: 0 6px 16px -10px hsl(var(--venda-tone) / 0.6);
+  }
+
+  .venda-step-tab[data-done="true"]:not([data-active="true"]) {
+    background-color: hsl(var(--venda-tone) / 0.15);
+    color: hsl(var(--venda-tone));
+  }
+
   .venda-step-panel {
     animation: vendaStepEnter 0.28s ease-out both;
   }

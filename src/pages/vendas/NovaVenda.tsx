@@ -146,12 +146,8 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
                 "venda-step-tab",
                 STEP_TONE_CLASS[step.id],
                 compact ? "px-2 py-1" : "px-2.5 py-1.5",
-                activeStep === step.id
-                  ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
-                  : step.done
-                  ? "bg-primary/15 text-primary"
-                  : "bg-muted text-muted-foreground",
-                step.enabled && onStepClick && activeStep !== step.id && "hover:bg-primary/10"
+                activeStep === step.id || step.done ? "" : "bg-muted text-muted-foreground",
+                step.enabled && onStepClick && activeStep !== step.id && "hover:bg-muted/80"
               )}
             >
               {step.done ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
