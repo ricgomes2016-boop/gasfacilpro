@@ -269,7 +269,7 @@ export default function ContasPagar() {
                       <Table className="border-separate border-spacing-y-2">
                         <TableHeader>
                           <TableRow className="border-success bg-success hover:bg-success [&_th]:text-success-foreground">
-                            <TableHead>Fornecedor</TableHead><TableHead>Descrição</TableHead>
+                            <TableHead className="w-10"><Checkbox checked={cp.todasPagaveisSelecionadas} onCheckedChange={cp.toggleAllPagamentoSelection} aria-label="Selecionar contas" /></TableHead><TableHead>Fornecedor</TableHead><TableHead>Descrição</TableHead>
                             <TableHead>Categoria</TableHead><TableHead>Vencimento</TableHead>
                             <TableHead>Valor</TableHead><TableHead>Status</TableHead>
                             <TableHead className="text-right">Ações</TableHead>
@@ -280,7 +280,7 @@ export default function ContasPagar() {
                             const groupTotal = items.reduce((s, c) => s + Number(c.valor), 0);
                             return [
                               <TableRow key={`grp-${fornecedor}`} className="border-0 [&>td]:border-y [&>td]:border-success/25 [&>td]:bg-success/10 [&>td:first-child]:rounded-l-lg [&>td:first-child]:border-l [&>td:last-child]:rounded-r-lg [&>td:last-child]:border-r">
-                                <TableCell colSpan={4} className="font-semibold text-success"><div className="flex items-center gap-2"><Building2 className="h-4 w-4" />{fornecedor}<Badge variant="outline" className="border-success/30 bg-success/10 text-xs text-success">{items.length}</Badge></div></TableCell>
+                                <TableCell colSpan={5} className="font-semibold text-success"><div className="flex items-center gap-2"><Building2 className="h-4 w-4" />{fornecedor}<Badge variant="outline" className="border-success/30 bg-success/10 text-xs text-success">{items.length}</Badge></div></TableCell>
                                 <TableCell className="font-bold">R$ {groupTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
                                 <TableCell colSpan={2} />
                               </TableRow>,
@@ -288,6 +288,7 @@ export default function ContasPagar() {
                                 const { label, variant } = getStatus(conta);
                                 return (
                                   <TableRow key={conta.id} className={getRowClass(label)}>
+                                    <TableCell><Checkbox checked={cp.selecionadasPagamentoIds.has(conta.id)} disabled={conta.status === "paga"} onCheckedChange={() => cp.togglePagamentoSelection(conta.id)} aria-label={`Selecionar ${conta.descricao}`} /></TableCell>
                                     <TableCell className="pl-10 text-muted-foreground text-sm">{conta.fornecedor}</TableCell>
                                     <TableCell>{conta.descricao}</TableCell>
                                     <TableCell><Badge variant="outline">{conta.categoria || "—"}</Badge></TableCell>
@@ -314,6 +315,7 @@ export default function ContasPagar() {
                             const { label, variant } = getStatus(conta);
                             return (
                               <TableRow key={conta.id} className={getRowClass(label)}>
+                                <TableCell><Checkbox checked={cp.selecionadasPagamentoIds.has(conta.id)} disabled={conta.status === "paga"} onCheckedChange={() => cp.togglePagamentoSelection(conta.id)} aria-label={`Selecionar ${conta.descricao}`} /></TableCell>
                                 <TableCell className="font-medium">{conta.fornecedor}</TableCell>
                                 <TableCell>{conta.descricao}</TableCell>
                                 <TableCell><Badge variant="outline">{conta.categoria || "—"}</Badge></TableCell>
