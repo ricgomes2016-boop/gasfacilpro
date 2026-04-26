@@ -301,22 +301,22 @@ export default function ControleCheques() {
               <div>
                 <Label>Foto do Cheque (preenche campos automaticamente)</Label>
                 <div className="flex items-center gap-2 mt-1">
-                  <Button type="button" variant="outline" size="sm" onClick={() => {
+                  <Button type="button" variant="photo" size="sm" onClick={() => {
                     if (cameraInputRef.current) {
                       cameraInputRef.current.value = "";
                       cameraInputRef.current.click();
                     }
                   }} disabled={isUploading}>
-                    {isUploading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Camera className="h-4 w-4 mr-1" />}
+                    {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                     Tirar Foto
                   </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={() => {
+                  <Button type="button" variant="import" size="sm" onClick={() => {
                     if (photoInputRef.current) {
                       photoInputRef.current.value = "";
                       photoInputRef.current.click();
                     }
                   }} disabled={isUploading}>
-                    <ImageIcon className="h-4 w-4 mr-1" />
+                    <ImageIcon className="h-4 w-4" />
                     Galeria
                   </Button>
                   <input
