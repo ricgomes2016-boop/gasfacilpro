@@ -297,7 +297,7 @@ export function BaseChatPanel() {
       </SheetTrigger>
       <SheetContent side="right" className="w-[400px] sm:w-[450px] p-0 flex flex-col">
         {/* Header */}
-        <div className="px-4 py-3 border-b bg-primary text-primary-foreground flex items-center gap-3">
+        <div className="px-4 py-3 border-b border-info/30 bg-info text-info-foreground flex items-center gap-3">
           {selectedThread ? (
             <>
               <button onClick={() => setSelectedThread(null)} className="hover:opacity-80">
