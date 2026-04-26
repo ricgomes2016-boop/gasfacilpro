@@ -19,19 +19,19 @@ interface StatCardProps {
 }
 
 const variantStyles = {
-  default: "border-border/70 bg-card text-card-foreground",
-  primary: "border-primary bg-primary text-primary-foreground",
-  success: "border-success bg-success text-success-foreground",
-  warning: "border-warning bg-warning text-warning-foreground",
-  info: "border-info bg-info text-info-foreground",
+  default: "border-border/35 bg-card text-card-foreground",
+  primary: "border-primary/20 bg-card text-card-foreground shadow-primary/10",
+  success: "border-success/20 bg-card text-card-foreground shadow-success/10",
+  warning: "border-warning/25 bg-card text-card-foreground shadow-warning/10",
+  info: "border-info/20 bg-card text-card-foreground shadow-info/10",
 };
 
 const iconVariantStyles = {
   default: "bg-muted text-muted-foreground",
-  primary: "bg-primary-foreground/20 text-primary-foreground",
-  success: "bg-success-foreground/20 text-success-foreground",
-  warning: "bg-warning-foreground/20 text-warning-foreground",
-  info: "bg-info-foreground/20 text-info-foreground",
+  primary: "bg-primary/10 text-primary",
+  success: "bg-success/10 text-success",
+  warning: "bg-warning/15 text-warning",
+  info: "bg-info/10 text-info",
 };
 
 // GásMais variant: light card with tonal icon circle
@@ -226,7 +226,7 @@ export function StatCard({
           >
             {title}
           </p>
-          <p className="mt-2 break-words text-2xl font-bold leading-tight sm:text-3xl">{value}</p>
+          <p className="mt-2 break-words text-3xl font-extrabold leading-tight text-foreground sm:text-4xl">{value}</p>
           {trend && (
             <p
               className={cn(
@@ -247,7 +247,7 @@ export function StatCard({
         </div>
         <div
           className={cn(
-            "flex-shrink-0 rounded-lg p-3",
+            "flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl p-3",
             iconVariantStyles[variant]
           )}
         >
