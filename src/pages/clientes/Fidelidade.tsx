@@ -46,13 +46,13 @@ export default function Fidelidade() {
       <Header title="Fidelidade" subtitle="Programa de fidelidade e indicações" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
         <div className="flex items-center justify-between"><Button><Gift className="h-4 w-4 mr-2" />Configurar Programa</Button></div>
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><Users className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">{fidelidade.length}</p><p className="text-sm text-muted-foreground">Participantes</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-yellow-500/10"><Star className="h-6 w-6 text-yellow-500" /></div><div><p className="text-2xl font-bold">{totalPontos.toLocaleString("pt-BR")}</p><p className="text-sm text-muted-foreground">Pontos Ativos</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-green-500/10"><Heart className="h-6 w-6 text-green-500" /></div><div><p className="text-2xl font-bold">{totalIndicacoes}</p><p className="text-sm text-muted-foreground">Indicações</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-blue-500/10"><Trophy className="h-6 w-6 text-blue-500" /></div><div><p className="text-2xl font-bold">{ouro}</p><p className="text-sm text-muted-foreground">Clientes Ouro</p></div></div></CardContent></Card>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+          <Card className="kpi-card kpi-card-primary"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-primary"><Users /></div><div><p className="kpi-value">{fidelidade.length}</p><p className="kpi-label">Participantes</p></div></CardContent></Card>
+          <Card className="kpi-card kpi-card-warning"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-warning"><Star /></div><div><p className="kpi-value text-warning">{totalPontos.toLocaleString("pt-BR")}</p><p className="kpi-label">Pontos Ativos</p></div></CardContent></Card>
+          <Card className="kpi-card kpi-card-success"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-success"><Heart /></div><div><p className="kpi-value text-success">{totalIndicacoes}</p><p className="kpi-label">Indicações</p></div></CardContent></Card>
+          <Card className="kpi-card kpi-card-info"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-info"><Trophy /></div><div><p className="kpi-value text-info">{ouro}</p><p className="kpi-label">Clientes Ouro</p></div></CardContent></Card>
         </div>
-        <Card><CardHeader><CardTitle>Níveis do Programa</CardTitle></CardHeader><CardContent><div className="grid gap-4 md:grid-cols-3">{niveis.map(n => (<div key={n.nome} className="p-4 rounded-lg border text-center"><Badge className={n.nome === "Ouro" ? "bg-yellow-500" : n.nome === "Prata" ? "bg-gray-400" : "bg-amber-700"}>{n.nome}</Badge><p className="text-sm text-muted-foreground mt-2">{n.min} - {n.max} pontos</p><p className="font-medium mt-1">{n.beneficio}</p></div>))}</div></CardContent></Card>
+        <Card><CardHeader><CardTitle>Níveis do Programa</CardTitle></CardHeader><CardContent><div className="grid gap-4 md:grid-cols-3">{niveis.map(n => (<div key={n.nome} className="modern-soft-panel p-4 text-center"><Badge className={n.nome === "Ouro" ? "bg-warning text-warning-foreground" : n.nome === "Prata" ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground"}>{n.nome}</Badge><p className="text-sm text-muted-foreground mt-2">{n.min} - {n.max} pontos</p><p className="font-medium mt-1">{n.beneficio}</p></div>))}</div></CardContent></Card>
         <Card>
           <CardHeader><CardTitle>Top Clientes Fidelidade</CardTitle></CardHeader>
           <CardContent>
@@ -65,7 +65,7 @@ export default function Fidelidade() {
                     <TableCell className="font-medium">{(c.clientes as any)?.nome || "-"}</TableCell>
                     <TableCell>{c.pontos}</TableCell>
                     <TableCell className="w-32"><Progress value={(c.pontos / 600) * 100} /></TableCell>
-                    <TableCell><Badge className={c.nivel === "Ouro" ? "bg-yellow-500" : c.nivel === "Prata" ? "bg-gray-400" : "bg-amber-700"}>{c.nivel}</Badge></TableCell>
+                    <TableCell><Badge className={c.nivel === "Ouro" ? "bg-warning text-warning-foreground" : c.nivel === "Prata" ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground"}>{c.nivel}</Badge></TableCell>
                     <TableCell>{c.indicacoes_realizadas}</TableCell>
                   </TableRow>
                 ))}
