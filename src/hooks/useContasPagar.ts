@@ -51,6 +51,8 @@ export function useContasPagar() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [pagarDialogOpen, setPagarDialogOpen] = useState(false);
   const [pagarConta, setPagarConta] = useState<ContaPagar | null>(null);
+  const [pagamentoEmLoteIds, setPagamentoEmLoteIds] = useState<Set<string>>(new Set());
+  const [selecionadasPagamentoIds, setSelecionadasPagamentoIds] = useState<Set<string>>(new Set());
   const [resumoOpen, setResumoOpen] = useState(false);
   const [agrupar, setAgrupar] = useState(false);
   const [unificarDialogOpen, setUnificarDialogOpen] = useState(false);
@@ -192,6 +194,11 @@ export function useContasPagar() {
     });
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   })();
+
+  const contasSelecionadasPagamento = contas.filter(c => selecionadasPagamentoIds.has(c.id));
+  const totalSelecionadoPagamento = contasSelecionadasPagamento.reduce((s, c) => s + Number(c.valor), 0);
+  const contasPagaveisFiltradas = filtered.filter(c => c.status !== "paga");
+  const todasPagaveisSelecionadas = contasPagaveisFiltradas.length > 0 && contasPagaveisFiltradas.every(c => selecionadasPagamentoIds.has(c.id));
 
   // ===================== CRUD =====================
 
