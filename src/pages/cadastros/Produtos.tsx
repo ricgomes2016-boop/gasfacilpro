@@ -481,7 +481,7 @@ export default function Produtos() {
                   <div className="space-y-2">
                     <Label>Tipo</Label>
                     <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-input bg-muted/50 text-sm">
-                      <Flame className="h-4 w-4 text-orange-500" />
+                      <Flame className="h-4 w-4 text-warning" />
                       <span>Cheio</span>
                       <span className="text-muted-foreground text-xs ml-auto">Par vazio criado automaticamente</span>
                     </div>
@@ -665,9 +665,9 @@ export default function Produtos() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium">Total</CardTitle>
+          <Card className="modern-status-card">
+            <CardHeader className="flex flex-row items-center justify-between border-muted/40 bg-muted pb-2 text-muted-foreground">
+              <CardTitle className="text-xs md:text-sm font-medium text-foreground">Total</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -675,52 +675,52 @@ export default function Produtos() {
               <p className="text-xs text-muted-foreground hidden sm:block">No catálogo</p>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium">Gás</CardTitle>
-              <Flame className="h-4 w-4 text-orange-600" />
+          <Card className="modern-status-card">
+            <CardHeader className="section-header-stock flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium text-warning-foreground">Gás</CardTitle>
+              <Flame className="h-4 w-4 text-warning-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl md:text-2xl font-bold text-orange-600">{produtosGas}</div>
+              <div className="text-xl md:text-2xl font-bold text-warning">{produtosGas}</div>
               <p className="text-xs text-muted-foreground hidden sm:block">Produtos</p>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium">Água</CardTitle>
-              <Droplets className="h-4 w-4 text-blue-600" />
+          <Card className="modern-status-card">
+            <CardHeader className="section-header-catalog flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium text-info-foreground">Água</CardTitle>
+              <Droplets className="h-4 w-4 text-info-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl md:text-2xl font-bold text-blue-600">{produtosAgua}</div>
+              <div className="text-xl md:text-2xl font-bold text-info">{produtosAgua}</div>
               <p className="text-xs text-muted-foreground hidden sm:block">Produtos</p>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium">Acessórios</CardTitle>
-              <Box className="h-4 w-4 text-green-600" />
+          <Card className="modern-status-card">
+            <CardHeader className="section-header-finance flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium text-success-foreground">Acessórios</CardTitle>
+              <Box className="h-4 w-4 text-success-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl md:text-2xl font-bold text-green-600">{produtosAcessorios}</div>
+              <div className="text-xl md:text-2xl font-bold text-success">{produtosAcessorios}</div>
               <p className="text-xs text-muted-foreground hidden sm:block">Produtos</p>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs md:text-sm font-medium">Baixo Est.</CardTitle>
-              <Package className="h-4 w-4 text-red-600" />
+          <Card className="modern-status-card">
+            <CardHeader className="section-header-critical flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs md:text-sm font-medium text-destructive-foreground">Baixo Est.</CardTitle>
+              <Package className="h-4 w-4 text-destructive-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl md:text-2xl font-bold text-red-600">{baixoEstoque}</div>
+              <div className="text-xl md:text-2xl font-bold text-destructive">{baixoEstoque}</div>
               <p className="text-xs text-muted-foreground hidden sm:block">Repor</p>
             </CardContent>
           </Card>
         </div>
 
-        <Card>
-          <CardHeader>
+        <Card className="modern-panel">
+          <CardHeader className="section-header-catalog">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <CardTitle>Lista de Produtos</CardTitle>
+              <CardTitle className="text-info-foreground">Lista de Produtos</CardTitle>
               <div className="relative w-full sm:w-auto">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
