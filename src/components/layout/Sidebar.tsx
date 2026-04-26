@@ -270,56 +270,6 @@ export function Sidebar() {
           </motion.div>
         </div>
 
-        {/* Store Selector */}
-        <AnimatePresence>
-          {!collapsed && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              className="border-b border-sidebar-border/15 px-4 py-3"
-            >
-              <Select
-                value={unidadeAtual?.id || ""}
-                onValueChange={(val) => {
-                  const u = unidades.find((u) => u.id === val);
-                  if (u) setUnidadeAtual(u);
-                }}
-              >
-              <SelectTrigger className="h-11 rounded-full border-sidebar-border/20 bg-sidebar-accent/10 px-4 text-xs font-semibold text-sidebar-foreground shadow-none hover:bg-sidebar-accent/15">
-                  <Store className="mr-2 h-3.5 w-3.5" />
-                  <SelectValue placeholder="Selecione a loja" />
-                </SelectTrigger>
-                <SelectContent>
-                  {unidades.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                  ))}
-                  {unidades.length === 0 && (
-                    <SelectItem value="__none" disabled>Nenhuma unidade</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Collapsed Store Icon */}
-        {collapsed && (
-          <div className="flex justify-center border-b border-sidebar-border/15 p-3">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-sidebar-accent/90 text-sidebar-accent-foreground transition-colors hover:bg-sidebar-accent">
-                  <Store className="h-4 w-4" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="right">
-                <p>{unidadeAtual?.nome || "Selecionar loja"}</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        )}
-
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3.5 py-5 scrollbar-thin">
           <div className="space-y-2">
