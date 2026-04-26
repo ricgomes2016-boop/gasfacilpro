@@ -40,6 +40,12 @@ export default function RankingClientes() {
     return (<MainLayout><Header title="Ranking de Clientes" subtitle="Top clientes por volume de compras" /><div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></MainLayout>);
   }
 
+  const podium = [
+    { Icon: Crown, card: "border-warning/35 bg-warning/5", icon: "status-card-icon-warning", badge: "bg-warning text-warning-foreground", r: ranking[0] },
+    { Icon: Medal, card: "border-muted bg-muted/35", icon: "status-card-icon-muted", badge: "bg-muted text-muted-foreground", r: ranking[1] },
+    { Icon: Trophy, card: "border-primary/25 bg-primary/5", icon: "status-card-icon-primary", badge: "bg-primary text-primary-foreground", r: ranking[2] },
+  ];
+
   return (
     <MainLayout>
       <Header title="Ranking de Clientes" subtitle="Top clientes por volume de compras" />
@@ -48,11 +54,11 @@ export default function RankingClientes() {
 
         {ranking.length >= 3 && (
           <div className="grid gap-4 md:grid-cols-3">
-            {[{ icon: Crown, color: "yellow-500", border: "yellow-500/50", r: ranking[0] }, { icon: Medal, color: "gray-400", border: "gray-400/50", r: ranking[1] }, { icon: Trophy, color: "amber-700", border: "amber-700/50", r: ranking[2] }].map(({ icon: Icon, color, border, r }, i) => (
-              <Card key={i} className={`border-2 border-${border}`}>
+            {podium.map(({ Icon, card, icon, badge, r }, i) => (
+              <Card key={i} className={`modern-status-card ${card}`}>
                 <CardContent className="pt-6 text-center">
-                  <Icon className={`h-12 w-12 text-${color} mx-auto mb-2`} />
-                  <Badge className={`bg-${color} mb-2`}>{r.posicao}º Lugar</Badge>
+                  <div className={`status-card-icon ${icon} mx-auto mb-2`}><Icon /></div>
+                  <Badge className={`${badge} mb-2`}>{r.posicao}º Lugar</Badge>
                   <p className="text-xl font-bold">{r.nome}</p>
                   <p className="text-2xl font-bold text-primary mt-2">R$ {r.valorTotal.toLocaleString("pt-BR")}</p>
                   <p className="text-sm text-muted-foreground">{r.compras} compras</p>
@@ -63,8 +69,8 @@ export default function RankingClientes() {
         )}
 
         <div className="grid gap-4 md:grid-cols-2">
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><DollarSign className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">R$ {totalGeral.toLocaleString("pt-BR")}</p><p className="text-sm text-muted-foreground">Total Top Clientes</p></div></div></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-green-500/10"><TrendingUp className="h-6 w-6 text-green-500" /></div><div><p className="text-2xl font-bold">R$ {ranking.length > 0 ? (totalGeral / ranking.length).toFixed(0) : 0}</p><p className="text-sm text-muted-foreground">Ticket Médio Top Clientes</p></div></div></CardContent></Card>
+          <Card className="kpi-card kpi-card-primary"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-primary"><DollarSign /></div><div><p className="kpi-value">R$ {totalGeral.toLocaleString("pt-BR")}</p><p className="kpi-label">Total Top Clientes</p></div></CardContent></Card>
+          <Card className="kpi-card kpi-card-success"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-success"><TrendingUp /></div><div><p className="kpi-value">R$ {ranking.length > 0 ? (totalGeral / ranking.length).toFixed(0) : 0}</p><p className="kpi-label">Ticket Médio Top Clientes</p></div></CardContent></Card>
         </div>
 
         <Card>
@@ -76,7 +82,7 @@ export default function RankingClientes() {
                 {ranking.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Sem dados de vendas</TableCell></TableRow>}
                 {ranking.map(c => (
                   <TableRow key={c.posicao}>
-                    <TableCell><Badge variant={c.posicao <= 3 ? "default" : "outline"} className={c.posicao === 1 ? "bg-yellow-500" : c.posicao === 2 ? "bg-gray-400" : c.posicao === 3 ? "bg-amber-700" : ""}>#{c.posicao}</Badge></TableCell>
+                    <TableCell><Badge variant={c.posicao <= 3 ? "default" : "outline"} className={c.posicao === 1 ? "bg-warning text-warning-foreground" : c.posicao === 2 ? "bg-muted text-muted-foreground" : c.posicao === 3 ? "bg-primary text-primary-foreground" : ""}>#{c.posicao}</Badge></TableCell>
                     <TableCell className="font-medium">{c.nome}</TableCell>
                     <TableCell>{c.compras}</TableCell>
                     <TableCell className="font-medium">R$ {c.valorTotal.toLocaleString("pt-BR")}</TableCell>
