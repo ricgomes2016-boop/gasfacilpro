@@ -566,7 +566,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
 
   return (
     <Card className="venda-card w-full min-w-0 max-w-full overflow-hidden">
-      <VendaSectionHeader title="Cliente" icon={<User className="h-5 w-5 shrink-0" />} className="pb-3" />
+      <VendaSectionHeader title="Cliente" icon={<User className="h-5 w-5 shrink-0" />} tone="info" className="pb-3" />
       <CardContent className="space-y-3 w-full min-w-0 max-w-full">
         {/* Combobox de busca multicampo */}
         <div className="relative min-w-0" ref={searchRef}>
