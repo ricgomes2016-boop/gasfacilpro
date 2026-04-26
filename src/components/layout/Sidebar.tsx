@@ -560,7 +560,7 @@ export function Sidebar() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="rounded-xl bg-sidebar-accent border border-sidebar-border p-3"
+              className="rounded-2xl border border-sidebar-border/20 bg-sidebar-accent/15 p-3 shadow-lg shadow-foreground/10"
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0">
