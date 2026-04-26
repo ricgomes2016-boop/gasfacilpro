@@ -527,7 +527,7 @@ export default function EntregadorNovaVenda() {
                 disabled={aiLoading || isListening}
               />
               <Button
-                variant={isListening ? "destructive" : "outline"}
+                variant={isListening ? "destructive" : "microphone"}
                 size="icon"
                 onClick={isListening ? stopListening : startListening}
                 disabled={aiLoading}
