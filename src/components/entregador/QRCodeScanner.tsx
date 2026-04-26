@@ -131,7 +131,7 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
       <Button
         onClick={isScanning ? stopScanning : startScanning}
         className={`w-full ${isScanning ? "" : "gradient-primary text-white"}`}
-        variant={isScanning ? "outline" : "default"}
+        variant={isScanning ? "outline" : "photo"}
       >
         {isScanning ? (
           <>

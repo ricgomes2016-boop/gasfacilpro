@@ -147,7 +147,7 @@ export function SmartImportButtons({ edgeFunctionName, onDataExtracted, disabled
   return (
     <div className={`flex gap-1.5 ${className || ""}`}>
       <Button
-        variant="outline" size="icon"
+        variant="photo" size="icon"
         onClick={() => cameraInputRef.current?.click()}
         disabled={isDisabled}
         title="Tirar foto"
@@ -156,7 +156,7 @@ export function SmartImportButtons({ edgeFunctionName, onDataExtracted, disabled
         {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
       </Button>
       <Button
-        variant="outline" size="icon"
+        variant="import" size="icon"
         onClick={() => photoInputRef.current?.click()}
         disabled={isDisabled}
         title="Importar imagem"
@@ -165,7 +165,7 @@ export function SmartImportButtons({ edgeFunctionName, onDataExtracted, disabled
         <FileUp className="h-4 w-4" />
       </Button>
       <Button
-        variant="outline" size="icon"
+        variant="pdf" size="icon"
         onClick={() => pdfInputRef.current?.click()}
         disabled={isDisabled}
         title="Importar PDF"
@@ -174,11 +174,11 @@ export function SmartImportButtons({ edgeFunctionName, onDataExtracted, disabled
         <span className="text-[10px] font-bold">PDF</span>
       </Button>
       <Button
-        variant="outline" size="icon"
+        variant={listening ? "destructive" : "microphone"} size="icon"
         onClick={listening ? stopVoice : startVoice}
         disabled={processing}
         title={listening ? "Parar gravação" : "Comando de voz"}
-        className={`h-9 w-9 ${listening ? "bg-red-100 border-red-300 text-red-600 dark:bg-red-900/30 dark:border-red-700" : ""}`}
+        className={`h-9 w-9 ${listening ? "animate-pulse" : ""}`}
       >
         {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
       </Button>

@@ -550,7 +550,7 @@ export function ConferenciaCartao() {
                 <span className="hidden sm:inline">Registrar Venda Cartão</span>
                 <span className="sm:hidden">Registrar</span>
               </Button>
-              <Button size="sm" variant="outline" className="gap-2" onClick={() => pdfInputRef.current?.click()} disabled={pdfLoading}>
+              <Button size="sm" variant="pdf" className="gap-2" onClick={() => pdfInputRef.current?.click()} disabled={pdfLoading}>
                 {pdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
                 <span className="hidden sm:inline">Importar PDF</span>
                 <span className="sm:hidden">PDF</span>

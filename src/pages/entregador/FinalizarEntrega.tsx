@@ -658,12 +658,12 @@ export default function FinalizarEntrega() {
                              </div>
                            </div>
                            <div className="flex items-center gap-2">
-                             <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => chequePhotoRef.current?.click()} disabled={isUploadingCheque}>
-                               {isUploadingCheque ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <ImageIcon className="h-3 w-3 mr-1" />}
+                              <Button type="button" variant="import" size="sm" className="text-xs" onClick={() => chequePhotoRef.current?.click()} disabled={isUploadingCheque}>
+                                {isUploadingCheque ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
                                Foto
                              </Button>
-                             <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => chequeCameraRef.current?.click()} disabled={isUploadingCheque}>
-                               <Camera className="h-3 w-3 mr-1" />Câmera
+                              <Button type="button" variant="photo" size="sm" className="text-xs" onClick={() => chequeCameraRef.current?.click()} disabled={isUploadingCheque}>
+                                <Camera className="h-4 w-4" />Câmera
                              </Button>
                              {chequeFotoUrl && <img src={chequeFotoUrl} alt="Cheque" className="h-8 w-12 rounded border object-cover" />}
                              <input ref={chequePhotoRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleChequeFoto(f); e.target.value = ""; }} />
@@ -677,12 +677,12 @@ export default function FinalizarEntrega() {
                            <p className="text-xs font-medium text-muted-foreground uppercase">📸 Foto do Comprovante *</p>
                            <p className="text-xs text-muted-foreground">Tire uma foto do comprovante da maquininha para auditoria</p>
                            <div className="flex items-center gap-2">
-                             <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => comprovantePhotoRef.current?.click()} disabled={isUploadingComprovante}>
-                               {isUploadingComprovante ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <ImageIcon className="h-3 w-3 mr-1" />}
+                              <Button type="button" variant="import" size="sm" className="text-xs" onClick={() => comprovantePhotoRef.current?.click()} disabled={isUploadingComprovante}>
+                                {isUploadingComprovante ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
                                Galeria
                              </Button>
-                             <Button type="button" variant={comprovanteUrl ? "outline" : "default"} size="sm" className="text-xs" onClick={() => comprovanteCameraRef.current?.click()} disabled={isUploadingComprovante}>
-                               <Camera className="h-3 w-3 mr-1" />Tirar Foto
+                              <Button type="button" variant="photo" size="sm" className="text-xs" onClick={() => comprovanteCameraRef.current?.click()} disabled={isUploadingComprovante}>
+                                <Camera className="h-4 w-4" />Tirar Foto
                              </Button>
                              {comprovanteUrl && <img src={comprovanteUrl} alt="Comprovante" className="h-10 w-14 rounded border object-cover" />}
                              {comprovanteUrl && <CheckCircle className="h-4 w-4 text-success" />}

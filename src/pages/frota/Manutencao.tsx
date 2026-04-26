@@ -579,7 +579,7 @@ export default function Manutencao() {
           <div className="grid grid-cols-2 gap-2">
             <Button
               type="button"
-              variant="outline"
+              variant="photo"
               className="gap-2"
               onClick={() => photoInputRef.current?.click()}
               disabled={isScanning}

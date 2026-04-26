@@ -95,17 +95,17 @@ export default function ContasPagar() {
                 </DialogContent>
               </Dialog>
 
-              <Button variant="outline" className="gap-2 flex-1 sm:flex-none" onClick={() => cp.fileInputRef.current?.click()}>
+              <Button variant="photo" className="gap-2 flex-1 sm:flex-none" onClick={() => cp.fileInputRef.current?.click()}>
                 <Camera className="h-4 w-4" /><span className="hidden sm:inline">Foto com IA</span><span className="sm:hidden">Foto IA</span>
               </Button>
-              <Button variant={cp.voiceListening ? "destructive" : "outline"} className="gap-2 flex-1 sm:flex-none" onClick={cp.voiceListening ? cp.stopVoiceListening : cp.startVoiceListening}>
+              <Button variant={cp.voiceListening ? "destructive" : "microphone"} className="gap-2 flex-1 sm:flex-none" onClick={cp.voiceListening ? cp.stopVoiceListening : cp.startVoiceListening}>
                 {cp.voiceListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                 <span className="hidden sm:inline">{cp.voiceListening ? "Parar" : "Voz"}</span><span className="sm:hidden">{cp.voiceListening ? "Parar" : "Voz"}</span>
               </Button>
               <Button variant="outline" className="gap-2 flex-1 sm:flex-none" onClick={() => cp.boletoInputRef.current?.click()}>
                 <FileText className="h-4 w-4" /><span className="hidden sm:inline">Ler Boleto</span><span className="sm:hidden">Boleto</span>
               </Button>
-              <Button variant="outline" className="gap-2 flex-1 sm:flex-none" onClick={() => cp.boletoPdfInputRef.current?.click()}>
+              <Button variant="pdf" className="gap-2 flex-1 sm:flex-none" onClick={() => cp.boletoPdfInputRef.current?.click()}>
                 <FileUp className="h-4 w-4" /><span className="hidden sm:inline">Importar PDF</span><span className="sm:hidden">PDF</span>
               </Button>
               {cp.fornecedoresComMultiplas.length > 0 && (
@@ -438,7 +438,7 @@ export default function ContasPagar() {
                     <Button variant="destructive" size="sm" onClick={cp.stopVoiceListening}><MicOff className="h-4 w-4 mr-2" /> Parar</Button>
                   </div>
                 ) : (
-                  <Button variant="outline" onClick={cp.startVoiceListening} disabled={cp.voiceProcessing}><Mic className="h-4 w-4 mr-2" /> Gravar novamente</Button>
+                  <Button variant="microphone" onClick={cp.startVoiceListening} disabled={cp.voiceProcessing}><Mic className="h-4 w-4 mr-2" /> Gravar novamente</Button>
                 )}
               </div>
               {cp.voiceText && <div className="space-y-2"><Label>Texto capturado:</Label><div className="p-3 bg-muted rounded-lg text-sm min-h-[60px]">{cp.voiceText}</div></div>}

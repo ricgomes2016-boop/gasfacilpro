@@ -189,13 +189,13 @@ export default function TranspLancamento() {
                   <button
                     type="button"
                     onClick={() => cameraRef.current?.click()}
-                    className="w-full border-2 border-dashed border-primary/40 rounded-lg p-6 flex flex-col items-center gap-2 hover:bg-primary/5 transition-colors"
+                    className="w-full rounded-lg border-2 border-dashed border-info/40 bg-info/10 p-6 flex flex-col items-center gap-2 text-info shadow-sm shadow-info/10 transition-all duration-200 hover:-translate-y-0.5 hover:border-info/45 hover:bg-info hover:text-info-foreground hover:shadow-md hover:shadow-info/25 active:translate-y-0 active:scale-[0.98]"
                   >
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Camera className="h-6 w-6 text-primary" />
+                    <div className="h-12 w-12 rounded-full bg-current/10 flex items-center justify-center">
+                      <Camera className="h-6 w-6" />
                     </div>
-                    <p className="text-sm font-medium text-foreground">Tirar foto do comprovante</p>
-                    <p className="text-xs text-muted-foreground">A IA preenche automaticamente</p>
+                    <p className="text-sm font-medium">Tirar foto do comprovante</p>
+                    <p className="text-xs opacity-80">A IA preenche automaticamente</p>
                   </button>
                 )}
               </div>

@@ -270,8 +270,8 @@ export default function Clientes() {
                     <DropdownMenuItem onClick={exportPDF}>PDF</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <Button variant="outline" size="sm" onClick={() => csvInputRef.current?.click()}>
-                  <Upload className="mr-1.5 h-4 w-4" />
+                <Button variant="import" size="sm" onClick={() => csvInputRef.current?.click()}>
+                  <Upload className="h-4 w-4" />
                   Importar CSV
                 </Button>
                 <input

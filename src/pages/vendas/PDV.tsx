@@ -412,7 +412,7 @@ export default function PDV() {
                   </div>
 
                   <Button
-                    variant={scannerActive ? "destructive" : "outline"}
+                    variant={scannerActive ? "destructive" : "photo"}
                     size="icon"
                     className="h-10 w-10 shrink-0"
                     onClick={() => setScannerActive(!scannerActive)}

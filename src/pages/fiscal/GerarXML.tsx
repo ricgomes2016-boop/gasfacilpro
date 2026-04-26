@@ -186,7 +186,7 @@ export default function GerarXML() {
       <Header title="Central de XML" subtitle="Gestão Fiscal" />
       <div className="space-y-6 p-4 md:p-6">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <Button onClick={() => setImportDialogOpen(true)} variant="outline" className="gap-2">
+          <Button onClick={() => setImportDialogOpen(true)} variant="import" className="gap-2">
             <Upload className="h-4 w-4" />
             Importar XML
           </Button>

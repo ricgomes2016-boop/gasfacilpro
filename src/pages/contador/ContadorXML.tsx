@@ -352,9 +352,9 @@ export default function ContadorXML() {
             <Button
               onClick={() => fileRef.current?.click()}
               disabled={uploading || !empresaAtiva}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              variant="import"
             >
-              {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               Importar XML
             </Button>
             <Button

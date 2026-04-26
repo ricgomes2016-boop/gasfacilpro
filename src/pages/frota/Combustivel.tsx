@@ -474,7 +474,7 @@ export default function Combustivel() {
           />
           <Button
             type="button"
-            variant="outline"
+            variant="photo"
             className="w-full gap-2"
             onClick={() => photoInputRef.current?.click()}
             disabled={isScanning}
