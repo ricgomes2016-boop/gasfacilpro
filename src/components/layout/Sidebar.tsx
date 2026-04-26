@@ -224,18 +224,18 @@ export function Sidebar() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
           themeClass,
-          "fixed left-0 top-0 z-40 hidden xl:flex h-screen flex-col overflow-hidden border-r border-sidebar-border/15 bg-gradient-to-b from-primary via-primary to-secondary shadow-2xl"
+          "fixed left-0 top-0 z-40 hidden h-screen flex-col overflow-hidden rounded-r-[2rem] border-r border-sidebar-border/15 bg-gradient-to-b from-primary via-primary/95 to-secondary shadow-2xl xl:flex"
         )}
       >
         {/* Header */}
-        <div className="flex h-20 items-center justify-between border-b border-sidebar-border/20 px-4">
-          <Link to="/dashboard" className="flex items-center gap-3 group">
+        <div className="flex min-h-24 items-center justify-center border-b border-sidebar-border/15 px-4">
+          <Link to="/dashboard" className={cn("group flex items-center justify-center gap-3 rounded-3xl bg-sidebar-accent/10 px-3 py-3 ring-1 ring-sidebar-border/15 transition-all hover:bg-sidebar-accent/15", collapsed && "px-2")}>
             <motion.div
               whileHover={{ scale: 1.05, rotate: 2 }}
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <img src={logoImg} alt="Gás Fácil" className="h-11 w-11 flex-shrink-0 rounded-2xl bg-sidebar-accent/95 object-contain p-1.5 shadow-lg" />
+              <img src={logoImg} alt="Gás Fácil" className="h-11 w-11 flex-shrink-0 rounded-2xl bg-sidebar-accent/95 object-contain p-1.5 shadow-lg shadow-foreground/20" />
             </motion.div>
             <AnimatePresence>
               {!collapsed && (
@@ -256,12 +256,12 @@ export function Sidebar() {
               )}
             </AnimatePresence>
           </Link>
-          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="absolute right-3 top-3">
             <Button
               variant="ghost"
               size="icon"
               onClick={toggle}
-                className="h-8 w-8 flex-shrink-0 rounded-full text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/20"
+                className="h-8 w-8 flex-shrink-0 rounded-full text-sidebar-foreground/80 shadow-none hover:bg-sidebar-accent/15 hover:text-sidebar-foreground"
             >
               {collapsed ? (
                 <ChevronRight className="h-4 w-4" />
