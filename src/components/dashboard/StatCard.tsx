@@ -136,7 +136,7 @@ export function StatCard({
           </div>
           <div
             className={cn(
-              "flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-md transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3",
+              "flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-primary-foreground shadow-md transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3",
               t.icon
             )}
           >
@@ -152,8 +152,8 @@ export function StatCard({
   if (isGasmais && onHero) {
     return (
       <div className="flex h-full min-h-[138px] min-w-0 flex-col justify-between rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 p-4 transition-all hover:bg-white/15">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15">
-          <Icon className="h-4 w-4 text-white" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-primary-foreground">
+          <Icon className="h-4 w-4" />
         </div>
         <div className="mt-3 min-w-0 flex-1">
           <p className="break-words text-2xl sm:text-3xl font-bold text-white tracking-tight leading-tight">
