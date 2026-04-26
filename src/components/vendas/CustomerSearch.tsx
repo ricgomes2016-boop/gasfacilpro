@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Search, UserPlus, User, Phone, MapPin, Loader2, Map, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,7 @@ import type { GeocodingResult } from "@/lib/geocoding";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { toast } from "sonner";
+import { VendaSectionHeader } from "./VendaSectionHeader";
 
 interface Cliente {
   id: string;
@@ -565,12 +566,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
 
   return (
     <Card className="venda-card w-full min-w-0 max-w-full overflow-hidden">
-      <CardHeader className="pb-3 bg-primary text-primary-foreground">
-        <CardTitle className="flex items-center gap-2 text-base text-primary-foreground">
-          <User className="h-5 w-5 shrink-0" />
-          <span className="truncate">Cliente</span>
-        </CardTitle>
-      </CardHeader>
+      <VendaSectionHeader title="Cliente" icon={<User className="h-5 w-5 shrink-0" />} className="pb-3" />
       <CardContent className="space-y-3 w-full min-w-0 max-w-full">
         {/* Combobox de busca multicampo */}
         <div className="relative min-w-0" ref={searchRef}>
