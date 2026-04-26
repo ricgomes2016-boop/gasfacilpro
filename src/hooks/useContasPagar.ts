@@ -604,6 +604,9 @@ export function useContasPagar() {
     // pagar
     pagarDialogOpen, setPagarDialogOpen, pagarConta, pagarForm, openPagarDialog,
     handlePagar, addFormaPagamento, removeFormaPagamento, updateFormaPagamento,
+    selecionadasPagamentoIds, contasSelecionadasPagamento, totalSelecionadoPagamento,
+    todasPagaveisSelecionadas, togglePagamentoSelection, toggleAllPagamentoSelection,
+    clearPagamentoSelection, openPagarSelecionadasDialog, pagamentoEmLoteIds,
     // resumo
     resumoOpen, setResumoOpen,
     // unificar
