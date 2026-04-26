@@ -41,7 +41,7 @@ export function StockAlerts() {
   if (lowStockProducts.length === 0) return null;
 
   return (
-    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+    <div className="rounded-2xl border border-destructive/20 bg-card p-4 shadow-md shadow-destructive/5">
       <div className="flex items-center gap-2 mb-2">
         <AlertTriangle className="h-4 w-4 text-destructive" />
         <span className="text-sm font-semibold text-destructive">Estoque Crítico</span>
