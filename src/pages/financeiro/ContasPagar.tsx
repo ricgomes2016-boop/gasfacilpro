@@ -172,11 +172,14 @@ export default function ContasPagar() {
               <Card className="modern-panel">
               <CardHeader className="px-3 sm:px-6">
                 <div className="flex flex-col gap-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <CardTitle className="text-base sm:text-lg">Lista de Contas</CardTitle>
+                  <div className="flex flex-col gap-3 rounded-lg bg-success px-3 py-3 text-success-foreground shadow-sm shadow-success/20 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+                    <CardTitle className="flex min-w-0 items-center gap-2 text-base text-success-foreground sm:text-lg">
+                      <CreditCard className="h-5 w-5 shrink-0" />
+                      <span className="truncate">Lista de Contas</span>
+                    </CardTitle>
                     <div className="relative w-full sm:w-auto">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input placeholder="Buscar conta..." className="pl-10 w-full sm:w-[250px]" value={cp.search} onChange={e => cp.setSearch(e.target.value)} />
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-success" />
+                      <Input placeholder="Buscar conta..." className="w-full border-success-foreground/25 bg-success-foreground pl-10 text-foreground placeholder:text-muted-foreground sm:w-[250px]" value={cp.search} onChange={e => cp.setSearch(e.target.value)} />
                     </div>
                   </div>
                   <div className="semantic-filter-panel grid grid-cols-2 sm:flex sm:flex-wrap items-end gap-2 sm:gap-3">
@@ -247,7 +250,7 @@ export default function ContasPagar() {
                     <div className="hidden sm:block">
                       <Table>
                         <TableHeader>
-                          <TableRow>
+                          <TableRow className="border-success bg-success hover:bg-success [&_th]:text-success-foreground">
                             <TableHead>Fornecedor</TableHead><TableHead>Descrição</TableHead>
                             <TableHead>Categoria</TableHead><TableHead>Vencimento</TableHead>
                             <TableHead>Valor</TableHead><TableHead>Status</TableHead>
