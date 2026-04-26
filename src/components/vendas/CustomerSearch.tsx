@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, UserPlus, User, Phone, MapPin, Loader2, Map } from "lucide-react";
+import { Search, UserPlus, User, Phone, MapPin, Loader2, Map, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatPhone, formatCEP } from "@/hooks/useInputMasks";
 import { geocodeAddress } from "@/lib/geocoding";
@@ -12,6 +12,7 @@ import { MapPickerDialog } from "@/components/ui/map-picker-dialog";
 import type { GeocodingResult } from "@/lib/geocoding";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { toast } from "sonner";
 
 interface Cliente {
   id: string;
@@ -129,6 +130,7 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
   } | null>(null);
   const [loadingUltimo, setLoadingUltimo] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [isSavingCustomer, setIsSavingCustomer] = useState(false);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [addressSuggestions, setAddressSuggestions] = useState<NominatimResult[]>([]);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
@@ -522,6 +524,39 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
     handleFieldChange("cep", formatted);
     if (formatted.replace(/\D/g, "").length === 8) {
       buscarCEP(formatted);
+    }
+  };
+
+  const salvarClienteAtual = async () => {
+    if (!value.id) return;
+    if (!value.nome.trim()) {
+      toast.error("Informe o nome do cliente antes de salvar");
+      return;
+    }
+
+    setIsSavingCustomer(true);
+    try {
+      const { error } = await supabase
+        .from("clientes")
+        .update({
+          nome: value.nome.trim(),
+          telefone: value.telefone || null,
+          endereco: value.endereco || null,
+          numero: value.numero || null,
+          bairro: value.bairro || null,
+          cep: value.cep || null,
+          latitude: value.latitude ?? null,
+          longitude: value.longitude ?? null,
+        })
+        .eq("id", value.id);
+
+      if (error) throw error;
+      toast.success("Cliente atualizado");
+    } catch (error: any) {
+      console.error("Erro ao salvar cliente:", error);
+      toast.error(error?.message || "Erro ao salvar cliente");
+    } finally {
+      setIsSavingCustomer(false);
     }
   };
 
