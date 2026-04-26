@@ -31,29 +31,29 @@ import { menuItems } from "./menuItems";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 
-// Color map for menu category icons (HSL-based tailwind classes using semantic approach)
+// Color map for menu category icons using only semantic design-system tokens
 const menuIconColors: Record<string, string> = {
-  "Dashboard": "text-blue-500",
-  "Assistente IA": "text-violet-500",
-  "Atendimento": "text-green-500",
-  "Vendas": "text-emerald-500",
-  "Caixa": "text-amber-500",
-  "Gestão Operacional": "text-cyan-500",
-  "Gestão de Clientes": "text-pink-500",
-  "Gestão de Estoque": "text-orange-500",
-  "Gestão Financeira": "text-yellow-500",
-  "Gestão de Frota": "text-indigo-500",
-  "Gestão de RH": "text-rose-500",
-  "Gestão Fiscal": "text-teal-500",
-  "Marketing": "text-fuchsia-500",
-  "Configurações": "text-slate-400",
+  "Dashboard": "text-sidebar-foreground",
+  "Assistente IA": "text-sidebar-foreground",
+  "Atendimento": "text-sidebar-foreground",
+  "Vendas": "text-sidebar-foreground",
+  "Caixa": "text-sidebar-foreground",
+  "Gestão Operacional": "text-sidebar-foreground",
+  "Gestão de Clientes": "text-sidebar-foreground",
+  "Gestão de Estoque": "text-sidebar-foreground",
+  "Gestão Financeira": "text-sidebar-foreground",
+  "Gestão de Frota": "text-sidebar-foreground",
+  "Gestão de RH": "text-sidebar-foreground",
+  "Gestão Fiscal": "text-sidebar-foreground",
+  "Marketing": "text-sidebar-foreground",
+  "Configurações": "text-sidebar-foreground/80",
 };
 
 const subMenuIconColors: Record<string, string> = {
   // Atendimento
-  "Central de Atendimento": "text-green-500",
-  "Inbox WhatsApp": "text-green-400",
-  "Config WhatsApp": "text-green-600",
+  "Central de Atendimento": "text-sidebar-foreground",
+  "Inbox WhatsApp": "text-sidebar-foreground",
+  "Config WhatsApp": "text-sidebar-foreground",
   // Vendas
   "PDV": "text-emerald-600",
   "Nova Venda": "text-emerald-400",
