@@ -47,6 +47,13 @@ export default function ContasPagar() {
     return { label, variant };
   };
 
+  const getRowClass = (label: string) => {
+    const base = "group border-0 transition-all duration-200 hover:-translate-y-0.5 [&>td]:border-y [&>td]:border-border/60 [&>td]:bg-card [&>td]:py-3 [&>td]:shadow-sm [&>td]:shadow-foreground/5 [&>td:first-child]:rounded-l-lg [&>td:first-child]:border-l [&>td:first-child]:border-l-4 [&>td:last-child]:rounded-r-lg [&>td:last-child]:border-r hover:[&>td]:shadow-md hover:[&>td]:shadow-foreground/10";
+    if (label === "Paga") return `${base} [&>td:first-child]:border-l-success hover:[&>td]:bg-success/5`;
+    if (label === "Vencida") return `${base} [&>td:first-child]:border-l-destructive hover:[&>td]:bg-destructive/5`;
+    return `${base} [&>td:first-child]:border-l-warning hover:[&>td]:bg-warning/5`;
+  };
+
   return (
     <MainLayout>
       <Header title="Contas a Pagar" subtitle="Gerencie todas as contas, parcelamentos e empréstimos" />
@@ -248,7 +255,7 @@ export default function ContasPagar() {
                   <>
                     {/* Desktop table */}
                     <div className="hidden sm:block">
-                      <Table>
+                      <Table className="border-separate border-spacing-y-2">
                         <TableHeader>
                           <TableRow className="border-success bg-success hover:bg-success [&_th]:text-success-foreground">
                             <TableHead>Fornecedor</TableHead><TableHead>Descrição</TableHead>
@@ -261,15 +268,15 @@ export default function ContasPagar() {
                           {(cp.agrupar && cp.groupedFiltered ? cp.groupedFiltered.flatMap(([fornecedor, items]) => {
                             const groupTotal = items.reduce((s, c) => s + Number(c.valor), 0);
                             return [
-                              <TableRow key={`grp-${fornecedor}`} className="bg-muted/40 hover:bg-muted/60">
-                                <TableCell colSpan={4} className="font-semibold"><div className="flex items-center gap-2"><Building2 className="h-4 w-4 text-muted-foreground" />{fornecedor}<Badge variant="outline" className="text-xs">{items.length}</Badge></div></TableCell>
+                              <TableRow key={`grp-${fornecedor}`} className="border-0 [&>td]:border-y [&>td]:border-success/25 [&>td]:bg-success/10 [&>td:first-child]:rounded-l-lg [&>td:first-child]:border-l [&>td:last-child]:rounded-r-lg [&>td:last-child]:border-r">
+                                <TableCell colSpan={4} className="font-semibold text-success"><div className="flex items-center gap-2"><Building2 className="h-4 w-4" />{fornecedor}<Badge variant="outline" className="border-success/30 bg-success/10 text-xs text-success">{items.length}</Badge></div></TableCell>
                                 <TableCell className="font-bold">R$ {groupTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
                                 <TableCell colSpan={2} />
                               </TableRow>,
                               ...items.map(conta => {
                                 const { label, variant } = getStatus(conta);
                                 return (
-                                  <TableRow key={conta.id}>
+                                  <TableRow key={conta.id} className={getRowClass(label)}>
                                     <TableCell className="pl-10 text-muted-foreground text-sm">{conta.fornecedor}</TableCell>
                                     <TableCell>{conta.descricao}</TableCell>
                                     <TableCell><Badge variant="outline">{conta.categoria || "—"}</Badge></TableCell>
@@ -295,7 +302,7 @@ export default function ContasPagar() {
                             if (!conta.id) return conta; // group header row already rendered
                             const { label, variant } = getStatus(conta);
                             return (
-                              <TableRow key={conta.id}>
+                              <TableRow key={conta.id} className={getRowClass(label)}>
                                 <TableCell className="font-medium">{conta.fornecedor}</TableCell>
                                 <TableCell>{conta.descricao}</TableCell>
                                 <TableCell><Badge variant="outline">{conta.categoria || "—"}</Badge></TableCell>
