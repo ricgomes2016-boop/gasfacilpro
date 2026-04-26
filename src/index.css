@@ -269,6 +269,18 @@
     @apply h-5 w-5;
   }
 
+  .grid > .rounded-lg.border {
+    @apply min-w-0;
+  }
+
+  @media (max-width: 420px) {
+    .grid.grid-cols-2:has(> .rounded-lg.border),
+    .grid.grid-cols-3:has(> .rounded-lg.border),
+    .grid.grid-cols-4:has(> .rounded-lg.border) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
   .status-card-icon-primary { @apply bg-primary/10 text-primary; }
   .status-card-icon-info { @apply bg-info/10 text-info; }
   .status-card-icon-success { @apply bg-success/10 text-success; }
