@@ -489,6 +489,12 @@
   :where(.text-purple-500,.text-purple-600,.text-violet-500,.text-violet-600,.text-pink-500,.text-pink-600,.text-fuchsia-500,.text-fuchsia-600) { color: hsl(var(--accent)) !important; }
   :where(.border-purple-200,.border-purple-300,.border-violet-200,.border-violet-300,.border-pink-200,.border-fuchsia-200) { border-color: hsl(var(--accent) / 0.35) !important; }
 
+  :where(.bg-white) { background-color: hsl(var(--card)) !important; }
+  :where(.text-white) { color: hsl(var(--primary-foreground)) !important; }
+  :where(.text-black,.text-gray-900,.text-slate-900) { color: hsl(var(--foreground)) !important; }
+  :where(.text-gray-500,.text-gray-600,.text-slate-400,.text-slate-500,.text-slate-600) { color: hsl(var(--muted-foreground)) !important; }
+  :where(.bg-gray-50,.bg-slate-50) { background-color: hsl(var(--muted) / 0.55) !important; }
+
   .venda-tone-cliente,
   .venda-tone-produtos,
   .venda-tone-pagamento,
