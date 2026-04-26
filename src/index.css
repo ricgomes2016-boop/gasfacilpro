@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import "./styles/theme-gasmais.css";
 
 @tailwind base;
@@ -10,63 +11,63 @@
 
 @layer base {
   :root {
-    --background: 214 32% 96%;
-    --foreground: 222 47% 8%;
+    --background: 210 33% 97%;
+    --foreground: 215 28% 17%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 8%;
+    --card-foreground: 215 28% 17%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 8%;
+    --popover-foreground: 215 28% 17%;
 
-    --primary: 187 65% 38%;
+    --primary: 174 61% 47%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 95%;
-    --secondary-foreground: 222 47% 8%;
+    --secondary: 243 100% 69%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 214 24% 92%;
-    --muted-foreground: 222 32% 22%;
+    --muted: 220 23% 94%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 215 90% 52%;
+    --accent: 31 100% 63%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 69% 40%;
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 45 93% 47%;
+    --warning: 31 100% 63%;
     --warning-foreground: 0 0% 9%;
 
-    --info: 215 90% 52%;
+    --info: 243 100% 69%;
     --info-foreground: 0 0% 100%;
 
-    --border: 216 24% 78%;
-    --input: 216 24% 70%;
-    --ring: 187 65% 38%;
+    --border: 220 18% 88%;
+    --input: 220 18% 88%;
+    --ring: 174 61% 47%;
 
-    --radius: 0.625rem;
+    --radius: 1rem;
 
-    --sidebar-background: 222 47% 4%;
+    --sidebar-background: 174 61% 47%;
     --sidebar-foreground: 220 14% 96%;
-    --sidebar-primary: 187 65% 38%;
+    --sidebar-primary: 0 0% 100%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 34% 12%;
+    --sidebar-accent: 0 0% 100%;
     --sidebar-accent-foreground: 220 14% 96%;
-    --sidebar-border: 222 22% 22%;
-    --sidebar-ring: 187 65% 38%;
+    --sidebar-border: 0 0% 100%;
+    --sidebar-ring: 0 0% 100%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(190, 60%, 42%) 0%, hsl(170, 50%, 48%) 100%);
-    --gradient-dark: linear-gradient(135deg, hsl(190, 65%, 35%) 0%, hsl(170, 55%, 45%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+    --gradient-dark: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
 
     /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(220 30% 10% / 0.06);
-    --shadow-md: 0 10px 28px -18px hsl(220 35% 14% / 0.22), 0 2px 8px -4px hsl(220 35% 14% / 0.14);
-    --shadow-lg: 0 18px 45px -24px hsl(220 35% 14% / 0.32), 0 8px 18px -14px hsl(220 35% 14% / 0.2);
-    --shadow-glow: 0 0 20px hsl(187 65% 38% / 0.25);
+    --shadow-sm: 0 2px 8px hsl(220 35% 20% / 0.05);
+    --shadow-md: 0 12px 30px -18px hsl(220 35% 18% / 0.18), 0 4px 14px -8px hsl(220 35% 18% / 0.12);
+    --shadow-lg: 0 24px 55px -30px hsl(220 35% 18% / 0.26), 0 10px 24px -18px hsl(220 35% 18% / 0.16);
+    --shadow-glow: 0 0 22px hsl(var(--primary) / 0.22);
   }
 
   .dark {
