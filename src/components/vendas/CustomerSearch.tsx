@@ -699,6 +699,19 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
             >
               <UserPlus className="h-4 w-4" />
             </Button>
+            {value.id && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="shrink-0"
+                onClick={salvarClienteAtual}
+                disabled={isSavingCustomer}
+                title="Salvar alterações do cliente"
+              >
+                {isSavingCustomer ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              </Button>
+            )}
           </div>
           {showNewClientHint && (
             <p className="text-[10px] text-muted-foreground mt-1">
@@ -724,21 +737,6 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
                   </span>
                 </>
               ) : null}
-            </div>
-          )}
-          {value.id && (
-            <div className="mt-2 flex justify-end">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={salvarClienteAtual}
-                disabled={isSavingCustomer}
-                className="h-8 gap-2"
-              >
-                {isSavingCustomer ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                Salvar cliente
-              </Button>
             </div>
           )}
         </div>
