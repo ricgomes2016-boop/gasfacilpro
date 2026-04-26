@@ -388,6 +388,50 @@
     @apply modern-panel space-y-3 p-3 sm:p-4;
   }
 
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold),
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold) {
+    @apply border-transparent bg-primary text-primary-foreground shadow-md shadow-primary/20;
+  }
+
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold.text-success),
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold.text-success),
+  .grid > .rounded-xl.border:has(.lucide.text-success) {
+    @apply bg-success text-success-foreground shadow-success/20;
+  }
+
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold.text-warning),
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold.text-warning),
+  .grid > .rounded-xl.border:has(.lucide.text-warning) {
+    @apply bg-warning text-warning-foreground shadow-warning/20;
+  }
+
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold.text-destructive),
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold.text-destructive),
+  .grid > .rounded-xl.border:has(.lucide.text-destructive) {
+    @apply bg-destructive text-destructive-foreground shadow-destructive/20;
+  }
+
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold.text-info),
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold.text-info),
+  .grid > .rounded-xl.border:has(.lucide.text-info) {
+    @apply bg-info text-info-foreground shadow-info/20;
+  }
+
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-muted-foreground,
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-muted-foreground,
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-primary,
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-primary,
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-success,
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-success,
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-warning,
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-warning,
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-destructive,
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-destructive,
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-info,
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-info {
+    color: currentColor;
+  }
+
   .venda-tone-cliente,
   .venda-tone-produtos,
   .venda-tone-pagamento,
