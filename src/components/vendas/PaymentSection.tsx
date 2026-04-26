@@ -376,11 +376,11 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => chequePhotoRef.current?.click()} disabled={isUploadingCheque}>
+                  <Button type="button" variant="media" size="sm" className="text-xs" onClick={() => chequePhotoRef.current?.click()} disabled={isUploadingCheque}>
                     {isUploadingCheque ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <ImageIcon className="h-3 w-3 mr-1" />}
                     Foto
                   </Button>
-                  <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => chequeCameraRef.current?.click()} disabled={isUploadingCheque}>
+                  <Button type="button" variant="media" size="sm" className="text-xs" onClick={() => chequeCameraRef.current?.click()} disabled={isUploadingCheque}>
                     <Camera className="h-3 w-3 mr-1" />Câmera
                   </Button>
                   {chequeFotoUrl && <img src={chequeFotoUrl} alt="Cheque" className="h-8 w-12 rounded border object-cover" />}
