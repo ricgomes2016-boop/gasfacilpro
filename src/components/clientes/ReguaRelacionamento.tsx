@@ -212,7 +212,7 @@ export function ReguaRelacionamento() {
                         variant={c.tipo === "urgente" ? "destructive" : "outline"}
                         className={
                           c.tipo === "lembrete" ? "border-info text-info" :
-                          c.tipo === "reengajamento" ? "border-yellow-500 text-warning" : ""
+                          c.tipo === "reengajamento" ? "border-warning text-warning" : ""
                         }
                       >
                         {c.tipo === "lembrete" ? "Lembrete" : c.tipo === "reengajamento" ? "Reengajar" : "Urgente"}

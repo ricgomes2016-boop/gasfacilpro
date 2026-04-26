@@ -204,7 +204,7 @@ export function ChurnAnalysis() {
                     <TableCell>{c.bairro || "-"}</TableCell>
                     <TableCell>{c.diasSemPedido === 999 ? "Nunca comprou" : `${c.diasSemPedido} dias`}</TableCell>
                     <TableCell>
-                      <Badge variant={c.diasSemPedido > 90 ? "destructive" : "outline"} className={c.diasSemPedido <= 90 ? "border-yellow-500 text-warning" : ""}>
+                      <Badge variant={c.diasSemPedido > 90 ? "destructive" : "outline"} className={c.diasSemPedido <= 90 ? "border-warning text-warning" : ""}>
                         {c.diasSemPedido > 90 ? "Crítico" : "Atenção"}
                       </Badge>
                     </TableCell>
