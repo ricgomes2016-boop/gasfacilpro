@@ -5,9 +5,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ERP Revenda de Gás - Design System
-   Cores: Amber/Orange (chama) + Slate (profissional)
-*/
+  /* GasFacil Pro — SaaS/Fintech Design System */
 
 @layer base {
   :root {
@@ -64,9 +62,9 @@
     --gradient-dark: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
 
     /* Shadows */
-    --shadow-sm: 0 2px 8px hsl(220 35% 20% / 0.05);
-    --shadow-md: 0 12px 30px -18px hsl(220 35% 18% / 0.18), 0 4px 14px -8px hsl(220 35% 18% / 0.12);
-    --shadow-lg: 0 24px 55px -30px hsl(220 35% 18% / 0.26), 0 10px 24px -18px hsl(220 35% 18% / 0.16);
+    --shadow-sm: 0 2px 10px hsl(220 30% 18% / 0.04);
+    --shadow-md: 0 14px 34px -24px hsl(220 30% 18% / 0.24), 0 4px 14px -10px hsl(220 30% 18% / 0.12);
+    --shadow-lg: 0 24px 60px -34px hsl(220 30% 18% / 0.30), 0 12px 28px -22px hsl(220 30% 18% / 0.16);
     --shadow-glow: 0 0 22px hsl(var(--primary) / 0.22);
   }
 
@@ -224,7 +222,8 @@
 
 @layer utilities {
   .system-surface {
-    background: hsl(var(--background));
+    background:
+      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(210 33% 98%) 100%);
   }
 
   .dark .system-surface {
