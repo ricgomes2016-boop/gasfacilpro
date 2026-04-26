@@ -54,9 +54,9 @@ const calcularScore = (cliente: any, pedidos: any[]): ClienteComScore => {
 };
 
 const tierConfig = {
-  vip: { label: "VIP", color: "bg-yellow-500/10 text-yellow-600 border-yellow-500/30", icon: Crown },
-  ativo: { label: "Ativo", color: "bg-green-500/10 text-green-600 border-green-500/30", icon: CheckCircle },
-  em_risco: { label: "Em Risco", color: "bg-orange-500/10 text-orange-600 border-orange-500/30", icon: AlertTriangle },
+  vip: { label: "VIP", color: "bg-warning/10 text-warning border-warning/30", icon: Crown },
+  ativo: { label: "Ativo", color: "bg-success/10 text-success border-success/30", icon: CheckCircle },
+  em_risco: { label: "Em Risco", color: "bg-warning/10 text-warning border-warning/30", icon: AlertTriangle },
   inativo: { label: "Inativo", color: "bg-destructive/10 text-destructive border-destructive/30", icon: AlertCircle },
 };
 
@@ -94,9 +94,9 @@ export default function CRM() {
   }).sort((a, b) => b.score - a.score);
 
   const etapas: Etapa[] = [
-    { id: "vip", label: "VIP 👑", cor: "border-yellow-400 bg-yellow-500/5", clientes: clientes.filter(c => c.tier === "vip") },
-    { id: "ativo", label: "Ativo ✅", cor: "border-green-400 bg-green-500/5", clientes: clientes.filter(c => c.tier === "ativo") },
-    { id: "em_risco", label: "Em Risco ⚠️", cor: "border-orange-400 bg-orange-500/5", clientes: clientes.filter(c => c.tier === "em_risco") },
+    { id: "vip", label: "VIP 👑", cor: "border-warning/35 bg-warning/5", clientes: clientes.filter(c => c.tier === "vip") },
+    { id: "ativo", label: "Ativo ✅", cor: "border-success/30 bg-success/5", clientes: clientes.filter(c => c.tier === "ativo") },
+    { id: "em_risco", label: "Em Risco ⚠️", cor: "border-warning/35 bg-warning/5", clientes: clientes.filter(c => c.tier === "em_risco") },
     { id: "inativo", label: "Inativo 💤", cor: "border-destructive/40 bg-destructive/5", clientes: clientes.filter(c => c.tier === "inativo") },
   ];
 
@@ -137,7 +137,7 @@ export default function CRM() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-yellow-500/10"><Crown className="h-5 w-5 text-yellow-500" /></div>
+                <div className="status-card-icon status-card-icon-warning"><Crown /></div>
                 <div><p className="text-2xl font-bold">{stats.vip}</p><p className="text-xs text-muted-foreground">Clientes VIP</p></div>
               </div>
             </CardContent>
@@ -145,7 +145,7 @@ export default function CRM() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-orange-500/10"><AlertTriangle className="h-5 w-5 text-orange-500" /></div>
+                <div className="status-card-icon status-card-icon-warning"><AlertTriangle /></div>
                 <div><p className="text-2xl font-bold">{stats.emRisco}</p><p className="text-xs text-muted-foreground">Em Risco</p></div>
               </div>
             </CardContent>
@@ -161,7 +161,7 @@ export default function CRM() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10"><TrendingUp className="h-5 w-5 text-green-500" /></div>
+                <div className="status-card-icon status-card-icon-success"><TrendingUp /></div>
                 <div><p className="text-2xl font-bold">R$ {stats.ticketMedio.toFixed(0)}</p><p className="text-xs text-muted-foreground">Ticket Médio</p></div>
               </div>
             </CardContent>
@@ -281,7 +281,7 @@ export default function CRM() {
                           <TableCell className="text-sm">{c.qtdPedidos}</TableCell>
                           <TableCell className="text-sm font-medium">R$ {(c.totalGasto || 0).toFixed(2)}</TableCell>
                           <TableCell>
-                            <span className={`text-xs ${c.diasSemCompra > 60 ? "text-destructive" : c.diasSemCompra > 30 ? "text-orange-500" : "text-green-600"}`}>
+                            <span className={`text-xs ${c.diasSemCompra > 60 ? "text-destructive" : c.diasSemCompra > 30 ? "text-warning" : "text-success"}`}>
                               {c.diasSemCompra === 999 ? "Nunca" : `${c.diasSemCompra}d atrás`}
                             </span>
                           </TableCell>
