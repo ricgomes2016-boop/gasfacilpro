@@ -7,7 +7,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -338,14 +338,10 @@ export default function Estoque() {
                 <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                 Atualizar
               </Button>
-              <Dialog open={movDialogOpen} onOpenChange={setMovDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="secondary" size="sm">
-                    <ArrowUpDown className="mr-2 h-4 w-4" />
-                    Movimentação
-                  </Button>
-                </DialogTrigger>
-              </Dialog>
+              <Button variant="secondary" size="sm" onClick={() => setMovDialogOpen(true)}>
+                <ArrowUpDown className="mr-2 h-4 w-4" />
+                Movimentação
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -399,7 +395,8 @@ export default function Estoque() {
         </div>
 
         {/* Date filters + actions */}
-        <div className="flex flex-wrap items-end gap-4">
+        <Card className="modern-soft-panel">
+          <CardContent className="grid gap-3 p-3 sm:grid-cols-[repeat(2,minmax(0,180px))] sm:items-end sm:p-4">
           <div className="grid gap-1.5">
             <Label className="text-sm font-medium">Data Inicial</Label>
             <Popover>
@@ -428,18 +425,10 @@ export default function Estoque() {
               </PopoverContent>
             </Popover>
           </div>
-          <div className="flex gap-2 ml-auto">
-            <Button variant="outline" size="sm" onClick={fetchData} disabled={isLoading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-              Atualizar
-            </Button>
+          </CardContent>
+        </Card>
+
             <Dialog open={movDialogOpen} onOpenChange={setMovDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm">
-                  <ArrowUpDown className="mr-2 h-4 w-4" />
-                  Movimentação
-                </Button>
-              </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Movimentação de Estoque</DialogTitle>
