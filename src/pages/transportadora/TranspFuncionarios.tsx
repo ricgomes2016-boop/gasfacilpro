@@ -145,7 +145,7 @@ export default function TranspFuncionarios() {
           <div className="flex gap-2">
             <Dialog open={importOpen} onOpenChange={(o) => { setImportOpen(o); if (!o) setSelectedIds([]); }}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2"><Download className="h-4 w-4" />Importar do Sistema</Button>
+                <Button variant="import" className="gap-2"><Download className="h-4 w-4" />Importar do Sistema</Button>
               </DialogTrigger>
               <DialogContent className="max-w-lg">
                 <DialogHeader><DialogTitle>Importar Funcionários do Sistema</DialogTitle></DialogHeader>
