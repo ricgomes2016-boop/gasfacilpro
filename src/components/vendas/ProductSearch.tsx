@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -16,6 +16,7 @@ import gasP13Img from "@/assets/products/gas-p13.png";
 import gasP20Img from "@/assets/products/gas-p20.png";
 import gasP45Img from "@/assets/products/gas-p45.png";
 import agua20lImg from "@/assets/products/agua-20l.png";
+import { VendaSectionHeader } from "./VendaSectionHeader";
 
 interface Produto {
   id: string;
@@ -213,19 +214,15 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
 
   return (
     <Card ref={searchRef} className="venda-card overflow-hidden">
-      <CardHeader className="border-b bg-primary p-4 pb-3 text-primary-foreground">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle className="flex items-center gap-2 text-base text-primary-foreground">
-            <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary-foreground/15 text-primary-foreground">
-              <Package className="h-5 w-5" />
-            </span>
-            Produtos
-          </CardTitle>
+      <VendaSectionHeader
+        title="Produtos"
+        icon={<Package className="h-5 w-5" />}
+        action={
           <div className="rounded-md border border-primary-foreground/25 bg-primary-foreground px-3 py-1.5 text-sm font-semibold text-primary shadow-sm">
             Total R$ {total.toFixed(2)}
           </div>
-        </div>
-      </CardHeader>
+        }
+      />
       <CardContent className="space-y-4 p-4">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           {produtosPrincipais.map((produto) => {

@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -15,6 +15,7 @@ import { addDays, format } from "date-fns";
 import { PixKeySelectorModal } from "@/components/pagamento/PixKeySelectorModal";
 import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { VendaSectionHeader } from "./VendaSectionHeader";
 
 export interface Pagamento {
   id: string;
@@ -229,19 +230,15 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
   return (
     <>
       <Card className="venda-card overflow-hidden">
-        <CardHeader className="border-b bg-primary p-4 pb-3 text-primary-foreground">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle className="flex items-center gap-2 text-base text-primary-foreground">
-              <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary-foreground/15 text-primary-foreground">
-                <CreditCard className="h-5 w-5" />
-              </span>
-              Pagamento
-            </CardTitle>
+        <VendaSectionHeader
+          title="Pagamento"
+          icon={<CreditCard className="h-5 w-5" />}
+          action={
             <div className="rounded-md border border-primary-foreground/25 bg-primary-foreground px-3 py-1.5 text-sm font-semibold text-primary shadow-sm">
               Total R$ {totalVenda.toFixed(2)}
             </div>
-          </div>
-        </CardHeader>
+          }
+        />
         <CardContent className="space-y-4 p-4">
           {/* Lista de pagamentos adicionados */}
           {pagamentos.length > 0 && (
