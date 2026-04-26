@@ -66,17 +66,17 @@ export function Header({ title, subtitle }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 md:h-16 w-full max-w-full items-center justify-between gap-2 overflow-hidden border-b border-border bg-background/95 px-2 md:px-4 xl:px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex items-center gap-2 min-w-0 flex-1">
+    <header className="sticky top-0 z-30 flex h-16 md:h-[4.5rem] w-full max-w-full items-center justify-between gap-2 overflow-hidden border-b border-border/60 bg-background/85 px-2.5 shadow-sm shadow-foreground/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 md:px-4 xl:px-6">
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
         {/* Mobile menu */}
         <MobileNav />
         
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 min-w-0 max-w-full">
-            <h1 className="text-base md:text-lg xl:text-xl font-bold text-foreground truncate min-w-0">{title}</h1>
+        <div className="min-w-0 flex-1 rounded-xl border border-border/50 bg-card/45 px-3 py-2 shadow-sm shadow-foreground/5">
+          <div className="flex min-w-0 max-w-full items-center gap-2">
+            <h1 className="min-w-0 truncate text-base font-bold leading-tight text-foreground md:text-lg xl:text-xl">{title}</h1>
             <BuildVersionBadge className="hidden xl:inline-flex shrink-0" />
           </div>
-          <p className="text-xs md:text-sm text-muted-foreground truncate hidden sm:block max-w-full">
+          <p className="hidden max-w-full truncate text-xs font-medium text-muted-foreground sm:block md:text-sm">
             {empresa && <span className="font-medium">{empresa.nome}</span>}
             {subtitle && <span>{empresa ? " — " : ""}{subtitle}</span>}
             {unidadeAtual && <span className="ml-2 text-primary font-medium">• {unidadeAtual.nome}</span>}
@@ -84,7 +84,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-0.5 sm:gap-1 xl:gap-2 shrink-0 min-w-0">
+      <div className="flex min-w-0 shrink-0 items-center justify-end gap-0.5 rounded-xl border border-border/50 bg-card/45 p-1 shadow-sm shadow-foreground/5 sm:gap-1 xl:gap-2">
         {/* Unidade Selector */}
         <UnidadeSelector />
 
