@@ -521,6 +521,19 @@
 
   :where(.bg-white) { background-color: hsl(var(--card)) !important; }
   :where(.text-white) { color: hsl(var(--primary-foreground)) !important; }
+  :where(.text-white) > svg,
+  :where(.text-white) .lucide,
+  :where(.text-white\/50) > svg,
+  :where(.text-white\/50) .lucide,
+  :where(.text-white\/70) > svg,
+  :where(.text-white\/70) .lucide,
+  :where(.text-white\/80) > svg,
+  :where(.text-white\/80) .lucide,
+  :where(.text-white\/90) > svg,
+  :where(.text-white\/90) .lucide {
+    color: currentColor !important;
+    stroke: currentColor !important;
+  }
   :where(.text-black,.text-gray-900,.text-slate-900) { color: hsl(var(--foreground)) !important; }
   :where(.text-gray-500,.text-gray-600,.text-slate-400,.text-slate-500,.text-slate-600) { color: hsl(var(--muted-foreground)) !important; }
   :where(.bg-gray-50,.bg-slate-50) { background-color: hsl(var(--muted) / 0.55) !important; }
