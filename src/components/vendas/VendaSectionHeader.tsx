@@ -11,6 +11,13 @@ interface VendaSectionHeaderProps {
   framedIcon?: boolean;
 }
 
+export const VENDA_SECTION_HEADER_THEME = {
+  header: "bg-primary p-4 pb-3 text-primary-foreground",
+  title: "flex min-w-0 items-center gap-2 text-base text-primary-foreground",
+  iconFrame: "flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-foreground/15 text-primary-foreground",
+  icon: "shrink-0 text-primary-foreground",
+};
+
 export function VendaSectionHeader({
   title,
   icon,
@@ -22,19 +29,19 @@ export function VendaSectionHeader({
   return (
     <CardHeader
       className={cn(
-        "bg-primary p-4 pb-3 text-primary-foreground",
+        VENDA_SECTION_HEADER_THEME.header,
         withBorder && "border-b",
         className,
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <CardTitle className="flex min-w-0 items-center gap-2 text-base text-primary-foreground">
+        <CardTitle className={VENDA_SECTION_HEADER_THEME.title}>
           {framedIcon ? (
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-foreground/15 text-primary-foreground">
+            <span className={VENDA_SECTION_HEADER_THEME.iconFrame}>
               {icon}
             </span>
           ) : (
-            <span className="shrink-0 text-primary-foreground">{icon}</span>
+            <span className={VENDA_SECTION_HEADER_THEME.icon}>{icon}</span>
           )}
           <span className="truncate">{title}</span>
         </CardTitle>
