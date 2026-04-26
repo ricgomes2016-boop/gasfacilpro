@@ -347,6 +347,7 @@ export default function ContasPagar() {
                         return (
                           <div key={conta.id} className="border rounded-lg p-3">
                             <div className="flex items-start justify-between gap-2">
+                              <Checkbox checked={cp.selecionadasPagamentoIds.has(conta.id)} disabled={conta.status === "paga"} onCheckedChange={() => cp.togglePagamentoSelection(conta.id)} aria-label={`Selecionar ${conta.descricao}`} className="mt-1 shrink-0" />
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium truncate">{conta.descricao}</p>
                                 <p className="text-xs text-muted-foreground">{conta.fornecedor}</p>
@@ -389,12 +390,13 @@ export default function ContasPagar() {
         {/* Pagar */}
         <Dialog open={cp.pagarDialogOpen} onOpenChange={cp.setPagarDialogOpen}>
           <DialogContent className="max-w-md">
-            <DialogHeader><DialogTitle>Pagar Conta</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{cp.pagamentoEmLoteIds.size > 0 ? "Pagar Contas Selecionadas" : "Pagar Conta"}</DialogTitle></DialogHeader>
             {cp.pagarConta && (
               <div className="space-y-4 pt-2">
                 <div className="p-3 rounded-lg bg-muted/50 space-y-1">
                   <p className="text-sm font-medium">{cp.pagarConta.fornecedor}</p>
                   <p className="text-xs text-muted-foreground">{cp.pagarConta.descricao}</p>
+                  {cp.pagamentoEmLoteIds.size > 0 && <p className="text-xs font-medium text-success">{cp.pagamentoEmLoteIds.size} contas serão quitadas juntas</p>}
                   <p className="text-lg font-bold">R$ {Number(cp.pagarConta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
                 </div>
                 <div className="space-y-3">
