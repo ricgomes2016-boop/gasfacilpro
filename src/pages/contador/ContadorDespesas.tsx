@@ -255,13 +255,11 @@ export default function ContadorDespesas() {
                 label="IA: PDF/ZIP"
               />
             )}
-            <Button variant="outline" onClick={() => cameraRef.current?.click()} disabled={uploading || !empresaAtiva}
-              className="border-[hsl(220,15%,22%)] text-[hsl(0,0%,90%)] hover:bg-[hsl(220,18%,15%)]">
-              <Camera className="h-4 w-4 mr-2" /> Escanear
+            <Button variant="photo" onClick={() => cameraRef.current?.click()} disabled={uploading || !empresaAtiva}>
+              <Camera className="h-4 w-4" /> Escanear
             </Button>
-            <Button onClick={() => fileRef.current?.click()} disabled={uploading || !empresaAtiva}
-              className="bg-[hsl(165,60%,40%)] hover:bg-[hsl(165,60%,45%)] text-white">
-              {uploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+            <Button variant="import" onClick={() => fileRef.current?.click()} disabled={uploading || !empresaAtiva}>
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               Enviar arquivo
             </Button>
           </div>
