@@ -261,6 +261,28 @@
     @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-foreground/15 text-primary-foreground;
   }
 
+  .status-card-icon {
+    @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-lg;
+  }
+
+  .status-card-icon svg {
+    @apply h-5 w-5;
+  }
+
+  .status-card-icon-primary { @apply bg-primary/10 text-primary; }
+  .status-card-icon-info { @apply bg-info/10 text-info; }
+  .status-card-icon-success { @apply bg-success/10 text-success; }
+  .status-card-icon-warning { @apply bg-warning/10 text-warning; }
+  .status-card-icon-destructive { @apply bg-destructive/10 text-destructive; }
+  .status-card-icon-muted { @apply bg-muted text-muted-foreground; }
+  .status-card-icon-accent { @apply bg-accent text-accent-foreground; }
+
+  .status-card-icon-primary-solid { @apply bg-primary-foreground/15 text-primary-foreground; }
+  .status-card-icon-info-solid { @apply bg-info-foreground/15 text-info-foreground; }
+  .status-card-icon-success-solid { @apply bg-success-foreground/15 text-success-foreground; }
+  .status-card-icon-warning-solid { @apply bg-warning-foreground/15 text-warning-foreground; }
+  .status-card-icon-destructive-solid { @apply bg-destructive-foreground/15 text-destructive-foreground; }
+
   .action-button-modern {
     @apply border border-primary/25 bg-primary/10 text-primary shadow-sm shadow-primary/10 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/45 hover:bg-primary hover:text-primary-foreground hover:shadow-md hover:shadow-primary/25 active:translate-y-0 active:scale-[0.98];
   }
