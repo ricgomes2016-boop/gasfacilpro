@@ -470,7 +470,7 @@ export default function GestaoRotas() {
                         <TableRow key={rota.id}>
                           <TableCell className="font-medium">{rota.nome}</TableCell>
                           <TableCell>
-                            <Badge className={rota.tipo === "atacado" ? "bg-orange-500 text-white" : "bg-blue-500 text-white"}>
+                            <Badge variant={rota.tipo === "atacado" ? "warning" : "default"}>
                               {rota.tipo === "atacado" ? "Atacado" : "Cidade"}
                             </Badge>
                           </TableCell>
@@ -579,7 +579,7 @@ export default function GestaoRotas() {
               <Card>
                 <CardContent className="p-3 text-center">
                   <p className="text-xs text-muted-foreground">Transferido</p>
-                  <p className="text-2xl font-bold text-orange-500">{resumo.totalTransferido}</p>
+                  <p className="text-2xl font-bold text-warning">{resumo.totalTransferido}</p>
                 </CardContent>
               </Card>
               <Card className="border-primary/30 bg-primary/5">
@@ -591,13 +591,13 @@ export default function GestaoRotas() {
               <Card>
                 <CardContent className="p-3 text-center">
                   <p className="text-xs text-muted-foreground">Total Vendido</p>
-                  <p className="text-2xl font-bold text-green-600">{resumo.totalVendido}</p>
+                  <p className="text-2xl font-bold text-success">{resumo.totalVendido}</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-3 text-center">
                   <p className="text-xs text-muted-foreground">Total Retorno</p>
-                  <p className="text-2xl font-bold text-orange-500">{resumo.totalRetorno}</p>
+                  <p className="text-2xl font-bold text-warning">{resumo.totalRetorno}</p>
                 </CardContent>
               </Card>
               <Card>
@@ -655,10 +655,10 @@ export default function GestaoRotas() {
                                       {i.produto_nome}: <span className="font-bold ml-0.5">{saldo}</span>
                                       <span className="ml-1 text-muted-foreground">({i.quantidade_saida} saída</span>
                                       {(i.quantidade_vendida != null && i.quantidade_vendida > 0) && (
-                                        <span className="text-green-600"> - {i.quantidade_vendida} vend.</span>
+                                        <span className="text-success"> - {i.quantidade_vendida} vend.</span>
                                       )}
                                       {(i.quantidade_transferida != null && i.quantidade_transferida > 0) && (
-                                        <span className="text-orange-500"> - {i.quantidade_transferida} transf.</span>
+                                        <span className="text-warning"> - {i.quantidade_transferida} transf.</span>
                                       )}
                                       <span>)</span>
                                     </Badge>
@@ -668,7 +668,7 @@ export default function GestaoRotas() {
                             </TableCell>
                             <TableCell>
                               {c.status === "em_rota" ? (
-                                <Badge className="bg-blue-500 text-white">Em Rota</Badge>
+                                <Badge variant="default">Em Rota</Badge>
                               ) : (
                                 <Badge variant="secondary">
                                   <CheckCircle className="h-3 w-3 mr-1" />
@@ -850,7 +850,7 @@ export default function GestaoRotas() {
                           />
                         </TableCell>
                         <TableCell>
-                          <Badge className={vendido > 0 ? "bg-green-500 text-white" : ""}>{vendido}</Badge>
+                          <Badge variant={vendido > 0 ? "success" : "outline"}>{vendido}</Badge>
                         </TableCell>
                       </TableRow>
                     );

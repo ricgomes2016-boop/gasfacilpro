@@ -24,11 +24,11 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 const CORES = [
-  { value: "yellow", label: "Amarelo", dot: "bg-amber-400", card: "border-l-amber-400" },
-  { value: "blue", label: "Azul", dot: "bg-blue-400", card: "border-l-blue-400" },
-  { value: "green", label: "Verde", dot: "bg-emerald-400", card: "border-l-emerald-400" },
-  { value: "pink", label: "Rosa", dot: "bg-pink-400", card: "border-l-pink-400" },
-  { value: "purple", label: "Roxo", dot: "bg-violet-400", card: "border-l-violet-400" },
+  { value: "yellow", label: "Amarelo", dot: "bg-warning", card: "border-l-warning" },
+  { value: "blue", label: "Azul", dot: "bg-info", card: "border-l-info" },
+  { value: "green", label: "Verde", dot: "bg-success", card: "border-l-success" },
+  { value: "pink", label: "Rosa", dot: "bg-accent", card: "border-l-accent" },
+  { value: "purple", label: "Roxo", dot: "bg-secondary", card: "border-l-secondary" },
 ];
 
 function getCorConfig(cor: string) {
@@ -118,8 +118,8 @@ export function NotesWidget({ className }: { className?: string }) {
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-4 pb-2">
         <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-500 shadow-sm">
-            <StickyNote className="h-4 w-4 text-white" />
+          <div className="flex items-center justify-center h-8 w-8 rounded-2xl bg-accent shadow-sm shadow-accent/20">
+            <StickyNote className="h-4 w-4 text-accent-foreground" />
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground leading-none">

@@ -94,8 +94,8 @@ export function RemindersWidget() {
         items.push({
           id: "contas-vencer",
           icon: CreditCard,
-          iconColor: vencidas.length > 0 ? "text-destructive" : "text-amber-500",
-          bgColor: vencidas.length > 0 ? "bg-destructive/10" : "bg-amber-500/10",
+          iconColor: vencidas.length > 0 ? "text-destructive" : "text-warning",
+          bgColor: vencidas.length > 0 ? "bg-destructive/10" : "bg-warning/15",
           title: `${contas.length} conta(s) a pagar ${vencidas.length > 0 ? "vencida(s)" : "vencem em breve"}`,
           description: `Total: R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
           badge: vencidas.length > 0 ? "Urgente" : "3 dias",

@@ -5,9 +5,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ERP Revenda de Gás - Design System
-   Cores: Amber/Orange (chama) + Slate (profissional)
-*/
+  /* GasFacil Pro — SaaS/Fintech Design System */
 
 @layer base {
   :root {
@@ -64,9 +62,9 @@
     --gradient-dark: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
 
     /* Shadows */
-    --shadow-sm: 0 2px 8px hsl(220 35% 20% / 0.05);
-    --shadow-md: 0 12px 30px -18px hsl(220 35% 18% / 0.18), 0 4px 14px -8px hsl(220 35% 18% / 0.12);
-    --shadow-lg: 0 24px 55px -30px hsl(220 35% 18% / 0.26), 0 10px 24px -18px hsl(220 35% 18% / 0.16);
+    --shadow-sm: 0 2px 10px hsl(220 30% 18% / 0.04);
+    --shadow-md: 0 14px 34px -24px hsl(220 30% 18% / 0.24), 0 4px 14px -10px hsl(220 30% 18% / 0.12);
+    --shadow-lg: 0 24px 60px -34px hsl(220 30% 18% / 0.30), 0 12px 28px -22px hsl(220 30% 18% / 0.16);
     --shadow-glow: 0 0 22px hsl(var(--primary) / 0.22);
   }
 
@@ -224,7 +222,8 @@
 
 @layer utilities {
   .system-surface {
-    background: hsl(var(--background));
+    background:
+      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(210 33% 98%) 100%);
   }
 
   .dark .system-surface {
@@ -339,15 +338,15 @@
   }
 
   .modern-panel {
-    @apply rounded-2xl border border-border/50 bg-card shadow-md shadow-foreground/5;
+    @apply rounded-2xl border border-border/35 bg-card shadow-md shadow-foreground/5;
   }
 
   .modern-soft-panel {
-    @apply rounded-2xl border border-border/40 bg-card shadow-sm shadow-foreground/5;
+    @apply rounded-2xl border border-border/30 bg-card shadow-sm shadow-foreground/5;
   }
 
   .modern-status-card {
-    @apply overflow-hidden rounded-2xl border border-border/40 shadow-md shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/10;
+    @apply overflow-hidden rounded-2xl border border-border/35 bg-card shadow-md shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/10;
   }
 
   .saas-table {
@@ -368,14 +367,19 @@
   }
 
   .saas-table tbody td {
-    @apply border-y border-border/50 bg-card px-4 py-4 shadow-sm first:rounded-l-2xl first:border-l last:rounded-r-2xl last:border-r;
+    @apply border-y border-border/35 bg-card px-4 py-4 shadow-sm first:rounded-l-2xl first:border-l last:rounded-r-2xl last:border-r;
+  }
+
+  .status-pill,
+  [class*="badge-status"] {
+    @apply inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold shadow-sm;
   }
 
   .saas-table-scope table { @apply saas-table; }
   .saas-table-scope thead tr { @apply saas-table-header; }
 
   .kpi-card {
-    @apply modern-status-card border-transparent bg-primary text-primary-foreground shadow-primary/20;
+    @apply modern-status-card bg-card text-card-foreground;
   }
 
   .kpi-card-content {
@@ -392,11 +396,11 @@
     opacity: 0.82;
   }
 
-  .kpi-card-primary { @apply border-transparent bg-primary text-primary-foreground shadow-primary/20; }
-  .kpi-card-info { @apply border-transparent bg-info text-info-foreground shadow-info/20; }
-  .kpi-card-success { @apply border-transparent bg-success text-success-foreground shadow-success/20; }
-  .kpi-card-warning { @apply border-transparent bg-warning text-warning-foreground shadow-warning/20; }
-  .kpi-card-destructive { @apply border-transparent bg-destructive text-destructive-foreground shadow-destructive/20; }
+  .kpi-card-primary { @apply border-primary/20 bg-card text-card-foreground shadow-primary/10; }
+  .kpi-card-info { @apply border-info/20 bg-card text-card-foreground shadow-info/10; }
+  .kpi-card-success { @apply border-success/20 bg-card text-card-foreground shadow-success/10; }
+  .kpi-card-warning { @apply border-warning/25 bg-card text-card-foreground shadow-warning/10; }
+  .kpi-card-destructive { @apply border-destructive/20 bg-card text-card-foreground shadow-destructive/10; }
   .kpi-card-muted { @apply border-border/70 bg-card; }
 
   .semantic-filter-panel {
@@ -484,6 +488,12 @@
   :where(.bg-purple-500,.bg-purple-600,.bg-violet-500,.bg-violet-600,.bg-pink-500,.bg-pink-600,.bg-fuchsia-500,.bg-fuchsia-600) { background-color: hsl(var(--accent)) !important; color: hsl(var(--accent-foreground)) !important; }
   :where(.text-purple-500,.text-purple-600,.text-violet-500,.text-violet-600,.text-pink-500,.text-pink-600,.text-fuchsia-500,.text-fuchsia-600) { color: hsl(var(--accent)) !important; }
   :where(.border-purple-200,.border-purple-300,.border-violet-200,.border-violet-300,.border-pink-200,.border-fuchsia-200) { border-color: hsl(var(--accent) / 0.35) !important; }
+
+  :where(.bg-white) { background-color: hsl(var(--card)) !important; }
+  :where(.text-white) { color: hsl(var(--primary-foreground)) !important; }
+  :where(.text-black,.text-gray-900,.text-slate-900) { color: hsl(var(--foreground)) !important; }
+  :where(.text-gray-500,.text-gray-600,.text-slate-400,.text-slate-500,.text-slate-600) { color: hsl(var(--muted-foreground)) !important; }
+  :where(.bg-gray-50,.bg-slate-50) { background-color: hsl(var(--muted) / 0.55) !important; }
 
   .venda-tone-cliente,
   .venda-tone-produtos,
