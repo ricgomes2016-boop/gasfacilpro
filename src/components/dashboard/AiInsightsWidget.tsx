@@ -18,7 +18,7 @@ interface Insight {
 
 const prioridadeCores: Record<string, string> = {
   alta: "border-l-destructive bg-destructive/5",
-  media: "border-l-amber-500 bg-amber-500/5",
+  media: "border-l-warning bg-warning/10",
   baixa: "border-l-primary bg-primary/5",
 };
 
