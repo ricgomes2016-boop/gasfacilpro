@@ -640,31 +640,31 @@ export default function Pedidos() {
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
           <Card className="border-warning bg-warning text-warning-foreground">
             <CardContent className="flex min-h-24 items-center gap-3 p-3 md:p-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-warning-foreground/15"><Clock className="h-5 w-5 text-warning-foreground" /></div>
+              <div className="status-card-icon status-card-icon-warning-solid"><Clock /></div>
               <div className="min-w-0"><p className="text-xl md:text-2xl font-bold">{contadores.pendente}</p><p className="text-xs text-warning-foreground/80">Pendentes</p></div>
             </CardContent>
           </Card>
           <Card className="border-info bg-info text-info-foreground">
             <CardContent className="flex min-h-24 items-center gap-3 p-3 md:p-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-info-foreground/15"><Truck className="h-5 w-5 text-info-foreground" /></div>
+              <div className="status-card-icon status-card-icon-info-solid"><Truck /></div>
               <div className="min-w-0"><p className="text-xl md:text-2xl font-bold">{contadores.em_rota}</p><p className="text-xs text-info-foreground/80">Em Rota</p></div>
             </CardContent>
           </Card>
           <Card className="border-success bg-success text-success-foreground">
             <CardContent className="flex min-h-24 items-center gap-3 p-3 md:p-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-success-foreground/15"><CheckCircle className="h-5 w-5 text-success-foreground" /></div>
+              <div className="status-card-icon status-card-icon-success-solid"><CheckCircle /></div>
               <div className="min-w-0"><p className="text-xl md:text-2xl font-bold">{contadores.entregue}</p><p className="text-xs text-success-foreground/80">Entregues</p></div>
             </CardContent>
           </Card>
           <Card className="border-destructive bg-destructive text-destructive-foreground">
             <CardContent className="flex min-h-24 items-center gap-3 p-3 md:p-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-destructive-foreground/15"><XCircle className="h-5 w-5 text-destructive-foreground" /></div>
+              <div className="status-card-icon status-card-icon-destructive-solid"><XCircle /></div>
               <div className="min-w-0"><p className="text-xl md:text-2xl font-bold">{contadores.cancelado}</p><p className="text-xs text-destructive-foreground/80">Cancelados</p></div>
             </CardContent>
           </Card>
           <Card className="col-span-2 border-primary bg-primary text-primary-foreground lg:col-span-1">
             <CardContent className="flex min-h-24 items-center gap-3 p-3 md:p-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary-foreground/15"><DollarSign className="h-5 w-5 text-primary-foreground" /></div>
+              <div className="status-card-icon status-card-icon-primary-solid"><DollarSign /></div>
               <div className="min-w-0">
                 <p className="truncate text-xl font-bold md:text-2xl">R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
                 <p className="text-xs text-primary-foreground/80">Total Vendas</p>

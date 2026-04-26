@@ -322,8 +322,8 @@ export default function Estoque() {
         <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
           <Card>
             <CardContent className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
-              <div className="rounded-lg bg-primary/10 p-2 sm:p-3">
-                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+              <div className="status-card-icon status-card-icon-primary">
+                <Package />
               </div>
               <div>
                 <p className="text-xs sm:text-sm text-muted-foreground">Cheios</p>
@@ -333,8 +333,8 @@ export default function Estoque() {
           </Card>
           <Card>
             <CardContent className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
-              <div className="rounded-lg bg-muted p-2 sm:p-3">
-                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
+              <div className="status-card-icon status-card-icon-muted">
+                <Package />
               </div>
               <div>
                 <p className="text-xs sm:text-sm text-muted-foreground">Vazios</p>
@@ -344,8 +344,8 @@ export default function Estoque() {
           </Card>
           <Card>
             <CardContent className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
-              <div className="rounded-lg bg-accent p-2 sm:p-3">
-                <ArrowUpDown className="h-5 w-5 sm:h-6 sm:w-6 text-accent-foreground" />
+              <div className="status-card-icon status-card-icon-accent">
+                <ArrowUpDown />
               </div>
               <div>
                 <p className="text-xs sm:text-sm text-muted-foreground">Vendas Período</p>
@@ -355,8 +355,8 @@ export default function Estoque() {
           </Card>
           <Card>
             <CardContent className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
-              <div className="rounded-lg bg-destructive/10 p-2 sm:p-3">
-                <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-destructive" />
+              <div className="status-card-icon status-card-icon-destructive">
+                <AlertTriangle />
               </div>
               <div>
                 <p className="text-xs sm:text-sm text-muted-foreground">Valor Estoque</p>
