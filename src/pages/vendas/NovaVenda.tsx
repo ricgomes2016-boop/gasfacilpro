@@ -1026,13 +1026,13 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             disabled={aiLoading || isListening}
           />
           <div className="flex items-center gap-1">
-            <Button variant={isListening ? "destructive" : "outline"} size="icon" onClick={isListening ? stopListening : startListening} disabled={aiLoading} className={`shrink-0 h-9 w-9 ${isListening ? "animate-pulse" : ""}`} title={isListening ? "Parar gravação" : "Comando por voz"}>
+            <Button variant={isListening ? "destructive" : "microphone"} size="icon" onClick={isListening ? stopListening : startListening} disabled={aiLoading} className={`shrink-0 h-9 w-9 ${isListening ? "animate-pulse" : ""}`} title={isListening ? "Parar gravação" : "Comando por voz"}>
               {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </Button>
-            <Button variant="outline" size="icon" onClick={() => photoInputRef.current?.click()} disabled={aiLoading || photoLoading} className="shrink-0 h-9 w-9" title="Lançar vendas por foto">
+            <Button variant="import" size="icon" onClick={() => photoInputRef.current?.click()} disabled={aiLoading || photoLoading} className="shrink-0 h-9 w-9" title="Lançar vendas por foto">
               {photoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
             </Button>
-            <Button variant="outline" size="icon" onClick={() => cameraInputRef.current?.click()} disabled={aiLoading || photoLoading} className="shrink-0 h-9 w-9" title="Tirar foto da anotação">
+            <Button variant="photo" size="icon" onClick={() => cameraInputRef.current?.click()} disabled={aiLoading || photoLoading} className="shrink-0 h-9 w-9" title="Tirar foto da anotação">
               {photoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
             </Button>
             <Button id="ai-send-btn" onClick={handleAiCommand} disabled={aiLoading || !aiCommand.trim()} size="sm" className="shrink-0 gap-1">
