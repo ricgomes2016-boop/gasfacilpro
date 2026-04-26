@@ -195,7 +195,7 @@ export default function DocumentosEmpresa() {
               </SelectContent>
             </Select>
           </div>
-          <Button className="gap-2" onClick={() => setUploadOpen(true)}>
+          <Button variant="import" className="gap-2" onClick={() => setUploadOpen(true)}>
             <FileUp className="h-4 w-4" />
             Enviar Documento
           </Button>
