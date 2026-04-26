@@ -217,6 +217,7 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
       <VendaSectionHeader
         title="Produtos"
         icon={<Package className="h-5 w-5" />}
+        tone="warning"
         action={
           <div className="rounded-md border border-primary-foreground/25 bg-primary-foreground px-3 py-1.5 text-sm font-semibold text-primary shadow-sm">
             Total R$ {total.toFixed(2)}
