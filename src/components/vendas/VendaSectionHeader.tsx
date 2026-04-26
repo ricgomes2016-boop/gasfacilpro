@@ -12,9 +12,9 @@ interface VendaSectionHeaderProps {
 }
 
 export const VENDA_SECTION_HEADER_THEME = {
-  header: "bg-primary p-4 pb-3 text-primary-foreground",
-  title: "flex min-w-0 items-center gap-2 text-base text-primary-foreground",
-  iconFrame: "flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-foreground/15 text-primary-foreground",
+  header: "section-header-primary",
+  title: "section-header-title",
+  iconFrame: "section-header-icon-frame",
   icon: "shrink-0 text-primary-foreground",
 };
 
