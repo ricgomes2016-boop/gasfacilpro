@@ -121,7 +121,7 @@ export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPers
 
   return (
     <Card className="venda-card overflow-hidden">
-      <VendaSectionHeader title="Entregador" icon={<Truck className="h-5 w-5" />} />
+      <VendaSectionHeader title="Entregador" icon={<Truck className="h-5 w-5" />} tone="warning" />
       <CardContent className="space-y-4 p-4">
         <Select value={value || undefined} onValueChange={handleSelect} disabled={loading}>
           <SelectTrigger className="sr-only">
