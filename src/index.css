@@ -262,7 +262,7 @@
   }
 
   .status-card-icon {
-    @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-lg;
+    @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-xl;
   }
 
   .status-card-icon svg {
@@ -321,6 +321,18 @@
 
   .action-button-modern {
     @apply border border-primary/25 bg-primary/10 text-primary shadow-sm shadow-primary/10 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/45 hover:bg-primary hover:text-primary-foreground hover:shadow-md hover:shadow-primary/25 active:translate-y-0 active:scale-[0.98];
+  }
+
+  .modern-panel {
+    @apply rounded-xl border border-border/70 bg-card shadow-sm shadow-foreground/5;
+  }
+
+  .modern-soft-panel {
+    @apply rounded-xl border border-border/60 bg-muted/35 shadow-sm shadow-foreground/5;
+  }
+
+  .modern-status-card {
+    @apply overflow-hidden rounded-xl border shadow-sm shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/10;
   }
 
   .venda-tone-cliente,
