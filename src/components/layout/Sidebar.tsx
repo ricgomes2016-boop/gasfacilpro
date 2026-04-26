@@ -4,19 +4,11 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronLeft,
-  Store,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logoImg from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Tooltip,
   TooltipContent,
@@ -25,7 +17,6 @@ import {
 } from "@/components/ui/tooltip";
 import { useSidebarContext } from "@/contexts/SidebarContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useUnidade } from "@/contexts/UnidadeContext";
 import { useState, useEffect } from "react";
 import { menuItems } from "./menuItems";
 import { motion, AnimatePresence } from "framer-motion";
@@ -180,7 +171,6 @@ export function Sidebar() {
   const navigate = useNavigate();
   const { collapsed, toggle } = useSidebarContext();
   const { signOut, profile } = useAuth();
-  const { unidades, unidadeAtual, setUnidadeAtual } = useUnidade();
   const [openMenus, setOpenMenus] = useState<string[]>([]);
 
   // Auto-open active submenu
