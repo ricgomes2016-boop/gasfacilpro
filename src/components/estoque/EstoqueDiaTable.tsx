@@ -229,12 +229,15 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
 
   return (
     <>
-      <Card>
+      <Card className="border-primary/20">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">📦 {dataFmtCapitalized}</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="flex min-w-0 items-center gap-2 text-base sm:text-lg">
+              <span className="section-header-icon-frame h-8 w-8"><Package className="h-4 w-4" /></span>
+              <span className="truncate">{dataFmtCapitalized}</span>
+            </CardTitle>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm font-medium text-primary-foreground/80">
             Total = Inicial + Entradas − Saídas − Vendas − Avarias
           </p>
         </CardHeader>
@@ -271,9 +274,9 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                     const isPairedVazio = isVazio && idx > 0 && linhas[idx - 1]?.tipoEstoque === "Cheio" && linhas[idx - 1]?.nome === linha.nome;
 
                     const groupBg = isCheio
-                      ? "bg-orange-50/60 dark:bg-orange-950/10"
+                      ? "bg-primary/5"
                       : isVazio
-                      ? "bg-slate-50/80 dark:bg-slate-900/20"
+                      ? "bg-muted/45"
                       : idx % 2 === 0
                       ? "bg-background"
                       : "bg-muted/30";
@@ -292,19 +295,19 @@ export function EstoqueDiaTable({ produtos, movimentacoes, dataDia, isLoading, o
                       >
                         <TableCell className="font-medium py-3">
                           <span className="flex items-center gap-2">
-                            <span className={`flex items-center justify-center w-7 h-7 rounded-full ${
+                            <span className={`flex h-8 w-8 items-center justify-center rounded-xl ${
                               isCheio
-                                ? (isAgua ? "bg-blue-100 dark:bg-blue-900/30" : "bg-orange-100 dark:bg-orange-900/30")
+                                ? "bg-primary/10 text-primary"
                                 : isVazio
-                                ? "bg-slate-100 dark:bg-slate-800/50"
-                                : "bg-muted"
+                                ? "bg-secondary text-secondary-foreground"
+                                : "bg-muted text-muted-foreground"
                             }`}>
                               {isCheio ? (
-                                isAgua ? <Package className="h-3.5 w-3.5 text-blue-600" /> : <Flame className="h-3.5 w-3.5 text-orange-500" />
+                                isAgua ? <Package className="h-3.5 w-3.5" /> : <Flame className="h-3.5 w-3.5" />
                               ) : isVazio ? (
-                                <Cylinder className="h-3.5 w-3.5 text-muted-foreground" />
+                                <Cylinder className="h-3.5 w-3.5" />
                               ) : (
-                                <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                                <Package className="h-3.5 w-3.5" />
                               )}
                             </span>
                             <span className={isCheio ? "font-semibold" : ""}>{displayName}</span>
