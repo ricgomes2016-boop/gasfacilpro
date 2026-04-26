@@ -280,7 +280,7 @@ export function Sidebar() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              className="border-b border-sidebar-border/20 p-3"
+              className="border-b border-sidebar-border/15 px-4 py-3"
             >
               <Select
                 value={unidadeAtual?.id || ""}
@@ -289,8 +289,8 @@ export function Sidebar() {
                   if (u) setUnidadeAtual(u);
                 }}
               >
-                <SelectTrigger className="bg-sidebar-accent/15 border-sidebar-border/25 text-sidebar-foreground text-xs font-semibold h-9 rounded-2xl shadow-sm">
-                  <Store className="mr-2 h-3.5 w-3.5 text-sidebar-foreground" />
+                <SelectTrigger className="h-10 rounded-2xl border-sidebar-border/20 bg-sidebar-accent/10 text-xs font-semibold text-sidebar-foreground shadow-sm shadow-foreground/10 hover:bg-sidebar-accent/15">
+                  <Store className="mr-2 h-3.5 w-3.5" />
                   <SelectValue placeholder="Selecione a loja" />
                 </SelectTrigger>
                 <SelectContent>
@@ -308,11 +308,11 @@ export function Sidebar() {
 
         {/* Collapsed Store Icon */}
         {collapsed && (
-          <div className="border-b border-sidebar-border p-3 flex justify-center">
+          <div className="flex justify-center border-b border-sidebar-border/15 p-3">
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-accent cursor-pointer hover:bg-sidebar-accent/80 transition-colors">
-                  <Store className="h-4 w-4 text-primary" />
+                <div className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-2xl bg-sidebar-accent/90 text-primary transition-colors hover:bg-sidebar-accent">
+                  <Store className="h-4 w-4" />
                 </div>
               </TooltipTrigger>
               <TooltipContent side="right">
@@ -323,8 +323,8 @@ export function Sidebar() {
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-3 scrollbar-thin">
-          <div className="space-y-1">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin">
+          <div className="space-y-1.5">
             {menuItems.map((item, idx) => {
               const hasSubmenu = !!item.submenu;
               const isOpen = isSubmenuOpen(item.label);
