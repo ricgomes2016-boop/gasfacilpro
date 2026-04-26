@@ -9,13 +9,23 @@ interface VendaSectionHeaderProps {
   className?: string;
   withBorder?: boolean;
   framedIcon?: boolean;
+  tone?: "primary" | "success" | "warning" | "info" | "critical" | "muted";
 }
 
 export const VENDA_SECTION_HEADER_THEME = {
-  header: "section-header-primary",
+  header: "section-header-info",
   title: "section-header-title",
   iconFrame: "section-header-icon-frame",
   icon: "shrink-0 text-primary-foreground",
+};
+
+const toneClasses = {
+  primary: "section-header-primary",
+  success: "section-header-finance",
+  warning: "section-header-stock",
+  info: "section-header-catalog",
+  critical: "section-header-critical",
+  muted: "section-header-muted",
 };
 
 export function VendaSectionHeader({
@@ -25,11 +35,12 @@ export function VendaSectionHeader({
   className,
   withBorder = true,
   framedIcon = true,
+  tone = "info",
 }: VendaSectionHeaderProps) {
   return (
     <CardHeader
       className={cn(
-        VENDA_SECTION_HEADER_THEME.header,
+        toneClasses[tone],
         withBorder && "border-b",
         className,
       )}
