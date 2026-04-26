@@ -7,9 +7,9 @@ import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const statusConfig = {
-  entregue: { label: "Entregue", variant: "default" as const },
-  pendente: { label: "Pendente", variant: "secondary" as const },
-  em_rota: { label: "Em Rota", variant: "outline" as const },
+  entregue: { label: "Entregue", variant: "success" as const },
+  pendente: { label: "Pendente", variant: "warning" as const },
+  em_rota: { label: "Em Rota", variant: "default" as const },
   cancelado: { label: "Cancelado", variant: "destructive" as const },
 };
 
@@ -77,7 +77,7 @@ export function RecentSales() {
             {sales.map((sale) => (
               <div
                 key={sale.id}
-                className="flex items-center justify-between rounded-lg border border-border p-4 transition-colors hover:bg-muted/50"
+                className="flex items-center justify-between rounded-2xl border border-border/35 bg-card p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
               >
                 <div className="flex-1">
                   <p className="font-medium text-foreground">{sale.customer}</p>
