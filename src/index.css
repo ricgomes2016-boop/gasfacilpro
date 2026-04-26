@@ -1,8 +1,8 @@
+@import "./styles/theme-gasmais.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import "./styles/theme-gasmais.css";
 
 /* ERP Revenda de Gás - Design System
    Cores: Amber/Orange (chama) + Slate (profissional)
@@ -356,7 +356,7 @@
   }
 
   .kpi-card {
-    @apply modern-status-card bg-card text-card-foreground;
+    @apply modern-status-card border-transparent bg-primary text-primary-foreground shadow-primary/20;
   }
 
   .kpi-card-content {
@@ -368,14 +368,16 @@
   }
 
   .kpi-label {
-    @apply text-xs font-medium text-muted-foreground;
+    @apply text-xs font-medium;
+    color: currentColor;
+    opacity: 0.82;
   }
 
-  .kpi-card-primary { @apply border-primary/25 bg-primary/5; }
-  .kpi-card-info { @apply border-info/25 bg-info/5; }
-  .kpi-card-success { @apply border-success/25 bg-success/5; }
-  .kpi-card-warning { @apply border-warning/35 bg-warning/5; }
-  .kpi-card-destructive { @apply border-destructive/25 bg-destructive/5; }
+  .kpi-card-primary { @apply border-transparent bg-primary text-primary-foreground shadow-primary/20; }
+  .kpi-card-info { @apply border-transparent bg-info text-info-foreground shadow-info/20; }
+  .kpi-card-success { @apply border-transparent bg-success text-success-foreground shadow-success/20; }
+  .kpi-card-warning { @apply border-transparent bg-warning text-warning-foreground shadow-warning/20; }
+  .kpi-card-destructive { @apply border-transparent bg-destructive text-destructive-foreground shadow-destructive/20; }
   .kpi-card-muted { @apply border-border/70 bg-card; }
 
   .semantic-filter-panel {
@@ -385,6 +387,84 @@
   .semantic-mobile-card {
     @apply modern-panel space-y-3 p-3 sm:p-4;
   }
+
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold),
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold) {
+    @apply border-transparent bg-primary text-primary-foreground shadow-md shadow-primary/20;
+  }
+
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold.text-success),
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold.text-success),
+  .grid > .rounded-xl.border:has(.lucide.text-success) {
+    @apply bg-success text-success-foreground shadow-success/20;
+  }
+
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold.text-warning),
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold.text-warning),
+  .grid > .rounded-xl.border:has(.lucide.text-warning) {
+    @apply bg-warning text-warning-foreground shadow-warning/20;
+  }
+
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold.text-destructive),
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold.text-destructive),
+  .grid > .rounded-xl.border:has(.lucide.text-destructive) {
+    @apply bg-destructive text-destructive-foreground shadow-destructive/20;
+  }
+
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold.text-info),
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold.text-info),
+  .grid > .rounded-xl.border:has(.lucide.text-info) {
+    @apply bg-info text-info-foreground shadow-info/20;
+  }
+
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-muted-foreground,
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-muted-foreground,
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-primary,
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-primary,
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-success,
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-success,
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-warning,
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-warning,
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-destructive,
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-destructive,
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-info,
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-info {
+    color: currentColor;
+  }
+
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold) > *,
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold) > *,
+  .grid > .rounded-xl.border:has(.text-2xl.font-bold) h3,
+  .grid > .rounded-xl.border:has(.text-3xl.font-bold) h3 {
+    color: currentColor !important;
+    background-color: transparent !important;
+    border-color: hsl(0 0% 100% / 0.18) !important;
+  }
+
+  :where(.bg-green-50,.bg-green-100,.bg-green-500\/5,.bg-green-500\/10,.bg-emerald-50,.bg-emerald-100,.bg-emerald-500\/5,.bg-emerald-500\/10) { background-color: hsl(var(--success) / 0.12) !important; }
+  :where(.bg-green-500,.bg-green-600,.bg-green-700,.bg-emerald-500,.bg-emerald-600,.bg-emerald-700) { background-color: hsl(var(--success)) !important; color: hsl(var(--success-foreground)) !important; }
+  :where(.text-green-500,.text-green-600,.text-green-700,.text-emerald-400,.text-emerald-500,.text-emerald-600,.text-emerald-700) { color: hsl(var(--success)) !important; }
+  :where(.border-green-200,.border-green-300,.border-green-500,.border-emerald-200,.border-emerald-300,.border-emerald-500,.border-emerald-500\/30) { border-color: hsl(var(--success) / 0.35) !important; }
+
+  :where(.bg-blue-50,.bg-blue-100,.bg-blue-500\/5,.bg-blue-500\/10,.bg-sky-50,.bg-sky-100,.bg-sky-500\/5,.bg-sky-500\/10,.bg-cyan-50,.bg-cyan-100,.bg-indigo-50,.bg-indigo-100) { background-color: hsl(var(--info) / 0.12) !important; }
+  :where(.bg-blue-500,.bg-blue-600,.bg-blue-700,.bg-sky-500,.bg-sky-600,.bg-cyan-500,.bg-cyan-600,.bg-indigo-500,.bg-indigo-600) { background-color: hsl(var(--info)) !important; color: hsl(var(--info-foreground)) !important; }
+  :where(.text-blue-500,.text-blue-600,.text-blue-700,.text-sky-500,.text-sky-600,.text-cyan-500,.text-cyan-600,.text-indigo-500,.text-indigo-600) { color: hsl(var(--info)) !important; }
+  :where(.border-blue-200,.border-blue-300,.border-blue-500,.border-sky-200,.border-sky-300,.border-cyan-200,.border-indigo-200,.border-blue-500\/30) { border-color: hsl(var(--info) / 0.35) !important; }
+
+  :where(.bg-yellow-50,.bg-yellow-100,.bg-yellow-500\/5,.bg-yellow-500\/10,.bg-amber-50,.bg-amber-100,.bg-amber-500\/5,.bg-amber-500\/10,.bg-orange-50,.bg-orange-100,.bg-orange-500\/5,.bg-orange-500\/10) { background-color: hsl(var(--warning) / 0.16) !important; }
+  :where(.bg-yellow-500,.bg-yellow-600,.bg-amber-400,.bg-amber-500,.bg-amber-600,.bg-orange-500,.bg-orange-600,.bg-orange-700) { background-color: hsl(var(--warning)) !important; color: hsl(var(--warning-foreground)) !important; }
+  :where(.text-yellow-600,.text-yellow-700,.text-amber-500,.text-amber-600,.text-amber-700,.text-orange-500,.text-orange-600,.text-orange-700) { color: hsl(var(--warning)) !important; }
+  :where(.border-yellow-200,.border-yellow-300,.border-amber-200,.border-amber-300,.border-amber-500,.border-orange-200,.border-orange-300,.border-orange-500,.border-amber-500\/30) { border-color: hsl(var(--warning) / 0.42) !important; }
+
+  :where(.bg-red-50,.bg-red-100,.bg-red-500\/5,.bg-red-500\/10,.bg-rose-50,.bg-rose-100,.bg-rose-500\/5,.bg-rose-500\/10) { background-color: hsl(var(--destructive) / 0.12) !important; }
+  :where(.bg-red-500,.bg-red-600,.bg-red-700,.bg-rose-500,.bg-rose-600,.bg-rose-700) { background-color: hsl(var(--destructive)) !important; color: hsl(var(--destructive-foreground)) !important; }
+  :where(.text-red-500,.text-red-600,.text-red-700,.text-rose-500,.text-rose-600,.text-rose-700) { color: hsl(var(--destructive)) !important; }
+  :where(.border-red-200,.border-red-300,.border-red-500,.border-rose-200,.border-rose-300,.border-rose-500,.border-red-500\/30) { border-color: hsl(var(--destructive) / 0.35) !important; }
+
+  :where(.bg-purple-50,.bg-purple-100,.bg-purple-500\/5,.bg-purple-500\/10,.bg-violet-50,.bg-violet-100,.bg-pink-50,.bg-pink-100,.bg-fuchsia-50,.bg-fuchsia-100) { background-color: hsl(var(--accent) / 0.12) !important; }
+  :where(.bg-purple-500,.bg-purple-600,.bg-violet-500,.bg-violet-600,.bg-pink-500,.bg-pink-600,.bg-fuchsia-500,.bg-fuchsia-600) { background-color: hsl(var(--accent)) !important; color: hsl(var(--accent-foreground)) !important; }
+  :where(.text-purple-500,.text-purple-600,.text-violet-500,.text-violet-600,.text-pink-500,.text-pink-600,.text-fuchsia-500,.text-fuchsia-600) { color: hsl(var(--accent)) !important; }
+  :where(.border-purple-200,.border-purple-300,.border-violet-200,.border-violet-300,.border-pink-200,.border-fuchsia-200) { border-color: hsl(var(--accent) / 0.35) !important; }
 
   .venda-tone-cliente,
   .venda-tone-produtos,
