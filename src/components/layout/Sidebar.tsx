@@ -471,7 +471,7 @@ export function Sidebar() {
                         transition={{ duration: 0.25, ease: "easeInOut" }}
                         className="overflow-hidden"
                       >
-                        <div className="ml-5 mt-0.5 space-y-0.5 border-l-2 border-sidebar-border/25 pl-3 py-1 max-h-[400px] overflow-y-auto scrollbar-thin">
+                        <div className="ml-6 mt-1 max-h-[400px] space-y-1 overflow-y-auto border-l border-sidebar-border/20 py-1 pl-3 scrollbar-thin">
                           {item.submenu?.map((subItem, subIdx) => {
                             const SubIcon = subItem.icon;
                             const subActive = isActive(subItem.path);
@@ -487,7 +487,7 @@ export function Sidebar() {
                                     href={subItem.externalUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                      className="group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-[12px] font-bold transition-all duration-200 text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/18"
+                                      className="group flex items-center gap-2.5 rounded-full px-3 py-2 text-[12px] font-semibold text-sidebar-foreground/70 transition-all duration-200 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground"
                                   >
                                     <SubIcon className={cn(
                                       "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
@@ -500,10 +500,10 @@ export function Sidebar() {
                                   <Link
                                     to={subItem.path!}
                                     className={cn(
-                                      "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
+                                      "group flex items-center gap-2.5 rounded-full px-3 py-2 text-[12px] font-semibold transition-all duration-200",
                                       subActive
-                                        ? "bg-sidebar-accent/95 text-primary shadow-sm ring-1 ring-sidebar-border/25"
-                                        : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/18 hover:ring-1 hover:ring-sidebar-border/20"
+                                        ? "bg-sidebar-accent/95 text-foreground shadow-sm ring-1 ring-sidebar-border/25"
+                                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                                     )}
                                   >
                                     <SubIcon className={cn(
@@ -528,7 +528,7 @@ export function Sidebar() {
         </nav>
 
         {/* User + Logout */}
-        <div className="flex-shrink-0 border-t border-sidebar-border p-2">
+        <div className="flex-shrink-0 border-t border-sidebar-border/15 bg-gradient-to-t from-secondary/30 to-transparent p-3">
           {collapsed ? (
             <div className="flex flex-col items-center gap-2">
               <Tooltip>
@@ -548,7 +548,7 @@ export function Sidebar() {
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={handleSignOut}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl text-sidebar-foreground transition-colors hover:text-destructive hover:bg-destructive/10"
+                    className="flex h-10 w-10 items-center justify-center rounded-2xl text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent/10 hover:text-sidebar-foreground"
                   >
                     <LogOut className="h-4 w-4" />
                   </motion.button>
@@ -560,15 +560,15 @@ export function Sidebar() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="rounded-2xl border border-sidebar-border/20 bg-sidebar-accent/15 p-3 shadow-lg shadow-foreground/10"
+                className="rounded-3xl border border-sidebar-border/15 bg-sidebar-accent/10 p-3 shadow-lg shadow-foreground/10 backdrop-blur-sm"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0">
-                  <span className="text-xs font-bold text-primary">{userInitial}</span>
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-sidebar-accent/90">
+                  <span className="text-xs font-bold text-foreground">{userInitial}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-extrabold text-sidebar-foreground truncate">{userName}</p>
-                  <p className="text-[10px] font-bold text-sidebar-foreground truncate uppercase tracking-wider">Administrador</p>
+                  <p className="truncate text-[10px] font-bold uppercase tracking-wider text-sidebar-foreground/70">Administrador</p>
                 </div>
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                   <Button
