@@ -64,7 +64,6 @@ export default function GestaoCredito() {
   const riscoAlto = clientes.filter((c: any) => c.score_risco === "alto");
   const totalDevedor = clientes.reduce((s: number, c: any) => s + (Number(c.saldo_devedor) || 0), 0);
 
-  const scoreColor: Record<string, string> = { baixo: "text-green-600", medio: "text-chart-4", alto: "text-destructive" };
   const scoreBadge: Record<string, "default" | "secondary" | "destructive"> = { baixo: "secondary", medio: "default", alto: "destructive" };
 
   return (
@@ -72,10 +71,10 @@ export default function GestaoCredito() {
       <Header title="Gestão de Crédito" subtitle="Limites, scores e bloqueios — SAP SD Credit Management" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-destructive">R$ {totalDevedor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="text-xs text-muted-foreground">Saldo Devedor Total</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-chart-4">{bloqueados.length}</p><p className="text-xs text-muted-foreground">Bloqueados</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-destructive">{riscoAlto.length}</p><p className="text-xs text-muted-foreground">Risco Alto</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-green-600">{riscoBaixo.length}</p><p className="text-xs text-muted-foreground">Risco Baixo</p></CardContent></Card>
+          <Card className="kpi-card kpi-card-destructive"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-destructive"><DollarSign /></div><div><p className="kpi-value text-destructive">R$ {totalDevedor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p><p className="kpi-label">Saldo Devedor</p></div></CardContent></Card>
+          <Card className="kpi-card kpi-card-warning"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-warning"><Lock /></div><div><p className="kpi-value text-warning">{bloqueados.length}</p><p className="kpi-label">Bloqueados</p></div></CardContent></Card>
+          <Card className="kpi-card kpi-card-destructive"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-destructive"><AlertTriangle /></div><div><p className="kpi-value text-destructive">{riscoAlto.length}</p><p className="kpi-label">Risco Alto</p></div></CardContent></Card>
+          <Card className="kpi-card kpi-card-success"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-success"><TrendingDown /></div><div><p className="kpi-value text-success">{riscoBaixo.length}</p><p className="kpi-label">Risco Baixo</p></div></CardContent></Card>
         </div>
 
         <div className="flex items-center gap-3">
@@ -104,7 +103,7 @@ export default function GestaoCredito() {
                         <TableCell className={devedor > 0 ? "text-destructive font-semibold" : ""}>R$ {devedor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div className="w-16 h-2 bg-muted rounded-full overflow-hidden"><div className={`h-full rounded-full ${util > 80 ? "bg-destructive" : util > 50 ? "bg-chart-4" : "bg-green-500"}`} style={{ width: `${Math.min(util, 100)}%` }} /></div>
+                            <div className="w-16 h-2 bg-muted rounded-full overflow-hidden"><div className={`h-full rounded-full ${util > 80 ? "bg-destructive" : util > 50 ? "bg-warning" : "bg-success"}`} style={{ width: `${Math.min(util, 100)}%` }} /></div>
                             <span className="text-xs">{util}%</span>
                           </div>
                         </TableCell>
