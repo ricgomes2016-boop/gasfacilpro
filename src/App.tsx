@@ -48,6 +48,7 @@ import { PeriodoProvider } from "@/contexts/PeriodoContext";
 const CentralGasCP = lazy(() => import("./pages/publico/CentralGasCP"));
 const ForteGas = lazy(() => import("./pages/publico/ForteGas"));
 const JapaGas = lazy(() => import("./pages/publico/JapaGas"));
+const DiagnosticoFontes = lazy(() => import("./pages/DiagnosticoFontes"));
 
 const ContadorDashboard = lazy(() => import("./pages/contador/ContadorDashboard"));
 const ContadorXML = lazy(() => import("./pages/contador/ContadorXML"));
@@ -91,6 +92,7 @@ const App = () => (
                             <Route path="/centralgascp" element={<CentralGasCP />} />
                             <Route path="/fortegas" element={<ForteGas />} />
                             <Route path="/japagas" element={<JapaGas />} />
+                            <Route path="/diagnostico-fontes" element={<DiagnosticoFontes />} />
 
                             <Route path="/dashboard" element={
                               <ProtectedRoute>
