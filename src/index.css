@@ -356,7 +356,7 @@
   }
 
   .kpi-card {
-    @apply modern-status-card bg-card text-card-foreground;
+    @apply modern-status-card border-transparent bg-primary text-primary-foreground shadow-primary/20;
   }
 
   .kpi-card-content {
@@ -368,14 +368,14 @@
   }
 
   .kpi-label {
-    @apply text-xs font-medium text-muted-foreground;
+    @apply text-xs font-medium text-current/80;
   }
 
-  .kpi-card-primary { @apply border-primary/25 bg-primary/5; }
-  .kpi-card-info { @apply border-info/25 bg-info/5; }
-  .kpi-card-success { @apply border-success/25 bg-success/5; }
-  .kpi-card-warning { @apply border-warning/35 bg-warning/5; }
-  .kpi-card-destructive { @apply border-destructive/25 bg-destructive/5; }
+  .kpi-card-primary { @apply border-transparent bg-primary text-primary-foreground shadow-primary/20; }
+  .kpi-card-info { @apply border-transparent bg-info text-info-foreground shadow-info/20; }
+  .kpi-card-success { @apply border-transparent bg-success text-success-foreground shadow-success/20; }
+  .kpi-card-warning { @apply border-transparent bg-warning text-warning-foreground shadow-warning/20; }
+  .kpi-card-destructive { @apply border-transparent bg-destructive text-destructive-foreground shadow-destructive/20; }
   .kpi-card-muted { @apply border-border/70 bg-card; }
 
   .semantic-filter-panel {
