@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -13,6 +13,7 @@ import { History, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { VendaSectionHeader } from "./VendaSectionHeader";
 
 interface Pedido {
   id: string;
@@ -76,12 +77,7 @@ export function CustomerHistory({ clienteId }: CustomerHistoryProps) {
 
   return (
     <Card className="venda-card w-full min-w-0 max-w-full">
-      <CardHeader className="pb-3 bg-primary text-primary-foreground">
-        <CardTitle className="flex items-center gap-2 text-base text-primary-foreground">
-          <History className="h-5 w-5 shrink-0" />
-          <span className="truncate">Histórico do Cliente</span>
-        </CardTitle>
-      </CardHeader>
+      <VendaSectionHeader title="Histórico do Cliente" icon={<History className="h-5 w-5 shrink-0" />} className="pb-3" />
       <CardContent className="w-full min-w-0">
         {!clienteId ? (
           <div className="text-center py-6 text-muted-foreground">
