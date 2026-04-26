@@ -151,7 +151,7 @@ export default function Dashboard() {
         <GasmaisThemeBanner />
 
         {/* ── Hero Gradient Card ── */}
-        <div className="relative w-full min-w-0 overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 p-4 sm:p-6 md:p-8 text-white shadow-xl">
+        <div className="relative w-full min-w-0 overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary p-4 sm:p-6 md:p-8 text-primary-foreground shadow-xl shadow-primary/20">
           <div className="absolute right-0 top-0 opacity-10">
             <Flame className="h-56 w-56 -mt-8 -mr-8" strokeWidth={0.8} />
           </div>
