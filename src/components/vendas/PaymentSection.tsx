@@ -233,6 +233,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
         <VendaSectionHeader
           title="Pagamento"
           icon={<CreditCard className="h-5 w-5" />}
+          tone="success"
           action={
             <div className="rounded-md border border-primary-foreground/25 bg-primary-foreground px-3 py-1.5 text-sm font-semibold text-primary shadow-sm">
               Total R$ {totalVenda.toFixed(2)}
