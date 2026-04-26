@@ -202,7 +202,7 @@ export function ChatOperador({ externalOpen, onExternalClose, onUnreadChange }: 
           "bottom-[52px] left-0 right-0 h-[calc(80vh-52px)] rounded-t-2xl rounded-b-none md:bottom-16 md:right-6 md:left-auto md:w-[360px] md:h-[500px] md:max-h-[calc(100vh-5rem)] md:rounded-2xl"
         )}>
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b bg-primary text-primary-foreground rounded-t-2xl">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-info/30 bg-info text-info-foreground rounded-t-2xl">
             <div className="flex items-center gap-2">
               {selected && (
                 <button onClick={() => setSelected(null)} className="mr-1 hover:opacity-80">
