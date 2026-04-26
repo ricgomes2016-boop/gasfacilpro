@@ -120,14 +120,14 @@ export function StatCard({
                 className={cn(
                   "mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold",
                   trend.isPositive
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    ? "bg-success/10 text-success"
                     : "bg-destructive/10 text-destructive"
                 )}
               >
                 <span
                   className={cn(
                     "inline-block h-1.5 w-1.5 rounded-full animate-pulse",
-                    trend.isPositive ? "bg-emerald-500" : "bg-destructive"
+                    trend.isPositive ? "bg-success" : "bg-destructive"
                   )}
                 />
                 {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
