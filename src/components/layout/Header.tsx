@@ -66,17 +66,17 @@ export function Header({ title, subtitle }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 md:h-[4.5rem] w-full max-w-full items-center justify-between gap-2 overflow-hidden border-b border-border/60 bg-background/85 px-2.5 shadow-sm shadow-foreground/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 md:px-4 xl:px-6">
+    <header className="sticky top-0 z-30 flex min-h-16 w-full max-w-full items-center justify-between gap-2 overflow-hidden border-b border-border/60 bg-background/85 px-2.5 py-1.5 shadow-sm shadow-foreground/5 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 md:min-h-[4.5rem] md:px-4 xl:px-6">
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
         {/* Mobile menu */}
         <MobileNav />
         
-        <div className="flex h-12 min-w-0 flex-1 flex-col justify-center rounded-xl border border-border/50 bg-card/45 px-3 py-2 shadow-sm shadow-foreground/5 md:h-14">
+        <div className="flex h-12 min-w-0 flex-1 flex-col justify-center rounded-xl border border-border/50 bg-card/45 px-3 py-1.5 shadow-sm shadow-foreground/5 md:h-14">
           <div className="flex min-w-0 max-w-full items-center gap-2">
-            <h1 className="min-w-0 truncate text-base font-bold leading-tight text-foreground md:text-lg xl:text-xl">{title}</h1>
+            <h1 className="min-w-0 truncate text-base font-bold leading-none text-foreground md:text-lg xl:text-xl">{title}</h1>
             <BuildVersionBadge className="hidden xl:inline-flex shrink-0" />
           </div>
-          <p className="hidden max-w-full truncate text-xs font-medium text-muted-foreground sm:block md:text-sm">
+          <p className="hidden max-w-full truncate text-[11px] font-medium leading-tight text-muted-foreground sm:block md:text-xs">
             {empresa && <span className="font-medium">{empresa.nome}</span>}
             {subtitle && <span>{empresa ? " — " : ""}{subtitle}</span>}
             {unidadeAtual && <span className="ml-2 text-primary font-medium">• {unidadeAtual.nome}</span>}
