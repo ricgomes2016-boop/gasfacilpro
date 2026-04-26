@@ -565,9 +565,9 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
 
   return (
     <Card className="venda-card w-full min-w-0 max-w-full overflow-hidden">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <User className="h-5 w-5 shrink-0" />
+      <CardHeader className="pb-3 bg-primary">
+        <CardTitle className="flex items-center gap-2 text-base text-white">
+          <User className="h-5 w-5 shrink-0 text-white" />
           <span className="truncate">Cliente</span>
         </CardTitle>
       </CardHeader>
