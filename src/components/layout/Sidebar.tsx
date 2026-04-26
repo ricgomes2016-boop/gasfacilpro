@@ -7,8 +7,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import logoImg from "@/assets/logo.png";
-import logoMarkImg from "@/assets/logo-mark.png";
+import logoImg from "@/assets/gestech-logo-full.png";
+import logoMarkImg from "@/assets/gestech-logo-mark.png";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -239,7 +239,7 @@ export function Sidebar() {
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <img src={collapsed ? logoMarkImg : logoImg} alt="Gás Fácil" className={cn("flex-shrink-0 object-contain", collapsed ? "h-10 w-10" : "h-11 w-11")} />
+              <img src={collapsed ? logoMarkImg : logoImg} alt="Gestech Gás" className={cn("flex-shrink-0 object-contain", collapsed ? "h-11 w-11" : "h-16 w-36")} />
             </motion.div>
             <AnimatePresence>
               {!collapsed && (
@@ -250,12 +250,7 @@ export function Sidebar() {
                   transition={{ duration: 0.2 }}
                   className="flex flex-col"
                 >
-                  <span className="text-[17px] font-extrabold text-sidebar-foreground">
-                    Gás Fácil
-                  </span>
-                  <span className="text-[9px] font-bold text-sidebar-foreground/75 uppercase tracking-[0.2em]">
-                    ERP Pro
-                  </span>
+                  <span className="sr-only">Gestech Gás</span>
                 </motion.div>
               )}
             </AnimatePresence>
