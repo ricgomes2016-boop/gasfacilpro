@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Building, CreditCard, Bell, Shield, Printer, Users, Loader2, ClipboardList, Save, Moon, Sun, Monitor } from "lucide-react";
+import { Building, CreditCard, Bell, Shield, Printer, Users, Loader2, ClipboardList, Save, Moon, Sun, Monitor, Palette } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +17,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useTheme } from "@/hooks/useTheme";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
+import { brandThemes } from "@/lib/brandThemes";
 
 interface EmpresaConfig {
   id: string;
@@ -77,28 +78,35 @@ function ThemeSelector() {
   );
 }
 
-function GasmaisThemeToggle() {
-  const { isGasmais, setTheme } = useDashboardTheme();
+function BrandThemeSelector() {
+  const { theme, setTheme } = useDashboardTheme();
   return (
-    <div className="flex items-start justify-between gap-4 rounded-lg border-2 border-primary/30 bg-primary/5 p-4">
-      <div className="space-y-1">
-        <div className="flex items-center gap-2">
-          <Label htmlFor="gasmais-theme" className="text-sm font-semibold">
-            Tema GásMais (Dashboard + Sidebar)
-          </Label>
-          <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground">
-            Novo
-          </span>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Aplica paleta laranja/azul e cards estilo fintech apenas no Dashboard e na Sidebar.
-        </p>
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Palette className="h-4 w-4 text-primary" />
+        <Label className="text-sm font-semibold">Tema de marca</Label>
       </div>
-      <Switch
-        id="gasmais-theme"
-        checked={isGasmais}
-        onCheckedChange={(c) => setTheme(c ? "gasmais" : "default")}
-      />
+      <div className="grid gap-3 sm:grid-cols-2">
+        {brandThemes.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            onClick={() => setTheme(preset.id)}
+            className={`flex items-start gap-3 rounded-lg border-2 p-4 text-left transition-all ${
+              theme === preset.id
+                ? "border-primary bg-primary/5 text-foreground"
+                : "border-border hover:border-muted-foreground/30 text-muted-foreground"
+            }`}
+          >
+            <img src={preset.logoMark} alt="" className="h-10 w-10 shrink-0 rounded-md object-contain" />
+            <span className="min-w-0 space-y-1">
+              <span className="block text-sm font-semibold text-foreground">{preset.name}</span>
+              <span className="block text-xs leading-snug">{preset.description}</span>
+              <span className="block text-[10px] font-bold uppercase tracking-wide text-primary">{preset.fontLabel}</span>
+            </span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -559,7 +567,7 @@ export default function Configuracoes() {
               <CardDescription>Personalize o visual do sistema</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <GasmaisThemeToggle />
+              <BrandThemeSelector />
               <ThemeSelector />
             </CardContent>
           </Card>
