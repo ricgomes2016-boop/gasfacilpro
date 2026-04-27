@@ -158,10 +158,33 @@
   .app-sidebar-premium {
     background: linear-gradient(
       180deg,
-      hsl(var(--sidebar-gradient-from)) 0%,
-      hsl(var(--sidebar-gradient-from) / 0.96) 42%,
-      hsl(var(--sidebar-gradient-to)) 100%
+      hsl(var(--sidebar-gradient-from, var(--sidebar-background))) 0%,
+      hsl(var(--sidebar-gradient-from, var(--sidebar-background)) / 0.96) 42%,
+      hsl(var(--sidebar-gradient-to, var(--sidebar-background))) 100%
     );
+    color: hsl(var(--sidebar-foreground));
+  }
+
+  .brand-theme-gasfacil.app-sidebar-premium,
+  .brand-theme-saas.app-sidebar-premium,
+  .brand-theme-signature.app-sidebar-premium,
+  .brand-theme-gasmais.app-sidebar-premium,
+  .brand-theme-executive.app-sidebar-premium,
+  .brand-theme-pastel-dashboard.app-sidebar-premium,
+  .brand-theme-gasfacil .app-sidebar-premium,
+  .brand-theme-saas .app-sidebar-premium,
+  .brand-theme-signature .app-sidebar-premium,
+  .brand-theme-gasmais .app-sidebar-premium,
+  .brand-theme-executive .app-sidebar-premium,
+  .brand-theme-pastel-dashboard .app-sidebar-premium {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--sidebar-gradient-from, var(--sidebar-background))) 0%,
+      hsl(var(--sidebar-gradient-from, var(--sidebar-background)) / 0.96) 42%,
+      hsl(var(--sidebar-gradient-to, var(--sidebar-background))) 100%
+    );
+    color: hsl(var(--sidebar-foreground));
+    border-color: hsl(var(--sidebar-border) / 0.15);
   }
 
   .app-sidebar-premium::after {
