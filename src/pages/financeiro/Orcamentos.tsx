@@ -353,7 +353,7 @@ export default function Orcamentos() {
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <div className="rounded-lg bg-gradient-to-br from-orange-500 to-red-500 p-1.5">
+                  <div className="rounded-lg gradient-primary p-1.5">
                     <ReceiptText className="h-4 w-4 text-white" />
                   </div>
                   Novo Orçamento
@@ -460,7 +460,7 @@ export default function Orcamentos() {
                 </div>
 
                 {/* Totals */}
-                <div className="rounded-xl bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 border border-orange-200/50 dark:border-orange-800/30 p-4 space-y-3">
+                <div className="rounded-xl border border-primary/20 bg-primary/10 p-4 space-y-3">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-xs text-muted-foreground">Desconto (R$)</Label>
@@ -468,7 +468,7 @@ export default function Orcamentos() {
                     </div>
                     <div className="flex flex-col justify-end">
                       <p className="text-xs text-muted-foreground">Total Final</p>
-                      <p className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                      <p className="text-2xl font-bold text-primary">
                         R$ {totalFinal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </p>
                     </div>
@@ -481,7 +481,7 @@ export default function Orcamentos() {
                 </div>
 
                 <Button
-                  className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg gap-2"
+                  className="w-full gradient-primary text-primary-foreground shadow-lg gap-2"
                   onClick={() => createMutation.mutate()}
                   disabled={!clienteNome.trim() || createMutation.isPending}
                 >
@@ -606,7 +606,7 @@ export default function Orcamentos() {
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <div className="rounded-lg bg-gradient-to-br from-orange-500 to-red-500 p-1.5">
+                <div className="rounded-lg gradient-primary p-1.5">
                   <FileText className="h-4 w-4 text-white" />
                 </div>
                 Orçamento #{selectedOrcamento?.numero}
@@ -661,7 +661,7 @@ export default function Orcamentos() {
                   </Table>
                 </div>
 
-                <div className="rounded-xl bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 border border-orange-200/50 dark:border-orange-800/30 p-4 space-y-1">
+                <div className="rounded-xl border border-primary/20 bg-primary/10 p-4 space-y-1">
                   {Number(selectedOrcamento.desconto) > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Desconto:</span>
@@ -670,7 +670,7 @@ export default function Orcamentos() {
                   )}
                   <div className="flex justify-between items-center">
                     <span className="font-medium">Total:</span>
-                    <span className="text-xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+                    <span className="text-xl font-bold text-primary">
                       R$ {Number(selectedOrcamento.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </span>
                   </div>
