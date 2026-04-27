@@ -83,17 +83,17 @@ export function MobileNav() {
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className={cn(themeClass, "w-[min(86vw,320px)] p-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground")}>
-        <div className="h-full flex flex-col">
+      <SheetContent side="left" className={cn(themeClass, "app-sidebar-premium app-mobile-sidebar-modern w-[min(86vw,320px)] overflow-hidden rounded-r-[1.75rem] border-r border-sidebar-border/15 p-0 text-sidebar-foreground shadow-2xl")}>
+        <div className="relative z-10 h-full flex flex-col">
           {/* Header */}
-          <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4 py-2">
+          <div className="flex h-20 items-center justify-between border-b border-sidebar-border/15 px-5 py-3">
             <div className="flex min-w-0 items-center gap-2.5">
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
-                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-9 w-9 shrink-0 object-contain" />
+                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-12 w-12 shrink-0 object-contain" />
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
@@ -105,12 +105,12 @@ export function MobileNav() {
                   <img src={brandTheme.logoFull} alt="Gás Fácil ERP Pro" className="h-10 max-w-[156px] object-contain" />
                 ) : brandTheme.logoVariant === "compact" ? (
                   <>
-                    <h2 className="truncate text-[16px] font-extrabold leading-tight text-sidebar-foreground">Gas Facil</h2>
+                    <h2 className="truncate text-[17px] font-extrabold leading-tight text-sidebar-foreground">Gas Facil</h2>
                     <p className="text-[9px] font-bold uppercase leading-tight tracking-[0.18em] text-sidebar-foreground/70">PRO</p>
                   </>
                 ) : (
                   <>
-                    <h2 className="truncate text-[16px] font-extrabold leading-tight text-sidebar-foreground">Gas Facil</h2>
+                    <h2 className="truncate text-[17px] font-extrabold leading-tight text-sidebar-foreground">Gas Facil</h2>
                     <p className="text-[9px] font-bold uppercase leading-tight tracking-[0.18em] text-sidebar-foreground/70">ERP Pro</p>
                   </>
                 )}
@@ -119,8 +119,8 @@ export function MobileNav() {
           </div>
 
           {/* Menu */}
-          <nav className="flex-1 overflow-y-auto p-2 pb-4 scrollbar-thin">
-            <div className="space-y-0.5">
+          <nav className="flex-1 overflow-y-auto px-3.5 py-5 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="space-y-2">
               {menuItems.map((item, idx) => {
                 const Icon = item.icon;
                 const hasSubmenu = !!item.submenu;
@@ -138,10 +138,10 @@ export function MobileNav() {
                       <button
                         onClick={() => toggleMenu(item.label)}
                         className={cn(
-                          "group flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200",
+                          "group flex w-full items-center justify-between rounded-full px-4 py-3.5 text-[13px] font-semibold tracking-normal transition-all duration-200",
                           hasActiveChild
-                            ? "bg-primary/20 text-primary ring-1 ring-primary/35"
-                            : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-lg shadow-foreground/10 ring-1 ring-sidebar-border/25"
+                            : "text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                         )}
                       >
                         <div className="flex items-center gap-3">
@@ -169,7 +169,7 @@ export function MobileNav() {
                             transition={{ duration: 0.25, ease: "easeInOut" }}
                             className="overflow-hidden"
                           >
-                            <div className="ml-5 space-y-0.5 border-l-2 border-sidebar-border pl-3 py-1">
+                            <div className="ml-6 mt-2 space-y-1.5 border-l border-sidebar-border/20 py-1.5 pl-3">
                               {item.submenu?.map((sub, subIdx) => {
                                 const SubIcon = sub.icon;
                                 const subActive = isActive(sub.path);
@@ -186,7 +186,7 @@ export function MobileNav() {
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={() => setOpen(false)}
-                                        className="group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-bold transition-all duration-200 text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                                        className="group flex items-center gap-2.5 rounded-full px-3.5 py-2.5 text-[12px] font-bold transition-all duration-200 text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                                       >
                                         <SubIcon className={cn(
                                           "h-3.5 w-3.5 flex-shrink-0 transition-all duration-200 stroke-[2]",
@@ -202,8 +202,8 @@ export function MobileNav() {
                                         className={cn(
                                           "group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
                                           subActive
-                                            ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/35"
-                                            : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
+                                            ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border/25"
+                                            : "text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                                         )}
                                       >
                                         <SubIcon className={cn(
@@ -236,10 +236,10 @@ export function MobileNav() {
                       to={item.path!}
                       onClick={() => setOpen(false)}
                       className={cn(
-                        "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold tracking-[-0.01em] transition-all duration-200",
+                        "group flex items-center gap-3.5 rounded-full px-4 py-3.5 text-[13px] font-semibold tracking-normal transition-all duration-200",
                         isActive(item.path!)
-                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/35 ring-1 ring-primary/35"
-                          : "text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent hover:ring-1 hover:ring-sidebar-border"
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-lg shadow-foreground/10 ring-1 ring-sidebar-border/25"
+                          : "text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                       )}
                     >
                       <Icon className={cn(
@@ -256,10 +256,10 @@ export function MobileNav() {
           </nav>
 
           {/* User Footer */}
-          <div className="flex-shrink-0 border-t border-sidebar-border p-3">
-            <div className="flex items-center gap-3 rounded-xl bg-sidebar-accent border border-sidebar-border p-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0">
-                <span className="text-xs font-bold text-primary">{userInitial}</span>
+          <div className="flex-shrink-0 border-t border-sidebar-border/15 bg-sidebar-accent/5 p-3">
+            <div className="flex items-center gap-3 rounded-3xl border border-sidebar-border/15 bg-sidebar-accent/10 p-3 shadow-none backdrop-blur-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-accent/90 flex-shrink-0 shadow-sm shadow-foreground/10">
+                <span className="text-xs font-bold text-sidebar-accent-foreground">{userInitial}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-extrabold text-sidebar-foreground truncate">{userName}</p>
