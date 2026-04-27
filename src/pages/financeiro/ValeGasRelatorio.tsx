@@ -164,7 +164,7 @@ export default function ValeGasRelatorio({ embedded }: { embedded?: boolean } = 
 
   const dadosPorStatus = useMemo(() => [
     { name: "Disponível", value: valesFiltrados.filter(v => v.status === "disponivel").length, color: "#3b82f6" },
-    { name: "Vendido", value: valesFiltrados.filter(v => v.status === "vendido").length, color: "#f59e0b" },
+    { name: "Vendido", value: valesFiltrados.filter(v => v.status === "vendido").length, color: "#8b5cf6" },
     { name: "Utilizado", value: valesFiltrados.filter(v => v.status === "utilizado").length, color: "#22c55e" },
     { name: "Cancelado", value: valesFiltrados.filter(v => v.status === "cancelado").length, color: "#ef4444" },
   ], [valesFiltrados]);
@@ -654,7 +654,7 @@ export default function ValeGasRelatorio({ embedded }: { embedded?: boolean } = 
                     <Line
                       type="monotone"
                       dataKey="vendidos"
-                      stroke="#f59e0b"
+                      stroke="#8b5cf6"
                       strokeWidth={2}
                       name="Vendidos"
                     />

@@ -52,7 +52,7 @@ interface ClienteRevenda {
 
 const ameacaCores: Record<string, string> = {
   alto: "#ef4444",
-  moderado: "#f59e0b",
+  moderado: "#8b5cf6",
   baixo: "#22c55e",
 };
 

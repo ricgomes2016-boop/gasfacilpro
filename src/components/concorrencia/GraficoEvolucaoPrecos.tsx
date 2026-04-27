@@ -9,7 +9,7 @@ interface Props {
   nossosPrecos: Record<string, { portaria: number; telefone: number; unico: number }>;
 }
 
-const COLORS = ["#ef4444", "#f59e0b", "#8b5cf6", "#06b6d4", "#ec4899", "#14b8a6"];
+const COLORS = ["#ef4444", "#8b5cf6", "#8b5cf6", "#06b6d4", "#ec4899", "#14b8a6"];
 
 export function GraficoEvolucaoPrecos({ registros, nossosPrecos }: Props) {
   const chartData = useMemo(() => {
