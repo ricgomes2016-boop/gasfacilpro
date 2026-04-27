@@ -1093,22 +1093,22 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               </div>
             )}
             {activeStep === "produtos" && (
-              <div className="venda-step-panel venda-tone-produtos mx-auto w-full max-w-6xl" onKeyDown={handleStepEnterNavigation}>
+              <div className="venda-step-panel venda-tone-produtos w-full" onKeyDown={handleStepEnterNavigation}>
                 <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
               </div>
             )}
             {activeStep === "pagamento" && (
-              <div className="venda-step-panel venda-tone-pagamento mx-auto w-full max-w-6xl" onKeyDown={handleStepEnterNavigation}>
+              <div className="venda-step-panel venda-tone-pagamento w-full" onKeyDown={handleStepEnterNavigation}>
                 <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} />
               </div>
             )}
             {activeStep === "entregador" && (
-              <div className="venda-step-panel venda-tone-entregador mx-auto w-full max-w-6xl">
+              <div className="venda-step-panel venda-tone-entregador w-full">
                 <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} endereco={customer.endereco} />
               </div>
             )}
             {activeStep === "confirmar" && (
-              <div className="venda-step-panel venda-tone-confirmar mx-auto w-full max-w-3xl">
+              <div className="venda-step-panel venda-tone-confirmar w-full">
                 <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
               </div>
             )}
