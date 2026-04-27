@@ -9,6 +9,7 @@ const Bonus = lazy(() => import("@/pages/rh/Bonus"));
 const AlertaJornada = lazy(() => import("@/pages/rh/AlertaJornada"));
 const BancoHoras = lazy(() => import("@/pages/rh/BancoHoras"));
 const Horarios = lazy(() => import("@/pages/rh/Horarios"));
+const Avisos = lazy(() => import("@/pages/rh/Avisos"));
 const PrevencaoTrabalhistaIA = lazy(() => import("@/pages/rh/PrevencaoTrabalhistaIA"));
 const ProdutividadeIA = lazy(() => import("@/pages/rh/ProdutividadeIA"));
 const Ferias = lazy(() => import("@/pages/rh/Ferias"));
@@ -29,6 +30,7 @@ export const rhRoutes: RouteConfig[] = [
   { path: "/rh/jornada", component: AlertaJornada, roles: RH_ROLES },
   { path: "/rh/banco-horas", component: BancoHoras, roles: RH_ROLES },
   { path: "/rh/horarios", component: Horarios, roles: RH_ROLES },
+  { path: "/rh/avisos", component: Avisos, roles: RH_ROLES },
   { path: "/rh/prevencao-ia", component: PrevencaoTrabalhistaIA, roles: RH_ROLES },
   { path: "/rh/produtividade-ia", component: ProdutividadeIA, roles: RH_ROLES },
   { path: "/rh/ferias", component: Ferias, roles: RH_ROLES },
