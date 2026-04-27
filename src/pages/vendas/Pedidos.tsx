@@ -712,11 +712,11 @@ export default function Pedidos() {
 
         {/* Table - #3 responsive with hidden columns on mobile */}
         <Card className="modern-panel overflow-hidden">
-          <CardHeader className="pb-3">
+          <CardHeader className="section-header-catalog pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Pedidos ({pedidosFiltrados.length})</CardTitle>
+              <CardTitle className="section-header-title">Pedidos ({pedidosFiltrados.length})</CardTitle>
               {/* #4 - Pagination info */}
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs font-medium text-info-foreground/80">
                 Pág. {paginaAtual}/{totalPages}
               </span>
             </div>
