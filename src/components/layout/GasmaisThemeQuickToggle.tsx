@@ -7,7 +7,7 @@ export function GasmaisThemeQuickToggle() {
   const { isGasmais, setTheme } = useDashboardTheme();
 
   const handleToggle = () => {
-    const next = isGasmais ? "default" : "gasmais";
+    const next = isGasmais ? "gasfacil" : "gasmais";
     setTheme(next);
     toast.success(
       next === "gasmais"
