@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useSidebarContext } from "@/contexts/SidebarContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { menuItems } from "./menuItems";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
@@ -168,9 +168,10 @@ const subMenuIconColors: Record<string, string> = {
 export function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { collapsed, toggle } = useSidebarContext();
+  const { collapsed, setCollapsed, toggle } = useSidebarContext();
   const { signOut, profile } = useAuth();
   const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const sidebarRef = useRef<HTMLElement | null>(null);
 
   // Auto-open active submenu
   useEffect(() => {
@@ -182,6 +183,17 @@ export function Sidebar() {
       }
     });
   }, [location.pathname]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      const isDesktopSidebar = window.matchMedia("(min-width: 1280px)").matches;
+      if (!isDesktopSidebar || collapsed || sidebarRef.current?.contains(event.target as Node)) return;
+      setCollapsed(true);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [collapsed, setCollapsed]);
 
   const toggleSubmenu = (label: string) => {
     setOpenMenus((prev) =>
@@ -217,6 +229,7 @@ export function Sidebar() {
   return (
     <TooltipProvider delayDuration={0}>
       <motion.aside
+        ref={sidebarRef}
         animate={{ width: collapsed ? 64 : 260 }}
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
