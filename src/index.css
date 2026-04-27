@@ -447,7 +447,7 @@
   }
 
   .section-header-primary .section-header-icon-frame {
-    @apply bg-primary/12 text-primary ring-primary/20;
+    @apply bg-primary/10 text-primary ring-primary/20;
   }
 
   .section-header-catalog {
@@ -455,7 +455,7 @@
   }
 
   .section-header-catalog .section-header-icon-frame {
-    @apply bg-secondary/12 text-secondary ring-secondary/20;
+    @apply bg-secondary/10 text-secondary ring-secondary/20;
   }
 
   .section-header-stock {
@@ -463,7 +463,7 @@
   }
 
   .section-header-stock .section-header-icon-frame {
-    @apply bg-warning/12 text-warning ring-warning/20;
+    @apply bg-warning/10 text-warning ring-warning/20;
   }
 
   .section-header-finance {
@@ -471,7 +471,7 @@
   }
 
   .section-header-finance .section-header-icon-frame {
-    @apply bg-success/12 text-success ring-success/20;
+    @apply bg-success/10 text-success ring-success/20;
   }
 
   .section-header-critical {
@@ -479,7 +479,7 @@
   }
 
   .section-header-critical .section-header-icon-frame {
-    @apply bg-destructive/12 text-destructive ring-destructive/20;
+    @apply bg-destructive/10 text-destructive ring-destructive/20;
   }
 
   .section-header-muted {
