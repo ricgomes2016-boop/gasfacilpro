@@ -1,76 +1,130 @@
-Plano para atualizar o tema SaaS Moderno com base na imagem enviada
+Plano para criar e aplicar o Tema Global SaaS em todo o sistema
 
 Objetivo
-- Transformar o tema “SaaS Moderno” em um visual mais próximo do dashboard de referência: menu lateral roxo com topo arredondado, item ativo claro em formato pill, cards brancos grandes, fundo cinza-claro, cores de destaque vibrantes e espaçamento mais limpo.
-- Manter lógica, rotas e funcionalidades intactas.
+Criar um tema visual global, moderno e consistente, baseado na paleta informada, aplicado via tokens e classes reutilizáveis para evitar mistura de estilos, desalinhamento e títulos com contraste incorreto, sem alterar lógica, rotas ou funcionalidades.
 
-Extração visual da referência
-- Menu: roxo dominante, lateral esquerda larga, cantos superiores/direitos bem arredondados, item ativo em cápsula cinza-clara/branca, textos brancos e rodapé decorativo abstrato em baixa opacidade.
-- Fundo geral: cinza muito claro.
-- Cards: brancos, arredondados, sem bordas pesadas, sombra suave.
-- Destaques: roxo principal, verde, amarelo, coral/rosa e teal para indicadores/KPIs.
-- Header: branco, limpo, busca/ações com botões arredondados.
-- Estrutura: módulos separados por cards grandes, espaçamento consistente, visual SaaS educacional/fintech moderno.
+O que será feito
 
-Implementação proposta
+1. Criar o tema em Personalização Visual
+- Adicionar um novo preset em “Tema de marca” na tela de Aparência/Personalização Visual.
+- Nome sugerido: “SaaS Moderno”.
+- Esse preset aplicará a paleta solicitada quando selecionado.
+- Manter os temas atuais existentes, sem removê-los.
 
-1. Atualizar tokens do tema SaaS
-- Ajustar `brand-theme-saas` em `src/styles/brand-themes.css` para a paleta extraída:
-  - Roxo menu/brand: aproximadamente `#5B4A92` / `#65539C`
-  - Fundo: `#F4F6F8`
-  - Cards: `#FFFFFF`
-  - Texto: `#15151A`
-  - Muted: cinzas suaves
-  - Verde: `#39BE69`
-  - Amarelo: `#FFC107`
-  - Coral: `#F08080`
-  - Teal: manter `#2EC4B6` como apoio/acento do tema criado
-- Preservar o nome “SaaS Moderno” em Personalização Visual, mas atualizar a prévia/gradiente para refletir o novo roxo + verde/amarelo/coral.
+2. Definir tokens globais do tema
+Aplicar a paleta como variáveis globais reutilizáveis:
+- Primary: #2EC4B6
+- Secondary: #6C63FF
+- Accent: #FF9F43
+- Background: #F5F6FA
+- Surface/Card: #FFFFFF
+- Texto principal: #2F2F2F
+- Texto secundário: #8A8FA3
+- Success: #4CAF50
+- Warning: #FFC107
+- Info/Azul: #3F8CFF
+- Roxo: #6C63FF
 
-2. Recriar o menu lateral no formato da imagem
-- Em `src/components/layout/Sidebar.tsx`, manter a mesma árvore de menus e navegação.
-- Alterar somente classes visuais:
-  - Lateral com fundo roxo sólido/gradiente sutil.
-  - Bordas direitas mais arredondadas, especialmente no topo.
-  - Item ativo com fundo claro, texto roxo e formato pill.
-  - Itens inativos com texto branco e hover translúcido.
-  - Submenus mais leves, com pills menores.
-  - Rodapé/decoração abstrata usando pseudo-elementos globais, sem adicionar imagem externa.
-- Aplicar o mesmo padrão em `MobileNav`, pois ele já usa `app-sidebar-premium`.
+Também manter:
+- Border radius global: 16px
+- Espaçamento/padding padrão: 16px a 20px
+- Sombra leve e consistente
+- Sem alterar estrutura de grid existente
 
-3. Ajustar superfícies globais do SaaS
-- Em `src/index.css`, escopar estilos para `.brand-theme-saas`:
-  - `system-surface` com fundo cinza-claro.
-  - `app-header-premium` branco, sombra suave e divisórias leves.
-  - Cards com raio maior, sombra suave, borda quase invisível.
-  - Inputs e botões com formato arredondado, foco em roxo/teal.
-  - Tabelas com cabeçalho leve e linhas “respirando”, evitando grid pesado.
+3. Padronizar componentes base
+Atualizar os componentes globais já usados pelo sistema para que o tema seja aplicado em todas as telas sem reescrever cada página:
+- Card: fundo branco, raio 16px, borda leve, sombra suave.
+- CardHeader/CardTitle/CardDescription: títulos legíveis, espaçamento consistente e contraste correto.
+- Button: foco/hover alinhado à cor primary.
+- Input/Textarea/Select: arredondados, borda leve, foco primary.
+- Badge: status com cores suaves e legíveis.
+- Table: sem grid pesado, linhas espaçadas, hover leve.
+- Calendar: dias em formato pill, dia ativo em primary.
 
-4. Padronizar KPIs e blocos coloridos
-- Atualizar utilitários `.kpi-card-*`, `.status-card-icon-*`, `.section-header-*` para combinar com a referência:
-  - KPIs em cards brancos com linha lateral colorida.
-  - Ícones coloridos por categoria.
-  - Títulos sem fundo branco quebrado; sempre legíveis.
-  - Headers de seção mais limpos, com fundo suave ou sólido conforme necessidade.
+4. Consolidar classes reutilizáveis do Design System
+Ajustar/criar classes globais para uso uniforme:
+- `modern-panel`
+- `modern-soft-panel`
+- `modern-status-card`
+- `kpi-card`
+- `kpi-card-*`
+- `section-header-*`
+- `status-pill`
+- `calendar-pill`
+- `saas-table`
+- classes de cards de destaque com fundo sólido e texto branco
 
-5. Atualizar a opção em Personalização Visual
-- Em `src/pages/config/PersonalizacaoVisual.tsx`:
-  - Atualizar descrição do preset “SaaS Moderno” para indicar “roxo, verde, amarelo e coral inspirado em dashboard SaaS”.
-  - Atualizar bolinha/gradiente de prévia.
-  - Garantir que ao clicar nesse tema ele aplique `brandThemeId: "saas"` corretamente.
+Essas classes serão responsáveis por manter o padrão visual em Dashboard, Vendas, Pedidos, Estoque, Financeiro, Configurações e demais telas que já usam os componentes globais.
 
-Validação
-- Rodar verificação TypeScript após alterações.
-- Conferir visualmente que:
-  - O tema SaaS aparece em Personalização Visual.
-  - O menu fica roxo com item ativo claro em pill.
-  - Cards e header seguem o estilo da imagem.
-  - Dashboard, Vendas, Pedidos e Configurações mantêm estrutura e funcionamento.
+5. KPI Cards
+Padronizar os KPI cards globalmente:
+- Ícone + título + número grande.
+- Linha lateral colorida.
+- Card branco com sombra leve.
+- Cores por tipo: primary, info, success, warning, destructive/accent.
+- Evitar transformação automática agressiva de qualquer card com número grande, para não converter cards comuns em cards coloridos indevidamente.
 
-Arquivos previstos
-- `src/styles/brand-themes.css`
-- `src/index.css`
-- `src/components/layout/Sidebar.tsx`
-- `src/pages/config/PersonalizacaoVisual.tsx`
+6. Sidebar
+Ajustar visual da sidebar mantendo a estrutura atual e o comportamento de recolher/expandir:
+- Gradiente vertical do topo #2EC4B6 até base #6C63FF.
+- Normal: texto/ícones brancos com opacidade ~70%.
+- Hover: fundo branco transparente.
+- Ativo: fundo branco, texto #2F2F2F, formato pill.
+- Largura atual preservada.
+- Adicionar decoração flat/abstrata de baixa opacidade no rodapé integrada ao gradiente, sem virar um bloco separado.
 
-Sem alterações em banco de dados, rotas, autenticação ou regras de negócio.
+7. Cabeçalhos dos cards em todas as telas
+Reforçar o sistema global de `section-header-*` para que títulos e ícones sempre tenham contraste correto:
+- Primary/Teal
+- Catalog/Info Azul
+- Stock/Amarelo
+- Finance/Verde
+- Critical/Vermelho
+- Muted/Neutro claro
+
+Isso evita novamente casos de texto branco em fundo branco.
+
+8. Tabelas e status
+Padronizar tabelas globais:
+- Cabeçalho limpo.
+- Corpo com linhas espaçadas e fundo branco.
+- Hover suave.
+- Sem grid pesado.
+
+Status globais:
+- Pendente: amarelo.
+- Em rota: azul/teal.
+- Entregue: verde.
+- Cancelado/erro: vermelho.
+
+9. Gráficos e cards de destaque
+- Ajustar tokens e classes para gráficos usarem cores suaves e consistentes.
+- Criar padrão para cards de destaque com fundo verde/roxo/amarelo, texto branco quando necessário e cantos arredondados.
+
+10. Validação
+Após implementar:
+- Rodar verificação TypeScript.
+- Revisar visualmente os pontos críticos já citados: Dashboard, Venda etapa Cliente/Produto, Pedidos, Entregas e Configurações > Aparência.
+- Garantir que não houve alteração de lógica, rotas, autenticação, banco de dados ou fluxos funcionais.
+
+Arquivos que devem ser alterados
+- `src/lib/brandThemes.ts`: adicionar o preset “SaaS Moderno”.
+- `src/styles/brand-themes.css`: adicionar a classe do novo tema com a paleta completa.
+- `src/index.css`: consolidar tokens/classes globais, cards, KPI, tabelas, calendário, headers, status e sidebar.
+- `src/components/layout/Sidebar.tsx`: ajustar somente classes visuais de estado ativo/hover e decoração integrada.
+- `src/components/ui/card.tsx`: padronizar base visual dos cards.
+- `src/components/ui/button.tsx`: alinhar botões ao tema.
+- `src/components/ui/input.tsx`: alinhar inputs ao tema.
+- `src/components/ui/table.tsx`: reforçar tabela SaaS global.
+- `src/components/ui/badge.tsx`: reforçar status/badges.
+- `src/components/ui/calendar.tsx`: aplicar pill e primary no dia ativo.
+- `src/pages/Configuracoes.tsx`: apenas pequenos ajustes visuais nos botões de seleção do tema, se necessário, para aparecer como “Personalização Visual” de forma clara.
+
+Restrições seguidas
+- Não alterar `App.tsx`, rotas ou provider nesting.
+- Não alterar lógica de negócio.
+- Não alterar banco de dados.
+- Não alterar autenticação.
+- Não mexer em arquivos gerados automaticamente.
+- Não refatorar estrutura das páginas.
+- Não alterar grids existentes, apenas estilos globais e classes visuais.
