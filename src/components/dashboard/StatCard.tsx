@@ -53,10 +53,10 @@ export function StatCard({
   onHero = false,
   colored = false,
 }: StatCardProps) {
-  const { isGasmais } = useDashboardTheme();
+  const { isGasmaisDashboard } = useDashboardTheme();
 
   // Colored modern card (GásMais) — gradient + shadow + hover animation
-  if (isGasmais && colored) {
+  if (isGasmaisDashboard && colored) {
     const tones: Record<NonNullable<StatCardProps["variant"]>, { bar: string; glow: string; icon: string; ring: string }> = {
       primary: {
         bar: "from-primary to-primary",
@@ -149,7 +149,7 @@ export function StatCard({
 
 
   // Hero tile (translucent on orange gradient) — GásMais inside hero
-  if (isGasmais && onHero) {
+  if (isGasmaisDashboard && onHero) {
     return (
       <div className="flex h-full min-h-[138px] min-w-0 flex-col justify-between rounded-2xl bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/15 p-4 transition-all hover:bg-primary-foreground/15">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-primary-foreground">
@@ -170,7 +170,7 @@ export function StatCard({
     );
   }
 
-  if (isGasmais) {
+  if (isGasmaisDashboard) {
     return (
       <div className={cn("flex h-full min-h-[148px] min-w-0 rounded-2xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md", variantStyles[variant])}>
         <div className="flex w-full min-w-0 items-start justify-between gap-3">
