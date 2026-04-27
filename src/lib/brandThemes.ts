@@ -1,7 +1,7 @@
 import logoMark from "@/assets/gestech-logo-mark.png";
 import logoFull from "@/assets/logo.png";
 
-export type BrandThemeId = "gasfacil" | "gasmais" | "signature" | "executive";
+export type BrandThemeId = "gasfacil" | "gasmais" | "signature" | "executive" | "saas";
 
 export type BrandLogoVariant = "markText" | "full" | "compact";
 
@@ -24,6 +24,16 @@ export const brandThemes: BrandThemePreset[] = [
     name: "Gás Fácil Pro",
     description: "Paleta oficial azul e laranja com navegação vibrante.",
     className: "brand-theme-gasfacil",
+    logoVariant: "markText",
+    logoMark,
+    logoFull,
+    fontLabel: "Plus Jakarta Sans",
+  },
+  {
+    id: "saas",
+    name: "SaaS Moderno",
+    description: "Dashboard limpo com teal, roxo e laranja em padrão profissional.",
+    className: "brand-theme-saas",
     logoVariant: "markText",
     logoMark,
     logoFull,
