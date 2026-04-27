@@ -365,7 +365,15 @@
   .section-header-finance,
   .section-header-critical,
   .section-header-muted {
-    @apply border-b border-border/70 bg-card p-4 pb-3 text-card-foreground;
+    @apply relative overflow-hidden border-b p-4 pb-3 text-card-foreground;
+  }
+
+  .section-header-primary::before,
+  .section-header-catalog::before,
+  .section-header-stock::before,
+  .section-header-finance::before,
+  .section-header-critical::before {
+    @apply absolute inset-y-0 left-0 w-1 content-[''];
   }
 
   .section-header-title {
@@ -375,6 +383,19 @@
   .section-header-icon-frame {
     @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-md border bg-muted/60 text-primary;
   }
+
+  .section-header-primary { @apply border-primary/25 bg-primary/10; }
+  .section-header-catalog { @apply border-info/25 bg-info/10; }
+  .section-header-stock { @apply border-warning/30 bg-warning/10; }
+  .section-header-finance { @apply border-success/25 bg-success/10; }
+  .section-header-critical { @apply border-destructive/25 bg-destructive/10; }
+  .section-header-muted { @apply border-border/70 bg-card; }
+
+  .section-header-primary::before { @apply bg-primary/65; }
+  .section-header-catalog::before { @apply bg-info/65; }
+  .section-header-stock::before { @apply bg-warning/70; }
+  .section-header-finance::before { @apply bg-success/65; }
+  .section-header-critical::before { @apply bg-destructive/65; }
 
   .section-header-primary .section-header-icon-frame { @apply border-primary/25 bg-primary/10 text-primary; }
   .section-header-catalog .section-header-icon-frame { @apply border-info/25 bg-info/10 text-info; }
