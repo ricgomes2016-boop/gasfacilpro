@@ -86,34 +86,14 @@ export function MobileNav() {
       <SheetContent side="left" className={cn(themeClass, "app-sidebar-premium app-mobile-sidebar-modern w-[min(86vw,320px)] overflow-hidden rounded-r-[1.75rem] border-r border-sidebar-border/15 p-0 text-sidebar-foreground shadow-2xl")}>
         <div className="relative z-10 h-full flex flex-col">
           {/* Header */}
-          <div className="flex h-20 items-center justify-between border-b border-sidebar-border/15 px-5 py-3">
-            <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex h-20 items-center justify-center border-b border-sidebar-border/15 px-5 py-3">
+            <div className="flex min-w-0 items-center justify-center">
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
-                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-12 w-12 shrink-0 object-contain" />
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                className={cn("min-w-0 leading-none", brandTheme.logoVariant === "full" ? "flex h-10 items-center" : "")}
-              >
-                {brandTheme.logoVariant === "full" ? (
-                  <img src={brandTheme.logoFull} alt="Gás Fácil ERP Pro" className="h-10 max-w-[156px] object-contain" />
-                ) : brandTheme.logoVariant === "compact" ? (
-                  <>
-                    <h2 className="truncate text-[17px] font-extrabold leading-tight text-sidebar-foreground">Gas Facil</h2>
-                    <p className="text-[9px] font-bold uppercase leading-tight tracking-[0.18em] text-sidebar-foreground/70">PRO</p>
-                  </>
-                ) : (
-                  <>
-                    <h2 className="truncate text-[17px] font-extrabold leading-tight text-sidebar-foreground">Gas Facil</h2>
-                    <p className="text-[9px] font-bold uppercase leading-tight tracking-[0.18em] text-sidebar-foreground/70">ERP Pro</p>
-                  </>
-                )}
+                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-14 w-14 shrink-0 object-contain" />
               </motion.div>
             </div>
           </div>

@@ -242,7 +242,7 @@ export function Sidebar() {
           <button
             type="button"
             onClick={() => (collapsed ? toggle() : navigate("/dashboard"))}
-            className={cn("group flex max-w-[200px] items-center justify-center gap-2 rounded-3xl bg-transparent px-1 py-1 transition-all", collapsed && "max-w-12 px-0 py-0")}
+            className={cn("group flex items-center justify-center rounded-3xl bg-transparent p-0 transition-all", collapsed ? "max-w-12" : "max-w-16")}
             title={collapsed ? "Expandir menu" : "Ir para o dashboard"}
           >
             <motion.div
@@ -250,33 +250,8 @@ export function Sidebar() {
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <img src={brandTheme.logoMark} alt="Gas Facil" className={cn("flex-shrink-0 object-contain", collapsed ? "h-10 w-10" : "h-11 w-11")} />
+              <img src={brandTheme.logoMark} alt="Gas Facil" className={cn("flex-shrink-0 object-contain", collapsed ? "h-10 w-10" : "h-14 w-14")} />
             </motion.div>
-            <AnimatePresence>
-              {!collapsed && (
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className={cn("items-start leading-none", brandTheme.logoVariant === "full" ? "flex h-10 justify-center" : "flex flex-col")}
-                >
-                  {brandTheme.logoVariant === "full" ? (
-                    <img src={brandTheme.logoFull} alt="Gas Facil Sistema ERP" className="h-10 max-w-[150px] object-contain" />
-                  ) : brandTheme.logoVariant === "compact" ? (
-                    <>
-                      <span className="text-[16px] font-extrabold tracking-normal text-sidebar-foreground">Gas Facil</span>
-                      <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-sidebar-foreground/60">PRO</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-[16px] font-extrabold tracking-normal text-sidebar-foreground">Gas Facil</span>
-                      <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-sidebar-foreground/60">ERP PRO</span>
-                    </>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
           </button>
           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="absolute right-3 top-3">
             <Button
