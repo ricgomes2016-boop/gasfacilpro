@@ -120,7 +120,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 hidden xl:inline-flex shrink-0 text-foreground hover:bg-primary/10 hover:text-foreground"
+          className="h-9 w-9 hidden xl:inline-flex shrink-0 text-primary hover:bg-primary/10 hover:text-primary"
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
           title={resolvedTheme === "dark" ? "Modo claro" : "Modo escuro"}
         >
@@ -130,7 +130,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 shrink-0 text-foreground hover:bg-primary/10 hover:text-foreground">
+            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 shrink-0 text-primary hover:bg-primary/10 hover:text-primary">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary shadow-sm shadow-primary/20">
                 <User className="h-4 w-4 text-primary-foreground" />
               </div>
