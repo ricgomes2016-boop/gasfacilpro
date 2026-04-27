@@ -71,6 +71,16 @@ const THEME_PRESETS = [
     brandThemeId: "saas",
   },
   {
+    id: "dashboard-pastel",
+    label: "Dashboard Pastel",
+    description: "Inspirado no modelo Weihu: roxo, gelo e cards em tons pastel",
+    cor: "250 100% 65%",
+    hex: "#6D4AFF",
+    dark: false,
+    gradient: "linear-gradient(135deg, #6D4AFF 0%, #DDEBFF 28%, #FFD9F1 56%, #FFE5C4 78%, #CFF6E9 100%)",
+    brandThemeId: "pastel-dashboard",
+  },
+  {
     id: "forte-gas",
     label: "Forte Gás · Fluid Energy",
     description: "Visual do site institucional: azul profundo, ciano elétrico e fúcsia",
