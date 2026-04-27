@@ -215,6 +215,19 @@
       hsl(var(--sidebar-accent) / 0.08) 100%
     );
   }
+
+  .app-sidebar-premium :where(a, button, span, p, svg) {
+    color: inherit;
+  }
+
+  .app-sidebar-premium :where(.bg-sidebar-accent, [class*="bg-sidebar-accent"]) {
+    color: hsl(var(--sidebar-accent-foreground));
+  }
+
+  .app-sidebar-premium :where(.text-sidebar-accent-foreground, .text-sidebar-accent-foreground *) {
+    color: hsl(var(--sidebar-accent-foreground)) !important;
+    stroke: currentColor;
+  }
 }
 
 @layer base {
