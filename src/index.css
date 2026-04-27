@@ -311,10 +311,20 @@
     @apply border border-border/80 bg-card text-card-foreground shadow-md shadow-foreground/10;
   }
 
-  .venda-modern-surface,
+  .venda-modern-surface {
+    @apply border-border/80 bg-card text-card-foreground shadow-md shadow-foreground/10;
+  }
+
   .venda-product-shortcut,
   .venda-payment-shortcut {
-    @apply border-border/80 bg-card shadow-md shadow-foreground/10;
+    @apply border-border/80 bg-card text-card-foreground shadow-md shadow-foreground/10;
+  }
+
+  .venda-product-shortcut[data-selected="true"],
+  .venda-payment-shortcut[data-selected="true"] {
+    background: var(--gradient-primary);
+    color: hsl(var(--primary-foreground));
+    border-color: hsl(var(--primary-foreground) / 0.18);
   }
 
   .section-header-primary {
