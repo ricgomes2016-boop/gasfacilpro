@@ -764,10 +764,22 @@
   :where(.bg-sidebar-accent) :where(.text-white,.text-primary-foreground,.text-secondary-foreground,.text-accent-foreground,.text-sidebar-accent-foreground) {
     color: hsl(var(--sidebar-accent-foreground)) !important;
   }
-  :where(.gradient-primary,.bg-primary,.bg-secondary,.bg-accent,.bg-destructive,.bg-success,.bg-info):where(.text-white,.text-primary-foreground,.text-secondary-foreground,.text-accent-foreground,.text-success-foreground,.text-warning-foreground,.text-info-foreground,.text-destructive-foreground),
-  :where(.gradient-primary,.bg-primary,.bg-secondary,.bg-accent,.bg-destructive,.bg-success,.bg-info) :where(.text-white,.text-primary-foreground,.text-secondary-foreground,.text-accent-foreground,.text-success-foreground,.text-warning-foreground,.text-info-foreground,.text-destructive-foreground) {
+  :where(.gradient-primary,.bg-primary):where(.text-white,.text-primary-foreground,.text-secondary-foreground,.text-accent-foreground,.text-success-foreground,.text-warning-foreground,.text-info-foreground,.text-destructive-foreground),
+  :where(.gradient-primary,.bg-primary) :where(.text-white,.text-primary-foreground,.text-secondary-foreground,.text-accent-foreground,.text-success-foreground,.text-warning-foreground,.text-info-foreground,.text-destructive-foreground) {
     color: hsl(var(--primary-foreground)) !important;
   }
+  :where(.bg-secondary):where(.text-white,.text-primary-foreground,.text-secondary-foreground,.text-accent-foreground),
+  :where(.bg-secondary) :where(.text-white,.text-primary-foreground,.text-secondary-foreground,.text-accent-foreground) { color: hsl(var(--secondary-foreground)) !important; }
+  :where(.bg-accent):where(.text-white,.text-primary-foreground,.text-secondary-foreground,.text-accent-foreground),
+  :where(.bg-accent) :where(.text-white,.text-primary-foreground,.text-secondary-foreground,.text-accent-foreground) { color: hsl(var(--accent-foreground)) !important; }
+  :where(.bg-success):where(.text-white,.text-primary-foreground,.text-success-foreground),
+  :where(.bg-success) :where(.text-white,.text-primary-foreground,.text-success-foreground) { color: hsl(var(--success-foreground)) !important; }
+  :where(.bg-warning):where(.text-white,.text-primary-foreground,.text-warning-foreground),
+  :where(.bg-warning) :where(.text-white,.text-primary-foreground,.text-warning-foreground) { color: hsl(var(--warning-foreground)) !important; }
+  :where(.bg-info):where(.text-white,.text-primary-foreground,.text-info-foreground),
+  :where(.bg-info) :where(.text-white,.text-primary-foreground,.text-info-foreground) { color: hsl(var(--info-foreground)) !important; }
+  :where(.bg-destructive):where(.text-white,.text-primary-foreground,.text-destructive-foreground),
+  :where(.bg-destructive) :where(.text-white,.text-primary-foreground,.text-destructive-foreground) { color: hsl(var(--destructive-foreground)) !important; }
   :where(.text-white) > svg,
   :where(.text-white) .lucide,
   :where(.text-white\/50) > svg,
