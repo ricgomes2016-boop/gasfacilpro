@@ -565,9 +565,13 @@
   :where(.text-yellow-600,.text-yellow-700,.text-amber-500,.text-amber-600,.text-amber-700) { color: hsl(var(--warning)) !important; }
   :where(.border-yellow-200,.border-yellow-300,.border-amber-200,.border-amber-300,.border-amber-500,.border-amber-500\/30) { border-color: hsl(var(--warning) / 0.42) !important; }
   :where(.bg-orange-50,.bg-orange-100,.bg-orange-500\/5,.bg-orange-500\/10) { background-color: hsl(var(--secondary) / 0.12) !important; }
-  :where(.bg-orange-500,.bg-orange-600,.bg-orange-700,.from-orange-500,.to-orange-500,.from-amber-500,.to-red-600) { background: var(--gradient-primary) !important; color: hsl(var(--primary-foreground)) !important; }
-  :where(.text-orange-500,.text-orange-600,.text-orange-700) { color: hsl(var(--primary)) !important; }
-  :where(.border-orange-200,.border-orange-300,.border-orange-500) { border-color: hsl(var(--secondary) / 0.38) !important; }
+  :where(.bg-orange-500,.bg-orange-600,.bg-orange-700) { background: var(--gradient-primary) !important; color: hsl(var(--primary-foreground)) !important; }
+  :where(.text-orange-100) { color: hsl(var(--primary-foreground) / 0.78) !important; }
+  :where(.text-orange-400,.text-orange-500,.text-orange-600,.text-orange-700) { color: hsl(var(--primary)) !important; }
+  :where(.border-orange-100,.border-orange-200,.border-orange-300,.border-orange-400,.border-orange-500) { border-color: hsl(var(--secondary) / 0.38) !important; }
+  :where(.from-orange-200,.from-orange-300,.from-orange-400,.from-orange-500,.from-orange-600,.from-amber-500,.from-yellow-400) { --tw-gradient-from: hsl(var(--primary)) var(--tw-gradient-from-position) !important; --tw-gradient-to: hsl(var(--primary) / 0) var(--tw-gradient-to-position) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important; }
+  :where(.via-orange-500,.via-orange-600,.via-amber-500,.via-yellow-400) { --tw-gradient-to: hsl(var(--secondary) / 0) var(--tw-gradient-to-position) !important; --tw-gradient-stops: var(--tw-gradient-from), hsl(var(--secondary)) var(--tw-gradient-via-position), var(--tw-gradient-to) !important; }
+  :where(.to-orange-400,.to-orange-500,.to-orange-600,.to-amber-50,.to-amber-500,.to-red-500,.to-red-600) { --tw-gradient-to: hsl(var(--secondary)) var(--tw-gradient-to-position) !important; }
 
   :where(.bg-red-50,.bg-red-100,.bg-red-500\/5,.bg-red-500\/10,.bg-rose-50,.bg-rose-100,.bg-rose-500\/5,.bg-rose-500\/10) { background-color: hsl(var(--destructive) / 0.12) !important; }
   :where(.bg-red-500,.bg-red-600,.bg-red-700,.bg-rose-500,.bg-rose-600,.bg-rose-700) { background-color: hsl(var(--destructive)) !important; color: hsl(var(--destructive-foreground)) !important; }
