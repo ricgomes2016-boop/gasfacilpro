@@ -35,22 +35,22 @@
 }
 
 .dark .theme-gasmais {
-  --primary: 174 61% 47%;
-  --secondary: 243 100% 69%;
-  --accent: 262 90% 70%;
-  --card: 222 35% 10%;
+  --primary: 25 100% 50%;
+  --secondary: 209 64% 16%;
+  --accent: 25 100% 56%;
+  --card: 209 44% 10%;
   --card-foreground: 220 18% 98%;
-  --background: 222 47% 6%;
+  --background: 209 58% 7%;
   --foreground: 220 18% 98%;
-  --muted: 222 30% 14%;
+  --muted: 209 34% 14%;
   --muted-foreground: 220 16% 84%;
-  --border: 222 28% 22%;
-  --input: 222 28% 24%;
+  --border: 209 24% 22%;
+  --input: 209 24% 24%;
 
-  --sidebar-background: 174 61% 47%;
-  --sidebar-gradient-from: 174 61% 47%;
-  --sidebar-gradient-to: 243 100% 69%;
+  --sidebar-background: 209 64% 16%;
+  --sidebar-gradient-from: 209 64% 16%;
+  --sidebar-gradient-to: 214 52% 25%;
   --sidebar-foreground: 220 14% 96%;
-  --sidebar-accent: 0 0% 100%;
+  --sidebar-accent: 25 100% 50%;
   --sidebar-border: 0 0% 100%;
 }
