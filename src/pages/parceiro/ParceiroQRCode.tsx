@@ -64,7 +64,7 @@ export default function ParceiroQRCode() {
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
         .card { border: 2px solid #000; border-radius: 16px; padding: 32px; text-align: center; width: 320px; }
-        .logo { font-size: 24px; font-weight: bold; color: #f97316; margin-bottom: 12px; }
+        .logo { font-size: 24px; font-weight: bold; color: #2fc2b5; margin-bottom: 12px; }
         .qr { margin: 20px 0; }
         .name { font-size: 18px; font-weight: bold; margin: 12px 0 4px; }
         .sub { font-size: 12px; color: #666; }

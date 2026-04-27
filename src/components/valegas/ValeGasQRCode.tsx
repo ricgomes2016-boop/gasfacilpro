@@ -61,7 +61,7 @@ export function ValeGasQRCode({ open, onClose, vale }: ValeGasQRCodeProps) {
               width: 300px;
               text-align: center;
             }
-            .logo { font-size: 24px; font-weight: bold; margin-bottom: 16px; color: #f97316; }
+            .logo { font-size: 24px; font-weight: bold; margin-bottom: 16px; color: #2fc2b5; }
             .qr-container { margin: 16px 0; }
             .numero { font-size: 28px; font-weight: bold; margin: 8px 0; }
             .codigo { font-family: monospace; font-size: 12px; color: #666; margin-bottom: 12px; }
