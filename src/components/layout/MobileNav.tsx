@@ -86,32 +86,32 @@ export function MobileNav() {
       <SheetContent side="left" className={cn(themeClass, "w-[min(86vw,320px)] p-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground")}>
         <div className="h-full flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-            <div className="flex items-center gap-3">
+          <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4 py-2">
+            <div className="flex min-w-0 items-center gap-2.5">
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
-                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-12 w-12 object-contain shadow-md" />
+                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-9 w-9 shrink-0 object-contain" />
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
-                className={cn("min-w-0", brandTheme.logoVariant === "full" ? "flex h-12 items-center" : "")}
+                className={cn("min-w-0 leading-none", brandTheme.logoVariant === "full" ? "flex h-10 items-center" : "")}
               >
                 {brandTheme.logoVariant === "full" ? (
-                  <img src={brandTheme.logoFull} alt="Gás Fácil ERP Pro" className="h-14 max-w-[196px] object-contain" />
+                  <img src={brandTheme.logoFull} alt="Gás Fácil ERP Pro" className="h-10 max-w-[156px] object-contain" />
                 ) : brandTheme.logoVariant === "compact" ? (
                   <>
-                    <h2 className="truncate text-[17px] font-extrabold text-sidebar-foreground">Gas Facil</h2>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-sidebar-foreground/70">PRO</p>
+                    <h2 className="truncate text-[16px] font-extrabold leading-tight text-sidebar-foreground">Gas Facil</h2>
+                    <p className="text-[9px] font-bold uppercase leading-tight tracking-[0.18em] text-sidebar-foreground/70">PRO</p>
                   </>
                 ) : (
                   <>
-                    <h2 className="truncate text-[17px] font-extrabold text-sidebar-foreground">Gas Facil</h2>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-sidebar-foreground/70">ERP Pro</p>
+                    <h2 className="truncate text-[16px] font-extrabold leading-tight text-sidebar-foreground">Gas Facil</h2>
+                    <p className="text-[9px] font-bold uppercase leading-tight tracking-[0.18em] text-sidebar-foreground/70">ERP Pro</p>
                   </>
                 )}
               </motion.div>
