@@ -20,7 +20,6 @@ import {
   LogOut,
   HandCoins,
   RotateCcw,
-  Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -43,7 +42,6 @@ interface EntregadorLayoutProps {
 
 const menuItems = [
   { path: "/entregador", icon: Home, label: "Início" },
-  { path: "/entregador", icon: Bell, label: "Avisos", badgeKey: "avisos" },
   { path: "/entregador/jornada", icon: Flame, label: "Jornada" },
   { path: "/entregador/entregas", icon: Package, label: "Entregas" },
   { path: "/entregador/nova-venda", icon: PlusCircle, label: "Nova Venda" },
@@ -109,7 +107,7 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
                         >
                           <div className="relative">
                             <Icon className="h-5 w-5" />
-                            {item.badgeKey === "avisos" && naoLidos > 0 && (
+                            {item.path === "/entregador" && naoLidos > 0 && (
                               <span className="absolute -right-2 -top-2 h-4 min-w-4 rounded-full bg-destructive px-1 text-[10px] font-bold leading-4 text-destructive-foreground">
                                 {naoLidos > 9 ? "9+" : naoLidos}
                               </span>
@@ -183,7 +181,7 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
               >
                 <div className="relative">
                   <Icon className={cn("h-5 w-5", isActive && "scale-110")} />
-                  {item.badgeKey === "avisos" && naoLidos > 0 && (
+                  {item.path === "/entregador" && naoLidos > 0 && (
                     <span className="absolute -right-2.5 -top-2 h-4 min-w-4 rounded-full bg-destructive px-1 text-[10px] font-bold leading-4 text-destructive-foreground">
                       {naoLidos > 9 ? "9+" : naoLidos}
                     </span>
@@ -198,7 +196,14 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
             onClick={() => setMenuOpen(true)}
             className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-all min-w-[60px] text-muted-foreground hover:text-foreground"
           >
-            <Menu className="h-5 w-5" />
+            <div className="relative">
+              <Menu className="h-5 w-5" />
+              {naoLidos > 0 && (
+                <span className="absolute -right-2.5 -top-2 h-4 min-w-4 rounded-full bg-destructive px-1 text-[10px] font-bold leading-4 text-destructive-foreground">
+                  {naoLidos > 9 ? "9+" : naoLidos}
+                </span>
+              )}
+            </div>
             <span className="text-xs font-medium">Menu</span>
           </button>
         </div>
