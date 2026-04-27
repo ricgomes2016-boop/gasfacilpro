@@ -215,16 +215,16 @@ export function RemindersWidget() {
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="pb-3">
+      <CardHeader className="section-header-catalog pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Bell className="h-5 w-5 text-primary" />
+          <CardTitle className="section-header-title">
+            <span className="section-header-icon-frame h-8 w-8"><Bell className="h-4 w-4" /></span>
             Lembretes Inteligentes
           </CardTitle>
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-8 w-8 text-info-foreground hover:bg-info-foreground/10 hover:text-info-foreground"
             onClick={() => refetch()}
             disabled={isFetching}
           >
