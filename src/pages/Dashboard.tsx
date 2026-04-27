@@ -141,7 +141,7 @@ export default function Dashboard() {
   const greeting = getGreeting();
   const todayFormatted = format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
-  const { themeClass, isGasmais } = useDashboardTheme();
+  const { themeClass, isGasmaisDashboard } = useDashboardTheme();
 
   return (
     <MainLayout>
@@ -173,7 +173,7 @@ export default function Dashboard() {
           </div>
 
           {/* KPIs embutidos no hero (apenas tema GásMais) */}
-          {isGasmais && (
+          {isGasmaisDashboard && (
             <div className="relative z-10 mt-6 grid w-full min-w-0 auto-rows-fr grid-cols-1 items-stretch gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               <StatCard
                 title={`Vendas ${periodLabel}`}
@@ -254,7 +254,7 @@ export default function Dashboard() {
 
         {/* Cards extras (no GásMais os 4 principais já estão no hero) */}
         <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
-          {!isGasmais && (
+          {!isGasmaisDashboard && (
             <>
               <StatCard
                 title={`Vendas ${periodLabel}`}
@@ -273,7 +273,7 @@ export default function Dashboard() {
               <StatCard title="Clientes Ativos" value={stats?.clientesAtivos ?? 0} icon={Users} />
             </>
           )}
-          {!isGasmais && (
+          {!isGasmaisDashboard && (
             <>
               <StatCard
                 title="Ticket Médio"
