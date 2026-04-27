@@ -39,7 +39,7 @@ export function QuickActions() {
   return (
     <Card className="modern-panel w-full min-w-0 max-w-full bg-card/80 backdrop-blur-sm">
       <CardHeader className="section-header-stock pb-3">
-        <CardTitle className="text-base font-semibold text-warning-foreground">⚡ Acesso Rápido</CardTitle>
+        <CardTitle className="section-header-title">⚡ Acesso Rápido</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid w-full min-w-0 grid-cols-2 gap-3 min-[420px]:grid-cols-3 sm:grid-cols-5 lg:grid-cols-10">
