@@ -373,7 +373,21 @@
   }
 
   .venda-card {
-    @apply border border-border/80 bg-card text-card-foreground shadow-md shadow-foreground/10;
+    @apply border bg-card text-card-foreground shadow-md transition-all duration-200;
+    border-color: hsl(var(--venda-tone, var(--border)) / 0.28);
+    box-shadow: 0 18px 42px -32px hsl(var(--venda-tone, var(--foreground)) / 0.34), 0 8px 20px -18px hsl(var(--foreground) / 0.14);
+  }
+
+  .venda-card:has(.section-header-primary) { --venda-tone: var(--primary); }
+  .venda-card:has(.section-header-catalog) { --venda-tone: var(--secondary); }
+  .venda-card:has(.section-header-stock) { --venda-tone: var(--warning); }
+  .venda-card:has(.section-header-finance) { --venda-tone: var(--success); }
+  .venda-card:has(.section-header-critical) { --venda-tone: var(--destructive); }
+  .venda-card:has(.section-header-muted) { --venda-tone: var(--muted-foreground); }
+
+  .venda-card:hover {
+    border-color: hsl(var(--venda-tone, var(--primary)) / 0.42);
+    box-shadow: 0 22px 52px -34px hsl(var(--venda-tone, var(--primary)) / 0.44), 0 10px 24px -18px hsl(var(--foreground) / 0.16);
   }
 
   .venda-modern-surface {
@@ -399,6 +413,9 @@
   .section-header-critical,
   .section-header-muted {
     @apply border-b px-4 py-4 md:px-5;
+    background-image: linear-gradient(135deg, hsl(var(--section-tone) / 0.14), hsl(var(--section-tone) / 0.055));
+    border-color: hsl(var(--section-tone) / 0.2);
+    color: hsl(var(--section-tone));
   }
 
   .section-header-title {
@@ -426,47 +443,47 @@
   }
 
   .section-header-primary {
-    @apply border-primary/30 bg-primary text-primary-foreground;
+    --section-tone: var(--primary);
   }
 
   .section-header-primary .section-header-icon-frame {
-    @apply bg-primary-foreground/15 text-primary-foreground ring-primary-foreground/25;
+    @apply bg-primary/10 text-primary ring-primary/20;
   }
 
   .section-header-catalog {
-    @apply border-secondary/30 bg-secondary text-secondary-foreground;
+    --section-tone: var(--secondary);
   }
 
   .section-header-catalog .section-header-icon-frame {
-    @apply bg-secondary-foreground/15 text-secondary-foreground ring-secondary-foreground/25;
+    @apply bg-secondary/10 text-secondary ring-secondary/20;
   }
 
   .section-header-stock {
-    @apply border-warning/40 bg-warning text-warning-foreground;
+    --section-tone: var(--warning);
   }
 
   .section-header-stock .section-header-icon-frame {
-    @apply bg-warning-foreground/10 text-warning-foreground ring-warning-foreground/20;
+    @apply bg-warning/10 text-warning ring-warning/20;
   }
 
   .section-header-finance {
-    @apply border-success/30 bg-success text-success-foreground;
+    --section-tone: var(--success);
   }
 
   .section-header-finance .section-header-icon-frame {
-    @apply bg-success-foreground/15 text-success-foreground ring-success-foreground/25;
+    @apply bg-success/10 text-success ring-success/20;
   }
 
   .section-header-critical {
-    @apply border-destructive/30 bg-destructive text-destructive-foreground;
+    --section-tone: var(--destructive);
   }
 
   .section-header-critical .section-header-icon-frame {
-    @apply bg-destructive-foreground/15 text-destructive-foreground ring-destructive-foreground/25;
+    @apply bg-destructive/10 text-destructive ring-destructive/20;
   }
 
   .section-header-muted {
-    @apply border-border/70 bg-muted text-foreground;
+    --section-tone: var(--muted-foreground);
   }
 
   .section-header-muted .section-header-icon-frame {
