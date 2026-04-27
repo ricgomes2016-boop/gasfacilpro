@@ -9,6 +9,7 @@ import { MobileBottomBar } from "@/components/layout/MobileBottomBar";
 import { TransferenciaPendentePopup } from "@/components/estoque/TransferenciaPendentePopup";
 import { PedidoPendenteAlertProvider } from "@/components/alerts/PedidoPendenteAlertProvider";
 import { CalculatorPopover } from "@/components/shared/CalculatorPopover";
+import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -16,6 +17,7 @@ interface MainLayoutProps {
 
 function MainLayoutContent({ children }: MainLayoutProps) {
   const { collapsed } = useSidebarContext();
+  const { themeClass } = useDashboardTheme();
   const location = useLocation();
   const isAiPage = location.pathname === "/assistente-ia";
   const [aiOpen, setAiOpen] = useState(false);
@@ -28,7 +30,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   }, [isAiPage]);
 
   return (
-    <div className="system-surface min-h-screen overflow-x-hidden">
+    <div className={cn(themeClass, "system-surface min-h-screen overflow-x-hidden")}>
       <Sidebar />
       <main
         className={cn(
