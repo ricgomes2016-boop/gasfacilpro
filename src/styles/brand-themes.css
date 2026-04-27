@@ -1,37 +1,37 @@
 .brand-theme-gasfacil {
   --brand-font: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --primary: 218 91% 32%;
+  --primary: 174 61% 47%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 18 96% 50%;
+  --secondary: 243 100% 69%;
   --secondary-foreground: 0 0% 100%;
-  --accent: 35 100% 52%;
-  --accent-foreground: 221 72% 13%;
-  --ring: 18 96% 50%;
-  --sidebar-background: 221 72% 13%;
-  --sidebar-gradient-from: 221 72% 13%;
-  --sidebar-gradient-to: 218 91% 32%;
+  --accent: 262 90% 66%;
+  --accent-foreground: 0 0% 100%;
+  --ring: 174 61% 47%;
+  --sidebar-background: 174 61% 47%;
+  --sidebar-gradient-from: 174 61% 47%;
+  --sidebar-gradient-to: 243 100% 69%;
   --sidebar-foreground: 0 0% 100%;
-  --sidebar-accent: 18 96% 50%;
+  --sidebar-accent: 0 0% 100%;
   --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 218 70% 25%;
+  --sidebar-border: 0 0% 100%;
 }
 
 .brand-theme-signature {
   --brand-font: 'Outfit', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-  --primary: 20 94% 48%;
+  --primary: 174 61% 47%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 220 72% 19%;
+  --secondary: 243 100% 69%;
   --secondary-foreground: 0 0% 100%;
-  --accent: 38 100% 50%;
-  --accent-foreground: 220 72% 12%;
-  --ring: 20 94% 48%;
+  --accent: 262 90% 66%;
+  --accent-foreground: 0 0% 100%;
+  --ring: 174 61% 47%;
   --sidebar-background: 0 0% 100%;
-  --sidebar-gradient-from: 0 0% 100%;
-  --sidebar-gradient-to: 32 100% 96%;
+  --sidebar-gradient-from: 174 61% 47%;
+  --sidebar-gradient-to: 243 100% 69%;
   --sidebar-foreground: 220 72% 14%;
-  --sidebar-accent: 20 94% 48%;
+  --sidebar-accent: 0 0% 100%;
   --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 28 70% 86%;
+  --sidebar-border: 0 0% 100%;
 }
 
 .brand-theme-gasmais {

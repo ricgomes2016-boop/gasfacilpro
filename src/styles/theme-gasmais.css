@@ -2,10 +2,11 @@
 /* Scoped: only redefines tokens inside elements with this class */
 
 .theme-gasmais {
-  --primary: 24 95% 53%;
+  --primary: 174 61% 47%;
   --primary-foreground: 0 0% 100%;
 
-  --accent: 217 91% 60%;
+  --secondary: 243 100% 69%;
+  --accent: 262 90% 66%;
   --accent-foreground: 0 0% 100%;
 
   --card: 0 0% 100%;
@@ -19,21 +20,24 @@
 
   --border: 216 24% 78%;
   --input: 216 24% 70%;
-  --ring: 24 95% 53%;
+  --ring: 174 61% 47%;
 
-  --sidebar-background: 222 47% 4%;
+  --sidebar-background: 174 61% 47%;
+  --sidebar-gradient-from: 174 61% 47%;
+  --sidebar-gradient-to: 243 100% 69%;
   --sidebar-foreground: 220 14% 96%;
-  --sidebar-primary: 24 95% 53%;
+  --sidebar-primary: 0 0% 100%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 222 34% 12%;
+  --sidebar-accent: 0 0% 100%;
   --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 222 22% 22%;
-  --sidebar-ring: 24 95% 53%;
+  --sidebar-border: 0 0% 100%;
+  --sidebar-ring: 0 0% 100%;
 }
 
 .dark .theme-gasmais {
-  --primary: 24 95% 58%;
-  --accent: 217 91% 65%;
+  --primary: 174 61% 47%;
+  --secondary: 243 100% 69%;
+  --accent: 262 90% 70%;
   --card: 222 35% 10%;
   --card-foreground: 220 18% 98%;
   --background: 222 47% 6%;
@@ -43,8 +47,10 @@
   --border: 222 28% 22%;
   --input: 222 28% 24%;
 
-  --sidebar-background: 222 47% 4%;
+  --sidebar-background: 174 61% 47%;
+  --sidebar-gradient-from: 174 61% 47%;
+  --sidebar-gradient-to: 243 100% 69%;
   --sidebar-foreground: 220 14% 96%;
-  --sidebar-accent: 222 34% 12%;
-  --sidebar-border: 222 22% 22%;
+  --sidebar-accent: 0 0% 100%;
+  --sidebar-border: 0 0% 100%;
 }
