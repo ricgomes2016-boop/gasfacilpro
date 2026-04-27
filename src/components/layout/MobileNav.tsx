@@ -93,7 +93,7 @@ export function MobileNav() {
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
-                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-10 w-10 object-contain shadow-md" />
+                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-12 w-12 object-contain shadow-md" />
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
@@ -102,7 +102,7 @@ export function MobileNav() {
                 className={cn("min-w-0", brandTheme.logoVariant === "full" ? "flex h-12 items-center" : "")}
               >
                 {brandTheme.logoVariant === "full" ? (
-                  <img src={brandTheme.logoFull} alt="Gás Fácil ERP Pro" className="h-12 max-w-[180px] object-contain" />
+                  <img src={brandTheme.logoFull} alt="Gás Fácil ERP Pro" className="h-14 max-w-[196px] object-contain" />
                 ) : brandTheme.logoVariant === "compact" ? (
                   <>
                     <h2 className="truncate text-[17px] font-extrabold text-sidebar-foreground">Gas Facil</h2>
