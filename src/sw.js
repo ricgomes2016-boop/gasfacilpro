@@ -1,11 +1,33 @@
-import { clientsClaim } from "workbox-core";
-import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
-
 self.skipWaiting();
-clientsClaim();
-cleanupOutdatedCaches();
 
-precacheAndRoute(self.__WB_MANIFEST);
+const PRECACHE = "gasfacil-precache-v1";
+const precacheManifest = self.__WB_MANIFEST || [];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(PRECACHE).then((cache) =>
+      cache.addAll(precacheManifest.map((entry) => entry.url || entry))
+    )
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      caches.keys().then((keys) =>
+        Promise.all(keys.filter((key) => key !== PRECACHE).map((key) => caches.delete(key)))
+      ),
+    ])
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
+  event.respondWith(
+    caches.match(event.request).then((cached) => cached || fetch(event.request))
+  );
+});
 
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") {
