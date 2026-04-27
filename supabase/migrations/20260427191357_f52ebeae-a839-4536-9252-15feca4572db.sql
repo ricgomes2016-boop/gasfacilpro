@@ -1,0 +1,2 @@
+ALTER PUBLICATION supabase_realtime ADD TABLE public.rh_avisos_entregador;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.rh_avisos_entregador_leituras;
