@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDate, getBrasiliaDateString } from "@/lib/utils";
 import { Capacitor } from "@capacitor/core";
 import { MeuHorarioSemana } from "@/components/entregador/MeuHorarioSemana";
+import { AvisosEntregador } from "@/components/entregador/AvisosEntregador";
 
 export default function EntregadorDashboard() {
   const { pendingDeliveries } = useDeliveryNotifications();
@@ -213,6 +214,9 @@ export default function EntregadorDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Avisos publicados pelo RH */}
+        <AvisosEntregador />
 
         {/* Horário da semana do entregador */}
         <MeuHorarioSemana />
