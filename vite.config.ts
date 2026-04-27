@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
         devOptions: {
           enabled: false,
         },
-        includeAssets: ["favicon.ico", "favicon.png", "apple-touch-icon.png", "icon-192x192.png", "icon-512x512.png", "og-image.png"],
+        includeAssets: ["favicon.png", "apple-touch-icon.png", "icon-192x192.png", "icon-512x512.png", "og-image.png"],
         workbox: {
           globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
           navigateFallbackDenylist: [/^\/~oauth/],
