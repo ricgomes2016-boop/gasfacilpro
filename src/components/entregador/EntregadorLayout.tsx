@@ -20,6 +20,7 @@ import {
   LogOut,
   HandCoins,
   RotateCcw,
+  Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -33,6 +34,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import logoImg from "@/assets/logo.png";
 import { BuildVersionBadge } from "@/components/shared/BuildVersionBadge";
+import { useAvisosEntregador } from "@/hooks/useAvisosEntregador";
 
 interface EntregadorLayoutProps {
   children: ReactNode;
@@ -41,6 +43,7 @@ interface EntregadorLayoutProps {
 
 const menuItems = [
   { path: "/entregador", icon: Home, label: "Início" },
+  { path: "/entregador", icon: Bell, label: "Avisos", badgeKey: "avisos" },
   { path: "/entregador/jornada", icon: Flame, label: "Jornada" },
   { path: "/entregador/entregas", icon: Package, label: "Entregas" },
   { path: "/entregador/nova-venda", icon: PlusCircle, label: "Nova Venda" },
@@ -64,6 +67,7 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const { naoLidos } = useAvisosEntregador();
 
   // Track driver GPS and update DB
   const trackingState = useGeoTracking();
@@ -103,7 +107,14 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
                               : "text-white/80 hover:bg-white/10"
                           )}
                         >
-                          <Icon className="h-5 w-5" />
+                          <div className="relative">
+                            <Icon className="h-5 w-5" />
+                            {item.badgeKey === "avisos" && naoLidos > 0 && (
+                              <span className="absolute -right-2 -top-2 h-4 min-w-4 rounded-full bg-destructive px-1 text-[10px] font-bold leading-4 text-destructive-foreground">
+                                {naoLidos > 9 ? "9+" : naoLidos}
+                              </span>
+                            )}
+                          </div>
                           <span className="font-medium">{item.label}</span>
                         </Link>
                       );
@@ -170,7 +181,14 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Icon className={cn("h-5 w-5", isActive && "scale-110")} />
+                <div className="relative">
+                  <Icon className={cn("h-5 w-5", isActive && "scale-110")} />
+                  {item.badgeKey === "avisos" && naoLidos > 0 && (
+                    <span className="absolute -right-2.5 -top-2 h-4 min-w-4 rounded-full bg-destructive px-1 text-[10px] font-bold leading-4 text-destructive-foreground">
+                      {naoLidos > 9 ? "9+" : naoLidos}
+                    </span>
+                  )}
+                </div>
                 <span className="text-xs font-medium">{item.label}</span>
               </Link>
             );
