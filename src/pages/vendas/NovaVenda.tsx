@@ -1093,7 +1093,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               </div>
             )}
             {activeStep === "produtos" && (
-              <div className="venda-step-panel venda-tone-produtos w-full" onKeyDown={handleStepEnterNavigation}>
+              <div className="venda-step-panel w-full" onKeyDown={handleStepEnterNavigation}>
                 <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
               </div>
             )}
