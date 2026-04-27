@@ -2,33 +2,33 @@
 /* Scoped: only redefines tokens inside elements with this class */
 
 .theme-gasmais {
-  --primary: 174 61% 47%;
+  --primary: 25 100% 50%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 243 100% 69%;
-  --accent: 262 90% 66%;
+  --secondary: 209 64% 16%;
+  --accent: 25 100% 50%;
   --accent-foreground: 0 0% 100%;
 
   --card: 0 0% 100%;
   --card-foreground: 222 47% 8%;
 
-  --background: 214 32% 96%;
-  --foreground: 222 47% 8%;
+  --background: 220 45% 98%;
+  --foreground: 0 0% 10%;
 
-  --muted: 214 24% 92%;
-  --muted-foreground: 222 32% 22%;
+  --muted: 220 28% 94%;
+  --muted-foreground: 220 9% 46%;
 
-  --border: 216 24% 78%;
-  --input: 216 24% 70%;
-  --ring: 174 61% 47%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 214 52% 25%;
 
-  --sidebar-background: 174 61% 47%;
-  --sidebar-gradient-from: 174 61% 47%;
-  --sidebar-gradient-to: 243 100% 69%;
+  --sidebar-background: 209 64% 16%;
+  --sidebar-gradient-from: 209 64% 16%;
+  --sidebar-gradient-to: 214 52% 25%;
   --sidebar-foreground: 220 14% 96%;
   --sidebar-primary: 0 0% 100%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 0 0% 100%;
+  --sidebar-accent: 25 100% 50%;
   --sidebar-accent-foreground: 0 0% 100%;
   --sidebar-border: 0 0% 100%;
   --sidebar-ring: 0 0% 100%;
