@@ -22,7 +22,6 @@ import { UnidadeSelector } from "./UnidadeSelector";
 import { useTheme } from "@/hooks/useTheme";
 import { forceAppUpdate } from "@/lib/force-app-update";
 import { BuildVersionBadge } from "@/components/shared/BuildVersionBadge";
-import { GasmaisThemeQuickToggle } from "@/components/layout/GasmaisThemeQuickToggle";
 import { CalculatorPopover } from "@/components/shared/CalculatorPopover";
 import { useSidebarContext } from "@/contexts/SidebarContext";
 import { cn } from "@/lib/utils";
@@ -107,9 +106,6 @@ export function Header({ title, subtitle }: HeaderProps) {
 
         {/* Notifications */}
         <NotificationCenter />
-
-        {/* GásMais Theme Quick Toggle */}
-        <GasmaisThemeQuickToggle />
 
         {/* Calculadora */}
         <div className="hidden min-[360px]:block">
