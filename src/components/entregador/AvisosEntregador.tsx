@@ -27,7 +27,7 @@ const prioridadeConfig = {
 };
 
 export function AvisosEntregador() {
-  const { avisos, naoLidos, loading, marcarComoLidos } = useAvisosEntregador();
+  const { avisos, naoLidos, loading, marcarComoLidos } = useAvisosEntregador(false);
 
   useEffect(() => {
     if (!loading && avisos.length > 0) {
