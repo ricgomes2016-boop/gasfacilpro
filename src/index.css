@@ -123,6 +123,17 @@
 }
 
 @layer components {
+  .app-header-premium {
+    border-color: hsl(var(--sidebar-border) / 0.18);
+    background: linear-gradient(
+      135deg,
+      hsl(220 24% 10% / 0.96) 0%,
+      hsl(var(--sidebar-gradient-from) / 0.92) 46%,
+      hsl(var(--sidebar-gradient-to) / 0.9) 100%
+    );
+    box-shadow: 0 16px 38px -28px hsl(220 35% 10% / 0.5);
+  }
+
   .app-sidebar-premium {
     background: linear-gradient(
       180deg,
