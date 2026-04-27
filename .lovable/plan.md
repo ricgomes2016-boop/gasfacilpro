@@ -1,35 +1,36 @@
-Vou revisar e corrigir o padrão de cores para evitar textos brancos em fundos claros, especialmente no header e no seletor de unidade, sem alterar regras de negócio ou fluxos do sistema.
+Vou ajustar a tela `/vendas/nova` focando exatamente nos pontos mostrados nos prints: fundo branco com fonte invisível, ícones dos métodos de pagamento sem contraste e cards de Produto/Pagamento menores que o card superior.
 
-Plano:
+Plano de implementação:
 
-1. Corrigir o seletor do header
-   - Ajustar o botão do seletor de unidade para usar o gradiente azul/roxo com texto legível.
-   - Corrigir o menu aberto do seletor para garantir fundo e texto com contraste correto.
-   - Revisar badges dentro do seletor para não ficarem brancos sobre fundo branco.
+1. Corrigir contraste dos atalhos de pagamento
+- Trocar os botões de pagamento que hoje usam fundo muito claro/branco por cards com superfície consistente (`bg-card`) e borda/tinta de marca.
+- Garantir que texto e ícones usem cores explícitas (`text-foreground`, `text-primary`, `text-success`, etc.) para não herdarem branco indevidamente.
+- Ajustar o estado selecionado para usar o gradiente azul/roxo do menu, com texto branco somente nesse caso.
 
-2. Corrigir componentes globais de menu e seleção
-   - Ajustar `DropdownMenu` para que itens em foco/hover usem texto escuro em fundo claro, e texto claro apenas quando o fundo for realmente colorido.
-   - Ajustar `Select`/combobox para manter texto visível em trigger, opções abertas, estado selecionado e foco.
-   - Evitar que o padrão `accent-foreground` branco seja aplicado em menus claros.
+2. Corrigir contraste dos atalhos de produto
+- Aplicar o mesmo padrão visual aos cards de produtos principais.
+- Evitar que imagens/ícones fiquem “apagados” em card branco, usando moldura interna com contraste e texto escuro no card normal.
+- Manter o destaque visual quando o produto estiver selecionado.
 
-3. Ajustar tokens problemáticos de tema
-   - Corrigir variáveis como `--accent-foreground` e `--sidebar-accent-foreground` quando estiverem causando branco em superfícies claras.
-   - Manter branco apenas para elementos com fundo forte: gradiente azul/roxo, botões primários, cards escuros/coloridos e sidebar.
+3. Padronizar fundo e texto das superfícies internas
+- Revisar `venda-modern-surface`, campos de busca, área de adicionar pagamento, selects e inputs dentro das etapas.
+- Garantir que áreas claras usem texto escuro e que o branco só apareça sobre gradiente/fundo escuro.
 
-4. Revisão global de classes perigosas
-   - Revisar usos de `text-white`, `text-primary-foreground`, `text-accent-foreground` e similares.
-   - Corrigir casos onde essas classes aparecem em cards, popovers, inputs, selects, tabelas, badges e botões com fundo claro.
-   - Manter as páginas públicas e áreas com hero/gradiente intactas quando o branco for correto.
+4. Ajustar largura proporcional dos cards
+- Em `NovaVenda.tsx`, remover a largura menor da etapa Produto (`max-w-5xl`) e alinhar Produto e Pagamento ao mesmo padrão do card superior.
+- Usar `w-full max-w-6xl` ou largura equivalente para Produto, Pagamento e demais etapas principais, mantendo responsividade.
+- Confirmar que em viewport médio, como o atual 1006x672, os cards ocupem a largura proporcional correta.
 
-5. Preservar o padrão visual pedido
-   - Continuar usando o azul/roxo do menu como padrão de destaque.
-   - Manter vermelho para erro, verde para sucesso e amarelo/âmbar para alerta real.
-   - Não mexer em rotas, autenticação, banco de dados, permissões ou regras operacionais.
+5. Manter o padrão de cores do sistema
+- Não alterar cores semânticas importantes: verde para sucesso/pagamento, vermelho para erro/vale gás quando aplicável, amarelo para alerta.
+- Usar azul/roxo do menu para destaque principal e seleção, sem voltar para laranja.
 
-6. Validação
-   - Rodar verificação TypeScript/build.
-   - Conferir especificamente: header, seletor de unidade, dropdowns, selects, menu lateral, menu mobile e tela atual de nova venda.
+Arquivos previstos:
+- `src/pages/vendas/NovaVenda.tsx`
+- `src/components/vendas/PaymentSection.tsx`
+- `src/components/vendas/ProductSearch.tsx`
+- `src/index.css`
 
-Detalhes técnicos:
-- Arquivos principais previstos: `src/index.css`, `src/components/layout/UnidadeSelector.tsx`, `src/components/ui/dropdown-menu.tsx`, `src/components/ui/select.tsx`, e ajustes pontuais em componentes que usam texto branco indevidamente.
-- A correção será visual e conservadora: substituir texto branco indevido por `text-foreground`, `text-popover-foreground`, `text-card-foreground`, `text-primary` ou `text-sidebar-foreground` conforme o fundo.
+Validação:
+- Rodar verificação TypeScript após as mudanças.
+- Revisar visualmente pela estrutura das classes para garantir que não haja texto branco em fundo branco nas etapas Produto e Pagamento.
