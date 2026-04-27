@@ -369,7 +369,7 @@
   .section-header-finance,
   .section-header-critical,
   .section-header-muted {
-    @apply border-b p-4 pb-3;
+    @apply border-b px-4 py-4 md:px-5;
   }
 
   .section-header-title {
@@ -393,7 +393,7 @@
   }
 
   .section-header-icon-frame {
-    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-md ring-1;
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ring-1;
   }
 
   .section-header-primary {
@@ -405,11 +405,11 @@
   }
 
   .section-header-catalog {
-    @apply border-info/30 bg-info text-info-foreground;
+    @apply border-secondary/30 bg-secondary text-secondary-foreground;
   }
 
   .section-header-catalog .section-header-icon-frame {
-    @apply bg-info-foreground/15 text-info-foreground ring-info-foreground/25;
+    @apply bg-secondary-foreground/15 text-secondary-foreground ring-secondary-foreground/25;
   }
 
   .section-header-stock {
