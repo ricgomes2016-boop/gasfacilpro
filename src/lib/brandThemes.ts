@@ -1,4 +1,4 @@
-import logoMark from "@/assets/gestech-logo-mark.png";
+import logoMark from "@/assets/gasfacil-logo-mark.png";
 import logoFull from "@/assets/logo.png";
 
 export type BrandThemeId = "gasfacil" | "gasmais" | "signature" | "executive" | "saas" | "pastel-dashboard";
