@@ -150,24 +150,24 @@ export default function Dashboard() {
         {/* Banner promocional do tema GásMais (dispensável) */}
         <GasmaisThemeBanner />
 
-        {/* ── Hero Gradient Card ── */}
+        {/* ── Hero Card ── */}
         <div className="dashboard-hero">
-          <div className="absolute right-0 top-0 opacity-10">
-            <Flame className="h-56 w-56 -mt-8 -mr-8" strokeWidth={0.8} />
+          <div className="absolute right-0 top-0 text-primary opacity-10">
+            <Flame className="h-40 w-40 -mt-8 -mr-8 md:h-56 md:w-56" strokeWidth={0.8} />
           </div>
-          <div className="absolute left-1/2 bottom-0 opacity-5">
+          <div className="absolute left-1/2 bottom-0 text-primary opacity-5">
             <Flame className="h-40 w-40 mb-[-2rem]" strokeWidth={0.6} />
           </div>
-          <div className="relative z-10 flex min-w-0 items-start justify-between gap-4">
+          <div className="relative z-10 flex min-w-0 flex-col items-start justify-between gap-4 sm:flex-row">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <Flame className="h-5 w-5" />
-                <span className="text-sm font-medium text-primary-foreground/80">Gás Fácil</span>
+                <Flame className="h-5 w-5 text-primary" />
+                <span className="text-sm font-medium text-secondary-foreground/80">Gás Fácil</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-bold mb-0.5 text-primary-foreground">
+              <h1 className="mb-0.5 text-xl font-semibold text-secondary-foreground md:text-3xl">
                 {greeting.text}! {greeting.emoji}
               </h1>
-              <p className="text-sm text-primary-foreground/70 capitalize line-clamp-2">{todayFormatted}</p>
+              <p className="line-clamp-2 text-sm capitalize text-secondary-foreground/70">{todayFormatted}</p>
             </div>
             <VoiceAssistant userName={greeting.text} />
           </div>
@@ -253,24 +253,24 @@ export default function Dashboard() {
         <StockAlerts />
 
         {/* Cards extras (no GásMais os 4 principais já estão no hero) */}
-        <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-3 min-[430px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
           {!isGasmais && (
             <>
               <StatCard
-                title={`Vendas ${periodLabel}`}
+                title="Faturamento do dia"
                 value={`R$ ${(stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
                 icon={DollarSign}
                 variant="primary"
                 trend={stats?.trendVendas}
               />
               <StatCard
-                title="Pedidos"
+                title="Pedidos do dia"
                 value={stats?.totalPedidos ?? 0}
                 icon={ShoppingCart}
                 trend={stats?.trendPedidos}
               />
-              <StatCard title="Pendentes" value={stats?.pendentes ?? 0} icon={Truck} variant="warning" />
-              <StatCard title="Clientes Ativos" value={stats?.clientesAtivos ?? 0} icon={Users} />
+              <StatCard title="Entregas em andamento" value={stats?.pendentes ?? 0} icon={Truck} variant="warning" />
+              <StatCard title="Clientes atendidos" value={stats?.clientesAtivos ?? 0} icon={Users} />
             </>
           )}
           {!isGasmais && (

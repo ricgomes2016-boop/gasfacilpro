@@ -204,13 +204,13 @@ export function Sidebar() {
   const userName = profile?.full_name || "Administrador";
   const userInitial = userName.charAt(0).toUpperCase();
 
-  const menuItemBase = "group flex items-center gap-3.5 rounded-full px-4 py-3.5 text-[13px] font-semibold transition-all duration-200";
-  const menuItemActive = "bg-sidebar-accent text-sidebar-accent-foreground shadow-lg shadow-foreground/10 ring-1 ring-sidebar-border/25";
-  const menuItemIdle = "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15";
-  const collapsedItemBase = "mx-auto flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200";
-  const subMenuItemBase = "group flex items-center gap-3 rounded-full px-3.5 py-2.5 text-[12px] font-semibold transition-all duration-200";
-  const subMenuItemActive = "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border/25";
-  const subMenuItemIdle = "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15";
+  const menuItemBase = "group flex items-center gap-3 min-w-0 rounded-lg px-3 py-3 text-[13px] font-semibold transition-all duration-200";
+  const menuItemActive = "bg-sidebar-accent text-sidebar-accent-foreground shadow-md shadow-primary/20 ring-1 ring-sidebar-border/20";
+  const menuItemIdle = "text-sidebar-foreground/70 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/10";
+  const collapsedItemBase = "mx-auto flex h-11 w-11 items-center justify-center rounded-lg transition-all duration-200";
+  const subMenuItemBase = "group flex items-center gap-3 min-w-0 rounded-lg px-3 py-2.5 text-[12px] font-semibold transition-all duration-200";
+  const subMenuItemActive = "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border/20";
+  const subMenuItemIdle = "text-sidebar-foreground/70 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/10";
 
   const { themeClass, brandTheme } = useDashboardTheme();
 
@@ -221,15 +221,15 @@ export function Sidebar() {
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className={cn(
           themeClass,
-          "app-sidebar-premium fixed left-0 top-0 z-40 hidden h-screen flex-col overflow-hidden rounded-r-[2rem] border-r border-sidebar-border/15 shadow-2xl xl:flex"
+          "app-sidebar-premium fixed left-0 top-0 z-40 hidden h-screen flex-col overflow-hidden border-r border-sidebar-border/10 shadow-2xl xl:flex"
         )}
       >
         {/* Header */}
-        <div className="flex min-h-24 items-center justify-center border-b border-sidebar-border/15 px-4">
+        <div className="flex min-h-20 items-center justify-center border-b border-sidebar-border/10 px-4">
           <button
             type="button"
             onClick={() => (collapsed ? toggle() : navigate("/dashboard"))}
-            className={cn("group flex items-center justify-center gap-3 rounded-3xl bg-transparent px-2 py-2 transition-all", collapsed && "px-0 py-0")}
+            className={cn("group flex items-center justify-center gap-3 rounded-xl bg-transparent px-2 py-2 transition-all", collapsed && "px-0 py-0")}
             title={collapsed ? "Expandir menu" : "Ir para o dashboard"}
           >
             <motion.div
@@ -270,7 +270,7 @@ export function Sidebar() {
               variant="ghost"
               size="icon"
               onClick={toggle}
-                className="h-8 w-8 flex-shrink-0 rounded-full text-sidebar-foreground/80 shadow-none hover:bg-sidebar-accent/15 hover:text-sidebar-foreground"
+                className="h-8 w-8 flex-shrink-0 rounded-lg text-sidebar-foreground/80 shadow-none hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground"
             >
               {collapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -282,8 +282,8 @@ export function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3.5 py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="space-y-2">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="space-y-1.5">
             {menuItems.map((item, idx) => {
               const hasSubmenu = !!item.submenu;
               const isOpen = isSubmenuOpen(item.label);
