@@ -7440,6 +7440,69 @@ export type Database = {
           },
         ]
       }
+      rh_avisos_entregador: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          empresa_id: string
+          exibir_ate: string | null
+          exibir_de: string
+          fixado: boolean
+          id: string
+          mensagem: string
+          prioridade: string
+          titulo: string
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          empresa_id: string
+          exibir_ate?: string | null
+          exibir_de?: string
+          fixado?: boolean
+          id?: string
+          mensagem: string
+          prioridade?: string
+          titulo: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          empresa_id?: string
+          exibir_ate?: string | null
+          exibir_de?: string
+          fixado?: boolean
+          id?: string
+          mensagem?: string
+          prioridade?: string
+          titulo?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_avisos_entregador_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_avisos_entregador_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rota_historico: {
         Row: {
           id: string

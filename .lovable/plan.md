@@ -1,31 +1,40 @@
-Vou corrigir os conflitos de contraste sem refatorar estrutura e sem mexer nas rotas/App.
+Plano de implementação
 
-## Ajustes previstos
+1. Criar o módulo “Avisos” em Gestão de RH
+- Adicionar nova página em RH para cadastrar, editar, ativar/desativar e excluir avisos.
+- Campos previstos: título, mensagem, prioridade, período de exibição, unidade, status ativo e opção de fixar/destacar.
+- Incluir a página no menu “Gestão de RH” como “Avisos”, mantendo “Horários” como a única entrada de horários/escalas.
+- Usar o conteúdo do PDF enviado como referência para um modelo de aviso sobre SST/saúde ocupacional, sem publicar automaticamente para todas as unidades sem confirmação na tela.
 
-1. **Blindagem global de contraste**
-   - Revisar as regras globais em `src/index.css` que já tentam evitar `text-white` dentro de fundos claros.
-   - Ajustar para cobrir também combinações com `text-*-foreground` quando o fundo real for `card`, `background`, `popover`, `muted`, `white` ou `primary-foreground`.
-   - Preservar texto branco apenas quando o fundo for realmente escuro/colorido: `bg-primary`, `bg-secondary`, `bg-success`, `bg-warning`, `bg-info`, `bg-destructive` ou gradientes fortes.
+2. Persistência segura no backend
+- Criar tabela de avisos para entregadores com isolamento por empresa/unidade.
+- Aplicar regras de acesso:
+  - Admin/gestor podem gerenciar avisos da própria empresa.
+  - Entregadores só podem visualizar avisos ativos da própria unidade/empresa.
+- Incluir índices para busca eficiente por empresa, unidade, status e período de exibição.
 
-2. **Correção específica da Sidebar por tema**
-   - Garantir que a Sidebar sempre use `text-sidebar-foreground` no estado normal.
-   - Garantir que itens ativos usem `bg-sidebar-accent` + `text-sidebar-accent-foreground`, evitando branco sobre branco em temas claros como Dashboard Pastel e Signature.
-   - Ajustar o rodapé/usuário da Sidebar para usar tokens de sidebar adequados em temas claros e escuros.
+3. Exibir avisos no aplicativo do entregador
+- Criar um componente de avisos no app do entregador, preferencialmente na tela inicial, acima ou próximo ao “Meu Horário da Semana”.
+- Mostrar apenas avisos ativos, dentro do período configurado, relacionados à unidade do entregador.
+- Dar destaque visual para avisos importantes, mantendo contraste correto para evitar texto claro em fundo claro.
+- Se não houver avisos, não ocupar espaço na tela.
 
-3. **Correção de ícones e elementos internos**
-   - Revisar ícones que herdam `text-white`/`primary-foreground` dentro de cartões claros.
-   - Manter ícones brancos somente dentro de botões/cards realmente coloridos.
+4. Remover duplicidade no menu Operacional
+- Remover apenas o item “Escalas de Entregadores” de “Gestão Operacional”.
+- Manter a rota/página existente `/rh/horarios` funcionando normalmente em “Gestão de RH > Horários”.
+- Não alterar a página de horários/escalas, apenas a navegação duplicada.
 
-4. **Seções com cabeçalho sólido**
-   - Conferir os cabeçalhos `section-header-*` para manter contraste correto em todos os temas.
-   - Em especial, evitar que `secondary-foreground`, `warning-foreground` ou `accent-foreground` fiquem claros em fundos também claros.
-
-5. **Validação**
-   - Rodar `tsc --noEmit` após as mudanças.
-   - Fazer a correção de forma escopada por CSS/tokens, sem alterar paleta do Dashboard Pastel e sem influenciar outros temas indevidamente.
-
-## Arquivos a ajustar
-
-- `src/index.css`
-- Possivelmente `src/styles/brand-themes.css`, apenas se algum token `*-foreground` estiver incompatível com o fundo do próprio tema.
-- Possivelmente `src/components/layout/Sidebar.tsx`, somente se algum estado visual estiver forçando classes conflitantes.
+Detalhes técnicos
+- Arquivos prováveis:
+  - `src/components/layout/menuItems.ts`: remover item duplicado do Operacional e adicionar “Avisos” em RH.
+  - `src/routes/rhRoutes.ts`: adicionar rota `/rh/avisos`.
+  - `src/pages/rh/Avisos.tsx`: nova tela de gestão dos avisos.
+  - `src/pages/entregador/EntregadorDashboard.tsx`: inserir o bloco de avisos.
+  - Novo componente em `src/components/entregador/` para listar avisos no app.
+- Backend:
+  - Nova tabela, por exemplo `rh_avisos_entregador`, com `empresa_id`, `unidade_id`, `titulo`, `mensagem`, `prioridade`, `ativo`, `fixado`, `exibir_de`, `exibir_ate`, `created_by`, timestamps e RLS.
+- Validação final:
+  - Rodar checagem TypeScript.
+  - Conferir que o menu Operacional não mostra mais “Escalas de Entregadores”.
+  - Conferir que “Gestão de RH > Horários” continua disponível.
+  - Conferir que avisos cadastrados aparecem no app do entregador conforme unidade/status/período.
