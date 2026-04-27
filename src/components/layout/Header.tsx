@@ -78,7 +78,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         {/* Mobile menu */}
         <MobileNav />
         
-        <div className="flex h-12 min-w-0 flex-1 flex-col justify-center rounded-2xl border border-border/45 bg-card px-3 py-1.5 shadow-sm shadow-foreground/5 sm:px-4 md:h-14">
+        <div className="flex h-12 min-w-0 flex-1 flex-col justify-center px-1 py-1.5 sm:px-2 md:h-14">
           <div className="flex min-w-0 max-w-full items-center gap-2">
             <h1 className="min-w-0 truncate text-base font-bold leading-none text-foreground md:text-lg xl:text-xl">{title}</h1>
             <BuildVersionBadge className="hidden xl:inline-flex shrink-0" />
@@ -91,7 +91,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex h-11 min-w-0 shrink-0 items-center justify-between gap-0.5 rounded-2xl border border-border/45 bg-card px-1 py-1 shadow-sm shadow-foreground/5 sm:h-12 sm:justify-end sm:gap-1 md:h-14 xl:gap-2">
+      <div className="flex h-11 min-w-0 shrink-0 items-center justify-between gap-0.5 px-0 py-1 sm:h-12 sm:justify-end sm:gap-1 md:h-14 xl:gap-2">
         {/* Unidade Selector */}
         <UnidadeSelector />
 
