@@ -87,14 +87,23 @@ export function MobileNav() {
         <div className="relative z-10 h-full flex flex-col">
           {/* Header */}
           <div className="flex h-20 items-center justify-center border-b border-sidebar-border/15 px-5 py-3">
-            <div className="flex min-w-0 items-center justify-center">
+            <div className="flex min-w-0 items-center justify-center gap-3">
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="shrink-0"
               >
-                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-14 w-14 shrink-0 object-contain" />
+                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-12 w-12 shrink-0 object-contain" />
               </motion.div>
+              <div className="flex min-w-0 flex-col justify-center leading-none">
+                <span className="truncate text-[16px] font-extrabold tracking-[-0.03em] text-sidebar-foreground">
+                  Gas Facil
+                </span>
+                <span className="mt-1 inline-flex w-fit rounded-full bg-sidebar-accent/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-sidebar-foreground/80 ring-1 ring-sidebar-border/20">
+                  ERP PRO
+                </span>
+              </div>
             </div>
           </div>
 
