@@ -77,7 +77,7 @@ export function CustomerHistory({ clienteId }: CustomerHistoryProps) {
 
   return (
     <Card className="venda-card w-full min-w-0 max-w-full">
-      <VendaSectionHeader title="Histórico do Cliente" icon={<History className="h-5 w-5 shrink-0" />} tone="muted" className="pb-3" />
+      <VendaSectionHeader title="Histórico do Cliente" icon={<History className="h-5 w-5 shrink-0" />} tone="info" className="pb-3" />
       <CardContent className="w-full min-w-0">
         {!clienteId ? (
           <div className="text-center py-6 text-muted-foreground">

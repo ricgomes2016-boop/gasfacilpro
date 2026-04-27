@@ -44,7 +44,7 @@ export function DeliveryDriverStatus() {
   return (
     <Card className="modern-panel">
       <CardHeader className="section-header-catalog pb-3">
-        <CardTitle className="text-base flex items-center gap-2 text-info-foreground">
+        <CardTitle className="section-header-title">
           <Truck className="h-4 w-4" /> Entregadores ({data?.total ?? 0})
         </CardTitle>
       </CardHeader>

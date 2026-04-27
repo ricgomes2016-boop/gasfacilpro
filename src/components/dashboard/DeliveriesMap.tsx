@@ -55,8 +55,8 @@ export function DeliveriesMap() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Entregas do Dia</CardTitle>
+      <CardHeader className="section-header-catalog">
+        <CardTitle className="section-header-title">Entregas do Dia</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (

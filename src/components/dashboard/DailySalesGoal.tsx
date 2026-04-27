@@ -64,7 +64,7 @@ export function DailySalesGoal() {
   return (
     <Card className="modern-panel">
       <CardHeader className="section-header-finance pb-3">
-        <CardTitle className="text-base flex items-center gap-2 text-success-foreground">
+        <CardTitle className="section-header-title">
           <Target className="h-4 w-4" /> Meta Diária
         </CardTitle>
       </CardHeader>

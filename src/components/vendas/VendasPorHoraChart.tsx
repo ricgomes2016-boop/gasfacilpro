@@ -65,8 +65,8 @@ export function VendasPorHoraChart({ pedidos, isLoading, periodo = "hoje" }: Ven
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
+      <CardHeader className="section-header-finance">
+        <CardTitle className="section-header-title">
           <BarChart3 className="h-5 w-5" />
           {title}
         </CardTitle>
