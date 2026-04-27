@@ -26,9 +26,9 @@ export function UnidadeSelector() {
   // If only one unidade, just show it without dropdown
   if (unidades.length === 1) {
     return (
-      <div className="flex h-9 items-center gap-1.5 min-w-0 max-w-[120px] md:max-w-[150px] xl:max-w-[220px] shrink-0 px-2 xl:px-3 py-1.5 rounded-md bg-muted/50">
-        <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-        <span className="text-xs md:text-sm font-medium truncate min-w-0">
+      <div className="flex h-9 items-center gap-1.5 min-w-0 max-w-[120px] md:max-w-[150px] xl:max-w-[220px] shrink-0 px-2 xl:px-3 py-1.5 rounded-md border border-border/45 bg-card text-card-foreground shadow-sm">
+        <Building2 className="h-4 w-4 text-primary shrink-0" />
+        <span className="text-xs md:text-sm font-semibold truncate min-w-0 text-foreground">
           {unidadeAtual?.nome}
         </span>
         <Badge variant="outline" className="text-xs capitalize hidden xl:inline-flex shrink-0">
@@ -41,7 +41,7 @@ export function UnidadeSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="default" size="sm" className="gap-1 h-9 px-2 xl:px-3 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md min-w-0 max-w-[112px] sm:max-w-[130px] lg:max-w-[150px] xl:max-w-[220px] shrink-0">
+        <Button variant="default" size="sm" className="gap-1 h-9 px-2 xl:px-3 gradient-primary text-primary-foreground hover:opacity-95 shadow-md shadow-primary/20 min-w-0 max-w-[112px] sm:max-w-[130px] lg:max-w-[150px] xl:max-w-[220px] shrink-0">
           <Building2 className="h-4 w-4 shrink-0" />
           <span className="truncate min-w-0 font-semibold text-xs sm:text-sm">
             {unidadeAtual?.nome || "Selecionar"}
@@ -52,14 +52,14 @@ export function UnidadeSelector() {
           <ChevronDown className="h-3.5 w-3.5 opacity-70 shrink-0" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-56 border-border/45 bg-popover text-popover-foreground">
         <DropdownMenuLabel>Selecionar Unidade</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {unidades.map((unidade) => (
           <DropdownMenuItem
             key={unidade.id}
             onClick={() => setUnidadeAtual(unidade)}
-            className="flex items-center justify-between cursor-pointer"
+            className="flex cursor-pointer items-center justify-between gap-2 text-popover-foreground focus:bg-primary/10 focus:text-foreground"
           >
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-muted-foreground" />

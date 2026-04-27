@@ -54,7 +54,7 @@
     --sidebar-gradient-to: 243 100% 69%;
     --sidebar-foreground: 220 14% 96%;
     --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary-foreground: 0 0% 18%;
     --sidebar-accent: 0 0% 100%;
     --sidebar-accent-foreground: 0 0% 18%;
     --sidebar-border: 0 0% 100%;
@@ -114,7 +114,7 @@
     --sidebar-gradient-to: 243 100% 69%;
     --sidebar-foreground: 220 14% 96%;
     --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-primary-foreground: 220 18% 12%;
     --sidebar-accent: 0 0% 100%;
     --sidebar-accent-foreground: 0 0% 18%;
     --sidebar-border: 0 0% 100%;
@@ -592,6 +592,14 @@
 
   :where(.bg-white) { background-color: hsl(var(--card)) !important; }
   :where(.text-white) { color: hsl(var(--primary-foreground)) !important; }
+  :where(.bg-card,.bg-background,.bg-popover,.bg-muted,.bg-primary-foreground,.bg-white):where(.text-white,.text-primary-foreground,.text-accent-foreground),
+  :where(.bg-card,.bg-background,.bg-popover,.bg-muted,.bg-primary-foreground,.bg-white) :where(.text-white,.text-primary-foreground,.text-accent-foreground) {
+    color: hsl(var(--foreground)) !important;
+  }
+  :where(.gradient-primary,.bg-primary,.bg-secondary,.bg-accent,.bg-destructive,.bg-success,.bg-info):where(.text-white,.text-primary-foreground,.text-accent-foreground),
+  :where(.gradient-primary,.bg-primary,.bg-secondary,.bg-accent,.bg-destructive,.bg-success,.bg-info) :where(.text-white,.text-primary-foreground,.text-accent-foreground) {
+    color: hsl(var(--primary-foreground)) !important;
+  }
   :where(.text-white) > svg,
   :where(.text-white) .lucide,
   :where(.text-white\/50) > svg,

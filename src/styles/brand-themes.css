@@ -12,7 +12,7 @@
   --sidebar-gradient-to: 243 100% 69%;
   --sidebar-foreground: 0 0% 100%;
   --sidebar-accent: 0 0% 100%;
-  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-accent-foreground: 0 0% 18%;
   --sidebar-border: 0 0% 100%;
 }
 
@@ -30,7 +30,7 @@
   --sidebar-gradient-to: 243 100% 69%;
   --sidebar-foreground: 220 72% 14%;
   --sidebar-accent: 0 0% 100%;
-  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-accent-foreground: 0 0% 18%;
   --sidebar-border: 0 0% 100%;
 }
 
