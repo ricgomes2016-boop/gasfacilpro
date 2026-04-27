@@ -372,6 +372,22 @@
     @apply flex min-w-0 items-center gap-2 text-base font-semibold;
   }
 
+  .section-header-primary .section-header-title,
+  .section-header-catalog .section-header-title,
+  .section-header-stock .section-header-title,
+  .section-header-finance .section-header-title,
+  .section-header-critical .section-header-title,
+  .section-header-muted .section-header-title,
+  .section-header-primary .section-header-title *,
+  .section-header-catalog .section-header-title *,
+  .section-header-stock .section-header-title *,
+  .section-header-finance .section-header-title *,
+  .section-header-critical .section-header-title *,
+  .section-header-muted .section-header-title * {
+    color: currentColor !important;
+    stroke: currentColor !important;
+  }
+
   .section-header-icon-frame {
     @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-md ring-1;
   }
