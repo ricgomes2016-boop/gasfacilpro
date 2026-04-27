@@ -62,8 +62,8 @@ export function RecentSales() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Vendas do Dia</CardTitle>
+      <CardHeader className="section-header-finance">
+        <CardTitle className="section-header-title">Vendas do Dia</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
