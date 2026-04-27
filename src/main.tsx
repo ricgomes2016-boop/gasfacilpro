@@ -4,17 +4,32 @@ import App from "./App.tsx";
 import "./index.css";
 import "./styles/theme-contador.css";
 
-// Auto-update: when a new SW is available, activate it immediately
-registerSW({
-  onNeedRefresh() {
-    // Automatically reload to apply the new version
-    window.location.reload();
-  },
-  onOfflineReady() {
-    console.log("[PWA] App pronta para uso offline");
-  },
-  // Check for updates every 60 seconds
-  immediate: true,
-});
+const isInIframe = (() => {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+})();
+
+const isPreviewHost =
+  window.location.hostname.includes("id-preview--") ||
+  window.location.hostname.includes("lovableproject.com");
+
+if (isPreviewHost || isInIframe) {
+  navigator.serviceWorker?.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => registration.unregister());
+  });
+} else {
+  registerSW({
+    onNeedRefresh() {
+      window.location.reload();
+    },
+    onOfflineReady() {
+      console.log("[PWA] App pronta para uso offline");
+    },
+    immediate: true,
+  });
+}
 
 createRoot(document.getElementById("root")!).render(<App />);
