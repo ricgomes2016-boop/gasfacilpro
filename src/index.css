@@ -28,13 +28,13 @@
     --muted: 225 24% 94%;
     --muted-foreground: 231 10% 59%;
 
-    --accent: 262 90% 66%;
+    --accent: 31 100% 63%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 71% 45%;
+    --success: 122 39% 49%;
     --success-foreground: 0 0% 100%;
 
     --warning: 45 100% 51%;
@@ -65,9 +65,9 @@
     --gradient-dark: linear-gradient(135deg, hsl(var(--sidebar-gradient-from)) 0%, hsl(var(--sidebar-gradient-to)) 100%);
 
     /* Shadows */
-    --shadow-sm: 0 4px 14px hsl(231 20% 30% / 0.04);
-    --shadow-md: 0 16px 42px -30px hsl(231 20% 30% / 0.24), 0 8px 20px -18px hsl(231 20% 30% / 0.14);
-    --shadow-lg: 0 26px 66px -38px hsl(231 20% 30% / 0.3), 0 16px 34px -26px hsl(231 20% 30% / 0.16);
+    --shadow-sm: 0 4px 14px hsl(231 20% 30% / 0.05);
+    --shadow-md: 0 16px 42px -30px hsl(231 20% 30% / 0.22), 0 8px 20px -18px hsl(231 20% 30% / 0.13);
+    --shadow-lg: 0 26px 66px -38px hsl(231 20% 30% / 0.28), 0 16px 34px -26px hsl(231 20% 30% / 0.15);
     --shadow-glow: 0 0 22px hsl(var(--primary) / 0.22);
   }
 
@@ -167,13 +167,17 @@
   .app-sidebar-premium::after {
     content: "";
     position: absolute;
-    inset-inline: 1rem;
-    bottom: 1rem;
-    height: 8rem;
+    left: 1rem;
+    right: 1rem;
+    bottom: 0.75rem;
+    height: 9.5rem;
     pointer-events: none;
-    border-radius: 9999px;
-    background: radial-gradient(circle at 50% 100%, hsl(var(--sidebar-accent) / 0.18), transparent 68%);
-    opacity: 0.75;
+    border-radius: 2rem;
+    background:
+      radial-gradient(circle at 24% 78%, hsl(var(--sidebar-accent) / 0.18) 0 18%, transparent 19%),
+      radial-gradient(circle at 72% 62%, hsl(var(--sidebar-accent) / 0.14) 0 16%, transparent 17%),
+      linear-gradient(135deg, hsl(var(--sidebar-accent) / 0.08), transparent 68%);
+    opacity: 0.72;
   }
 
   .app-mobile-sidebar-modern::before {
@@ -365,7 +369,7 @@
   .section-header-finance,
   .section-header-critical,
   .section-header-muted {
-    @apply border-b p-4 pb-3;
+    @apply border-b px-4 py-4 md:px-5;
   }
 
   .section-header-title {
@@ -389,7 +393,7 @@
   }
 
   .section-header-icon-frame {
-    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-md ring-1;
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ring-1;
   }
 
   .section-header-primary {
@@ -401,11 +405,11 @@
   }
 
   .section-header-catalog {
-    @apply border-info/30 bg-info text-info-foreground;
+    @apply border-secondary/30 bg-secondary text-secondary-foreground;
   }
 
   .section-header-catalog .section-header-icon-frame {
-    @apply bg-info-foreground/15 text-info-foreground ring-info-foreground/25;
+    @apply bg-secondary-foreground/15 text-secondary-foreground ring-secondary-foreground/25;
   }
 
   .section-header-stock {
@@ -526,17 +530,28 @@
     @apply inline-flex h-10 min-w-10 items-center justify-center rounded-2xl border border-border/45 bg-card px-3 text-sm font-bold text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:text-primary hover:shadow-md;
   }
 
+  .rdp-button {
+    @apply rounded-full;
+  }
+
+  .rdp-day_selected,
+  .rdp-day_selected:focus-visible,
+  .rdp-day_selected:hover {
+    background-color: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+  }
+
   .saas-table {
     @apply w-full border-separate border-spacing-y-2;
   }
 
   .saas-table thead tr,
   .saas-table-header {
-    @apply bg-primary text-primary-foreground shadow-sm;
+    @apply bg-muted text-foreground shadow-sm;
   }
 
   .saas-table th {
-    @apply border-0 px-4 py-3 text-xs font-bold uppercase tracking-wide text-primary-foreground first:rounded-l-2xl last:rounded-r-2xl;
+    @apply border-0 px-4 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground first:rounded-l-2xl last:rounded-r-2xl;
   }
 
   .saas-table tbody tr {
@@ -547,10 +562,27 @@
     @apply border-y border-border/35 bg-card px-4 py-4 shadow-sm first:rounded-l-2xl first:border-l last:rounded-r-2xl last:border-r;
   }
 
+  .saas-table tbody tr:hover td {
+    @apply bg-muted/35;
+  }
+
   .status-pill,
   [class*="badge-status"] {
     @apply inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold shadow-sm;
   }
+
+  .status-pendente,
+  .badge-status-pendente { @apply border-warning/30 bg-warning/15 text-warning-foreground; }
+
+  .status-em-rota,
+  .status-rota,
+  .badge-status-rota { @apply border-primary/25 bg-primary/12 text-primary; }
+
+  .status-entregue,
+  .badge-status-entregue { @apply border-success/25 bg-success/12 text-success; }
+
+  .status-cancelado,
+  .badge-status-cancelado { @apply border-destructive/25 bg-destructive/12 text-destructive; }
 
   .saas-table-scope table { @apply saas-table; }
   .saas-table-scope thead tr { @apply saas-table-header; }
@@ -588,57 +620,18 @@
     @apply modern-panel space-y-3 p-3 sm:p-4;
   }
 
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold),
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) {
-    @apply border-transparent bg-primary text-primary-foreground shadow-md shadow-primary/20;
-  }
+  .highlight-card-primary { @apply rounded-2xl border-transparent bg-primary text-primary-foreground shadow-md shadow-primary/20; }
+  .highlight-card-success { @apply rounded-2xl border-transparent bg-success text-success-foreground shadow-md shadow-success/20; }
+  .highlight-card-warning { @apply rounded-2xl border-transparent bg-warning text-warning-foreground shadow-md shadow-warning/20; }
+  .highlight-card-info { @apply rounded-2xl border-transparent bg-info text-info-foreground shadow-md shadow-info/20; }
+  .highlight-card-accent { @apply rounded-2xl border-transparent bg-secondary text-secondary-foreground shadow-md shadow-secondary/20; }
 
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold.text-success),
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold.text-success),
-  .grid > .rounded-xl.border:has(.lucide.text-success) {
-    @apply bg-success text-success-foreground shadow-success/20;
-  }
-
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold.text-warning),
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold.text-warning),
-  .grid > .rounded-xl.border:has(.lucide.text-warning) {
-    @apply bg-warning text-warning-foreground shadow-warning/20;
-  }
-
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold.text-destructive),
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold.text-destructive),
-  .grid > .rounded-xl.border:has(.lucide.text-destructive) {
-    @apply bg-destructive text-destructive-foreground shadow-destructive/20;
-  }
-
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold.text-info),
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold.text-info),
-  .grid > .rounded-xl.border:has(.lucide.text-info) {
-    @apply bg-info text-info-foreground shadow-info/20;
-  }
-
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-muted-foreground,
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-muted-foreground,
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-primary,
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-primary,
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-success,
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-success,
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-warning,
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-warning,
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-destructive,
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-destructive,
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-info,
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-info {
-    color: currentColor;
-  }
-
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold) > *,
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) > *,
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold) h3,
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) h3 {
+  .highlight-card-primary *,
+  .highlight-card-success *,
+  .highlight-card-warning *,
+  .highlight-card-info *,
+  .highlight-card-accent * {
     color: currentColor !important;
-    background-color: transparent !important;
-    border-color: hsl(0 0% 100% / 0.18) !important;
   }
 
   :where(.bg-green-50,.bg-green-100,.bg-green-500\/5,.bg-green-500\/10,.bg-emerald-50,.bg-emerald-100,.bg-emerald-500\/5,.bg-emerald-500\/10) { background-color: hsl(var(--success) / 0.12) !important; }
