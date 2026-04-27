@@ -567,7 +567,7 @@ export default function Configuracoes() {
               <CardDescription>Personalize o visual do sistema</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <GasmaisThemeToggle />
+              <BrandThemeSelector />
               <ThemeSelector />
             </CardContent>
           </Card>
