@@ -64,10 +64,10 @@ function ThemeSelector() {
         <button
           key={opt.value}
           onClick={() => setTheme(opt.value)}
-          className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
+            className={`flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all ${
             theme === opt.value
-              ? "border-primary bg-primary/5 text-primary"
-              : "border-border hover:border-muted-foreground/30 text-muted-foreground"
+              ? "border-primary bg-primary/10 text-primary shadow-sm shadow-primary/15"
+              : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:bg-primary/5"
           }`}
         >
           <opt.icon className="h-5 w-5" />
@@ -92,10 +92,10 @@ function BrandThemeSelector() {
             key={preset.id}
             type="button"
             onClick={() => setTheme(preset.id)}
-            className={`flex items-start gap-3 rounded-lg border-2 p-4 text-left transition-all ${
+            className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
               theme === preset.id
-                ? "border-primary bg-primary/5 text-foreground"
-                : "border-border hover:border-muted-foreground/30 text-muted-foreground"
+                ? "border-primary bg-primary/10 text-foreground shadow-sm shadow-primary/15"
+                : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:bg-primary/5"
             }`}
           >
             <img src={preset.logoMark} alt="" className="h-10 w-10 shrink-0 rounded-md object-contain" />
