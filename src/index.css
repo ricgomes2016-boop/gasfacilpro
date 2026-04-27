@@ -143,12 +143,16 @@
   }
 
   .header-actions button:not(.header-unit-selector) {
-    color: hsl(var(--foreground));
+    color: hsl(var(--primary));
   }
 
   .header-actions button:not(.header-unit-selector):hover {
     background: hsl(var(--primary) / 0.1);
-    color: hsl(var(--foreground));
+    color: hsl(var(--primary));
+  }
+
+  .header-actions button:not(.header-unit-selector) svg {
+    color: hsl(var(--primary));
   }
 
   .app-sidebar-premium {
