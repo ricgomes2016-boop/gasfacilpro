@@ -53,6 +53,43 @@
   --sidebar-border: 0 0% 100%;
 }
 
+.brand-theme-pastel-dashboard {
+  --brand-font: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --background: 220 11% 96%;
+  --foreground: 240 10% 9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 9%;
+  --primary: 250 100% 65%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 217 100% 94%;
+  --secondary-foreground: 218 45% 57%;
+  --accent: 27 100% 88%;
+  --accent-foreground: 33 68% 43%;
+  --muted: 225 23% 94%;
+  --muted-foreground: 233 7% 47%;
+  --success: 151 70% 39%;
+  --success-foreground: 0 0% 100%;
+  --warning: 34 76% 48%;
+  --warning-foreground: 0 0% 100%;
+  --info: 218 45% 57%;
+  --info-foreground: 0 0% 100%;
+  --border: 225 20% 90%;
+  --input: 225 20% 90%;
+  --ring: 250 100% 65%;
+  --radius: 1.25rem;
+  --sidebar-background: 220 20% 98%;
+  --sidebar-gradient-from: 220 20% 98%;
+  --sidebar-gradient-to: 276 100% 96%;
+  --sidebar-foreground: 235 9% 28%;
+  --sidebar-primary: 250 100% 65%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 0 0% 100%;
+  --sidebar-accent-foreground: 250 62% 52%;
+  --sidebar-border: 225 20% 88%;
+}
+
 .brand-theme-signature {
   --brand-font: 'Outfit', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --primary: 174 61% 47%;
@@ -95,6 +132,7 @@
 
 .brand-theme-gasfacil,
 .brand-theme-saas,
+.brand-theme-pastel-dashboard,
 .brand-theme-signature,
 .brand-theme-gasmais,
 .brand-theme-executive {

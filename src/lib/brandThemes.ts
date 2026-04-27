@@ -1,7 +1,7 @@
 import logoMark from "@/assets/gestech-logo-mark.png";
 import logoFull from "@/assets/logo.png";
 
-export type BrandThemeId = "gasfacil" | "gasmais" | "signature" | "executive" | "saas";
+export type BrandThemeId = "gasfacil" | "gasmais" | "signature" | "executive" | "saas" | "pastel-dashboard";
 
 export type BrandLogoVariant = "markText" | "full" | "compact";
 
@@ -34,6 +34,16 @@ export const brandThemes: BrandThemePreset[] = [
     name: "SaaS Moderno",
     description: "Dashboard limpo com teal, roxo e laranja em padrão profissional.",
     className: "brand-theme-saas",
+    logoVariant: "markText",
+    logoMark,
+    logoFull,
+    fontLabel: "Plus Jakarta Sans",
+  },
+  {
+    id: "pastel-dashboard",
+    name: "Dashboard Pastel",
+    description: "Visual inspirado no Weihu: claro, roxo e cards em tons pastel.",
+    className: "brand-theme-pastel-dashboard",
     logoVariant: "markText",
     logoMark,
     logoFull,
