@@ -1,49 +1,24 @@
-Vou aplicar a lógica visual em todo o sistema, não apenas nas páginas já corrigidas, mantendo estabilidade e sem mexer em rotas, providers ou estrutura do App.
+Vou aplicar a identidade azul/roxo do menu nos pontos que ainda usam laranja, sem mexer na estrutura do sistema.
 
-Escopo
+Plano:
+1. Atualizar tokens da marca
+   - Ajustar o tema principal para que `primary`, `secondary`, `accent`, `ring` e variáveis do sidebar usem azul + roxo.
+   - Manter o gradiente global (`gradient-primary`) usando exatamente a base visual do menu.
 
-1. Auditoria global de estilos
-- Revisar `src/pages` e `src/components` procurando:
-  - fundos sólidos sem necessidade: `bg-primary`, `bg-success`, `bg-warning`, `bg-info`, `bg-destructive`
-  - cores Tailwind hardcoded: `green`, `emerald`, `blue`, `sky`, `amber`, `orange`, `red`, `rose`, `purple`, `violet`, `indigo`
-  - gradientes antigos `from-*`, `to-*`
-  - headers/card titles com excesso de cor sólida
-  - cards com aparência quadrada, espaçamentos inconsistentes ou bordas desalinhadas
+2. Remover laranja visual do app
+   - Trocar usos de `orange` por `primary`/gradiente azul-roxo em componentes e páginas.
+   - Incluir overrides globais para classes Tailwind laranja (`bg-orange-*`, `text-orange-*`, `border-orange-*`, gradientes laranja) apontarem para azul/roxo.
+   - Atualizar metadados visuais como `theme-color` do navegador/PWA para azul/roxo.
 
-2. Aplicar padrão visual em todas as áreas
-- Dashboard, Vendas, Caixa, Estoque, Financeiro, Clientes, RH, Frota, Fiscal, Marketing, Configurações, Atendimento, Operacional, Entregador, Cliente, Transportadora e Contador.
-- Priorizar páginas internas do ERP e depois portais especializados, preservando identidade própria quando já existir tema específico.
+3. Preservar cores semânticas
+   - Manter vermelho para erro/perigo, verde para sucesso e amarelo/âmbar para alerta real quando o sentido for operacional.
+   - Onde o âmbar estiver sendo usado só como “destaque visual” ou branding, trocar para o novo gradiente.
 
-3. Padrão visual a aplicar
-```text
-Card normal: fundo neutro + borda suave + sombra moderna
-KPI/status: fundo suave /5 ou /10 + borda semântica + ícone colorido
-Header de seção: cor sólida apenas quando valorizar o contexto
-Ações principais: cor sólida permitida em botões e CTAs
-Alertas críticos: vermelho/destructive apenas em avisos reais
-Evitar: página inteira verde, blocos sólidos repetidos, cards pesados lado a lado
-```
+4. Ajustar casos específicos encontrados
+   - Botões/labels laranja em atendimento, despesas, marketing, frota, estoque e tela de instalação.
+   - QR Code do Vale Gás que ainda usa `#f97316`.
+   - Elementos públicos/assistente que usam gradiente com laranja.
 
-4. Criar/ajustar utilitários globais
-- Reforçar classes reutilizáveis para cards modernos, status cards, painéis de filtro e headers semânticos.
-- Adicionar variações suficientes para evitar que tudo fique verde:
-  - financeiro/receitas: `success`
-  - estoque/produtos/alertas de atenção: `warning`
-  - cadastro/informação/configuração: `info`
-  - ações principais: `primary`
-  - risco/erro/vencido: `destructive`
-  - áreas neutras: `muted/card`
-
-5. Migração controlada página por página
-- Substituir cores fixas por tokens semânticos.
-- Trocar blocos sólidos grandes por cartões neutros com acentos.
-- Manter cores sólidas apenas onde fazem sentido: botões, badges ativos, alertas e headers pontuais.
-- Corrigir classes dinâmicas inválidas que o Tailwind não gera corretamente.
-
-6. Validação
-- Rodar verificação TypeScript/build após as alterações.
-- Conferir que a migração não alterou lógica de negócio, queries, autenticação, rotas ou providers.
-- Evitar refatoração estrutural; a mudança será visual e incremental.
-
-Observação técnica
-- Já existe um volume grande de ocorrências ainda espalhadas pelo sistema, então a correção será feita por padrões globais + ajustes pontuais nas páginas mais visíveis para garantir consistência sem quebrar funcionalidades.
+5. Validar sem quebrar o sistema
+   - Rodar verificação TypeScript/build.
+   - Conferir que a troca é visual e não altera rotas, providers, autenticação, banco, regras de negócio ou fluxo operacional.
