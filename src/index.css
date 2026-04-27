@@ -530,17 +530,28 @@
     @apply inline-flex h-10 min-w-10 items-center justify-center rounded-2xl border border-border/45 bg-card px-3 text-sm font-bold text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:text-primary hover:shadow-md;
   }
 
+  .rdp-button {
+    @apply rounded-full;
+  }
+
+  .rdp-day_selected,
+  .rdp-day_selected:focus-visible,
+  .rdp-day_selected:hover {
+    background-color: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+  }
+
   .saas-table {
     @apply w-full border-separate border-spacing-y-2;
   }
 
   .saas-table thead tr,
   .saas-table-header {
-    @apply bg-primary text-primary-foreground shadow-sm;
+    @apply bg-muted text-foreground shadow-sm;
   }
 
   .saas-table th {
-    @apply border-0 px-4 py-3 text-xs font-bold uppercase tracking-wide text-primary-foreground first:rounded-l-2xl last:rounded-r-2xl;
+    @apply border-0 px-4 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground first:rounded-l-2xl last:rounded-r-2xl;
   }
 
   .saas-table tbody tr {
@@ -549,6 +560,10 @@
 
   .saas-table tbody td {
     @apply border-y border-border/35 bg-card px-4 py-4 shadow-sm first:rounded-l-2xl first:border-l last:rounded-r-2xl last:border-r;
+  }
+
+  .saas-table tbody tr:hover td {
+    @apply bg-muted/35;
   }
 
   .status-pill,
