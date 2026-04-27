@@ -51,8 +51,8 @@ export function SalesChart() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Vendas por Hora — {format(today, "dd/MM")}</CardTitle>
+      <CardHeader className="section-header-finance">
+        <CardTitle className="section-header-title">Vendas por Hora — {format(today, "dd/MM")}</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
