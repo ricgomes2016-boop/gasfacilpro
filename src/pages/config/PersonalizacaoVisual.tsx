@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useDashboardTheme } from "@/hooks/useDashboardTheme";
+import type { BrandThemeId } from "@/lib/brandThemes";
 
 const COLOR_OPTIONS = [
   { hsl: "187 65% 38%", label: "Teal", hex: "#219ebc" },
@@ -57,6 +59,16 @@ const THEME_PRESETS = [
     cor: "30 80% 50%",
     hex: "#cc6b1a",
     dark: false,
+  },
+  {
+    id: "saas-moderno",
+    label: "SaaS Moderno",
+    description: "Teal, roxo e laranja com cards limpos e sidebar em gradiente",
+    cor: "174 61% 47%",
+    hex: "#2EC4B6",
+    dark: false,
+    gradient: "linear-gradient(135deg, #2EC4B6 0%, #6C63FF 70%, #FF9F43 100%)",
+    brandThemeId: "saas",
   },
   {
     id: "forte-gas",
@@ -266,6 +278,7 @@ function applyTheme(darkMode: boolean, corPrimaria: string, presetId?: string) {
 
 export default function PersonalizacaoVisual() {
   const { unidadeAtual } = useUnidade();
+  const { theme: brandTheme, setTheme: setBrandTheme } = useDashboardTheme();
   const [config, setConfig] = useState<PersonalizacaoConfig>(DEFAULT_CONFIG);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -537,7 +550,9 @@ export default function PersonalizacaoVisual() {
                 <Label>Temas Prontos</Label>
                 <div className="grid grid-cols-2 gap-3">
                   {THEME_PRESETS.map((preset) => {
-                    const isActive = config.corPrimaria === preset.cor && config.darkMode === preset.dark;
+                    const isActive = "brandThemeId" in preset
+                      ? brandTheme === preset.brandThemeId
+                      : config.corPrimaria === preset.cor && config.darkMode === preset.dark;
                     return (
                       <button
                         key={preset.id}
@@ -547,7 +562,10 @@ export default function PersonalizacaoVisual() {
                             ? "border-foreground shadow-md"
                             : "border-border hover:border-foreground/20"
                         )}
-                        onClick={() => setConfig((p) => ({ ...p, corPrimaria: preset.cor, darkMode: preset.dark }))}
+                        onClick={() => {
+                          setConfig((p) => ({ ...p, corPrimaria: preset.cor, darkMode: preset.dark }));
+                          if ("brandThemeId" in preset) setBrandTheme(preset.brandThemeId as BrandThemeId);
+                        }}
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <div
