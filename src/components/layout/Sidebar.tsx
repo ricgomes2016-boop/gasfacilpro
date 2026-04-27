@@ -237,7 +237,7 @@ export function Sidebar() {
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <img src={brandTheme.logoMark} alt="Gas Facil" className={cn("flex-shrink-0 object-contain", collapsed ? "h-11 w-11" : "h-12 w-12")} />
+              <img src={brandTheme.logoMark} alt="Gas Facil" className={cn("flex-shrink-0 object-contain", collapsed ? "h-12 w-12" : "h-14 w-14")} />
             </motion.div>
             <AnimatePresence>
               {!collapsed && (
@@ -249,7 +249,7 @@ export function Sidebar() {
                   className={cn("items-start leading-none", brandTheme.logoVariant === "full" ? "flex h-14 justify-center" : "flex flex-col")}
                 >
                   {brandTheme.logoVariant === "full" ? (
-                    <img src={brandTheme.logoFull} alt="Gas Facil Sistema ERP" className="h-14 max-w-[160px] object-contain" />
+                    <img src={brandTheme.logoFull} alt="Gas Facil Sistema ERP" className="h-16 max-w-[172px] object-contain" />
                   ) : brandTheme.logoVariant === "compact" ? (
                     <>
                       <span className="text-[16px] font-extrabold tracking-normal text-sidebar-foreground">Gas Facil</span>
