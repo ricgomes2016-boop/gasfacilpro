@@ -41,15 +41,15 @@ interface PaymentSectionProps {
 }
 
 const formasPagamento = [
-  { value: "dinheiro", label: "Dinheiro", icon: "💵", Icon: Banknote, tone: "bg-success/15 text-success ring-success/25", cardTone: "border-success/25 bg-success/5 hover:border-success/45 hover:bg-success/10", selectedTone: "border-success bg-success/15 text-success ring-success/30", valueTone: "text-success", quickTone: "bg-success text-success-foreground shadow-success/25", quickRing: "ring-success/40" },
-  { value: "pix", label: "PIX", icon: "📱", Icon: Smartphone, tone: "bg-success/15 text-success ring-success/25", cardTone: "border-success/25 bg-success/5 hover:border-success/45 hover:bg-success/10", selectedTone: "border-success bg-success/15 text-success ring-success/30", valueTone: "text-success", quickTone: "bg-info text-info-foreground shadow-info/25", quickRing: "ring-info/40" },
-  { value: "pix_maquininha", label: "PIX Maquininha", icon: "📱", Icon: CreditCard, tone: "bg-accent/15 text-accent ring-accent/25", cardTone: "border-accent/25 bg-accent/5 hover:border-accent/45 hover:bg-accent/10", selectedTone: "border-accent bg-accent/15 text-accent ring-accent/30", valueTone: "text-accent", quickTone: "bg-primary text-primary-foreground shadow-primary/25", quickRing: "ring-primary/40" },
-  { value: "cartao_debito", label: "Cartão Débito", icon: "💳", Icon: WalletCards, tone: "bg-primary/15 text-primary ring-primary/25", cardTone: "border-primary/25 bg-primary/5 hover:border-primary/45 hover:bg-primary/10", selectedTone: "border-primary bg-primary/15 text-primary ring-primary/30", valueTone: "text-primary", quickTone: "bg-secondary text-secondary-foreground shadow-secondary/25", quickRing: "ring-secondary/40" },
-  { value: "cartao_credito", label: "Cartão Crédito", icon: "💳", Icon: CreditCard, tone: "bg-warning/15 text-warning ring-warning/25", cardTone: "border-warning/25 bg-warning/5 hover:border-warning/45 hover:bg-warning/10", selectedTone: "border-warning bg-warning/15 text-warning ring-warning/30", valueTone: "text-warning", quickTone: "bg-warning text-warning-foreground shadow-warning/25", quickRing: "ring-warning/40" },
-  { value: "boleto", label: "Boleto", icon: "📄", Icon: FileText, tone: "bg-muted text-foreground ring-border", cardTone: "border-border bg-muted/25 hover:border-primary/35 hover:bg-muted/45", selectedTone: "border-primary bg-primary/10 text-primary ring-primary/25", valueTone: "text-foreground", quickTone: "bg-muted text-foreground shadow-foreground/10", quickRing: "ring-border" },
-  { value: "vale_gas", label: "Vale Gás", icon: "🔥", Icon: Flame, tone: "bg-destructive/15 text-destructive ring-destructive/25", cardTone: "border-destructive/25 bg-destructive/5 hover:border-destructive/45 hover:bg-destructive/10", selectedTone: "border-destructive bg-destructive/15 text-destructive ring-destructive/30", valueTone: "text-destructive", quickTone: "bg-destructive text-destructive-foreground shadow-destructive/25", quickRing: "ring-destructive/40" },
-  { value: "cheque", label: "Cheque", icon: "🧾", Icon: ReceiptText, tone: "bg-secondary text-secondary-foreground ring-border", cardTone: "border-secondary bg-secondary/45 hover:border-primary/35 hover:bg-secondary/70", selectedTone: "border-primary bg-primary/10 text-primary ring-primary/25", valueTone: "text-secondary-foreground", quickTone: "bg-secondary text-secondary-foreground shadow-secondary/25", quickRing: "ring-secondary/40" },
-  { value: "fiado", label: "Fiado / A Prazo", icon: "📝", Icon: AlertCircle, tone: "bg-warning/15 text-warning ring-warning/25", cardTone: "border-warning/25 bg-warning/5 hover:border-warning/45 hover:bg-warning/10", selectedTone: "border-warning bg-warning/15 text-warning ring-warning/30", valueTone: "text-warning", quickTone: "bg-warning text-warning-foreground shadow-warning/25", quickRing: "ring-warning/40" },
+  { value: "dinheiro", label: "Dinheiro", icon: "💵", Icon: Banknote, tone: "bg-success/15 text-success ring-success/25", cardTone: "border-success/25 bg-success/5 hover:border-success/45 hover:bg-success/10", valueTone: "text-success", quickTone: "text-success", quickSurface: "bg-success/10", quickRing: "ring-success/35" },
+  { value: "pix", label: "PIX", icon: "📱", Icon: Smartphone, tone: "bg-success/15 text-success ring-success/25", cardTone: "border-success/25 bg-success/5 hover:border-success/45 hover:bg-success/10", valueTone: "text-success", quickTone: "text-info", quickSurface: "bg-info/10", quickRing: "ring-info/35" },
+  { value: "pix_maquininha", label: "PIX Maquininha", icon: "📱", Icon: CreditCard, tone: "bg-accent/15 text-accent ring-accent/25", cardTone: "border-accent/25 bg-accent/5 hover:border-accent/45 hover:bg-accent/10", valueTone: "text-accent", quickTone: "text-primary", quickSurface: "bg-primary/10", quickRing: "ring-primary/35" },
+  { value: "cartao_debito", label: "Cartão Débito", icon: "💳", Icon: WalletCards, tone: "bg-primary/15 text-primary ring-primary/25", cardTone: "border-primary/25 bg-primary/5 hover:border-primary/45 hover:bg-primary/10", valueTone: "text-primary", quickTone: "text-secondary", quickSurface: "bg-secondary/10", quickRing: "ring-secondary/35" },
+  { value: "cartao_credito", label: "Cartão Crédito", icon: "💳", Icon: CreditCard, tone: "bg-warning/15 text-warning ring-warning/25", cardTone: "border-warning/25 bg-warning/5 hover:border-warning/45 hover:bg-warning/10", valueTone: "text-warning", quickTone: "text-warning", quickSurface: "bg-warning/15", quickRing: "ring-warning/35" },
+  { value: "boleto", label: "Boleto", icon: "📄", Icon: FileText, tone: "bg-muted text-foreground ring-border", cardTone: "border-border bg-muted/25 hover:border-primary/35 hover:bg-muted/45", valueTone: "text-foreground", quickTone: "text-foreground", quickSurface: "bg-muted", quickRing: "ring-border" },
+  { value: "vale_gas", label: "Vale Gás", icon: "🔥", Icon: Flame, tone: "bg-destructive/15 text-destructive ring-destructive/25", cardTone: "border-destructive/25 bg-destructive/5 hover:border-destructive/45 hover:bg-destructive/10", valueTone: "text-destructive", quickTone: "text-destructive", quickSurface: "bg-destructive/10", quickRing: "ring-destructive/35" },
+  { value: "cheque", label: "Cheque", icon: "🧾", Icon: ReceiptText, tone: "bg-secondary/10 text-secondary ring-secondary/25", cardTone: "border-secondary/25 bg-secondary/5 hover:border-primary/35 hover:bg-secondary/10", valueTone: "text-secondary", quickTone: "text-secondary", quickSurface: "bg-secondary/10", quickRing: "ring-secondary/35" },
+  { value: "fiado", label: "Fiado / A Prazo", icon: "📝", Icon: AlertCircle, tone: "bg-warning/15 text-warning ring-warning/25", cardTone: "border-warning/25 bg-warning/5 hover:border-warning/45 hover:bg-warning/10", valueTone: "text-warning", quickTone: "text-warning", quickSurface: "bg-warning/15", quickRing: "ring-warning/35" },
   
 ];
 
@@ -306,17 +306,19 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
                     type="button"
                     aria-pressed={selected}
                     onClick={() => handleFormaChange(fp.value)}
+                    data-selected={selected}
                     className={cn(
-                      "venda-payment-shortcut group flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border border-transparent p-2 text-center shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-                      fp.quickTone,
-                      fp.quickRing,
-                      selected && "ring-2 ring-offset-2"
+                      "venda-payment-shortcut group flex min-h-[92px] flex-col items-center justify-center gap-2 rounded-xl border p-2 text-center transition-all duration-200 hover:scale-[1.02] hover:border-primary/35 hover:bg-primary/5 hover:shadow-lg active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+                      selected ? "ring-2 ring-offset-2 ring-primary/40 shadow-xl" : fp.quickRing
                     )}
                   >
-                    <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-foreground/15 ring-1 ring-primary-foreground/25">
+                    <span className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-lg ring-1 transition-transform group-hover:scale-105",
+                      selected ? "bg-primary-foreground/15 text-primary-foreground ring-primary-foreground/30" : `${fp.quickSurface} ${fp.quickTone} ${fp.quickRing}`
+                    )}>
                       <Icon className="h-5 w-5 drop-shadow-sm" strokeWidth={2.25} />
                     </span>
-                    <span className="text-[11px] font-bold leading-tight text-center">{fp.label}</span>
+                    <span className={cn("text-[11px] font-bold leading-tight text-center", selected ? "text-primary-foreground" : "text-foreground")}>{fp.label}</span>
                   </button>
                 );
               })}

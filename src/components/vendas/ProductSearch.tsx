@@ -17,6 +17,7 @@ import gasP20Img from "@/assets/products/gas-p20.png";
 import gasP45Img from "@/assets/products/gas-p45.png";
 import agua20lImg from "@/assets/products/agua-20l.png";
 import { VendaSectionHeader } from "./VendaSectionHeader";
+import { cn } from "@/lib/utils";
 
 interface Produto {
   id: string;
@@ -42,11 +43,11 @@ interface ProductSearchProps {
 }
 
 const produtosPrincipais = [
-  { label: "Gás P13", aliases: ["gas p13", "gás p13", "p13"], image: gasP13Img, quickTone: "bg-warning text-warning-foreground shadow-warning/25", quickRing: "ring-warning/40" },
-  { label: "Gás P20", aliases: ["gas p20", "gás p20", "p20"], image: gasP20Img, quickTone: "bg-info text-info-foreground shadow-info/25", quickRing: "ring-info/40" },
-  { label: "Gás P45", aliases: ["gas p45", "gás p45", "p45"], image: gasP45Img, quickTone: "bg-primary text-primary-foreground shadow-primary/25", quickRing: "ring-primary/40" },
-  { label: "Água Mineral 20L", aliases: ["agua mineral 20", "água mineral 20", "agua 20", "20l"], image: agua20lImg, quickTone: "bg-info text-info-foreground shadow-info/25", quickRing: "ring-info/40" },
-  { label: "Kit Regulador 13kg", aliases: ["kit regulador", "regulador 13", "regulador"], image: null, quickTone: "bg-secondary text-secondary-foreground shadow-secondary/25", quickRing: "ring-secondary/40" },
+  { label: "Gás P13", aliases: ["gas p13", "gás p13", "p13"], image: gasP13Img, tone: "text-warning", surface: "bg-warning/10", ring: "ring-warning/35" },
+  { label: "Gás P20", aliases: ["gas p20", "gás p20", "p20"], image: gasP20Img, tone: "text-info", surface: "bg-info/10", ring: "ring-info/35" },
+  { label: "Gás P45", aliases: ["gas p45", "gás p45", "p45"], image: gasP45Img, tone: "text-primary", surface: "bg-primary/10", ring: "ring-primary/35" },
+  { label: "Água Mineral 20L", aliases: ["agua mineral 20", "água mineral 20", "agua 20", "20l"], image: agua20lImg, tone: "text-info", surface: "bg-info/10", ring: "ring-info/35" },
+  { label: "Kit Regulador 13kg", aliases: ["kit regulador", "regulador 13", "regulador"], image: null, tone: "text-foreground", surface: "bg-muted", ring: "ring-border" },
 ];
 
 export function ProductSearch({ itens, onChange, unidadeId, clienteId }: ProductSearchProps) {
@@ -234,16 +235,23 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
               type="button"
               aria-pressed={selected}
               onClick={() => buscarProdutoPrincipal(produto)}
-              className={`venda-product-shortcut group min-h-[132px] rounded-xl border border-transparent p-3 text-center shadow-lg transition-all duration-200 hover:scale-105 hover:shadow-xl active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${produto.quickTone} ${produto.quickRing} ${selected ? "ring-2 ring-offset-2 shadow-xl scale-[1.02]" : ""}`}
+              data-selected={selected}
+              className={cn(
+                "venda-product-shortcut group min-h-[132px] rounded-xl border p-3 text-center transition-all duration-200 hover:scale-[1.02] hover:border-primary/35 hover:bg-primary/5 hover:shadow-lg active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+                selected ? "ring-2 ring-offset-2 shadow-xl scale-[1.02] ring-primary/40" : produto.ring
+              )}
             >
-              <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-lg bg-primary-foreground/15 ring-1 ring-primary-foreground/25 transition-transform group-hover:scale-105">
+              <span className={cn(
+                "mx-auto flex h-16 w-16 items-center justify-center rounded-lg ring-1 transition-transform group-hover:scale-105",
+                selected ? "bg-primary-foreground/15 text-primary-foreground ring-primary-foreground/30" : `${produto.surface} ${produto.tone} ${produto.ring}`
+              )}>
                 {produto.image ? (
                   <img src={produto.image} alt={produto.label} className="h-14 w-14 object-contain" loading="lazy" />
                 ) : (
                   <Wrench className="h-8 w-8 drop-shadow-sm" />
                 )}
               </span>
-              <span className="mt-2 block text-xs font-semibold leading-tight text-center">{produto.label}</span>
+              <span className={cn("mt-2 block text-xs font-semibold leading-tight text-center", selected ? "text-primary-foreground" : "text-foreground")}>{produto.label}</span>
             </button>
             );
           })}
