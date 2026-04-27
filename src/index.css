@@ -143,6 +143,19 @@
     background: radial-gradient(circle at 50% 100%, hsl(var(--sidebar-accent) / 0.18), transparent 68%);
     opacity: 0.75;
   }
+
+  .app-mobile-sidebar-modern::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--sidebar-foreground) / 0.04),
+      transparent 34%,
+      hsl(var(--sidebar-accent) / 0.08) 100%
+    );
+  }
 }
 
 @layer base {
