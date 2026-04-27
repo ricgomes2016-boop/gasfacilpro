@@ -607,57 +607,18 @@
     @apply modern-panel space-y-3 p-3 sm:p-4;
   }
 
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold),
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) {
-    @apply border-transparent bg-primary text-primary-foreground shadow-md shadow-primary/20;
-  }
+  .highlight-card-primary { @apply rounded-2xl border-transparent bg-primary text-primary-foreground shadow-md shadow-primary/20; }
+  .highlight-card-success { @apply rounded-2xl border-transparent bg-success text-success-foreground shadow-md shadow-success/20; }
+  .highlight-card-warning { @apply rounded-2xl border-transparent bg-warning text-warning-foreground shadow-md shadow-warning/20; }
+  .highlight-card-info { @apply rounded-2xl border-transparent bg-info text-info-foreground shadow-md shadow-info/20; }
+  .highlight-card-accent { @apply rounded-2xl border-transparent bg-secondary text-secondary-foreground shadow-md shadow-secondary/20; }
 
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold.text-success),
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold.text-success),
-  .grid > .rounded-xl.border:has(.lucide.text-success) {
-    @apply bg-success text-success-foreground shadow-success/20;
-  }
-
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold.text-warning),
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold.text-warning),
-  .grid > .rounded-xl.border:has(.lucide.text-warning) {
-    @apply bg-warning text-warning-foreground shadow-warning/20;
-  }
-
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold.text-destructive),
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold.text-destructive),
-  .grid > .rounded-xl.border:has(.lucide.text-destructive) {
-    @apply bg-destructive text-destructive-foreground shadow-destructive/20;
-  }
-
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold.text-info),
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold.text-info),
-  .grid > .rounded-xl.border:has(.lucide.text-info) {
-    @apply bg-info text-info-foreground shadow-info/20;
-  }
-
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-muted-foreground,
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-muted-foreground,
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-primary,
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-primary,
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-success,
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-success,
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-warning,
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-warning,
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-destructive,
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-destructive,
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold) .text-info,
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) .text-info {
-    color: currentColor;
-  }
-
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold) > *,
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) > *,
-  .grid > .rounded-xl.border:has(.text-2xl.font-bold) h3,
-  .grid > .rounded-xl.border:has(.text-3xl.font-bold) h3 {
+  .highlight-card-primary *,
+  .highlight-card-success *,
+  .highlight-card-warning *,
+  .highlight-card-info *,
+  .highlight-card-accent * {
     color: currentColor !important;
-    background-color: transparent !important;
-    border-color: hsl(0 0% 100% / 0.18) !important;
   }
 
   :where(.bg-green-50,.bg-green-100,.bg-green-500\/5,.bg-green-500\/10,.bg-emerald-50,.bg-emerald-100,.bg-emerald-500\/5,.bg-emerald-500\/10) { background-color: hsl(var(--success) / 0.12) !important; }
