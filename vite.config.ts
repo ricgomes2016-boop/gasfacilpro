@@ -27,7 +27,10 @@ export default defineConfig(({ mode }) => {
         srcDir: "src",
         filename: "sw.js",
         registerType: "autoUpdate",
-        includeAssets: ["favicon.ico", "favicon.png", "apple-touch-icon.png", "icon-192x192.png", "icon-512x512.png"],
+        devOptions: {
+          enabled: false,
+        },
+        includeAssets: ["favicon.ico", "favicon.png", "apple-touch-icon.png", "icon-192x192.png", "icon-512x512.png", "og-image.png"],
         workbox: {
           globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
           navigateFallbackDenylist: [/^\/~oauth/],
