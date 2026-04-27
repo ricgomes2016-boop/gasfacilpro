@@ -46,7 +46,7 @@ export function UnidadeSelector() {
           <span className="truncate min-w-0 font-semibold text-xs sm:text-sm">
             {unidadeAtual?.nome || "Selecionar"}
           </span>
-          <Badge variant="outline" className="text-xs capitalize hidden xl:inline-flex border-primary-foreground/30 text-primary-foreground shrink-0">
+          <Badge variant="outline" className="text-xs capitalize hidden xl:inline-flex border-primary-foreground/35 bg-primary-foreground/12 text-primary-foreground shrink-0">
             {unidadeAtual?.tipo}
           </Badge>
           <ChevronDown className="h-3.5 w-3.5 opacity-70 shrink-0" />
