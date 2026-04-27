@@ -238,20 +238,34 @@ export function Sidebar() {
         )}
       >
         {/* Header */}
-        <div className="flex h-16 min-h-16 items-center justify-center border-b border-sidebar-border/15 px-3">
+        <div className={cn("flex h-16 min-h-16 items-center border-b border-sidebar-border/15 px-3", collapsed ? "justify-center" : "justify-start")}>
           <button
             type="button"
             onClick={() => (collapsed ? toggle() : navigate("/dashboard"))}
-            className={cn("group flex items-center justify-center rounded-3xl bg-transparent p-0 transition-all", collapsed ? "max-w-12" : "max-w-16")}
+            className={cn(
+              "group flex min-w-0 items-center rounded-3xl bg-transparent p-0 text-left transition-all",
+              collapsed ? "justify-center" : "justify-start gap-2.5 pr-10"
+            )}
             title={collapsed ? "Expandir menu" : "Ir para o dashboard"}
           >
             <motion.div
               whileHover={{ scale: 1.05, rotate: 2 }}
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              className="shrink-0"
             >
-              <img src={brandTheme.logoMark} alt="Gas Facil" className={cn("flex-shrink-0 object-contain", collapsed ? "h-10 w-10" : "h-14 w-14")} />
+              <img src={brandTheme.logoMark} alt="Gas Facil" className={cn("flex-shrink-0 object-contain", collapsed ? "h-10 w-10" : "h-12 w-12")} />
             </motion.div>
+            {!collapsed && (
+              <div className="flex min-w-0 flex-col justify-center leading-none">
+                <span className="truncate text-[15px] font-extrabold tracking-[-0.03em] text-sidebar-foreground">
+                  Gas Facil
+                </span>
+                <span className="mt-1 inline-flex w-fit rounded-full bg-sidebar-accent/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-sidebar-foreground/80 ring-1 ring-sidebar-border/20">
+                  ERP PRO
+                </span>
+              </div>
+            )}
           </button>
           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="absolute right-3 top-3">
             <Button
