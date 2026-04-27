@@ -43,18 +43,18 @@ export default function ClienteValeGas() {
         <h1 className="text-2xl font-bold">Meus Vales Gás</h1>
 
         {/* Summary Card */}
-        <Card className="bg-gradient-to-br from-amber-500 to-orange-500 text-white">
+        <Card className="gradient-primary text-primary-foreground">
           <CardContent className="p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-3 bg-white/20 rounded-full">
                 <CreditCard className="h-6 w-6" />
               </div>
-              <p className="text-white/80">Total disponível em vales</p>
+              <p className="text-primary-foreground/80">Total disponível em vales</p>
             </div>
             <p className="text-4xl font-bold">
               R$ {totalAvailable.toFixed(2)}
             </p>
-            <p className="text-sm text-white/70 mt-2">
+            <p className="text-sm text-primary-foreground/70 mt-2">
               {activeVales.length} vale{activeVales.length !== 1 ? 's' : ''} ativo{activeVales.length !== 1 ? 's' : ''}
             </p>
           </CardContent>
