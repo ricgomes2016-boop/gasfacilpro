@@ -15,9 +15,9 @@ function BiaMark({ size = 28 }: { size?: number }) {
     >
       <defs>
         <linearGradient id="biaGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#fb923c" />
-          <stop offset="50%" stopColor="#e879f9" />
-          <stop offset="100%" stopColor="#a78bfa" />
+          <stop offset="0%" stopColor="#2fc2b5" />
+          <stop offset="55%" stopColor="#6c63ff" />
+          <stop offset="100%" stopColor="#8b5cf6" />
         </linearGradient>
         <radialGradient id="biaCore" cx="0.5" cy="0.5" r="0.5">
           <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
@@ -47,7 +47,7 @@ function BiaMark({ size = 28 }: { size?: number }) {
       </circle>
 
       {/* Partículas nas órbitas */}
-      <circle cx="29" cy="16" r="1.2" fill="#fb923c">
+      <circle cx="29" cy="16" r="1.2" fill="#2fc2b5">
         <animateTransform attributeName="transform" type="rotate" from="30 16 16" to="390 16 16" dur="6s" repeatCount="indefinite" />
       </circle>
       <circle cx="3" cy="16" r="1" fill="#e879f9">
@@ -65,7 +65,7 @@ type Msg = { role: "user" | "assistant"; content: string };
 interface Props {
   unidadeSlug: "fortegas" | "centralgascp" | "japagas";
   nomeLoja: string;
-  /** Tailwind gradient classes para o botão flutuante e header. Ex: "from-fuchsia-500 to-orange-500" */
+  /** Tailwind gradient classes para o botão flutuante e header. Ex: "from-primary via-secondary to-accent" */
   gradient?: string;
   /** Cor de destaque (hsl tailwind). Ex: "fuchsia-500" */
   accent?: string;
@@ -79,7 +79,7 @@ interface Props {
 export function BiaChatWidget({
   unidadeSlug,
   nomeLoja,
-  gradient = "from-fuchsia-500 via-purple-500 to-orange-500",
+  gradient = "from-primary via-secondary to-accent",
   accent = "fuchsia-500",
   saudacao,
   openSignal,
@@ -236,7 +236,7 @@ export function BiaChatWidget({
               className="absolute inset-0 rounded-full animate-spin"
               style={{
                 animationDuration: "4s",
-                background: "conic-gradient(from 0deg, #fb923c, #e879f9, #a78bfa, #2dd4bf, #fb923c)",
+                background: "conic-gradient(from 0deg, #2fc2b5, #6c63ff, #8b5cf6, #2dd4bf, #2fc2b5)",
               }}
             />
             <span className="relative w-full h-full rounded-full bg-[#0a0118] flex items-center justify-center">
