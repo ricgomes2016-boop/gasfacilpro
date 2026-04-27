@@ -297,8 +297,8 @@
 @layer utilities {
   .system-surface {
     background:
-      radial-gradient(circle at top right, hsl(var(--primary) / 0.08), transparent 32rem),
-      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(225 24% 98%) 100%);
+      radial-gradient(circle at top right, hsl(var(--primary) / 0.06), transparent 30rem),
+      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(220 45% 98%) 100%);
   }
 
   .dark .system-surface {
@@ -413,23 +413,23 @@
   }
 
   .modern-panel {
-    @apply rounded-2xl border border-border/45 bg-card shadow-md shadow-foreground/5;
+    @apply rounded-xl border border-border bg-card shadow-sm shadow-foreground/5;
   }
 
   .modern-soft-panel {
-    @apply rounded-2xl border border-border/40 bg-card shadow-sm shadow-foreground/5;
+    @apply rounded-xl border border-border bg-card shadow-sm shadow-foreground/5;
   }
 
   .modern-status-card {
-    @apply overflow-hidden rounded-2xl border border-border/45 bg-card shadow-md shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/10;
+    @apply overflow-hidden rounded-xl border border-border bg-card shadow-sm shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/10;
   }
 
   .dashboard-shell {
-    @apply w-full min-w-0 max-w-full space-y-5 overflow-x-hidden p-3 sm:p-4 md:space-y-7 md:p-6;
+    @apply w-full min-w-0 max-w-full space-y-4 overflow-x-hidden px-4 py-4 md:space-y-6 md:p-6;
   }
 
   .dashboard-hero {
-    @apply relative w-full min-w-0 overflow-hidden rounded-[2rem] border border-card/70 bg-gradient-to-br from-primary to-secondary p-5 text-primary-foreground shadow-lg shadow-primary/20 sm:p-6 md:p-8;
+    @apply relative w-full min-w-0 overflow-hidden rounded-xl border border-border bg-secondary p-4 text-secondary-foreground shadow-sm shadow-foreground/5 sm:p-5 md:p-6;
   }
 
   .calendar-pill {
