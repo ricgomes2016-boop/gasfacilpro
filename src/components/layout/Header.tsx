@@ -80,13 +80,13 @@ export function Header({ title, subtitle }: HeaderProps) {
         
         <div className="flex h-12 min-w-0 flex-1 flex-col justify-center px-1 py-1.5 sm:px-2 md:h-14">
           <div className="flex min-w-0 max-w-full items-center gap-2">
-            <h1 className="min-w-0 truncate text-base font-bold leading-none text-primary-foreground md:text-lg xl:text-xl">{title}</h1>
+            <h1 className="min-w-0 truncate text-base font-bold leading-none text-foreground md:text-lg xl:text-xl">{title}</h1>
             <BuildVersionBadge className="hidden xl:inline-flex shrink-0" />
           </div>
-          <p className="hidden max-w-full truncate text-[11px] font-medium leading-tight text-primary-foreground/75 sm:block md:text-xs">
+          <p className="hidden max-w-full truncate text-[11px] font-medium leading-tight text-muted-foreground sm:block md:text-xs">
             {empresa && <span className="font-medium">{empresa.nome}</span>}
             {subtitle && <span>{empresa ? " — " : ""}{subtitle}</span>}
-            {unidadeAtual && <span className="ml-2 text-primary-foreground font-medium">• {unidadeAtual.nome}</span>}
+            {unidadeAtual && <span className="ml-2 text-primary font-medium">• {unidadeAtual.nome}</span>}
           </p>
         </div>
       </div>
@@ -120,7 +120,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 hidden xl:inline-flex shrink-0 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+          className="h-9 w-9 hidden xl:inline-flex shrink-0 text-foreground hover:bg-primary/10 hover:text-foreground"
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
           title={resolvedTheme === "dark" ? "Modo claro" : "Modo escuro"}
         >
@@ -130,8 +130,8 @@ export function Header({ title, subtitle }: HeaderProps) {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 shrink-0 text-primary-foreground hover:bg-primary-foreground/12 hover:text-primary-foreground">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-primary-foreground/18 bg-primary-foreground/14 shadow-sm shadow-foreground/10">
+            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 shrink-0 text-foreground hover:bg-primary/10 hover:text-foreground">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary shadow-sm shadow-primary/20">
                 <User className="h-4 w-4 text-primary-foreground" />
               </div>
             </Button>
