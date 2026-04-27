@@ -242,7 +242,7 @@ export function Sidebar() {
           <button
             type="button"
             onClick={() => (collapsed ? toggle() : navigate("/dashboard"))}
-            className={cn("group flex items-center justify-center gap-2.5 rounded-3xl bg-transparent px-1.5 py-1 transition-all", collapsed && "px-0 py-0")}
+            className={cn("group flex max-w-[200px] items-center justify-center gap-2 rounded-3xl bg-transparent px-1 py-1 transition-all", collapsed && "max-w-12 px-0 py-0")}
             title={collapsed ? "Expandir menu" : "Ir para o dashboard"}
           >
             <motion.div
@@ -250,7 +250,7 @@ export function Sidebar() {
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <img src={brandTheme.logoMark} alt="Gas Facil" className={cn("flex-shrink-0 object-contain", collapsed ? "h-12 w-12" : "h-15 w-15")} />
+              <img src={brandTheme.logoMark} alt="Gas Facil" className={cn("flex-shrink-0 object-contain", collapsed ? "h-10 w-10" : "h-11 w-11")} />
             </motion.div>
             <AnimatePresence>
               {!collapsed && (
@@ -259,10 +259,10 @@ export function Sidebar() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
                   transition={{ duration: 0.2 }}
-                  className={cn("items-start leading-none", brandTheme.logoVariant === "full" ? "flex h-12 justify-center" : "flex flex-col")}
+                  className={cn("items-start leading-none", brandTheme.logoVariant === "full" ? "flex h-10 justify-center" : "flex flex-col")}
                 >
                   {brandTheme.logoVariant === "full" ? (
-                    <img src={brandTheme.logoFull} alt="Gas Facil Sistema ERP" className="h-14 max-w-[190px] object-contain" />
+                    <img src={brandTheme.logoFull} alt="Gas Facil Sistema ERP" className="h-10 max-w-[150px] object-contain" />
                   ) : brandTheme.logoVariant === "compact" ? (
                     <>
                       <span className="text-[16px] font-extrabold tracking-normal text-sidebar-foreground">Gas Facil</span>
