@@ -63,11 +63,11 @@ const THEME_PRESETS = [
   {
     id: "saas-moderno",
     label: "SaaS Moderno",
-    description: "Teal, roxo e laranja com cards limpos e sidebar em gradiente",
-    cor: "174 61% 47%",
-    hex: "#2EC4B6",
+    description: "Roxo, verde, amarelo e coral inspirado em dashboard SaaS",
+    cor: "253 33% 43%",
+    hex: "#5B4A92",
     dark: false,
-    gradient: "linear-gradient(135deg, #2EC4B6 0%, #6C63FF 70%, #FF9F43 100%)",
+    gradient: "linear-gradient(135deg, #5B4A92 0%, #39BE69 36%, #FFC107 68%, #F08080 100%)",
     brandThemeId: "saas",
   },
   {
