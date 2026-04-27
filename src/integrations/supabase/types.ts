@@ -7503,6 +7503,59 @@ export type Database = {
           },
         ]
       }
+      rh_avisos_entregador_leituras: {
+        Row: {
+          aviso_id: string
+          created_at: string
+          entregador_id: string
+          id: string
+          lido_em: string
+        }
+        Insert: {
+          aviso_id: string
+          created_at?: string
+          entregador_id: string
+          id?: string
+          lido_em?: string
+        }
+        Update: {
+          aviso_id?: string
+          created_at?: string
+          entregador_id?: string
+          id?: string
+          lido_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_avisos_entregador_leituras_aviso_id_fkey"
+            columns: ["aviso_id"]
+            isOneToOne: false
+            referencedRelation: "rh_avisos_entregador"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_avisos_entregador_leituras_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "entregadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_avisos_entregador_leituras_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_avisos_entregador_leituras_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
+          },
+        ]
+      }
       rota_historico: {
         Row: {
           id: string

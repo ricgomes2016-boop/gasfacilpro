@@ -1,21 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Bell, Megaphone } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { getBrasiliaDateString } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-
-interface AvisoEntregador {
-  id: string;
-  titulo: string;
-  mensagem: string;
-  prioridade: "normal" | "importante" | "urgente";
-  fixado: boolean;
-  exibir_de: string;
-  exibir_ate: string | null;
-}
+import { useAvisosEntregador } from "@/hooks/useAvisosEntregador";
 
 const prioridadeConfig = {
   normal: {
@@ -39,50 +27,14 @@ const prioridadeConfig = {
 };
 
 export function AvisosEntregador() {
-  const { user } = useAuth();
-  const [avisos, setAvisos] = useState<AvisoEntregador[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { avisos, naoLidos, loading, marcarComoLidos } = useAvisosEntregador(false);
 
   useEffect(() => {
-    const carregar = async () => {
-      if (!user) return;
-      setLoading(true);
-
-      const { data: entregador } = await supabase
-        .from("entregadores")
-        .select("id, unidade_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!entregador) {
-        setAvisos([]);
-        setLoading(false);
-        return;
-      }
-
-      const hoje = getBrasiliaDateString();
-      let query = (supabase
-        .from("rh_avisos_entregador" as any)
-        .select("id, titulo, mensagem, prioridade, fixado, exibir_de, exibir_ate")
-        .eq("ativo", true)
-        .lte("exibir_de", hoje)
-        .or(`exibir_ate.is.null,exibir_ate.gte.${hoje}`)
-        .order("fixado", { ascending: false })
-        .order("created_at", { ascending: false }) as any);
-
-      if ((entregador as any).unidade_id) {
-        query = query.or(`unidade_id.is.null,unidade_id.eq.${(entregador as any).unidade_id}`);
-      } else {
-        query = query.is("unidade_id", null);
-      }
-
-      const { data } = await query.limit(5);
-      setAvisos((data || []) as AvisoEntregador[]);
-      setLoading(false);
-    };
-
-    carregar();
-  }, [user]);
+    if (!loading && avisos.length > 0) {
+      const timer = window.setTimeout(() => marcarComoLidos(avisos.map((aviso) => aviso.id)), 1200);
+      return () => window.clearTimeout(timer);
+    }
+  }, [avisos, loading, marcarComoLidos]);
 
   if (loading || avisos.length === 0) return null;
 
@@ -92,10 +44,11 @@ export function AvisosEntregador() {
         <CardTitle className="text-base flex items-center gap-2 text-foreground/90">
           <Bell className="h-5 w-5 text-primary" />
           Avisos do RH
+          {naoLidos > 0 && <Badge variant="destructive">{naoLidos} novo{naoLidos > 1 ? "s" : ""}</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-3 space-y-2.5">
-        {avisos.map((aviso) => {
+        {avisos.slice(0, 5).map((aviso) => {
           const config = prioridadeConfig[aviso.prioridade] || prioridadeConfig.normal;
           const Icon = config.icon;
           return (
@@ -109,6 +62,7 @@ export function AvisosEntregador() {
                     <h3 className="font-bold text-sm text-foreground leading-snug">{aviso.titulo}</h3>
                     <Badge variant={config.badge}>{aviso.prioridade}</Badge>
                     {aviso.fixado && <Badge variant="default">fixado</Badge>}
+                    {!aviso.lido && <span className="h-2.5 w-2.5 rounded-full bg-destructive" aria-label="Aviso não lido" />}
                   </div>
                   <p className="text-sm text-foreground/80 whitespace-pre-line leading-relaxed">{aviso.mensagem}</p>
                 </div>
