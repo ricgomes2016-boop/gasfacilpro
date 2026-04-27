@@ -756,12 +756,16 @@
 
   :where(.bg-white) { background-color: hsl(var(--card)) !important; }
   :where(.text-white) { color: hsl(var(--primary-foreground)) !important; }
-  :where(.bg-card,.bg-background,.bg-popover,.bg-muted,.bg-primary-foreground,.bg-white):where(.text-white,.text-primary-foreground,.text-accent-foreground),
-  :where(.bg-card,.bg-background,.bg-popover,.bg-muted,.bg-primary-foreground,.bg-white) :where(.text-white,.text-primary-foreground,.text-accent-foreground) {
+  :where(.bg-card,.bg-background,.bg-popover,.bg-muted,.bg-primary-foreground,.bg-white):where(.text-white,.text-primary-foreground,.text-secondary-foreground,.text-accent-foreground,.text-success-foreground,.text-warning-foreground,.text-info-foreground,.text-destructive-foreground),
+  :where(.bg-card,.bg-background,.bg-popover,.bg-muted,.bg-primary-foreground,.bg-white) :where(.text-white,.text-primary-foreground,.text-secondary-foreground,.text-accent-foreground,.text-success-foreground,.text-warning-foreground,.text-info-foreground,.text-destructive-foreground) {
     color: hsl(var(--foreground)) !important;
   }
-  :where(.gradient-primary,.bg-primary,.bg-secondary,.bg-accent,.bg-destructive,.bg-success,.bg-info):where(.text-white,.text-primary-foreground,.text-accent-foreground),
-  :where(.gradient-primary,.bg-primary,.bg-secondary,.bg-accent,.bg-destructive,.bg-success,.bg-info) :where(.text-white,.text-primary-foreground,.text-accent-foreground) {
+  :where(.bg-sidebar-accent):where(.text-white,.text-primary-foreground,.text-secondary-foreground,.text-accent-foreground,.text-sidebar-accent-foreground),
+  :where(.bg-sidebar-accent) :where(.text-white,.text-primary-foreground,.text-secondary-foreground,.text-accent-foreground,.text-sidebar-accent-foreground) {
+    color: hsl(var(--sidebar-accent-foreground)) !important;
+  }
+  :where(.gradient-primary,.bg-primary,.bg-secondary,.bg-accent,.bg-destructive,.bg-success,.bg-info):where(.text-white,.text-primary-foreground,.text-secondary-foreground,.text-accent-foreground,.text-success-foreground,.text-warning-foreground,.text-info-foreground,.text-destructive-foreground),
+  :where(.gradient-primary,.bg-primary,.bg-secondary,.bg-accent,.bg-destructive,.bg-success,.bg-info) :where(.text-white,.text-primary-foreground,.text-secondary-foreground,.text-accent-foreground,.text-success-foreground,.text-warning-foreground,.text-info-foreground,.text-destructive-foreground) {
     color: hsl(var(--primary-foreground)) !important;
   }
   :where(.text-white) > svg,
