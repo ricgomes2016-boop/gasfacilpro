@@ -16,7 +16,7 @@ export interface AvisoEntregador {
   lido?: boolean;
 }
 
-export function useAvisosEntregador() {
+export function useAvisosEntregador(enableBrowserNotifications = true) {
   const { user } = useAuth();
   const { sendNotification } = useNotifications();
   const [avisos, setAvisos] = useState<AvisoEntregador[]>([]);
@@ -74,7 +74,7 @@ export function useAvisosEntregador() {
     const avisosComLeitura = rows.map((aviso) => ({ ...aviso, lido: lidos.has(aviso.id) }));
     const novosNaoLidos = avisosComLeitura.filter((aviso) => !aviso.lido && !knownAvisos.current.has(aviso.id));
 
-    if (initialLoadDone.current && novosNaoLidos.length > 0) {
+    if (enableBrowserNotifications && initialLoadDone.current && novosNaoLidos.length > 0) {
       const aviso = novosNaoLidos[0];
       sendNotification({
         title: novosNaoLidos.length === 1 ? "📣 Novo aviso do RH" : `📣 ${novosNaoLidos.length} novos avisos do RH`,
@@ -87,7 +87,7 @@ export function useAvisosEntregador() {
     initialLoadDone.current = true;
     setAvisos(avisosComLeitura);
     setLoading(false);
-  }, [sendNotification, user]);
+  }, [enableBrowserNotifications, sendNotification, user]);
 
   useEffect(() => {
     carregar();
