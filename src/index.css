@@ -413,9 +413,6 @@
   .section-header-critical,
   .section-header-muted {
     @apply border-b px-4 py-4 md:px-5;
-    background-image: linear-gradient(135deg, hsl(var(--section-tone) / 0.14), hsl(var(--section-tone) / 0.055));
-    border-color: hsl(var(--section-tone) / 0.2);
-    color: hsl(var(--section-tone));
   }
 
   .section-header-title {
@@ -443,47 +440,47 @@
   }
 
   .section-header-primary {
-    --section-tone: var(--primary);
+    @apply border-primary/30 bg-primary text-primary-foreground;
   }
 
   .section-header-primary .section-header-icon-frame {
-    @apply bg-primary/10 text-primary ring-primary/20;
+    @apply bg-primary-foreground/15 text-primary-foreground ring-primary-foreground/25;
   }
 
   .section-header-catalog {
-    --section-tone: var(--secondary);
+    @apply border-secondary/30 bg-secondary text-secondary-foreground;
   }
 
   .section-header-catalog .section-header-icon-frame {
-    @apply bg-secondary/10 text-secondary ring-secondary/20;
+    @apply bg-secondary-foreground/15 text-secondary-foreground ring-secondary-foreground/25;
   }
 
   .section-header-stock {
-    --section-tone: var(--warning);
+    @apply border-warning/40 bg-warning text-warning-foreground;
   }
 
   .section-header-stock .section-header-icon-frame {
-    @apply bg-warning/10 text-warning ring-warning/20;
+    @apply bg-warning-foreground/10 text-warning-foreground ring-warning-foreground/20;
   }
 
   .section-header-finance {
-    --section-tone: var(--success);
+    @apply border-success/30 bg-success text-success-foreground;
   }
 
   .section-header-finance .section-header-icon-frame {
-    @apply bg-success/10 text-success ring-success/20;
+    @apply bg-success-foreground/15 text-success-foreground ring-success-foreground/25;
   }
 
   .section-header-critical {
-    --section-tone: var(--destructive);
+    @apply border-destructive/30 bg-destructive text-destructive-foreground;
   }
 
   .section-header-critical .section-header-icon-frame {
-    @apply bg-destructive/10 text-destructive ring-destructive/20;
+    @apply bg-destructive-foreground/15 text-destructive-foreground ring-destructive-foreground/25;
   }
 
   .section-header-muted {
-    --section-tone: var(--muted-foreground);
+    @apply border-border/70 bg-muted text-foreground;
   }
 
   .section-header-muted .section-header-icon-frame {
