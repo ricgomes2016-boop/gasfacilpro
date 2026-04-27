@@ -60,17 +60,17 @@ export function RecompraAlerts() {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="section-header-stock pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Bell className="h-5 w-5 text-amber-500" />
+          <CardTitle className="section-header-title">
+            <span className="section-header-icon-frame h-8 w-8"><Bell className="h-4 w-4" /></span>
             Alertas de Recompra
           </CardTitle>
           <div className="flex items-center gap-2">
             {alerts.length > 0 && (
               <Badge variant="secondary" className="text-xs">{alerts.length} clientes</Badge>
             )}
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => refetch()} disabled={isFetching}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-warning-foreground hover:bg-warning-foreground/10 hover:text-warning-foreground" onClick={() => refetch()} disabled={isFetching}>
               <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
             </Button>
           </div>
