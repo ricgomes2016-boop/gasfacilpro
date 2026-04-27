@@ -79,21 +79,21 @@ export function MobileNav() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="xl:hidden h-9 w-9 rounded-xl">
+        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-secondary-foreground hover:bg-primary hover:text-primary-foreground xl:hidden">
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className={cn(themeClass, "app-sidebar-premium app-mobile-sidebar-modern w-[min(86vw,320px)] overflow-hidden rounded-r-[1.75rem] border-r border-sidebar-border/15 p-0 text-sidebar-foreground shadow-2xl")}>
+      <SheetContent side="left" className={cn(themeClass, "app-sidebar-premium app-mobile-sidebar-modern w-[min(88vw,320px)] overflow-hidden border-r border-sidebar-border/10 p-0 text-sidebar-foreground shadow-2xl")}>
         <div className="relative z-10 h-full flex flex-col">
           {/* Header */}
-          <div className="flex h-20 items-center justify-between border-b border-sidebar-border/15 px-5 py-3">
+          <div className="flex h-16 items-center justify-between border-b border-sidebar-border/10 px-4 py-3">
             <div className="flex min-w-0 items-center gap-2.5">
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
-                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-12 w-12 shrink-0 object-contain" />
+                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-10 w-10 shrink-0 object-contain" />
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
