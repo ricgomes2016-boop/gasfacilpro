@@ -273,8 +273,8 @@ export default function Vendas() {
         <div className="grid gap-4 md:grid-cols-3">
           {/* Top 5 Products */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
+            <CardHeader className="section-header-stock pb-3">
+              <CardTitle className="section-header-title">
                 <Package className="h-4 w-4" /> Top Produtos
               </CardTitle>
             </CardHeader>
@@ -302,8 +302,8 @@ export default function Vendas() {
 
           {/* Sales by Channel (#5) */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
+            <CardHeader className="section-header-catalog pb-3">
+              <CardTitle className="section-header-title">
                 <Megaphone className="h-4 w-4" /> Por Canal
               </CardTitle>
             </CardHeader>
@@ -335,8 +335,8 @@ export default function Vendas() {
 
           {/* Sales by Payment (#6) */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
+            <CardHeader className="section-header-finance pb-3">
+              <CardTitle className="section-header-title">
                 <CreditCard className="h-4 w-4" /> Por Pagamento
               </CardTitle>
             </CardHeader>
@@ -369,11 +369,11 @@ export default function Vendas() {
 
         {/* Recent orders */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
-            <CardTitle className="text-base flex items-center gap-2 min-w-0">
+          <CardHeader className="section-header-catalog flex flex-row items-center justify-between gap-2 flex-wrap">
+            <CardTitle className="section-header-title min-w-0">
               <ShoppingCart className="h-4 w-4 shrink-0" /> <span className="truncate">Últimos Pedidos</span>
             </CardTitle>
-            <Button variant="ghost" size="sm" className="shrink-0" onClick={() => navigate("/vendas/pedidos")}>Ver todos</Button>
+            <Button variant="ghost" size="sm" className="shrink-0 text-info-foreground hover:bg-info-foreground/10 hover:text-info-foreground" onClick={() => navigate("/vendas/pedidos")}>Ver todos</Button>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             {isLoading ? (
