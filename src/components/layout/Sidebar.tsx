@@ -7,7 +7,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import logoMarkImg from "@/assets/gestech-logo-mark.png";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -213,7 +212,7 @@ export function Sidebar() {
   const subMenuItemActive = "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border/25";
   const subMenuItemIdle = "text-sidebar-foreground/70 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15";
 
-  const { themeClass } = useDashboardTheme();
+  const { themeClass, brandTheme } = useDashboardTheme();
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -238,7 +237,7 @@ export function Sidebar() {
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
-              <img src={logoMarkImg} alt="Gas Facil" className={cn("flex-shrink-0 object-contain", collapsed ? "h-11 w-11" : "h-12 w-12")} />
+              <img src={brandTheme.logoMark} alt="Gas Facil" className={cn("flex-shrink-0 object-contain", collapsed ? "h-11 w-11" : "h-12 w-12")} />
             </motion.div>
             <AnimatePresence>
               {!collapsed && (
@@ -247,10 +246,21 @@ export function Sidebar() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="flex flex-col items-start leading-none"
+                  className={cn("items-start leading-none", brandTheme.logoVariant === "full" ? "flex h-14 justify-center" : "flex flex-col")}
                 >
-                  <span className="text-[16px] font-extrabold tracking-normal text-sidebar-foreground">Gas Facil</span>
-                  <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-sidebar-foreground/60">ERP PRO</span>
+                  {brandTheme.logoVariant === "full" ? (
+                    <img src={brandTheme.logoFull} alt="Gas Facil Sistema ERP" className="h-14 max-w-[160px] object-contain" />
+                  ) : brandTheme.logoVariant === "compact" ? (
+                    <>
+                      <span className="text-[16px] font-extrabold tracking-normal text-sidebar-foreground">Gas Facil</span>
+                      <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-sidebar-foreground/60">PRO</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-[16px] font-extrabold tracking-normal text-sidebar-foreground">Gas Facil</span>
+                      <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-sidebar-foreground/60">ERP PRO</span>
+                    </>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
