@@ -225,11 +225,11 @@ export function Sidebar() {
         )}
       >
         {/* Header */}
-        <div className="flex min-h-24 items-center justify-center border-b border-sidebar-border/15 px-4">
+        <div className="flex min-h-20 items-center justify-center border-b border-sidebar-border/10 px-4">
           <button
             type="button"
             onClick={() => (collapsed ? toggle() : navigate("/dashboard"))}
-            className={cn("group flex items-center justify-center gap-3 rounded-3xl bg-transparent px-2 py-2 transition-all", collapsed && "px-0 py-0")}
+            className={cn("group flex items-center justify-center gap-3 rounded-xl bg-transparent px-2 py-2 transition-all", collapsed && "px-0 py-0")}
             title={collapsed ? "Expandir menu" : "Ir para o dashboard"}
           >
             <motion.div
@@ -270,7 +270,7 @@ export function Sidebar() {
               variant="ghost"
               size="icon"
               onClick={toggle}
-                className="h-8 w-8 flex-shrink-0 rounded-full text-sidebar-foreground/80 shadow-none hover:bg-sidebar-accent/15 hover:text-sidebar-foreground"
+                className="h-8 w-8 flex-shrink-0 rounded-lg text-sidebar-foreground/80 shadow-none hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground"
             >
               {collapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -282,8 +282,8 @@ export function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3.5 py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="space-y-2">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="space-y-1.5">
             {menuItems.map((item, idx) => {
               const hasSubmenu = !!item.submenu;
               const isOpen = isSubmenuOpen(item.label);
