@@ -666,6 +666,16 @@
   .kpi-card-destructive { @apply border-l-4 border-l-destructive bg-card text-card-foreground shadow-destructive/10; }
   .kpi-card-muted { @apply border-border/70 bg-card; }
 
+  .brand-theme-saas .kpi-card-primary { border-left-color: hsl(0 79% 73%); }
+  .brand-theme-saas .kpi-card-info { border-left-color: hsl(253 33% 43%); }
+  .brand-theme-saas .kpi-card-success { border-left-color: hsl(142 54% 48%); }
+  .brand-theme-saas .kpi-card-warning { border-left-color: hsl(45 100% 51%); }
+
+  .brand-theme-saas .status-card-icon-primary { background-color: hsl(0 79% 73% / 0.14); color: hsl(0 70% 65%); }
+  .brand-theme-saas .status-card-icon-info { background-color: hsl(253 33% 43% / 0.12); color: hsl(253 33% 43%); }
+  .brand-theme-saas .status-card-icon-success { background-color: hsl(142 54% 48% / 0.14); color: hsl(142 54% 42%); }
+  .brand-theme-saas .status-card-icon-warning { background-color: hsl(45 100% 51% / 0.18); color: hsl(42 95% 42%); }
+
   .semantic-filter-panel {
     @apply rounded-xl border border-border/70 bg-muted/30 p-3 shadow-sm shadow-foreground/5 sm:p-4;
   }
