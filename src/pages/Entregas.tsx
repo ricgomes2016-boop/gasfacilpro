@@ -111,9 +111,9 @@ export default function Entregas() {
 
         {/* Table */}
         <Card>
-          <CardHeader>
+          <CardHeader className="section-header-catalog">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle>Entregas do Dia</CardTitle>
+              <CardTitle className="section-header-title">Entregas do Dia</CardTitle>
               <Select value={filtroStatus} onValueChange={setFiltroStatus}>
                 <SelectTrigger className="w-40"><SelectValue placeholder="Filtrar" /></SelectTrigger>
                 <SelectContent>
