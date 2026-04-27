@@ -140,7 +140,7 @@ export function MobileNav() {
                         className={cn(
                           "group flex w-full items-center justify-between rounded-full px-4 py-3.5 text-[13px] font-semibold tracking-normal transition-all duration-200",
                           hasActiveChild
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-lg shadow-foreground/10 ring-1 ring-sidebar-border/25"
+                            ? "gradient-primary text-primary-foreground shadow-lg shadow-foreground/10 ring-1 ring-sidebar-border/25"
                             : "text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                         )}
                       >
@@ -202,7 +202,7 @@ export function MobileNav() {
                                         className={cn(
                                           "group flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-semibold tracking-[-0.005em] transition-all duration-200",
                                           subActive
-                                            ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border/25"
+                                            ? "gradient-primary text-primary-foreground shadow-sm ring-1 ring-sidebar-border/25"
                                             : "text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                                         )}
                                       >
@@ -238,7 +238,7 @@ export function MobileNav() {
                       className={cn(
                         "group flex items-center gap-3.5 rounded-full px-4 py-3.5 text-[13px] font-semibold tracking-normal transition-all duration-200",
                         isActive(item.path!)
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-lg shadow-foreground/10 ring-1 ring-sidebar-border/25"
+                          ? "gradient-primary text-primary-foreground shadow-lg shadow-foreground/10 ring-1 ring-sidebar-border/25"
                           : "text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                       )}
                     >
