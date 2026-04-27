@@ -359,36 +359,69 @@
     border-color: hsl(var(--primary-foreground) / 0.18);
   }
 
-  .section-header-primary {
-    @apply border-b bg-primary p-4 pb-3 text-primary-foreground;
+  .section-header-primary,
+  .section-header-catalog,
+  .section-header-stock,
+  .section-header-finance,
+  .section-header-critical,
+  .section-header-muted {
+    @apply border-b p-4 pb-3;
   }
 
   .section-header-title {
-    @apply flex min-w-0 items-center gap-2 text-base font-semibold text-primary-foreground;
+    @apply flex min-w-0 items-center gap-2 text-base font-semibold;
   }
 
   .section-header-icon-frame {
-    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-foreground/15 text-primary-foreground;
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-md ring-1;
+  }
+
+  .section-header-primary {
+    @apply border-primary/30 bg-primary text-primary-foreground;
+  }
+
+  .section-header-primary .section-header-icon-frame {
+    @apply bg-primary-foreground/15 text-primary-foreground ring-primary-foreground/25;
   }
 
   .section-header-catalog {
-    @apply border-b border-info/30 bg-info p-4 pb-3 text-info-foreground;
+    @apply border-info/30 bg-info text-info-foreground;
+  }
+
+  .section-header-catalog .section-header-icon-frame {
+    @apply bg-info-foreground/15 text-info-foreground ring-info-foreground/25;
   }
 
   .section-header-stock {
-    @apply border-b border-warning/30 bg-warning p-4 pb-3 text-warning-foreground;
+    @apply border-warning/40 bg-warning text-warning-foreground;
+  }
+
+  .section-header-stock .section-header-icon-frame {
+    @apply bg-warning-foreground/10 text-warning-foreground ring-warning-foreground/20;
   }
 
   .section-header-finance {
-    @apply border-b border-success/30 bg-success p-4 pb-3 text-success-foreground;
+    @apply border-success/30 bg-success text-success-foreground;
+  }
+
+  .section-header-finance .section-header-icon-frame {
+    @apply bg-success-foreground/15 text-success-foreground ring-success-foreground/25;
   }
 
   .section-header-critical {
-    @apply border-b border-destructive/30 bg-destructive p-4 pb-3 text-destructive-foreground;
+    @apply border-destructive/30 bg-destructive text-destructive-foreground;
+  }
+
+  .section-header-critical .section-header-icon-frame {
+    @apply bg-destructive-foreground/15 text-destructive-foreground ring-destructive-foreground/25;
   }
 
   .section-header-muted {
-    @apply border-b border-border/70 bg-card p-4 pb-3 text-card-foreground;
+    @apply border-border/70 bg-card text-card-foreground;
+  }
+
+  .section-header-muted .section-header-icon-frame {
+    @apply bg-muted text-card-foreground ring-border;
   }
 
   .status-card-icon {

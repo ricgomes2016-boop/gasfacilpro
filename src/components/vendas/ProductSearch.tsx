@@ -219,7 +219,6 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
         title="Produtos"
         icon={<Package className="h-5 w-5" />}
         tone="muted"
-        className="[&_.section-header-title]:!text-card-foreground [&_.section-header-icon-frame]:!bg-muted [&_.section-header-icon-frame]:!text-card-foreground"
         action={
           <div className="rounded-md border border-border bg-card px-3 py-1.5 text-sm font-semibold text-primary shadow-sm">
             Total R$ {total.toFixed(2)}

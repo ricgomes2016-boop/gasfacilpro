@@ -14,9 +14,9 @@ interface VendaSectionHeaderProps {
 
 export const VENDA_SECTION_HEADER_THEME = {
   header: "section-header-info",
-  title: "section-header-title text-current",
+  title: "section-header-title",
   iconFrame: "section-header-icon-frame",
-  icon: "shrink-0 text-current",
+  icon: "shrink-0",
 };
 
 const toneClasses = {
