@@ -359,37 +359,28 @@
     border-color: hsl(var(--primary-foreground) / 0.18);
   }
 
-  .section-header-primary {
-    @apply border-b bg-primary p-4 pb-3 text-primary-foreground;
-  }
-
-  .section-header-title {
-    @apply flex min-w-0 items-center gap-2 text-base font-semibold text-primary-foreground;
-  }
-
-  .section-header-icon-frame {
-    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-foreground/15 text-primary-foreground;
-  }
-
-  .section-header-catalog {
-    @apply border-b border-info/30 bg-info p-4 pb-3 text-info-foreground;
-  }
-
-  .section-header-stock {
-    @apply border-b border-warning/30 bg-warning p-4 pb-3 text-warning-foreground;
-  }
-
-  .section-header-finance {
-    @apply border-b border-success/30 bg-success p-4 pb-3 text-success-foreground;
-  }
-
-  .section-header-critical {
-    @apply border-b border-destructive/30 bg-destructive p-4 pb-3 text-destructive-foreground;
-  }
-
+  .section-header-primary,
+  .section-header-catalog,
+  .section-header-stock,
+  .section-header-finance,
+  .section-header-critical,
   .section-header-muted {
     @apply border-b border-border/70 bg-card p-4 pb-3 text-card-foreground;
   }
+
+  .section-header-title {
+    @apply flex min-w-0 items-center gap-2 text-base font-semibold text-card-foreground;
+  }
+
+  .section-header-icon-frame {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-md border bg-muted/60 text-primary;
+  }
+
+  .section-header-primary .section-header-icon-frame { @apply border-primary/25 bg-primary/10 text-primary; }
+  .section-header-catalog .section-header-icon-frame { @apply border-info/25 bg-info/10 text-info; }
+  .section-header-stock .section-header-icon-frame { @apply border-warning/30 bg-warning/10 text-warning; }
+  .section-header-finance .section-header-icon-frame { @apply border-success/25 bg-success/10 text-success; }
+  .section-header-critical .section-header-icon-frame { @apply border-destructive/25 bg-destructive/10 text-destructive; }
 
   .status-card-icon {
     @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-xl;
