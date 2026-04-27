@@ -433,11 +433,11 @@
   }
 
   .section-header-muted {
-    @apply border-border/70 bg-card text-card-foreground;
+    @apply border-border/70 bg-muted text-foreground;
   }
 
   .section-header-muted .section-header-icon-frame {
-    @apply bg-muted text-card-foreground ring-border;
+    @apply bg-card text-foreground ring-border;
   }
 
   .status-card-icon {
