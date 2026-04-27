@@ -14,84 +14,34 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { menuItems } from "./menuItems";
 import { motion, AnimatePresence } from "framer-motion";
-import logoImg from "@/assets/logo.png";
+import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 
 const menuIconColors: Record<string, string> = {
-  "Dashboard": "text-blue-500",
-  "Assistente IA": "text-violet-500",
-  "Atendimento": "text-green-500",
-  "Vendas": "text-emerald-500",
-  "Caixa": "text-amber-500",
-  "Gestão Operacional": "text-cyan-500",
-  "Gestão de Clientes": "text-pink-500",
-  "Gestão de Estoque": "text-orange-500",
-  "Gestão Financeira": "text-yellow-500",
-  "Gestão de Frota": "text-indigo-500",
-  "Gestão de RH": "text-rose-500",
-  "Gestão Fiscal": "text-teal-500",
-  "Marketing": "text-fuchsia-500",
-  "Configurações": "text-slate-400",
+  "Dashboard": "text-sidebar-foreground",
+  "Assistente IA": "text-sidebar-foreground",
+  "Atendimento": "text-sidebar-foreground",
+  "Vendas": "text-sidebar-foreground",
+  "Caixa": "text-sidebar-foreground",
+  "Gestão Operacional": "text-sidebar-foreground",
+  "Gestão de Clientes": "text-sidebar-foreground",
+  "Gestão de Estoque": "text-sidebar-foreground",
+  "Gestão Financeira": "text-sidebar-foreground",
+  "Gestão de Frota": "text-sidebar-foreground",
+  "Gestão de RH": "text-sidebar-foreground",
+  "Gestão Fiscal": "text-sidebar-foreground",
+  "Marketing": "text-sidebar-foreground",
+  "Configurações": "text-sidebar-foreground/80",
 };
 
-const subMenuIconColors: Record<string, string> = {
-  "Central de Atendimento": "text-green-500",
-  "PDV": "text-emerald-600", "Nova Venda": "text-emerald-400", "Pedidos": "text-emerald-500",
-  "Devoluções / Trocas": "text-red-400", "Relatório de Vendas": "text-emerald-300",
-  "Acerto Diário Entregador": "text-amber-500", "Caixa do Dia": "text-amber-400", "Despesas (Sangria)": "text-amber-600",
-  "Central de Inteligência": "text-violet-500", "Central de Indicadores": "text-cyan-400",
-  "Mapa Operacional": "text-cyan-500", "Alertas Inteligentes": "text-red-400",
-  "Rotas de Entrega": "text-cyan-600", "Escalas de Entregadores": "text-cyan-300",
-  "Análise de Resultados": "text-cyan-500", "Planejamento": "text-blue-400",
-  "Metas e Desafios": "text-orange-400", "Análise de Concorrência": "text-purple-400",
-  "Relatório Gerencial": "text-cyan-400", "Gamificação Entregadores": "text-yellow-500",
-  "Licitações Públicas": "text-slate-400", "Workflow Aprovações": "text-green-400", "SLA de Entregas": "text-blue-500",
-  "Clientes": "text-pink-500", "Marketing IA": "text-violet-500", "Contratos Recorrentes": "text-pink-400",
-  "Promoções e Cupons": "text-yellow-500", "Campanhas": "text-pink-600",
-  "Fidelidade / Indicações": "text-red-400", "CRM Avançado": "text-pink-300",
-  "Programa de Indicação": "text-rose-400", "Ranking dos Clientes": "text-amber-500",
-  "Gestão de Crédito": "text-red-500", "Aplicativo do Cliente": "text-blue-400",
-  "Estoque do Dia": "text-orange-500", "Produtos": "text-orange-400", "Compras": "text-orange-600",
-  "Fornecedores": "text-orange-300", "Comodatos": "text-amber-400",
-  "Transferência entre Filiais": "text-orange-500", "MCMM Inteligente": "text-green-500",
-  "Histórico Movimentações": "text-orange-400", "Lotes & Rastreabilidade": "text-orange-600",
-  "Fluxo de Caixa": "text-yellow-500", "Contas a Pagar": "text-red-400", "Contas a Receber": "text-green-400",
-  "Gestão de Cartões": "text-yellow-400", "Contas Bancárias": "text-blue-400",
-  "Aprovar Despesas": "text-green-500", "Cobranças": "text-yellow-600",
-  "Controle de Cheques": "text-yellow-300", "Calendário Financeiro": "text-blue-300",
-  "Orçamentos": "text-yellow-500", "Contador": "text-slate-400",
-  "Venda Antecipada": "text-green-500", "Balanço Patrimonial": "text-yellow-400",
-  "Vale Gás": "text-amber-400", "Fechamento Mensal": "text-yellow-600",
-  "E-mail Transacional": "text-blue-400", "Exportação Contábil": "text-green-400",
-  "Veículos": "text-indigo-500", "Controle de Combustível": "text-red-400",
-  "Manutenção": "text-indigo-400", "Documentos": "text-indigo-300",
-  "Checklist de Saída": "text-green-400", "Multas": "text-red-500",
-  "Relatórios": "text-indigo-400", "Gamificação": "text-yellow-500",
-  "Dashboard RH": "text-rose-400", "Funcionários": "text-rose-500",
-  "Folha de Pagamento": "text-green-400", "Ponto Eletrônico": "text-rose-400",
-  "Vale Funcionário": "text-amber-400", "Comissão do Entregador": "text-green-500",
-  "Premiação": "text-yellow-400", "Bônus": "text-amber-500",
-  "Alerta Jornada": "text-red-400", "Banco de Horas": "text-blue-400",
-  "Horários": "text-rose-300", "Controle de Férias": "text-cyan-400",
-  "Atestados e Faltas": "text-red-400", "Avaliação de Desempenho": "text-yellow-500",
-  "Onboarding / Offboarding": "text-green-400", "Prevenção Trabalhista - IA": "text-red-500",
-  "Produtividade - IA": "text-violet-500",
-  "NF-e": "text-teal-500", "NFC-e": "text-teal-400", "MDF-e": "text-teal-600",
-  "CT-e": "text-teal-300", "Central de XML": "text-teal-400", "Painel Fiscal": "text-teal-500",
-  "Geral / Regras": "text-slate-400", "Usuários": "text-blue-400", "Permissões": "text-red-400",
-  "Auditoria": "text-green-400", "Unidades / Lojas": "text-purple-400",
-  "Canais de Venda": "text-pink-400", "Categorias de Despesas": "text-amber-400",
-  "Documentos da Empresa": "text-slate-400", "Notificações e Alertas": "text-yellow-400",
-  "Personalização Visual": "text-violet-400", "Integrações / Hub": "text-cyan-400",
-  "Dashboard": "text-blue-500",
-  "Criar Conteúdo IA": "text-violet-500", "Biblioteca": "text-orange-400",
-  "Agendamentos": "text-emerald-500", "Redes Sociais": "text-blue-500",
-  "Atendimento IA": "text-pink-500",
-};
+const subMenuIconColors: Record<string, string> = new Proxy({}, {
+  get: () => "text-sidebar-foreground/85",
+}) as Record<string, string>;
 
 export function MobileNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, profile } = useAuth();
+  const { themeClass, brandTheme } = useDashboardTheme();
   const [open, setOpen] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>([]);
 
@@ -133,7 +83,7 @@ export function MobileNav() {
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[min(86vw,320px)] p-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
+      <SheetContent side="left" className={cn(themeClass, "w-[min(86vw,320px)] p-0 border-r border-sidebar-border bg-sidebar text-sidebar-foreground")}>
         <div className="h-full flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
@@ -143,15 +93,27 @@ export function MobileNav() {
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
-                <img src={logoImg} alt="Gás Fácil" className="h-10 w-10 rounded-xl shadow-md" />
+                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-10 w-10 object-contain shadow-md" />
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
+                className={cn("min-w-0", brandTheme.logoVariant === "full" ? "flex h-12 items-center" : "")}
               >
-                <h2 className="font-extrabold text-sidebar-foreground text-[17px]">Gás Fácil</h2>
-                <p className="text-[9px] font-bold text-primary uppercase tracking-[0.2em]">ERP Pro</p>
+                {brandTheme.logoVariant === "full" ? (
+                  <img src={brandTheme.logoFull} alt="Gás Fácil ERP Pro" className="h-12 max-w-[180px] object-contain" />
+                ) : brandTheme.logoVariant === "compact" ? (
+                  <>
+                    <h2 className="truncate text-[17px] font-extrabold text-sidebar-foreground">Gas Facil</h2>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-sidebar-foreground/70">PRO</p>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="truncate text-[17px] font-extrabold text-sidebar-foreground">Gas Facil</h2>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-sidebar-foreground/70">ERP Pro</p>
+                  </>
+                )}
               </motion.div>
             </div>
           </div>
