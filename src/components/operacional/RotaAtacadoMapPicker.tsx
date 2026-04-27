@@ -169,7 +169,7 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
     const sorted = [...cidades].sort((a, b) => a.km - b.km);
 
     sorted.forEach((c, i) => {
-      const color = c.opcional ? "#f59e0b" : "#3b82f6";
+      const color = c.opcional ? "#8b5cf6" : "#2fc2b5";
       const marker = L.circleMarker([c.lat, c.lng], {
         radius: 8,
         fillColor: color,
@@ -187,7 +187,7 @@ export function RotaAtacadoMapPicker({ cidades, onCidadesChange, totalKm, origem
     if (origem) {
       sorted.forEach(c => {
         const line = L.polyline([[origem.lat, origem.lng], [c.lat, c.lng]], {
-          color: c.opcional ? "#f59e0b" : "#3b82f6",
+          color: c.opcional ? "#8b5cf6" : "#2fc2b5",
           weight: 2,
           opacity: c.opcional ? 0.4 : 0.6,
           dashArray: c.opcional ? "4,8" : "8,6",

@@ -47,7 +47,7 @@ export default function Instalar() {
       <div className="max-w-md w-full space-y-6">
         {/* Header */}
         <div className="text-center space-y-3">
-          <div className="mx-auto h-20 w-20 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg">
+          <div className="mx-auto h-20 w-20 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg shadow-primary/25">
             <Flame className="h-10 w-10 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">Gás Fácil</h1>
