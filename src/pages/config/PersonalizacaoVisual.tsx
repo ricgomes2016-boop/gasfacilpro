@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
+import type { BrandThemeId } from "@/lib/brandThemes";
 
 const COLOR_OPTIONS = [
   { hsl: "187 65% 38%", label: "Teal", hex: "#219ebc" },
@@ -563,7 +564,7 @@ export default function PersonalizacaoVisual() {
                         )}
                         onClick={() => {
                           setConfig((p) => ({ ...p, corPrimaria: preset.cor, darkMode: preset.dark }));
-                          if ("brandThemeId" in preset) setBrandTheme(preset.brandThemeId);
+                          if ("brandThemeId" in preset) setBrandTheme(preset.brandThemeId as BrandThemeId);
                         }}
                       >
                         <div className="flex items-center gap-2 mb-1">
