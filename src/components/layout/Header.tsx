@@ -71,7 +71,7 @@ export function Header({ title, subtitle }: HeaderProps) {
   return (
     <>
     <header className={cn(
-      "fixed left-0 right-0 top-0 z-30 flex w-auto max-w-full flex-col items-stretch justify-center gap-1.5 overflow-hidden border-b border-border/35 bg-background/88 px-2.5 py-2 shadow-sm shadow-foreground/5 backdrop-blur-xl transition-[left] duration-300 supports-[backdrop-filter]:bg-background/78 sm:min-h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-2 md:min-h-[4.75rem] md:px-4 xl:px-6",
+      "app-header-premium fixed left-0 right-0 top-0 z-30 flex w-auto max-w-full flex-col items-stretch justify-center gap-1.5 overflow-hidden border-b px-2.5 py-2 shadow-sm backdrop-blur-xl transition-[left] duration-300 sm:min-h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-2 md:min-h-[4.75rem] md:px-4 xl:px-6",
       collapsed ? "xl:left-16" : "xl:left-[260px]",
     )}>
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
@@ -80,13 +80,13 @@ export function Header({ title, subtitle }: HeaderProps) {
         
         <div className="flex h-12 min-w-0 flex-1 flex-col justify-center px-1 py-1.5 sm:px-2 md:h-14">
           <div className="flex min-w-0 max-w-full items-center gap-2">
-            <h1 className="min-w-0 truncate text-base font-bold leading-none text-foreground md:text-lg xl:text-xl">{title}</h1>
+            <h1 className="min-w-0 truncate text-base font-bold leading-none text-primary-foreground md:text-lg xl:text-xl">{title}</h1>
             <BuildVersionBadge className="hidden xl:inline-flex shrink-0" />
           </div>
-          <p className="hidden max-w-full truncate text-[11px] font-medium leading-tight text-muted-foreground sm:block md:text-xs">
+          <p className="hidden max-w-full truncate text-[11px] font-medium leading-tight text-primary-foreground/75 sm:block md:text-xs">
             {empresa && <span className="font-medium">{empresa.nome}</span>}
             {subtitle && <span>{empresa ? " — " : ""}{subtitle}</span>}
-            {unidadeAtual && <span className="ml-2 text-primary font-medium">• {unidadeAtual.nome}</span>}
+            {unidadeAtual && <span className="ml-2 text-primary-foreground font-medium">• {unidadeAtual.nome}</span>}
           </p>
         </div>
       </div>
@@ -116,23 +116,11 @@ export function Header({ title, subtitle }: HeaderProps) {
           <CalculatorPopover />
         </div>
 
-        {/* Atualizar Preview */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 shrink-0"
-          onClick={handleUpdateApp}
-          title="Atualizar Preview"
-          aria-label="Atualizar Preview"
-        >
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-
         {/* Theme Toggle */}
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 hidden xl:inline-flex shrink-0"
+          className="h-9 w-9 hidden xl:inline-flex shrink-0 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
           title={resolvedTheme === "dark" ? "Modo claro" : "Modo escuro"}
         >
