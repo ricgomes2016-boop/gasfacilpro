@@ -67,7 +67,7 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { signOut } = useAuth();
   const navigate = useNavigate();
-  const { naoLidos } = useAvisosEntregador();
+  const { naoLidos } = useAvisosEntregador(false);
 
   // Track driver GPS and update DB
   const trackingState = useGeoTracking();
