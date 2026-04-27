@@ -120,7 +120,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 shrink-0"
+          className="h-9 w-9 shrink-0 text-secondary-foreground hover:bg-primary hover:text-primary-foreground"
           onClick={handleUpdateApp}
           title="Atualizar Preview"
           aria-label="Atualizar Preview"
@@ -132,7 +132,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 hidden xl:inline-flex shrink-0"
+          className="h-9 w-9 hidden xl:inline-flex shrink-0 text-secondary-foreground hover:bg-primary hover:text-primary-foreground"
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
           title={resolvedTheme === "dark" ? "Modo claro" : "Modo escuro"}
         >
@@ -142,7 +142,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 shrink-0">
+            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-full text-secondary-foreground hover:bg-primary hover:text-primary-foreground">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
                 <User className="h-4 w-4 text-primary-foreground" />
               </div>
@@ -189,7 +189,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         </DropdownMenu>
       </div>
     </header>
-    <div aria-hidden="true" className="h-[7rem] sm:h-16 md:h-[4.75rem]" />
+    <div aria-hidden="true" className="h-[6.5rem] sm:h-14 md:h-16" />
     </>
   );
 }
