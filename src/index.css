@@ -571,6 +571,19 @@
     @apply inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold shadow-sm;
   }
 
+  .status-pendente,
+  .badge-status-pendente { @apply border-warning/30 bg-warning/15 text-warning-foreground; }
+
+  .status-em-rota,
+  .status-rota,
+  .badge-status-rota { @apply border-primary/25 bg-primary/12 text-primary; }
+
+  .status-entregue,
+  .badge-status-entregue { @apply border-success/25 bg-success/12 text-success; }
+
+  .status-cancelado,
+  .badge-status-cancelado { @apply border-destructive/25 bg-destructive/12 text-destructive; }
+
   .saas-table-scope table { @apply saas-table; }
   .saas-table-scope thead tr { @apply saas-table-header; }
 
