@@ -5,14 +5,14 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-sm font-semibold leading-[1.25] ring-offset-background shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:ring-offset-0 disabled:pointer-events-none disabled:translate-y-0 disabled:scale-100 disabled:opacity-50 disabled:shadow-none [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex min-w-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold leading-[1.25] ring-offset-background shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:ring-offset-0 disabled:pointer-events-none disabled:translate-y-0 disabled:scale-100 disabled:opacity-50 disabled:shadow-none [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground shadow-primary/20 hover:bg-primary/90 hover:shadow-primary/25",
         destructive: "bg-destructive text-destructive-foreground shadow-destructive/20 hover:bg-destructive/90 hover:shadow-destructive/25",
-        outline: "border border-input/80 bg-card text-foreground hover:border-primary/45 hover:bg-primary/10 hover:text-primary",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:shadow-foreground/10",
+        outline: "border border-secondary/70 bg-card text-secondary hover:border-secondary hover:bg-secondary/5",
+        secondary: "border border-secondary/70 bg-card text-secondary hover:bg-secondary hover:text-secondary-foreground hover:shadow-foreground/10",
         ghost: "shadow-none hover:bg-primary/10 hover:text-primary hover:shadow-sm",
         link: "text-primary underline-offset-4 hover:underline",
         action: "border border-primary/25 bg-primary/10 text-primary shadow-primary/10 hover:border-primary/45 hover:bg-primary hover:text-primary-foreground hover:shadow-primary/25",
@@ -25,10 +25,10 @@ const buttonVariants = cva(
         warning: "border border-warning/25 bg-warning/10 text-warning-foreground shadow-warning/10 hover:border-warning/45 hover:bg-warning hover:text-warning-foreground hover:shadow-warning/25",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-xl px-3",
-        lg: "h-11 rounded-2xl px-8",
-        icon: "h-10 w-10",
+        default: "h-11 px-4 py-2",
+        sm: "h-10 rounded-lg px-3",
+        lg: "h-12 rounded-lg px-8",
+        icon: "h-11 w-11",
       },
     },
     defaultVariants: {
