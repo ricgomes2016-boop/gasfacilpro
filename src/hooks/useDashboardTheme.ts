@@ -37,5 +37,7 @@ export function useDashboardTheme() {
 
   const brandTheme = getBrandTheme(theme);
   const themeClass = brandTheme.className;
-  return { theme, setTheme, themeClass, brandTheme, isGasmais: theme === "gasmais" };
+  const isGasmais = theme === "gasmais";
+  const isDashboardPastel = theme === "pastel-dashboard";
+  return { theme, setTheme, themeClass, brandTheme, isGasmais, isDashboardPastel, isGasmaisDashboard: isGasmais || isDashboardPastel };
 }
