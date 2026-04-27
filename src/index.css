@@ -28,7 +28,7 @@
     --muted: 225 24% 94%;
     --muted-foreground: 231 10% 59%;
 
-    --accent: 31 100% 63%;
+    --accent: 262 90% 66%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -90,7 +90,7 @@
     --muted: 220 22% 12%;
     --muted-foreground: 220 16% 84%;
 
-    --accent: 31 100% 63%;
+    --accent: 262 90% 70%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62% 30%;
@@ -564,10 +564,10 @@
   :where(.bg-yellow-500,.bg-yellow-600,.bg-amber-400,.bg-amber-500,.bg-amber-600) { background-color: hsl(var(--warning)) !important; color: hsl(var(--warning-foreground)) !important; }
   :where(.text-yellow-600,.text-yellow-700,.text-amber-500,.text-amber-600,.text-amber-700) { color: hsl(var(--warning)) !important; }
   :where(.border-yellow-200,.border-yellow-300,.border-amber-200,.border-amber-300,.border-amber-500,.border-amber-500\/30) { border-color: hsl(var(--warning) / 0.42) !important; }
-  :where(.bg-orange-50,.bg-orange-100,.bg-orange-500\/5,.bg-orange-500\/10) { background-color: hsl(var(--primary) / 0.12) !important; }
-  :where(.bg-orange-500,.bg-orange-600,.bg-orange-700) { background: var(--gradient-primary) !important; color: hsl(var(--primary-foreground)) !important; }
+  :where(.bg-orange-50,.bg-orange-100,.bg-orange-500\/5,.bg-orange-500\/10) { background-color: hsl(var(--secondary) / 0.12) !important; }
+  :where(.bg-orange-500,.bg-orange-600,.bg-orange-700,.from-orange-500,.to-orange-500,.from-amber-500,.to-red-600) { background: var(--gradient-primary) !important; color: hsl(var(--primary-foreground)) !important; }
   :where(.text-orange-500,.text-orange-600,.text-orange-700) { color: hsl(var(--primary)) !important; }
-  :where(.border-orange-200,.border-orange-300,.border-orange-500) { border-color: hsl(var(--primary) / 0.38) !important; }
+  :where(.border-orange-200,.border-orange-300,.border-orange-500) { border-color: hsl(var(--secondary) / 0.38) !important; }
 
   :where(.bg-red-50,.bg-red-100,.bg-red-500\/5,.bg-red-500\/10,.bg-rose-50,.bg-rose-100,.bg-rose-500\/5,.bg-rose-500\/10) { background-color: hsl(var(--destructive) / 0.12) !important; }
   :where(.bg-red-500,.bg-red-600,.bg-red-700,.bg-rose-500,.bg-rose-600,.bg-rose-700) { background-color: hsl(var(--destructive)) !important; color: hsl(var(--destructive-foreground)) !important; }
