@@ -34,7 +34,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       <Sidebar />
       <main
         className={cn(
-          "relative min-h-screen w-full min-w-0 max-w-full overflow-x-hidden transition-all duration-300 ml-0 pb-16 md:pb-0",
+          "relative min-h-screen transition-all duration-300 ml-0 pb-16 md:pb-0",
           collapsed ? "xl:ml-16" : "xl:ml-[260px]"
         )}
       >

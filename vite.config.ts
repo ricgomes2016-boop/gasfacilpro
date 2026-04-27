@@ -61,8 +61,8 @@ export default defineConfig(({ mode }) => {
           description: "Sistema completo de gestão para revendas de gás",
           start_url: "/",
           display: "standalone",
-          background_color: "#0F2A44",
-          theme_color: "#0F2A44",
+          background_color: "#0f172a",
+          theme_color: "#2fc2b5",
           orientation: "any",
           icons: [
             {

@@ -93,7 +93,7 @@ export function StatCard({
     return (
       <div
         className={cn(
-        "group relative flex h-full min-h-[132px] min-w-0 overflow-hidden rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md sm:p-5",
+        "group relative flex h-full min-h-[148px] min-w-0 overflow-hidden rounded-2xl border border-border/45 bg-card p-5 shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-lg",
           t.ring
         )}
       >
@@ -136,7 +136,7 @@ export function StatCard({
           </div>
           <div
             className={cn(
-              "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-primary-foreground shadow-md transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3",
+              "flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-primary-foreground shadow-md transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3",
               t.icon
             )}
           >
@@ -151,7 +151,7 @@ export function StatCard({
   // Hero tile (translucent on orange gradient) — GásMais inside hero
   if (isGasmais && onHero) {
     return (
-      <div className="flex h-full min-h-[126px] min-w-0 flex-col justify-between rounded-xl border border-secondary-foreground/15 bg-secondary-foreground/10 p-4 backdrop-blur-sm transition-all hover:bg-secondary-foreground/15">
+      <div className="flex h-full min-h-[138px] min-w-0 flex-col justify-between rounded-2xl bg-primary-foreground/10 backdrop-blur-sm border border-primary-foreground/15 p-4 transition-all hover:bg-primary-foreground/15">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-primary-foreground">
           <Icon className="h-4 w-4" />
         </div>
@@ -172,7 +172,7 @@ export function StatCard({
 
   if (isGasmais) {
     return (
-      <div className={cn("flex h-full min-h-[132px] min-w-0 rounded-xl border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md sm:p-5", variantStyles[variant])}>
+      <div className={cn("flex h-full min-h-[148px] min-w-0 rounded-2xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md", variantStyles[variant])}>
         <div className="flex w-full min-w-0 items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -212,7 +212,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "modern-status-card flex h-full min-h-[132px] min-w-0 p-4 sm:p-5",
+        "modern-status-card flex h-full min-h-[148px] min-w-0 p-5 sm:p-6",
         variantStyles[variant]
       )}
     >
@@ -226,7 +226,7 @@ export function StatCard({
           >
             {title}
           </p>
-          <p className="mt-2 break-words text-2xl font-semibold leading-tight text-foreground sm:text-3xl">{value}</p>
+          <p className="mt-2 break-words text-3xl font-extrabold leading-tight text-foreground sm:text-4xl">{value}</p>
           {trend && (
             <p
               className={cn(
@@ -247,7 +247,7 @@ export function StatCard({
         </div>
         <div
           className={cn(
-            "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg p-3",
+            "flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl p-3",
             iconVariantStyles[variant]
           )}
         >

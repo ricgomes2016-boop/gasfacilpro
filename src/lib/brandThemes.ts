@@ -1,4 +1,4 @@
-import logoMark from "@/assets/gasfacil-g-flame.png";
+import logoMark from "@/assets/gestech-logo-mark.png";
 import logoFull from "@/assets/logo.png";
 
 export type BrandThemeId = "gasfacil" | "gasmais" | "signature" | "executive";
@@ -27,7 +27,7 @@ export const brandThemes: BrandThemePreset[] = [
     logoVariant: "markText",
     logoMark,
     logoFull,
-    fontLabel: "Inter",
+    fontLabel: "Plus Jakarta Sans",
   },
   {
     id: "signature",
@@ -37,7 +37,7 @@ export const brandThemes: BrandThemePreset[] = [
     logoVariant: "full",
     logoMark,
     logoFull,
-    fontLabel: "Inter",
+    fontLabel: "Outfit",
   },
   {
     id: "gasmais",
@@ -47,7 +47,7 @@ export const brandThemes: BrandThemePreset[] = [
     logoVariant: "markText",
     logoMark,
     logoFull,
-    fontLabel: "Inter",
+    fontLabel: "Manrope",
   },
   {
     id: "executive",
@@ -57,7 +57,7 @@ export const brandThemes: BrandThemePreset[] = [
     logoVariant: "compact",
     logoMark,
     logoFull,
-    fontLabel: "Inter",
+    fontLabel: "IBM Plex Sans",
   },
 ];
 

@@ -79,21 +79,21 @@ export function MobileNav() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-secondary-foreground hover:bg-primary hover:text-primary-foreground xl:hidden">
+        <Button variant="ghost" size="icon" className="xl:hidden h-9 w-9 rounded-xl">
           <Menu className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className={cn(themeClass, "app-sidebar-premium app-mobile-sidebar-modern w-[min(88vw,320px)] overflow-hidden border-r border-sidebar-border/10 p-0 text-sidebar-foreground shadow-2xl")}>
+      <SheetContent side="left" className={cn(themeClass, "app-sidebar-premium app-mobile-sidebar-modern w-[min(86vw,320px)] overflow-hidden rounded-r-[1.75rem] border-r border-sidebar-border/15 p-0 text-sidebar-foreground shadow-2xl")}>
         <div className="relative z-10 h-full flex flex-col">
           {/* Header */}
-          <div className="flex h-16 items-center justify-between border-b border-sidebar-border/10 px-4 py-3">
+          <div className="flex h-20 items-center justify-between border-b border-sidebar-border/15 px-5 py-3">
             <div className="flex min-w-0 items-center gap-2.5">
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
-                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-10 w-10 shrink-0 object-contain" />
+                <img src={brandTheme.logoMark} alt="Gás Fácil" className="h-12 w-12 shrink-0 object-contain" />
               </motion.div>
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
@@ -119,8 +119,8 @@ export function MobileNav() {
           </div>
 
           {/* Menu */}
-          <nav className="flex-1 overflow-y-auto px-3 py-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <div className="space-y-1.5">
+          <nav className="flex-1 overflow-y-auto px-3.5 py-5 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="space-y-2">
               {menuItems.map((item, idx) => {
                 const Icon = item.icon;
                 const hasSubmenu = !!item.submenu;
@@ -140,8 +140,8 @@ export function MobileNav() {
                         className={cn(
                           "group flex w-full items-center justify-between rounded-full px-4 py-3.5 text-[13px] font-semibold tracking-normal transition-all duration-200",
                           hasActiveChild
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-md shadow-primary/20 ring-1 ring-sidebar-border/20"
-                            : "text-sidebar-foreground/80 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/10"
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-lg shadow-foreground/10 ring-1 ring-sidebar-border/25"
+                            : "text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                         )}
                       >
                         <div className="flex items-center gap-3">
@@ -236,10 +236,10 @@ export function MobileNav() {
                       to={item.path!}
                       onClick={() => setOpen(false)}
                       className={cn(
-                          "group flex min-w-0 items-center gap-3 rounded-lg px-3 py-3 text-[13px] font-semibold tracking-normal transition-all duration-200",
+                        "group flex items-center gap-3.5 rounded-full px-4 py-3.5 text-[13px] font-semibold tracking-normal transition-all duration-200",
                         isActive(item.path!)
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-md shadow-primary/20 ring-1 ring-sidebar-border/20"
-                          : "text-sidebar-foreground/80 hover:bg-sidebar-foreground/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/10"
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-lg shadow-foreground/10 ring-1 ring-sidebar-border/25"
+                          : "text-sidebar-foreground/80 hover:bg-sidebar-accent/10 hover:text-sidebar-foreground hover:ring-1 hover:ring-sidebar-border/15"
                       )}
                     >
                       <Icon className={cn(

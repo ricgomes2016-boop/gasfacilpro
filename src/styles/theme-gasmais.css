@@ -2,55 +2,55 @@
 /* Scoped: only redefines tokens inside elements with this class */
 
 .theme-gasmais {
-  --primary: 25 100% 50%;
+  --primary: 174 61% 47%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 209 64% 16%;
-  --accent: 25 100% 50%;
+  --secondary: 243 100% 69%;
+  --accent: 262 90% 66%;
   --accent-foreground: 0 0% 100%;
 
   --card: 0 0% 100%;
   --card-foreground: 222 47% 8%;
 
-  --background: 220 45% 98%;
-  --foreground: 0 0% 10%;
+  --background: 214 32% 96%;
+  --foreground: 222 47% 8%;
 
-  --muted: 220 28% 94%;
-  --muted-foreground: 220 9% 46%;
+  --muted: 214 24% 92%;
+  --muted-foreground: 222 32% 22%;
 
-  --border: 220 13% 91%;
-  --input: 220 13% 91%;
-  --ring: 214 52% 25%;
+  --border: 216 24% 78%;
+  --input: 216 24% 70%;
+  --ring: 174 61% 47%;
 
-  --sidebar-background: 209 64% 16%;
-  --sidebar-gradient-from: 209 64% 16%;
-  --sidebar-gradient-to: 214 52% 25%;
+  --sidebar-background: 174 61% 47%;
+  --sidebar-gradient-from: 174 61% 47%;
+  --sidebar-gradient-to: 243 100% 69%;
   --sidebar-foreground: 220 14% 96%;
   --sidebar-primary: 0 0% 100%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 25 100% 50%;
+  --sidebar-accent: 0 0% 100%;
   --sidebar-accent-foreground: 0 0% 100%;
   --sidebar-border: 0 0% 100%;
   --sidebar-ring: 0 0% 100%;
 }
 
 .dark .theme-gasmais {
-  --primary: 25 100% 50%;
-  --secondary: 209 64% 16%;
-  --accent: 25 100% 56%;
-  --card: 209 44% 10%;
+  --primary: 174 61% 47%;
+  --secondary: 243 100% 69%;
+  --accent: 262 90% 70%;
+  --card: 222 35% 10%;
   --card-foreground: 220 18% 98%;
-  --background: 209 58% 7%;
+  --background: 222 47% 6%;
   --foreground: 220 18% 98%;
-  --muted: 209 34% 14%;
+  --muted: 222 30% 14%;
   --muted-foreground: 220 16% 84%;
-  --border: 209 24% 22%;
-  --input: 209 24% 24%;
+  --border: 222 28% 22%;
+  --input: 222 28% 24%;
 
-  --sidebar-background: 209 64% 16%;
-  --sidebar-gradient-from: 209 64% 16%;
-  --sidebar-gradient-to: 214 52% 25%;
+  --sidebar-background: 174 61% 47%;
+  --sidebar-gradient-from: 174 61% 47%;
+  --sidebar-gradient-to: 243 100% 69%;
   --sidebar-foreground: 220 14% 96%;
-  --sidebar-accent: 25 100% 50%;
+  --sidebar-accent: 0 0% 100%;
   --sidebar-border: 0 0% 100%;
 }

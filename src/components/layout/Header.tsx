@@ -71,27 +71,27 @@ export function Header({ title, subtitle }: HeaderProps) {
   return (
     <>
     <header className={cn(
-      "fixed left-0 right-0 top-0 z-30 flex w-auto max-w-full flex-col items-stretch justify-center gap-1.5 overflow-hidden border-b border-sidebar-border/10 bg-secondary px-3 py-2 text-secondary-foreground shadow-sm shadow-foreground/10 transition-[left] duration-300 sm:min-h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-2 md:min-h-16 md:px-4 xl:px-6",
+      "fixed left-0 right-0 top-0 z-30 flex w-auto max-w-full flex-col items-stretch justify-center gap-1.5 overflow-hidden border-b border-border/35 bg-background/88 px-2.5 py-2 shadow-sm shadow-foreground/5 backdrop-blur-xl transition-[left] duration-300 supports-[backdrop-filter]:bg-background/78 sm:min-h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-2 md:min-h-[4.75rem] md:px-4 xl:px-6",
       collapsed ? "xl:left-16" : "xl:left-[260px]",
     )}>
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
         {/* Mobile menu */}
         <MobileNav />
         
-        <div className="flex h-11 min-w-0 flex-1 flex-col justify-center rounded-xl border border-sidebar-border/10 bg-sidebar-foreground/10 px-3 py-1.5 shadow-none sm:px-4 md:h-12">
+        <div className="flex h-12 min-w-0 flex-1 flex-col justify-center rounded-2xl border border-border/45 bg-card px-3 py-1.5 shadow-sm shadow-foreground/5 sm:px-4 md:h-14">
           <div className="flex min-w-0 max-w-full items-center gap-2">
-            <h1 className="min-w-0 truncate text-base font-semibold leading-none text-secondary-foreground md:text-lg xl:text-xl">{title}</h1>
+            <h1 className="min-w-0 truncate text-base font-bold leading-none text-foreground md:text-lg xl:text-xl">{title}</h1>
             <BuildVersionBadge className="hidden xl:inline-flex shrink-0" />
           </div>
-          <p className="hidden max-w-full truncate text-[11px] font-normal leading-tight text-secondary-foreground/70 sm:block md:text-xs">
+          <p className="hidden max-w-full truncate text-[11px] font-medium leading-tight text-muted-foreground sm:block md:text-xs">
             {empresa && <span className="font-medium">{empresa.nome}</span>}
             {subtitle && <span>{empresa ? " — " : ""}{subtitle}</span>}
-            {unidadeAtual && <span className="ml-2 font-medium text-primary">• {unidadeAtual.nome}</span>}
+            {unidadeAtual && <span className="ml-2 text-primary font-medium">• {unidadeAtual.nome}</span>}
           </p>
         </div>
       </div>
 
-      <div className="flex h-10 min-w-0 shrink-0 items-center justify-between gap-0.5 rounded-xl border border-sidebar-border/10 bg-sidebar-foreground/10 px-1 py-1 shadow-none sm:h-11 sm:justify-end sm:gap-1 md:h-12 xl:gap-2">
+      <div className="flex h-11 min-w-0 shrink-0 items-center justify-between gap-0.5 rounded-2xl border border-border/45 bg-card px-1 py-1 shadow-sm shadow-foreground/5 sm:h-12 sm:justify-end sm:gap-1 md:h-14 xl:gap-2">
         {/* Unidade Selector */}
         <UnidadeSelector />
 
@@ -120,7 +120,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 shrink-0 text-secondary-foreground hover:bg-primary hover:text-primary-foreground"
+          className="h-9 w-9 shrink-0"
           onClick={handleUpdateApp}
           title="Atualizar Preview"
           aria-label="Atualizar Preview"
@@ -132,7 +132,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 hidden xl:inline-flex shrink-0 text-secondary-foreground hover:bg-primary hover:text-primary-foreground"
+          className="h-9 w-9 hidden xl:inline-flex shrink-0"
           onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
           title={resolvedTheme === "dark" ? "Modo claro" : "Modo escuro"}
         >
@@ -142,7 +142,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-full text-secondary-foreground hover:bg-primary hover:text-primary-foreground">
+            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 shrink-0">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
                 <User className="h-4 w-4 text-primary-foreground" />
               </div>
@@ -189,7 +189,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         </DropdownMenu>
       </div>
     </header>
-    <div aria-hidden="true" className="h-[6.5rem] sm:h-14 md:h-16" />
+    <div aria-hidden="true" className="h-[7rem] sm:h-16 md:h-[4.75rem]" />
     </>
   );
 }
