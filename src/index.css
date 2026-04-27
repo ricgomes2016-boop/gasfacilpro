@@ -382,6 +382,12 @@
   .section-header-finance .section-header-icon-frame { @apply border-success/25 bg-success/10 text-success; }
   .section-header-critical .section-header-icon-frame { @apply border-destructive/25 bg-destructive/10 text-destructive; }
 
+  .section-header-primary svg { @apply text-primary; }
+  .section-header-catalog svg { @apply text-info; }
+  .section-header-stock svg { @apply text-warning; }
+  .section-header-finance svg { @apply text-success; }
+  .section-header-critical svg { @apply text-destructive; }
+
   .status-card-icon {
     @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-xl;
   }
