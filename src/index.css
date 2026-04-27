@@ -134,6 +134,28 @@
     box-shadow: 0 16px 38px -28px hsl(220 35% 10% / 0.5);
   }
 
+  .header-unit-selector {
+    border-color: hsl(var(--primary-foreground) / 0.2);
+    background: hsl(220 22% 9% / 0.24);
+    color: hsl(var(--primary-foreground));
+    box-shadow: inset 0 1px 0 hsl(var(--primary-foreground) / 0.14), 0 10px 24px -18px hsl(220 35% 10% / 0.7);
+  }
+
+  .header-unit-selector:hover,
+  .header-unit-selector[data-state="open"] {
+    border-color: hsl(var(--primary-foreground) / 0.34);
+    background: hsl(var(--primary-foreground) / 0.14);
+  }
+
+  .header-actions button:not(.header-unit-selector) {
+    color: hsl(var(--primary-foreground));
+  }
+
+  .header-actions button:not(.header-unit-selector):hover {
+    background: hsl(var(--primary-foreground) / 0.12);
+    color: hsl(var(--primary-foreground));
+  }
+
   .app-sidebar-premium {
     background: linear-gradient(
       180deg,

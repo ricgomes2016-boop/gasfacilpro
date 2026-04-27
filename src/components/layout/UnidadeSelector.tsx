@@ -26,12 +26,12 @@ export function UnidadeSelector() {
   // If only one unidade, just show it without dropdown
   if (unidades.length === 1) {
     return (
-      <div className="flex h-9 items-center gap-1.5 min-w-0 max-w-[120px] md:max-w-[150px] xl:max-w-[220px] shrink-0 px-2 xl:px-3 py-1.5 rounded-md border border-border/45 bg-card text-card-foreground shadow-sm">
-        <Building2 className="h-4 w-4 text-primary shrink-0" />
-        <span className="text-xs md:text-sm font-semibold truncate min-w-0 text-foreground">
+      <div className="header-unit-selector flex h-9 items-center gap-1.5 min-w-0 max-w-[120px] md:max-w-[150px] xl:max-w-[220px] shrink-0 px-2 xl:px-3 py-1.5 rounded-md border shadow-sm">
+        <Building2 className="h-4 w-4 shrink-0" />
+        <span className="text-xs md:text-sm font-semibold truncate min-w-0">
           {unidadeAtual?.nome}
         </span>
-        <Badge variant="outline" className="text-xs capitalize hidden xl:inline-flex shrink-0">
+        <Badge variant="outline" className="text-xs capitalize hidden xl:inline-flex border-primary-foreground/25 bg-primary-foreground/12 text-primary-foreground shrink-0">
           {unidadeAtual?.tipo}
         </Badge>
       </div>
@@ -41,7 +41,7 @@ export function UnidadeSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="default" size="sm" className="gap-1 h-9 px-2 xl:px-3 gradient-primary text-primary-foreground hover:opacity-95 shadow-md shadow-primary/20 min-w-0 max-w-[112px] sm:max-w-[130px] lg:max-w-[150px] xl:max-w-[220px] shrink-0">
+        <Button variant="default" size="sm" className="header-unit-selector gap-1 h-9 px-2 xl:px-3 min-w-0 max-w-[112px] sm:max-w-[130px] lg:max-w-[150px] xl:max-w-[220px] shrink-0">
           <Building2 className="h-4 w-4 shrink-0" />
           <span className="truncate min-w-0 font-semibold text-xs sm:text-sm">
             {unidadeAtual?.nome || "Selecionar"}

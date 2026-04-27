@@ -91,7 +91,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         </div>
       </div>
 
-      <div className="flex h-11 min-w-0 shrink-0 items-center justify-between gap-0.5 px-0 py-1 sm:h-12 sm:justify-end sm:gap-1 md:h-14 xl:gap-2">
+      <div className="header-actions flex h-11 min-w-0 shrink-0 items-center justify-between gap-0.5 px-0 py-1 sm:h-12 sm:justify-end sm:gap-1 md:h-14 xl:gap-2">
         {/* Unidade Selector */}
         <UnidadeSelector />
 
@@ -130,8 +130,8 @@ export function Header({ title, subtitle }: HeaderProps) {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 shrink-0">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
+            <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 shrink-0 text-primary-foreground hover:bg-primary-foreground/12 hover:text-primary-foreground">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-primary-foreground/18 bg-primary-foreground/14 shadow-sm shadow-foreground/10">
                 <User className="h-4 w-4 text-primary-foreground" />
               </div>
             </Button>
