@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
+import { BRAND_THEME_STORAGE_KEY, BrandThemeId, getBrandTheme } from "@/lib/brandThemes";
 
-type DashboardTheme = "default" | "gasmais";
-const STORAGE_KEY = "dashboardTheme";
+type DashboardTheme = BrandThemeId;
+const STORAGE_KEY = BRAND_THEME_STORAGE_KEY;
+const LEGACY_STORAGE_KEY = "dashboardTheme";
 
 function read(): DashboardTheme {
-  if (typeof window === "undefined") return "default";
-  return (localStorage.getItem(STORAGE_KEY) as DashboardTheme) || "default";
+  if (typeof window === "undefined") return "gasfacil";
+  const stored = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+  if (stored === "default") return "gasfacil";
+  return getBrandTheme(stored).id;
 }
 
 export function useDashboardTheme() {
@@ -13,7 +17,7 @@ export function useDashboardTheme() {
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setThemeState(read());
+      if (e.key === STORAGE_KEY || e.key === LEGACY_STORAGE_KEY) setThemeState(read());
     };
     window.addEventListener("storage", onStorage);
     const onCustom = () => setThemeState(read());
@@ -26,10 +30,12 @@ export function useDashboardTheme() {
 
   const setTheme = useCallback((t: DashboardTheme) => {
     localStorage.setItem(STORAGE_KEY, t);
+    localStorage.setItem(LEGACY_STORAGE_KEY, t === "gasfacil" ? "default" : t);
     setThemeState(t);
     window.dispatchEvent(new Event("dashboard-theme-change"));
   }, []);
 
-  const themeClass = theme === "gasmais" ? "theme-gasmais" : "";
-  return { theme, setTheme, themeClass, isGasmais: theme === "gasmais" };
+  const brandTheme = getBrandTheme(theme);
+  const themeClass = brandTheme.className;
+  return { theme, setTheme, themeClass, brandTheme, isGasmais: theme === "gasmais" };
 }
