@@ -239,6 +239,7 @@ export default function ContasReceber() {
       .filter(f => f.forma && parseFloat(f.valor) > 0)
       .map(f => `${f.forma}: R$ ${parseFloat(f.valor).toFixed(2)}`)
       .join(", ");
+    const refTipo = receberConta.forma_pagamento === "vale_gas" ? "Vale Gás" : "Fiado";
 
     // Rotear cada forma de pagamento para o destino correto
     const { data: { user } } = await supabase.auth.getUser();
@@ -252,9 +253,9 @@ export default function ContasReceber() {
         // Dinheiro → Caixa da Loja
         await supabase.from("movimentacoes_caixa").insert({
           tipo: "entrada",
-          descricao: `Pgto Fiado #${ref} - Dinheiro`,
+          descricao: `Pgto ${refTipo} #${ref} - Dinheiro`,
           valor,
-          categoria: "Recebimento Fiado",
+          categoria: receberConta.forma_pagamento === "vale_gas" ? "Recebimento Vale Gás" : "Recebimento Fiado",
           status: "aprovada",
           pedido_id: receberConta.pedido_id || null,
           unidade_id: unidadeAtual?.id || null,
@@ -266,8 +267,8 @@ export default function ContasReceber() {
           await criarMovimentacaoBancaria({
             contaBancariaId: contaId,
             valor,
-            descricao: `Pgto Fiado #${ref} - PIX`,
-            categoria: "recebimento_fiado",
+            descricao: `Pgto ${refTipo} #${ref} - PIX`,
+            categoria: receberConta.forma_pagamento === "vale_gas" ? "recebimento_vale_gas" : "recebimento_fiado",
             unidadeId: unidadeAtual?.id,
             userId: user?.id,
             pedidoId: receberConta.pedido_id || undefined,
@@ -280,8 +281,8 @@ export default function ContasReceber() {
           await criarMovimentacaoBancaria({
             contaBancariaId: contaId,
             valor,
-            descricao: `Pgto Fiado #${ref} - ${fp.forma}`,
-            categoria: "recebimento_fiado",
+            descricao: `Pgto ${refTipo} #${ref} - ${fp.forma}`,
+            categoria: receberConta.forma_pagamento === "vale_gas" ? "recebimento_vale_gas" : "recebimento_fiado",
             unidadeId: unidadeAtual?.id,
             userId: user?.id,
             pedidoId: receberConta.pedido_id || undefined,
