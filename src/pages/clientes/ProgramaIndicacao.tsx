@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Gift, Users, CheckCircle, Clock, DollarSign, Loader2, Crown, Zap, Share2, Save
+  Gift, Users, CheckCircle, Clock, DollarSign, Loader2, Crown, Zap, Share2, Save, ReceiptText, RotateCcw
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -24,14 +24,39 @@ interface IndicadorRanking {
   ganhoTotal: number;
 }
 
+type CreditoStatus = "pendente" | "aprovado" | "estornado";
+
+interface CreditoIndicacaoLinha {
+  id: string;
+  data: string;
+  beneficiario: string;
+  telefone: string;
+  papel: "Indicador" | "Indicado";
+  indicado: string;
+  valor: number;
+  status: CreditoStatus;
+  pedidoId: string | null;
+  pedidoNumero: number | null;
+  descricao: string;
+}
+
 export default function ProgramaIndicacao() {
   const { empresa } = useEmpresa();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ totalIndicacoes: 0, convertidas: 0, creditos: 0, ativos: 0 });
   const [ranking, setRanking] = useState<IndicadorRanking[]>([]);
+  const [creditos, setCreditos] = useState<CreditoIndicacaoLinha[]>([]);
   const [config, setConfig] = useState({ valorIndicador: 10, valorIndicado: 10, ativo: true });
   const [editandoConfig, setEditandoConfig] = useState(false);
   const [configTemp, setConfigTemp] = useState({ valorIndicador: "10", valorIndicado: "10" });
+
+  const formatCurrency = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value || 0);
+  const formatDate = (value: string) => new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(new Date(value));
+  const statusMeta: Record<CreditoStatus, { label: string; className: string; icon: typeof Clock }> = {
+    pendente: { label: "Pendente", className: "bg-muted text-muted-foreground border-border", icon: Clock },
+    aprovado: { label: "Aprovado", className: "bg-primary/10 text-primary border-primary/30", icon: CheckCircle },
+    estornado: { label: "Estornado", className: "bg-destructive/10 text-destructive border-destructive/30", icon: RotateCcw },
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,13 +79,23 @@ export default function ProgramaIndicacao() {
 
         const { data: indicacoes, error: indicacoesError } = await (supabase as any)
           .from("cliente_indicacoes")
-          .select("id, indicador_cliente_id, status, valor_credito_indicador")
+          .select("id, indicador_cliente_id, indicado_cliente_id, status, valor_credito_indicador, valor_credito_indicado, primeiro_pedido_id, created_at, convertido_em")
           .eq("empresa_id", empresa.id)
           .order("created_at", { ascending: false })
           .limit(1000);
         if (indicacoesError) throw indicacoesError;
 
-        const indicadorIds = Array.from(new Set<string>((indicacoes || []).map((i: any) => i.indicador_cliente_id).filter(Boolean)));
+        const { data: creditosData, error: creditosError } = await (supabase as any)
+          .from("cliente_creditos")
+          .select("id, cliente_id, indicacao_id, valor, status, descricao, pedido_id, created_at")
+          .eq("empresa_id", empresa.id)
+          .eq("tipo", "indicacao")
+          .order("created_at", { ascending: false })
+          .limit(1000);
+        if (creditosError) throw creditosError;
+
+        const indicacoesMap = new Map<string, any>((indicacoes || []).map((i: any) => [i.id, i]));
+        const indicadorIds = Array.from(new Set<string>((indicacoes || []).flatMap((i: any) => [i.indicador_cliente_id, i.indicado_cliente_id]).concat((creditosData || []).map((c: any) => c.cliente_id)).filter(Boolean)));
         const clientesMap = new Map<string, { nome: string; telefone: string }>();
         if (indicadorIds.length > 0) {
           const { data: clientesData, error: clientesError } = await supabase
@@ -69,6 +104,17 @@ export default function ProgramaIndicacao() {
             .in("id", indicadorIds);
           if (clientesError) throw clientesError;
           (clientesData || []).forEach((c: any) => clientesMap.set(c.id, { nome: c.nome, telefone: c.telefone || "" }));
+        }
+
+        const pedidoIds = Array.from(new Set<string>((creditosData || []).map((c: any) => c.pedido_id).concat((indicacoes || []).map((i: any) => i.primeiro_pedido_id)).filter(Boolean)));
+        const pedidosMap = new Map<string, number>();
+        if (pedidoIds.length > 0) {
+          const { data: pedidosData, error: pedidosError } = await supabase
+            .from("pedidos")
+            .select("id, numero_sequencial")
+            .in("id", pedidoIds);
+          if (pedidosError) throw pedidosError;
+          (pedidosData || []).forEach((p: any) => pedidosMap.set(p.id, p.numero_sequencial || null));
         }
 
         const porIndicador = new Map<string, IndicadorRanking>();
@@ -101,6 +147,45 @@ export default function ProgramaIndicacao() {
           creditos: (indicacoes || []).reduce((s: number, i: any) => s + (i.status === "convertida" ? Number(i.valor_credito_indicador) || 0 : 0), 0),
           ativos: rankingCalc.filter(r => r.indicacoes >= 2).length,
         });
+
+        const linhasAprovadas: CreditoIndicacaoLinha[] = (creditosData || []).map((credito: any) => {
+          const indicacao = credito.indicacao_id ? indicacoesMap.get(credito.indicacao_id) : null;
+          const cliente = clientesMap.get(credito.cliente_id);
+          const indicado = indicacao ? clientesMap.get(indicacao.indicado_cliente_id) : null;
+          const status: CreditoStatus = ["cancelado", "expirado"].includes(credito.status) ? "estornado" : "aprovado";
+          return {
+            id: credito.id,
+            data: credito.created_at,
+            beneficiario: cliente?.nome || "Cliente não identificado",
+            telefone: cliente?.telefone || "",
+            papel: indicacao?.indicado_cliente_id === credito.cliente_id ? "Indicado" : "Indicador",
+            indicado: indicado?.nome || "Não vinculado",
+            valor: Number(credito.valor) || 0,
+            status,
+            pedidoId: credito.pedido_id || indicacao?.primeiro_pedido_id || null,
+            pedidoNumero: pedidosMap.get(credito.pedido_id || indicacao?.primeiro_pedido_id) || null,
+            descricao: credito.descricao || "Crédito de indicação",
+          };
+        });
+
+        const linhasPendentes: CreditoIndicacaoLinha[] = (indicacoes || [])
+          .filter((indicacao: any) => indicacao.status === "pendente")
+          .flatMap((indicacao: any) => {
+            const indicador = clientesMap.get(indicacao.indicador_cliente_id);
+            const indicado = clientesMap.get(indicacao.indicado_cliente_id);
+            return [
+              {
+                id: `${indicacao.id}-indicador`, data: indicacao.created_at, beneficiario: indicador?.nome || "Cliente não identificado", telefone: indicador?.telefone || "", papel: "Indicador" as const,
+                indicado: indicado?.nome || "Cliente indicado", valor: Number(indicacao.valor_credito_indicador) || 0, status: "pendente" as const, pedidoId: null, pedidoNumero: null, descricao: "Aguardando 1º pedido entregue do indicado",
+              },
+              {
+                id: `${indicacao.id}-indicado`, data: indicacao.created_at, beneficiario: indicado?.nome || "Cliente não identificado", telefone: indicado?.telefone || "", papel: "Indicado" as const,
+                indicado: indicado?.nome || "Cliente indicado", valor: Number(indicacao.valor_credito_indicado) || 0, status: "pendente" as const, pedidoId: null, pedidoNumero: null, descricao: "Crédito de boas-vindas aguardando aprovação",
+              },
+            ];
+          });
+
+        setCreditos([...linhasAprovadas, ...linhasPendentes].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()));
       } catch (e) { console.error(e); } finally { setLoading(false); }
     };
     fetchData();
