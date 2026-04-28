@@ -365,6 +365,12 @@ export default function AcertoEntregador() {
       );
 
       const pagamentos = editingEntrega.pagamentos_multiplos.filter(p => p.valor > 0);
+      const pagamentoValeGas = pagamentos.find(p => p.forma === "Vale Gás");
+      if (pagamentoValeGas && !pagamentoValeGas.vale_gas_id) {
+        toast.error("Selecione o parceiro e valide o número do Vale Gás antes de salvar");
+        setIsSavingEdit(false);
+        return;
+      }
       const totalPagamentos = pagamentos.reduce((a, p) => a + p.valor, 0);
       if (Math.abs(novoTotal - totalPagamentos) > 0.01) {
         toast.error("A soma dos pagamentos não confere com o total da entrega");
@@ -488,7 +494,7 @@ export default function AcertoEntregador() {
         if (fp.includes(", ") || fp.startsWith("Múltiplos: ")) {
           const cleanFp = fp.replace("Múltiplos: ", "");
           const parts = cleanFp.split(/,\s*|\s*\+\s*/);
-          pagamentos = parts.map((part: string) => {
+        pagamentos = parts.map((part: string) => {
             const match = part.trim().match(/^(.+?)\s+R\$(\d+[\.,]?\d*)$/);
             if (match) {
               return { forma: normalizarFormaPagamento(match[1].trim()), valor: parseFloat(match[2].replace(",", ".")) };
@@ -499,6 +505,11 @@ export default function AcertoEntregador() {
           pagamentos = [{ forma: normalizarFormaPagamento(fp), valor: Number(entrega.valor_total) }];
         } else {
           pagamentos = [{ forma: "dinheiro", valor: Number(entrega.valor_total) }];
+        }
+
+        const temValeGasSemVinculo = pagamentos.some(p => p.forma === "vale_gas" && !(p as any).vale_gas_id);
+        if (temValeGasSemVinculo) {
+          throw new Error("Existe pedido com Vale Gás sem parceiro/número validado. Abra a edição do pedido e valide o vale antes de confirmar o acerto.");
         }
 
         await rotearPagamentosVenda({
