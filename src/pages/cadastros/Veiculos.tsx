@@ -336,32 +336,32 @@ export default function Veiculos() {
             <CardContent><div className="text-2xl font-bold">{countByStatus("terceiro")}</div></CardContent>
           </Card>
           <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium">GPS Online</CardTitle>
-              <MapPin className="h-4 w-4 text-primary" />
+            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+              <CardTitle className="text-sm font-semibold truncate">GPS Online</CardTitle>
+              <span className="status-card-icon-success rounded-xl p-2"><MapPin className="h-4 w-4" /></span>
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{gpsOnlineCount}</div></CardContent>
           </Card>
           <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium">KM/L Médio</CardTitle>
-              <Fuel className="h-4 w-4 text-primary" />
+            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+              <CardTitle className="text-sm font-semibold truncate">KM/L Médio</CardTitle>
+              <span className="status-card-icon-warning rounded-xl p-2"><Fuel className="h-4 w-4" /></span>
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{avgKmL > 0 ? avgKmL.toFixed(1) : "—"}</div></CardContent>
           </Card>
           <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium">Com Entregador</CardTitle>
-              <User className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+              <CardTitle className="text-sm font-semibold truncate">Com Entregador</CardTitle>
+              <span className="status-card-icon-muted rounded-xl p-2"><User className="h-4 w-4" /></span>
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{veiculos.filter(v => v.entregador_id && (v.status || "ativo") !== "excluido").length}</div></CardContent>
           </Card>
           <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium">Valor FIPE</CardTitle>
-              <Truck className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+              <CardTitle className="text-sm font-semibold truncate">Valor FIPE</CardTitle>
+              <span className="status-card-icon-accent rounded-xl p-2"><Truck className="h-4 w-4" /></span>
             </CardHeader>
-            <CardContent><div className="text-lg font-bold">R$ {totalFipe.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div></CardContent>
+            <CardContent><div className="text-xl font-bold truncate">R$ {totalFipe.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div></CardContent>
           </Card>
         </div>
 
