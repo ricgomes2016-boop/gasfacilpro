@@ -788,6 +788,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         observacoes: customer.observacao,
         status: "pendente",
         unidade_id: unidadeAtual?.id,
+        data_entrega: dataEntrega,
         created_at: toBrasiliaNoonISOString(dataEntrega),
       };
 
