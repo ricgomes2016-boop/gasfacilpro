@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,7 @@ import {
 } from "@/services/declaracaoPdfService";
 
 export default function Declaracoes() {
-  const { unidades, loading } = useUnidade();
+  const { unidades, unidadeAtual, loading } = useUnidade();
   const [titulo, setTitulo] = useState("Declaração");
   const [modelo, setModelo] = useState(MODELO_DECLARACAO_PADRAO);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
@@ -38,6 +38,14 @@ export default function Declaracoes() {
       return novo;
     });
   };
+
+  useEffect(() => {
+    if (!unidadeAtual?.id) return;
+    setSelecionadas((atual) => {
+      if (atual.size > 0 || !unidadesAtivas.some((u) => u.id === unidadeAtual.id)) return atual;
+      return new Set([unidadeAtual.id]);
+    });
+  }, [unidadeAtual?.id, unidadesAtivas]);
 
   const selecionarTodas = () => setSelecionadas(new Set(unidadesAtivas.map((u) => u.id)));
   const limparSelecao = () => setSelecionadas(new Set());
@@ -101,7 +109,12 @@ export default function Declaracoes() {
                         className="w-full rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent/40"
                       >
                         <div className="flex items-start gap-3">
-                          <Checkbox checked={selecionadas.has(unidade.id)} onCheckedChange={() => toggleUnidade(unidade.id)} className="mt-1" />
+                          <Checkbox
+                            checked={selecionadas.has(unidade.id)}
+                            onClick={(event) => event.stopPropagation()}
+                            onCheckedChange={() => toggleUnidade(unidade.id)}
+                            className="mt-1"
+                          />
                           <div className="flex-1 min-w-0 space-y-1">
                             <div className="flex items-center gap-2">
                               {unidade.tipo === "matriz" ? <Building2 className="h-4 w-4 text-primary" /> : <Store className="h-4 w-4 text-muted-foreground" />}
