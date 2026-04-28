@@ -271,7 +271,7 @@ export function generateReceiptPdf(data: ReceiptData): void {
   doc.text("Volte sempre!", pageWidth / 2, yPos, { align: "center" });
 
   // Generate and download
-  const fileName = `comprovante-${data.pedidoId.slice(0, 8)}.pdf`;
+  const fileName = `comprovante-${String(pedidoNumero).replace(/[^a-zA-Z0-9-]/g, "")}.pdf`;
   doc.save(fileName);
 }
 
