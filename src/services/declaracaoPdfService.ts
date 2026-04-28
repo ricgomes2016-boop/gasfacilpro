@@ -45,7 +45,7 @@ export function renderDeclaracaoTexto(template: string, unidade: Unidade): strin
   };
 
   return Object.entries(dados).reduce(
-    (texto, [chave, substituto]) => texto.replaceAll(chave, substituto),
+    (texto, [chave, substituto]) => texto.split(chave).join(substituto),
     template
   );
 }
