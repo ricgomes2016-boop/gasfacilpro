@@ -253,7 +253,7 @@ export default function Pedidos() {
 
   const alterarDataEntrega = async (pedido: PedidoFormatado, novaData: string) => {
     if (!podeAlterarDataEntrega || !novaData || novaData === dataPedidoParaInput(pedido.data)) return;
-    const { error } = await supabase.from("pedidos").update({ data_entrega: novaData } as any).eq("id", pedido.id);
+    const { error } = await supabase.from("pedidos").update({ data_entrega: novaData } as Record<string, unknown>).eq("id", pedido.id);
     if (error) {
       toast({ title: "Erro ao alterar data", description: error.message, variant: "destructive" });
       return;
