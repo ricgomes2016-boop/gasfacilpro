@@ -226,12 +226,12 @@ export default function Veiculos() {
 
   return (
     <MainLayout>
-      <Header title="Veículos" subtitle="Gerencie a frota de veículos" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+      <Header title="Veículos" subtitle={`${unidadeAtual?.nome || "Unidade atual"} — Gerencie a frota de veículos`} />
+      <div className="dashboard-shell">
         {/* Top actions */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <Tabs value={filtroStatus} onValueChange={setFiltroStatus}>
-            <TabsList>
+        <div className="flex flex-col gap-3 w-full min-w-0 lg:flex-row lg:items-center lg:justify-between">
+          <Tabs value={filtroStatus} onValueChange={setFiltroStatus} className="w-full min-w-0 lg:w-auto">
+            <TabsList className="h-auto w-full min-w-0 flex-wrap justify-start gap-1 rounded-2xl bg-card p-1 shadow-sm lg:w-auto">
               <TabsTrigger value="todos">Todos ({veiculos.length})</TabsTrigger>
               <TabsTrigger value="ativo">Ativos ({countByStatus("ativo")})</TabsTrigger>
               <TabsTrigger value="terceiro">Terceiros ({countByStatus("terceiro")})</TabsTrigger>
@@ -241,21 +241,21 @@ export default function Veiculos() {
           </Tabs>
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
             <DialogTrigger asChild>
-              <Button className="gap-2 bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90"><Plus className="h-4 w-4" />Novo Veículo</Button>
+              <Button className="h-10 w-full gap-2 shadow-sm lg:w-auto"><Plus className="h-4 w-4" />Novo Veículo</Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editId ? "Editar Veículo" : "Cadastrar Novo Veículo"}</DialogTitle>
                 <DialogDescription>Preencha os dados do veículo</DialogDescription>
               </DialogHeader>
-              <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-1 gap-4 mt-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Placa *</Label>
-                  <Input value={form.placa} onChange={e => setForm({...form, placa: e.target.value.toUpperCase()})} placeholder="ABC1D23" />
+                  <Input className="w-full min-w-0" value={form.placa} onChange={e => setForm({...form, placa: e.target.value.toUpperCase()})} placeholder="ABC1D23" />
                 </div>
                 <div className="space-y-2">
                   <Label>Modelo *</Label>
-                  <Input value={form.modelo} onChange={e => setForm({...form, modelo: e.target.value})} placeholder="Fiorino 1.4" />
+                  <Input className="w-full min-w-0" value={form.modelo} onChange={e => setForm({...form, modelo: e.target.value})} placeholder="Fiorino 1.4" />
                 </div>
                 <div className="space-y-2">
                   <Label>Marca</Label>
