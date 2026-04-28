@@ -115,7 +115,7 @@ export default function DashboardFrota() {
       const { count: checkCount } = await cq;
       setChecklistsHoje(checkCount || 0);
 
-      let pq = supabase.from("pedidos").select("id", { count: "exact" }).eq("status", "Concluído").gte("data_pedido", mesInicio);
+      let pq = supabase.from("pedidos").select("id", { count: "exact" }).in("status", ["entregue", "finalizado", "Concluído"]).gte("created_at", mesInicio);
       if (unidadeAtual?.id) pq = pq.eq("unidade_id", unidadeAtual.id);
       const { count: pedidosCount } = await pq;
       setEntregasConcluidas(pedidosCount || 0);
