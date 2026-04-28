@@ -793,7 +793,9 @@ export default function Pedidos() {
                       </div>
                       <span className="font-bold text-sm shrink-0">R$ {pedido.valor.toFixed(2)}</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground truncate">{pedido.data}</p>
+                    {podeAlterarDataEntrega ?
+                    <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-8 text-[11px]" /> :
+                    <p className="text-[10px] text-muted-foreground truncate">{pedido.data}</p>}
                   </div>
                 ))}
               </div>
@@ -877,7 +879,11 @@ export default function Pedidos() {
                         <TableCell>
                           <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">{pedido.data}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {podeAlterarDataEntrega ?
+                        <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-8 w-[140px] text-xs" /> :
+                        pedido.data}
+                        </TableCell>
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
