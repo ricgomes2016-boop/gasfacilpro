@@ -181,6 +181,39 @@ export default function AcertoEntregador() {
     enabled: buscar && !!selectedId,
   });
 
+  const { data: entregadoresPendentes = [], isLoading: loadingPendentes } = useQuery({
+    queryKey: ["acerto-entregadores-pendentes", dataInicio, dataFim, unidadeAtual?.id],
+    queryFn: async () => {
+      let query = supabase
+        .from("pedidos")
+        .select("id, valor_total, entregador_id, entregadores (id, nome)")
+        .gte("created_at", `${dataInicio}T00:00:00-03:00`)
+        .lte("created_at", `${dataFim}T23:59:59-03:00`)
+        .in("status", ["entregue", "pago"])
+        .not("entregador_id", "is", null);
+
+      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const map = new Map<string, { id: string; nome: string; pedidos: number; total: number }>();
+      (data || []).forEach((pedido: any) => {
+        if (!pedido.entregador_id) return;
+        const atual = map.get(pedido.entregador_id) || {
+          id: pedido.entregador_id,
+          nome: pedido.entregadores?.nome || "Entregador não identificado",
+          pedidos: 0,
+          total: 0,
+        };
+        atual.pedidos += 1;
+        atual.total += Number(pedido.valor_total || 0);
+        map.set(pedido.entregador_id, atual);
+      });
+
+      return Array.from(map.values()).sort((a, b) => b.total - a.total);
+    },
+  });
+
   // Despesas do entregador no período (não se aplica a canais virtuais)
   const { data: despesas = [], isLoading: loadingDespesas } = useQuery({
     queryKey: ["acerto-despesas", selectedId, dataInicio, dataFim, unidadeAtual?.id],
