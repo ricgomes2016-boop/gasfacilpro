@@ -58,6 +58,7 @@ const canalLabels: Record<string, string> = {
 interface PedidoRelatorio {
   id: string;
   created_at: string;
+  data_entrega: string | null;
   valor_total: number | null;
   status: string | null;
   forma_pagamento: string | null;
@@ -116,12 +117,13 @@ export default function RelatorioVendas() {
       let query = supabase
         .from("pedidos")
         .select(`
-          id, created_at, valor_total, status, forma_pagamento, canal_venda,
+          id, created_at, data_entrega, valor_total, status, forma_pagamento, canal_venda,
           clientes (nome), entregadores (nome),
           pedido_itens (quantidade, preco_unitario, produtos (nome))
         `)
-        .gte("created_at", `${dataInicio}T00:00:00-03:00`)
-        .lte("created_at", `${dataFim}T23:59:59-03:00`)
+        .gte("data_entrega", dataInicio)
+        .lte("data_entrega", dataFim)
+        .order("data_entrega", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
