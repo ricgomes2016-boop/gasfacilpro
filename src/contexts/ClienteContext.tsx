@@ -101,9 +101,8 @@ export function ClienteProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [walletTransactions, setWalletTransactions] = useState<WalletTransaction[]>([]);
-  
-  const [referralCode] = useState("CLIENTE" + Math.random().toString(36).substring(2, 8).toUpperCase());
-  const [referralCount] = useState(0);
+  const [referralCode, setReferralCode] = useState("CLIENTE");
+  const [referralCount, setReferralCount] = useState(0);
   
   const [valesGas] = useState<ValeGas[]>([]);
   
@@ -194,6 +193,28 @@ export function ClienteProvider({ children }: { children: ReactNode }) {
       fetchLojas();
     }
   }, [empresaInfo, searchParams]);
+
+  useEffect(() => {
+    const fetchIndicacoesCarteira = async () => {
+      if (!user || !empresaInfo?.id || !profile) return;
+
+      const { data: resumo } = await (supabase as any).rpc("get_cliente_indicacao_resumo");
+      if (!resumo) return;
+
+      setReferralCode(resumo.codigo_indicacao || "CLIENTE");
+      setReferralCount(Number(resumo.referral_count) || 0);
+      setWalletBalance(Number(resumo.wallet_balance) || 0);
+      setWalletTransactions((resumo.transactions || []).map((item: any) => ({
+        id: item.id,
+        type: item.type === "debit" ? "debit" : "credit",
+        amount: Number(item.amount) || 0,
+        description: item.description,
+        date: new Date(item.date),
+      })) as WalletTransaction[]);
+    };
+
+    fetchIndicacoesCarteira();
+  }, [user, profile, empresaInfo?.id]);
 
   const setLojaSelecionadaId = (id: string) => {
     setLojaSelecionadaIdState(id);

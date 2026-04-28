@@ -13,8 +13,10 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 interface IndicadorRanking {
+  clienteId: string;
   nome: string;
   telefone: string;
   indicacoes: number;
@@ -23,6 +25,7 @@ interface IndicadorRanking {
 }
 
 export default function ProgramaIndicacao() {
+  const { empresa } = useEmpresa();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ totalIndicacoes: 0, convertidas: 0, creditos: 0, ativos: 0 });
   const [ranking, setRanking] = useState<IndicadorRanking[]>([]);
@@ -32,76 +35,113 @@ export default function ProgramaIndicacao() {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!empresa?.id) return;
       setLoading(true);
       try {
-        // Buscar pedidos com dados do cliente para calcular indicações reais
-        // Usamos clientes que possuem mais de 1 pedido como "indicadores" (recorrentes)
-        const { data: pedidos } = await supabase
-          .from("pedidos")
-          .select("cliente_id, valor_total, status, created_at, clientes(nome, telefone)")
-          .eq("status", "entregue")
-          .order("created_at", { ascending: false })
-          .limit(1000);
-
-        if (!pedidos) { setLoading(false); return; }
-
-        // Agrupar pedidos por cliente
-        const porCliente: Record<string, { nome: string; telefone: string; pedidos: any[] }> = {};
-        for (const p of pedidos) {
-          const cid = p.cliente_id;
-          if (!cid) continue;
-          const nome = (p.clientes as any)?.nome || "Desconhecido";
-          const telefone = (p.clientes as any)?.telefone || "";
-          if (!porCliente[cid]) porCliente[cid] = { nome, telefone, pedidos: [] };
-          porCliente[cid].pedidos.push(p);
+        const { data: configData, error: configError } = await (supabase as any)
+          .from("programa_indicacao_config")
+          .select("valor_indicador, valor_indicado, ativo")
+          .eq("empresa_id", empresa.id)
+          .maybeSingle();
+        if (configError) throw configError;
+        if (configData) {
+          setConfig({
+            valorIndicador: Number(configData.valor_indicador) || 10,
+            valorIndicado: Number(configData.valor_indicado) || 10,
+            ativo: configData.ativo !== false,
+          });
         }
 
-        // Calcular ranking: clientes com mais pedidos = mais indicações
-        // Cada 3 pedidos conta como 1 "indicação" trazida
-        const rankingCalc: IndicadorRanking[] = Object.entries(porCliente)
-          .map(([, dados]) => {
-            const total = dados.pedidos.length;
-            const indicacoes = Math.floor(total / 3); // a cada 3 pedidos = 1 indicação provável
-            const convertidas = Math.floor(indicacoes * 0.7);
-            const ganhoTotal = convertidas * config.valorIndicador;
-            return {
-              nome: dados.nome,
-              telefone: dados.telefone,
-              indicacoes,
-              convertidas,
-              ganhoTotal,
-            };
-          })
-          .filter(r => r.indicacoes > 0)
-          .sort((a, b) => b.indicacoes - a.indicacoes)
+        const { data: indicacoes, error: indicacoesError } = await (supabase as any)
+          .from("cliente_indicacoes")
+          .select("id, indicador_cliente_id, status, valor_credito_indicador")
+          .eq("empresa_id", empresa.id)
+          .order("created_at", { ascending: false })
+          .limit(1000);
+        if (indicacoesError) throw indicacoesError;
+
+        const indicadorIds = Array.from(new Set<string>((indicacoes || []).map((i: any) => i.indicador_cliente_id).filter(Boolean)));
+        const clientesMap = new Map<string, { nome: string; telefone: string }>();
+        if (indicadorIds.length > 0) {
+          const { data: clientesData, error: clientesError } = await supabase
+            .from("clientes")
+            .select("id, nome, telefone")
+            .in("id", indicadorIds);
+          if (clientesError) throw clientesError;
+          (clientesData || []).forEach((c: any) => clientesMap.set(c.id, { nome: c.nome, telefone: c.telefone || "" }));
+        }
+
+        const porIndicador = new Map<string, IndicadorRanking>();
+        (indicacoes || []).forEach((indicacao: any) => {
+          const cliente = clientesMap.get(indicacao.indicador_cliente_id);
+          const atual = porIndicador.get(indicacao.indicador_cliente_id) || {
+            clienteId: indicacao.indicador_cliente_id,
+            nome: cliente?.nome || "Cliente não identificado",
+            telefone: cliente?.telefone || "",
+            indicacoes: 0,
+            convertidas: 0,
+            ganhoTotal: 0,
+          };
+          atual.indicacoes += 1;
+          if (indicacao.status === "convertida") {
+            atual.convertidas += 1;
+            atual.ganhoTotal += Number(indicacao.valor_credito_indicador) || 0;
+          }
+          porIndicador.set(indicacao.indicador_cliente_id, atual);
+        });
+
+        const rankingCalc = Array.from(porIndicador.values())
+          .sort((a, b) => b.convertidas - a.convertidas || b.indicacoes - a.indicacoes)
           .slice(0, 20);
 
         setRanking(rankingCalc);
         setStats({
-          totalIndicacoes: rankingCalc.reduce((s, r) => s + r.indicacoes, 0),
-          convertidas: rankingCalc.reduce((s, r) => s + r.convertidas, 0),
-          creditos: rankingCalc.reduce((s, r) => s + r.ganhoTotal, 0),
+          totalIndicacoes: (indicacoes || []).length,
+          convertidas: (indicacoes || []).filter((i: any) => i.status === "convertida").length,
+          creditos: (indicacoes || []).reduce((s: number, i: any) => s + (i.status === "convertida" ? Number(i.valor_credito_indicador) || 0 : 0), 0),
           ativos: rankingCalc.filter(r => r.indicacoes >= 2).length,
         });
       } catch (e) { console.error(e); } finally { setLoading(false); }
     };
     fetchData();
-  }, [config.valorIndicador]);
+  }, [empresa?.id]);
 
   const conversao = stats.totalIndicacoes > 0
     ? Math.round((stats.convertidas / stats.totalIndicacoes) * 100)
     : 0;
 
-  const handleSalvarConfig = () => {
+  const handleSalvarConfig = async () => {
+    if (!empresa?.id) return;
     const vi = parseFloat(configTemp.valorIndicador);
     const vd = parseFloat(configTemp.valorIndicado);
     if (isNaN(vi) || isNaN(vd) || vi < 0 || vd < 0) {
       toast.error("Informe valores válidos");
       return;
     }
+    const { error } = await (supabase as any).from("programa_indicacao_config").upsert({
+      empresa_id: empresa.id,
+      valor_indicador: vi,
+      valor_indicado: vd,
+      ativo: config.ativo,
+    }, { onConflict: "empresa_id" });
+    if (error) { toast.error("Erro ao salvar configurações"); return; }
     setConfig(c => ({ ...c, valorIndicador: vi, valorIndicado: vd }));
     setEditandoConfig(false);
     toast.success("Valores atualizados!");
+  };
+
+  const handleToggleAtivo = async () => {
+    if (!empresa?.id) return;
+    const novoAtivo = !config.ativo;
+    const { error } = await (supabase as any).from("programa_indicacao_config").upsert({
+      empresa_id: empresa.id,
+      valor_indicador: config.valorIndicador,
+      valor_indicado: config.valorIndicado,
+      ativo: novoAtivo,
+    }, { onConflict: "empresa_id" });
+    if (error) { toast.error("Erro ao atualizar status do programa"); return; }
+    setConfig(c => ({ ...c, ativo: novoAtivo }));
+    toast.success(novoAtivo ? "Programa ativado!" : "Programa desativado");
   };
 
   if (loading) {
@@ -167,7 +207,7 @@ export default function ProgramaIndicacao() {
               <div className="space-y-3">
                 <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">🏆 Top Indicadores</h3>
                 {ranking.slice(0, 3).map((r, i) => (
-                  <Card key={r.nome} className={i === 0 ? "border-primary/40 bg-primary/5" : ""}>
+                  <Card key={r.clienteId} className={i === 0 ? "border-primary/40 bg-primary/5" : ""}>
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3">
                         <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm ${
@@ -210,7 +250,7 @@ export default function ProgramaIndicacao() {
                       </TableHeader>
                       <TableBody>
                         {ranking.map((r, i) => (
-                          <TableRow key={r.nome}>
+                          <TableRow key={r.clienteId}>
                             <TableCell className="font-bold text-muted-foreground">{i + 1}</TableCell>
                             <TableCell>
                               <div>
@@ -315,10 +355,7 @@ export default function ProgramaIndicacao() {
                       <div className="flex items-center gap-2">
                         <div className={`h-2 w-2 rounded-full ${config.ativo ? "bg-primary" : "bg-destructive"}`} />
                         <span className="text-sm">{config.ativo ? "Ativo" : "Inativo"}</span>
-                        <Button variant="outline" size="sm" className="ml-auto" onClick={() => {
-                          setConfig(c => ({ ...c, ativo: !c.ativo }));
-                          toast.success(config.ativo ? "Programa desativado" : "Programa ativado!");
-                        }}>
+                        <Button variant="outline" size="sm" className="ml-auto" onClick={handleToggleAtivo}>
                           {config.ativo ? "Desativar" : "Ativar"}
                         </Button>
                       </div>

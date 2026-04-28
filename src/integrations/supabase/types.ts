@@ -1468,6 +1468,83 @@ export type Database = {
           },
         ]
       }
+      cliente_creditos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          descricao: string
+          empresa_id: string
+          expira_em: string | null
+          id: string
+          indicacao_id: string | null
+          natureza: string
+          pedido_id: string | null
+          status: string
+          tipo: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          descricao: string
+          empresa_id: string
+          expira_em?: string | null
+          id?: string
+          indicacao_id?: string | null
+          natureza?: string
+          pedido_id?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          descricao?: string
+          empresa_id?: string
+          expira_em?: string | null
+          id?: string
+          indicacao_id?: string | null
+          natureza?: string
+          pedido_id?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_creditos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_creditos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_creditos_indicacao_id_fkey"
+            columns: ["indicacao_id"]
+            isOneToOne: false
+            referencedRelation: "cliente_indicacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_creditos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cliente_enderecos: {
         Row: {
           apelido: string
@@ -1529,6 +1606,80 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cliente_indicacoes: {
+        Row: {
+          codigo_indicacao: string
+          convertido_em: string | null
+          created_at: string
+          empresa_id: string
+          id: string
+          indicado_cliente_id: string
+          indicador_cliente_id: string
+          primeiro_pedido_id: string | null
+          status: string
+          updated_at: string
+          valor_credito_indicado: number
+          valor_credito_indicador: number
+        }
+        Insert: {
+          codigo_indicacao: string
+          convertido_em?: string | null
+          created_at?: string
+          empresa_id: string
+          id?: string
+          indicado_cliente_id: string
+          indicador_cliente_id: string
+          primeiro_pedido_id?: string | null
+          status?: string
+          updated_at?: string
+          valor_credito_indicado?: number
+          valor_credito_indicador?: number
+        }
+        Update: {
+          codigo_indicacao?: string
+          convertido_em?: string | null
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          indicado_cliente_id?: string
+          indicador_cliente_id?: string
+          primeiro_pedido_id?: string | null
+          status?: string
+          updated_at?: string
+          valor_credito_indicado?: number
+          valor_credito_indicador?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_indicacoes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_indicacoes_indicado_cliente_id_fkey"
+            columns: ["indicado_cliente_id"]
+            isOneToOne: true
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_indicacoes_indicador_cliente_id_fkey"
+            columns: ["indicador_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_indicacoes_primeiro_pedido_id_fkey"
+            columns: ["primeiro_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
             referencedColumns: ["id"]
           },
         ]
@@ -1680,6 +1831,8 @@ export type Database = {
           cep: string | null
           cidade: string | null
           codigo_cliente: number | null
+          codigo_indicacao: string | null
+          codigo_indicacao_usado: string | null
           cpf: string | null
           created_at: string
           data_ultimo_pagamento: string | null
@@ -1687,6 +1840,7 @@ export type Database = {
           empresa_id: string | null
           endereco: string | null
           id: string
+          indicado_por_cliente_id: string | null
           latitude: number | null
           limite_credito: number | null
           longitude: number | null
@@ -1706,6 +1860,8 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           codigo_cliente?: number | null
+          codigo_indicacao?: string | null
+          codigo_indicacao_usado?: string | null
           cpf?: string | null
           created_at?: string
           data_ultimo_pagamento?: string | null
@@ -1713,6 +1869,7 @@ export type Database = {
           empresa_id?: string | null
           endereco?: string | null
           id?: string
+          indicado_por_cliente_id?: string | null
           latitude?: number | null
           limite_credito?: number | null
           longitude?: number | null
@@ -1732,6 +1889,8 @@ export type Database = {
           cep?: string | null
           cidade?: string | null
           codigo_cliente?: number | null
+          codigo_indicacao?: string | null
+          codigo_indicacao_usado?: string | null
           cpf?: string | null
           created_at?: string
           data_ultimo_pagamento?: string | null
@@ -1739,6 +1898,7 @@ export type Database = {
           empresa_id?: string | null
           endereco?: string | null
           id?: string
+          indicado_por_cliente_id?: string | null
           latitude?: number | null
           limite_credito?: number | null
           longitude?: number | null
@@ -1757,6 +1917,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clientes_indicado_por_cliente_id_fkey"
+            columns: ["indicado_por_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
         ]
@@ -7319,6 +7486,47 @@ export type Database = {
           },
         ]
       }
+      programa_indicacao_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string
+          id: string
+          updated_at: string
+          validade_credito_dias: number
+          valor_indicado: number
+          valor_indicador: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id: string
+          id?: string
+          updated_at?: string
+          validade_credito_dias?: number
+          valor_indicado?: number
+          valor_indicador?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          updated_at?: string
+          validade_credito_dias?: number
+          valor_indicado?: number
+          valor_indicador?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "programa_indicacao_config_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: true
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       promocoes: {
         Row: {
           created_at: string
@@ -10171,6 +10379,11 @@ export type Database = {
         Returns: boolean
       }
       execute_readonly_query: { Args: { query_text: string }; Returns: Json }
+      gerar_codigo_indicacao_cliente: {
+        Args: { _cliente_id: string; _nome: string }
+        Returns: string
+      }
+      get_cliente_indicacao_resumo: { Args: never; Returns: Json }
       get_contador_empresas: {
         Args: { _user_id?: string }
         Returns: {

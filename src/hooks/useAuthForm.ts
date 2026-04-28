@@ -27,7 +27,7 @@ const phoneSignupSchema = z.object({
 
 export type LoginMethod = "email" | "phone";
 
-export function useAuthForm(empresaSlug?: string, defaultLoginMethod: LoginMethod = "phone") {
+export function useAuthForm(empresaSlug?: string, defaultLoginMethod: LoginMethod = "phone", codigoIndicacao?: string) {
   const { signIn, signUp } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -130,7 +130,7 @@ export function useAuthForm(empresaSlug?: string, defaultLoginMethod: LoginMetho
     }
 
     setIsLoading(true);
-    const { error } = await signUp(emailForAuth, signupPassword, signupName, empresaSlug, phoneValue);
+    const { error } = await signUp(emailForAuth, signupPassword, signupName, empresaSlug, phoneValue, codigoIndicacao);
     if (error) {
       if (error.message.includes("already registered")) {
         setErrors({ general: loginMethod === "phone" ? "Este telefone já está cadastrado" : "Este email já está cadastrado" });

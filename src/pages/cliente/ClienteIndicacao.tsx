@@ -19,11 +19,11 @@ import {
 import { toast } from "sonner";
 
 export default function ClienteIndicacao() {
-  const { referralCode, referralCount, walletBalance } = useCliente();
+  const { referralCode, referralCount, walletBalance, empresaSlug } = useCliente();
   const [copied, setCopied] = useState(false);
 
-  const appBaseUrl = "https://gasfacil-entregas.lovable.app/cliente";
-  const referralLink = `${appBaseUrl}?ref=${referralCode}`;
+  const appBaseUrl = "https://app.gasfacilpro.com.br/auth";
+  const referralLink = `${appBaseUrl}?ref=${encodeURIComponent(referralCode)}${empresaSlug ? `&empresa=${encodeURIComponent(empresaSlug)}` : ""}`;
   const shareMessage = `🔥 Compre gás com desconto! Use meu código ${referralCode} e ganhe R$10 na primeira compra. Acesse: ${referralLink}`;
 
   const copyToClipboard = async (text: string) => {
