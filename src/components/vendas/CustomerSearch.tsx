@@ -436,7 +436,6 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
 
   const handleFieldChange = (field: keyof CustomerData, fieldValue: string) => {
     const updates: Partial<CustomerData> = { [field]: fieldValue };
-    if (field === "nome" || field === "telefone") updates.id = null;
     // Clear coords when address is edited so blur re-validates
     if (field === "endereco") {
       updates.latitude = null;
@@ -529,30 +528,67 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
   };
 
   const salvarClienteAtual = async () => {
-    if (!value.id) return;
     if (!value.nome.trim()) {
       toast.error("Informe o nome do cliente antes de salvar");
       return;
     }
 
+    if (!empresa?.id) {
+      toast.error("Empresa não identificada. Faça login novamente.");
+      return;
+    }
+
     setIsSavingCustomer(true);
     try {
-      const { error } = await supabase
+      if (value.id) {
+        const { error } = await supabase
+          .from("clientes")
+          .update({
+            nome: value.nome.trim(),
+            telefone: value.telefone || null,
+            endereco: value.endereco || null,
+            numero: value.numero || null,
+            bairro: value.bairro || null,
+            cep: value.cep || null,
+            latitude: value.latitude ?? null,
+            longitude: value.longitude ?? null,
+          })
+          .eq("id", value.id);
+
+        if (error) throw error;
+        toast.success("Cliente atualizado");
+        return;
+      }
+
+      const { data: novoCliente, error } = await supabase
         .from("clientes")
-        .update({
+        .insert({
           nome: value.nome.trim(),
           telefone: value.telefone || null,
           endereco: value.endereco || null,
           numero: value.numero || null,
           bairro: value.bairro || null,
           cep: value.cep || null,
+          cidade: unidadeAtual?.cidade || null,
+          tipo: "residencial",
+          ativo: true,
+          empresa_id: empresa.id,
           latitude: value.latitude ?? null,
           longitude: value.longitude ?? null,
         })
-        .eq("id", value.id);
+        .select("id")
+        .single();
 
       if (error) throw error;
-      toast.success("Cliente atualizado");
+      if (novoCliente?.id && unidadeAtual?.id) {
+        const { error: unidadeError } = await supabase.from("cliente_unidades").insert({
+          cliente_id: novoCliente.id,
+          unidade_id: unidadeAtual.id,
+        });
+        if (unidadeError) console.error("Erro ao associar cliente à unidade:", unidadeError);
+      }
+      if (novoCliente?.id) onChange({ ...value, id: novoCliente.id });
+      toast.success("Cliente salvo");
     } catch (error: any) {
       console.error("Erro ao salvar cliente:", error);
       toast.error(error?.message || "Erro ao salvar cliente");
