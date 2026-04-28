@@ -366,18 +366,51 @@ export default function Veiculos() {
         </div>
 
         {/* Table */}
-        <Card className="modern-panel">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Lista de Veículos</CardTitle>
-              <div className="relative">
+        <Card className="modern-panel overflow-hidden">
+          <CardHeader className="section-header-catalog pb-3">
+            <div className="flex flex-col gap-3 w-full min-w-0 lg:flex-row lg:items-center lg:justify-between">
+              <CardTitle className="section-header-title min-w-0"><span className="truncate">Lista de Veículos</span></CardTitle>
+              <div className="relative w-full min-w-0 lg:w-[320px]">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Buscar placa, modelo, marca..." className="pl-10 w-[280px]" value={search} onChange={e => setSearch(e.target.value)} />
+                <Input placeholder="Buscar placa, modelo, marca..." className="w-full min-w-0 pl-10" value={search} onChange={e => setSearch(e.target.value)} />
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            {loading ? <p className="text-muted-foreground">Carregando...</p> : (
+          <CardContent className="saas-table-scope max-w-full overflow-x-auto p-0 md:p-6">
+            {loading ? <div className="space-y-3 p-3 md:p-0">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}</div> : (
+              <>
+              <div className="space-y-3 px-3 pb-3 md:hidden w-full min-w-0">
+                {filtered.map(v => {
+                  const gps = getGpsStatus(v.entregador_id);
+                  const kmL = getKmL(v.id);
+                  return (
+                    <div key={v.id} className={`rounded-2xl border border-border/45 bg-card p-3 shadow-sm w-full min-w-0 ${(v.status === "excluido" || v.status === "inativo") ? "opacity-60" : ""}`}>
+                      <div className="flex items-start justify-between gap-3 w-full min-w-0">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-mono text-sm font-bold truncate">{v.placa}</p>
+                          <p className="text-sm font-medium truncate">{v.modelo}</p>
+                          <p className="text-xs text-muted-foreground truncate">{v.marca || "Sem marca"} {v.ano || ""}</p>
+                        </div>
+                        {getStatusBadge(v.status)}
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-xl bg-muted/50 p-2 min-w-0"><span className="text-muted-foreground">Tipo</span><p className="font-medium truncate">{v.tipo || "—"}</p></div>
+                        <div className="rounded-xl bg-muted/50 p-2 min-w-0"><span className="text-muted-foreground">KM</span><p className="font-medium truncate">{v.km_atual?.toLocaleString("pt-BR") || 0}</p></div>
+                        <div className="rounded-xl bg-muted/50 p-2 min-w-0"><span className="text-muted-foreground">KM/L</span><p className="font-medium truncate">{kmL ? kmL.toFixed(1) : "—"}</p></div>
+                        <div className="rounded-xl bg-muted/50 p-2 min-w-0"><span className="text-muted-foreground">GPS</span><p className="font-medium truncate">{v.entregador_id ? gps.label : "—"}</p></div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-2 w-full min-w-0">
+                        <span className="text-xs text-muted-foreground truncate">{getEntregadorNome(v.entregador_id) || "Sem entregador"}</span>
+                        <div className="flex shrink-0 gap-1">
+                          <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setDetalheVeiculo(v)} title="Detalhes"><Eye className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => handleEdit(v)} title="Editar"><Edit className="h-4 w-4" /></Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="hidden md:block min-w-[900px]">
               <Table>
                 <TableHeader>
                   <TableRow>
