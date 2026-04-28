@@ -307,7 +307,7 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
   // Notificação consolidada
   await supabase.from("notificacoes").insert({
     titulo: "💰 Nova venda registrada",
-    mensagem: `Venda #${pedidoId.slice(0, 8)} — R$ ${totalVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${formasUsadas}). Títulos financeiros gerados automaticamente.`,
+    mensagem: `Venda #${pedidoRef} — R$ ${totalVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${formasUsadas}). Títulos financeiros gerados automaticamente.`,
     tipo: "info",
     user_id: userId || "",
   }).then(r => { if (r.error) console.error("Erro notificação:", r.error); });
