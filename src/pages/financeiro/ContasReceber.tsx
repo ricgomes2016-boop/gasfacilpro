@@ -396,7 +396,12 @@ export default function ContasReceber() {
 
   // Filtragem base (nome, data, status) — por padrão mostra apenas pendentes/vencidas
   const baseFiltered = contas.filter(c => {
-    const matchNome = !filtroNome || c.cliente.toLowerCase().includes(filtroNome.toLowerCase());
+    const termo = filtroNome.toLowerCase();
+    const matchNome = !filtroNome
+      || c.cliente.toLowerCase().includes(termo)
+      || (c.parceiro_nome || "").toLowerCase().includes(termo)
+      || String(c.vale_numero || "").includes(termo)
+      || (c.vale_codigo || "").toLowerCase().includes(termo);
     const matchDataIni = !dataInicial || c.vencimento >= dataInicial;
     const matchDataFim = !dataFinal || c.vencimento <= dataFinal;
     const vencida = c.status === "pendente" && c.vencimento < hoje;
@@ -535,8 +540,9 @@ export default function ContasReceber() {
                     <div className="flex items-center gap-2 min-w-0">
                       <Checkbox checked={selectedIds.has(conta.id)} onCheckedChange={() => toggleSelect(conta.id)} />
                       <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{conta.cliente}</p>
+                        <p className="text-sm font-medium truncate">{conta.parceiro_nome || conta.cliente}</p>
                         <p className="text-xs text-muted-foreground truncate">{conta.descricao}</p>
+                        {conta.vale_numero && <p className="text-[10px] text-muted-foreground">Vale nº {conta.vale_numero}</p>}
                       </div>
                     </div>
                     <DropdownMenu>
@@ -593,7 +599,8 @@ export default function ContasReceber() {
                         <Checkbox checked={selectedIds.has(conta.id)} onCheckedChange={() => toggleSelect(conta.id)} />
                       </TableCell>
                       <TableCell>
-                        <p className="font-medium text-sm">{conta.cliente}</p>
+                        <p className="font-medium text-sm">{conta.parceiro_nome || conta.cliente}</p>
+                        {conta.vale_numero && <p className="text-xs text-muted-foreground">Vale nº {conta.vale_numero} · {conta.vale_codigo}</p>}
                       </TableCell>
                       <TableCell className="text-sm">{conta.descricao}</TableCell>
                       <TableCell>
