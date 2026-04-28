@@ -520,11 +520,19 @@ export default function EntregadorNovaVenda() {
 
   const todosCanais = canaisVenda.map((c) => ({ value: c.nome, label: c.nome }));
 
-  const clientesFiltrados = clientes.filter(
-    (c) =>
-      c.nome.toLowerCase().includes(buscaCliente.toLowerCase()) ||
-      (c.telefone || "").includes(buscaCliente)
-  );
+  const clientesFiltrados = clientes.filter((c) => {
+    const termo = buscaCliente.trim().toLowerCase();
+    const digits = buscaCliente.replace(/\D/g, "");
+    if (!termo) return true;
+    return (
+      c.nome.toLowerCase().includes(termo) ||
+      (c.telefone || "").replace(/\D/g, "").includes(digits) ||
+      (c.telefone || "").toLowerCase().includes(termo) ||
+      (c.endereco || "").toLowerCase().includes(termo) ||
+      (c.numero || "").toLowerCase().includes(termo) ||
+      (c.bairro || "").toLowerCase().includes(termo)
+    );
+  });
 
   return (
     <EntregadorLayout title="Nova Venda">
