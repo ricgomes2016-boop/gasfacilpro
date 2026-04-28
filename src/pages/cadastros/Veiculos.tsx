@@ -323,42 +323,42 @@ export default function Veiculos() {
         <div className="grid grid-cols-1 gap-3 min-[384px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Card className="modern-status-card">
             <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
-              <CardTitle className="text-sm font-semibold truncate">Ativos</CardTitle>
+              <CardTitle className="text-sm font-semibold truncate text-primary">Ativos</CardTitle>
               <span className="status-card-icon-primary rounded-xl p-2"><Car className="h-4 w-4" /></span>
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{countByStatus("ativo")}</div></CardContent>
           </Card>
           <Card className="modern-status-card">
             <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
-              <CardTitle className="text-sm font-semibold truncate">Terceiros</CardTitle>
+              <CardTitle className="text-sm font-semibold truncate text-info">Terceiros</CardTitle>
               <span className="status-card-icon-info rounded-xl p-2"><ExternalLink className="h-4 w-4" /></span>
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{countByStatus("terceiro")}</div></CardContent>
           </Card>
           <Card className="modern-status-card">
             <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
-              <CardTitle className="text-sm font-semibold truncate">GPS Online</CardTitle>
+              <CardTitle className="text-sm font-semibold truncate text-success">GPS Online</CardTitle>
               <span className="status-card-icon-success rounded-xl p-2"><MapPin className="h-4 w-4" /></span>
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{gpsOnlineCount}</div></CardContent>
           </Card>
           <Card className="modern-status-card">
             <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
-              <CardTitle className="text-sm font-semibold truncate">KM/L Médio</CardTitle>
+              <CardTitle className="text-sm font-semibold truncate text-warning">KM/L Médio</CardTitle>
               <span className="status-card-icon-warning rounded-xl p-2"><Fuel className="h-4 w-4" /></span>
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{avgKmL > 0 ? avgKmL.toFixed(1) : "—"}</div></CardContent>
           </Card>
           <Card className="modern-status-card">
             <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
-              <CardTitle className="text-sm font-semibold truncate">Com Entregador</CardTitle>
+              <CardTitle className="text-sm font-semibold truncate text-muted-foreground">Com Entregador</CardTitle>
               <span className="status-card-icon-muted rounded-xl p-2"><User className="h-4 w-4" /></span>
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{veiculos.filter(v => v.entregador_id && (v.status || "ativo") !== "excluido").length}</div></CardContent>
           </Card>
           <Card className="modern-status-card">
             <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
-              <CardTitle className="text-sm font-semibold truncate">Valor FIPE</CardTitle>
+              <CardTitle className="text-sm font-semibold truncate text-accent-foreground">Valor FIPE</CardTitle>
               <span className="status-card-icon-accent rounded-xl p-2"><Truck className="h-4 w-4" /></span>
             </CardHeader>
             <CardContent><div className="text-xl font-bold truncate">R$ {totalFipe.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div></CardContent>
