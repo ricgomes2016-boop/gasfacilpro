@@ -183,9 +183,13 @@ export default function EntregadorNovaVenda() {
       produtosQuery = produtosQuery.eq("unidade_id", unidadeId);
     }
 
-    // Filter clientes by empresa
-    let clientesQuery = supabase.from("clientes").select("id, nome, telefone, endereco, bairro, cep, cidade, tipo").eq("ativo", true).order("nome");
-    if (empresa?.id) clientesQuery = clientesQuery.eq("empresa_id", empresa.id);
+    let clientesQuery = supabase
+      .from("clientes")
+      .select("id, nome, telefone, endereco, numero, bairro, cep, cidade, tipo")
+      .eq("ativo", true)
+      .order("nome")
+      .limit(500);
+    if (empresaId) clientesQuery = clientesQuery.eq("empresa_id", empresaId);
 
     const [produtosRes, clientesRes] = await Promise.all([
       produtosQuery,
@@ -375,7 +379,7 @@ export default function EntregadorNovaVenda() {
       nome: c.nome,
       telefone: c.telefone || "",
       endereco: c.endereco || "",
-      numero: "",
+      numero: c.numero || "",
       bairro: c.bairro || "",
       complemento: "",
       tipo: c.tipo,
