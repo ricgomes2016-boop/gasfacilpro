@@ -34,6 +34,7 @@ import autoTable from "jspdf-autotable";
 import { QRCodeScanner } from "@/components/entregador/QRCodeScanner";
 import { useToast } from "@/hooks/use-toast";
 import { validarValeGasNoBanco } from "@/hooks/useValeGasValidation";
+import { useValeGas } from "@/contexts/ValeGasContext";
 import { rotearPagamentosVenda, PagamentoRoteamento } from "@/services/paymentRoutingService";
 
 const formatCurrency = (v: number) =>
@@ -71,6 +72,11 @@ type FiltroStatus = "pendentes" | "acertados" | "todos";
 interface PagamentoMultiplo {
   forma: string;
   valor: number;
+  vale_gas_id?: string;
+  vale_gas_parceiro_id?: string;
+  vale_gas_parceiro_nome?: string;
+  vale_gas_numero?: number;
+  vale_gas_codigo?: string;
 }
 
 interface EditingEntrega {
@@ -83,6 +89,7 @@ interface EditingEntrega {
 
 export default function AcertoEntregador() {
   const { unidadeAtual } = useUnidade();
+  const { parceiros } = useValeGas();
   const { hasAnyRole } = useAuth();
   const { toast: toastHook } = useToast();
   const queryClient = useQueryClient();
@@ -106,9 +113,10 @@ export default function AcertoEntregador() {
   const [editingEntrega, setEditingEntrega] = useState<EditingEntrega | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [valeGasModoManual, setValeGasModoManual] = useState(true);
+  const [valeGasParceiroId, setValeGasParceiroId] = useState("");
   const [valeGasCodigoInput, setValeGasCodigoInput] = useState("");
   const [validandoValeGas, setValidandoValeGas] = useState(false);
-  const [valeGasValidado, setValeGasValidado] = useState<{ parceiro: string; codigo: string; valor: number; valido: boolean } | null>(null);
+  const [valeGasValidado, setValeGasValidado] = useState<{ parceiro: string; parceiroId?: string; numero?: number; codigo: string; valor: number; valido: boolean; valeId?: string } | null>(null);
   const [isConfirmingAcerto, setIsConfirmingAcerto] = useState(false);
   const [acertoConfirmado, setAcertoConfirmado] = useState(false);
 
