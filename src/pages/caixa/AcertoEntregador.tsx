@@ -181,6 +181,39 @@ export default function AcertoEntregador() {
     enabled: buscar && !!selectedId,
   });
 
+  const { data: entregadoresPendentes = [], isLoading: loadingPendentes } = useQuery({
+    queryKey: ["acerto-entregadores-pendentes", dataInicio, dataFim, unidadeAtual?.id],
+    queryFn: async () => {
+      let query = supabase
+        .from("pedidos")
+        .select("id, valor_total, entregador_id, entregadores (id, nome)")
+        .gte("created_at", `${dataInicio}T00:00:00-03:00`)
+        .lte("created_at", `${dataFim}T23:59:59-03:00`)
+        .in("status", ["entregue", "pago"])
+        .not("entregador_id", "is", null);
+
+      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const map = new Map<string, { id: string; nome: string; pedidos: number; total: number }>();
+      (data || []).forEach((pedido: any) => {
+        if (!pedido.entregador_id) return;
+        const atual = map.get(pedido.entregador_id) || {
+          id: pedido.entregador_id,
+          nome: pedido.entregadores?.nome || "Entregador não identificado",
+          pedidos: 0,
+          total: 0,
+        };
+        atual.pedidos += 1;
+        atual.total += Number(pedido.valor_total || 0);
+        map.set(pedido.entregador_id, atual);
+      });
+
+      return Array.from(map.values()).sort((a, b) => b.total - a.total);
+    },
+  });
+
   // Despesas do entregador no período (não se aplica a canais virtuais)
   const { data: despesas = [], isLoading: loadingDespesas } = useQuery({
     queryKey: ["acerto-despesas", selectedId, dataInicio, dataFim, unidadeAtual?.id],
@@ -606,6 +639,49 @@ export default function AcertoEntregador() {
                 <Download className="h-4 w-4" />PDF
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-warning/30 bg-warning/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <AlertCircle className="h-5 w-5 text-warning" />
+              Entregadores com acerto pendente
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingPendentes ? (
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
+              </div>
+            ) : entregadoresPendentes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum entregador com pedido pendente de acerto neste período.</p>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {entregadoresPendentes.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedId(item.id);
+                      setFiltroStatus("pendentes");
+                      setBuscar(true);
+                      setAcertoConfirmado(false);
+                    }}
+                    className="flex items-center justify-between gap-3 rounded-lg border bg-background p-3 text-left transition-colors hover:bg-muted/60"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{item.nome}</p>
+                      <p className="text-xs text-muted-foreground">{item.pedidos} pedido{item.pedidos > 1 ? "s" : ""} pendente{item.pedidos > 1 ? "s" : ""}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-bold">{formatCurrency(item.total)}</p>
+                      <Badge variant="outline" className="mt-1 text-[10px]">Ver acerto</Badge>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

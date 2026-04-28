@@ -840,6 +840,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
       const receiptData = {
         pedidoId: pedido.id,
+        pedidoNumero: (pedido as any).numero_sequencial ?? null,
         data: new Date(toBrasiliaNoonISOString(dataEntrega)),
         cliente: { nome: customer.nome, telefone: customer.telefone, endereco: enderecoCompleto },
         itens,
@@ -876,7 +877,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
       toast({
         title: "Venda finalizada!",
-        description: `Pedido #${(pedido as any).numero_sequencial ?? pedido.id.slice(0, 6)} criado com sucesso.`,
+        description: `Pedido #${(pedido as any).numero_sequencial ?? pedido.id.slice(0, 8).toUpperCase()} criado com sucesso.`,
       });
 
       // Show print confirmation dialog

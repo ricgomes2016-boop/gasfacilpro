@@ -249,7 +249,7 @@ export default function PDV() {
           endereco_entrega: "Retirada no local",
           unidade_id: unidadeAtual?.id || null,
         } as any)
-        .select("id")
+        .select("id, numero_sequencial")
         .single();
 
       if (pedidoError) throw pedidoError;
@@ -293,6 +293,7 @@ export default function PDV() {
       // Generate receipt
       generateReceiptPdf({
         pedidoId: pedido.id,
+        pedidoNumero: (pedido as any).numero_sequencial ?? null,
         data: new Date(),
         cliente: {
           nome: "Consumidor Final",
@@ -317,7 +318,7 @@ export default function PDV() {
 
       toast({
         title: "Venda finalizada!",
-        description: `Pedido #${pedido.id.slice(0, 6)} - R$ ${total.toFixed(2)}`,
+        description: `Pedido #${(pedido as any).numero_sequencial ?? pedido.id.slice(0, 8).toUpperCase()} - R$ ${total.toFixed(2)}`,
       });
 
       // Reset

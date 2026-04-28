@@ -13,6 +13,7 @@ export interface EmpresaConfig {
 
 interface ReceiptData {
   pedidoId: string;
+  pedidoNumero?: number | string | null;
   data: Date;
   cliente: {
     nome: string;
@@ -74,6 +75,7 @@ export function generateReceiptPdf(data: ReceiptData): void {
   const marginLeft = 4;
   const marginRight = 4;
   const contentWidth = pageWidth - marginLeft - marginRight;
+  const pedidoNumero = data.pedidoNumero ?? data.pedidoId.slice(0, 8).toUpperCase();
   let yPos = 8;
 
   // Dados da empresa (usa padrão se não fornecido)
@@ -120,7 +122,7 @@ export function generateReceiptPdf(data: ReceiptData): void {
   // Order Info
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.text(`PEDIDO #${data.pedidoId.slice(0, 8).toUpperCase()}`, pageWidth / 2, yPos, { align: "center" });
+  doc.text(`PEDIDO #${pedidoNumero}`, pageWidth / 2, yPos, { align: "center" });
   yPos += 5;
 
   doc.setFontSize(8);
@@ -269,7 +271,7 @@ export function generateReceiptPdf(data: ReceiptData): void {
   doc.text("Volte sempre!", pageWidth / 2, yPos, { align: "center" });
 
   // Generate and download
-  const fileName = `comprovante-${data.pedidoId.slice(0, 8)}.pdf`;
+  const fileName = `comprovante-${String(pedidoNumero).replace(/[^a-zA-Z0-9-]/g, "")}.pdf`;
   doc.save(fileName);
 }
 
