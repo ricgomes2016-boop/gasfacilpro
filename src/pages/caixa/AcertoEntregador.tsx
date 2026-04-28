@@ -507,6 +507,25 @@ export default function AcertoEntregador() {
           pagamentos = [{ forma: "dinheiro", valor: Number(entrega.valor_total) }];
         }
 
+        if (pagamentos.some(p => p.forma === "vale_gas")) {
+          const { data: valeUsado } = await (supabase as any)
+            .from("vale_gas")
+            .select("id, numero, codigo, parceiro_id, valor, vale_gas_parceiros:parceiro_id(nome)")
+            .eq("venda_id", entrega.id)
+            .maybeSingle();
+          if (valeUsado) {
+            pagamentos = pagamentos.map((p) => p.forma === "vale_gas" ? {
+              ...p,
+              vale_gas_id: valeUsado.id,
+              vale_gas_parceiro_id: valeUsado.parceiro_id,
+              vale_gas_parceiro_nome: valeUsado.vale_gas_parceiros?.nome,
+              vale_gas_numero: valeUsado.numero,
+              vale_gas_codigo: valeUsado.codigo,
+              valor: Number(valeUsado.valor || p.valor),
+            } : p);
+          }
+        }
+
         const temValeGasSemVinculo = pagamentos.some(p => p.forma === "vale_gas" && !(p as any).vale_gas_id);
         if (temValeGasSemVinculo) {
           throw new Error("Existe pedido com Vale Gás sem parceiro/número validado. Abra a edição do pedido e valide o vale antes de confirmar o acerto.");
