@@ -29,6 +29,7 @@ const GamificacaoEntregadores = lazy(() => import("@/pages/operacional/Gamificac
 const Licitacoes = lazy(() => import("@/pages/operacional/Licitacoes"));
 const RelatorioGerencial = lazy(() => import("@/pages/operacional/RelatorioGerencial"));
 const CategoriasDespesa = lazy(() => import("@/pages/config/CategoriasDespesa"));
+const Declaracoes = lazy(() => import("@/pages/config/Declaracoes"));
 
 export const operacionalRoutes: RouteConfig[] = [
   { path: "/operacional/ia", component: ConselhosIA, roles: ["admin", "gestor"] },
@@ -59,5 +60,6 @@ export const operacionalRoutes: RouteConfig[] = [
   { path: "/operacional/gamificacao-entregadores", component: GamificacaoEntregadores, roles: ["admin", "gestor"] },
   { path: "/operacional/licitacoes", component: Licitacoes, roles: ["admin", "gestor", "financeiro"] },
   { path: "/operacional/gerencial", component: RelatorioGerencial, roles: ["admin", "gestor"] },
+  { path: "/operacional/declaracoes", component: Declaracoes, roles: ["admin", "gestor", "financeiro"] },
   { path: "/config/categorias-despesa", component: CategoriasDespesa, roles: ["admin", "gestor"] },
 ];
