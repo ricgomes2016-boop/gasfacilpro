@@ -58,6 +58,7 @@ interface ClienteDB {
   nome: string;
   telefone: string | null;
   endereco: string | null;
+  numero?: string | null;
   bairro: string | null;
   cep: string | null;
   cidade: string | null;
@@ -93,6 +94,7 @@ export default function EntregadorNovaVenda() {
   const [clientes, setClientes] = useState<ClienteDB[]>([]);
   const [entregadorId, setEntregadorId] = useState<string | null>(null);
   const [entregadorUnidadeId, setEntregadorUnidadeId] = useState<string | null>(null);
+  const [entregadorEmpresaId, setEntregadorEmpresaId] = useState<string | null>(null);
 
   const [cliente, setCliente] = useState<Cliente>({
     id: null,
@@ -120,7 +122,7 @@ export default function EntregadorNovaVenda() {
 
   useEffect(() => {
     fetchData();
-  }, [user]);
+  }, [user, empresa?.id]);
 
   // Realtime subscription for new clients
   useEffect(() => {
@@ -145,6 +147,7 @@ export default function EntregadorNovaVenda() {
 
   const fetchData = async () => {
     let unidadeId: string | null = null;
+    let empresaId = empresa?.id || null;
 
     if (user) {
       const { data: entregador } = await supabase
@@ -156,9 +159,18 @@ export default function EntregadorNovaVenda() {
         setEntregadorId(entregador.id);
         unidadeId = entregador.unidade_id;
         setEntregadorUnidadeId(entregador.unidade_id);
-        
+        if (unidadeId && !empresaId) {
+          const { data: unidade } = await supabase
+            .from("unidades")
+            .select("empresa_id")
+            .eq("id", unidadeId)
+            .maybeSingle();
+          empresaId = unidade?.empresa_id || null;
+        }
       }
     }
+
+    setEntregadorEmpresaId(empresaId);
 
     let produtosQuery = supabase
       .from("produtos")
