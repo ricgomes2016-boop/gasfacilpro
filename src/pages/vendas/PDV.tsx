@@ -311,6 +311,7 @@ export default function PDV() {
       // Rotear pagamento para caixa/financeiro
       await rotearPagamentosVenda({
         pedidoId: pedido.id,
+        pedidoNumero: (pedido as any).numero_sequencial ?? null,
         clienteNome: "Consumidor Final",
         pagamentos: [{ forma: formaPagamento, valor: total }],
         unidadeId: unidadeAtual?.id,
