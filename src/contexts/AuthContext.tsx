@@ -20,7 +20,7 @@ interface AuthContextType {
   profile: Profile | null;
   roles: AppRole[];
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string, empresaSlug?: string, phone?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string, empresaSlug?: string, phone?: string, codigoIndicacao?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   hasRole: (role: AppRole) => boolean;
@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, empresaSlug?: string, phone?: string) => {
+  const signUp = async (email: string, password: string, fullName: string, empresaSlug?: string, phone?: string, codigoIndicacao?: string) => {
     try {
       const redirectUrl = `${window.location.origin}/auth`;
       
@@ -106,6 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       if (phone) {
         metadata.phone = phone;
+      }
+      if (codigoIndicacao) {
+        metadata.codigo_indicacao = codigoIndicacao.trim().toUpperCase();
       }
       
       const { error } = await supabase.auth.signUp({
