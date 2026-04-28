@@ -1,66 +1,54 @@
-Plano para melhorar a tela de Declarações
+Vou transformar o HTML enviado em uma implementação nativa do app, dentro de Gestão de Frota, seguindo os componentes e padrões existentes do projeto.
 
-Objetivo
-Permitir que a tela de Declarações trabalhe com vários modelos, incluindo modelos pré-configurados, e também permita criar modelos personalizados rapidamente para reutilização durante a geração dos PDFs.
+## O que será implementado
 
-O que será adicionado
+1. Atualizar o Dashboard de Frota
+- Incorporar a estrutura visual do exemplo “Gestão Total da Frota”.
+- Manter o layout existente com `MainLayout` e `Header`.
+- Substituir/adaptar os blocos atuais para uma visão mais completa com:
+  - KPIs principais: custo mensal, custo/km, veículos ativos e alertas críticos.
+  - Área principal com custos da frota e ranking de veículos.
+  - Status dos veículos.
+  - Análise de IA sobre comportamento do motorista.
+  - Alertas da IA.
+  - Simulação “E se?”.
+  - Resultado da simulação.
 
-1. Seletor de modelo
-- Adicionar um campo “Modelo de declaração” no topo da área de edição.
-- Ao selecionar um modelo, preencher automaticamente:
-  - título da declaração;
-  - texto/modelo da declaração.
-- Manter a pré-visualização e geração de PDF usando o modelo selecionado.
+2. Adaptar o HTML para React + Tailwind
+- Não vou inserir HTML cru, `<style>`, `<script>` externo ou CDN de Chart.js.
+- Vou converter para JSX usando os componentes já usados no sistema: `Card`, `Badge`, `Button`, tabelas simples e inputs/selects do design system.
+- O layout será responsivo, mantendo a ideia do exemplo:
+  - Desktop: coluna principal + coluna lateral.
+  - Tablet/mobile: tudo em uma coluna.
+  - KPIs em 4 colunas no desktop e 2/1 no mobile.
 
-2. Modelos pré-configurados
-Adicionar alguns modelos prontos, por exemplo:
-- Declaração padrão de vínculo da unidade.
-- Declaração de endereço da unidade.
-- Declaração de funcionamento/atividade operacional.
-- Declaração de dados cadastrais.
-- Declaração personalizada em branco.
+3. Usar dados reais quando já existem no sistema
+- Custo mensal: continuará usando abastecimentos + manutenções do mês.
+- Veículos ativos: continuará usando a tabela de veículos.
+- Alertas críticos: usará alertas de documentos, manutenções e multas quando disponíveis.
+- Status dos veículos: será montado a partir dos veículos ativos e alertas calculados.
+- Ranking de veículos: será calculado com base nos dados disponíveis de frota, com fallback visual quando faltarem dados suficientes.
 
-Cada modelo usará as variáveis já existentes, como:
-- `{{nome_unidade}}`
-- `{{tipo_unidade}}`
-- `{{cnpj}}`
-- `{{endereco}}`
-- `{{bairro}}`
-- `{{cidade}}`
-- `{{estado}}`
-- `{{cep}}`
-- `{{telefone}}`
-- `{{email}}`
-- `{{data_atual}}`
+4. IA e simulação
+- A seção de IA será implementada como análise operacional calculada no front-end, reaproveitando a lógica já existente em `FrotaIAInsights` quando fizer sentido.
+- A simulação “E se?” terá seleção entre frota própria e terceirizada e exibirá um resultado estimado.
+- Inicialmente, a simulação será local/interativa, sem criar novas tabelas no banco.
 
-3. Criar outros modelos na própria tela
-- Adicionar botão “Salvar como modelo”.
-- O usuário poderá editar título/texto e salvar como um novo modelo local da tela.
-- O novo modelo aparecerá no seletor junto com os pré-configurados.
-- Para esta primeira melhoria, os modelos personalizados serão mantidos no navegador via `localStorage`, sem mexer no banco de dados.
+## Arquivos a alterar
 
-4. Gerenciamento simples dos modelos personalizados
-- Modelos pré-configurados não poderão ser apagados.
-- Modelos criados pelo usuário poderão ser removidos.
-- Ao remover, o sistema volta para um modelo padrão caso o modelo removido esteja selecionado.
+- `src/pages/frota/DashboardFrota.tsx`
+  - Principal alteração visual e funcional da Gestão Total da Frota.
 
-5. Ajustes de usabilidade
-- Trocar o botão “Restaurar modelo padrão” por uma ação que restaura o modelo atualmente selecionado.
-- Manter os botões de variáveis automáticas.
-- Manter a seleção da unidade atual como padrão, usando os dados da empresa/unidade selecionada no sistema.
-- Preservar a geração de PDF atual, sem alterar a rota e sem mexer no `App.tsx`.
+- `src/components/frota/FrotaIAInsights.tsx`
+  - Ajuste ou reaproveitamento para encaixar melhor no novo dashboard, evitando duplicidade visual.
 
-Arquivos previstos
-- Alterar `src/services/declaracaoPdfService.ts` para exportar a lista de modelos pré-configurados.
-- Alterar `src/pages/config/Declaracoes.tsx` para incluir:
-  - seletor de modelos;
-  - criação de modelo personalizado;
-  - exclusão de modelos personalizados;
-  - aplicação automática do título/texto do modelo selecionado.
+## Detalhes técnicos
 
-Decisão técnica
-- Não criarei tabela nova agora, pois o pedido pode ser atendido com modelos prontos e modelos locais no navegador.
-- Se depois você quiser que os modelos fiquem salvos para todos os usuários da empresa, aí sim podemos criar uma tabela no backend com RLS por empresa/unidade.
+- Não vou alterar `App.tsx`, rotas principais ou estrutura de providers, respeitando a regra de estabilidade do projeto.
+- Não será necessário criar tabela nova nem mexer em RLS nesta primeira etapa.
+- Não vou adicionar Chart.js via CDN. Se for necessário um gráfico, farei com elementos visuais em Tailwind ou componentes já existentes no projeto, para evitar dependência externa e conflito com Vite.
+- Onde não houver dados suficientes para calcular um indicador, o painel exibirá um estado seguro como “Sem dados suficientes”, em vez de valores fixos enganosos.
 
-Resultado esperado
-Na tela Gestão Operacional > Declarações, o usuário poderá escolher um modelo pré-configurado, editar se quiser, salvar variações como novos modelos, selecionar matriz/filial, visualizar o preenchimento automático e gerar o PDF normalmente.
+## Resultado esperado
+
+A página `/frota` passará a parecer uma “Gestão Total da Frota”, com a visão executiva e operacional do HTML enviado, porém integrada ao sistema real, responsiva e compatível com o padrão visual do app.
