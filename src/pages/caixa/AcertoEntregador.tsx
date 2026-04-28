@@ -642,6 +642,49 @@ export default function AcertoEntregador() {
           </CardContent>
         </Card>
 
+        <Card className="border-warning/30 bg-warning/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <AlertCircle className="h-5 w-5 text-warning" />
+              Entregadores com acerto pendente
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingPendentes ? (
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
+              </div>
+            ) : entregadoresPendentes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum entregador com pedido pendente de acerto neste período.</p>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {entregadoresPendentes.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedId(item.id);
+                      setFiltroStatus("pendentes");
+                      setBuscar(true);
+                      setAcertoConfirmado(false);
+                    }}
+                    className="flex items-center justify-between gap-3 rounded-lg border bg-background p-3 text-left transition-colors hover:bg-muted/60"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{item.nome}</p>
+                      <p className="text-xs text-muted-foreground">{item.pedidos} pedido{item.pedidos > 1 ? "s" : ""} pendente{item.pedidos > 1 ? "s" : ""}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-bold">{formatCurrency(item.total)}</p>
+                      <Badge variant="outline" className="mt-1 text-[10px]">Ver acerto</Badge>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Content */}
         {buscar && (
           <>
