@@ -10383,6 +10383,7 @@ export type Database = {
         Args: { _cliente_id: string; _nome: string }
         Returns: string
       }
+      get_cliente_indicacao_resumo: { Args: never; Returns: Json }
       get_contador_empresas: {
         Args: { _user_id?: string }
         Returns: {
