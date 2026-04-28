@@ -166,7 +166,7 @@ export default function AcertoEntregador() {
       let query = supabase
         .from("pedidos")
         .select(`
-          id, created_at, data_entrega, valor_total, forma_pagamento, status, canal_venda,
+          id, created_at, data_entrega, valor_total, forma_pagamento, status, canal_venda, cliente_id,
           clientes (nome),
           pedido_itens (id, quantidade, preco_unitario, produtos (nome))
         `)
@@ -533,7 +533,7 @@ export default function AcertoEntregador() {
 
         await rotearPagamentosVenda({
           pedidoId: entrega.id,
-          clienteId: entrega.clientes?.id || null,
+          clienteId: entrega.cliente_id || null,
           clienteNome: entrega.clientes?.nome || "Cliente",
           pagamentos,
           unidadeId: unidadeAtual?.id || null,
