@@ -56,11 +56,17 @@ interface ContaReceber {
   observacoes: string | null;
   created_at: string;
   pedido_id: string | null;
+  vale_gas_id?: string | null;
+  vale_gas_parceiro_id?: string | null;
+  origem?: string | null;
+  vale_numero?: number | null;
+  vale_codigo?: string | null;
+  parceiro_nome?: string | null;
   endereco_cliente?: string | null;
   bairro_cliente?: string | null;
 }
 
-const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque"];
+const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque", "Vale Gás"];
 
 // Mapeamento de forma_pagamento para abas
 function getTabFromForma(forma: string | null): string {
@@ -148,7 +154,7 @@ export default function ContasReceber() {
     setLoading(true);
     let query = supabase
       .from("contas_receber")
-      .select("*, pedidos(cliente_id, endereco_entrega, clientes(nome, endereco, bairro))")
+      .select("*, pedidos(cliente_id, endereco_entrega, clientes(nome, endereco, bairro)), vale_gas(numero, codigo), vale_gas_parceiros:vale_gas_parceiro_id(nome)")
       .order("vencimento", { ascending: true });
     if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
     const { data, error } = await query;
@@ -158,6 +164,10 @@ export default function ContasReceber() {
         id: c.id, cliente: c.cliente, descricao: c.descricao, valor: c.valor,
         vencimento: c.vencimento, status: c.status, forma_pagamento: c.forma_pagamento,
         observacoes: c.observacoes, created_at: c.created_at, pedido_id: c.pedido_id,
+        vale_gas_id: c.vale_gas_id, vale_gas_parceiro_id: c.vale_gas_parceiro_id,
+        origem: c.origem, vale_numero: c.vale_gas?.numero || null,
+        vale_codigo: c.vale_gas?.codigo || null,
+        parceiro_nome: c.vale_gas_parceiros?.nome || null,
         endereco_cliente: c.pedidos?.endereco_entrega || c.pedidos?.clientes?.endereco || null,
         bairro_cliente: c.pedidos?.clientes?.bairro || null,
       })));
