@@ -63,9 +63,56 @@ export default function Declaracoes() {
     });
   }, [unidadeAtual?.id, unidadesAtivas]);
 
+  useEffect(() => {
+    try {
+      const salvos = localStorage.getItem(STORAGE_MODELOS_DECLARACAO);
+      if (!salvos) return;
+      const modelos = JSON.parse(salvos) as ModeloDeclaracao[];
+      setModelosPersonalizados(modelos.filter((item) => item.origem === "personalizado" && item.id && item.nome));
+    } catch {
+      localStorage.removeItem(STORAGE_MODELOS_DECLARACAO);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_MODELOS_DECLARACAO, JSON.stringify(modelosPersonalizados));
+  }, [modelosPersonalizados]);
+
   const selecionarTodas = () => setSelecionadas(new Set(unidadesAtivas.map((u) => u.id)));
   const limparSelecao = () => setSelecionadas(new Set());
   const inserirVariavel = (variavel: string) => setModelo((atual) => `${atual}${atual.endsWith(" ") || atual.endsWith("\n") ? "" : " "}${variavel}`);
+
+  const aplicarModelo = (id: string) => {
+    const selecionado = modelosDeclaracao.find((item) => item.id === id);
+    if (!selecionado) return;
+    setModeloSelecionadoId(id);
+    setTitulo(selecionado.titulo);
+    setModelo(selecionado.texto);
+  };
+
+  const salvarModeloPersonalizado = () => {
+    if (!titulo.trim() || !modelo.trim()) {
+      toast.error("Informe título e texto antes de salvar o modelo");
+      return;
+    }
+    const novoModelo: ModeloDeclaracao = {
+      id: `personalizado-${Date.now()}`,
+      nome: titulo.trim(),
+      titulo: titulo.trim(),
+      texto: modelo.trim(),
+      origem: "personalizado",
+    };
+    setModelosPersonalizados((atuais) => [...atuais, novoModelo]);
+    setModeloSelecionadoId(novoModelo.id);
+    toast.success("Modelo personalizado salvo");
+  };
+
+  const removerModeloPersonalizado = () => {
+    if (!podeRemoverModelo) return;
+    setModelosPersonalizados((atuais) => atuais.filter((item) => item.id !== modeloSelecionadoId));
+    aplicarModelo(MODELOS_DECLARACAO_PRE_CONFIGURADOS[0].id);
+    toast.success("Modelo personalizado removido");
+  };
 
   const validar = () => {
     if (unidadesSelecionadas.length === 0) {
