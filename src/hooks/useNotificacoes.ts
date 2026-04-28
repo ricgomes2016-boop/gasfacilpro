@@ -12,6 +12,20 @@ export interface Notificacao {
   created_at: string;
 }
 
+function dedupeNotificacoes(items: Notificacao[]) {
+  const seen = new Set<string>();
+
+  return items.filter((item) => {
+    const key = item.tipo === "pedido" && item.link
+      ? `${item.tipo}:${item.link}`
+      : item.id;
+
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function useNotificacoes() {
   const { user } = useAuth();
   const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
@@ -28,7 +42,7 @@ export function useNotificacoes() {
       .order("created_at", { ascending: false })
       .limit(50);
 
-    if (data) setNotificacoes(data);
+    if (data) setNotificacoes(dedupeNotificacoes(data));
     setLoading(false);
   }, [user]);
 
@@ -51,7 +65,7 @@ export function useNotificacoes() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          setNotificacoes((prev) => [payload.new as Notificacao, ...prev]);
+          setNotificacoes((prev) => dedupeNotificacoes([payload.new as Notificacao, ...prev]));
         }
       )
       .subscribe();
