@@ -55,10 +55,18 @@ interface EntregadorFrota {
 
 type SimulacaoModelo = "propria" | "terceirizada";
 
+interface DashboardFrotaProps {
+  title?: string;
+  subtitle?: string;
+}
+
 const formatCurrency = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export default function DashboardFrota() {
+export default function DashboardFrota({
+  title = "Gas Express | Gestão Total da Frota",
+  subtitle = "Visão executiva da frota, custos e comportamento operacional",
+}: DashboardFrotaProps) {
   const { unidadeAtual } = useUnidade();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -220,7 +228,7 @@ export default function DashboardFrota() {
   if (loading) {
     return (
       <MainLayout>
-        <Header title="Gestão Total da Frota" subtitle="Custos, veículos, motoristas e alertas inteligentes" />
+        <Header title={title} subtitle={subtitle} />
         <div className="flex h-64 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -230,7 +238,7 @@ export default function DashboardFrota() {
 
   return (
     <MainLayout>
-      <Header title="Gas Express | Gestão Total da Frota" subtitle="Visão executiva da frota, custos e comportamento operacional" />
+      <Header title={title} subtitle={subtitle} />
       <div className="space-y-4 p-3 pb-12 sm:p-4 md:space-y-6 md:p-6 md:pb-0">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <KpiCard title="Custo mensal" value={formatCurrency(gastoTotal)} icon={DollarSign} detail={`${formatCurrency(gastoMesComb)} combustível`} />
