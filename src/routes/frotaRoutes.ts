@@ -2,6 +2,7 @@ import { lazy } from "react";
 import { RouteConfig } from "./helpers";
 
 const DashboardFrota = lazy(() => import("@/pages/frota/DashboardFrota"));
+const AnaliseFrotaIA = lazy(() => import("@/pages/frota/AnaliseFrotaIA"));
 const Combustivel = lazy(() => import("@/pages/frota/Combustivel"));
 const Manutencao = lazy(() => import("@/pages/frota/Manutencao"));
 const RelatoriosFrota = lazy(() => import("@/pages/frota/RelatoriosFrota"));
@@ -12,6 +13,7 @@ const MultasFrota = lazy(() => import("@/pages/frota/MultasFrota"));
 
 export const frotaRoutes: RouteConfig[] = [
   { path: "/frota", component: DashboardFrota, roles: ["admin", "gestor"] },
+  { path: "/frota/analise-ia", component: AnaliseFrotaIA, roles: ["admin", "gestor"] },
   { path: "/frota/combustivel", component: Combustivel, roles: ["admin", "gestor", "operacional"] },
   { path: "/frota/manutencao", component: Manutencao, roles: ["admin", "gestor"] },
   { path: "/frota/relatorios", component: RelatoriosFrota, roles: ["admin", "gestor"] },
