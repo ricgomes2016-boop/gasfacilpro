@@ -1,117 +1,89 @@
-## Objetivo
-Ajustar a lógica do Vale Gás para refletir corretamente que o devedor do recebível é o parceiro, não o cliente final, permitindo também controlar vales criados em outro sistema sem repetir numeração. No acerto diário, ao escolher a forma de pagamento Vale Gás, o usuário poderá selecionar o parceiro e o número/código do vale.
+Plano para implementar Declarações personalizadas por matriz/filial
 
-## Situação atual encontrada
-- Já existe um módulo de Vale Gás com parceiros, lotes, vales individuais, controle, emissão e acerto.
-- A emissão já permite numeração automática, lote por intervalo e manual, mas a proteção contra duplicidade precisa ficar mais forte no banco.
-- O acerto diário já tem forma de pagamento “Vale Gás” e validação por código, mas ainda não obriga/estrutura corretamente parceiro + número do vale.
-- O roteamento financeiro já cria uma conta a receber para `vale_gas`, porém hoje registra como “Parceiro Vale Gás” genérico e pode vincular `cliente_id` do pedido, o que confunde a cobrança.
-- Em Contas a Receber já existe uma aba de Vale Gás, mas falta exibir/filtrar/baixar por parceiro e vale.
+Objetivo
+Criar uma opção no sistema para gerar Declarações personalizadas, permitindo selecionar uma ou várias unidades — matriz e/ou filiais — e preencher automaticamente os dados cadastrais de cada unidade selecionada. A solução terá uma tela no sistema, pré-visualização e exportação em PDF.
 
-## Regra de negócio proposta
+Onde ficará
+- Adicionar no menu Configurações uma nova opção: Declarações.
+- Criar rota: `/config/declaracoes`.
+- Permissões sugeridas: admin, gestor e financeiro, seguindo o padrão de Documentos da Empresa.
 
-```text
-Venda paga com Vale Gás
-        |
-        v
-Pedido fica com forma de pagamento Vale Gás
-        |
-        v
-Vale é marcado como utilizado e vinculado ao pedido
-        |
-        v
-Contas a Receber é criado contra o PARCEIRO do vale
-        |
-        v
-Quando o parceiro pagar, baixa esse recebível ou o acerto do parceiro
-```
+Funcionalidades da tela
+1. Seleção de unidades
+- Listar matriz e filiais ativas da empresa atual.
+- Permitir selecionar várias unidades ao mesmo tempo.
+- Exibir identificação visual de Matriz/Filial.
+- Buscar automaticamente os dados já existentes da tabela de unidades:
+  - nome
+  - tipo: matriz/filial
+  - CNPJ
+  - telefone
+  - e-mail
+  - endereço
+  - bairro
+  - cidade/UF
+  - CEP
 
-### Regras principais
-1. O cliente final não deve aparecer como responsável financeiro do Vale Gás em Contas a Receber.
-2. O recebível de Vale Gás deve ser em nome do parceiro selecionado.
-3. Cada número/código de vale só pode existir uma vez no sistema.
-4. Vales vindos de outro sistema devem poder ser cadastrados como “importados/externos”, usando numeração manual ou intervalo.
-5. No acerto diário, “Vale Gás” deve exigir parceiro + número/código válido do vale.
-6. Ao confirmar o acerto, o sistema deve criar o recebível do parceiro já com referência do vale utilizado.
+2. Modelo personalizado da declaração
+- Campo para título da declaração.
+- Campo de texto do corpo da declaração.
+- Permitir usar variáveis no texto, por exemplo:
+  - `{{nome_unidade}}`
+  - `{{tipo_unidade}}`
+  - `{{cnpj}}`
+  - `{{endereco}}`
+  - `{{bairro}}`
+  - `{{cidade}}`
+  - `{{estado}}`
+  - `{{cep}}`
+  - `{{telefone}}`
+  - `{{email}}`
+  - `{{data_atual}}`
+- Botões rápidos para inserir variáveis no texto, evitando erro de digitação.
 
-## Alterações planejadas
+3. Pré-visualização
+- Mostrar a declaração renderizada para cada unidade selecionada.
+- Quando houver várias unidades, exibir uma prévia por unidade.
+- Para dados não preenchidos, usar marcador discreto como “Não informado”, sem quebrar o documento.
 
-### 1. Banco de dados: reforçar controle de numeração e vínculo financeiro
-Criar uma migração para:
-- Garantir unicidade em `vale_gas.numero` e `vale_gas.codigo`, evitando repetição mesmo se duas telas tentarem gravar ao mesmo tempo.
-- Adicionar campos de vínculo em `contas_receber`, se ainda não existirem:
-  - `vale_gas_id`
-  - `vale_gas_parceiro_id`
-  - opcionalmente `origem` ou observação estruturada para identificar recebíveis de Vale Gás.
-- Criar índices para consultas por parceiro, vale e vencimento.
-- Manter RLS por unidade/empresa, sempre preenchendo `unidade_id` nos inserts para evitar bloqueios.
+4. Exportação
+- Botão “Gerar PDF”.
+- Se selecionar uma unidade: gerar um PDF com uma declaração.
+- Se selecionar várias unidades: gerar um único PDF com uma página por unidade.
+- Nome do arquivo sugerido: `declaracoes-unidades-DDMMAAAA.pdf`.
+- Incluir cabeçalho com nome da unidade, CNPJ e contato, seguindo o padrão visual dos PDFs já existentes no sistema.
 
-### 2. Cadastro/importação de vales externos
-Ajustar a tela de emissão de Vale Gás para deixar claro que ela também serve para registrar vales gerados em outro sistema:
-- Renomear/ajustar textos do modo manual e lote para “Registrar vales externos”.
-- Antes de gravar, validar se algum número do intervalo já existe.
-- Se houver duplicidade, bloquear a gravação e mostrar exatamente quais números já existem.
-- Gravar os vales externos no mesmo cadastro `vale_gas`, com parceiro, lote, valor, produto e status inicial.
-- Usar o maior número existente para continuar a numeração automática, incluindo os importados.
+5. Ações auxiliares
+- Botão “Selecionar todas”.
+- Botão “Limpar seleção”.
+- Botão “Restaurar modelo padrão”.
+- Validação antes de gerar:
+  - precisa selecionar ao menos uma unidade;
+  - título não pode estar vazio;
+  - texto da declaração não pode estar vazio.
 
-### 3. Acerto diário: selecionar parceiro e número do vale
-Atualizar `AcertoEntregador` para, quando a forma “Vale Gás” for escolhida:
-- Exibir seleção de parceiro.
-- Exibir campo de número/código do vale.
-- Permitir digitação ou leitura por QR/câmera como já existe.
-- Validar o vale buscando por parceiro + número/código.
-- Aceitar apenas vale disponível ou vendido, bloqueando vale já utilizado/cancelado.
-- Mostrar confirmação com parceiro, número, código e valor.
-- Salvar o pedido com metadados suficientes para o roteamento financeiro saber qual parceiro deve ser cobrado.
+Modelo padrão sugerido
+````text
+DECLARAÇÃO
 
-### 4. Roteamento financeiro correto para Contas a Receber
-Ajustar `paymentRoutingService.ts` para `vale_gas`:
-- Receber `vale_gas_id`, `vale_gas_parceiro_id`, nome do parceiro e número/código do vale no item de pagamento.
-- Criar `contas_receber` com:
-  - `cliente` = nome do parceiro
-  - `cliente_id` = `null`, para não cobrar o cliente final
-  - `vale_gas_id` e `vale_gas_parceiro_id` preenchidos
-  - descrição do tipo: `Vale Gás nº X - Pedido #Y`
-  - `forma_pagamento = vale_gas`
-  - `unidade_id` preenchido
-- Marcar o vale como utilizado e vinculado ao pedido, se ainda não estiver marcado.
+Declaramos para os devidos fins que a unidade {{nome_unidade}}, inscrita no CNPJ {{cnpj}}, localizada em {{endereco}}, {{bairro}}, {{cidade}}/{{estado}}, CEP {{cep}}, encontra-se vinculada à nossa operação como {{tipo_unidade}}.
 
-### 5. Contas a Receber: visualização e baixa por parceiro
-Atualizar `ContasReceber` para:
-- Buscar dados do parceiro e do vale nos recebíveis de Vale Gás.
-- Na aba Vale Gás, mostrar parceiro, número/código do vale, pedido, vencimento e valor.
-- Ajustar filtros para facilitar busca por parceiro ou número do vale.
-- Ao receber/baixar uma conta de Vale Gás, registrar o pagamento normalmente em caixa/banco, mas mantendo a rastreabilidade do parceiro e vale.
-- Evitar mostrar o cliente final como devedor nessa aba.
+Por ser verdade, firmamos a presente declaração.
 
-### 6. Relatório/acerto de Vale Gás
-Ajustar a tela `ValeGasAcerto` para não contar novamente vales já vinculados em um acerto/recebível, evitando cobrança duplicada.
-- O acerto por parceiro deverá considerar somente vales utilizados ainda não acertados.
-- O histórico deve continuar mostrando quantidade, valor e pagamento.
-- Se a baixa acontecer direto em Contas a Receber, o vínculo do vale deve impedir nova cobrança.
+{{cidade}}/{{estado}}, {{data_atual}}.
+````
 
-## Arquivos que serão alterados
-- `src/contexts/ValeGasContext.tsx`
-- `src/pages/financeiro/ValeGasEmissao.tsx`
-- `src/pages/financeiro/ValeGasControle.tsx` se necessário para exibir origem/externo
-- `src/pages/financeiro/ValeGasAcerto.tsx`
-- `src/pages/financeiro/ContasReceber.tsx`
-- `src/pages/caixa/AcertoEntregador.tsx`
-- `src/services/paymentRoutingService.ts`
-- Nova migração em `supabase/migrations/...sql`
+Arquivos a criar/alterar
+- Criar `src/pages/config/Declaracoes.tsx` com a nova tela.
+- Alterar `src/routes/configRoutes.ts` para registrar a rota.
+- Alterar `src/components/layout/menuItems.ts` para adicionar a opção no menu Configurações.
+- Criar serviço utilitário para PDF, por exemplo `src/services/declaracaoPdfService.ts`, reutilizando `jsPDF`, já usado no projeto.
 
-## Cuidados de segurança e consistência
-- Não refatorar rotas nem provider nesting do `App.tsx`.
-- Não editar arquivos gerados da integração (`client.ts`, `types.ts`).
-- Usar `unidade_id` em todos os inserts/updates relevantes para passar nas políticas de isolamento.
-- Manter roles no sistema atual de RBAC; nada de role no perfil.
-- Validar unicidade no banco, não só no front-end.
-- Não criar cobrança em nome do cliente final quando o pagamento for Vale Gás.
+Decisão técnica
+- Não será necessário criar novas tabelas inicialmente, pois a solicitação é gerar declarações a partir dos dados já cadastrados em matriz/filiais.
+- A tela poderá usar o contexto `useUnidade()` para obter as unidades disponíveis e respeitar o acesso por empresa/unidade já existente.
+- A exportação será feita no frontend com `jsPDF`, mantendo o padrão atual dos relatórios/recibos do sistema.
+- Não será alterado `App.tsx`, respeitando a regra de estabilidade do projeto.
 
-## Resultado esperado
-Depois da implementação:
-- Você poderá registrar vales que vieram de outro sistema sem repetir numeração.
-- O acerto diário exigirá parceiro e número do vale quando o pagamento for Vale Gás.
-- O recebível será lançado contra o parceiro correto.
-- A aba Vale Gás em Contas a Receber mostrará o que cada parceiro deve pagar.
-- O sistema impedirá usar o mesmo vale duas vezes.
+Resultado esperado
+Ao final, o usuário poderá acessar Configurações > Declarações, selecionar uma ou várias unidades, escrever/ajustar um modelo personalizado usando variáveis, visualizar o resultado e baixar um PDF com as declarações preenchidas automaticamente para cada matriz/filial selecionada.

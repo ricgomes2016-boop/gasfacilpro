@@ -287,6 +287,7 @@ export const menuItems: MenuItem[] = [
       { icon: Megaphone, label: "Canais de Venda", path: "/config/canais-venda" },
       { icon: FileSpreadsheet, label: "Categorias de Despesas", path: "/config/categorias-despesa" },
       { icon: FileText, label: "Documentos da Empresa", path: "/config/documentos" },
+      { icon: FileText, label: "Declarações", path: "/config/declaracoes" },
       { icon: Bell, label: "Notificações e Alertas", path: "/config/notificacoes" },
       { icon: Star, label: "Personalização Visual", path: "/config/personalizacao" },
       { icon: Brain, label: "Regras da Bia", path: "/config/regras-bia" },
