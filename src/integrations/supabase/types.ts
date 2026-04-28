@@ -2682,6 +2682,7 @@ export type Database = {
           id: string
           observacoes: string | null
           operadora_id: string | null
+          origem: string | null
           parcela_atual: number | null
           pedido_id: string | null
           plano_contas_id: string | null
@@ -2690,6 +2691,8 @@ export type Database = {
           total_parcelas: number | null
           unidade_id: string | null
           updated_at: string
+          vale_gas_id: string | null
+          vale_gas_parceiro_id: string | null
           valor: number
           valor_liquido: number | null
           valor_taxa: number | null
@@ -2704,6 +2707,7 @@ export type Database = {
           id?: string
           observacoes?: string | null
           operadora_id?: string | null
+          origem?: string | null
           parcela_atual?: number | null
           pedido_id?: string | null
           plano_contas_id?: string | null
@@ -2712,6 +2716,8 @@ export type Database = {
           total_parcelas?: number | null
           unidade_id?: string | null
           updated_at?: string
+          vale_gas_id?: string | null
+          vale_gas_parceiro_id?: string | null
           valor?: number
           valor_liquido?: number | null
           valor_taxa?: number | null
@@ -2726,6 +2732,7 @@ export type Database = {
           id?: string
           observacoes?: string | null
           operadora_id?: string | null
+          origem?: string | null
           parcela_atual?: number | null
           pedido_id?: string | null
           plano_contas_id?: string | null
@@ -2734,6 +2741,8 @@ export type Database = {
           total_parcelas?: number | null
           unidade_id?: string | null
           updated_at?: string
+          vale_gas_id?: string | null
+          vale_gas_parceiro_id?: string | null
           valor?: number
           valor_liquido?: number | null
           valor_taxa?: number | null
@@ -2773,6 +2782,20 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_receber_vale_gas_id_fkey"
+            columns: ["vale_gas_id"]
+            isOneToOne: false
+            referencedRelation: "vale_gas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_receber_vale_gas_parceiro_id_fkey"
+            columns: ["vale_gas_parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vale_gas_parceiros"
             referencedColumns: ["id"]
           },
         ]

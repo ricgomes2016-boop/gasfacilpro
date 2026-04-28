@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 export interface ValeGasValidationResult {
   valido: boolean;
   parceiro: string;
+  parceiroId?: string;
+  numero?: number;
   codigo: string;
   valor: number;
   valorVenda: number;
@@ -15,7 +17,7 @@ export interface ValeGasValidationResult {
  * Accepts either the full code (VG-2026-00001) or just the number (1).
  * Returns both valor (cost) and valorVenda (what the customer paid to the partner).
  */
-export async function validarValeGasNoBanco(codigo: string): Promise<ValeGasValidationResult> {
+export async function validarValeGasNoBanco(codigo: string, parceiroId?: string): Promise<ValeGasValidationResult> {
   const fail = (parceiro: string, cod: string, valor: number, erro: string): ValeGasValidationResult => ({
     valido: false, parceiro, codigo: cod, valor, valorVenda: 0, erro,
   });
@@ -26,7 +28,7 @@ export async function validarValeGasNoBanco(codigo: string): Promise<ValeGasVali
     const isNumericOnly = !isNaN(numInput) && String(numInput) === trimmed;
 
     const selectFields = `
-      id, numero, codigo, valor, valor_venda, status,
+      id, numero, codigo, valor, valor_venda, status, parceiro_id,
       vale_gas_parceiros:parceiro_id (nome)
     `;
 
@@ -35,14 +37,18 @@ export async function validarValeGasNoBanco(codigo: string): Promise<ValeGasVali
 
     // If user typed just a number, search by numero first
     if (isNumericOnly) {
-      const res = await (supabase as any).from("vale_gas").select(selectFields).eq("numero", numInput).maybeSingle();
+      let query = (supabase as any).from("vale_gas").select(selectFields).eq("numero", numInput);
+      if (parceiroId) query = query.eq("parceiro_id", parceiroId);
+      const res = await query.maybeSingle();
       data = res.data;
       error = res.error;
     }
 
     // Fallback: search by codigo field
     if (!data && !error) {
-      const res = await (supabase as any).from("vale_gas").select(selectFields).eq("codigo", trimmed).maybeSingle();
+      let query = (supabase as any).from("vale_gas").select(selectFields).eq("codigo", trimmed);
+      if (parceiroId) query = query.eq("parceiro_id", parceiroId);
+      const res = await query.maybeSingle();
       data = res.data;
       error = res.error;
     }
@@ -65,6 +71,8 @@ export async function validarValeGasNoBanco(codigo: string): Promise<ValeGasVali
     return {
       valido: true,
       parceiro,
+      parceiroId: data.parceiro_id,
+      numero: data.numero,
       codigo: cod,
       valor,
       valorVenda,

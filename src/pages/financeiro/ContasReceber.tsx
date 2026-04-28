@@ -56,11 +56,17 @@ interface ContaReceber {
   observacoes: string | null;
   created_at: string;
   pedido_id: string | null;
+  vale_gas_id?: string | null;
+  vale_gas_parceiro_id?: string | null;
+  origem?: string | null;
+  vale_numero?: number | null;
+  vale_codigo?: string | null;
+  parceiro_nome?: string | null;
   endereco_cliente?: string | null;
   bairro_cliente?: string | null;
 }
 
-const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque"];
+const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque", "Vale Gás"];
 
 // Mapeamento de forma_pagamento para abas
 function getTabFromForma(forma: string | null): string {
@@ -148,7 +154,7 @@ export default function ContasReceber() {
     setLoading(true);
     let query = supabase
       .from("contas_receber")
-      .select("*, pedidos(cliente_id, endereco_entrega, clientes(nome, endereco, bairro))")
+      .select("*, pedidos(cliente_id, endereco_entrega, clientes(nome, endereco, bairro)), vale_gas(numero, codigo), vale_gas_parceiros:vale_gas_parceiro_id(nome)")
       .order("vencimento", { ascending: true });
     if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
     const { data, error } = await query;
@@ -158,6 +164,10 @@ export default function ContasReceber() {
         id: c.id, cliente: c.cliente, descricao: c.descricao, valor: c.valor,
         vencimento: c.vencimento, status: c.status, forma_pagamento: c.forma_pagamento,
         observacoes: c.observacoes, created_at: c.created_at, pedido_id: c.pedido_id,
+        vale_gas_id: c.vale_gas_id, vale_gas_parceiro_id: c.vale_gas_parceiro_id,
+        origem: c.origem, vale_numero: c.vale_gas?.numero || null,
+        vale_codigo: c.vale_gas?.codigo || null,
+        parceiro_nome: c.vale_gas_parceiros?.nome || null,
         endereco_cliente: c.pedidos?.endereco_entrega || c.pedidos?.clientes?.endereco || null,
         bairro_cliente: c.pedidos?.clientes?.bairro || null,
       })));
@@ -229,6 +239,7 @@ export default function ContasReceber() {
       .filter(f => f.forma && parseFloat(f.valor) > 0)
       .map(f => `${f.forma}: R$ ${parseFloat(f.valor).toFixed(2)}`)
       .join(", ");
+    const refTipo = receberConta.forma_pagamento === "vale_gas" ? "Vale Gás" : "Fiado";
 
     // Rotear cada forma de pagamento para o destino correto
     const { data: { user } } = await supabase.auth.getUser();
@@ -242,9 +253,9 @@ export default function ContasReceber() {
         // Dinheiro → Caixa da Loja
         await supabase.from("movimentacoes_caixa").insert({
           tipo: "entrada",
-          descricao: `Pgto Fiado #${ref} - Dinheiro`,
+          descricao: `Pgto ${refTipo} #${ref} - Dinheiro`,
           valor,
-          categoria: "Recebimento Fiado",
+          categoria: receberConta.forma_pagamento === "vale_gas" ? "Recebimento Vale Gás" : "Recebimento Fiado",
           status: "aprovada",
           pedido_id: receberConta.pedido_id || null,
           unidade_id: unidadeAtual?.id || null,
@@ -256,8 +267,8 @@ export default function ContasReceber() {
           await criarMovimentacaoBancaria({
             contaBancariaId: contaId,
             valor,
-            descricao: `Pgto Fiado #${ref} - PIX`,
-            categoria: "recebimento_fiado",
+            descricao: `Pgto ${refTipo} #${ref} - PIX`,
+            categoria: receberConta.forma_pagamento === "vale_gas" ? "recebimento_vale_gas" : "recebimento_fiado",
             unidadeId: unidadeAtual?.id,
             userId: user?.id,
             pedidoId: receberConta.pedido_id || undefined,
@@ -270,8 +281,8 @@ export default function ContasReceber() {
           await criarMovimentacaoBancaria({
             contaBancariaId: contaId,
             valor,
-            descricao: `Pgto Fiado #${ref} - ${fp.forma}`,
-            categoria: "recebimento_fiado",
+            descricao: `Pgto ${refTipo} #${ref} - ${fp.forma}`,
+            categoria: receberConta.forma_pagamento === "vale_gas" ? "recebimento_vale_gas" : "recebimento_fiado",
             unidadeId: unidadeAtual?.id,
             userId: user?.id,
             pedidoId: receberConta.pedido_id || undefined,
@@ -385,7 +396,12 @@ export default function ContasReceber() {
 
   // Filtragem base (nome, data, status) — por padrão mostra apenas pendentes/vencidas
   const baseFiltered = contas.filter(c => {
-    const matchNome = !filtroNome || c.cliente.toLowerCase().includes(filtroNome.toLowerCase());
+    const termo = filtroNome.toLowerCase();
+    const matchNome = !filtroNome
+      || c.cliente.toLowerCase().includes(termo)
+      || (c.parceiro_nome || "").toLowerCase().includes(termo)
+      || String(c.vale_numero || "").includes(termo)
+      || (c.vale_codigo || "").toLowerCase().includes(termo);
     const matchDataIni = !dataInicial || c.vencimento >= dataInicial;
     const matchDataFim = !dataFinal || c.vencimento <= dataFinal;
     const vencida = c.status === "pendente" && c.vencimento < hoje;
@@ -524,8 +540,9 @@ export default function ContasReceber() {
                     <div className="flex items-center gap-2 min-w-0">
                       <Checkbox checked={selectedIds.has(conta.id)} onCheckedChange={() => toggleSelect(conta.id)} />
                       <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{conta.cliente}</p>
+                        <p className="text-sm font-medium truncate">{conta.parceiro_nome || conta.cliente}</p>
                         <p className="text-xs text-muted-foreground truncate">{conta.descricao}</p>
+                        {conta.vale_numero && <p className="text-[10px] text-muted-foreground">Vale nº {conta.vale_numero}</p>}
                       </div>
                     </div>
                     <DropdownMenu>
@@ -582,7 +599,8 @@ export default function ContasReceber() {
                         <Checkbox checked={selectedIds.has(conta.id)} onCheckedChange={() => toggleSelect(conta.id)} />
                       </TableCell>
                       <TableCell>
-                        <p className="font-medium text-sm">{conta.cliente}</p>
+                        <p className="font-medium text-sm">{conta.parceiro_nome || conta.cliente}</p>
+                        {conta.vale_numero && <p className="text-xs text-muted-foreground">Vale nº {conta.vale_numero} · {conta.vale_codigo}</p>}
                       </TableCell>
                       <TableCell className="text-sm">{conta.descricao}</TableCell>
                       <TableCell>

@@ -34,6 +34,7 @@ import autoTable from "jspdf-autotable";
 import { QRCodeScanner } from "@/components/entregador/QRCodeScanner";
 import { useToast } from "@/hooks/use-toast";
 import { validarValeGasNoBanco } from "@/hooks/useValeGasValidation";
+import { useValeGas } from "@/contexts/ValeGasContext";
 import { rotearPagamentosVenda, PagamentoRoteamento } from "@/services/paymentRoutingService";
 
 const formatCurrency = (v: number) =>
@@ -71,6 +72,11 @@ type FiltroStatus = "pendentes" | "acertados" | "todos";
 interface PagamentoMultiplo {
   forma: string;
   valor: number;
+  vale_gas_id?: string;
+  vale_gas_parceiro_id?: string;
+  vale_gas_parceiro_nome?: string;
+  vale_gas_numero?: number;
+  vale_gas_codigo?: string;
 }
 
 interface EditingEntrega {
@@ -83,6 +89,7 @@ interface EditingEntrega {
 
 export default function AcertoEntregador() {
   const { unidadeAtual } = useUnidade();
+  const { parceiros } = useValeGas();
   const { hasAnyRole } = useAuth();
   const { toast: toastHook } = useToast();
   const queryClient = useQueryClient();
@@ -106,9 +113,10 @@ export default function AcertoEntregador() {
   const [editingEntrega, setEditingEntrega] = useState<EditingEntrega | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [valeGasModoManual, setValeGasModoManual] = useState(true);
+  const [valeGasParceiroId, setValeGasParceiroId] = useState("");
   const [valeGasCodigoInput, setValeGasCodigoInput] = useState("");
   const [validandoValeGas, setValidandoValeGas] = useState(false);
-  const [valeGasValidado, setValeGasValidado] = useState<{ parceiro: string; codigo: string; valor: number; valido: boolean } | null>(null);
+  const [valeGasValidado, setValeGasValidado] = useState<{ parceiro: string; parceiroId?: string; numero?: number; codigo: string; valor: number; valido: boolean; valeId?: string } | null>(null);
   const [isConfirmingAcerto, setIsConfirmingAcerto] = useState(false);
   const [acertoConfirmado, setAcertoConfirmado] = useState(false);
 
@@ -158,7 +166,7 @@ export default function AcertoEntregador() {
       let query = supabase
         .from("pedidos")
         .select(`
-          id, created_at, data_entrega, valor_total, forma_pagamento, status, canal_venda,
+          id, created_at, data_entrega, valor_total, forma_pagamento, status, canal_venda, cliente_id,
           clientes (nome),
           pedido_itens (id, quantidade, preco_unitario, produtos (nome))
         `)
@@ -284,18 +292,35 @@ export default function AcertoEntregador() {
       })),
     });
     setValeGasValidado(null);
+    setValeGasParceiroId("");
     setValeGasCodigoInput("");
   };
 
   const validarValeGasAcerto = async (codigo: string) => {
+    if (!valeGasParceiroId) {
+      toastHook({ title: "Selecione o parceiro", description: "Escolha o parceiro antes de validar o número do vale.", variant: "destructive" });
+      return;
+    }
     setValidandoValeGas(true);
     try {
-      const result = await validarValeGasNoBanco(codigo);
+      const result = await validarValeGasNoBanco(codigo, valeGasParceiroId);
       if (result.valido) {
-        const vale = { parceiro: result.parceiro, codigo: result.codigo, valor: result.valor, valido: true, valeId: result.valeId };
+        const vale = { parceiro: result.parceiro, parceiroId: result.parceiroId, numero: result.numero, codigo: result.codigo, valor: result.valor, valido: true, valeId: result.valeId };
         setValeGasValidado(vale);
         if (editingEntrega) {
-          setEditingEntrega({ ...editingEntrega, vale_gas_codigo: codigo });
+          setEditingEntrega({
+            ...editingEntrega,
+            vale_gas_codigo: result.codigo,
+            pagamentos_multiplos: editingEntrega.pagamentos_multiplos.map((p) => p.forma === "Vale Gás" ? {
+              ...p,
+              vale_gas_id: result.valeId,
+              vale_gas_parceiro_id: result.parceiroId,
+              vale_gas_parceiro_nome: result.parceiro,
+              vale_gas_numero: result.numero,
+              vale_gas_codigo: result.codigo,
+              valor: result.valor,
+            } : p),
+          });
         }
         toastHook({ title: "Vale Gás validado!", description: `Parceiro: ${result.parceiro} - Valor: R$ ${result.valor.toFixed(2)}` });
       } else {
@@ -340,6 +365,12 @@ export default function AcertoEntregador() {
       );
 
       const pagamentos = editingEntrega.pagamentos_multiplos.filter(p => p.valor > 0);
+      const pagamentoValeGas = pagamentos.find(p => p.forma === "Vale Gás");
+      if (pagamentoValeGas && !pagamentoValeGas.vale_gas_id) {
+        toast.error("Selecione o parceiro e valide o número do Vale Gás antes de salvar");
+        setIsSavingEdit(false);
+        return;
+      }
       const totalPagamentos = pagamentos.reduce((a, p) => a + p.valor, 0);
       if (Math.abs(novoTotal - totalPagamentos) > 0.01) {
         toast.error("A soma dos pagamentos não confere com o total da entrega");
@@ -463,7 +494,7 @@ export default function AcertoEntregador() {
         if (fp.includes(", ") || fp.startsWith("Múltiplos: ")) {
           const cleanFp = fp.replace("Múltiplos: ", "");
           const parts = cleanFp.split(/,\s*|\s*\+\s*/);
-          pagamentos = parts.map((part: string) => {
+        pagamentos = parts.map((part: string) => {
             const match = part.trim().match(/^(.+?)\s+R\$(\d+[\.,]?\d*)$/);
             if (match) {
               return { forma: normalizarFormaPagamento(match[1].trim()), valor: parseFloat(match[2].replace(",", ".")) };
@@ -476,9 +507,33 @@ export default function AcertoEntregador() {
           pagamentos = [{ forma: "dinheiro", valor: Number(entrega.valor_total) }];
         }
 
+        if (pagamentos.some(p => p.forma === "vale_gas")) {
+          const { data: valeUsado } = await (supabase as any)
+            .from("vale_gas")
+            .select("id, numero, codigo, parceiro_id, valor, vale_gas_parceiros:parceiro_id(nome)")
+            .eq("venda_id", entrega.id)
+            .maybeSingle();
+          if (valeUsado) {
+            pagamentos = pagamentos.map((p) => p.forma === "vale_gas" ? {
+              ...p,
+              vale_gas_id: valeUsado.id,
+              vale_gas_parceiro_id: valeUsado.parceiro_id,
+              vale_gas_parceiro_nome: valeUsado.vale_gas_parceiros?.nome,
+              vale_gas_numero: valeUsado.numero,
+              vale_gas_codigo: valeUsado.codigo,
+              valor: Number(valeUsado.valor || p.valor),
+            } : p);
+          }
+        }
+
+        const temValeGasSemVinculo = pagamentos.some(p => p.forma === "vale_gas" && !(p as any).vale_gas_id);
+        if (temValeGasSemVinculo) {
+          throw new Error("Existe pedido com Vale Gás sem parceiro/número validado. Abra a edição do pedido e valide o vale antes de confirmar o acerto.");
+        }
+
         await rotearPagamentosVenda({
           pedidoId: entrega.id,
-          clienteId: entrega.clientes?.id || null,
+          clienteId: entrega.cliente_id || null,
           clienteNome: entrega.clientes?.nome || "Cliente",
           pagamentos,
           unidadeId: unidadeAtual?.id || null,
@@ -1202,6 +1257,18 @@ export default function AcertoEntregador() {
                     <QrCode className="h-4 w-4 text-primary" /> Validar Vale Gás
                   </Label>
 
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Parceiro</Label>
+                    <Select value={valeGasParceiroId} onValueChange={(v) => { setValeGasParceiroId(v); setValeGasValidado(null); setValeGasCodigoInput(""); }}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Selecione o parceiro" /></SelectTrigger>
+                      <SelectContent>
+                        {parceiros.filter(p => p.ativo).map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   {!valeGasValidado ? (
                     <>
                       <div className="flex gap-2 p-1 bg-muted rounded-lg">
@@ -1234,7 +1301,7 @@ export default function AcertoEntregador() {
                           <p className="text-xs text-muted-foreground">Digite o código impresso no vale</p>
                           <Button
                             onClick={() => { if (valeGasCodigoInput.trim()) validarValeGasAcerto(valeGasCodigoInput.trim()); }}
-                            disabled={!valeGasCodigoInput.trim() || validandoValeGas}
+                            disabled={!valeGasParceiroId || !valeGasCodigoInput.trim() || validandoValeGas}
                             className="w-full"
                             size="sm"
                           >
@@ -1258,6 +1325,7 @@ export default function AcertoEntregador() {
                           </div>
                           <div className="space-y-1 text-xs">
                             <div className="flex justify-between"><span className="text-muted-foreground">Parceiro:</span><span className="font-medium">{valeGasValidado.parceiro}</span></div>
+                            {valeGasValidado.numero && <div className="flex justify-between"><span className="text-muted-foreground">Número:</span><span className="font-mono">{valeGasValidado.numero}</span></div>}
                             <div className="flex justify-between"><span className="text-muted-foreground">Código:</span><span className="font-mono">{valeGasValidado.codigo}</span></div>
                             <div className="flex justify-between"><span className="text-muted-foreground">Valor:</span><span className="font-bold">R$ {valeGasValidado.valor.toFixed(2)}</span></div>
                           </div>
