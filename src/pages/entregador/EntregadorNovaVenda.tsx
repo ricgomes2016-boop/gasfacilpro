@@ -424,7 +424,7 @@ export default function EntregadorNovaVenda() {
           observacoes: observacao || null,
           status: "entregue",
           data_entrega: getBrasiliaDateString(),
-        })
+        } as any)
         .select("id, numero_sequencial")
         .single();
 
