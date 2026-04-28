@@ -158,13 +158,14 @@ export default function AcertoEntregador() {
       let query = supabase
         .from("pedidos")
         .select(`
-          id, created_at, valor_total, forma_pagamento, status, canal_venda,
+          id, created_at, data_entrega, valor_total, forma_pagamento, status, canal_venda,
           clientes (nome),
           pedido_itens (id, quantidade, preco_unitario, produtos (nome))
         `)
-        .gte("created_at", `${dataInicio}T00:00:00-03:00`)
-        .lte("created_at", `${dataFim}T23:59:59-03:00`)
+        .gte("data_entrega", dataInicio)
+        .lte("data_entrega", dataFim)
         .in("status", statusList)
+        .order("data_entrega", { ascending: true })
         .order("created_at", { ascending: true });
 
       if (canalVirtual) {
@@ -186,9 +187,9 @@ export default function AcertoEntregador() {
     queryFn: async () => {
       let query = supabase
         .from("pedidos")
-        .select("id, valor_total, entregador_id, entregadores (id, nome)")
-        .gte("created_at", `${dataInicio}T00:00:00-03:00`)
-        .lte("created_at", `${dataFim}T23:59:59-03:00`)
+        .select("id, valor_total, data_entrega, entregador_id, entregadores (id, nome)")
+        .gte("data_entrega", dataInicio)
+        .lte("data_entrega", dataFim)
         .in("status", ["entregue", "pago"])
         .not("entregador_id", "is", null);
 
