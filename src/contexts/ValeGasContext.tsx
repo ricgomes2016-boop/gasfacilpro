@@ -310,6 +310,13 @@ export function ValeGasProvider({ children }: { children: ReactNode }) {
     const { data: acertoValesData } = await (supabase as any).from("vale_gas_acerto_vales").select("vale_id");
     const valesJaAcertados = new Set((acertoValesData || []).map((av: any) => av.vale_id));
 
+    const { data: contasValeData } = await (supabase as any)
+      .from("contas_receber")
+      .select("vale_gas_id")
+      .eq("forma_pagamento", "vale_gas")
+      .not("vale_gas_id", "is", null);
+    (contasValeData || []).forEach((c: any) => valesJaAcertados.add(c.vale_gas_id));
+
     const valesParaAcertar = vales.filter(v =>
       v.parceiro_id === parceiroId && v.status === "utilizado" && !valesJaAcertados.has(v.id)
     );
