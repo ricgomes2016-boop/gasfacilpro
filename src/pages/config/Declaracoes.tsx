@@ -207,6 +207,32 @@ export default function Declaracoes() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-2">
+                  <Label>Modelo de declaração</Label>
+                  <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+                    <Select value={modeloSelecionadoId} onValueChange={aplicarModelo}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um modelo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {modelosDeclaracao.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.nome}{item.origem === "personalizado" ? " · personalizado" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="outline" onClick={salvarModeloPersonalizado} className="gap-2">
+                      <Save className="h-4 w-4" />
+                      Salvar modelo
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={removerModeloPersonalizado} disabled={!podeRemoverModelo} className="gap-2">
+                      <Trash2 className="h-4 w-4" />
+                      Remover
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
                   <Label>Título</Label>
                   <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex: Declaração" />
                 </div>
@@ -230,9 +256,9 @@ export default function Declaracoes() {
                 <Separator />
 
                 <div className="flex flex-col sm:flex-row gap-2 justify-between">
-                  <Button type="button" variant="outline" onClick={() => setModelo(MODELO_DECLARACAO_PADRAO)} className="gap-2">
+                  <Button type="button" variant="outline" onClick={() => aplicarModelo(modeloSelecionadoId)} className="gap-2">
                     <RefreshCw className="h-4 w-4" />
-                    Restaurar modelo padrão
+                    Restaurar modelo selecionado
                   </Button>
                   <Button type="button" variant="import" onClick={handleGerarPdf} className="gap-2">
                     <Download className="h-4 w-4" />
