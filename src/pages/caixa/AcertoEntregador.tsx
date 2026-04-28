@@ -292,18 +292,35 @@ export default function AcertoEntregador() {
       })),
     });
     setValeGasValidado(null);
+    setValeGasParceiroId("");
     setValeGasCodigoInput("");
   };
 
   const validarValeGasAcerto = async (codigo: string) => {
+    if (!valeGasParceiroId) {
+      toastHook({ title: "Selecione o parceiro", description: "Escolha o parceiro antes de validar o número do vale.", variant: "destructive" });
+      return;
+    }
     setValidandoValeGas(true);
     try {
-      const result = await validarValeGasNoBanco(codigo);
+      const result = await validarValeGasNoBanco(codigo, valeGasParceiroId);
       if (result.valido) {
-        const vale = { parceiro: result.parceiro, codigo: result.codigo, valor: result.valor, valido: true, valeId: result.valeId };
+        const vale = { parceiro: result.parceiro, parceiroId: result.parceiroId, numero: result.numero, codigo: result.codigo, valor: result.valor, valido: true, valeId: result.valeId };
         setValeGasValidado(vale);
         if (editingEntrega) {
-          setEditingEntrega({ ...editingEntrega, vale_gas_codigo: codigo });
+          setEditingEntrega({
+            ...editingEntrega,
+            vale_gas_codigo: result.codigo,
+            pagamentos_multiplos: editingEntrega.pagamentos_multiplos.map((p) => p.forma === "Vale Gás" ? {
+              ...p,
+              vale_gas_id: result.valeId,
+              vale_gas_parceiro_id: result.parceiroId,
+              vale_gas_parceiro_nome: result.parceiro,
+              vale_gas_numero: result.numero,
+              vale_gas_codigo: result.codigo,
+              valor: result.valor,
+            } : p),
+          });
         }
         toastHook({ title: "Vale Gás validado!", description: `Parceiro: ${result.parceiro} - Valor: R$ ${result.valor.toFixed(2)}` });
       } else {
