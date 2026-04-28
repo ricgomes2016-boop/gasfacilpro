@@ -298,7 +298,7 @@ export default function Veiculos() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-2 space-y-2">
+                <div className="space-y-2 sm:col-span-2">
                   <Label>Entregador Vinculado</Label>
                   <Select value={form.entregador_id} onValueChange={(v) => setForm({...form, entregador_id: v === "none" ? "" : v})}>
                     <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
@@ -311,27 +311,27 @@ export default function Veiculos() {
                   </Select>
                 </div>
               </div>
-              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button onClick={handleSave}>{editId ? "Atualizar" : "Salvar"}</Button>
+              <div className="flex flex-col-reverse gap-2 mt-4 sm:flex-row sm:justify-end">
+                <Button className="h-10" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                <Button className="h-10" onClick={handleSave}>{editId ? "Atualizar" : "Salvar"}</Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 gap-3 min-[384px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium">Ativos</CardTitle>
-              <Car className="h-4 w-4 text-primary" />
+            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+              <CardTitle className="text-sm font-semibold truncate">Ativos</CardTitle>
+              <span className="status-card-icon-primary rounded-xl p-2"><Car className="h-4 w-4" /></span>
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{countByStatus("ativo")}</div></CardContent>
           </Card>
           <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium">Terceiros</CardTitle>
-              <ExternalLink className="h-4 w-4 text-primary" />
+            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+              <CardTitle className="text-sm font-semibold truncate">Terceiros</CardTitle>
+              <span className="status-card-icon-info rounded-xl p-2"><ExternalLink className="h-4 w-4" /></span>
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{countByStatus("terceiro")}</div></CardContent>
           </Card>
