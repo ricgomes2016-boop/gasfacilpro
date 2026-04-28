@@ -41,6 +41,7 @@ import { usePedidos } from "@/hooks/usePedidos";
 import { PedidoFormatado, PedidoStatus } from "@/types/pedido";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { SmartImportButtons } from "@/components/import/SmartImportButtons";
 import { ImportReviewDialog } from "@/components/import/ImportReviewDialog";
 import { toast as sonnerToast } from "sonner";
@@ -100,6 +101,8 @@ export default function Pedidos() {
   const [paginaAtual, setPaginaAtual] = useState(1);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { hasAnyRole } = useAuth();
+  const podeAlterarDataEntrega = hasAnyRole(["admin", "gestor"]);
 
   // Batch selection (#7)
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
@@ -241,6 +244,22 @@ export default function Pedidos() {
       queryClient.invalidateQueries({ queryKey: ["pedidos"] });
     }
     setEditandoCanalId(null);
+  };
+
+  const dataPedidoParaInput = (data: string) => {
+    const partes = data.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    return partes ? `${partes[3]}-${partes[2]}-${partes[1]}` : hoje;
+  };
+
+  const alterarDataEntrega = async (pedido: PedidoFormatado, novaData: string) => {
+    if (!podeAlterarDataEntrega || !novaData || novaData === dataPedidoParaInput(pedido.data)) return;
+    const { error } = await supabase.from("pedidos").update({ data_entrega: novaData } as Record<string, unknown>).eq("id", pedido.id);
+    if (error) {
+      toast({ title: "Erro ao alterar data", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Data da entrega atualizada", description: `Pedido #${getNumExib(pedido)} movido para ${novaData.split("-").reverse().join("/")}.` });
+    queryClient.invalidateQueries({ queryKey: ["pedidos"] });
   };
 
   const alterarStatusPedido = (pedidoId: string, novoStatus: PedidoStatus) => {
@@ -774,7 +793,9 @@ export default function Pedidos() {
                       </div>
                       <span className="font-bold text-sm shrink-0">R$ {pedido.valor.toFixed(2)}</span>
                     </div>
-                    <p className="text-[10px] text-muted-foreground truncate">{pedido.data}</p>
+                    {podeAlterarDataEntrega ?
+                    <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-8 text-[11px]" /> :
+                    <p className="text-[10px] text-muted-foreground truncate">{pedido.data}</p>}
                   </div>
                 ))}
               </div>
@@ -858,7 +879,11 @@ export default function Pedidos() {
                         <TableCell>
                           <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">{pedido.data}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {podeAlterarDataEntrega ?
+                        <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-8 w-[140px] text-xs" /> :
+                        pedido.data}
+                        </TableCell>
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
