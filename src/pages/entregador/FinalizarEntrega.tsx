@@ -461,6 +461,19 @@ export default function FinalizarEntrega() {
           </CardContent>
         </Card>
 
+        <Card className="border-none shadow-md">
+          <CardContent className="p-4 space-y-2">
+            <Label htmlFor="data-entrega">Data da entrega</Label>
+            <Input
+              id="data-entrega"
+              type="date"
+              value={dataEntrega}
+              onChange={(e) => setDataEntrega(e.target.value)}
+              className="h-11 text-base"
+            />
+          </CardContent>
+        </Card>
+
         {/* Produtos (editáveis) */}
         <Card className="border-none shadow-md">
           <CardHeader className="pb-2">
