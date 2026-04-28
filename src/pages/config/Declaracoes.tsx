@@ -30,7 +30,17 @@ export default function Declaracoes() {
   const [modelo, setModelo] = useState(MODELO_DECLARACAO_PADRAO);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [modeloSelecionadoId, setModeloSelecionadoId] = useState(MODELOS_DECLARACAO_PRE_CONFIGURADOS[0].id);
-  const [modelosPersonalizados, setModelosPersonalizados] = useState<ModeloDeclaracao[]>([]);
+  const [modelosPersonalizados, setModelosPersonalizados] = useState<ModeloDeclaracao[]>(() => {
+    try {
+      const salvos = localStorage.getItem(STORAGE_MODELOS_DECLARACAO);
+      if (!salvos) return [];
+      const modelos = JSON.parse(salvos) as ModeloDeclaracao[];
+      return modelos.filter((item) => item.origem === "personalizado" && item.id && item.nome);
+    } catch {
+      localStorage.removeItem(STORAGE_MODELOS_DECLARACAO);
+      return [];
+    }
+  });
 
   const unidadesAtivas = useMemo(() => unidades.filter((u) => u.ativo !== false), [unidades]);
   const unidadesSelecionadas = useMemo(
@@ -62,17 +72,6 @@ export default function Declaracoes() {
       return new Set([unidadeAtual.id]);
     });
   }, [unidadeAtual?.id, unidadesAtivas]);
-
-  useEffect(() => {
-    try {
-      const salvos = localStorage.getItem(STORAGE_MODELOS_DECLARACAO);
-      if (!salvos) return;
-      const modelos = JSON.parse(salvos) as ModeloDeclaracao[];
-      setModelosPersonalizados(modelos.filter((item) => item.origem === "personalizado" && item.id && item.nome));
-    } catch {
-      localStorage.removeItem(STORAGE_MODELOS_DECLARACAO);
-    }
-  }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_MODELOS_DECLARACAO, JSON.stringify(modelosPersonalizados));
