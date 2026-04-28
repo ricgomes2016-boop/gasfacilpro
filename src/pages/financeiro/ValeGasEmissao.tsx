@@ -244,6 +244,25 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
     return parseInt(formData.quantidade) || 0;
   };
 
+  const getNumerosDuplicadosExternos = () => {
+    if (modoEmissao === "automatico") return [];
+    const qtd = getQuantidadeEfetiva();
+    const numInicial = getNumeroInicial();
+    if (qtd <= 0 || numInicial <= 0) return [];
+    const numerosInformados = new Set(Array.from({ length: qtd }, (_, i) => numInicial + i));
+    return vales
+      .filter(v => numerosInformados.has(v.numero))
+      .map(v => v.numero)
+      .sort((a, b) => a - b);
+  };
+
+  const validarNumeracaoExterna = () => {
+    const duplicados = getNumerosDuplicadosExternos();
+    if (duplicados.length === 0) return true;
+    toast.error(`Numeração de Vale Gás já cadastrada: ${duplicados.join(", ")}`);
+    return false;
+  };
+
   const valorTotal = getQuantidadeEfetiva() * (parseFloat(formData.valorUnitario) || 0);
 
   const gerarPreview = () => {
@@ -251,6 +270,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
     const valor = parseFloat(formData.valorUnitario) || 0;
     const numInicial = getNumeroInicial();
     if (qtd <= 0 || valor <= 0) { toast.error("Informe quantidade e valor válidos"); return; }
+    if (!validarNumeracaoExterna()) return;
     const preview = [];
     for (let i = 0; i < qtd; i++) {
       const num = numInicial + i;
@@ -264,6 +284,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
     const qtdEfetiva = getQuantidadeEfetiva();
     const numInicial = getNumeroInicial();
     if (!formData.parceiroId || qtdEfetiva <= 0) { toast.error("Preencha todos os campos obrigatórios"); return; }
+    if (!validarNumeracaoExterna()) return;
 
     try {
       const lote = await emitirLote({
