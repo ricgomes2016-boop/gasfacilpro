@@ -58,6 +58,7 @@ interface ClienteDB {
   nome: string;
   telefone: string | null;
   endereco: string | null;
+  numero?: string | null;
   bairro: string | null;
   cep: string | null;
   cidade: string | null;
@@ -93,6 +94,7 @@ export default function EntregadorNovaVenda() {
   const [clientes, setClientes] = useState<ClienteDB[]>([]);
   const [entregadorId, setEntregadorId] = useState<string | null>(null);
   const [entregadorUnidadeId, setEntregadorUnidadeId] = useState<string | null>(null);
+  const [entregadorEmpresaId, setEntregadorEmpresaId] = useState<string | null>(null);
 
   const [cliente, setCliente] = useState<Cliente>({
     id: null,
@@ -120,7 +122,7 @@ export default function EntregadorNovaVenda() {
 
   useEffect(() => {
     fetchData();
-  }, [user]);
+  }, [user, empresa?.id]);
 
   // Realtime subscription for new clients
   useEffect(() => {
@@ -145,6 +147,7 @@ export default function EntregadorNovaVenda() {
 
   const fetchData = async () => {
     let unidadeId: string | null = null;
+    let empresaId = empresa?.id || null;
 
     if (user) {
       const { data: entregador } = await supabase
@@ -156,9 +159,18 @@ export default function EntregadorNovaVenda() {
         setEntregadorId(entregador.id);
         unidadeId = entregador.unidade_id;
         setEntregadorUnidadeId(entregador.unidade_id);
-        
+        if (unidadeId && !empresaId) {
+          const { data: unidade } = await supabase
+            .from("unidades")
+            .select("empresa_id")
+            .eq("id", unidadeId)
+            .maybeSingle();
+          empresaId = unidade?.empresa_id || null;
+        }
       }
     }
+
+    setEntregadorEmpresaId(empresaId);
 
     let produtosQuery = supabase
       .from("produtos")
@@ -171,9 +183,13 @@ export default function EntregadorNovaVenda() {
       produtosQuery = produtosQuery.eq("unidade_id", unidadeId);
     }
 
-    // Filter clientes by empresa
-    let clientesQuery = supabase.from("clientes").select("id, nome, telefone, endereco, bairro, cep, cidade, tipo").eq("ativo", true).order("nome");
-    if (empresa?.id) clientesQuery = clientesQuery.eq("empresa_id", empresa.id);
+    let clientesQuery = supabase
+      .from("clientes")
+      .select("id, nome, telefone, endereco, numero, bairro, cep, cidade, tipo")
+      .eq("ativo", true)
+      .order("nome")
+      .limit(500);
+    if (empresaId) clientesQuery = clientesQuery.eq("empresa_id", empresaId);
 
     const [produtosRes, clientesRes] = await Promise.all([
       produtosQuery,
@@ -260,7 +276,7 @@ export default function EntregadorNovaVenda() {
           cidade: data.cidade || null,
           telefone: data.cliente_telefone || null,
           ativo: true,
-          empresa_id: empresa?.id || null,
+          empresa_id: entregadorEmpresaId || empresa?.id || null,
         };
         const { data: criado, error: createErr } = await supabase.from("clientes").insert(novoCliente).select("id").single();
         setCliente({
@@ -363,7 +379,7 @@ export default function EntregadorNovaVenda() {
       nome: c.nome,
       telefone: c.telefone || "",
       endereco: c.endereco || "",
-      numero: "",
+      numero: c.numero || "",
       bairro: c.bairro || "",
       complemento: "",
       tipo: c.tipo,
@@ -504,11 +520,19 @@ export default function EntregadorNovaVenda() {
 
   const todosCanais = canaisVenda.map((c) => ({ value: c.nome, label: c.nome }));
 
-  const clientesFiltrados = clientes.filter(
-    (c) =>
-      c.nome.toLowerCase().includes(buscaCliente.toLowerCase()) ||
-      (c.telefone || "").includes(buscaCliente)
-  );
+  const clientesFiltrados = clientes.filter((c) => {
+    const termo = buscaCliente.trim().toLowerCase();
+    const digits = buscaCliente.replace(/\D/g, "");
+    if (!termo) return true;
+    return (
+      c.nome.toLowerCase().includes(termo) ||
+      (c.telefone || "").replace(/\D/g, "").includes(digits) ||
+      (c.telefone || "").toLowerCase().includes(termo) ||
+      (c.endereco || "").toLowerCase().includes(termo) ||
+      (c.numero || "").toLowerCase().includes(termo) ||
+      (c.bairro || "").toLowerCase().includes(termo)
+    );
+  });
 
   return (
     <EntregadorLayout title="Nova Venda">
