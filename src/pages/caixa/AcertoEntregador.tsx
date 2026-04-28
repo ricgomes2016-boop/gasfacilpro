@@ -551,7 +551,7 @@ export default function AcertoEntregador() {
     autoTable(doc, {
       head: [["Hora", "Cliente", "Itens", "Pagamento", "Status", "Valor"]],
       body: entregas.map((e) => [
-        format(parseISO(e.created_at), "HH:mm"),
+        e.data_entrega ? format(parseISO(`${e.data_entrega}T12:00:00`), "dd/MM/yyyy") : format(parseISO(e.created_at), "dd/MM/yyyy HH:mm"),
         e.clientes?.nome || "—",
         (e.pedido_itens || []).map((i: any) => `${i.quantidade}x ${i.produtos?.nome || "?"}`).join(", ") || "—",
         paymentLabels[e.forma_pagamento || ""] || e.forma_pagamento || "—",
@@ -980,7 +980,7 @@ export default function AcertoEntregador() {
                     <Table className="min-w-[360px]">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-14">Hora</TableHead>
+                          <TableHead className="w-24">Data</TableHead>
                           <TableHead>Descrição</TableHead>
                           <TableHead className="hidden sm:table-cell">Categoria</TableHead>
                           <TableHead className="text-right">Valor</TableHead>
@@ -1061,7 +1061,9 @@ export default function AcertoEntregador() {
                           const isAcertado = e.status === "finalizado";
                           return (
                             <TableRow key={e.id} className={isAcertado ? "opacity-75" : ""}>
-                              <TableCell className="text-xs">{format(parseISO(e.created_at), "HH:mm")}</TableCell>
+                              <TableCell className="text-xs">
+                                {e.data_entrega ? format(parseISO(`${e.data_entrega}T12:00:00`), "dd/MM") : format(parseISO(e.created_at), "dd/MM HH:mm")}
+                              </TableCell>
                               <TableCell className="text-sm font-medium">
                                 <div>{e.clientes?.nome || "—"}</div>
                                 <div className="md:hidden text-xs text-muted-foreground mt-0.5 max-w-[140px] truncate">{itensStr}</div>
