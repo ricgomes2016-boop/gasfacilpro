@@ -398,15 +398,15 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
                     <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50">
                       <RadioGroupItem value="lote" id="modo-lote" />
                       <Label htmlFor="modo-lote" className="cursor-pointer">
-                        <p className="font-medium text-sm">Lote (Intervalo)</p>
-                        <p className="text-xs text-muted-foreground">Ex: 200 a 250</p>
+                        <p className="font-medium text-sm">Lote Externo</p>
+                        <p className="text-xs text-muted-foreground">Vales já gerados</p>
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-muted/50">
                       <RadioGroupItem value="manual" id="modo-manual" />
                       <Label htmlFor="modo-manual" className="cursor-pointer">
-                        <p className="font-medium text-sm">Manual</p>
-                        <p className="text-xs text-muted-foreground">Um vale por vez</p>
+                        <p className="font-medium text-sm">Vale Externo</p>
+                        <p className="text-xs text-muted-foreground">Um número já emitido</p>
                       </Label>
                     </div>
                   </RadioGroup>
@@ -461,8 +461,8 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
                     <Hash className="h-4 w-4 text-muted-foreground" />
                     <Label className="font-semibold text-sm">
                       {modoEmissao === "automatico" && "Numeração Automática"}
-                      {modoEmissao === "lote" && "Intervalo de Numeração"}
-                      {modoEmissao === "manual" && "Número do Vale"}
+                      {modoEmissao === "lote" && "Registrar Intervalo Externo"}
+                      {modoEmissao === "manual" && "Registrar Vale Externo"}
                     </Label>
                   </div>
 
