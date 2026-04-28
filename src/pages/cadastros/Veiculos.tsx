@@ -520,6 +520,11 @@ export default function Veiculos() {
                   )}
                 </TableBody>
               </Table>
+              </div>
+              {filtered.length === 0 && (
+                <div className="px-3 pb-3 text-center text-sm text-muted-foreground md:hidden">Nenhum veículo encontrado</div>
+              )}
+              </>
             )}
           </CardContent>
         </Card>
