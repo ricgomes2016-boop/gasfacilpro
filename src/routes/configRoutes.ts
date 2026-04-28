@@ -7,7 +7,6 @@ const Permissoes = lazy(() => import("@/pages/config/Permissoes"));
 const UnidadesConfig = lazy(() => import("@/pages/config/Unidades"));
 const Usuarios = lazy(() => import("@/pages/config/Usuarios"));
 const DocumentosEmpresa = lazy(() => import("@/pages/config/DocumentosEmpresa"));
-const Declaracoes = lazy(() => import("@/pages/config/Declaracoes"));
 const Notificacoes = lazy(() => import("@/pages/config/Notificacoes"));
 const PersonalizacaoVisual = lazy(() => import("@/pages/config/PersonalizacaoVisual"));
 const RegrasBia = lazy(() => import("@/pages/config/RegrasBia"));
@@ -22,7 +21,6 @@ export const configRoutes: RouteConfig[] = [
   { path: "/config/usuarios", component: Usuarios, roles: ["admin"] },
   { path: "/configuracoes", component: Configuracoes, roles: ["admin", "gestor"] },
   { path: "/config/documentos", component: DocumentosEmpresa, roles: ["admin", "gestor", "financeiro"] },
-  { path: "/config/declaracoes", component: Declaracoes, roles: ["admin", "gestor", "financeiro"] },
   { path: "/config/notificacoes", component: Notificacoes, roles: ["admin", "gestor"] },
   { path: "/config/personalizacao", component: PersonalizacaoVisual, roles: ["admin", "gestor"] },
   { path: "/config/regras-bia", component: RegrasBia, roles: ["admin", "gestor"] },
