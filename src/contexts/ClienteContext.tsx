@@ -101,9 +101,8 @@ export function ClienteProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [walletTransactions, setWalletTransactions] = useState<WalletTransaction[]>([]);
-  
-  const [referralCode] = useState("CLIENTE" + Math.random().toString(36).substring(2, 8).toUpperCase());
-  const [referralCount] = useState(0);
+  const [referralCode, setReferralCode] = useState("CLIENTE");
+  const [referralCount, setReferralCount] = useState(0);
   
   const [valesGas] = useState<ValeGas[]>([]);
   
@@ -194,6 +193,63 @@ export function ClienteProvider({ children }: { children: ReactNode }) {
       fetchLojas();
     }
   }, [empresaInfo, searchParams]);
+
+  useEffect(() => {
+    const fetchIndicacoesCarteira = async () => {
+      if (!user || !empresaInfo?.id || !profile) return;
+
+      const profileEmail = (profile as any).email as string | undefined;
+      const profilePhone = ((profile as any).phone as string | undefined)?.replace(/\D/g, "");
+      const filters: string[] = [];
+      if (profileEmail) filters.push(`email.eq.${profileEmail}`);
+      if (profilePhone) {
+        filters.push(`telefone.ilike.%${profilePhone}%`);
+        filters.push(`telefone.ilike.%${profilePhone.slice(-11)}%`);
+        filters.push(`telefone.ilike.%${profilePhone.slice(-9)}%`);
+      }
+
+      if (filters.length === 0) return;
+
+      const { data: cliente } = await supabase
+        .from("clientes")
+        .select("id, codigo_indicacao")
+        .eq("empresa_id", empresaInfo.id)
+        .or(filters.join(","))
+        .limit(1)
+        .maybeSingle();
+
+      if (!cliente?.id) return;
+
+      setReferralCode((cliente as any).codigo_indicacao || "CLIENTE");
+
+      const [{ data: indicacoes }, { data: creditos }] = await Promise.all([
+        (supabase as any)
+          .from("cliente_indicacoes")
+          .select("id, status")
+          .eq("indicador_cliente_id", cliente.id),
+        (supabase as any)
+          .from("cliente_creditos")
+          .select("id, natureza, valor, descricao, created_at, status")
+          .eq("cliente_id", cliente.id)
+          .order("created_at", { ascending: false }),
+      ]);
+
+      setReferralCount((indicacoes || []).filter((i: any) => i.status === "convertida").length);
+
+      const transacoes = (creditos || []).map((credito: any) => ({
+        id: credito.id,
+        type: credito.natureza === "debito" ? "debit" : "credit",
+        amount: Number(credito.valor) || 0,
+        description: credito.descricao,
+        date: new Date(credito.created_at),
+      })) as WalletTransaction[];
+
+      setWalletTransactions(transacoes);
+      setWalletBalance(transacoes.reduce((saldo, item) => saldo + (item.type === "credit" ? item.amount : -item.amount), 0));
+    };
+
+    fetchIndicacoesCarteira();
+  }, [user, profile, empresaInfo?.id]);
 
   const setLojaSelecionadaId = (id: string) => {
     setLojaSelecionadaIdState(id);
