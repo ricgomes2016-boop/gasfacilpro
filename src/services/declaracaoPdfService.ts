@@ -21,6 +21,69 @@ Por ser verdade, firmamos a presente declaração.
 
 {{cidade}}/{{estado}}, {{data_atual}}.`;
 
+export type ModeloDeclaracao = {
+  id: string;
+  nome: string;
+  titulo: string;
+  texto: string;
+  origem: "pre_configurado" | "personalizado";
+};
+
+export const MODELOS_DECLARACAO_PRE_CONFIGURADOS: ModeloDeclaracao[] = [
+  {
+    id: "vinculo-unidade",
+    nome: "Vínculo da unidade",
+    titulo: "Declaração",
+    texto: MODELO_DECLARACAO_PADRAO,
+    origem: "pre_configurado",
+  },
+  {
+    id: "endereco-unidade",
+    nome: "Endereço da unidade",
+    titulo: "Declaração de Endereço",
+    texto: `Declaramos para os devidos fins que a unidade {{nome_unidade}}, inscrita no CNPJ {{cnpj}}, está localizada no endereço {{endereco}}, {{bairro}}, {{cidade}}/{{estado}}, CEP {{cep}}.
+
+A presente declaração é emitida com base nos dados cadastrais vigentes nesta data.
+
+{{cidade}}/{{estado}}, {{data_atual}}.`,
+    origem: "pre_configurado",
+  },
+  {
+    id: "atividade-operacional",
+    nome: "Funcionamento operacional",
+    titulo: "Declaração de Funcionamento",
+    texto: `Declaramos que a unidade {{nome_unidade}}, {{tipo_unidade}}, inscrita no CNPJ {{cnpj}}, exerce suas atividades operacionais no endereço {{endereco}}, {{bairro}}, {{cidade}}/{{estado}}, CEP {{cep}}.
+
+Declaramos ainda que os contatos cadastrados para esta unidade são telefone {{telefone}} e e-mail {{email}}.
+
+{{cidade}}/{{estado}}, {{data_atual}}.`,
+    origem: "pre_configurado",
+  },
+  {
+    id: "dados-cadastrais",
+    nome: "Dados cadastrais",
+    titulo: "Declaração de Dados Cadastrais",
+    texto: `Declaramos que constam em nossos registros os seguintes dados cadastrais:
+
+Unidade: {{nome_unidade}}
+Tipo: {{tipo_unidade}}
+CNPJ: {{cnpj}}
+Endereço: {{endereco}}, {{bairro}}, {{cidade}}/{{estado}}, CEP {{cep}}
+Telefone: {{telefone}}
+E-mail: {{email}}
+
+Por ser verdade, firmamos a presente declaração em {{data_atual}}.`,
+    origem: "pre_configurado",
+  },
+  {
+    id: "personalizada-em-branco",
+    nome: "Personalizada em branco",
+    titulo: "Declaração Personalizada",
+    texto: "",
+    origem: "pre_configurado",
+  },
+];
+
 const hojeExtenso = () => new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
   month: "long",
