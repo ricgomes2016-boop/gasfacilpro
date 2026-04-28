@@ -1,40 +1,41 @@
-Plano de implementação
+Plano de correção
 
-1. Criar o módulo “Avisos” em Gestão de RH
-- Adicionar nova página em RH para cadastrar, editar, ativar/desativar e excluir avisos.
-- Campos previstos: título, mensagem, prioridade, período de exibição, unidade, status ativo e opção de fixar/destacar.
-- Incluir a página no menu “Gestão de RH” como “Avisos”, mantendo “Horários” como a única entrada de horários/escalas.
-- Usar o conteúdo do PDF enviado como referência para um modelo de aviso sobre SST/saúde ocupacional, sem publicar automaticamente para todas as unidades sem confirmação na tela.
+1. Corrigir a data do pedido em Nova Venda
 
-2. Persistência segura no backend
-- Criar tabela de avisos para entregadores com isolamento por empresa/unidade.
-- Aplicar regras de acesso:
-  - Admin/gestor podem gerenciar avisos da própria empresa.
-  - Entregadores só podem visualizar avisos ativos da própria unidade/empresa.
-- Incluir índices para busca eficiente por empresa, unidade, status e período de exibição.
+- Na tela `/vendas/nova`, usar o valor selecionado em `Data de Entrega` ao criar o pedido.
+- Hoje o campo existe na interface, mas o pedido é inserido sem enviar essa data; por isso o banco usa `now()` e a tela de pedidos mostra a data atual.
+- Ao finalizar, gravar `created_at` com a data escolhida em horário seguro de Brasília, por exemplo:
+  - `2026-04-27T12:00:00-03:00`
+- Usar meio-dia em vez de meia-noite para evitar virada de dia por fuso horário.
 
-3. Exibir avisos no aplicativo do entregador
-- Criar um componente de avisos no app do entregador, preferencialmente na tela inicial, acima ou próximo ao “Meu Horário da Semana”.
-- Mostrar apenas avisos ativos, dentro do período configurado, relacionados à unidade do entregador.
-- Dar destaque visual para avisos importantes, mantendo contraste correto para evitar texto claro em fundo claro.
-- Se não houver avisos, não ocupar espaço na tela.
+2. Corrigir a exibição e filtros na tela de Pedidos
 
-4. Remover duplicidade no menu Operacional
-- Remover apenas o item “Escalas de Entregadores” de “Gestão Operacional”.
-- Manter a rota/página existente `/rh/horarios` funcionando normalmente em “Gestão de RH > Horários”.
-- Não alterar a página de horários/escalas, apenas a navegação duplicada.
+- Manter a tela `/vendas/pedidos` usando `created_at` como data do pedido, agora respeitando a data escolhida.
+- Ajustar a formatação para exibir corretamente em pt-BR/Brasília, evitando que `27/04/2026` apareça como `28/04/2026` ou vice-versa por causa do timezone.
+- Os filtros por data já usam intervalo com `-03:00`; vou preservar esse padrão.
 
-Detalhes técnicos
-- Arquivos prováveis:
-  - `src/components/layout/menuItems.ts`: remover item duplicado do Operacional e adicionar “Avisos” em RH.
-  - `src/routes/rhRoutes.ts`: adicionar rota `/rh/avisos`.
-  - `src/pages/rh/Avisos.tsx`: nova tela de gestão dos avisos.
-  - `src/pages/entregador/EntregadorDashboard.tsx`: inserir o bloco de avisos.
-  - Novo componente em `src/components/entregador/` para listar avisos no app.
-- Backend:
-  - Nova tabela, por exemplo `rh_avisos_entregador`, com `empresa_id`, `unidade_id`, `titulo`, `mensagem`, `prioridade`, `ativo`, `fixado`, `exibir_de`, `exibir_ate`, `created_by`, timestamps e RLS.
-- Validação final:
-  - Rodar checagem TypeScript.
-  - Conferir que o menu Operacional não mostra mais “Escalas de Entregadores”.
-  - Conferir que “Gestão de RH > Horários” continua disponível.
-  - Conferir que avisos cadastrados aparecem no app do entregador conforme unidade/status/período.
+3. Restaurar/mostrar botão “Salvar Cliente” no fluxo de venda publicado
+
+- Em `CustomerSearch`, o botão atual só aparece quando existe `value.id` e é apenas um ícone, o que pode ficar pouco perceptível no publicado.
+- Vou trocar para uma ação visível com texto, por exemplo “Salvar cliente”, mantendo ícone e loading.
+- O botão ficará disponível quando houver cliente selecionado e campos editáveis; se necessário, em telas estreitas, ele será compacto mas ainda reconhecível.
+- A função atual de salvar cliente será mantida: atualiza nome, telefone, endereço, número, bairro, CEP e coordenadas.
+
+4. Pequeno ajuste de UX para evitar confusão
+
+- Quando for cliente novo sem cadastro, manter a mensagem de que será cadastrado automaticamente ao finalizar a venda.
+- Quando for cliente existente, deixar claro que o botão “Salvar cliente” salva alterações cadastrais antes de finalizar a venda.
+
+&nbsp;
+
+Arquivos previstos
+
+- `src/pages/vendas/NovaVenda.tsx`
+- `src/hooks/usePedidos.ts`
+- `src/components/vendas/CustomerSearch.tsx`
+
+Observações técnicas
+
+- Não será criada nova tabela.
+- Não será alterado o fluxo de autenticação/RLS.
+- A correção usará o campo `created_at` existente em `pedidos`, porque a listagem e os filtros atuais já se baseiam nele.
