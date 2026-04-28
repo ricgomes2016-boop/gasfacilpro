@@ -9,8 +9,13 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription,
-} from "@/components/ui/dialog";
+  ResponsiveDialog as Dialog,
+  ResponsiveDialogContent as DialogContent,
+  ResponsiveDialogDescription as DialogDescription,
+  ResponsiveDialogHeader as DialogHeader,
+  ResponsiveDialogTitle as DialogTitle,
+  ResponsiveDialogTrigger as DialogTrigger,
+} from "@/components/ui/responsive-dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -24,6 +29,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { VeiculoDetalheDialog } from "@/components/frota/VeiculoDetalheDialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Entregador {
   id: string;
@@ -220,12 +226,12 @@ export default function Veiculos() {
 
   return (
     <MainLayout>
-      <Header title="Veículos" subtitle="Gerencie a frota de veículos" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+      <Header title="Veículos" subtitle={`${unidadeAtual?.nome || "Unidade atual"} — Gerencie a frota de veículos`} />
+      <div className="dashboard-shell">
         {/* Top actions */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <Tabs value={filtroStatus} onValueChange={setFiltroStatus}>
-            <TabsList>
+        <div className="flex flex-col gap-3 w-full min-w-0 lg:flex-row lg:items-center lg:justify-between">
+          <Tabs value={filtroStatus} onValueChange={setFiltroStatus} className="w-full min-w-0 lg:w-auto">
+            <TabsList className="h-auto w-full min-w-0 flex-wrap justify-start gap-1 rounded-2xl bg-card p-1 shadow-sm lg:w-auto">
               <TabsTrigger value="todos">Todos ({veiculos.length})</TabsTrigger>
               <TabsTrigger value="ativo">Ativos ({countByStatus("ativo")})</TabsTrigger>
               <TabsTrigger value="terceiro">Terceiros ({countByStatus("terceiro")})</TabsTrigger>
@@ -235,21 +241,21 @@ export default function Veiculos() {
           </Tabs>
           <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
             <DialogTrigger asChild>
-              <Button className="gap-2 bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90"><Plus className="h-4 w-4" />Novo Veículo</Button>
+              <Button className="h-10 w-full gap-2 shadow-sm lg:w-auto"><Plus className="h-4 w-4" />Novo Veículo</Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editId ? "Editar Veículo" : "Cadastrar Novo Veículo"}</DialogTitle>
                 <DialogDescription>Preencha os dados do veículo</DialogDescription>
               </DialogHeader>
-              <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-1 gap-4 mt-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Placa *</Label>
-                  <Input value={form.placa} onChange={e => setForm({...form, placa: e.target.value.toUpperCase()})} placeholder="ABC1D23" />
+                  <Input className="w-full min-w-0" value={form.placa} onChange={e => setForm({...form, placa: e.target.value.toUpperCase()})} placeholder="ABC1D23" />
                 </div>
                 <div className="space-y-2">
                   <Label>Modelo *</Label>
-                  <Input value={form.modelo} onChange={e => setForm({...form, modelo: e.target.value})} placeholder="Fiorino 1.4" />
+                  <Input className="w-full min-w-0" value={form.modelo} onChange={e => setForm({...form, modelo: e.target.value})} placeholder="Fiorino 1.4" />
                 </div>
                 <div className="space-y-2">
                   <Label>Marca</Label>
@@ -292,7 +298,7 @@ export default function Veiculos() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-2 space-y-2">
+                <div className="space-y-2 sm:col-span-2">
                   <Label>Entregador Vinculado</Label>
                   <Select value={form.entregador_id} onValueChange={(v) => setForm({...form, entregador_id: v === "none" ? "" : v})}>
                     <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
@@ -305,73 +311,106 @@ export default function Veiculos() {
                   </Select>
                 </div>
               </div>
-              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                <Button onClick={handleSave}>{editId ? "Atualizar" : "Salvar"}</Button>
+              <div className="flex flex-col-reverse gap-2 mt-4 sm:flex-row sm:justify-end">
+                <Button className="h-10" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+                <Button className="h-10" onClick={handleSave}>{editId ? "Atualizar" : "Salvar"}</Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 gap-3 min-[384px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium">Ativos</CardTitle>
-              <Car className="h-4 w-4 text-primary" />
+            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+              <CardTitle className="text-sm font-semibold truncate">Ativos</CardTitle>
+              <span className="status-card-icon-primary rounded-xl p-2"><Car className="h-4 w-4" /></span>
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{countByStatus("ativo")}</div></CardContent>
           </Card>
           <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium">Terceiros</CardTitle>
-              <ExternalLink className="h-4 w-4 text-primary" />
+            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+              <CardTitle className="text-sm font-semibold truncate">Terceiros</CardTitle>
+              <span className="status-card-icon-info rounded-xl p-2"><ExternalLink className="h-4 w-4" /></span>
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{countByStatus("terceiro")}</div></CardContent>
           </Card>
           <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium">GPS Online</CardTitle>
-              <MapPin className="h-4 w-4 text-primary" />
+            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+              <CardTitle className="text-sm font-semibold truncate">GPS Online</CardTitle>
+              <span className="status-card-icon-success rounded-xl p-2"><MapPin className="h-4 w-4" /></span>
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{gpsOnlineCount}</div></CardContent>
           </Card>
           <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium">KM/L Médio</CardTitle>
-              <Fuel className="h-4 w-4 text-primary" />
+            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+              <CardTitle className="text-sm font-semibold truncate">KM/L Médio</CardTitle>
+              <span className="status-card-icon-warning rounded-xl p-2"><Fuel className="h-4 w-4" /></span>
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{avgKmL > 0 ? avgKmL.toFixed(1) : "—"}</div></CardContent>
           </Card>
           <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium">Com Entregador</CardTitle>
-              <User className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+              <CardTitle className="text-sm font-semibold truncate">Com Entregador</CardTitle>
+              <span className="status-card-icon-muted rounded-xl p-2"><User className="h-4 w-4" /></span>
             </CardHeader>
             <CardContent><div className="text-2xl font-bold">{veiculos.filter(v => v.entregador_id && (v.status || "ativo") !== "excluido").length}</div></CardContent>
           </Card>
           <Card className="modern-status-card">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium">Valor FIPE</CardTitle>
-              <Truck className="h-4 w-4 text-muted-foreground" />
+            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+              <CardTitle className="text-sm font-semibold truncate">Valor FIPE</CardTitle>
+              <span className="status-card-icon-accent rounded-xl p-2"><Truck className="h-4 w-4" /></span>
             </CardHeader>
-            <CardContent><div className="text-lg font-bold">R$ {totalFipe.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div></CardContent>
+            <CardContent><div className="text-xl font-bold truncate">R$ {totalFipe.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div></CardContent>
           </Card>
         </div>
 
         {/* Table */}
-        <Card className="modern-panel">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Lista de Veículos</CardTitle>
-              <div className="relative">
+        <Card className="modern-panel overflow-hidden">
+          <CardHeader className="section-header-catalog pb-3">
+            <div className="flex flex-col gap-3 w-full min-w-0 lg:flex-row lg:items-center lg:justify-between">
+              <CardTitle className="section-header-title min-w-0"><span className="truncate">Lista de Veículos</span></CardTitle>
+              <div className="relative w-full min-w-0 lg:w-[320px]">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Buscar placa, modelo, marca..." className="pl-10 w-[280px]" value={search} onChange={e => setSearch(e.target.value)} />
+                <Input placeholder="Buscar placa, modelo, marca..." className="w-full min-w-0 pl-10" value={search} onChange={e => setSearch(e.target.value)} />
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            {loading ? <p className="text-muted-foreground">Carregando...</p> : (
+          <CardContent className="saas-table-scope max-w-full overflow-x-auto p-0 md:p-6">
+            {loading ? <div className="space-y-3 p-3 md:p-0">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}</div> : (
+              <>
+              <div className="space-y-3 px-3 pb-3 md:hidden w-full min-w-0">
+                {filtered.map(v => {
+                  const gps = getGpsStatus(v.entregador_id);
+                  const kmL = getKmL(v.id);
+                  return (
+                    <div key={v.id} className={`rounded-2xl border border-border/45 bg-card p-3 shadow-sm w-full min-w-0 ${(v.status === "excluido" || v.status === "inativo") ? "opacity-60" : ""}`}>
+                      <div className="flex items-start justify-between gap-3 w-full min-w-0">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-mono text-sm font-bold truncate">{v.placa}</p>
+                          <p className="text-sm font-medium truncate">{v.modelo}</p>
+                          <p className="text-xs text-muted-foreground truncate">{v.marca || "Sem marca"} {v.ano || ""}</p>
+                        </div>
+                        {getStatusBadge(v.status)}
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-xl bg-muted/50 p-2 min-w-0"><span className="text-muted-foreground">Tipo</span><p className="font-medium truncate">{v.tipo || "—"}</p></div>
+                        <div className="rounded-xl bg-muted/50 p-2 min-w-0"><span className="text-muted-foreground">KM</span><p className="font-medium truncate">{v.km_atual?.toLocaleString("pt-BR") || 0}</p></div>
+                        <div className="rounded-xl bg-muted/50 p-2 min-w-0"><span className="text-muted-foreground">KM/L</span><p className="font-medium truncate">{kmL ? kmL.toFixed(1) : "—"}</p></div>
+                        <div className="rounded-xl bg-muted/50 p-2 min-w-0"><span className="text-muted-foreground">GPS</span><p className="font-medium truncate">{v.entregador_id ? gps.label : "—"}</p></div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-2 w-full min-w-0">
+                        <span className="text-xs text-muted-foreground truncate">{getEntregadorNome(v.entregador_id) || "Sem entregador"}</span>
+                        <div className="flex shrink-0 gap-1">
+                          <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setDetalheVeiculo(v)} title="Detalhes"><Eye className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => handleEdit(v)} title="Editar"><Edit className="h-4 w-4" /></Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="hidden md:block min-w-[900px]">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -481,6 +520,11 @@ export default function Veiculos() {
                   )}
                 </TableBody>
               </Table>
+              </div>
+              {filtered.length === 0 && (
+                <div className="px-3 pb-3 text-center text-sm text-muted-foreground md:hidden">Nenhum veículo encontrado</div>
+              )}
+              </>
             )}
           </CardContent>
         </Card>
