@@ -1,89 +1,66 @@
-Plano para implementar Declarações personalizadas por matriz/filial
+Plano para melhorar a tela de Declarações
 
 Objetivo
-Criar uma opção no sistema para gerar Declarações personalizadas, permitindo selecionar uma ou várias unidades — matriz e/ou filiais — e preencher automaticamente os dados cadastrais de cada unidade selecionada. A solução terá uma tela no sistema, pré-visualização e exportação em PDF.
+Permitir que a tela de Declarações trabalhe com vários modelos, incluindo modelos pré-configurados, e também permita criar modelos personalizados rapidamente para reutilização durante a geração dos PDFs.
 
-Onde ficará
-- Adicionar no menu Configurações uma nova opção: Declarações.
-- Criar rota: `/config/declaracoes`.
-- Permissões sugeridas: admin, gestor e financeiro, seguindo o padrão de Documentos da Empresa.
+O que será adicionado
 
-Funcionalidades da tela
-1. Seleção de unidades
-- Listar matriz e filiais ativas da empresa atual.
-- Permitir selecionar várias unidades ao mesmo tempo.
-- Exibir identificação visual de Matriz/Filial.
-- Buscar automaticamente os dados já existentes da tabela de unidades:
-  - nome
-  - tipo: matriz/filial
-  - CNPJ
-  - telefone
-  - e-mail
-  - endereço
-  - bairro
-  - cidade/UF
-  - CEP
+1. Seletor de modelo
+- Adicionar um campo “Modelo de declaração” no topo da área de edição.
+- Ao selecionar um modelo, preencher automaticamente:
+  - título da declaração;
+  - texto/modelo da declaração.
+- Manter a pré-visualização e geração de PDF usando o modelo selecionado.
 
-2. Modelo personalizado da declaração
-- Campo para título da declaração.
-- Campo de texto do corpo da declaração.
-- Permitir usar variáveis no texto, por exemplo:
-  - `{{nome_unidade}}`
-  - `{{tipo_unidade}}`
-  - `{{cnpj}}`
-  - `{{endereco}}`
-  - `{{bairro}}`
-  - `{{cidade}}`
-  - `{{estado}}`
-  - `{{cep}}`
-  - `{{telefone}}`
-  - `{{email}}`
-  - `{{data_atual}}`
-- Botões rápidos para inserir variáveis no texto, evitando erro de digitação.
+2. Modelos pré-configurados
+Adicionar alguns modelos prontos, por exemplo:
+- Declaração padrão de vínculo da unidade.
+- Declaração de endereço da unidade.
+- Declaração de funcionamento/atividade operacional.
+- Declaração de dados cadastrais.
+- Declaração personalizada em branco.
 
-3. Pré-visualização
-- Mostrar a declaração renderizada para cada unidade selecionada.
-- Quando houver várias unidades, exibir uma prévia por unidade.
-- Para dados não preenchidos, usar marcador discreto como “Não informado”, sem quebrar o documento.
+Cada modelo usará as variáveis já existentes, como:
+- `{{nome_unidade}}`
+- `{{tipo_unidade}}`
+- `{{cnpj}}`
+- `{{endereco}}`
+- `{{bairro}}`
+- `{{cidade}}`
+- `{{estado}}`
+- `{{cep}}`
+- `{{telefone}}`
+- `{{email}}`
+- `{{data_atual}}`
 
-4. Exportação
-- Botão “Gerar PDF”.
-- Se selecionar uma unidade: gerar um PDF com uma declaração.
-- Se selecionar várias unidades: gerar um único PDF com uma página por unidade.
-- Nome do arquivo sugerido: `declaracoes-unidades-DDMMAAAA.pdf`.
-- Incluir cabeçalho com nome da unidade, CNPJ e contato, seguindo o padrão visual dos PDFs já existentes no sistema.
+3. Criar outros modelos na própria tela
+- Adicionar botão “Salvar como modelo”.
+- O usuário poderá editar título/texto e salvar como um novo modelo local da tela.
+- O novo modelo aparecerá no seletor junto com os pré-configurados.
+- Para esta primeira melhoria, os modelos personalizados serão mantidos no navegador via `localStorage`, sem mexer no banco de dados.
 
-5. Ações auxiliares
-- Botão “Selecionar todas”.
-- Botão “Limpar seleção”.
-- Botão “Restaurar modelo padrão”.
-- Validação antes de gerar:
-  - precisa selecionar ao menos uma unidade;
-  - título não pode estar vazio;
-  - texto da declaração não pode estar vazio.
+4. Gerenciamento simples dos modelos personalizados
+- Modelos pré-configurados não poderão ser apagados.
+- Modelos criados pelo usuário poderão ser removidos.
+- Ao remover, o sistema volta para um modelo padrão caso o modelo removido esteja selecionado.
 
-Modelo padrão sugerido
-````text
-DECLARAÇÃO
+5. Ajustes de usabilidade
+- Trocar o botão “Restaurar modelo padrão” por uma ação que restaura o modelo atualmente selecionado.
+- Manter os botões de variáveis automáticas.
+- Manter a seleção da unidade atual como padrão, usando os dados da empresa/unidade selecionada no sistema.
+- Preservar a geração de PDF atual, sem alterar a rota e sem mexer no `App.tsx`.
 
-Declaramos para os devidos fins que a unidade {{nome_unidade}}, inscrita no CNPJ {{cnpj}}, localizada em {{endereco}}, {{bairro}}, {{cidade}}/{{estado}}, CEP {{cep}}, encontra-se vinculada à nossa operação como {{tipo_unidade}}.
-
-Por ser verdade, firmamos a presente declaração.
-
-{{cidade}}/{{estado}}, {{data_atual}}.
-````
-
-Arquivos a criar/alterar
-- Criar `src/pages/config/Declaracoes.tsx` com a nova tela.
-- Alterar `src/routes/configRoutes.ts` para registrar a rota.
-- Alterar `src/components/layout/menuItems.ts` para adicionar a opção no menu Configurações.
-- Criar serviço utilitário para PDF, por exemplo `src/services/declaracaoPdfService.ts`, reutilizando `jsPDF`, já usado no projeto.
+Arquivos previstos
+- Alterar `src/services/declaracaoPdfService.ts` para exportar a lista de modelos pré-configurados.
+- Alterar `src/pages/config/Declaracoes.tsx` para incluir:
+  - seletor de modelos;
+  - criação de modelo personalizado;
+  - exclusão de modelos personalizados;
+  - aplicação automática do título/texto do modelo selecionado.
 
 Decisão técnica
-- Não será necessário criar novas tabelas inicialmente, pois a solicitação é gerar declarações a partir dos dados já cadastrados em matriz/filiais.
-- A tela poderá usar o contexto `useUnidade()` para obter as unidades disponíveis e respeitar o acesso por empresa/unidade já existente.
-- A exportação será feita no frontend com `jsPDF`, mantendo o padrão atual dos relatórios/recibos do sistema.
-- Não será alterado `App.tsx`, respeitando a regra de estabilidade do projeto.
+- Não criarei tabela nova agora, pois o pedido pode ser atendido com modelos prontos e modelos locais no navegador.
+- Se depois você quiser que os modelos fiquem salvos para todos os usuários da empresa, aí sim podemos criar uma tabela no backend com RLS por empresa/unidade.
 
 Resultado esperado
-Ao final, o usuário poderá acessar Configurações > Declarações, selecionar uma ou várias unidades, escrever/ajustar um modelo personalizado usando variáveis, visualizar o resultado e baixar um PDF com as declarações preenchidas automaticamente para cada matriz/filial selecionada.
+Na tela Gestão Operacional > Declarações, o usuário poderá escolher um modelo pré-configurado, editar se quiser, salvar variações como novos modelos, selecionar matriz/filial, visualizar o preenchimento automático e gerar o PDF normalmente.
