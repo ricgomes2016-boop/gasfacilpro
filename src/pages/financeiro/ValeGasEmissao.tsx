@@ -279,19 +279,23 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
         produtoId: formData.produtoId || undefined,
         produtoNome: produtoSelecionado?.nome || undefined,
         gerarContaReceber: formData.gerarContaReceber,
+        unidadeId: unidadeAtual?.id || null,
       });
 
-      if (formData.gerarContaReceber && formData.clienteId) {
+      if (formData.gerarContaReceber && parceiro) {
         try {
           const vencimento = formData.dataVencimentoConta || new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0];
           await supabase.from("contas_receber").insert({
-            cliente: clienteSelecionado?.nome || parceiro?.nome || "Vale Gás",
+            cliente: parceiro.nome,
             descricao: `${formData.descricao || "Vale Gás"} - Lote ${lote.numero_inicial}-${lote.numero_final}`,
             valor: lote.valor_total,
             vencimento,
             status: "pendente",
             forma_pagamento: "vale_gas",
-            observacoes: `Lote de ${lote.quantidade} vales. Parceiro: ${parceiro?.nome}`,
+            vale_gas_parceiro_id: parceiro.id,
+            origem: "vale_gas_lote",
+            unidade_id: unidadeAtual?.id || null,
+            observacoes: `Lote de ${lote.quantidade} vales. Parceiro: ${parceiro.nome}`,
           });
           toast.success("Conta a receber gerada!");
         } catch { toast.error("Erro ao gerar conta a receber"); }
