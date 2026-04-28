@@ -53,6 +53,8 @@ interface PedidoItem {
 
 interface PedidoData {
   id: string;
+  created_at: string;
+  data_entrega: string | null;
   valor_total: number | null;
   endereco_entrega: string | null;
   observacoes: string | null;
@@ -101,6 +103,7 @@ export default function FinalizarEntrega() {
   const [selectedPaymentExtras, setSelectedPaymentExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string }>({});
   const [cardPaymentOpen, setCardPaymentOpen] = useState(false);
   const [entregadorIdLocal, setEntregadorIdLocal] = useState<string | null>(null);
+  const [dataEntrega, setDataEntrega] = useState(getBrasiliaDateString());
   const chequePhotoRef = useRef<HTMLInputElement>(null);
   const chequeCameraRef = useRef<HTMLInputElement>(null);
   const comprovantePhotoRef = useRef<HTMLInputElement>(null);
@@ -116,7 +119,7 @@ export default function FinalizarEntrega() {
       const { data, error } = await supabase
         .from("pedidos")
         .select(`
-          id, valor_total, endereco_entrega, observacoes, forma_pagamento, unidade_id,
+          id, created_at, data_entrega, valor_total, endereco_entrega, observacoes, forma_pagamento, unidade_id,
           clientes:cliente_id (nome, telefone, bairro),
           pedido_itens (
             id, quantidade, preco_unitario,
@@ -131,6 +134,7 @@ export default function FinalizarEntrega() {
       } else if (data) {
         const pedidoData = data as unknown as PedidoData;
         setPedido(pedidoData);
+        setDataEntrega(pedidoData.data_entrega || getBrasiliaDateString(new Date(pedidoData.created_at)));
         setEditableItens(pedidoData.pedido_itens.map(i => ({ ...i })));
         const total = Number(data.valor_total) || 0;
         if (total > 0) {
@@ -352,7 +356,7 @@ export default function FinalizarEntrega() {
       const chequePag = pagamentos.find(p => p.forma === "Cheque");
       const fiadoPag = pagamentos.find(p => p.forma === "Fiado");
       const cartaoPag = pagamentos.find(p => (p.forma === "Cartão Crédito" || p.forma === "Cartão Débito") && p.comprovante_url);
-      const updateData: any = { status: "entregue", forma_pagamento: formaStr, valor_total: totalItens };
+      const updateData: any = { status: "entregue", forma_pagamento: formaStr, valor_total: totalItens, data_entrega: dataEntrega };
       if (valeGasPag) {
         updateData.canal_venda = valeGasPag.valeGasInfo!.parceiro;
       }
