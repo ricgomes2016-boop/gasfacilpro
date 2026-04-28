@@ -282,6 +282,7 @@ export default function ProgramaIndicacao() {
         <Tabs defaultValue="ranking">
           <TabsList>
             <TabsTrigger value="ranking"><Crown className="h-4 w-4 mr-1.5" />Ranking</TabsTrigger>
+            <TabsTrigger value="creditos"><ReceiptText className="h-4 w-4 mr-1.5" />Créditos</TabsTrigger>
             <TabsTrigger value="config"><Zap className="h-4 w-4 mr-1.5" />Configurações</TabsTrigger>
             <TabsTrigger value="como"><Gift className="h-4 w-4 mr-1.5" />Como Funciona</TabsTrigger>
           </TabsList>
@@ -368,6 +369,71 @@ export default function ProgramaIndicacao() {
                 </Card>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="creditos">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Créditos do Programa de Indicação</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Beneficiário</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Indicado</TableHead>
+                      <TableHead>Pedido gerador</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {creditos.map((credito) => {
+                      const meta = statusMeta[credito.status];
+                      const StatusIcon = meta.icon;
+                      return (
+                        <TableRow key={credito.id}>
+                          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{formatDate(credito.data)}</TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-sm">{credito.beneficiario}</p>
+                              <p className="text-xs text-muted-foreground">{credito.telefone || credito.descricao}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell><Badge variant="outline">{credito.papel}</Badge></TableCell>
+                          <TableCell className="text-sm">{credito.indicado}</TableCell>
+                          <TableCell>
+                            {credito.pedidoId ? (
+                              <div className="text-sm">
+                                <p className="font-medium">Pedido #{credito.pedidoNumero || credito.pedidoId.slice(0, 8)}</p>
+                                <p className="text-xs text-muted-foreground">Gerou o crédito</p>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">Aguardando pedido</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={meta.className}>
+                              <StatusIcon className="h-3 w-3 mr-1" />{meta.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">{formatCurrency(credito.valor)}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {creditos.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                          Nenhum crédito de indicação registrado ainda
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="config">
