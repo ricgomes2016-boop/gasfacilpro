@@ -228,6 +228,7 @@ export const menuItems: MenuItem[] = [
     label: "Gestão de Frota",
     submenu: [
       { icon: Gauge, label: "Dashboard", path: "/frota" },
+      { icon: Brain, label: "Análise de Frota IA", path: "/frota/analise-ia" },
       { icon: Car, label: "Veículos", path: "/cadastros/veiculos" },
       { icon: Fuel, label: "Controle de Combustível", path: "/frota/combustivel" },
       { icon: Wrench, label: "Manutenção", path: "/frota/manutencao" },
