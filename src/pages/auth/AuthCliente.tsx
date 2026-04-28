@@ -141,6 +141,11 @@ function SignupForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
   );
 }
 
+const normalizarCodigoIndicacao = (codigo: string | null) => {
+  const valor = codigo?.trim().toUpperCase();
+  return valor || undefined;
+};
+
 export default function AuthCliente() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -149,6 +154,7 @@ export default function AuthCliente() {
 
   const urlSlug = searchParams.get("empresa");
   const urlUnidade = searchParams.get("unidade");
+  const codigoIndicacao = normalizarCodigoIndicacao(searchParams.get("ref"));
   const [showSignup, setShowSignup] = useState(false);
   const [empresaSlug, setEmpresaSlug] = useState<string | undefined>(
     urlSlug || localStorage.getItem("cliente_empresa_slug") || undefined
@@ -158,7 +164,7 @@ export default function AuthCliente() {
   const [empresaError, setEmpresaError] = useState(false);
   const [unidadeNome, setUnidadeNome] = useState<string | null>(null);
 
-  const form = useAuthForm(empresaSlug);
+  const form = useAuthForm(empresaSlug, "phone", codigoIndicacao);
 
   useEffect(() => {
     if (urlSlug) {
