@@ -147,8 +147,9 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
           if (prevStatus && newStatus && prevStatus !== newStatus) {
             const icons: Record<string, string> = { pendente: "🕐", em_rota: "🚚", entregue: "✅", cancelado: "❌", finalizado: "✅", aguardando_pagamento_cartao: "💳", pagamento_em_processamento: "⏳", pago_cartao: "✅", pagamento_negado: "❌" };
             const labels: Record<string, string> = { pendente: "Pendente", em_rota: "Em Rota", entregue: "Entregue", cancelado: "Cancelado", finalizado: "Finalizado", aguardando_pagamento_cartao: "Aguard. Cartão", pagamento_em_processamento: "Processando", pago_cartao: "Pago (Cartão)", pagamento_negado: "Pgto Negado" };
+            const pedidoRef = p?.numero_sequencial != null ? String(p.numero_sequencial) : p.id?.substring(0, 8).toUpperCase();
             toast(`${icons[newStatus] || "📦"} Status Atualizado`, {
-              description: `Pedido #${p.id?.substring(0, 8).toUpperCase()}: ${labels[newStatus] || newStatus}`,
+              description: `Pedido #${pedidoRef}: ${labels[newStatus] || newStatus}`,
               duration: 4000,
             });
           }

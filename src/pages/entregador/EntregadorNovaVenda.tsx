@@ -423,7 +423,7 @@ export default function EntregadorNovaVenda() {
           observacoes: observacao || null,
           status: "entregue",
         })
-        .select("id")
+        .select("id, numero_sequencial")
         .single();
 
       if (pedidoError) throw pedidoError;
@@ -484,7 +484,7 @@ export default function EntregadorNovaVenda() {
         }
       }
 
-      toast({ title: "Venda registrada! ✅", description: `Pedido #${pedido.id.slice(0, 6)} criado com sucesso.` });
+      toast({ title: "Venda registrada! ✅", description: `Pedido #${(pedido as any).numero_sequencial ?? pedido.id.slice(0, 8).toUpperCase()} criado com sucesso.` });
       navigate("/entregador/entregas");
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });

@@ -857,6 +857,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       if (!entregador.id) {
         await rotearPagamentosVenda({
           pedidoId: pedido.id,
+          pedidoNumero: (pedido as any).numero_sequencial ?? null,
           clienteId,
           clienteNome: customer.nome || "Consumidor",
           pagamentos: pagamentos.map(p => ({

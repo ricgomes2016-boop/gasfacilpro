@@ -13,6 +13,7 @@ export interface PagamentoRoteamento {
 
 interface RotearPagamentosParams {
   pedidoId: string;
+  pedidoNumero?: string | number | null;
   clienteId?: string | null;
   clienteNome?: string;
   pagamentos: PagamentoRoteamento[];
@@ -126,6 +127,7 @@ export async function criarMovimentacaoBancaria(params: {
 export async function rotearPagamentosVenda(params: RotearPagamentosParams): Promise<void> {
   const { pedidoId, clienteId, clienteNome, pagamentos, unidadeId, entregadorId } = params;
   const hoje = getBrasiliaDateString();
+  const pedidoRef = params.pedidoNumero != null ? String(params.pedidoNumero) : pedidoId.slice(0, 8).toUpperCase();
 
   const { data: { user } } = await supabase.auth.getUser();
   const userId = params.userId || user?.id;
@@ -145,8 +147,6 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
   const formasUsadas = pagamentos.map(p => p.forma).join(", ");
 
   for (const pag of pagamentos) {
-    const pedidoRef = pedidoId.slice(0, 8);
-
     switch (pag.forma) {
       case "dinheiro": {
         promises.push(insertCaixa({
@@ -307,7 +307,7 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
   // Notificação consolidada
   await supabase.from("notificacoes").insert({
     titulo: "💰 Nova venda registrada",
-    mensagem: `Venda #${pedidoId.slice(0, 8)} — R$ ${totalVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${formasUsadas}). Títulos financeiros gerados automaticamente.`,
+    mensagem: `Venda #${pedidoRef} — R$ ${totalVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${formasUsadas}). Títulos financeiros gerados automaticamente.`,
     tipo: "info",
     user_id: userId || "",
   }).then(r => { if (r.error) console.error("Erro notificação:", r.error); });
