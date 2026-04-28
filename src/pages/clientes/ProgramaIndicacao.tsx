@@ -60,7 +60,7 @@ export default function ProgramaIndicacao() {
           .limit(1000);
         if (indicacoesError) throw indicacoesError;
 
-        const indicadorIds = Array.from(new Set((indicacoes || []).map((i: any) => i.indicador_cliente_id).filter(Boolean)));
+        const indicadorIds = Array.from(new Set<string>((indicacoes || []).map((i: any) => i.indicador_cliente_id).filter(Boolean)));
         const clientesMap = new Map<string, { nome: string; telefone: string }>();
         if (indicadorIds.length > 0) {
           const { data: clientesData, error: clientesError } = await supabase
@@ -207,7 +207,7 @@ export default function ProgramaIndicacao() {
               <div className="space-y-3">
                 <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">🏆 Top Indicadores</h3>
                 {ranking.slice(0, 3).map((r, i) => (
-                  <Card key={r.nome} className={i === 0 ? "border-primary/40 bg-primary/5" : ""}>
+                  <Card key={r.clienteId} className={i === 0 ? "border-primary/40 bg-primary/5" : ""}>
                     <CardContent className="p-4">
                       <div className="flex items-center gap-3">
                         <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm ${
@@ -250,7 +250,7 @@ export default function ProgramaIndicacao() {
                       </TableHeader>
                       <TableBody>
                         {ranking.map((r, i) => (
-                          <TableRow key={r.nome}>
+                          <TableRow key={r.clienteId}>
                             <TableCell className="font-bold text-muted-foreground">{i + 1}</TableCell>
                             <TableCell>
                               <div>
