@@ -276,7 +276,7 @@ export default function EntregadorNovaVenda() {
           cidade: data.cidade || null,
           telefone: data.cliente_telefone || null,
           ativo: true,
-          empresa_id: empresa?.id || null,
+          empresa_id: entregadorEmpresaId || empresa?.id || null,
         };
         const { data: criado, error: createErr } = await supabase.from("clientes").insert(novoCliente).select("id").single();
         setCliente({
