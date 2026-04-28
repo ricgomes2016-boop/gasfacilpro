@@ -1,27 +1,42 @@
 Plano de correção
 
-1. Corrigir o número mostrado ao finalizar venda
-- Na tela Nova Venda, manter a gravação do pedido como está, mas usar sempre o `numero_sequencial` retornado pelo banco para exibição.
-- No popup/comprovante de finalização, substituir o número baseado no ID interno do pedido pelo número real do pedido.
-- Ajustar o PDF de comprovante para aceitar e imprimir o número sequencial real, mantendo o ID interno apenas como fallback técnico se algum pedido antigo não tiver numeração.
+1. Criar data operacional do pedido/entrega
+- Adicionar no banco uma coluna em `pedidos` para guardar a data real da entrega/conferência, por exemplo `data_entrega`.
+- Manter `created_at` como data/hora de lançamento/criação do pedido, para não bagunçar a ordem real de criação nem a numeração sequencial.
+- Regra: se o pedido foi lançado para 27/04, a data operacional de entrega será 27/04, mesmo que o entregador finalize ou o caixa confira no dia 28/04.
 
-2. Garantir que a numeração seja por ordem de lançamento
-- Não usar a data selecionada para calcular o número exibido.
-- A numeração seguirá o `numero_sequencial` já gerado no momento do insert do pedido, que representa a ordem real de lançamento/criação.
-- Revisar também o fluxo de PDV para buscar `numero_sequencial` no insert e exibir/imprimir o número correto.
+2. Ajustar Nova Venda
+- Na tela `Vendas > Nova Venda`, a data escolhida no campo atual será gravada como `data_entrega`.
+- Também manteremos o pedido aparecendo no dia escolhido nos relatórios/tela de pedidos que dependem de data operacional.
+- A numeração continua pela ordem de lançamento, usando `numero_sequencial`, independente da data selecionada.
 
-3. Melhorar a tela Caixa > Acerto
-- Adicionar um resumo visível no topo da tela mostrando quais entregadores têm pedidos pendentes de acerto no período selecionado.
-- O resumo deve listar: nome do entregador, quantidade de pedidos pendentes e valor total pendente.
-- Ao clicar em um entregador do resumo, a tela seleciona automaticamente esse entregador e carrega os pedidos pendentes dele.
-- Manter a tela atual de busca por entregador/canal, sem refatorar a estrutura geral.
+3. Ajustar finalização no app do entregador
+- Na tela de finalizar entrega, incluir um campo `Data da entrega` preenchido automaticamente com a data do pedido (`data_entrega` ou fallback pelo `created_at`).
+- O entregador poderá confirmar ou alterar essa data antes de finalizar.
+- Ao finalizar, o sistema atualizará o status para `entregue`, mas não jogará a entrega para o dia atual por causa do horário da conferência.
+
+4. Ajustar Caixa > Acerto
+- A tela de acerto passará a filtrar pedidos por `data_entrega`, não por `created_at`.
+- Assim, ao buscar 27/04, aparecerão os pedidos cuja entrega pertence ao dia 27, mesmo que tenham sido finalizados/conferidos no dia 28.
+- Na lista detalhada, mostrar a data/hora operacional correta; se necessário, exibir também a hora de lançamento como informação secundária.
+
+5. Ajustar consultas auxiliares e relatórios principais de vendas
+- Revisar os pontos que filtram vendas por `created_at` para o fluxo de pedidos/acerto, principalmente:
+  - `src/hooks/usePedidos.ts`
+  - `src/pages/vendas/Pedidos.tsx`
+  - `src/pages/vendas/RelatorioVendas.tsx`
+  - `src/pages/caixa/AcertoEntregador.tsx`
+  - `src/pages/entregador/FinalizarEntrega.tsx`
+- Onde o objetivo for “dia da venda/entrega”, usar `data_entrega`.
+- Onde o objetivo for auditoria/ordem de criação, manter `created_at`.
 
 Detalhes técnicos
-- Arquivos principais a ajustar:
-  - `src/pages/vendas/NovaVenda.tsx`
-  - `src/services/receiptPdfService.ts`
-  - `src/pages/vendas/PDV.tsx`
-  - `src/pages/caixa/AcertoEntregador.tsx`
-- O comprovante passará a receber algo como `pedidoNumero: pedido.numero_sequencial`, imprimindo `PEDIDO #123` em vez de `PEDIDO #AB12CD34`.
-- A consulta de acertos pendentes buscará pedidos com status `entregue`/`pago`, agrupados por `entregador_id`, filtrados por unidade e período, trazendo o nome do entregador.
-- Não será necessária mudança estrutural no banco para essa correção.
+- Será necessária uma migração para adicionar `data_entrega date` em `public.pedidos`.
+- A migração deve preencher pedidos antigos com a data de `created_at` em Brasília, para não deixar registros sem data operacional.
+- Inserts novos devem enviar `data_entrega` explicitamente.
+- No acerto, os filtros devem trocar de:
+  - `created_at >= dataInicioT00:00:00` e `created_at <= dataFimT23:59:59`
+  para:
+  - `data_entrega >= dataInicio` e `data_entrega <= dataFim`
+- Em casos antigos sem `data_entrega`, usar fallback visual/consulta baseado em `created_at`, para não sumirem pedidos antigos.
+- Não alterar `App.tsx`, rotas ou provider nesting.
