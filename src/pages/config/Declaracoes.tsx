@@ -9,27 +9,53 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Building2, Download, FileText, RefreshCw, Store, Wand2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Building2, Download, FileText, RefreshCw, Save, Store, Trash2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import {
   DECLARACAO_VARIAVEIS,
+  MODELOS_DECLARACAO_PRE_CONFIGURADOS,
   MODELO_DECLARACAO_PADRAO,
   gerarDeclaracoesPdf,
+  type ModeloDeclaracao,
   renderDeclaracaoTexto,
 } from "@/services/declaracaoPdfService";
+
+const STORAGE_MODELOS_DECLARACAO = "modelos_declaracao_personalizados";
 
 export default function Declaracoes() {
   const { unidades, unidadeAtual, loading } = useUnidade();
   const [titulo, setTitulo] = useState("Declaração");
   const [modelo, setModelo] = useState(MODELO_DECLARACAO_PADRAO);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  const [modeloSelecionadoId, setModeloSelecionadoId] = useState(MODELOS_DECLARACAO_PRE_CONFIGURADOS[0].id);
+  const [modelosPersonalizados, setModelosPersonalizados] = useState<ModeloDeclaracao[]>(() => {
+    try {
+      const salvos = localStorage.getItem(STORAGE_MODELOS_DECLARACAO);
+      if (!salvos) return [];
+      const modelos = JSON.parse(salvos) as ModeloDeclaracao[];
+      return modelos.filter((item) => item.origem === "personalizado" && item.id && item.nome);
+    } catch {
+      localStorage.removeItem(STORAGE_MODELOS_DECLARACAO);
+      return [];
+    }
+  });
 
   const unidadesAtivas = useMemo(() => unidades.filter((u) => u.ativo !== false), [unidades]);
   const unidadesSelecionadas = useMemo(
     () => unidadesAtivas.filter((u) => selecionadas.has(u.id)),
     [unidadesAtivas, selecionadas]
   );
+  const modelosDeclaracao = useMemo(
+    () => [...MODELOS_DECLARACAO_PRE_CONFIGURADOS, ...modelosPersonalizados],
+    [modelosPersonalizados]
+  );
+  const modeloSelecionado = useMemo(
+    () => modelosDeclaracao.find((item) => item.id === modeloSelecionadoId) || MODELOS_DECLARACAO_PRE_CONFIGURADOS[0],
+    [modeloSelecionadoId, modelosDeclaracao]
+  );
+  const podeRemoverModelo = modeloSelecionado.origem === "personalizado";
 
   const toggleUnidade = (id: string) => {
     setSelecionadas((atual) => {
@@ -47,9 +73,45 @@ export default function Declaracoes() {
     });
   }, [unidadeAtual?.id, unidadesAtivas]);
 
+  useEffect(() => {
+    localStorage.setItem(STORAGE_MODELOS_DECLARACAO, JSON.stringify(modelosPersonalizados));
+  }, [modelosPersonalizados]);
+
   const selecionarTodas = () => setSelecionadas(new Set(unidadesAtivas.map((u) => u.id)));
   const limparSelecao = () => setSelecionadas(new Set());
   const inserirVariavel = (variavel: string) => setModelo((atual) => `${atual}${atual.endsWith(" ") || atual.endsWith("\n") ? "" : " "}${variavel}`);
+
+  const aplicarModelo = (id: string) => {
+    const selecionado = modelosDeclaracao.find((item) => item.id === id);
+    if (!selecionado) return;
+    setModeloSelecionadoId(id);
+    setTitulo(selecionado.titulo);
+    setModelo(selecionado.texto);
+  };
+
+  const salvarModeloPersonalizado = () => {
+    if (!titulo.trim() || !modelo.trim()) {
+      toast.error("Informe título e texto antes de salvar o modelo");
+      return;
+    }
+    const novoModelo: ModeloDeclaracao = {
+      id: `personalizado-${Date.now()}`,
+      nome: titulo.trim(),
+      titulo: titulo.trim(),
+      texto: modelo.trim(),
+      origem: "personalizado",
+    };
+    setModelosPersonalizados((atuais) => [...atuais, novoModelo]);
+    setModeloSelecionadoId(novoModelo.id);
+    toast.success("Modelo personalizado salvo");
+  };
+
+  const removerModeloPersonalizado = () => {
+    if (!podeRemoverModelo) return;
+    setModelosPersonalizados((atuais) => atuais.filter((item) => item.id !== modeloSelecionadoId));
+    aplicarModelo(MODELOS_DECLARACAO_PRE_CONFIGURADOS[0].id);
+    toast.success("Modelo personalizado removido");
+  };
 
   const validar = () => {
     if (unidadesSelecionadas.length === 0) {
@@ -144,6 +206,32 @@ export default function Declaracoes() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid gap-2">
+                  <Label>Modelo de declaração</Label>
+                  <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+                    <Select value={modeloSelecionadoId} onValueChange={aplicarModelo}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um modelo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {modelosDeclaracao.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.nome}{item.origem === "personalizado" ? " · personalizado" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" variant="outline" onClick={salvarModeloPersonalizado} className="gap-2">
+                      <Save className="h-4 w-4" />
+                      Salvar modelo
+                    </Button>
+                    <Button type="button" variant="ghost" onClick={removerModeloPersonalizado} disabled={!podeRemoverModelo} className="gap-2">
+                      <Trash2 className="h-4 w-4" />
+                      Remover
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
                   <Label>Título</Label>
                   <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex: Declaração" />
                 </div>
@@ -167,9 +255,9 @@ export default function Declaracoes() {
                 <Separator />
 
                 <div className="flex flex-col sm:flex-row gap-2 justify-between">
-                  <Button type="button" variant="outline" onClick={() => setModelo(MODELO_DECLARACAO_PADRAO)} className="gap-2">
+                  <Button type="button" variant="outline" onClick={() => aplicarModelo(modeloSelecionadoId)} className="gap-2">
                     <RefreshCw className="h-4 w-4" />
-                    Restaurar modelo padrão
+                    Restaurar modelo selecionado
                   </Button>
                   <Button type="button" variant="import" onClick={handleGerarPdf} className="gap-2">
                     <Download className="h-4 w-4" />
