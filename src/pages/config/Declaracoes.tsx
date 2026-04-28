@@ -9,27 +9,43 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Building2, Download, FileText, RefreshCw, Store, Wand2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Building2, Download, FileText, RefreshCw, Save, Store, Trash2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import {
   DECLARACAO_VARIAVEIS,
+  MODELOS_DECLARACAO_PRE_CONFIGURADOS,
   MODELO_DECLARACAO_PADRAO,
   gerarDeclaracoesPdf,
+  type ModeloDeclaracao,
   renderDeclaracaoTexto,
 } from "@/services/declaracaoPdfService";
+
+const STORAGE_MODELOS_DECLARACAO = "modelos_declaracao_personalizados";
 
 export default function Declaracoes() {
   const { unidades, unidadeAtual, loading } = useUnidade();
   const [titulo, setTitulo] = useState("Declaração");
   const [modelo, setModelo] = useState(MODELO_DECLARACAO_PADRAO);
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  const [modeloSelecionadoId, setModeloSelecionadoId] = useState(MODELOS_DECLARACAO_PRE_CONFIGURADOS[0].id);
+  const [modelosPersonalizados, setModelosPersonalizados] = useState<ModeloDeclaracao[]>([]);
 
   const unidadesAtivas = useMemo(() => unidades.filter((u) => u.ativo !== false), [unidades]);
   const unidadesSelecionadas = useMemo(
     () => unidadesAtivas.filter((u) => selecionadas.has(u.id)),
     [unidadesAtivas, selecionadas]
   );
+  const modelosDeclaracao = useMemo(
+    () => [...MODELOS_DECLARACAO_PRE_CONFIGURADOS, ...modelosPersonalizados],
+    [modelosPersonalizados]
+  );
+  const modeloSelecionado = useMemo(
+    () => modelosDeclaracao.find((item) => item.id === modeloSelecionadoId) || MODELOS_DECLARACAO_PRE_CONFIGURADOS[0],
+    [modeloSelecionadoId, modelosDeclaracao]
+  );
+  const podeRemoverModelo = modeloSelecionado.origem === "personalizado";
 
   const toggleUnidade = (id: string) => {
     setSelecionadas((atual) => {
