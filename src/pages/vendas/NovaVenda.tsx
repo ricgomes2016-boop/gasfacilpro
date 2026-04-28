@@ -106,6 +106,10 @@ function clearDraft() {
   localStorage.removeItem(DRAFT_KEY);
 }
 
+function toBrasiliaNoonISOString(dateValue: string) {
+  return `${dateValue}T12:00:00-03:00`;
+}
+
 // Stepper component
 function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelecionado = false, activeStep, onStepClick, compact = false }: {
   customer: CustomerData;
@@ -784,6 +788,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         observacoes: customer.observacao,
         status: "pendente",
         unidade_id: unidadeAtual?.id,
+        created_at: toBrasiliaNoonISOString(dataEntrega),
       };
 
       if (chequePag) {
@@ -835,7 +840,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
       const receiptData = {
         pedidoId: pedido.id,
-        data: new Date(),
+        data: new Date(toBrasiliaNoonISOString(dataEntrega)),
         cliente: { nome: customer.nome, telefone: customer.telefone, endereco: enderecoCompleto },
         itens,
         pagamentos,

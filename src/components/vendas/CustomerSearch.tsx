@@ -436,7 +436,6 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
 
   const handleFieldChange = (field: keyof CustomerData, fieldValue: string) => {
     const updates: Partial<CustomerData> = { [field]: fieldValue };
-    if (field === "nome" || field === "telefone") updates.id = null;
     // Clear coords when address is edited so blur re-validates
     if (field === "endereco") {
       updates.latitude = null;
@@ -529,30 +528,67 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
   };
 
   const salvarClienteAtual = async () => {
-    if (!value.id) return;
     if (!value.nome.trim()) {
       toast.error("Informe o nome do cliente antes de salvar");
       return;
     }
 
+    if (!empresa?.id) {
+      toast.error("Empresa não identificada. Faça login novamente.");
+      return;
+    }
+
     setIsSavingCustomer(true);
     try {
-      const { error } = await supabase
+      if (value.id) {
+        const { error } = await supabase
+          .from("clientes")
+          .update({
+            nome: value.nome.trim(),
+            telefone: value.telefone || null,
+            endereco: value.endereco || null,
+            numero: value.numero || null,
+            bairro: value.bairro || null,
+            cep: value.cep || null,
+            latitude: value.latitude ?? null,
+            longitude: value.longitude ?? null,
+          })
+          .eq("id", value.id);
+
+        if (error) throw error;
+        toast.success("Cliente atualizado");
+        return;
+      }
+
+      const { data: novoCliente, error } = await supabase
         .from("clientes")
-        .update({
+        .insert({
           nome: value.nome.trim(),
           telefone: value.telefone || null,
           endereco: value.endereco || null,
           numero: value.numero || null,
           bairro: value.bairro || null,
           cep: value.cep || null,
+          cidade: unidadeAtual?.cidade || null,
+          tipo: "residencial",
+          ativo: true,
+          empresa_id: empresa.id,
           latitude: value.latitude ?? null,
           longitude: value.longitude ?? null,
         })
-        .eq("id", value.id);
+        .select("id")
+        .single();
 
       if (error) throw error;
-      toast.success("Cliente atualizado");
+      if (novoCliente?.id && unidadeAtual?.id) {
+        const { error: unidadeError } = await supabase.from("cliente_unidades").insert({
+          cliente_id: novoCliente.id,
+          unidade_id: unidadeAtual.id,
+        });
+        if (unidadeError) console.error("Erro ao associar cliente à unidade:", unidadeError);
+      }
+      if (novoCliente?.id) onChange({ ...value, id: novoCliente.id });
+      toast.success("Cliente salvo");
     } catch (error: any) {
       console.error("Erro ao salvar cliente:", error);
       toast.error(error?.message || "Erro ao salvar cliente");
@@ -695,19 +731,19 @@ export function CustomerSearch({ value, onChange }: CustomerSearchProps) {
             >
               <UserPlus className="h-4 w-4" />
             </Button>
-            {value.id && (
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="shrink-0"
-                onClick={salvarClienteAtual}
-                disabled={isSavingCustomer}
-                title="Salvar alterações do cliente"
-              >
-                {isSavingCustomer ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-10 shrink-0 gap-1.5 px-2 sm:px-3"
+              onClick={salvarClienteAtual}
+              disabled={isSavingCustomer || !value.nome.trim()}
+              title={value.id ? "Salvar alterações do cliente" : "Salvar novo cliente"}
+            >
+              {isSavingCustomer ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              <span className="hidden sm:inline">Salvar cliente</span>
+              <span className="sm:hidden">Salvar</span>
+            </Button>
           </div>
           {showNewClientHint && (
             <p className="text-[10px] text-muted-foreground mt-1">

@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { PedidoFormatado, PedidoStatus } from "@/types/pedido";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { reverterEstoqueVenda } from "@/services/estoqueService";
@@ -11,6 +12,11 @@ import { requestNotificationPermission, sendOrderNotification } from "@/services
 export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) {
   const queryClient = useQueryClient();
   const { unidadeAtual } = useUnidade();
+
+  const formatarDataPedido = (value: string) => {
+    const data = new Date(value);
+    return format(data, "dd/MM/yyyy HH:mm", { locale: ptBR });
+  };
 
   const { data: pedidos = [], isLoading, error } = useQuery({
     queryKey: ["pedidos", unidadeAtual?.id, filtros?.dataInicio, filtros?.dataFim],
@@ -78,7 +84,7 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
             })),
             valor: Number(pedido.valor_total) || 0,
             status: (pedido.status as PedidoStatus) || "pendente",
-            data: format(new Date(pedido.created_at), "dd/MM/yyyy HH:mm"),
+            data: formatarDataPedido(pedido.created_at),
             entregador: pedido.entregadores?.nome,
             entregador_id: pedido.entregador_id,
             observacoes: pedido.observacoes || undefined,
