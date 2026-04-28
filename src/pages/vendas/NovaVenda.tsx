@@ -574,6 +574,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               observacoes: venda.observacoes || null,
               status: "pendente",
               unidade_id: unidadeAtual?.id,
+              data_entrega: dataEntrega,
+              created_at: toBrasiliaNoonISOString(dataEntrega),
             })
             .select("id")
             .single();
@@ -788,6 +790,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         observacoes: customer.observacao,
         status: "pendente",
         unidade_id: unidadeAtual?.id,
+        data_entrega: dataEntrega,
         created_at: toBrasiliaNoonISOString(dataEntrega),
       };
 
@@ -921,8 +924,9 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           forma_pagamento: pagamentos.map((p) => p.forma).join(", "),
           canal_venda: canalVenda, observacoes: customer.observacao,
           status: "pendente", unidade_id: unidadeAtual?.id,
+          data_entrega: dataAgendamento,
           agendado: true, data_agendamento: agendamentoDate.toISOString(),
-        })
+        } as any)
         .select("id, numero_sequencial")
         .single();
 

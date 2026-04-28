@@ -29,6 +29,7 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
           clientes (id, nome, endereco, bairro, cidade),
           entregadores (id, nome)
         `)
+        .order("data_entrega", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (unidadeAtual?.id) {
@@ -36,10 +37,10 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
       }
 
       if (filtros?.dataInicio) {
-        query = query.gte("created_at", filtros.dataInicio + "T00:00:00-03:00");
+        query = query.gte("data_entrega", filtros.dataInicio);
       }
       if (filtros?.dataFim) {
-        query = query.lte("created_at", filtros.dataFim + "T23:59:59-03:00");
+        query = query.lte("data_entrega", filtros.dataFim);
       }
 
       const { data: pedidosData, error: pedidosError } = await query;
@@ -68,6 +69,10 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
             if (match) clienteNome = match[1].trim();
           }
 
+          const dataOperacional = (pedido as any).data_entrega
+            ? new Date(`${(pedido as any).data_entrega}T12:00:00-03:00`)
+            : new Date(pedido.created_at);
+
           return {
             id: pedido.id,
             numero_sequencial: (pedido as any).numero_sequencial ?? null,
@@ -84,7 +89,7 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
             })),
             valor: Number(pedido.valor_total) || 0,
             status: (pedido.status as PedidoStatus) || "pendente",
-            data: formatarDataPedido(pedido.created_at),
+            data: format(dataOperacional, "dd/MM/yyyy", { locale: ptBR }),
             entregador: pedido.entregadores?.nome,
             entregador_id: pedido.entregador_id,
             observacoes: pedido.observacoes || undefined,

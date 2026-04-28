@@ -44,6 +44,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PaymentSection, Pagamento } from "@/components/vendas/PaymentSection";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { getBrasiliaDateString } from "@/lib/utils";
 
 interface ProdutoDB {
   id: string;
@@ -422,7 +423,8 @@ export default function EntregadorNovaVenda() {
           canal_venda: canalVenda,
           observacoes: observacao || null,
           status: "entregue",
-        })
+          data_entrega: getBrasiliaDateString(),
+        } as any)
         .select("id, numero_sequencial")
         .single();
 

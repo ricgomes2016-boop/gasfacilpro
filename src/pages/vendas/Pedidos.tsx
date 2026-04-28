@@ -169,6 +169,7 @@ export default function Pedidos() {
           endereco: p._endereco || null, valor_total: p.valor_total,
           forma_pagamento: p.forma_pagamento || null, status: "entregue",
           observacoes: p.observacoes || "Importado do sistema anterior",
+          data_entrega: p.data || undefined,
           created_at: p.data ? new Date(p.data + "T12:00:00-03:00").toISOString() : undefined,
           unidade_id: unidadeAtual?.id || null
         }).select("id").single();

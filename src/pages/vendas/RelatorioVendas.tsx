@@ -58,6 +58,7 @@ const canalLabels: Record<string, string> = {
 interface PedidoRelatorio {
   id: string;
   created_at: string;
+  data_entrega: string | null;
   valor_total: number | null;
   status: string | null;
   forma_pagamento: string | null;
@@ -116,12 +117,13 @@ export default function RelatorioVendas() {
       let query = supabase
         .from("pedidos")
         .select(`
-          id, created_at, valor_total, status, forma_pagamento, canal_venda,
+          id, created_at, data_entrega, valor_total, status, forma_pagamento, canal_venda,
           clientes (nome), entregadores (nome),
           pedido_itens (quantidade, preco_unitario, produtos (nome))
         `)
-        .gte("created_at", `${dataInicio}T00:00:00-03:00`)
-        .lte("created_at", `${dataFim}T23:59:59-03:00`)
+        .gte("data_entrega", dataInicio)
+        .lte("data_entrega", dataFim)
+        .order("data_entrega", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
@@ -203,7 +205,7 @@ export default function RelatorioVendas() {
     }
 
     const dadosExport = pedidosFiltrados.map((p) => ({
-      "Data/Hora": format(parseISO(p.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR }),
+      "Data": p.data_entrega ? format(parseISO(`${p.data_entrega}T12:00:00`), "dd/MM/yyyy", { locale: ptBR }) : format(parseISO(p.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR }),
       "Pedido": p.id.slice(0, 8).toUpperCase(),
       "Cliente": p.clientes?.nome || "Não identificado",
       "Entregador": p.entregadores?.nome || "-",
@@ -355,6 +357,7 @@ export default function RelatorioVendas() {
           canal_venda: "importado",
           observacoes: `[Importado] ${item.observacoes || ""}`.trim(),
           endereco_entrega: item.endereco || null,
+          data_entrega: item.data,
           created_at: `${item.data}T12:00:00-03:00`,
         };
         if (unidadeAtual?.id) pedidoData.unidade_id = unidadeAtual.id;
@@ -523,7 +526,7 @@ export default function RelatorioVendas() {
                       <TableBody>
                         {pedidosFiltrados.slice(0, 50).map((pedido) => (
                           <TableRow key={pedido.id}>
-                            <TableCell className="text-xs">{format(parseISO(pedido.created_at), "dd/MM HH:mm", { locale: ptBR })}</TableCell>
+                            <TableCell className="text-xs">{pedido.data_entrega ? format(parseISO(`${pedido.data_entrega}T12:00:00`), "dd/MM", { locale: ptBR }) : format(parseISO(pedido.created_at), "dd/MM HH:mm", { locale: ptBR })}</TableCell>
                             <TableCell className="text-sm">
                               <div className="font-medium">{pedido.clientes?.nome || "Não identificado"}</div>
                               <div className="sm:hidden text-xs text-muted-foreground mt-0.5">{pedido.entregadores?.nome || "—"}</div>

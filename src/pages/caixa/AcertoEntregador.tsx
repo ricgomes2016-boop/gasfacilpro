@@ -158,13 +158,14 @@ export default function AcertoEntregador() {
       let query = supabase
         .from("pedidos")
         .select(`
-          id, created_at, valor_total, forma_pagamento, status, canal_venda,
+          id, created_at, data_entrega, valor_total, forma_pagamento, status, canal_venda,
           clientes (nome),
           pedido_itens (id, quantidade, preco_unitario, produtos (nome))
         `)
-        .gte("created_at", `${dataInicio}T00:00:00-03:00`)
-        .lte("created_at", `${dataFim}T23:59:59-03:00`)
+        .gte("data_entrega", dataInicio)
+        .lte("data_entrega", dataFim)
         .in("status", statusList)
+        .order("data_entrega", { ascending: true })
         .order("created_at", { ascending: true });
 
       if (canalVirtual) {
@@ -186,9 +187,9 @@ export default function AcertoEntregador() {
     queryFn: async () => {
       let query = supabase
         .from("pedidos")
-        .select("id, valor_total, entregador_id, entregadores (id, nome)")
-        .gte("created_at", `${dataInicio}T00:00:00-03:00`)
-        .lte("created_at", `${dataFim}T23:59:59-03:00`)
+        .select("id, valor_total, data_entrega, entregador_id, entregadores (id, nome)")
+        .gte("data_entrega", dataInicio)
+        .lte("data_entrega", dataFim)
         .in("status", ["entregue", "pago"])
         .not("entregador_id", "is", null);
 
@@ -550,7 +551,7 @@ export default function AcertoEntregador() {
     autoTable(doc, {
       head: [["Hora", "Cliente", "Itens", "Pagamento", "Status", "Valor"]],
       body: entregas.map((e) => [
-        format(parseISO(e.created_at), "HH:mm"),
+        e.data_entrega ? format(parseISO(`${e.data_entrega}T12:00:00`), "dd/MM/yyyy") : format(parseISO(e.created_at), "dd/MM/yyyy HH:mm"),
         e.clientes?.nome || "—",
         (e.pedido_itens || []).map((i: any) => `${i.quantidade}x ${i.produtos?.nome || "?"}`).join(", ") || "—",
         paymentLabels[e.forma_pagamento || ""] || e.forma_pagamento || "—",
@@ -979,7 +980,7 @@ export default function AcertoEntregador() {
                     <Table className="min-w-[360px]">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-14">Hora</TableHead>
+                          <TableHead className="w-24">Data</TableHead>
                           <TableHead>Descrição</TableHead>
                           <TableHead className="hidden sm:table-cell">Categoria</TableHead>
                           <TableHead className="text-right">Valor</TableHead>
@@ -1060,7 +1061,9 @@ export default function AcertoEntregador() {
                           const isAcertado = e.status === "finalizado";
                           return (
                             <TableRow key={e.id} className={isAcertado ? "opacity-75" : ""}>
-                              <TableCell className="text-xs">{format(parseISO(e.created_at), "HH:mm")}</TableCell>
+                              <TableCell className="text-xs">
+                                {e.data_entrega ? format(parseISO(`${e.data_entrega}T12:00:00`), "dd/MM") : format(parseISO(e.created_at), "dd/MM HH:mm")}
+                              </TableCell>
                               <TableCell className="text-sm font-medium">
                                 <div>{e.clientes?.nome || "—"}</div>
                                 <div className="md:hidden text-xs text-muted-foreground mt-0.5 max-w-[140px] truncate">{itensStr}</div>
