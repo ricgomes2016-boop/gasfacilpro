@@ -355,10 +355,7 @@ export default function ProgramaIndicacao() {
                       <div className="flex items-center gap-2">
                         <div className={`h-2 w-2 rounded-full ${config.ativo ? "bg-primary" : "bg-destructive"}`} />
                         <span className="text-sm">{config.ativo ? "Ativo" : "Inativo"}</span>
-                        <Button variant="outline" size="sm" className="ml-auto" onClick={() => {
-                          setConfig(c => ({ ...c, ativo: !c.ativo }));
-                          toast.success(config.ativo ? "Programa desativado" : "Programa ativado!");
-                        }}>
+                        <Button variant="outline" size="sm" className="ml-auto" onClick={handleToggleAtivo}>
                           {config.ativo ? "Desativar" : "Ativar"}
                         </Button>
                       </div>
