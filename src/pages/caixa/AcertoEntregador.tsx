@@ -1257,6 +1257,18 @@ export default function AcertoEntregador() {
                     <QrCode className="h-4 w-4 text-primary" /> Validar Vale Gás
                   </Label>
 
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Parceiro</Label>
+                    <Select value={valeGasParceiroId} onValueChange={(v) => { setValeGasParceiroId(v); setValeGasValidado(null); setValeGasCodigoInput(""); }}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Selecione o parceiro" /></SelectTrigger>
+                      <SelectContent>
+                        {parceiros.filter(p => p.ativo).map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   {!valeGasValidado ? (
                     <>
                       <div className="flex gap-2 p-1 bg-muted rounded-lg">
@@ -1289,7 +1301,7 @@ export default function AcertoEntregador() {
                           <p className="text-xs text-muted-foreground">Digite o código impresso no vale</p>
                           <Button
                             onClick={() => { if (valeGasCodigoInput.trim()) validarValeGasAcerto(valeGasCodigoInput.trim()); }}
-                            disabled={!valeGasCodigoInput.trim() || validandoValeGas}
+                            disabled={!valeGasParceiroId || !valeGasCodigoInput.trim() || validandoValeGas}
                             className="w-full"
                             size="sm"
                           >
@@ -1313,6 +1325,7 @@ export default function AcertoEntregador() {
                           </div>
                           <div className="space-y-1 text-xs">
                             <div className="flex justify-between"><span className="text-muted-foreground">Parceiro:</span><span className="font-medium">{valeGasValidado.parceiro}</span></div>
+                            {valeGasValidado.numero && <div className="flex justify-between"><span className="text-muted-foreground">Número:</span><span className="font-mono">{valeGasValidado.numero}</span></div>}
                             <div className="flex justify-between"><span className="text-muted-foreground">Código:</span><span className="font-mono">{valeGasValidado.codigo}</span></div>
                             <div className="flex justify-between"><span className="text-muted-foreground">Valor:</span><span className="font-bold">R$ {valeGasValidado.valor.toFixed(2)}</span></div>
                           </div>
