@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Pencil, Trash2, Loader2, Search, FolderTree } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "sonner";
 
 interface Categoria {
@@ -25,6 +26,7 @@ interface Categoria {
   valor_padrao: number;
   ativo: boolean;
   ordem: number;
+  unidade_id?: string | null;
 }
 
 const grupoLabels: Record<string, string> = {
@@ -39,15 +41,31 @@ const grupoLabels: Record<string, string> = {
 };
 
 const grupoColors: Record<string, string> = {
-  custos_fixos: "bg-blue-500/10 text-blue-700",
-  pessoal: "bg-purple-500/10 text-purple-700",
-  operacional: "bg-orange-500/10 text-orange-700",
-  comercial: "bg-green-500/10 text-green-700",
-  administrativo: "bg-slate-500/10 text-slate-700",
-  financeiro: "bg-red-500/10 text-red-700",
-  impostos: "bg-yellow-500/10 text-yellow-700",
+  custos_fixos: "bg-primary/10 text-primary border-primary/20",
+  pessoal: "bg-info/10 text-info border-info/20",
+  operacional: "bg-warning/10 text-warning border-warning/20",
+  comercial: "bg-success/10 text-success border-success/20",
+  administrativo: "bg-muted text-muted-foreground border-border",
+  financeiro: "bg-destructive/10 text-destructive border-destructive/20",
+  impostos: "bg-accent text-accent-foreground border-border",
   diversos: "bg-muted text-muted-foreground",
 };
+
+const slugifyGrupo = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+const humanizeGrupo = (value: string) =>
+  value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ") || "Sem grupo";
 
 const emptyForm: Omit<Categoria, "id"> = {
   nome: "",
@@ -61,6 +79,7 @@ const emptyForm: Omit<Categoria, "id"> = {
 };
 
 export default function CategoriasDespesa() {
+  const { unidadeAtual, loading: unidadeLoading } = useUnidade();
   const [loading, setLoading] = useState(true);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [search, setSearch] = useState("");
@@ -69,16 +88,24 @@ export default function CategoriasDespesa() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [novoGrupo, setNovoGrupo] = useState("");
 
-  useEffect(() => { fetchCategorias(); }, []);
+  useEffect(() => { if (!unidadeLoading) fetchCategorias(); }, [unidadeAtual?.id, unidadeLoading]);
 
   const fetchCategorias = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from("categorias_despesa")
       .select("*")
+      .order("grupo", { ascending: true })
       .order("ordem", { ascending: true })
       .order("nome", { ascending: true });
+
+    if (unidadeAtual?.id) {
+      query = query.or(`unidade_id.is.null,unidade_id.eq.${unidadeAtual.id}`);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       toast.error("Erro ao carregar categorias");
@@ -88,6 +115,14 @@ export default function CategoriasDespesa() {
     }
     setLoading(false);
   };
+
+  const gruposDisponiveis = useMemo(() => {
+    const labels = { ...grupoLabels };
+    categorias.forEach((cat) => {
+      if (cat.grupo && !labels[cat.grupo]) labels[cat.grupo] = humanizeGrupo(cat.grupo);
+    });
+    return labels;
+  }, [categorias]);
 
   const handleOpen = (cat?: Categoria) => {
     if (cat) {
@@ -106,6 +141,7 @@ export default function CategoriasDespesa() {
       setEditingId(null);
       setForm({ ...emptyForm, ordem: categorias.length + 1 });
     }
+    setNovoGrupo("");
     setDialogOpen(true);
   };
 
@@ -114,24 +150,46 @@ export default function CategoriasDespesa() {
       toast.error("Nome é obrigatório");
       return;
     }
+    if (!unidadeAtual?.id) {
+      toast.error("Selecione uma unidade antes de criar categorias");
+      return;
+    }
+    const grupoFinal = novoGrupo.trim() ? slugifyGrupo(novoGrupo) : form.grupo;
+    if (!grupoFinal) {
+      toast.error("Categoria principal é obrigatória");
+      return;
+    }
     setSaving(true);
     const payload = {
       nome: form.nome,
-      grupo: form.grupo,
+      grupo: grupoFinal,
       tipo: form.tipo,
       codigo_contabil: form.codigo_contabil || null,
       descricao: form.descricao || null,
       valor_padrao: form.valor_padrao,
       ativo: form.ativo,
       ordem: form.ordem,
+      unidade_id: unidadeAtual?.id || null,
     };
 
     if (editingId) {
       const { error } = await supabase.from("categorias_despesa").update(payload).eq("id", editingId);
-      if (error) toast.error("Erro ao atualizar"); else toast.success("Categoria atualizada");
+      if (error) {
+        console.error(error);
+        toast.error(error.message || "Erro ao atualizar");
+        setSaving(false);
+        return;
+      }
+      toast.success("Categoria atualizada");
     } else {
       const { error } = await supabase.from("categorias_despesa").insert(payload);
-      if (error) toast.error("Erro ao criar"); else toast.success("Categoria criada");
+      if (error) {
+        console.error(error);
+        toast.error(error.message || "Erro ao criar");
+        setSaving(false);
+        return;
+      }
+      toast.success("Categoria criada");
     }
     setSaving(false);
     setDialogOpen(false);
@@ -151,13 +209,14 @@ export default function CategoriasDespesa() {
 
   const filtered = categorias.filter(c => {
     const matchSearch = c.nome.toLowerCase().includes(search.toLowerCase()) ||
-      (c.codigo_contabil || "").includes(search);
+      (c.codigo_contabil || "").includes(search) ||
+      (gruposDisponiveis[c.grupo] || c.grupo).toLowerCase().includes(search.toLowerCase());
     const matchGrupo = grupoFilter === "todos" || c.grupo === grupoFilter;
     return matchSearch && matchGrupo;
   });
 
   // Group by grupo for display
-  const grouped = Object.entries(grupoLabels).reduce((acc, [key, label]) => {
+  const grouped = Object.entries(gruposDisponiveis).reduce((acc, [key, label]) => {
     const items = filtered.filter(c => c.grupo === key);
     if (items.length > 0) acc.push({ key, label, items });
     return acc;
@@ -235,8 +294,8 @@ export default function CategoriasDespesa() {
               <SelectValue placeholder="Grupo" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="todos">Todos os Grupos</SelectItem>
-              {Object.entries(grupoLabels).map(([k, v]) => (
+              <SelectItem value="todos">Todas as Principais</SelectItem>
+              {Object.entries(gruposDisponiveis).map(([k, v]) => (
                 <SelectItem key={k} value={k}>{v}</SelectItem>
               ))}
             </SelectContent>
@@ -251,7 +310,7 @@ export default function CategoriasDespesa() {
           <Card key={key}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Badge variant="outline" className={grupoColors[key]}>{label}</Badge>
+                <Badge variant="outline" className={grupoColors[key] || "bg-muted text-muted-foreground border-border"}>{label}</Badge>
                 <span className="text-muted-foreground font-normal">({items.length})</span>
               </CardTitle>
             </CardHeader>
@@ -328,11 +387,11 @@ export default function CategoriasDespesa() {
                 <Input value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))} />
               </div>
               <div>
-                <Label>Grupo</Label>
+                <Label>Categoria Principal</Label>
                 <Select value={form.grupo} onValueChange={v => setForm(p => ({ ...p, grupo: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {Object.entries(grupoLabels).map(([k, v]) => (
+                    {Object.entries(gruposDisponiveis).map(([k, v]) => (
                       <SelectItem key={k} value={k}>{v}</SelectItem>
                     ))}
                   </SelectContent>
@@ -355,6 +414,10 @@ export default function CategoriasDespesa() {
               <div>
                 <Label>Ordem</Label>
                 <Input type="number" value={form.ordem} onChange={e => setForm(p => ({ ...p, ordem: Number(e.target.value) }))} />
+              </div>
+              <div className="col-span-2">
+                <Label>Nova categoria principal</Label>
+                <Input value={novoGrupo} onChange={e => setNovoGrupo(e.target.value)} placeholder="Ex.: Manutenção Predial" />
               </div>
               <div className="col-span-2">
                 <Label>Descrição</Label>
