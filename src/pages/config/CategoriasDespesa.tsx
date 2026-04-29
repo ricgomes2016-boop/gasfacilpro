@@ -150,6 +150,10 @@ export default function CategoriasDespesa() {
       toast.error("Nome é obrigatório");
       return;
     }
+    if (!unidadeAtual?.id) {
+      toast.error("Selecione uma unidade antes de criar categorias");
+      return;
+    }
     const grupoFinal = novoGrupo.trim() ? slugifyGrupo(novoGrupo) : form.grupo;
     if (!grupoFinal) {
       toast.error("Categoria principal é obrigatória");
@@ -170,10 +174,22 @@ export default function CategoriasDespesa() {
 
     if (editingId) {
       const { error } = await supabase.from("categorias_despesa").update(payload).eq("id", editingId);
-      if (error) toast.error("Erro ao atualizar"); else toast.success("Categoria atualizada");
+      if (error) {
+        console.error(error);
+        toast.error(error.message || "Erro ao atualizar");
+        setSaving(false);
+        return;
+      }
+      toast.success("Categoria atualizada");
     } else {
       const { error } = await supabase.from("categorias_despesa").insert(payload);
-      if (error) toast.error("Erro ao criar"); else toast.success("Categoria criada");
+      if (error) {
+        console.error(error);
+        toast.error(error.message || "Erro ao criar");
+        setSaving(false);
+        return;
+      }
+      toast.success("Categoria criada");
     }
     setSaving(false);
     setDialogOpen(false);
