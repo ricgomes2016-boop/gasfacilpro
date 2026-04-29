@@ -79,6 +79,7 @@ const emptyForm: Omit<Categoria, "id"> = {
 };
 
 export default function CategoriasDespesa() {
+  const { unidadeAtual, loading: unidadeLoading } = useUnidade();
   const [loading, setLoading] = useState(true);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [search, setSearch] = useState("");
@@ -87,16 +88,24 @@ export default function CategoriasDespesa() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [novoGrupo, setNovoGrupo] = useState("");
 
-  useEffect(() => { fetchCategorias(); }, []);
+  useEffect(() => { if (!unidadeLoading) fetchCategorias(); }, [unidadeAtual?.id, unidadeLoading]);
 
   const fetchCategorias = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from("categorias_despesa")
       .select("*")
+      .order("grupo", { ascending: true })
       .order("ordem", { ascending: true })
       .order("nome", { ascending: true });
+
+    if (unidadeAtual?.id) {
+      query = query.or(`unidade_id.is.null,unidade_id.eq.${unidadeAtual.id}`);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       toast.error("Erro ao carregar categorias");
@@ -106,6 +115,14 @@ export default function CategoriasDespesa() {
     }
     setLoading(false);
   };
+
+  const gruposDisponiveis = useMemo(() => {
+    const labels = { ...grupoLabels };
+    categorias.forEach((cat) => {
+      if (cat.grupo && !labels[cat.grupo]) labels[cat.grupo] = humanizeGrupo(cat.grupo);
+    });
+    return labels;
+  }, [categorias]);
 
   const handleOpen = (cat?: Categoria) => {
     if (cat) {
@@ -124,6 +141,7 @@ export default function CategoriasDespesa() {
       setEditingId(null);
       setForm({ ...emptyForm, ordem: categorias.length + 1 });
     }
+    setNovoGrupo("");
     setDialogOpen(true);
   };
 
@@ -132,16 +150,22 @@ export default function CategoriasDespesa() {
       toast.error("Nome é obrigatório");
       return;
     }
+    const grupoFinal = novoGrupo.trim() ? slugifyGrupo(novoGrupo) : form.grupo;
+    if (!grupoFinal) {
+      toast.error("Categoria principal é obrigatória");
+      return;
+    }
     setSaving(true);
     const payload = {
       nome: form.nome,
-      grupo: form.grupo,
+      grupo: grupoFinal,
       tipo: form.tipo,
       codigo_contabil: form.codigo_contabil || null,
       descricao: form.descricao || null,
       valor_padrao: form.valor_padrao,
       ativo: form.ativo,
       ordem: form.ordem,
+      unidade_id: unidadeAtual?.id || null,
     };
 
     if (editingId) {
