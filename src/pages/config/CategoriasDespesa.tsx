@@ -193,13 +193,14 @@ export default function CategoriasDespesa() {
 
   const filtered = categorias.filter(c => {
     const matchSearch = c.nome.toLowerCase().includes(search.toLowerCase()) ||
-      (c.codigo_contabil || "").includes(search);
+      (c.codigo_contabil || "").includes(search) ||
+      (gruposDisponiveis[c.grupo] || c.grupo).toLowerCase().includes(search.toLowerCase());
     const matchGrupo = grupoFilter === "todos" || c.grupo === grupoFilter;
     return matchSearch && matchGrupo;
   });
 
   // Group by grupo for display
-  const grouped = Object.entries(grupoLabels).reduce((acc, [key, label]) => {
+  const grouped = Object.entries(gruposDisponiveis).reduce((acc, [key, label]) => {
     const items = filtered.filter(c => c.grupo === key);
     if (items.length > 0) acc.push({ key, label, items });
     return acc;
@@ -277,8 +278,8 @@ export default function CategoriasDespesa() {
               <SelectValue placeholder="Grupo" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="todos">Todos os Grupos</SelectItem>
-              {Object.entries(grupoLabels).map(([k, v]) => (
+              <SelectItem value="todos">Todas as Principais</SelectItem>
+              {Object.entries(gruposDisponiveis).map(([k, v]) => (
                 <SelectItem key={k} value={k}>{v}</SelectItem>
               ))}
             </SelectContent>
@@ -293,7 +294,7 @@ export default function CategoriasDespesa() {
           <Card key={key}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
-                <Badge variant="outline" className={grupoColors[key]}>{label}</Badge>
+                <Badge variant="outline" className={grupoColors[key] || "bg-muted text-muted-foreground border-border"}>{label}</Badge>
                 <span className="text-muted-foreground font-normal">({items.length})</span>
               </CardTitle>
             </CardHeader>
@@ -370,11 +371,11 @@ export default function CategoriasDespesa() {
                 <Input value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))} />
               </div>
               <div>
-                <Label>Grupo</Label>
+                <Label>Categoria Principal</Label>
                 <Select value={form.grupo} onValueChange={v => setForm(p => ({ ...p, grupo: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {Object.entries(grupoLabels).map(([k, v]) => (
+                    {Object.entries(gruposDisponiveis).map(([k, v]) => (
                       <SelectItem key={k} value={k}>{v}</SelectItem>
                     ))}
                   </SelectContent>
@@ -397,6 +398,10 @@ export default function CategoriasDespesa() {
               <div>
                 <Label>Ordem</Label>
                 <Input type="number" value={form.ordem} onChange={e => setForm(p => ({ ...p, ordem: Number(e.target.value) }))} />
+              </div>
+              <div className="col-span-2">
+                <Label>Nova categoria principal</Label>
+                <Input value={novoGrupo} onChange={e => setNovoGrupo(e.target.value)} placeholder="Ex.: Manutenção Predial" />
               </div>
               <div className="col-span-2">
                 <Label>Descrição</Label>
