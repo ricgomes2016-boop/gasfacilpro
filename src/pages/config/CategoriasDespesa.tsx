@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Pencil, Trash2, Loader2, Search, FolderTree } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "sonner";
 
 interface Categoria {
@@ -25,6 +26,7 @@ interface Categoria {
   valor_padrao: number;
   ativo: boolean;
   ordem: number;
+  unidade_id?: string | null;
 }
 
 const grupoLabels: Record<string, string> = {
@@ -39,15 +41,31 @@ const grupoLabels: Record<string, string> = {
 };
 
 const grupoColors: Record<string, string> = {
-  custos_fixos: "bg-blue-500/10 text-blue-700",
-  pessoal: "bg-purple-500/10 text-purple-700",
-  operacional: "bg-orange-500/10 text-orange-700",
-  comercial: "bg-green-500/10 text-green-700",
-  administrativo: "bg-slate-500/10 text-slate-700",
-  financeiro: "bg-red-500/10 text-red-700",
-  impostos: "bg-yellow-500/10 text-yellow-700",
+  custos_fixos: "bg-primary/10 text-primary border-primary/20",
+  pessoal: "bg-info/10 text-info border-info/20",
+  operacional: "bg-warning/10 text-warning border-warning/20",
+  comercial: "bg-success/10 text-success border-success/20",
+  administrativo: "bg-muted text-muted-foreground border-border",
+  financeiro: "bg-destructive/10 text-destructive border-destructive/20",
+  impostos: "bg-accent text-accent-foreground border-border",
   diversos: "bg-muted text-muted-foreground",
 };
+
+const slugifyGrupo = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+const humanizeGrupo = (value: string) =>
+  value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ") || "Sem grupo";
 
 const emptyForm: Omit<Categoria, "id"> = {
   nome: "",
