@@ -1167,6 +1167,7 @@ export type Database = {
           cliente_nome: string | null
           created_at: string
           duracao_segundos: number | null
+          empresa_id: string | null
           id: string
           observacoes: string | null
           pedido_gerado_id: string | null
@@ -1182,6 +1183,7 @@ export type Database = {
           cliente_nome?: string | null
           created_at?: string
           duracao_segundos?: number | null
+          empresa_id?: string | null
           id?: string
           observacoes?: string | null
           pedido_gerado_id?: string | null
@@ -1197,6 +1199,7 @@ export type Database = {
           cliente_nome?: string | null
           created_at?: string
           duracao_segundos?: number | null
+          empresa_id?: string | null
           id?: string
           observacoes?: string | null
           pedido_gerado_id?: string | null
@@ -1212,6 +1215,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chamadas_recebidas_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
           {
@@ -3325,6 +3335,57 @@ export type Database = {
           },
           {
             foreignKeyName: "devolucoes_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      did_empresa_routing: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          did: string
+          empresa_id: string
+          id: string
+          observacao: string | null
+          provedor: string
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          did: string
+          empresa_id: string
+          id?: string
+          observacao?: string | null
+          provedor?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          did?: string
+          empresa_id?: string
+          id?: string
+          observacao?: string | null
+          provedor?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "did_empresa_routing_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "did_empresa_routing_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"
@@ -10439,6 +10500,14 @@ export type Database = {
         Returns: undefined
       }
       proximo_numero_pedido: { Args: { _empresa_id: string }; Returns: number }
+      resolver_empresa_por_did: {
+        Args: { _did: string }
+        Returns: {
+          empresa_id: string
+          empresa_nome: string
+          unidade_id: string
+        }[]
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       unaccent: { Args: { "": string }; Returns: string }
