@@ -75,27 +75,41 @@ serve(async (req) => {
     console.error("[TWILIO-VOICE] parse error:", e);
   }
 
-  // Resolve empresa pelo DID (To)
+  // Resolve empresa pelo DID (To). Fallback: Forte Gás (DID +554337717463)
   let empresaId: string | null = null;
   let empresaNome = "";
   let unidadeId: string | null = null;
 
-  if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && to) {
+  if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-      const { data: routing, error: rErr } = await supabase
-        .rpc("resolver_empresa_por_did", { _did: to });
+      if (to) {
+        const { data: routing, error: rErr } = await supabase
+          .rpc("resolver_empresa_por_did", { _did: to });
 
-      if (rErr) {
-        console.error("[TWILIO-VOICE] resolver_empresa_por_did error:", rErr);
-      } else if (routing && routing.length > 0) {
-        empresaId = routing[0].empresa_id;
-        empresaNome = routing[0].empresa_nome ?? "";
-        unidadeId = routing[0].unidade_id ?? null;
-        console.log("[TWILIO-VOICE] Empresa resolvida:", { empresaId, empresaNome });
-      } else {
-        console.warn("[TWILIO-VOICE] Nenhuma empresa mapeada para DID:", to);
+        if (rErr) {
+          console.error("[TWILIO-VOICE] resolver_empresa_por_did error:", rErr);
+        } else if (routing && routing.length > 0) {
+          empresaId = routing[0].empresa_id;
+          empresaNome = routing[0].empresa_nome ?? "";
+          unidadeId = routing[0].unidade_id ?? null;
+          console.log("[TWILIO-VOICE] Empresa resolvida pelo DID:", { to, empresaId, empresaNome });
+        } else {
+          console.warn("[TWILIO-VOICE] Nenhuma empresa mapeada para DID:", to);
+        }
+      }
+
+      // Fallback: se não resolveu, usa o DID padrão da Forte Gás
+      if (!empresaId) {
+        const { data: fallback } = await supabase
+          .rpc("resolver_empresa_por_did", { _did: "+554337717463" });
+        if (fallback && fallback.length > 0) {
+          empresaId = fallback[0].empresa_id;
+          empresaNome = fallback[0].empresa_nome ?? "";
+          unidadeId = fallback[0].unidade_id ?? null;
+          console.log("[TWILIO-VOICE] Fallback Forte Gás aplicado:", { empresaId, empresaNome });
+        }
       }
 
       // Tenta resolver cliente pelo telefone (caller)
