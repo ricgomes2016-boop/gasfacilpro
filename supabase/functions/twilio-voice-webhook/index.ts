@@ -43,17 +43,34 @@ serve(async (req) => {
     );
   }
 
-  // Parse caller info from Twilio (form-urlencoded)
+  // Parse caller info from Twilio (form-urlencoded em POST, query string em GET)
   let from = "";
   let to = "";
   let callSid = "";
   try {
-    const text = await req.text();
-    const params = new URLSearchParams(text);
-    from = params.get("From") || params.get("Caller") || "";
-    to = params.get("To") || params.get("Called") || "";
+    let params: URLSearchParams;
+    if (req.method === "GET") {
+      params = new URL(req.url).searchParams;
+    } else {
+      const text = await req.text();
+      params = new URLSearchParams(text);
+    }
+    from = params.get("From") || params.get("Caller") || params.get("SipHeader_From") || "";
+    to =
+      params.get("To") ||
+      params.get("Called") ||
+      params.get("SipHeader_To") ||
+      params.get("SipHeader_Diversion") ||
+      params.get("SipHeader_X-Original-To") ||
+      "";
+
+    // Limpa formato SIP (sip:+554337717463@host) → +554337717463
+    const sipMatch = to.match(/(?:sip:)?(\+?\d{8,15})/i);
+    if (sipMatch) to = sipMatch[1];
+    if (to && !to.startsWith("+") && to.length >= 10) to = "+" + to.replace(/\D/g, "");
+
     callSid = params.get("CallSid") || "";
-    console.log("[TWILIO-VOICE] Incoming call:", { from, to, callSid });
+    console.log("[TWILIO-VOICE] Incoming call:", { method: req.method, from, to, callSid });
   } catch (e) {
     console.error("[TWILIO-VOICE] parse error:", e);
   }
