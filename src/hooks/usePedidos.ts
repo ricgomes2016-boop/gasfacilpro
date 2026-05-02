@@ -127,18 +127,23 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
         { event: "INSERT", schema: "public", table: "pedidos" },
         (payload) => {
           const p = payload.new as any;
-          toast("🛵 Novo Pedido!", {
-            description: `${p?.cliente_nome || "Cliente"} · R$ ${Number(p?.valor_total || 0).toFixed(2)}`,
-            duration: 5000,
-          });
-          
-          // Disparar notificação nativa (Windows) via Service Worker
-          sendOrderNotification(
-            p?.cliente_nome || "Cliente",
-            Number(p?.valor_total || 0),
-            p?.forma_pagamento
-          );
-          
+          // Pedidos criados pela Bia (canal telefone_ia) já são anunciados pelo
+          // CallerIdPopup — evitar toast/notification duplicados aqui.
+          const isTelefoneIA = p?.canal_venda === "telefone_ia";
+          if (!isTelefoneIA) {
+            toast("🛵 Novo Pedido!", {
+              description: `${p?.cliente_nome || "Cliente"} · R$ ${Number(p?.valor_total || 0).toFixed(2)}`,
+              duration: 5000,
+            });
+
+            // Disparar notificação nativa (Windows) via Service Worker
+            sendOrderNotification(
+              p?.cliente_nome || "Cliente",
+              Number(p?.valor_total || 0),
+              p?.forma_pagamento
+            );
+          }
+
           queryClient.invalidateQueries({ queryKey: ["pedidos"] });
         }
       )
