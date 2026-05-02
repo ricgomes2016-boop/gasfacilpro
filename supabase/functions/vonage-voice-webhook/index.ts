@@ -64,7 +64,8 @@ Deno.serve(async (req) => {
 
   // Safe diagnostic mode: validates Vonage inbound routing without opening any
   // outbound SIP leg to Vapi/Twilio, preventing credit burn during debugging.
-  if (url.searchParams.get('diag') === '1') {
+  const diagnosticOnly = url.searchParams.get('connect') !== '1';
+  if (diagnosticOnly) {
     const diagnosticNcco = [
       {
         action: 'talk',
