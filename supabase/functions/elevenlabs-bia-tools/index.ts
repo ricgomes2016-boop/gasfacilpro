@@ -6,7 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FALLBACK_EMPRESA_SLUGS = ["forte-gas", "central-gas", "centralgascp"];
+// Empresa fixa para atendimento da Bia por telefone (Central Gas)
+const EMPRESA_BIA_ID = "f27e158e-7ab5-4617-9f66-c6b4a084d293";
+const UNIDADE_BIA_ID = "aa5b7c93-4fe6-4dba-a0b5-2af43cd20614"; // Central Gas
+const FALLBACK_EMPRESA_SLUGS = ["central-gas", "centralgascp", "central-gas-cp"];
 
 const ok = (data: any) =>
   new Response(JSON.stringify(data), {
