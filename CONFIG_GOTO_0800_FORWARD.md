@@ -51,11 +51,13 @@ sistema agora classifica o caller-id em três etapas:
    {
      "encontrado": false,
      "motivo": "caller_id_operadora",
-     "mensagem": "A chamada veio de encaminhamento... peça verbalmente nome, telefone com DDD e endereço."
+     "proxima_acao": "perguntar_telefone_e_rechamar_identificar_cliente",
+     "mensagem": "Pergunte o telefone com DDD e CHAME identificar_cliente NOVAMENTE com esse telefone."
    }
    ```
-   A Bia então pede o telefone real e chama `identificar_cliente` de novo
-   com o número informado pelo cliente.
+   **Regra obrigatória:** a Bia SEMPRE deve tentar localizar o cadastro do
+   cliente. Se a primeira chamada vier sem caller-id confiável, ela pergunta
+   o telefone e refaz `identificar_cliente` antes de pedir endereço.
 
 ## Lista de números considerados "operadora"
 
