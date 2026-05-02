@@ -119,8 +119,9 @@ serve(async (req) => {
         return ok({
           encontrado: false,
           motivo: "caller_id_operadora",
+          proxima_acao: "perguntar_telefone_e_rechamar_identificar_cliente",
           mensagem:
-            "A chamada veio de encaminhamento e não temos o número real do cliente. Peça verbalmente: nome completo, telefone com DDD para confirmar e endereço completo (rua, número, bairro).",
+            "Chamada veio via encaminhamento (0800/operadora). Pergunte ao cliente o telefone com DDD e chame NOVAMENTE a ferramenta identificar_cliente passando esse telefone (com caller_id_confiavel=true) para buscar o cadastro. NUNCA pule essa etapa — sempre tente localizar o cliente no cadastro antes de pedir endereço.",
         });
       }
 
