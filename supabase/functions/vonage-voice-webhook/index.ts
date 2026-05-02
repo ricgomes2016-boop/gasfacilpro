@@ -62,9 +62,8 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Safe diagnostic mode: validates Vonage inbound routing without opening any
-  // outbound SIP leg to Vapi/Twilio, preventing credit burn during debugging.
-  const diagnosticOnly = url.searchParams.get('connect') !== '1';
+  // Diagnostic mode now opt-in via ?diag=1. Default = bridge to Vapi SIP.
+  const diagnosticOnly = url.searchParams.get('diag') === '1';
   if (diagnosticOnly) {
     const diagnosticNcco = [
       {
