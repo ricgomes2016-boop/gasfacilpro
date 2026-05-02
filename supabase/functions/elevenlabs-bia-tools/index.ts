@@ -20,6 +20,53 @@ const err = (msg: string, status = 400) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+async function resolverEmpresaUnidade(supabase: any, body: any) {
+  let empresa: { id: string; nome?: string } | null = null;
+  const empresaId = String(body.empresa_id || "").trim();
+  if (empresaId) {
+    const { data } = await supabase.from("empresas").select("id, nome").eq("id", empresaId).maybeSingle();
+    empresa = data;
+  }
+  if (!empresa) {
+    const { data } = await supabase
+      .from("empresas")
+      .select("id, nome")
+      .in("slug", FALLBACK_EMPRESA_SLUGS)
+      .eq("ativo", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    empresa = data;
+  }
+  if (!empresa) throw new Error("Empresa não encontrada para atendimento da Bia");
+
+  let unidade: { id: string; nome?: string } | null = null;
+  const unidadeId = String(body.unidade_id || "").trim();
+  if (unidadeId) {
+    const { data } = await supabase
+      .from("unidades")
+      .select("id, nome")
+      .eq("id", unidadeId)
+      .eq("empresa_id", empresa.id)
+      .eq("ativo", true)
+      .maybeSingle();
+    unidade = data;
+  }
+  if (!unidade) {
+    const { data } = await supabase
+      .from("unidades")
+      .select("id, nome")
+      .eq("empresa_id", empresa.id)
+      .eq("ativo", true)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    unidade = data;
+  }
+  if (!unidade) throw new Error("Unidade não encontrada para atendimento da Bia");
+  return { empresa, unidade };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
