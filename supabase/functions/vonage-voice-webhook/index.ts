@@ -26,8 +26,12 @@ Deno.serve(async (req) => {
   const isEvent = url.pathname.endsWith('/event');
 
   let bodyText = '';
+  let bodyJson: any = null;
   try {
-    if (req.method !== 'GET') bodyText = await req.text();
+    if (req.method !== 'GET') {
+      bodyText = await req.text();
+      try { bodyJson = bodyText ? JSON.parse(bodyText) : null; } catch (_) { bodyJson = null; }
+    }
   } catch (_) {}
 
   console.log('[VONAGE-WEBHOOK]', {
@@ -82,19 +86,106 @@ Deno.serve(async (req) => {
     });
   }
 
+  // ============================================================
+  // Caller-ID classification
+  // ============================================================
+  // PSTN forwarding (e.g. GoTo 0800 → Vonage DID) frequently strips the
+  // original caller and presents the operator number instead. We detect
+  // those known operator numbers and mark the call as "untrusted caller id"
+  // so downstream (Twilio → ElevenLabs Bia) doesn't try to match a customer
+  // that is actually the operator itself.
+  const onlyDigits = (s: string) => (s || '').replace(/\D/g, '');
+  const lastN = (s: string, n: number) => onlyDigits(s).slice(-n);
+
+  // Numbers that can never be a real customer caller-id
+  const OPERATOR_NUMBERS_LAST10 = new Set<string>([
+    lastN(VONAGE_CALLER_ID, 10),  // 1152835921
+    '8005900492',                  // GoTo 0800 (08005900492)
+    '5900492',                     // sometimes only the suffix is presented
+  ]);
+
+  // Vonage may pass the original caller via SIP headers in the body (when the
+  // upstream route forwards them) — Diversion, P-Asserted-Identity, Remote-Party-ID.
+  const sipHeaderCandidates: string[] = [];
+  if (bodyJson) {
+    for (const k of Object.keys(bodyJson)) {
+      const lower = k.toLowerCase();
+      if (
+        lower === 'diversion' ||
+        lower === 'p-asserted-identity' ||
+        lower === 'remote-party-id' ||
+        lower.startsWith('sipheader_') ||
+        lower.startsWith('x-')
+      ) {
+        const v = String(bodyJson[k] ?? '');
+        const m = v.match(/(?:sip:)?(\+?\d{8,15})/i);
+        if (m) sipHeaderCandidates.push(m[1]);
+      }
+    }
+  }
+  // Same lookup in query string (some configs pass through)
+  for (const [k, v] of url.searchParams.entries()) {
+    const lower = k.toLowerCase();
+    if (
+      lower === 'diversion' ||
+      lower === 'p-asserted-identity' ||
+      lower === 'remote-party-id' ||
+      lower.startsWith('sipheader_')
+    ) {
+      const m = String(v).match(/(?:sip:)?(\+?\d{8,15})/i);
+      if (m) sipHeaderCandidates.push(m[1]);
+    }
+  }
+
+  const incomingFrom =
+    url.searchParams.get('from') ||
+    url.searchParams.get('msisdn') ||
+    (bodyJson?.from ? String(bodyJson.from) : '') ||
+    '';
+  const incomingTo =
+    url.searchParams.get('to') ||
+    (bodyJson?.to ? String(bodyJson.to) : '') ||
+    '';
+
+  // Pick the best "real caller". Prefer SIP-header candidates that are NOT
+  // operator numbers; fall back to the from field if it isn't an operator.
+  let callerReal = '';
+  for (const cand of sipHeaderCandidates) {
+    if (!OPERATOR_NUMBERS_LAST10.has(lastN(cand, 10))) {
+      callerReal = onlyDigits(cand);
+      break;
+    }
+  }
+  if (!callerReal && incomingFrom && !OPERATOR_NUMBERS_LAST10.has(lastN(incomingFrom, 10))) {
+    callerReal = onlyDigits(incomingFrom);
+  }
+  const callerConfiavel = !!callerReal;
+
+  console.log('[VONAGE-CALLER-ID]', {
+    incomingFrom,
+    incomingTo,
+    sipHeaderCandidates,
+    callerReal,
+    callerConfiavel,
+  });
+
   // Build NCCO: connect inbound call to Twilio's Bia route by default.
   // Use ?route=vapi only for controlled SIP diagnostics.
   const route = url.searchParams.get('route') || 'twilio';
 
-  // The "from" must be a valid number accepted by the carrier. For PSTN bridge,
-  // use our Vonage DID instead of spoofing the customer's caller id.
-  let from =
-    route === 'vapi'
-      ? (url.searchParams.get('from') || url.searchParams.get('msisdn') || VONAGE_CALLER_ID)
-      : VONAGE_CALLER_ID;
+  // The "from" we present to the next leg (Twilio).
+  // - If we have a trusted real caller-id, forward it.
+  // - Otherwise use a sentinel '0000000000' so Twilio + Bia know NOT to
+  //   match a customer based on this number.
+  let from: string;
+  if (route === 'vapi') {
+    from = callerReal || incomingFrom || VONAGE_CALLER_ID;
+  } else {
+    from = callerConfiavel ? callerReal : '0000000000';
+  }
 
-  // Vonage sometimes sends without leading +. Normalize to digits only — Vapi tolerates both.
-  from = from.replace(/[^\d+]/g, '') || '551152835921';
+  // Normalize to digits only — both Vapi and Twilio tolerate plain digits.
+  from = from.replace(/[^\d+]/g, '') || '0000000000';
 
   // Optional digest auth for Vapi diagnostics — only attach if BOTH env vars are set.
   const SIP_USER = Deno.env.get('VAPI_SIP_USERNAME') || '';

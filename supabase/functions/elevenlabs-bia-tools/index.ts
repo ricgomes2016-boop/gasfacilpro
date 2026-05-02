@@ -74,17 +74,67 @@ serve(async (req) => {
 
     // ============== ACTION: identificar_cliente ==============
     if (action === "identificar_cliente") {
-      const telefone = String(body.telefone || "").replace(/\D/g, "");
-      if (!telefone) return err("Telefone obrigatório");
+      const telefoneRaw = String(body.telefone || "").replace(/\D/g, "");
+      // ElevenLabs may send the dynamic variable as 'true'/'false' string.
+      const callerConfiavelRaw = body.caller_id_confiavel ?? body.caller_confiavel;
+      const callerConfiavel =
+        callerConfiavelRaw === true ||
+        callerConfiavelRaw === "true" ||
+        callerConfiavelRaw === 1 ||
+        callerConfiavelRaw === "1";
+      const callerExplicitlyUntrusted =
+        callerConfiavelRaw === false ||
+        callerConfiavelRaw === "false" ||
+        callerConfiavelRaw === 0 ||
+        callerConfiavelRaw === "0";
 
+      // Numbers that are NEVER a real customer (carrier DIDs, 0800, sentinels).
+      const OPERATOR_LAST10 = new Set<string>([
+        "1152835921", // Vonage DID Central Gás
+        "8005900492", // GoTo 0800
+        "5900492",
+      ]);
+      const last10 = telefoneRaw.slice(-10);
+      const isOperatorNumber =
+        !telefoneRaw ||
+        /^0+$/.test(telefoneRaw) ||
+        telefoneRaw.length < 10 ||
+        OPERATOR_LAST10.has(last10);
+
+      // If the caller-id is explicitly untrusted OR matches an operator number,
+      // do NOT try to match a customer by phone. Tell the agent to ask verbally.
+      if (callerExplicitlyUntrusted || (!callerConfiavel && isOperatorNumber)) {
+        // Still log the call for ops visibility, but without a fake telefone.
+        const { error: chamadaError } = await supabase.from("chamadas_recebidas").insert({
+          telefone: null,
+          cliente_id: null,
+          cliente_nome: null,
+          tipo: "voip",
+          status: "recebida",
+          unidade_id: unidade.id,
+          observacoes: `Bia (IA) - chamada via 0800/encaminhamento. Caller bruto: ${telefoneRaw || "vazio"}`,
+        });
+        if (chamadaError) console.error("Erro registrando chamada (caller não confiável):", chamadaError);
+
+        return ok({
+          encontrado: false,
+          motivo: "caller_id_operadora",
+          mensagem:
+            "A chamada veio de encaminhamento e não temos o número real do cliente. Peça verbalmente: nome completo, telefone com DDD para confirmar e endereço completo (rua, número, bairro).",
+        });
+      }
+
+      if (!telefoneRaw) return err("Telefone obrigatório");
+
+      const telefone = telefoneRaw;
       const last = telefone.slice(-11);
-      const last10 = telefone.slice(-10);
+      const last10b = telefone.slice(-10);
 
       const { data: clientes } = await supabase
         .from("clientes")
         .select("id, nome, telefone, endereco, numero, bairro, cidade, cep")
         .eq("empresa_id", empresa.id)
-        .or(`telefone.ilike.%${last}%,telefone.ilike.%${last10}%`)
+        .or(`telefone.ilike.%${last}%,telefone.ilike.%${last10b}%`)
         .limit(1);
 
       // Register the incoming call (triggers CallerID popup)

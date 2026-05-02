@@ -111,6 +111,22 @@ serve(async (req) => {
     console.error("[TWILIO-VOICE] parse error:", e);
   }
 
+  // Caller-id trust check.
+  // Vonage forwards calls into Twilio with `from = '0000000000'` (sentinel)
+  // when the original caller-id was lost (e.g. PSTN forward from GoTo 0800).
+  // Also treat known operator numbers as untrusted.
+  const fromDigits = from.replace(/\D/g, "");
+  const fromLast10 = fromDigits.slice(-10);
+  const OPERATOR_LAST10 = new Set<string>([
+    "1152835921", // Vonage DID Central Gás
+    "8005900492", // GoTo 0800
+    "5900492",
+  ]);
+  const callerConfiavel =
+    fromDigits.length >= 10 &&
+    !fromDigits.match(/^0+$/) &&
+    !OPERATOR_LAST10.has(fromLast10);
+
   // Resolve empresa pelo DID (To). Fallback: Forte Gás (DID +554337717463)
   let empresaId: string | null = null;
   let empresaNome = "";
@@ -148,12 +164,11 @@ serve(async (req) => {
         }
       }
 
-      // Tenta resolver cliente pelo telefone (caller)
+      // Tenta resolver cliente pelo telefone (caller) — APENAS se confiável
       let clienteId: string | null = null;
       let clienteNome: string | null = null;
-      const digits = from.replace(/\D/g, "");
-      if (digits.length >= 8) {
-        const last = digits.slice(-11);
+      if (callerConfiavel) {
+        const last = fromDigits.slice(-11);
         let q = supabase
           .from("clientes")
           .select("id, nome, telefone, empresa_id")
@@ -165,19 +180,26 @@ serve(async (req) => {
           clienteId = cli[0].id;
           clienteNome = cli[0].nome;
         }
+      } else {
+        console.log("[TWILIO-VOICE] caller_id não confiável - pulando lookup de cliente", { from, fromLast10 });
       }
 
       // Registra a chamada (popup Bina via realtime/polling)
+      // Quando caller não é confiável, salvamos null em telefone para evitar
+      // associação errada com a empresa/operadora, e marcamos nas observações.
       const { error: insErr } = await supabase
         .from("chamadas_recebidas")
         .insert({
-          telefone: from,
+          telefone: callerConfiavel ? from : null,
           cliente_id: clienteId,
           cliente_nome: clienteNome,
           tipo: "voip",
           status: "recebida",
           empresa_id: empresaId,
           unidade_id: unidadeId,
+          observacoes: callerConfiavel
+            ? null
+            : `Encaminhada via 0800/operadora (caller-id não recebido). From bruto: ${from || "vazio"}`,
         });
       if (insErr) {
         console.error("[TWILIO-VOICE] insert chamadas_recebidas error:", insErr);
@@ -191,7 +213,8 @@ serve(async (req) => {
   const safeTo = to.startsWith("+") ? to : `+${to.replace(/\D/g, "")}`;
 
   const twiml = await registerElevenLabsTwilioCall(ELEVENLABS_AGENT_ID, safeFrom, safeTo, {
-    caller_phone: from,
+    caller_phone: callerConfiavel ? from : "",
+    caller_confiavel: callerConfiavel ? "true" : "false",
     called_number: to,
     call_sid: callSid,
     empresa_id: empresaId ?? "",
