@@ -1,54 +1,54 @@
-Vou transformar o HTML enviado em uma implementação nativa do app, dentro de Gestão de Frota, seguindo os componentes e padrões existentes do projeto.
+## Problema confirmado
 
-## O que será implementado
+A ligação para 0800 590 0492 entrou no GoTo, mas o ramal 1004 está configurado para **encaminhar para o celular +5543999661816** (seu número), em vez de rotear para um provedor de IA externo via SIP. Por isso nenhum webhook (Vapi nem Twilio) foi acionado — a IA nunca teve chance de atender.
 
-1. Atualizar o Dashboard de Frota
-- Incorporar a estrutura visual do exemplo “Gestão Total da Frota”.
-- Manter o layout existente com `MainLayout` e `Header`.
-- Substituir/adaptar os blocos atuais para uma visão mais completa com:
-  - KPIs principais: custo mensal, custo/km, veículos ativos e alertas críticos.
-  - Área principal com custos da frota e ranking de veículos.
-  - Status dos veículos.
-  - Análise de IA sobre comportamento do motorista.
-  - Alertas da IA.
-  - Simulação “E se?”.
-  - Resultado da simulação.
+Evidências dos prints:
+- Print 3 (Detalhes da interação): GoTo discou para `+5543999661816` durante 11s, conectou, falou 29s, desligou normalmente
+- Print 2 (Relatório): 2 chamadas hoje — uma atendida no celular, outra caiu no correio
+- Print 1 (Atividade): última atualização do ramal 1004 foi às 08:50 (atualização de conta), confirmando que ele é tratado como ramal de usuário, não como tronco SIP de saída
 
-2. Adaptar o HTML para React + Tailwind
-- Não vou inserir HTML cru, `<style>`, `<script>` externo ou CDN de Chart.js.
-- Vou converter para JSX usando os componentes já usados no sistema: `Card`, `Badge`, `Button`, tabelas simples e inputs/selects do design system.
-- O layout será responsivo, mantendo a ideia do exemplo:
-  - Desktop: coluna principal + coluna lateral.
-  - Tablet/mobile: tudo em uma coluna.
-  - KPIs em 4 colunas no desktop e 2/1 no mobile.
+## Decisão necessária
 
-3. Usar dados reais quando já existem no sistema
-- Custo mensal: continuará usando abastecimentos + manutenções do mês.
-- Veículos ativos: continuará usando a tabela de veículos.
-- Alertas críticos: usará alertas de documentos, manutenções e multas quando disponíveis.
-- Status dos veículos: será montado a partir dos veículos ativos e alertas calculados.
-- Ranking de veículos: será calculado com base nos dados disponíveis de frota, com fallback visual quando faltarem dados suficientes.
+Antes de mexer em qualquer coisa, precisamos decidir **qual provedor de IA** vai atender o 0800. As duas opções têm implicações diferentes no GoTo:
 
-4. IA e simulação
-- A seção de IA será implementada como análise operacional calculada no front-end, reaproveitando a lógica já existente em `FrotaIAInsights` quando fizer sentido.
-- A simulação “E se?” terá seleção entre frota própria e terceirizada e exibirá um resultado estimado.
-- Inicialmente, a simulação será local/interativa, sem criar novas tabelas no banco.
+### Opção A — Vapi (mais simples, já temos credencial)
+1. **No GoTo**, no ramal 1004:
+   - **Remover** o encaminhamento para celular (+5543999661816)
+   - **Habilitar registro SIP externo** (a tela que você procurou ontem: "Allow external SIP registration" / "Third-party SIP")
+   - Pegar usuário SIP, senha SIP e domínio SIP do 1004
+2. **Na Vapi**: criar um "BYO SIP Trunk" apontando para o domínio do GoTo com as credenciais do 1004
+3. **Apontar o assistente Vapi** (o que já está criado) para esse trunk
+4. Testar ligação para 0800
 
-## Arquivos a alterar
+### Opção B — Twilio Elastic SIP + ElevenLabs (Bia)
+1. **No GoTo**, no ramal 1004:
+   - Remover encaminhamento para celular
+   - Configurar como **SIP Trunk de saída** apontando para `forte-gas.pstn.twilio.com` (seguir o `CONFIG_TWILIO_SIP_FORTEGAS.md`)
+2. **No Twilio**: criar Elastic SIP Trunk, autorizar IP do GoTo, apontar Voice URL para `twilio-voice-webhook`
+3. Bia (ElevenLabs) já está configurada no `twilio-voice-webhook`
+4. Testar ligação para 0800
 
-- `src/pages/frota/DashboardFrota.tsx`
-  - Principal alteração visual e funcional da Gestão Total da Frota.
+### Opção C — Atendimento humano + IA como fallback
+- Manter o encaminhamento para o celular nas primeiras X tocadas
+- Se você não atender, transferir para a IA (Vapi ou Bia)
+- Requer configurar **Call Flow** no GoTo (mais complexo)
 
-- `src/components/frota/FrotaIAInsights.tsx`
-  - Ajuste ou reaproveitamento para encaixar melhor no novo dashboard, evitando duplicidade visual.
+## Recomendação
 
-## Detalhes técnicos
+**Opção A (Vapi)** é o caminho mais rápido — você já tem assistente Vapi criado e credencial. O bloqueio é exclusivamente o GoTo: precisamos achar onde habilitar o registro SIP externo no ramal 1004 e remover o forward para celular.
 
-- Não vou alterar `App.tsx`, rotas principais ou estrutura de providers, respeitando a regra de estabilidade do projeto.
-- Não será necessário criar tabela nova nem mexer em RLS nesta primeira etapa.
-- Não vou adicionar Chart.js via CDN. Se for necessário um gráfico, farei com elementos visuais em Tailwind ou componentes já existentes no projeto, para evitar dependência externa e conflito com Vite.
-- Onde não houver dados suficientes para calcular um indicador, o painel exibirá um estado seguro como “Sem dados suficientes”, em vez de valores fixos enganosos.
+## Próximo passo imediato (sem código)
 
-## Resultado esperado
+Antes de eu mexer em qualquer arquivo, você precisa entrar no **GoTo Admin → ramal 1004** e:
 
-A página `/frota` passará a parecer uma “Gestão Total da Frota”, com a visão executiva e operacional do HTML enviado, porém integrada ao sistema real, responsiva e compatível com o padrão visual do app.
+1. Tirar print de **todas as abas** da tela de edição do ramal 1004 (Geral, Chamadas, Encaminhamento, Voicemail, SIP, Avançado…)
+2. Procurar especificamente onde está configurado o número **+5543999661816** como destino — esse é o forward que está sequestrando a chamada
+3. Procurar qualquer opção do tipo: "Third-party SIP", "Allow external registration", "BYOD", "SIP credentials"
+
+Com esses prints eu te digo exatamente:
+- Onde clicar para **desligar o forward para o celular**
+- Onde clicar para **habilitar o registro SIP externo** (e pegar as credenciais para colar na Vapi)
+
+## Observação sobre o código deste projeto
+
+Nada precisa mudar no código agora. As edge functions `vapi-webhook` e `twilio-voice-webhook` estão prontas e funcionais — elas só não estão sendo chamadas porque o GoTo está terminando a chamada no seu celular antes de sair para a internet.
