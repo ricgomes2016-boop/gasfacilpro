@@ -6,8 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Central Gás identifiers (hardcoded — esta função atende SOMENTE Central Gás CP)
-const CENTRAL_GAS_SLUG = "centralgascp";
+const FALLBACK_EMPRESA_SLUGS = ["forte-gas", "central-gas", "centralgascp"];
 
 const ok = (data: any) =>
   new Response(JSON.stringify(data), {
@@ -20,6 +19,53 @@ const err = (msg: string, status = 400) =>
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+
+async function resolverEmpresaUnidade(supabase: any, body: any) {
+  let empresa: { id: string; nome?: string } | null = null;
+  const empresaId = String(body.empresa_id || "").trim();
+  if (empresaId) {
+    const { data } = await supabase.from("empresas").select("id, nome").eq("id", empresaId).maybeSingle();
+    empresa = data;
+  }
+  if (!empresa) {
+    const { data } = await supabase
+      .from("empresas")
+      .select("id, nome")
+      .in("slug", FALLBACK_EMPRESA_SLUGS)
+      .eq("ativo", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    empresa = data;
+  }
+  if (!empresa) throw new Error("Empresa não encontrada para atendimento da Bia");
+
+  let unidade: { id: string; nome?: string } | null = null;
+  const unidadeId = String(body.unidade_id || "").trim();
+  if (unidadeId) {
+    const { data } = await supabase
+      .from("unidades")
+      .select("id, nome")
+      .eq("id", unidadeId)
+      .eq("empresa_id", empresa.id)
+      .eq("ativo", true)
+      .maybeSingle();
+    unidade = data;
+  }
+  if (!unidade) {
+    const { data } = await supabase
+      .from("unidades")
+      .select("id, nome")
+      .eq("empresa_id", empresa.id)
+      .eq("ativo", true)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    unidade = data;
+  }
+  if (!unidade) throw new Error("Unidade não encontrada para atendimento da Bia");
+  return { empresa, unidade };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -35,25 +81,7 @@ serve(async (req) => {
 
     const action = body.action;
 
-    // Resolve empresa Central Gás and its main unidade
-    const { data: empresa } = await supabase
-      .from("empresas")
-      .select("id")
-      .eq("slug", CENTRAL_GAS_SLUG)
-      .maybeSingle();
-
-    if (!empresa) return err("Empresa Central Gás não encontrada", 500);
-
-    const { data: unidade } = await supabase
-      .from("unidades")
-      .select("id")
-      .eq("empresa_id", empresa.id)
-      .eq("ativo", true)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (!unidade) return err("Unidade Central Gás não encontrada", 500);
+    const { empresa, unidade } = await resolverEmpresaUnidade(supabase, body);
 
     // ============== ACTION: identificar_cliente ==============
     if (action === "identificar_cliente") {
@@ -65,7 +93,7 @@ serve(async (req) => {
 
       const { data: clientes } = await supabase
         .from("clientes")
-        .select("id, nome, telefone, endereco, numero, bairro, cidade, complemento:numero")
+        .select("id, nome, telefone, endereco, numero, bairro, cidade, cep")
         .eq("empresa_id", empresa.id)
         .or(`telefone.ilike.%${last}%,telefone.ilike.%${last10}%`)
         .limit(1);
@@ -115,6 +143,7 @@ serve(async (req) => {
         endereco,
         numero,
         bairro,
+        cep,
         referencia,
         produto,
         quantidade,
@@ -135,6 +164,8 @@ serve(async (req) => {
             endereco,
             numero,
             bairro,
+            cep: cep || null,
+            cidade: body.cidade || null,
             empresa_id: empresa.id,
             ativo: true,
           })
@@ -163,7 +194,7 @@ serve(async (req) => {
 
       const { data: prod } = await supabase
         .from("produtos")
-        .select("id, preco, nome")
+        .select("id, preco, nome, preco_telefone")
         .eq("unidade_id", unidade.id)
         .ilike("nome", nomeProduto)
         .limit(1)
@@ -171,8 +202,24 @@ serve(async (req) => {
 
       if (!prod) return err(`Produto ${nomeProduto} não cadastrado na unidade`);
 
-      const qty = Number(quantidade) || 1;
-      const valorTotal = (prod.preco || 0) * qty;
+      let precoUnitario = Number(prod.preco_telefone || prod.preco || 0);
+      if (finalClienteId) {
+        const { data: ultimoItem } = await supabase
+          .from("pedido_itens")
+          .select("preco_unitario, pedidos!inner(cliente_id)")
+          .eq("produto_id", prod.id)
+          .eq("pedidos.cliente_id", finalClienteId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (ultimoItem?.preco_unitario) precoUnitario = Number(ultimoItem.preco_unitario);
+      }
+
+      const qty = Math.max(1, Number(quantidade) || 1);
+      const valorTotal = precoUnitario * qty;
+      const enderecoCompleto = [endereco, numero && `Nº ${numero}`, bairro, referencia && `Ref: ${referencia}`]
+        .filter(Boolean)
+        .join(", ");
 
       // Cria pedido pendente
       const { data: pedido, error: pedidoErr } = await supabase
@@ -184,7 +231,11 @@ serve(async (req) => {
           canal_venda: "telefone_ia",
           forma_pagamento: "a_definir",
           valor_total: valorTotal,
-          observacoes: `Pedido criado pela Bia (IA). ${referencia ? "Ref: " + referencia : ""}`,
+          endereco_entrega: enderecoCompleto || null,
+          numero_entrega: numero || null,
+          bairro_entrega: bairro || null,
+          cep_entrega: cep || null,
+          observacoes: `Pedido criado pela Bia (IA por telefone). ${referencia ? "Ref: " + referencia : ""}`,
         })
         .select("id, numero_sequencial")
         .single();
@@ -199,8 +250,7 @@ serve(async (req) => {
         pedido_id: pedido.id,
         produto_id: prod.id,
         quantidade: qty,
-        preco_unitario: prod.preco || 0,
-        subtotal: valorTotal,
+        preco_unitario: precoUnitario,
       });
 
       return ok({
@@ -209,7 +259,8 @@ serve(async (req) => {
         numero_pedido: pedido.numero_sequencial,
         produto: nomeProduto,
         quantidade: qty,
-        mensagem: `Pedido #${pedido.numero_sequencial} criado com sucesso! ${qty}x ${nomeProduto}. O entregador chega em até 30 minutos.`,
+        valor_total: valorTotal,
+        mensagem: `Pedido #${pedido.numero_sequencial} criado com sucesso como pendente. ${qty}x ${nomeProduto}, total R$ ${valorTotal.toFixed(2)}.`,
       });
     }
 
