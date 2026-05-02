@@ -89,7 +89,7 @@ serve(async (req) => {
 
       const { data: clientes } = await supabase
         .from("clientes")
-        .select("id, nome, telefone, endereco, numero, bairro, cidade, complemento:numero")
+        .select("id, nome, telefone, endereco, numero, bairro, cidade, cep")
         .eq("empresa_id", empresa.id)
         .or(`telefone.ilike.%${last}%,telefone.ilike.%${last10}%`)
         .limit(1);
@@ -139,6 +139,7 @@ serve(async (req) => {
         endereco,
         numero,
         bairro,
+        cep,
         referencia,
         produto,
         quantidade,
@@ -159,6 +160,8 @@ serve(async (req) => {
             endereco,
             numero,
             bairro,
+            cep: cep || null,
+            cidade: body.cidade || null,
             empresa_id: empresa.id,
             ativo: true,
           })
@@ -187,7 +190,7 @@ serve(async (req) => {
 
       const { data: prod } = await supabase
         .from("produtos")
-        .select("id, preco, nome")
+        .select("id, preco, nome, preco_telefone")
         .eq("unidade_id", unidade.id)
         .ilike("nome", nomeProduto)
         .limit(1)
@@ -195,8 +198,24 @@ serve(async (req) => {
 
       if (!prod) return err(`Produto ${nomeProduto} não cadastrado na unidade`);
 
-      const qty = Number(quantidade) || 1;
-      const valorTotal = (prod.preco || 0) * qty;
+      let precoUnitario = Number(prod.preco_telefone || prod.preco || 0);
+      if (finalClienteId) {
+        const { data: ultimoItem } = await supabase
+          .from("pedido_itens")
+          .select("preco_unitario, pedidos!inner(cliente_id)")
+          .eq("produto_id", prod.id)
+          .eq("pedidos.cliente_id", finalClienteId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (ultimoItem?.preco_unitario) precoUnitario = Number(ultimoItem.preco_unitario);
+      }
+
+      const qty = Math.max(1, Number(quantidade) || 1);
+      const valorTotal = precoUnitario * qty;
+      const enderecoCompleto = [endereco, numero && `Nº ${numero}`, bairro, referencia && `Ref: ${referencia}`]
+        .filter(Boolean)
+        .join(", ");
 
       // Cria pedido pendente
       const { data: pedido, error: pedidoErr } = await supabase
@@ -208,7 +227,11 @@ serve(async (req) => {
           canal_venda: "telefone_ia",
           forma_pagamento: "a_definir",
           valor_total: valorTotal,
-          observacoes: `Pedido criado pela Bia (IA). ${referencia ? "Ref: " + referencia : ""}`,
+          endereco_entrega: enderecoCompleto || null,
+          numero_entrega: numero || null,
+          bairro_entrega: bairro || null,
+          cep_entrega: cep || null,
+          observacoes: `Pedido criado pela Bia (IA por telefone). ${referencia ? "Ref: " + referencia : ""}`,
         })
         .select("id, numero_sequencial")
         .single();
@@ -223,8 +246,7 @@ serve(async (req) => {
         pedido_id: pedido.id,
         produto_id: prod.id,
         quantidade: qty,
-        preco_unitario: prod.preco || 0,
-        subtotal: valorTotal,
+        preco_unitario: precoUnitario,
       });
 
       return ok({
@@ -233,7 +255,8 @@ serve(async (req) => {
         numero_pedido: pedido.numero_sequencial,
         produto: nomeProduto,
         quantidade: qty,
-        mensagem: `Pedido #${pedido.numero_sequencial} criado com sucesso! ${qty}x ${nomeProduto}. O entregador chega em até 30 minutos.`,
+        valor_total: valorTotal,
+        mensagem: `Pedido #${pedido.numero_sequencial} criado com sucesso como pendente. ${qty}x ${nomeProduto}, total R$ ${valorTotal.toFixed(2)}.`,
       });
     }
 
