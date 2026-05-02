@@ -28,6 +28,25 @@ function twimlError(msg: string) {
   return `<?xml version="1.0" encoding="UTF-8"?><Response><Say language="pt-BR">${escapeXml(msg)}</Say></Response>`;
 }
 
+async function getElevenLabsSignedUrl(agentId: string) {
+  const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
+  if (!apiKey) return null;
+
+  const response = await fetch(
+    `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${encodeURIComponent(agentId)}`,
+    { headers: { "xi-api-key": apiKey } },
+  );
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => "");
+    console.error("[TWILIO-VOICE] ElevenLabs signed URL error:", response.status, details);
+    return null;
+  }
+
+  const data = await response.json().catch(() => ({}));
+  return typeof data.signed_url === "string" ? data.signed_url : null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -138,9 +157,10 @@ serve(async (req) => {
           telefone: from,
           cliente_id: clienteId,
           cliente_nome: clienteNome,
-          tipo: "telefone",
+          tipo: "voip",
           status: "recebida",
           empresa_id: empresaId,
+          unidade_id: unidadeId,
         });
       if (insErr) {
         console.error("[TWILIO-VOICE] insert chamadas_recebidas error:", insErr);
@@ -150,8 +170,14 @@ serve(async (req) => {
     }
   }
 
-  // ElevenLabs Conversational AI WebSocket URL com o agent_id
-  const wsUrl = `wss://api.elevenlabs.io/v1/convai/conversation?agent_id=${encodeURIComponent(ELEVENLABS_AGENT_ID)}`;
+  // ElevenLabs Conversational AI requires a signed WebSocket URL for authenticated agents.
+  const wsUrl = await getElevenLabsSignedUrl(ELEVENLABS_AGENT_ID);
+  if (!wsUrl) {
+    return new Response(
+      twimlError("Desculpe, a Bia está indisponível no momento. Tente novamente em instantes."),
+      { status: 200, headers: { "Content-Type": "text/xml" } },
+    );
+  }
 
   // Custom params são entregues ao agente como dynamic variables
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
