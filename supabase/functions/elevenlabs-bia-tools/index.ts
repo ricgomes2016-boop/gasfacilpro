@@ -216,7 +216,17 @@ serve(async (req) => {
         if (ultimoItem?.preco_unitario) precoUnitario = Number(ultimoItem.preco_unitario);
       }
 
-      const qty = Math.max(1, Number(quantidade) || 1);
+      const qty = Math.max(1, Number(qtdInput) || 1);
+
+      // Normaliza forma de pagamento
+      const fpRaw = String(forma_pagamento || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      let formaPgto = "a_definir";
+      if (fpRaw.includes("credito")) formaPgto = "cartao_credito";
+      else if (fpRaw.includes("debito")) formaPgto = "cartao_debito";
+      else if (fpRaw.includes("cartao") || fpRaw.includes("maquin")) formaPgto = "cartao_credito";
+      else if (fpRaw.includes("pix")) formaPgto = "pix";
+      else if (fpRaw.includes("dinheiro") || fpRaw.includes("especie")) formaPgto = "dinheiro";
+      else if (fpRaw.includes("fiado") || fpRaw.includes("prazo")) formaPgto = "fiado";
       const valorTotal = precoUnitario * qty;
       const enderecoCompleto = [endereco, numero && `Nº ${numero}`, bairro, referencia && `Ref: ${referencia}`]
         .filter(Boolean)
