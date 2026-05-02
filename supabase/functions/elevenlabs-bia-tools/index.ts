@@ -269,8 +269,10 @@ serve(async (req) => {
 
       const qty = Math.max(1, Number(qtdInput) || 1);
 
-      // Normaliza forma de pagamento
-      const fpRaw = String(forma_pagamento || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      // Normaliza forma de pagamento. Aceita variações coloquiais ("tá bom",
+      // "qualquer", "tanto faz", "depois decido", "ver com entregador") como
+      // 'a_definir' para a Bia NÃO ficar em loop perguntando "cartão, pix ou dinheiro".
+      const fpRaw = String(forma_pagamento || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
       let formaPgto = "a_definir";
       if (fpRaw.includes("credito")) formaPgto = "cartao_credito";
       else if (fpRaw.includes("debito")) formaPgto = "cartao_debito";
@@ -278,6 +280,18 @@ serve(async (req) => {
       else if (fpRaw.includes("pix")) formaPgto = "pix";
       else if (fpRaw.includes("dinheiro") || fpRaw.includes("especie")) formaPgto = "dinheiro";
       else if (fpRaw.includes("fiado") || fpRaw.includes("prazo")) formaPgto = "fiado";
+      else if (
+        fpRaw === "" ||
+        fpRaw.includes("ta bom") || fpRaw.includes("tabom") || fpRaw.includes("ok") ||
+        fpRaw.includes("qualquer") || fpRaw.includes("tanto faz") ||
+        fpRaw.includes("depois") || fpRaw.includes("decido") ||
+        fpRaw.includes("ver") || fpRaw.includes("combina") ||
+        fpRaw.includes("entregador") || fpRaw.includes("definir") ||
+        fpRaw.includes("nao sei") || fpRaw.includes("a definir")
+      ) {
+        formaPgto = "a_definir";
+      }
+
       const valorTotal = precoUnitario * qty;
       const enderecoCompleto = [endereco, numero && `Nº ${numero}`, bairro, referencia && `Ref: ${referencia}`]
         .filter(Boolean)
