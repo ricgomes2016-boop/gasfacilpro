@@ -172,13 +172,23 @@ serve(async (req) => {
         });
       }
 
-      // Match produto (P13 / P20 / P45 / Água)
-      const prodNorm = String(produto).toUpperCase().replace(/\s/g, "");
+      // Match produto (P13 / P20 / P45 / Água) - "gás/botijão/bujão" sozinho => P13
+      const prodRaw = String(produto || "")
+        .toUpperCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      const prodNorm = prodRaw.replace(/\s/g, "");
       let nomeProduto = "";
-      if (prodNorm.includes("P13") || prodNorm.includes("13")) nomeProduto = "Gás P13";
+      if (prodNorm.includes("P45") || prodNorm.includes("45")) nomeProduto = "Gás P45";
       else if (prodNorm.includes("P20") || prodNorm.includes("20")) nomeProduto = "Gás P20";
-      else if (prodNorm.includes("P45") || prodNorm.includes("45")) nomeProduto = "Gás P45";
-      else if (prodNorm.includes("AGUA") || prodNorm.includes("ÁGUA")) nomeProduto = "Água Mineral 20L";
+      else if (prodNorm.includes("P13") || prodNorm.includes("13")) nomeProduto = "Gás P13";
+      else if (prodNorm.includes("AGUA") || prodNorm.includes("GALAO")) nomeProduto = "Água Mineral 20L";
+      else if (
+        prodNorm.includes("GAS") ||
+        prodNorm.includes("BOTIJAO") ||
+        prodNorm.includes("BUJAO") ||
+        prodNorm.includes("CARGA")
+      ) nomeProduto = "Gás P13"; // Padrão: "um gás" = P13
       else return err(`Produto não reconhecido: ${produto}. Use P13, P20, P45 ou Água.`);
 
       const { data: prod } = await supabase
