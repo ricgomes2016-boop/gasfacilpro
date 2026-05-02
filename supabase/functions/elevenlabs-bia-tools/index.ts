@@ -136,9 +136,11 @@ serve(async (req) => {
         referencia,
         produto,
         quantidade,
+        forma_pagamento,
       } = body;
 
-      if (!produto || !quantidade) return err("Produto e quantidade são obrigatórios");
+      if (!produto) return err("Produto é obrigatório");
+      const qtdInput = quantidade ?? 1;
 
       // Resolve / create cliente
       let finalClienteId = cliente_id;
