@@ -1,44 +1,50 @@
-## Diagnóstico do vídeo
+Diagnóstico encontrado:
 
-Você discou **`0411152835921`** (com `04` da operadora na frente). A operadora não completou — ficou "Chamando..." 20s e caiu. **Nenhuma chamada do horário do vídeo (12:14 BRT) chegou ao Vapi.**
+- A chamada agora chega no Vonage e no webhook da Lovable Cloud. Isso confirma que o número `+55 11 5283-5921` está recebendo a ligação.
+- O erro acontece no repasse do Vonage para a Vapi: os logs mostram `sip_code: 480`, `detail: unavailable`, `status: unanswered` para `sip:vonage-fortegas@sip.vapi.ai`.
+- A configuração atual retorna um NCCO conectando diretamente por SIP e adiciona `username/password`, mas a Vapi continua rejeitando ou não disponibilizando esse endpoint SIP.
+- A API Vapi disponível no ambiente está retornando `403 error code: 1010` para consultas diretas, então no modo atual não consigo “garantir” via alteração remota na Vapi sem ajustar credencial/permissão ou usar uma rota alternativa.
 
-Logo depois (12:59 / 13:02 BRT) você ligou de novo e a Bia atendeu normalmente. Confirmei pelo transcript do Vapi: ela disse o preço, pegou endereço, pagamento, telefone e finalizou o pedido. **Está funcionando.**
+Plano para resolver:
 
-Mas o transcript revelou outro problema, que é o que vou corrigir:
+1. Corrigir o webhook Vonage para resposta mais robusta
+   - Atualizar `supabase/functions/vonage-voice-webhook/index.ts` para:
+     - Logar o NCCO retornado, sem expor senha.
+     - Incluir `eventUrl` no próprio `connect`, para captar eventos específicos do leg SIP.
+     - Testar variações de SIP aceitas pela Vapi: com `sip:...@sip.vapi.ai`, e se necessário `sips:`/URI alternativo conforme documentação e retorno real.
+     - Remover senha hardcoded do código e exigir secret (`VAPI_SIP_USERNAME`/`VAPI_SIP_PASSWORD`) ou permitir modo sem autenticação se a Vapi estiver configurada para aceitar INVITE sem digest.
 
-## Problemas identificados (na chamada que funcionou)
+2. Criar/ajustar uma função de diagnóstico Vapi/Vonage
+   - Criar ou ajustar uma função temporária/administrativa para consultar:
+     - Aplicação e número no Vonage.
+     - Configuração dos phone numbers/assistants na Vapi.
+     - Últimas chamadas e `endedReason`.
+   - Essa função retornará status estruturado sem vazar credenciais.
+   - Se a chave Vapi atual continuar dando `403/1010`, sinalizar claramente que a chave do projeto não tem permissão para administrar Vapi, e será necessário atualizar o secret `VAPI_API_KEY` com uma chave privada válida.
 
-1. **"grama" em vez de "botijão"** — O ElevenLabs está pronunciando "1 g" como "1 grama". Ela falou: *"você gostaria de 1 **grama** s p 13"*, *"húngaro mais p 13"*, *"1 angramaz p 13"*. O modelo está abreviando "gás" como "g" e o TTS lê como "grama".
-2. **Soletra mal o telefone** — Cliente disse `43 9 9 9 6 9 27 6 5` (10 dígitos), Bia repetiu `43, 9, 9, 9, 27, 5` (perdeu dígitos).
-3. **Não chamou `criar_pedido`** — Apesar de ter coletado todos os dados, não vejo a tool sendo executada no fim. Confirmo nos logs do edge `vapi-tools` se chegou ou não.
+3. Preferir a integração nativa Vonage da Vapi se a chave permitir
+   - Em vez de bridge manual Vonage → SIP, configurar a Vapi para importar/gerenciar o número Vonage diretamente:
+     - Provider: `vonage`.
+     - Número: `551152835921`.
+     - Vincular ao assistant da Bia.
+     - Configurar server webhook para `vapi-webhook`.
+   - Essa rota é mais confiável que NCCO manual porque o próprio Vapi gerencia o endpoint de answer/status.
 
-## Sobre o número discado
+4. Alternativa de fallback se Vapi não liberar administração
+   - Manter o número Vonage apontando para nosso webhook.
+   - Trocar o NCCO temporariamente para uma mensagem de teste (`talk`) antes do `connect`, por exemplo “Bia recebeu sua ligação, estou conectando”, para confirmar áudio Vonage.
+   - Se o áudio tocar e depois cair ocupado, fica 100% isolado que o problema é a entrada SIP/Vapi, não o número brasileiro nem o webhook.
 
-Não é bug de software — é como você está discando. **Disque sem o `04`**:
-- Correto: `+55 11 5283-5921` ou `01152835921` (com prefixo de operadora antes do DDD, ex: `04111 5283-5921` precisa do DDD logo após o código da operadora — você digitou `0411` que vira algo inválido)
-- Mais simples: salve o contato como **`+551152835921`** e ligue pelo contato.
+5. Deploy e teste em produção
+   - Publicar a função `vonage-voice-webhook`.
+   - Fazer uma chamada de teste para `041 11 5283 5921`.
+   - Conferir logs em tempo real:
+     - Vonage deve registrar `started/ringing`.
+     - Vapi deve registrar criação de call ou webhook em `vapi-webhook`.
+     - Se ainda houver `480`, capturar o detalhe exato para troca final da configuração SIP/credential.
 
-## Correções no código/Vapi
+Resultado esperado:
 
-### 1. Reescrever o system prompt da Bia para travar a pronúncia
-- Forçar dizer literalmente **"botijão"** ou **"botijão de gás P treze"** — proibir "gás P13" sozinho (o TTS lê "g" como "grama").
-- Forçar soletrar números **um por um, em voz alta**: *"quatro-três, nove-nove-nove-seis-nove, dois-sete-seis-cinco"*.
-- Adicionar regra: ao receber telefone, **ler de volta dígito por dígito** e pedir confirmação antes de criar pedido.
-- Reforçar que **DEVE chamar `criar_pedido`** após confirmação do cliente (não só descrever).
-
-### 2. Verificar logs do edge `vapi-tools`
-- Conferir se `criar_pedido` foi chamada na call `019de8c8-88aa-722f-b03a-753ba8029585`.
-- Se não foi: o problema é no prompt (não está acionando). Se foi e falhou: ajustar a edge function.
-
-### 3. Aplicar via API do Vapi
-Patch no assistant `3c591c22-23a8-414d-a14e-5097ab7e2daf` com o novo prompt.
-
-## O que NÃO vou mexer
-
-- Voz/idioma (Jessica pt-BR já está OK pelo transcript).
-- Edge function `vapi-tools` (a menos que o log mostre erro).
-- Webhook Vonage (chamadas estão chegando quando o número é discado certo).
-
-## Próximo passo após implementar
-
-Você liga de novo (discando `+551152835921` direto, sem o `04`), faz um pedido completo, e verifica em **Vendas → Pedidos** se aparece o registro com canal "telefone".
+- A chamada deixa de cair como ocupada.
+- A Bia atende o número `+55 11 5283-5921`.
+- Se a limitação for de permissão da conta/chave Vapi, o app passará a mostrar um diagnóstico claro em vez de tentativa silenciosa.
