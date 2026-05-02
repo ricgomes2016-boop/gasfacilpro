@@ -62,6 +62,25 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Safe diagnostic mode: validates Vonage inbound routing without opening any
+  // outbound SIP leg to Vapi/Twilio, preventing credit burn during debugging.
+  const diagnosticOnly = url.searchParams.get('connect') !== '1';
+  if (diagnosticOnly) {
+    const diagnosticNcco = [
+      {
+        action: 'talk',
+        text: 'Teste Vonage concluído com sucesso. A chamada chegou no sistema. Encerrando agora.',
+        language: 'pt-BR',
+        style: 2,
+      },
+    ];
+    console.log('[VONAGE-DIAG-NCCO]', JSON.stringify(diagnosticNcco));
+    return new Response(JSON.stringify(diagnosticNcco), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
+  }
+
   // Build NCCO: connect inbound call to Vapi SIP endpoint
   // The "from" must be a valid E.164-ish number that Vapi accepts as caller id.
   let from =
