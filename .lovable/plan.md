@@ -1,93 +1,97 @@
+# Configurar Vapi automaticamente via API
 
+## Por que isso resolve
 
-# Conectar SIP Trunk do GoTo (ramal 1004) à Vapi
+Você já configurou `VAPI_API_KEY` como secret no Lovable Cloud, e os secrets `GOTO_SIP_USERNAME / PASSWORD / DOMAIN / OUTBOUND_PROXY` já estão lá da etapa anterior. Com isso eu consigo fazer **tudo via API** sem você precisar achar campos escondidos no painel da Vapi (incluindo o famoso "Server URL" que sumiu da nova UI).
 
-## Contexto
+## O que vou fazer
 
-A primeira chamada para `0800 590 0492` foi sequestrada por um forward "Encontre-me/Siga-me" no usuário do ramal 1004, que enviou para o celular `+5543999661816`. O dispositivo SIP Trunk no GoTo já está **licenciado e registrado no diretório**, mas está **"Indisponível"** porque nenhum cliente SIP externo (Vapi) ainda se conectou a ele.
+### 1. Criar edge function temporária `vapi-setup`
 
-## Estado atual confirmado pelos prints
+Uma função one-shot que, ao ser chamada uma vez, executa 4 passos contra a API da Vapi (`https://api.vapi.ai`) usando `Authorization: Bearer ${VAPI_API_KEY}`:
 
+**Passo A — Criar/atualizar SIP Trunk Credential**
 ```
-GoTo SIP Trunk (ramal 1004)
-├── Licença ........... Licenciado ✅
-├── Registro .......... Registrado ✅
-├── Disponibilidade ... INDISPONÍVEL ❌ (ninguém logou ainda)
-├── Senha SIP ......... 1017197255 ✅ (capturada)
-├── Proxies ........... Padrão do sistema ✅
-├── Forward p/ celular  AINDA ATIVO em outra tela ❌
-└── SIP URI/Username .. AINDA NÃO LOCALIZADO ❌
+POST /credential
+{
+  "provider": "byo-sip-trunk",
+  "name": "GoTo Forte Gas - Ramal 1004",
+  "gateways": [{
+    "ip": "fortegascomercioetransporteslt.jive.rtcfront.net",
+    "port": 5060,
+    "netmask": 32,
+    "inboundEnabled": true,
+    "outboundEnabled": true,
+    "outboundProtocol": "tls/srtp"
+  }],
+  "outboundAuthenticationPlan": {
+    "authUsername": "53LcZzueOL72RsONRVMAe6ag0XSlFe",
+    "authPassword": "ZrBAJEsTuX8Bfaut",
+    "sipRegisterPlan": {
+      "domain": "reg.jiveip.net",
+      "username": "53LcZzueOL72RsONRVMAe6ag0XSlFe",
+      "realm": "reg.jiveip.net"
+    }
+  }
+}
 ```
+Retorna `credentialId`.
 
-## Etapa 1 — Capturar as credenciais SIP que faltam
-
-No GoTo Admin, clicar em **"Editar"** no card **Detalhes** (Print 1) ou rolar a aba **Configurações → Avançadas** até o fim. Procurar uma seção tipo:
-- "Credenciais SIP" / "SIP credentials"
-- "Provisionamento manual" / "Manual provisioning"
-- "Linhas SIP" / "SIP Lines"
-
-Anotar:
-- **SIP Server / Domain / Registrar** (algo como `sip.goto.com`, `pbx.cloud.goto.com` ou `*.gotoconnect.com`)
-- **SIP Username / Auth ID** (NÃO é "1004", costuma ser um ID gerado)
-- **Transport** (UDP 5060 ou TLS 5061)
-
-A **senha** já temos: `1017197255`.
-
-> Se essas opções não aparecerem na tela, o caminho alternativo é:
-> **Sistema telefônico → Troncos SIP** ou **Configurações → Voz → SIP** no menu lateral.
-
-## Etapa 2 — Desativar o forward para o celular
-
-Ir em **Pessoas → [Usuário dono do ramal 1004] → Encontre-me/Siga-me** (não é na tela do dispositivo) e:
-- Remover a Etapa 1 que envia para `+55 43 99966 1816`
-- Manter apenas: "Tocar no dispositivo SIP Trunk" → "Caso não atenda → Correio de voz"
-
-## Etapa 3 — Configurar BYO SIP Trunk na Vapi
-
-No `dashboard.vapi.ai → Phone Numbers → Import → BYO SIP Trunk`:
-
-| Campo | Valor |
-|---|---|
-| Name | `GoTo Forte Gas 0800` |
-| SIP URI | `sip:<username-da-etapa-1>@<server-da-etapa-1>` |
-| Username | username da Etapa 1 |
-| Password | `1017197255` |
-| Transport | mesmo da Etapa 1 |
-
-Vincular ao **assistente Vapi** já criado para Forte Gás e apontar `serverUrl` do assistente para:
+**Passo B — Listar assistentes**
 ```
-https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/vapi-webhook
+GET /assistant
 ```
+Identifica o assistente "Bia – Forte Gás" (ou pega o primeiro se só houver um) → `assistantId`.
 
-## Etapa 4 — Validar registro
-
-Voltar ao Print 1 (Visão geral do SIP Trunk) e clicar em **"Ressincronizar o dispositivo"**. Após 1–2 minutos:
-- Status deve mudar de 🔴 **Indisponível** → 🟢 **Disponível**
-- **IP público** deve mostrar o IP da Vapi
-- **Sincronização** deve mostrar timestamp recente
-
-## Etapa 5 — Teste fim-a-fim
-
-Ligar para `0800 590 0492` de outro celular. Fluxo esperado:
+**Passo C — Atualizar `serverUrl` do assistente**
 ```
-Celular → 0800 → GoTo PBX → Ramal 1004 (SIP Trunk)
-       → SIP externo → Vapi → Assistente Bia → vapi-webhook ✅
+PATCH /assistant/{assistantId}
+{
+  "server": {
+    "url": "https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/vapi-webhook"
+  }
+}
 ```
+Garante que toda chamada inbound vá pro nosso webhook (que já está pronto e roteia `consultar_preco` / `criar_pedido`).
 
-Verificar nos 3 painéis:
-- **GoTo Análise**: chamada como "Atendida pelo dispositivo SIP", duração > 0s
-- **Vapi Dashboard**: chamada inbound aparecendo
-- **Lovable Cloud → Edge Functions → vapi-webhook**: logs com `tool-calls`
+**Passo D — Importar/atualizar número 0800**
+```
+POST /phone-number
+{
+  "provider": "byo-phone-number",
+  "name": "Forte Gas 0800",
+  "number": "+558005900492",
+  "numberE164CheckEnabled": false,
+  "credentialId": "<id do passo A>",
+  "assistantId": "<id do passo B>"
+}
+```
+Se já existir, faz `PATCH` em vez de `POST` (a função detecta listando `GET /phone-number` antes).
 
-## Plano B (se Vapi não registrar no GoTo)
+### 2. Você só dispara a função 1 vez
 
-Migrar para **Twilio Elastic SIP Trunking + ElevenLabs (Bia)** seguindo `CONFIG_TWILIO_SIP_FORTEGAS.md`. A edge function `twilio-voice-webhook` já está pronta. Custo: ~US$ 0,007/min de SIP termination + uso ElevenLabs.
+Eu deixo um botão simples (ou só o curl pronto) pra você acionar. A função:
+- Retorna JSON com `credentialId`, `assistantId`, `phoneNumberId` e o status de cada passo (✅/❌)
+- Loga tudo no Edge Functions pra eu debugar se algo falhar
 
-## Nada muda no código
+### 3. Depois disso, você só faz 2 coisas (fora da Vapi)
 
-Edge functions `vapi-webhook` e `twilio-voice-webhook` já estão prontas e funcionais. **Nenhuma alteração de código é necessária.** O bloqueio é 100% configuração externa (GoTo + Vapi).
+1. **Desligar o forward "Encontre-me/Siga-me"** no GoTo (Pessoas → usuário do ramal 1004) — sem isso a chamada continua indo pro celular `+5543999661816` antes de chegar na Vapi.
+2. **Ressincronizar o dispositivo SIP Trunk** no GoTo Admin → status muda de 🔴 Indisponível → 🟢 Disponível em ~2 min.
 
-## Documentação a atualizar
+### 4. Teste fim-a-fim
 
-- `CONFIG_GOTO_RAMAL_1004.md` — anexar as credenciais SIP descobertas na Etapa 1 e o screenshot do status "Disponível" pós-Etapa 4.
+Liga pra `0800 590 0492`. Eu acompanho os logs de `vapi-webhook` em tempo real e te confirmo se as tools `consultar_preco`/`criar_pedido` foram chamadas.
 
+## Plano B (se a API da Vapi recusar algum campo)
+
+Se o endpoint `/credential` da Vapi tiver mudado (acontece — é beta), a função retorna o erro exato da Vapi e eu ajusto o payload. Não precisa você mexer em nada.
+
+## Arquivos que vou criar/editar
+
+- `supabase/functions/vapi-setup/index.ts` — função temporária (deletada depois que funcionar)
+- `CONFIG_GOTO_RAMAL_1004.md` — adicionar IDs retornados pela Vapi pra referência
+
+## Nada muda no resto do código
+
+`vapi-webhook` e `twilio-voice-webhook` continuam intactos.
