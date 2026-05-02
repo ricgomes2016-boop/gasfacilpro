@@ -6,7 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const FALLBACK_EMPRESA_SLUGS = ["forte-gas", "central-gas", "centralgascp"];
+// Empresa fixa para atendimento da Bia por telefone (Central Gas)
+const EMPRESA_BIA_ID = "f27e158e-7ab5-4617-9f66-c6b4a084d293";
+const UNIDADE_BIA_ID = "aa5b7c93-4fe6-4dba-a0b5-2af43cd20614"; // Central Gas
+const FALLBACK_EMPRESA_SLUGS = ["central-gas", "centralgascp", "central-gas-cp"];
 
 const ok = (data: any) =>
   new Response(JSON.stringify(data), {
@@ -20,40 +23,26 @@ const err = (msg: string, status = 400) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-async function resolverEmpresaUnidade(supabase: any, body: any) {
-  let empresa: { id: string; nome?: string } | null = null;
-  const empresaId = String(body.empresa_id || "").trim();
-  if (empresaId) {
-    const { data } = await supabase.from("empresas").select("id, nome").eq("id", empresaId).maybeSingle();
-    empresa = data;
-  }
-  if (!empresa) {
-    const { data } = await supabase
-      .from("empresas")
-      .select("id, nome")
-      .in("slug", FALLBACK_EMPRESA_SLUGS)
-      .eq("ativo", true)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    empresa = data;
-  }
-  if (!empresa) throw new Error("Empresa não encontrada para atendimento da Bia");
+async function resolverEmpresaUnidade(supabase: any, _body: any) {
+  // Bia atende SEMPRE pela Central Gas (empresa fixa)
+  const { data: empresa } = await supabase
+    .from("empresas")
+    .select("id, nome")
+    .eq("id", EMPRESA_BIA_ID)
+    .maybeSingle();
+  if (!empresa) throw new Error("Empresa Central Gas não encontrada");
 
   let unidade: { id: string; nome?: string } | null = null;
-  const unidadeId = String(body.unidade_id || "").trim();
-  if (unidadeId) {
-    const { data } = await supabase
-      .from("unidades")
-      .select("id, nome")
-      .eq("id", unidadeId)
-      .eq("empresa_id", empresa.id)
-      .eq("ativo", true)
-      .maybeSingle();
-    unidade = data;
-  }
+  const { data: u1 } = await supabase
+    .from("unidades")
+    .select("id, nome")
+    .eq("id", UNIDADE_BIA_ID)
+    .eq("empresa_id", empresa.id)
+    .maybeSingle();
+  unidade = u1;
+
   if (!unidade) {
-    const { data } = await supabase
+    const { data: u2 } = await supabase
       .from("unidades")
       .select("id, nome")
       .eq("empresa_id", empresa.id)
@@ -61,9 +50,9 @@ async function resolverEmpresaUnidade(supabase: any, body: any) {
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
-    unidade = data;
+    unidade = u2;
   }
-  if (!unidade) throw new Error("Unidade não encontrada para atendimento da Bia");
+  if (!unidade) throw new Error("Unidade Central Gas não encontrada");
   return { empresa, unidade };
 }
 
