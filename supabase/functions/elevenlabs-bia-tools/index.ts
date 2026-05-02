@@ -298,15 +298,31 @@ serve(async (req) => {
         .join(", ");
 
       // === IDEMPOTÊNCIA: evita pedidos duplicados quando a Bia chama criar_pedido
-      // mais de uma vez na mesma ligação (ex.: primeiro com telefone, depois com nome).
-      // Se já existir um pedido pendente do mesmo cliente, no canal telefone_ia,
-      // criado nos últimos 3 minutos, reaproveita esse pedido em vez de criar outro.
-      if (finalClienteId) {
-        const desdeIso = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+      // mais de uma vez na mesma ligação. Janela de 15 minutos cobre ligações longas.
+      // Busca por cliente_id OU pelo telefone (caso o cliente tenha sido recriado).
+      const desdeIso = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      const telDigitsLookup = String(telefone || "").replace(/\D/g, "");
+
+      let clienteIdsLookup: string[] = [];
+      if (finalClienteId) clienteIdsLookup.push(finalClienteId);
+      if (telDigitsLookup && telDigitsLookup.length >= 10) {
+        const last10c = telDigitsLookup.slice(-10);
+        const { data: clientesMesmoTel } = await supabase
+          .from("clientes")
+          .select("id")
+          .eq("empresa_id", empresa.id)
+          .ilike("telefone", `%${last10c}%`)
+          .limit(5);
+        (clientesMesmoTel || []).forEach((c: any) => {
+          if (!clienteIdsLookup.includes(c.id)) clienteIdsLookup.push(c.id);
+        });
+      }
+
+      if (clienteIdsLookup.length > 0) {
         const { data: pedidoExistente } = await supabase
           .from("pedidos")
           .select("id, numero_sequencial, valor_total")
-          .eq("cliente_id", finalClienteId)
+          .in("cliente_id", clienteIdsLookup)
           .eq("unidade_id", unidade.id)
           .eq("canal_venda", "telefone_ia")
           .eq("status", "pendente")
@@ -317,6 +333,16 @@ serve(async (req) => {
 
         if (pedidoExistente) {
           console.log("[ELEVENLABS-BIA] Pedido duplicado evitado, reaproveitando:", pedidoExistente.id);
+          // Atualiza endereço/observações se vieram novos dados
+          const updates: any = {};
+          if (enderecoCompleto) updates.endereco_entrega = enderecoCompleto;
+          if (numero) updates.numero_entrega = numero;
+          if (bairro) updates.bairro_entrega = bairro;
+          if (cep) updates.cep_entrega = cep;
+          if (formaPgto && formaPgto !== "a_definir") updates.forma_pagamento = formaPgto;
+          if (Object.keys(updates).length > 0) {
+            await supabase.from("pedidos").update(updates).eq("id", pedidoExistente.id);
+          }
           return ok({
             sucesso: true,
             duplicado: true,
@@ -325,7 +351,7 @@ serve(async (req) => {
             produto: nomeProduto,
             quantidade: qty,
             valor_total: pedidoExistente.valor_total,
-            mensagem: `Pedido #${pedidoExistente.numero_sequencial} já registrado há instantes. Não foi criado um novo. Confirme com o cliente que o pedido está em andamento.`,
+            mensagem: `Pedido #${pedidoExistente.numero_sequencial} já registrado nesta ligação. Não foi criado um novo. Apenas confirme com o cliente e finalize a chamada — NÃO chame criar_pedido de novo.`,
           });
         }
       }
