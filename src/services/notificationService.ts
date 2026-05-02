@@ -40,9 +40,9 @@ export const sendOrderNotification = async (
       icon: "/favicon.png",
       badge: "/favicon.png",
       vibrate: [200, 100, 200],
-      tag: `novo-pedido-${Date.now()}`,
+      // Tag estável: re-emissões substituem (não empilham) a notificação anterior.
+      tag: "novo-pedido",
       renotify: true,
-      requireInteraction: true,
       data: { url: "/pedidos" },
     });
   } catch (error) {
