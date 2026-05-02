@@ -53,14 +53,14 @@ export const sendOrderNotification = async (
       const n = new Notification("🛵 Novo Pedido!", {
         body,
         icon: "/favicon.png",
-        requireInteraction: true,
+        tag: "novo-pedido",
       });
       n.onclick = () => {
         window.focus();
         n.close();
         window.location.href = "/pedidos";
       };
-      setTimeout(() => n.close(), 30000);
+      setTimeout(() => n.close(), 8000);
     } catch (_) {}
   }
 };
