@@ -28,6 +28,42 @@ function twimlError(msg: string) {
   return `<?xml version="1.0" encoding="UTF-8"?><Response><Say language="pt-BR">${escapeXml(msg)}</Say></Response>`;
 }
 
+async function registerElevenLabsTwilioCall(
+  agentId: string,
+  fromNumber: string,
+  toNumber: string,
+  dynamicVariables: Record<string, string>,
+) {
+  const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
+  if (!apiKey) return null;
+
+  const response = await fetch(
+    "https://api.elevenlabs.io/v1/convai/twilio/register-call",
+    {
+      method: "POST",
+      headers: { "xi-api-key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agent_id: agentId,
+        from_number: fromNumber,
+        to_number: toNumber,
+        direction: "inbound",
+        conversation_initiation_client_data: {
+          dynamic_variables: dynamicVariables,
+        },
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => "");
+    console.error("[TWILIO-VOICE] ElevenLabs register-call error:", response.status, details);
+    return null;
+  }
+
+  const twiml = await response.text();
+  return twiml.trim().startsWith("<") ? twiml : null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -138,9 +174,10 @@ serve(async (req) => {
           telefone: from,
           cliente_id: clienteId,
           cliente_nome: clienteNome,
-          tipo: "telefone",
+          tipo: "voip",
           status: "recebida",
           empresa_id: empresaId,
+          unidade_id: unidadeId,
         });
       if (insErr) {
         console.error("[TWILIO-VOICE] insert chamadas_recebidas error:", insErr);
@@ -150,23 +187,24 @@ serve(async (req) => {
     }
   }
 
-  // ElevenLabs Conversational AI WebSocket URL com o agent_id
-  const wsUrl = `wss://api.elevenlabs.io/v1/convai/conversation?agent_id=${encodeURIComponent(ELEVENLABS_AGENT_ID)}`;
+  const safeFrom = from.startsWith("+") ? from : `+${from.replace(/\D/g, "")}`;
+  const safeTo = to.startsWith("+") ? to : `+${to.replace(/\D/g, "")}`;
 
-  // Custom params são entregues ao agente como dynamic variables
-  const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Connect>
-    <Stream url="${escapeXml(wsUrl)}">
-      <Parameter name="caller_phone" value="${escapeXml(from)}" />
-      <Parameter name="called_number" value="${escapeXml(to)}" />
-      <Parameter name="call_sid" value="${escapeXml(callSid)}" />
-      <Parameter name="empresa_id" value="${escapeXml(empresaId ?? "")}" />
-      <Parameter name="empresa_nome" value="${escapeXml(empresaNome)}" />
-      <Parameter name="unidade_id" value="${escapeXml(unidadeId ?? "")}" />
-    </Stream>
-  </Connect>
-</Response>`;
+  const twiml = await registerElevenLabsTwilioCall(ELEVENLABS_AGENT_ID, safeFrom, safeTo, {
+    caller_phone: from,
+    called_number: to,
+    call_sid: callSid,
+    empresa_id: empresaId ?? "",
+    empresa_nome: empresaNome,
+    unidade_id: unidadeId ?? "",
+  });
+
+  if (!twiml) {
+    return new Response(
+      twimlError("Desculpe, a Bia está indisponível no momento. Tente novamente em instantes."),
+      { status: 200, headers: { "Content-Type": "text/xml" } },
+    );
+  }
 
   return new Response(twiml, {
     status: 200,
