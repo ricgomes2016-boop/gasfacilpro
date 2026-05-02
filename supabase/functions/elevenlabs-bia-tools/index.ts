@@ -6,8 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Central Gás identifiers (hardcoded — esta função atende SOMENTE Central Gás CP)
-const CENTRAL_GAS_SLUG = "centralgascp";
+const FALLBACK_EMPRESA_SLUGS = ["forte-gas", "central-gas", "centralgascp"];
 
 const ok = (data: any) =>
   new Response(JSON.stringify(data), {
@@ -35,25 +34,50 @@ serve(async (req) => {
 
     const action = body.action;
 
-    // Resolve empresa Central Gás and its main unidade
-    const { data: empresa } = await supabase
-      .from("empresas")
-      .select("id")
-      .eq("slug", CENTRAL_GAS_SLUG)
-      .maybeSingle();
+    // Resolve empresa/unidade from call dynamic variables; fallback keeps voice ordering working.
+    let empresa: { id: string; nome?: string } | null = null;
+    const empresaId = String(body.empresa_id || "").trim();
+    if (empresaId) {
+      const { data } = await supabase.from("empresas").select("id, nome").eq("id", empresaId).maybeSingle();
+      empresa = data;
+    }
+    if (!empresa) {
+      const { data } = await supabase
+        .from("empresas")
+        .select("id, nome")
+        .in("slug", FALLBACK_EMPRESA_SLUGS)
+        .eq("ativo", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      empresa = data;
+    }
+    if (!empresa) return err("Empresa não encontrada para atendimento da Bia", 500);
 
-    if (!empresa) return err("Empresa Central Gás não encontrada", 500);
-
-    const { data: unidade } = await supabase
-      .from("unidades")
-      .select("id")
-      .eq("empresa_id", empresa.id)
-      .eq("ativo", true)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (!unidade) return err("Unidade Central Gás não encontrada", 500);
+    let unidade: { id: string; nome?: string } | null = null;
+    const unidadeId = String(body.unidade_id || "").trim();
+    if (unidadeId) {
+      const { data } = await supabase
+        .from("unidades")
+        .select("id, nome")
+        .eq("id", unidadeId)
+        .eq("empresa_id", empresa.id)
+        .eq("ativo", true)
+        .maybeSingle();
+      unidade = data;
+    }
+    if (!unidade) {
+      const { data } = await supabase
+        .from("unidades")
+        .select("id, nome")
+        .eq("empresa_id", empresa.id)
+        .eq("ativo", true)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      unidade = data;
+    }
+    if (!unidade) return err("Unidade não encontrada para atendimento da Bia", 500);
 
     // ============== ACTION: identificar_cliente ==============
     if (action === "identificar_cliente") {
