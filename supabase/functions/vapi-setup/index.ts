@@ -10,6 +10,7 @@ const corsHeaders = {
 const VAPI_BASE = "https://api.vapi.ai";
 const SERVER_URL = "https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/vapi-webhook";
 const PHONE_E164 = "+558005900492";
+const VONAGE_SIP_URI = "sip:vonage-fortegas@sip.vapi.ai";
 
 async function vapi(path: string, init: RequestInit & { json?: any } = {}) {
   const apiKey = Deno.env.get("VAPI_API_KEY");
@@ -119,11 +120,17 @@ Deno.serve(async (req) => {
     // ---------- STEP D: Phone number (BYO SIP) ----------
     const phoneList = await vapi("/phone-number", { method: "GET" });
     let phoneNumberId: string | null = null;
+    let vonageSipPhoneNumberId: string | null = null;
     if (phoneList.ok && Array.isArray(phoneList.data)) {
       const found = phoneList.data.find((p: any) =>
         p.number === PHONE_E164 || p.number === "558005900492" || p.name === "Forte Gas 0800"
       );
       if (found) phoneNumberId = found.id;
+
+      const foundVonageSip = phoneList.data.find((p: any) =>
+        p.sipUri === VONAGE_SIP_URI || p.name === "Vonage Forte Gas SIP"
+      );
+      if (foundVonageSip) vonageSipPhoneNumberId = foundVonageSip.id;
     }
 
     const phonePayload: any = {
@@ -147,11 +154,45 @@ Deno.serve(async (req) => {
       if (create.ok && create.data?.id) phoneNumberId = create.data.id;
     }
 
+    // ---------- STEP E: Direct Vapi SIP URI used by Vonage NCCO connect ----------
+    // Vonage calls sip:vonage-fortegas@sip.vapi.ai. Vapi must have this SIP URI
+    // registered as a Vapi phone number and attached to the Bia assistant.
+    const vonageSipPayload = {
+      provider: "vapi",
+      name: "Vonage Forte Gas SIP",
+      sipUri: VONAGE_SIP_URI,
+      assistantId,
+      server: { url: SERVER_URL },
+    };
+
+    if (vonageSipPhoneNumberId) {
+      const updSip = await vapi(`/phone-number/${vonageSipPhoneNumberId}`, {
+        method: "PATCH",
+        json: { assistantId, name: "Vonage Forte Gas SIP", server: { url: SERVER_URL } },
+      });
+      result.steps.vonage_sip_number = {
+        action: "updated",
+        id: vonageSipPhoneNumberId,
+        status: updSip.status,
+        data: updSip.data,
+      };
+    } else {
+      const createSip = await vapi("/phone-number", { method: "POST", json: vonageSipPayload });
+      result.steps.vonage_sip_number = {
+        action: "created",
+        status: createSip.status,
+        data: createSip.data,
+      };
+      if (createSip.ok && createSip.data?.id) vonageSipPhoneNumberId = createSip.data.id;
+    }
+
     result.summary = {
       credentialId,
       assistantId,
       assistantName,
       phoneNumberId,
+      vonageSipPhoneNumberId,
+      vonageSipUri: VONAGE_SIP_URI,
       serverUrl: SERVER_URL,
     };
 
