@@ -319,13 +319,14 @@ serve(async (req) => {
       }
 
       if (clienteIdsLookup.length > 0) {
+        // Considera QUALQUER status (exceto cancelado): pedido anterior pode já ter sido despachado.
         const { data: pedidoExistente } = await supabase
           .from("pedidos")
-          .select("id, numero_sequencial, valor_total")
+          .select("id, numero_sequencial, valor_total, status")
           .in("cliente_id", clienteIdsLookup)
           .eq("unidade_id", unidade.id)
           .eq("canal_venda", "telefone_ia")
-          .eq("status", "pendente")
+          .neq("status", "cancelado")
           .gte("created_at", desdeIso)
           .order("created_at", { ascending: false })
           .limit(1)
@@ -333,14 +334,13 @@ serve(async (req) => {
 
         if (pedidoExistente) {
           console.log("[ELEVENLABS-BIA] Pedido duplicado evitado, reaproveitando:", pedidoExistente.id);
-          // Atualiza endereço/observações se vieram novos dados
           const updates: any = {};
           if (enderecoCompleto) updates.endereco_entrega = enderecoCompleto;
           if (numero) updates.numero_entrega = numero;
           if (bairro) updates.bairro_entrega = bairro;
           if (cep) updates.cep_entrega = cep;
           if (formaPgto && formaPgto !== "a_definir") updates.forma_pagamento = formaPgto;
-          if (Object.keys(updates).length > 0) {
+          if (Object.keys(updates).length > 0 && pedidoExistente.status === "pendente") {
             await supabase.from("pedidos").update(updates).eq("id", pedidoExistente.id);
           }
           return ok({
@@ -351,7 +351,7 @@ serve(async (req) => {
             produto: nomeProduto,
             quantidade: qty,
             valor_total: pedidoExistente.valor_total,
-            mensagem: `Pedido #${pedidoExistente.numero_sequencial} já registrado nesta ligação. Não foi criado um novo. Apenas confirme com o cliente e finalize a chamada — NÃO chame criar_pedido de novo.`,
+            mensagem: `Pedido #${pedidoExistente.numero_sequencial} JÁ FOI REGISTRADO nesta ligação (status: ${pedidoExistente.status}). NÃO chame criar_pedido novamente. Apenas confirme verbalmente com o cliente e ENCERRE a chamada se despedindo.`,
           });
         }
       }
@@ -377,6 +377,33 @@ serve(async (req) => {
 
       if (pedidoErr) {
         console.error("Erro criando pedido:", pedidoErr);
+        // Índice único parcial idx_pedidos_telefone_ia_dedupe disparou: trata como duplicado.
+        const isDup =
+          (pedidoErr as any).code === "23505" ||
+          /idx_pedidos_telefone_ia_dedupe|duplicate key/i.test(pedidoErr.message || "");
+        if (isDup && finalClienteId) {
+          const { data: pedidoDup } = await supabase
+            .from("pedidos")
+            .select("id, numero_sequencial, valor_total, status")
+            .eq("cliente_id", finalClienteId)
+            .eq("unidade_id", unidade.id)
+            .eq("canal_venda", "telefone_ia")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (pedidoDup) {
+            return ok({
+              sucesso: true,
+              duplicado: true,
+              pedido_id: pedidoDup.id,
+              numero_pedido: pedidoDup.numero_sequencial,
+              produto: nomeProduto,
+              quantidade: qty,
+              valor_total: pedidoDup.valor_total,
+              mensagem: `Pedido #${pedidoDup.numero_sequencial} já existe (bloqueado pelo banco contra duplicação). NÃO crie outro. Confirme verbalmente e finalize a ligação.`,
+            });
+          }
+        }
         return err("Erro ao criar pedido: " + pedidoErr.message);
       }
 
