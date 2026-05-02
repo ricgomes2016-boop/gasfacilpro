@@ -7076,6 +7076,7 @@ export type Database = {
           complemento_entrega: string | null
           comprovante_cartao_url: string | null
           created_at: string
+          created_minute: number | null
           data_agendamento: string | null
           data_entrega: string | null
           data_vencimento_fiado: string | null
@@ -7112,6 +7113,7 @@ export type Database = {
           complemento_entrega?: string | null
           comprovante_cartao_url?: string | null
           created_at?: string
+          created_minute?: number | null
           data_agendamento?: string | null
           data_entrega?: string | null
           data_vencimento_fiado?: string | null
@@ -7148,6 +7150,7 @@ export type Database = {
           complemento_entrega?: string | null
           comprovante_cartao_url?: string | null
           created_at?: string
+          created_minute?: number | null
           data_agendamento?: string | null
           data_entrega?: string | null
           data_vencimento_fiado?: string | null
