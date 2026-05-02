@@ -41,27 +41,19 @@ Deno.serve(async (req) => {
   const from =
     url.searchParams.get('from') ||
     url.searchParams.get('msisdn') ||
-    'anonymous';
+    '551152835921';
 
+  // Minimal NCCO: connect directly to Vapi SIP. Avoid `talk` before connect
+  // (bargeIn requires a follow-up input action). Avoid SIP custom headers
+  // since Vonage validates them strictly.
   const ncco = [
     {
-      action: 'talk',
-      text: 'Conectando você ao atendimento. Um momento.',
-      language: 'pt-BR',
-      style: 2,
-      bargeIn: true,
-    },
-    {
       action: 'connect',
-      from,
+      from: from,
       endpoint: [
         {
           type: 'sip',
           uri: VAPI_SIP_URI,
-          headers: {
-            'X-Source': 'vonage-fortegas',
-            'X-From': from,
-          },
         },
       ],
     },
