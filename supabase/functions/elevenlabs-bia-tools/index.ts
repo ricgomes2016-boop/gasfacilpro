@@ -283,6 +283,39 @@ serve(async (req) => {
         .filter(Boolean)
         .join(", ");
 
+      // === IDEMPOTÊNCIA: evita pedidos duplicados quando a Bia chama criar_pedido
+      // mais de uma vez na mesma ligação (ex.: primeiro com telefone, depois com nome).
+      // Se já existir um pedido pendente do mesmo cliente, no canal telefone_ia,
+      // criado nos últimos 3 minutos, reaproveita esse pedido em vez de criar outro.
+      if (finalClienteId) {
+        const desdeIso = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+        const { data: pedidoExistente } = await supabase
+          .from("pedidos")
+          .select("id, numero_sequencial, valor_total")
+          .eq("cliente_id", finalClienteId)
+          .eq("unidade_id", unidade.id)
+          .eq("canal_venda", "telefone_ia")
+          .eq("status", "pendente")
+          .gte("created_at", desdeIso)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (pedidoExistente) {
+          console.log("[ELEVENLABS-BIA] Pedido duplicado evitado, reaproveitando:", pedidoExistente.id);
+          return ok({
+            sucesso: true,
+            duplicado: true,
+            pedido_id: pedidoExistente.id,
+            numero_pedido: pedidoExistente.numero_sequencial,
+            produto: nomeProduto,
+            quantidade: qty,
+            valor_total: pedidoExistente.valor_total,
+            mensagem: `Pedido #${pedidoExistente.numero_sequencial} já registrado há instantes. Não foi criado um novo. Confirme com o cliente que o pedido está em andamento.`,
+          });
+        }
+      }
+
       // Cria pedido pendente
       const { data: pedido, error: pedidoErr } = await supabase
         .from("pedidos")
