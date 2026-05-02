@@ -29,9 +29,9 @@ export function useDesktopNotification() {
             body,
             icon: "/favicon.png",
             badge: "/favicon.png",
-            tag: `pedido-${Date.now()}`,
+            // Tag estável: re-emissões substituem a notificação anterior.
+            tag: "pedido-bina",
             renotify: true,
-            requireInteraction: true,
             vibrate: [200, 100, 200],
             data: { url: "/pedidos" },
           } as NotificationOptions);
@@ -40,8 +40,7 @@ export function useDesktopNotification() {
           const notification = new Notification(title, {
             body,
             icon: "/favicon.png",
-            tag: `pedido-${Date.now()}`,
-            requireInteraction: true,
+            tag: "pedido-bina",
           });
 
           notification.onclick = () => {
@@ -50,7 +49,7 @@ export function useDesktopNotification() {
             onClick?.();
           };
 
-          setTimeout(() => notification.close(), 30000);
+          setTimeout(() => notification.close(), 8000);
         }
 
         // Complementary vibration
