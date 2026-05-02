@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
     // if the SIP leg fails. Helps isolate "carrier delivered audio" vs "SIP fail".
     {
       action: 'talk',
-      text: 'Conectando você à Bia, um momento.',
+      text: 'Conectando você a Central Gás, um momento.',
       language: 'pt-BR',
       style: 2,
       bargeIn: false,

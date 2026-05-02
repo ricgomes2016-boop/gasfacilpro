@@ -69,6 +69,7 @@ export function usePedidosPendentesAlert() {
       setSnoozeMap(cleanedSnooze);
 
       const mapped: PedidoPendente[] = (data || [])
+        .filter((p: any) => p.canal_venda !== "telefone_ia")
         .filter((p: any) => !cleanedSnooze[p.id] || cleanedSnooze[p.id] < now)
         .map((p: any) => {
           const enderecoParts = [

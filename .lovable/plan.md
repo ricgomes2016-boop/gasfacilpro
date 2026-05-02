@@ -1,32 +1,33 @@
-## Diagnóstico
+## Ajustes na chamada de voz Vonage + Popup de pedidos
 
-A ligação chegou no Vonage, executou o `talk` ("Conectando você à Bia") e em seguida o leg SIP para a Vapi falhou com `SIP 480 Unavailable`.
+### 1. Mensagem intermediária do Vonage
 
-Causa: números na Vapi com `provider: "vapi"` + `sipUri` **exigem** bloco `authentication` (username/password). Sem credenciais corretas no INVITE, a Vapi rejeita.
+Em `supabase/functions/vonage-voice-webhook/index.ts` (linha ~112-114), trocar o texto do `talk` que toca antes de transferir para a Bia:
 
-Já apliquei na Vapi (via API privada validada):
-- `phoneNumber 24375496…` agora tem `authentication.username = vonage_fortegas_inbound_001` + uma senha nova segura.
+- **De:** `"Conectando você à Bia, um momento."`
+- **Para:** `"Conectando você a Central Gás, um momento."`
 
-Falta configurar o lado Vonage (nosso webhook) para enviar essas credenciais.
+Redeploy da função `vonage-voice-webhook`.
 
-## Mudanças
+### 2. Popup de pedido aparecendo a cada chamada
 
-1. **Adicionar 2 secrets** no projeto (via formulário seguro):
-   - `VAPI_SIP_USERNAME` = `vonage_fortegas_inbound_001`
-   - `VAPI_SIP_PASSWORD` = `VonFG_87dce0cb530bcc834c9616ede872a4d4`
+**Diagnóstico:** O webhook do Vonage **não cria** pedidos. Quem cria é a Bia via tool `criar_pedido` (`elevenlabs-bia-tools/index.ts` linha 237) com `canal_venda: "telefone_ia"`. Então o popup aparece porque, quando a Bia conclui um pedido durante a ligação, ele entra como `status='pendente'` sem entregador, e o `PedidoPendenteAlertProvider` (via realtime + polling 10s) abre o modal — comportamento atual do sistema para qualquer pedido pendente.
 
-   O webhook `vonage-voice-webhook` já lê esses secrets e injeta `username`/`password` no endpoint SIP do NCCO automaticamente.
+**Correção:** Suprimir o modal automático para pedidos vindos do canal de voz (`canal_venda = 'telefone_ia'`). Eles continuam aparecendo normalmente em `/vendas/pedidos` e na lista do entregador, só não interrompem o ERP com popup.
 
-2. **Redeploy** da função `vonage-voice-webhook` para garantir que pegue os novos env vars.
+Em `src/hooks/usePedidosPendentesAlert.ts`, ao mapear `pendentes`, filtrar fora os pedidos com `canal_venda === 'telefone_ia'`:
 
-3. **Teste**: ligar para `+55 11 5283-5921`. Esperado:
-   - Áudio "Conectando você à Bia, um momento."
-   - SIP leg responde 200 OK.
-   - Bia atende e conversa.
+```ts
+const mapped: PedidoPendente[] = (data || [])
+  .filter((p: any) => p.canal_venda !== 'telefone_ia')
+  .filter((p: any) => !cleanedSnooze[p.id] || cleanedSnooze[p.id] < now)
+  .map(...)
+```
 
-4. **Atualizar memória** `mem://integrations/vonage-vapi-sip` com as credenciais ativas (apenas username, não senha).
+Isso evita que ligações telefônicas disparem o popup, mantendo o popup funcionando para pedidos via WhatsApp/web/balcão.
 
-## Validação pós-deploy
+### Validação
 
-- Conferir log `[VONAGE-EVENT-DIAG]` — leg outbound SIP deve mostrar `status: answered, sip_code: 200` em vez de `480`.
-- Conferir `GET /call` na Vapi — última call deve ter `endedReason: customer-ended-call` ou similar (não mais `403-forbidden`/`480`).
+Ligar para **+55 11 5283-5921** e confirmar:
+1. Mensagem intermediária diz "Conectando você a Central Gás, um momento."
+2. Ao concluir um pedido pela voz com a Bia, **não** aparece popup no ERP — só a notificação normal na tela de Pedidos.
