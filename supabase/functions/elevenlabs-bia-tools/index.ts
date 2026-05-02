@@ -240,7 +240,7 @@ serve(async (req) => {
           unidade_id: unidade.id,
           status: "pendente",
           canal_venda: "telefone_ia",
-          forma_pagamento: "a_definir",
+          forma_pagamento: formaPgto,
           valor_total: valorTotal,
           endereco_entrega: enderecoCompleto || null,
           numero_entrega: numero || null,
