@@ -1,4 +1,4 @@
-// Vonage Voice Webhook → NCCO connect to Vapi SIP
+// Vonage Voice Webhook → NCCO connect to Bia voice route
 // Public endpoint (no JWT). Vonage calls this when an inbound call hits the number.
 // Response is an NCCO array instructing Vonage to bridge the call to Vapi via SIP.
 
@@ -7,10 +7,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Default Vapi inbound SIP URI for our Vonage import.
-// This is the format Vapi exposes for BYO/imported numbers when an `authentication`
-// block is NOT set on the phone number → it accepts plain INVITEs without digest.
+// Vapi kept returning SIP 480 unavailable for this route. Keep the URI here only
+// for explicit diagnostics/fallback, but default production routing goes through
+// the already-working Twilio number that points to twilio-voice-webhook.
 const VAPI_SIP_URI = Deno.env.get('VAPI_SIP_URI') || 'sip:vonage-fortegas@sip.vapi.ai';
+const TWILIO_BIA_NUMBER = Deno.env.get('TWILIO_BIA_NUMBER') || '14784297119';
+const VONAGE_CALLER_ID = Deno.env.get('VONAGE_CALLER_ID') || '551152835921';
 
 const EVENT_URL =
   'https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/vonage-voice-webhook/event';
@@ -80,26 +82,28 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Build NCCO: connect inbound call to Vapi SIP endpoint
-  // The "from" must be a valid E.164-ish number that Vapi accepts as caller id.
+  // Build NCCO: connect inbound call to Twilio's Bia route by default.
+  // Use ?route=vapi only for controlled SIP diagnostics.
+  const route = url.searchParams.get('route') || 'twilio';
+
+  // The "from" must be a valid number accepted by the carrier. For PSTN bridge,
+  // use our Vonage DID instead of spoofing the customer's caller id.
   let from =
-    url.searchParams.get('from') ||
-    url.searchParams.get('msisdn') ||
-    '551152835921';
+    route === 'vapi'
+      ? (url.searchParams.get('from') || url.searchParams.get('msisdn') || VONAGE_CALLER_ID)
+      : VONAGE_CALLER_ID;
 
   // Vonage sometimes sends without leading +. Normalize to digits only — Vapi tolerates both.
   from = from.replace(/[^\d+]/g, '') || '551152835921';
 
-  // Optional digest auth — only attach if BOTH env vars are set. Many Vapi numbers
-  // accept INVITE without auth, and sending wrong creds produces SIP 480/403.
+  // Optional digest auth for Vapi diagnostics — only attach if BOTH env vars are set.
   const SIP_USER = Deno.env.get('VAPI_SIP_USERNAME') || '';
   const SIP_PASS = Deno.env.get('VAPI_SIP_PASSWORD') || '';
 
-  const endpoint: any = {
-    type: 'sip',
-    uri: VAPI_SIP_URI,
-  };
-  if (SIP_USER && SIP_PASS) {
+  const endpoint: any = route === 'vapi'
+    ? { type: 'sip', uri: VAPI_SIP_URI }
+    : { type: 'phone', number: TWILIO_BIA_NUMBER };
+  if (route === 'vapi' && SIP_USER && SIP_PASS) {
     endpoint.username = SIP_USER;
     endpoint.password = SIP_PASS;
   }
