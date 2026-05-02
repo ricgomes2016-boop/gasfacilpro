@@ -26,8 +26,12 @@ Deno.serve(async (req) => {
   const isEvent = url.pathname.endsWith('/event');
 
   let bodyText = '';
+  let bodyJson: any = null;
   try {
-    if (req.method !== 'GET') bodyText = await req.text();
+    if (req.method !== 'GET') {
+      bodyText = await req.text();
+      try { bodyJson = bodyText ? JSON.parse(bodyText) : null; } catch (_) { bodyJson = null; }
+    }
   } catch (_) {}
 
   console.log('[VONAGE-WEBHOOK]', {
