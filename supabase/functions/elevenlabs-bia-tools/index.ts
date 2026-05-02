@@ -136,9 +136,11 @@ serve(async (req) => {
         referencia,
         produto,
         quantidade,
+        forma_pagamento,
       } = body;
 
-      if (!produto || !quantidade) return err("Produto e quantidade são obrigatórios");
+      if (!produto) return err("Produto é obrigatório");
+      const qtdInput = quantidade ?? 1;
 
       // Resolve / create cliente
       let finalClienteId = cliente_id;
@@ -214,7 +216,17 @@ serve(async (req) => {
         if (ultimoItem?.preco_unitario) precoUnitario = Number(ultimoItem.preco_unitario);
       }
 
-      const qty = Math.max(1, Number(quantidade) || 1);
+      const qty = Math.max(1, Number(qtdInput) || 1);
+
+      // Normaliza forma de pagamento
+      const fpRaw = String(forma_pagamento || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      let formaPgto = "a_definir";
+      if (fpRaw.includes("credito")) formaPgto = "cartao_credito";
+      else if (fpRaw.includes("debito")) formaPgto = "cartao_debito";
+      else if (fpRaw.includes("cartao") || fpRaw.includes("maquin")) formaPgto = "cartao_credito";
+      else if (fpRaw.includes("pix")) formaPgto = "pix";
+      else if (fpRaw.includes("dinheiro") || fpRaw.includes("especie")) formaPgto = "dinheiro";
+      else if (fpRaw.includes("fiado") || fpRaw.includes("prazo")) formaPgto = "fiado";
       const valorTotal = precoUnitario * qty;
       const enderecoCompleto = [endereco, numero && `Nº ${numero}`, bairro, referencia && `Ref: ${referencia}`]
         .filter(Boolean)
@@ -228,7 +240,7 @@ serve(async (req) => {
           unidade_id: unidade.id,
           status: "pendente",
           canal_venda: "telefone_ia",
-          forma_pagamento: "a_definir",
+          forma_pagamento: formaPgto,
           valor_total: valorTotal,
           endereco_entrega: enderecoCompleto || null,
           numero_entrega: numero || null,
