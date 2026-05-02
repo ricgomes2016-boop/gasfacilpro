@@ -117,6 +117,7 @@ export function CallerIdPopup() {
         .from("chamadas_recebidas")
         .select("*")
         .eq("status", "recebida")
+        .not("pedido_gerado_id", "is", null)
         .gte("created_at", since)
         .order("created_at", { ascending: false })
         .limit(1);
@@ -134,9 +135,13 @@ export function CallerIdPopup() {
       .channel("caller-id-realtime")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chamadas_recebidas" },
+        { event: "*", schema: "public", table: "chamadas_recebidas" },
         async (payload) => {
-          const nova = payload.new as ChamadaRecebida;
+          const nova = (payload.new || payload.old) as ChamadaRecebida;
+          // Só dispara o popup quando a ligação tiver um pedido efetivamente gerado pela Bia.
+          // Ligações apenas recebidas (sem pedido confirmado) não interrompem o ERP.
+          if (!nova?.pedido_gerado_id) return;
+          if (nova.id === lastSeenId) return;
           lastSeenId = nova.id;
           handleNovaChamada(nova);
         }
