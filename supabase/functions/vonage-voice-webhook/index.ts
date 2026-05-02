@@ -46,6 +46,9 @@ Deno.serve(async (req) => {
   // Minimal NCCO: connect directly to Vapi SIP. Avoid `talk` before connect
   // (bargeIn requires a follow-up input action). Avoid SIP custom headers
   // since Vonage validates them strictly.
+  const SIP_USER = Deno.env.get('VAPI_SIP_USERNAME') || 'vonage_fortegas_inbound_001';
+  const SIP_PASS = Deno.env.get('VAPI_SIP_PASSWORD') || 'Vn1777736700FortegasBiaSecure!2026';
+
   const ncco = [
     {
       action: 'connect',
@@ -54,6 +57,8 @@ Deno.serve(async (req) => {
         {
           type: 'sip',
           uri: VAPI_SIP_URI,
+          username: SIP_USER,
+          password: SIP_PASS,
         },
       ],
     },
