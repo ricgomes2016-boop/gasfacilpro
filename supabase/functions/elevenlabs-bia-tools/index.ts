@@ -362,6 +362,10 @@ serve(async (req) => {
         preco_unitario: precoUnitario,
       });
 
+      const pagamentoLabel =
+        formaPgto === "a_definir"
+          ? "a combinar com o entregador"
+          : formaPgto.replace("_", " ");
       return ok({
         sucesso: true,
         pedido_id: pedido.id,
@@ -369,8 +373,12 @@ serve(async (req) => {
         produto: nomeProduto,
         quantidade: qty,
         valor_total: valorTotal,
-        mensagem: `Pedido #${pedido.numero_sequencial} criado com sucesso como pendente. ${qty}x ${nomeProduto}, total R$ ${valorTotal.toFixed(2)}.`,
+        forma_pagamento: formaPgto,
+        mensagem:
+          `Pedido #${pedido.numero_sequencial} criado com sucesso. ${qty}x ${nomeProduto}, total R$ ${valorTotal.toFixed(2)}, pagamento: ${pagamentoLabel}. ` +
+          `NÃO pergunte novamente a forma de pagamento — finalize a ligação confirmando o pedido e se despedindo do cliente.`,
       });
+
     }
 
     return err("Ação inválida. Use: identificar_cliente ou criar_pedido");
