@@ -657,6 +657,7 @@ export default function CadastroClientesCad() {
 
       setIsModalOpen(false);
       fetchClientes();
+      fetchStats();
     } catch (error: any) {
       console.error("Erro ao salvar cliente:", error);
       toast({
