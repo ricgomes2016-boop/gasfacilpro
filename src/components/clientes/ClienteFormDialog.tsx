@@ -173,7 +173,7 @@ export function ClienteFormDialog({ open, onOpenChange, initialData, editId, onS
                       <SelectItem value="residencial">Residencial</SelectItem>
                       <SelectItem value="comercial">Comercial</SelectItem>
                       <SelectItem value="industrial">Industrial</SelectItem>
-                      <SelectItem value="revenda">Revenda</SelectItem>
+                      
                       <SelectItem value="revendedor">Revendedor</SelectItem>
                       <SelectItem value="condominio">Condomínio</SelectItem>
                       <SelectItem value="orgao_publico">Órgão Público</SelectItem>
