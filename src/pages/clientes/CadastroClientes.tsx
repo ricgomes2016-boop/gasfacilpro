@@ -1347,7 +1347,15 @@ export default function CadastroClientesCad() {
               {editingCliente ? "Editar Cliente" : "Novo Cliente"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 sm:space-y-4 flex-1 overflow-y-auto min-h-0 pr-1">
+          <Tabs defaultValue="cadastro" className="flex-1 flex flex-col min-h-0">
+            <TabsList className="grid grid-cols-2 w-full sm:w-fit shrink-0">
+              <TabsTrigger value="cadastro" className="text-xs sm:text-sm">Dados Cadastrais</TabsTrigger>
+              <TabsTrigger value="precos" disabled={!editingCliente} className="text-xs sm:text-sm">
+                Preço Negociado
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="cadastro" className="flex-1 overflow-y-auto min-h-0 mt-3">
+          <div className="space-y-3 sm:space-y-4 pr-1">
             <div className="min-w-0">
               <Label className="text-xs sm:text-sm">Nome *</Label>
               <Input
