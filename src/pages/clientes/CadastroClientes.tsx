@@ -162,6 +162,7 @@ export default function CadastroClientesCad() {
     ativos: 0,
     residenciais: 0,
     comerciais: 0,
+    revendedores: 0,
   });
 
   // Paginação server-side (otimizado para grandes volumes)
