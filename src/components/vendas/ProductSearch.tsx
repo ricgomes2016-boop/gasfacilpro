@@ -147,23 +147,32 @@ export function ProductSearch({ itens, onChange, unidadeId, clienteId }: Product
         newItens[existingIndex].quantidade * newItens[existingIndex].preco_unitario;
       onChange(newItens);
     } else {
-      // Try to get last price paid by this customer for this product
+      // Priority: 1) negotiated price for client, 2) last price paid, 3) default
       let precoUnitario = produto.preco;
       if (clienteId) {
         try {
-          const { data: lastItem } = await supabase
-            .from("pedido_itens")
-            .select("preco_unitario, pedidos!inner(cliente_id)")
+          const { data: precoNeg } = await supabase
+            .from("cliente_precos_negociados")
+            .select("preco_negociado")
+            .eq("cliente_id", clienteId)
             .eq("produto_id", produto.id)
-            .eq("pedidos.cliente_id", clienteId)
-            .order("created_at", { ascending: false })
-            .limit(1)
+            .eq("ativo", true)
             .maybeSingle();
-          if (lastItem) {
-            precoUnitario = Number(lastItem.preco_unitario);
+          if (precoNeg) {
+            precoUnitario = Number(precoNeg.preco_negociado);
+          } else {
+            const { data: lastItem } = await supabase
+              .from("pedido_itens")
+              .select("preco_unitario, pedidos!inner(cliente_id)")
+              .eq("produto_id", produto.id)
+              .eq("pedidos.cliente_id", clienteId)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (lastItem) precoUnitario = Number(lastItem.preco_unitario);
           }
         } catch (err) {
-          console.error("Erro ao buscar último preço:", err);
+          console.error("Erro ao buscar preço negociado/último:", err);
         }
       }
 
