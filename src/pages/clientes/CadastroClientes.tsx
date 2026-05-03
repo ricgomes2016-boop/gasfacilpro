@@ -150,6 +150,10 @@ export default function CadastroClientesCad() {
   const [unidadesClienteId, setUnidadesClienteId] = useState("");
   const [unidadesClienteNome, setUnidadesClienteNome] = useState("");
 
+  // Histórico de compras
+  const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [historicoCliente, setHistoricoCliente] = useState<{ id: string; nome: string } | null>(null);
+
   // CPF/CNPJ lookup
   const [isLookingUpCpfCnpj, setIsLookingUpCpfCnpj] = useState(false);
 
