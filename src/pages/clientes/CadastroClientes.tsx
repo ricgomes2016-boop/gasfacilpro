@@ -1573,6 +1573,11 @@ export default function CadastroClientesCad() {
               </Button>
             </div>
           </div>
+            </TabsContent>
+            <TabsContent value="precos" className="flex-1 overflow-y-auto min-h-0 mt-3">
+              {editingCliente && <PrecosNegociadosTab clienteId={editingCliente.id} />}
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
