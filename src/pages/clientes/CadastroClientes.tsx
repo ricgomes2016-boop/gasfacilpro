@@ -1290,6 +1290,12 @@ export default function CadastroClientesCad() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Lançar venda" onClick={() => navigate(`/vendas/nova?cliente_id=${cliente.id}`)}>
+                                  <ShoppingCart className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Histórico" onClick={() => { setHistoricoCliente({ id: cliente.id, nome: cliente.nome }); setHistoricoOpen(true); }}>
+                                  <History className="h-4 w-4" />
+                                </Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8" title="Unidades" onClick={() => { setUnidadesClienteId(cliente.id); setUnidadesClienteNome(cliente.nome); setUnidadesDialogOpen(true); }}>
                                   <Building2 className="h-4 w-4" />
                                 </Button>
