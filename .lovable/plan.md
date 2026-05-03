@@ -1,27 +1,25 @@
-## Correções no Cadastro de Clientes
+## Corrigir contraste de Badges "secondary" (texto apagado)
 
-### 1. Cards zerados (Total, Ativos, Residenciais, Comerciais)
+### Diagnóstico
 
-**Causa**: A consulta usa `cliente_unidades` com embed `clientes!inner(...)` e filtros `eq("clientes.empresa_id", ...)` em `count: "exact", head: true`. Esse padrão de filtrar por colunas de tabela embedded com count head retorna 0 (limitação conhecida do PostgREST).
+Os "balões" de bairro (Vila Independência, CENTRO, VITOR DANTAS, BELA VISTA, etc.) usam `<Badge variant="secondary">`. A variante atual em `src/components/ui/badge.tsx`:
 
-**Fix em `src/pages/clientes/CadastroClientes.tsx` (`fetchStats`)**:
-- Quando há `unidadeAtual`: primeiro buscar `cliente_id`s de `cliente_unidades` para a unidade, depois fazer 4 contagens em `clientes` filtrando `.in("id", ids)` + `empresa_id` + tipo/ativo.
-- Quando não há unidade: manter o caminho direto na tabela `clientes` (já funciona).
-- Adicionar contagem `revendedores` (tipo = 'revendedor').
+```
+secondary: "border-secondary/20 bg-secondary/10 text-secondary hover:bg-secondary/15"
+```
 
-### 2. Novo card "Revendedores"
+`--secondary` no tema padrão é `hsl(243 100% 69%)` — um lilás claro. Texto lilás claro sobre fundo lilás a 10% gera contraste muito baixo, especialmente em fundo branco. Por isso parece "apagado". Como esse Badge é usado em vários lugares do sistema, a correção propaga.
 
-- Adicionar `revendedores: 0` no estado `stats`.
-- Renderizar 5º card ao lado dos existentes (grid passa a 5 colunas em md+, mantendo 2 colunas no mobile).
-- Ícone: `Store` (lucide).
+### Correção
 
-### 3. Remover opção "Revenda" duplicada
+Em `src/components/ui/badge.tsx`, alterar a variante `secondary` para usar texto com contraste forte e fundo levemente mais saturado:
 
-- Em `CadastroClientes.tsx` linha 1087 (filtro) e 1538 (form): remover `<SelectItem value="revenda">Revenda</SelectItem>`.
-- Em `src/components/clientes/ClienteFormDialog.tsx`: remover idem.
-- Migration: `UPDATE clientes SET tipo = 'revendedor' WHERE tipo = 'revenda';` (2 registros) para consolidar.
+```
+secondary: "border-secondary/40 bg-secondary/15 text-foreground hover:bg-secondary/25"
+```
 
-### Arquivos alterados
-- `src/pages/clientes/CadastroClientes.tsx` — fix stats, novo card, remoção do SelectItem duplicado
-- `src/components/clientes/ClienteFormDialog.tsx` — remoção do SelectItem duplicado
-- Nova migration SQL — consolidar `revenda` → `revendedor`
+- `text-foreground`: usa a cor de texto do tema (preto/quase-preto no claro, claro no escuro), garantindo legibilidade.
+- `bg-secondary/15` + `border-secondary/40`: mantém o tom lilás identificando a variante, mas reforça a borda.
+
+### Arquivo alterado
+- `src/components/ui/badge.tsx` — apenas a linha 12 (variante `secondary`).
