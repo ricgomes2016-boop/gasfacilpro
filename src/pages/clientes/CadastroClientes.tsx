@@ -201,37 +201,63 @@ export default function CadastroClientesCad() {
 
   const fetchStats = async () => {
     if (!empresa?.id) {
-      setStats({ total: 0, ativos: 0, residenciais: 0, comerciais: 0 });
+      setStats({ total: 0, ativos: 0, residenciais: 0, comerciais: 0, revendedores: 0 });
       return;
     }
     try {
+      let baseQuery = supabase.from("clientes").select("id, ativo, tipo", { count: "exact" }).eq("empresa_id", empresa.id);
+
       if (unidadeAtual?.id) {
-        const [allLink, ativosLink, resLink, comLink] = await Promise.all([
-          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id),
-          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id, ativo)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id).eq("clientes.ativo", true),
-          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id, tipo)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id).eq("clientes.tipo", "residencial"),
-          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id, tipo)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id).eq("clientes.tipo", "comercial"),
-        ]);
-        setStats({
-          total: allLink.count || 0,
-          ativos: ativosLink.count || 0,
-          residenciais: resLink.count || 0,
-          comerciais: comLink.count || 0,
-        });
-      } else {
-        const [{ count: cTotal }, { count: cAtivos }, { count: cRes }, { count: cCom }] = await Promise.all([
-          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id),
-          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("ativo", true),
-          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "residencial"),
-          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "comercial"),
-        ]);
-        setStats({
-          total: cTotal || 0,
-          ativos: cAtivos || 0,
-          residenciais: cRes || 0,
-          comerciais: cCom || 0,
-        });
+        // Buscar IDs de clientes vinculados à unidade (em páginas para superar limite de 1000)
+        const ids: string[] = [];
+        let from = 0;
+        const pageSize = 1000;
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { data, error } = await supabase
+            .from("cliente_unidades")
+            .select("cliente_id")
+            .eq("unidade_id", unidadeAtual.id)
+            .range(from, from + pageSize - 1);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          ids.push(...data.map((d: any) => d.cliente_id));
+          if (data.length < pageSize) break;
+          from += pageSize;
+        }
+        if (ids.length === 0) {
+          setStats({ total: 0, ativos: 0, residenciais: 0, comerciais: 0, revendedores: 0 });
+          return;
+        }
+        baseQuery = baseQuery.in("id", ids);
       }
+
+      // Em vez de 5 contagens separadas, busca os campos e agrega no cliente (mais leve para filiais com poucos clientes)
+      // Para empresas grandes mantém contagem por count head com filtros
+      const [{ count: cTotal }, { count: cAtivos }, { count: cRes }, { count: cCom }, { count: cRev }] = await Promise.all([
+        (unidadeAtual?.id
+          ? supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).in("id", await getUnidadeClienteIds(unidadeAtual.id))
+          : supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id)),
+        (unidadeAtual?.id
+          ? supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("ativo", true).in("id", await getUnidadeClienteIds(unidadeAtual.id))
+          : supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("ativo", true)),
+        (unidadeAtual?.id
+          ? supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "residencial").in("id", await getUnidadeClienteIds(unidadeAtual.id))
+          : supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "residencial")),
+        (unidadeAtual?.id
+          ? supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "comercial").in("id", await getUnidadeClienteIds(unidadeAtual.id))
+          : supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "comercial")),
+        (unidadeAtual?.id
+          ? supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "revendedor").in("id", await getUnidadeClienteIds(unidadeAtual.id))
+          : supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "revendedor")),
+      ]);
+      setStats({
+        total: cTotal || 0,
+        ativos: cAtivos || 0,
+        residenciais: cRes || 0,
+        comerciais: cCom || 0,
+        revendedores: cRev || 0,
+      });
     } catch (e) {
       console.error("Erro ao calcular stats:", e);
     }
