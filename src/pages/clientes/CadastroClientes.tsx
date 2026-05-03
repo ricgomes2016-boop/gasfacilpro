@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Users, Plus, Search, Edit, Trash2, Phone, MapPin, FileText, Loader2, Camera, Check, X, Filter, Download, ImageIcon, ChevronDown, Navigation, FileUp, Merge, Building2, SearchCheck, Smartphone, ShoppingCart, History } from "lucide-react";
+import { Users, Plus, Search, Edit, Trash2, Phone, MapPin, FileText, Loader2, Camera, Check, X, Filter, Download, ImageIcon, ChevronDown, Navigation, FileUp, Merge, Building2, SearchCheck, Smartphone, ShoppingCart, History, Store } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PrecosNegociadosTab } from "@/components/clientes/PrecosNegociadosTab";
 import { HistoricoComprasDialog } from "@/components/clientes/HistoricoComprasDialog";
@@ -162,6 +162,7 @@ export default function CadastroClientesCad() {
     ativos: 0,
     residenciais: 0,
     comerciais: 0,
+    revendedores: 0,
   });
 
   // Paginação server-side (otimizado para grandes volumes)
@@ -200,37 +201,58 @@ export default function CadastroClientesCad() {
 
   const fetchStats = async () => {
     if (!empresa?.id) {
-      setStats({ total: 0, ativos: 0, residenciais: 0, comerciais: 0 });
+      setStats({ total: 0, ativos: 0, residenciais: 0, comerciais: 0, revendedores: 0 });
       return;
     }
     try {
+      let unidadeIds: string[] | null = null;
+
       if (unidadeAtual?.id) {
-        const [allLink, ativosLink, resLink, comLink] = await Promise.all([
-          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id),
-          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id, ativo)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id).eq("clientes.ativo", true),
-          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id, tipo)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id).eq("clientes.tipo", "residencial"),
-          supabase.from("cliente_unidades").select("cliente_id, clientes!inner(empresa_id, tipo)", { count: "exact", head: true }).eq("unidade_id", unidadeAtual.id).eq("clientes.empresa_id", empresa.id).eq("clientes.tipo", "comercial"),
-        ]);
-        setStats({
-          total: allLink.count || 0,
-          ativos: ativosLink.count || 0,
-          residenciais: resLink.count || 0,
-          comerciais: comLink.count || 0,
-        });
-      } else {
-        const [{ count: cTotal }, { count: cAtivos }, { count: cRes }, { count: cCom }] = await Promise.all([
-          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id),
-          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("ativo", true),
-          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "residencial"),
-          supabase.from("clientes").select("id", { count: "exact", head: true }).eq("empresa_id", empresa.id).eq("tipo", "comercial"),
-        ]);
-        setStats({
-          total: cTotal || 0,
-          ativos: cAtivos || 0,
-          residenciais: cRes || 0,
-          comerciais: cCom || 0,
-        });
+        // Buscar IDs de clientes vinculados à unidade (paginado)
+        const ids: string[] = [];
+        let from = 0;
+        const pageSize = 1000;
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const { data, error } = await supabase
+            .from("cliente_unidades")
+            .select("cliente_id")
+            .eq("unidade_id", unidadeAtual.id)
+            .range(from, from + pageSize - 1);
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          ids.push(...data.map((d: any) => d.cliente_id));
+          if (data.length < pageSize) break;
+          from += pageSize;
+        }
+        if (ids.length === 0) {
+          setStats({ total: 0, ativos: 0, residenciais: 0, comerciais: 0, revendedores: 0 });
+          return;
+        }
+        unidadeIds = ids;
       }
+
+      const applyScope = (q: any) => {
+        let r = q.eq("empresa_id", empresa.id);
+        if (unidadeIds) r = r.in("id", unidadeIds);
+        return r;
+      };
+
+      const [{ count: cTotal }, { count: cAtivos }, { count: cRes }, { count: cCom }, { count: cRev }] = await Promise.all([
+        applyScope(supabase.from("clientes").select("id", { count: "exact", head: true })),
+        applyScope(supabase.from("clientes").select("id", { count: "exact", head: true })).eq("ativo", true),
+        applyScope(supabase.from("clientes").select("id", { count: "exact", head: true })).eq("tipo", "residencial"),
+        applyScope(supabase.from("clientes").select("id", { count: "exact", head: true })).eq("tipo", "comercial"),
+        applyScope(supabase.from("clientes").select("id", { count: "exact", head: true })).eq("tipo", "revendedor"),
+      ]);
+
+      setStats({
+        total: cTotal || 0,
+        ativos: cAtivos || 0,
+        residenciais: cRes || 0,
+        comerciais: cCom || 0,
+        revendedores: cRev || 0,
+      });
     } catch (e) {
       console.error("Erro ao calcular stats:", e);
     }
@@ -1033,11 +1055,12 @@ export default function CadastroClientesCad() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
           <Card className="kpi-card kpi-card-primary"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-primary"><Users /></div><div className="min-w-0"><div className="kpi-value">{stats.total}</div><p className="kpi-label">Total</p></div></CardContent></Card>
           <Card className="kpi-card kpi-card-success"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-success"><Users /></div><div className="min-w-0"><div className="kpi-value text-success">{stats.ativos}</div><p className="kpi-label">Ativos · {stats.total > 0 ? Math.round((stats.ativos / stats.total) * 100) : 0}%</p></div></CardContent></Card>
           <Card className="kpi-card kpi-card-info"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-info"><Users /></div><div className="min-w-0"><div className="kpi-value text-info">{stats.residenciais}</div><p className="kpi-label">Residenciais</p></div></CardContent></Card>
           <Card className="kpi-card kpi-card-warning"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-warning"><Users /></div><div className="min-w-0"><div className="kpi-value text-warning">{stats.comerciais}</div><p className="kpi-label">Comerciais</p></div></CardContent></Card>
+          <Card className="kpi-card kpi-card-info"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-info"><Store /></div><div className="min-w-0"><div className="kpi-value text-info">{stats.revendedores}</div><p className="kpi-label">Revendedores</p></div></CardContent></Card>
         </div>
 
         {/* Client List */}
@@ -1084,7 +1107,6 @@ export default function CadastroClientesCad() {
                         <SelectItem value="residencial">Residencial</SelectItem>
                         <SelectItem value="comercial">Comercial</SelectItem>
                         <SelectItem value="industrial">Industrial</SelectItem>
-                        <SelectItem value="revenda">Revenda</SelectItem>
                         <SelectItem value="revendedor">Revendedor</SelectItem>
                         <SelectItem value="condominio">Condomínio</SelectItem>
                         <SelectItem value="orgao_publico">Órgão Público</SelectItem>
@@ -1535,7 +1557,6 @@ export default function CadastroClientesCad() {
                     <SelectItem value="residencial">Residencial</SelectItem>
                     <SelectItem value="comercial">Comercial</SelectItem>
                     <SelectItem value="industrial">Industrial</SelectItem>
-                    <SelectItem value="revenda">Revenda</SelectItem>
                     <SelectItem value="revendedor">Revendedor</SelectItem>
                     <SelectItem value="condominio">Condomínio</SelectItem>
                     <SelectItem value="orgao_publico">Órgão Público</SelectItem>
