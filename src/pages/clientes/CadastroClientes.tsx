@@ -1695,6 +1695,13 @@ export default function CadastroClientesCad() {
         clienteNome={unidadesClienteNome}
         onSaved={fetchClientes}
       />
+
+      <HistoricoComprasDialog
+        open={historicoOpen}
+        onOpenChange={setHistoricoOpen}
+        clienteId={historicoCliente?.id ?? null}
+        clienteNome={historicoCliente?.nome ?? ""}
+      />
     </MainLayout>
   );
 }
