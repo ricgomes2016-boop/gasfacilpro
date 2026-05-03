@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Eye, EyeOff, ShoppingBag, AlertTriangle } from "lucide-react";
+import { Loader2, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import iconCliente from "@/assets/icons/icon-cliente.png";
 import { detectSubdomainApp } from "@/lib/subdomain";
+import { CircleAuthLayout } from "@/components/auth/CircleAuthLayout";
 
 interface EmpresaInfo {
   id: string;
@@ -18,9 +19,6 @@ interface EmpresaInfo {
   slug: string;
   logo_url: string | null;
 }
-
-
-
 
 function SimpleLoginForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
   return (
@@ -173,7 +171,6 @@ export default function AuthCliente() {
     }
   }, [urlSlug]);
 
-  // Fetch unit name when unidade param is present
   useEffect(() => {
     if (!urlUnidade) return;
     supabase
@@ -225,7 +222,6 @@ export default function AuthCliente() {
   useEffect(() => {
     if (!user || loading) return;
     if (roles.length === 0) return;
-    
     if (!roles.includes("cliente")) {
       signOut();
       setRoleError(true);
@@ -272,74 +268,67 @@ export default function AuthCliente() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-white to-amber-50 dark:from-background dark:via-background dark:to-muted/20 p-4">
-      <Card className="w-full max-w-md border-orange-200/50 dark:border-primary/20">
-        <CardHeader className="text-center space-y-4">
-          <div className="flex justify-center">
-            {empresa?.logo_url ? (
-              <img
-                src={empresa.logo_url}
-                alt={empresa.nome}
-                className="h-16 w-16 rounded-2xl object-cover shadow-lg"
-              />
-            ) : (
-              <div className="h-16 w-16 rounded-2xl overflow-hidden shadow-lg">
-                <img src={iconCliente} alt="Cliente" className="h-16 w-16 object-cover" />
-              </div>
-            )}
+    <CircleAuthLayout
+      portalKey="cliente"
+      title={displayName}
+      subtitle="Peça seu gás com rapidez e acompanhe suas entregas"
+      gradientFrom="25 95% 60%"
+      gradientTo="15 90% 50%"
+      pageClassName="bg-gradient-to-br from-orange-50 via-white to-amber-50 dark:from-background dark:via-background dark:to-muted/20"
+      logo={
+        empresa?.logo_url ? (
+          <img
+            src={empresa.logo_url}
+            alt={empresa.nome}
+            className="h-16 w-16 rounded-2xl object-cover shadow-lg"
+          />
+        ) : (
+          <div className="h-16 w-16 rounded-2xl overflow-hidden shadow-lg">
+            <img src={iconCliente} alt="Cliente" className="h-16 w-16 object-cover" />
           </div>
-          <div className="flex items-center justify-center gap-2">
-            <ShoppingBag className="h-4 w-4 text-orange-500" />
-            <CardTitle className="text-2xl font-bold">{displayName}</CardTitle>
-          </div>
-          <CardDescription>
-            Peça seu gás com rapidez e acompanhe suas entregas
-          </CardDescription>
-        </CardHeader>
+        )
+      }
+    >
+      {roleError && (
+        <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+          Esta conta não é de cliente. Se você é administrador, acesse pelo sistema ERP.
+        </div>
+      )}
+      {form.errors.general && (
+        <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+          {form.errors.general}
+        </div>
+      )}
 
-        <CardContent>
-          {roleError && (
-            <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
-              Esta conta não é de cliente. Se você é administrador, acesse pelo sistema ERP.
-            </div>
-          )}
-          {form.errors.general && (
-            <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
-              {form.errors.general}
-            </div>
-          )}
-
-          {showSignup ? (
-            <>
-              <SignupForm form={form} />
-              <p className="text-center text-sm text-muted-foreground mt-4">
-                Já tem conta?{" "}
-                <button
-                  type="button"
-                  onClick={() => setShowSignup(false)}
-                  className="text-primary hover:underline font-medium"
-                >
-                  Faça login
-                </button>
-              </p>
-            </>
-          ) : (
-            <>
-              <SimpleLoginForm form={form} />
-              <p className="text-center text-sm text-muted-foreground mt-4">
-                Não tem conta?{" "}
-                <button
-                  type="button"
-                  onClick={() => setShowSignup(true)}
-                  className="text-primary hover:underline font-medium"
-                >
-                  Crie sua conta
-                </button>
-              </p>
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+      {showSignup ? (
+        <>
+          <SignupForm form={form} />
+          <p className="text-center text-sm text-muted-foreground mt-4">
+            Já tem conta?{" "}
+            <button
+              type="button"
+              onClick={() => setShowSignup(false)}
+              className="text-primary hover:underline font-medium"
+            >
+              Faça login
+            </button>
+          </p>
+        </>
+      ) : (
+        <>
+          <SimpleLoginForm form={form} />
+          <p className="text-center text-sm text-muted-foreground mt-4">
+            Não tem conta?{" "}
+            <button
+              type="button"
+              onClick={() => setShowSignup(true)}
+              className="text-primary hover:underline font-medium"
+            >
+              Crie sua conta
+            </button>
+          </p>
+        </>
+      )}
+    </CircleAuthLayout>
   );
 }
