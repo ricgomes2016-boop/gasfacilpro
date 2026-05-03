@@ -1055,11 +1055,12 @@ export default function CadastroClientesCad() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
           <Card className="kpi-card kpi-card-primary"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-primary"><Users /></div><div className="min-w-0"><div className="kpi-value">{stats.total}</div><p className="kpi-label">Total</p></div></CardContent></Card>
           <Card className="kpi-card kpi-card-success"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-success"><Users /></div><div className="min-w-0"><div className="kpi-value text-success">{stats.ativos}</div><p className="kpi-label">Ativos · {stats.total > 0 ? Math.round((stats.ativos / stats.total) * 100) : 0}%</p></div></CardContent></Card>
           <Card className="kpi-card kpi-card-info"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-info"><Users /></div><div className="min-w-0"><div className="kpi-value text-info">{stats.residenciais}</div><p className="kpi-label">Residenciais</p></div></CardContent></Card>
           <Card className="kpi-card kpi-card-warning"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-warning"><Users /></div><div className="min-w-0"><div className="kpi-value text-warning">{stats.comerciais}</div><p className="kpi-label">Comerciais</p></div></CardContent></Card>
+          <Card className="kpi-card kpi-card-info"><CardContent className="kpi-card-content"><div className="status-card-icon status-card-icon-info"><Store /></div><div className="min-w-0"><div className="kpi-value text-info">{stats.revendedores}</div><p className="kpi-label">Revendedores</p></div></CardContent></Card>
         </div>
 
         {/* Client List */}
