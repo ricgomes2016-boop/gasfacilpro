@@ -1729,6 +1729,74 @@ export type Database = {
           },
         ]
       }
+      cliente_precos_negociados: {
+        Row: {
+          ativo: boolean
+          cliente_id: string
+          created_at: string
+          empresa_id: string
+          id: string
+          observacao: string | null
+          preco_negociado: number
+          produto_id: string
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cliente_id: string
+          created_at?: string
+          empresa_id: string
+          id?: string
+          observacao?: string | null
+          preco_negociado: number
+          produto_id: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cliente_id?: string
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          observacao?: string | null
+          preco_negociado?: number
+          produto_id?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_precos_negociados_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_precos_negociados_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_precos_negociados_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_precos_negociados_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cliente_tag_associacoes: {
         Row: {
           cliente_id: string
@@ -10395,6 +10463,7 @@ export type Database = {
           ativo: boolean
           bairro: string
           bloqueio_credito: boolean
+          cep: string
           cidade: string
           codigo_cliente: number
           cpf: string
@@ -10402,10 +10471,13 @@ export type Database = {
           email: string
           endereco: string
           id: string
+          latitude: number
+          longitude: number
           nome: string
           numero: string
           saldo_devedor: number
           telefone: string
+          tipo: string
           total_count: number
         }[]
       }
