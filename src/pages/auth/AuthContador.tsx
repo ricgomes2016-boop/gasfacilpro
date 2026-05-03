@@ -5,8 +5,8 @@ import { useAuthForm } from "@/hooks/useAuthForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calculator, Loader2, Eye, EyeOff } from "lucide-react";
+import { CircleAuthLayout } from "@/components/auth/CircleAuthLayout";
 
 export default function AuthContador() {
   const navigate = useNavigate();
@@ -25,7 +25,6 @@ export default function AuthContador() {
   useEffect(() => {
     if (!user || loading) return;
     if (roles.length === 0) return;
-
     const allowed = roles.includes("contador") || roles.includes("admin") || roles.includes("super_admin");
     if (!allowed) {
       signOut();
@@ -46,92 +45,87 @@ export default function AuthContador() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[hsl(220,25%,8%)] via-[hsl(220,22%,12%)] to-[hsl(165,40%,10%)] p-4">
-      <Card className="w-full max-w-md border-[hsl(220,15%,20%)] bg-[hsl(220,22%,11%)]/90 backdrop-blur text-[hsl(0,0%,93%)]">
-        <CardHeader className="text-center space-y-4">
-          <div className="flex justify-center">
-            <div className="h-16 w-16 rounded-2xl bg-[hsl(165,60%,40%)]/15 flex items-center justify-center ring-1 ring-[hsl(165,60%,40%)]/30">
-              <Calculator className="h-9 w-9 text-[hsl(165,60%,55%)]" />
-            </div>
-          </div>
-          <div>
-            <CardTitle className="text-2xl font-bold">Portal Contábil</CardTitle>
-            <CardDescription className="text-[hsl(220,10%,60%)] mt-2">
-              Acesso restrito para escritórios contábeis
-            </CardDescription>
-          </div>
-        </CardHeader>
+    <CircleAuthLayout
+      portalKey="contador"
+      title="Portal Contábil"
+      subtitle="Acesso restrito para escritórios contábeis"
+      gradientFrom="265 85% 65%"
+      gradientTo="290 80% 55%"
+      pageClassName="bg-gradient-to-br from-[hsl(252,45%,8%)] via-[hsl(252,38%,11%)] to-[hsl(265,40%,12%)]"
+      cardClassName="bg-[hsl(252,35%,13%)]/95 border-[hsl(252,30%,30%)] text-[hsl(250,20%,96%)]"
+      logo={
+        <div className="h-16 w-16 rounded-2xl bg-[hsl(265,85%,65%)]/15 flex items-center justify-center ring-1 ring-[hsl(265,85%,65%)]/30">
+          <Calculator className="h-9 w-9 text-[hsl(265,85%,75%)]" />
+        </div>
+      }
+    >
+      {roleError && (
+        <div className="p-3 mb-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+          Esta conta não possui acesso ao Portal Contábil.
+        </div>
+      )}
+      {form.errors.general && (
+        <div className="p-3 mb-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+          {form.errors.general}
+        </div>
+      )}
 
-        <CardContent>
-          {roleError && (
-            <div className="p-3 mb-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
-              Esta conta não possui acesso ao Portal Contábil.
-            </div>
-          )}
-          {form.errors.general && (
-            <div className="p-3 mb-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
-              {form.errors.general}
-            </div>
-          )}
+      <form onSubmit={form.handleLogin} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="cont-email" className="text-[hsl(220,10%,75%)]">Email</Label>
+          <Input
+            id="cont-email"
+            type="email"
+            placeholder="contador@escritorio.com.br"
+            value={form.loginEmail}
+            onChange={(e) => form.setLoginEmail(e.target.value)}
+            disabled={form.isLoading}
+            className="bg-[hsl(252,30%,18%)] border-[hsl(252,30%,32%)] text-white placeholder:text-[hsl(250,18%,55%)]"
+          />
+          {form.errors.email && <p className="text-sm text-red-400">{form.errors.email}</p>}
+        </div>
 
-          <form onSubmit={form.handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="cont-email" className="text-[hsl(220,10%,75%)]">Email</Label>
-              <Input
-                id="cont-email"
-                type="email"
-                placeholder="contador@escritorio.com.br"
-                value={form.loginEmail}
-                onChange={(e) => form.setLoginEmail(e.target.value)}
-                disabled={form.isLoading}
-                className="bg-[hsl(220,18%,15%)] border-[hsl(220,15%,22%)] text-white placeholder:text-[hsl(220,10%,45%)]"
-              />
-              {form.errors.email && <p className="text-sm text-red-400">{form.errors.email}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cont-password" className="text-[hsl(220,10%,75%)]">Senha</Label>
-              <div className="relative">
-                <Input
-                  id="cont-password"
-                  type={form.showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={form.loginPassword}
-                  onChange={(e) => form.setLoginPassword(e.target.value)}
-                  disabled={form.isLoading}
-                  className="bg-[hsl(220,18%,15%)] border-[hsl(220,15%,22%)] text-white placeholder:text-[hsl(220,10%,45%)]"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full px-3 text-[hsl(220,10%,55%)] hover:text-white hover:bg-transparent"
-                  onClick={() => form.setShowPassword(!form.showPassword)}
-                >
-                  {form.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-              {form.errors.password && <p className="text-sm text-red-400">{form.errors.password}</p>}
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full bg-[hsl(165,60%,40%)] hover:bg-[hsl(165,60%,45%)] text-white font-medium"
+        <div className="space-y-2">
+          <Label htmlFor="cont-password" className="text-[hsl(220,10%,75%)]">Senha</Label>
+          <div className="relative">
+            <Input
+              id="cont-password"
+              type={form.showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={form.loginPassword}
+              onChange={(e) => form.setLoginPassword(e.target.value)}
               disabled={form.isLoading}
+              className="bg-[hsl(252,30%,18%)] border-[hsl(252,30%,32%)] text-white placeholder:text-[hsl(250,18%,55%)]"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-0 top-0 h-full px-3 text-[hsl(250,18%,70%)] hover:text-white hover:bg-transparent"
+              onClick={() => form.setShowPassword(!form.showPassword)}
             >
-              {form.isLoading ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verificando...</>
-              ) : (
-                "Acessar Portal Contábil"
-              )}
+              {form.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
-          </form>
+          </div>
+          {form.errors.password && <p className="text-sm text-red-400">{form.errors.password}</p>}
+        </div>
 
-          <p className="text-xs text-center text-[hsl(220,10%,50%)] mt-6">
-            Esqueceu a senha? Solicite ao administrador da empresa.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+        <Button
+          type="submit"
+          className="w-full bg-[hsl(265,85%,65%)] hover:bg-[hsl(265,85%,70%)] text-white font-medium"
+          disabled={form.isLoading}
+        >
+          {form.isLoading ? (
+            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verificando...</>
+          ) : (
+            "Acessar Portal Contábil"
+          )}
+        </Button>
+      </form>
+
+      <p className="text-xs text-center text-[hsl(250,18%,65%)] mt-6">
+        Esqueceu a senha? Solicite ao administrador da empresa.
+      </p>
+    </CircleAuthLayout>
   );
 }

@@ -5,9 +5,9 @@ import { useAuthForm } from "@/hooks/useAuthForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import iconEntregador from "@/assets/icons/icon-entregador.png";
+import { CircleAuthLayout } from "@/components/auth/CircleAuthLayout";
 
 export default function AuthEntregador() {
   const navigate = useNavigate();
@@ -15,7 +15,6 @@ export default function AuthEntregador() {
   const form = useAuthForm();
   const [roleError, setRoleError] = useState(false);
 
-  // Delivery Portal always uses email login
   useEffect(() => {
     form.setLoginMethod("email");
   }, []);
@@ -27,7 +26,6 @@ export default function AuthEntregador() {
   useEffect(() => {
     if (!user || loading) return;
     if (roles.length === 0) return;
-
     if (!roles.includes("entregador")) {
       signOut();
       setRoleError(true);
@@ -45,84 +43,79 @@ export default function AuthEntregador() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-teal-50 dark:from-background dark:via-background dark:to-muted/20 p-4">
-      <Card className="w-full max-w-md border-emerald-200/50 dark:border-emerald-500/20">
-        <CardHeader className="text-center space-y-4">
-          <div className="flex justify-center">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg overflow-hidden">
-              <img src={iconEntregador} alt="Entregador" className="h-16 w-16 object-cover" />
-            </div>
-          </div>
-          <CardTitle className="text-2xl font-bold">GásFácil Pro — Entregador</CardTitle>
-          <CardDescription>
-            Acesse suas entregas, rotas e financeiro
-          </CardDescription>
-        </CardHeader>
+    <CircleAuthLayout
+      portalKey="entregador"
+      title="GásFácil Pro — Entregador"
+      subtitle="Acesse suas entregas, rotas e financeiro"
+      gradientFrom="160 75% 45%"
+      gradientTo="180 70% 35%"
+      logo={
+        <div className="h-16 w-16 rounded-2xl overflow-hidden shadow-lg">
+          <img src={iconEntregador} alt="Entregador" className="h-16 w-16 object-cover" />
+        </div>
+      }
+    >
+      {roleError && (
+        <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+          Esta conta não é de entregador. Use o portal correto para o seu perfil.
+        </div>
+      )}
+      {form.errors.general && (
+        <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+          {form.errors.general}
+        </div>
+      )}
 
-        <CardContent>
-          {roleError && (
-            <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
-              Esta conta não é de entregador. Use o portal correto para o seu perfil.
-            </div>
-          )}
-          {form.errors.general && (
-            <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
-              {form.errors.general}
-            </div>
-          )}
+      <form onSubmit={form.handleLogin} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="entregador-email">Email</Label>
+          <Input
+            id="entregador-email"
+            type="email"
+            placeholder="Digite seu email"
+            value={form.loginEmail}
+            onChange={(e) => form.setLoginEmail(e.target.value)}
+            disabled={form.isLoading}
+          />
+          {form.errors.email && <p className="text-sm text-destructive">{form.errors.email}</p>}
+        </div>
 
-          <form onSubmit={form.handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="entregador-email">Email</Label>
-              <Input
-                id="entregador-email"
-                type="email"
-                placeholder="Digite seu email"
-                value={form.loginEmail}
-                onChange={(e) => form.setLoginEmail(e.target.value)}
-                disabled={form.isLoading}
-              />
-              {form.errors.email && <p className="text-sm text-destructive">{form.errors.email}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="entregador-password">Senha</Label>
-              <div className="relative">
-                <Input
-                  id="entregador-password"
-                  type={form.showPassword ? "text" : "password"}
-                  placeholder="Digite sua senha"
-                  value={form.loginPassword}
-                  onChange={(e) => form.setLoginPassword(e.target.value)}
-                  disabled={form.isLoading}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full px-3"
-                  onClick={() => form.setShowPassword(!form.showPassword)}
-                >
-                  {form.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-              {form.errors.password && <p className="text-sm text-destructive">{form.errors.password}</p>}
-            </div>
-
-            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={form.isLoading}>
-              {form.isLoading ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</>
-              ) : (
-                "Acessar Minhas Entregas"
-              )}
+        <div className="space-y-2">
+          <Label htmlFor="entregador-password">Senha</Label>
+          <div className="relative">
+            <Input
+              id="entregador-password"
+              type={form.showPassword ? "text" : "password"}
+              placeholder="Digite sua senha"
+              value={form.loginPassword}
+              onChange={(e) => form.setLoginPassword(e.target.value)}
+              disabled={form.isLoading}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-0 top-0 h-full px-3"
+              onClick={() => form.setShowPassword(!form.showPassword)}
+            >
+              {form.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
-          </form>
+          </div>
+          {form.errors.password && <p className="text-sm text-destructive">{form.errors.password}</p>}
+        </div>
 
-          <p className="text-center text-xs text-muted-foreground mt-4">
-            Sua conta é criada pelo administrador da distribuidora
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+        <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={form.isLoading}>
+          {form.isLoading ? (
+            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</>
+          ) : (
+            "Acessar Minhas Entregas"
+          )}
+        </Button>
+      </form>
+
+      <p className="text-center text-xs text-muted-foreground mt-4">
+        Sua conta é criada pelo administrador da distribuidora
+      </p>
+    </CircleAuthLayout>
   );
 }
