@@ -28,7 +28,10 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Users, Plus, Search, Edit, Trash2, Phone, MapPin, FileText, Loader2, Camera, Check, X, Filter, Download, ImageIcon, ChevronDown, Navigation, FileUp, Merge, Building2, SearchCheck, Smartphone } from "lucide-react";
+import { Users, Plus, Search, Edit, Trash2, Phone, MapPin, FileText, Loader2, Camera, Check, X, Filter, Download, ImageIcon, ChevronDown, Navigation, FileUp, Merge, Building2, SearchCheck, Smartphone, ShoppingCart, History } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PrecosNegociadosTab } from "@/components/clientes/PrecosNegociadosTab";
+import { HistoricoComprasDialog } from "@/components/clientes/HistoricoComprasDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -146,6 +149,10 @@ export default function CadastroClientesCad() {
   const [unidadesDialogOpen, setUnidadesDialogOpen] = useState(false);
   const [unidadesClienteId, setUnidadesClienteId] = useState("");
   const [unidadesClienteNome, setUnidadesClienteNome] = useState("");
+
+  // Histórico de compras
+  const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [historicoCliente, setHistoricoCliente] = useState<{ id: string; nome: string } | null>(null);
 
   // CPF/CNPJ lookup
   const [isLookingUpCpfCnpj, setIsLookingUpCpfCnpj] = useState(false);
@@ -650,6 +657,7 @@ export default function CadastroClientesCad() {
 
       setIsModalOpen(false);
       fetchClientes();
+      fetchStats();
     } catch (error: any) {
       console.error("Erro ao salvar cliente:", error);
       toast({
@@ -1182,6 +1190,12 @@ export default function CadastroClientesCad() {
                           </div>
                         </div>
                         <div className="flex gap-1 shrink-0">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Lançar venda" onClick={() => navigate(`/vendas/nova?cliente_id=${cliente.id}`)}>
+                            <ShoppingCart className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Histórico" onClick={() => { setHistoricoCliente({ id: cliente.id, nome: cliente.nome }); setHistoricoOpen(true); }}>
+                            <History className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8" title="Unidades" onClick={() => { setUnidadesClienteId(cliente.id); setUnidadesClienteNome(cliente.nome); setUnidadesDialogOpen(true); }}>
                             <Building2 className="h-4 w-4" />
                           </Button>
@@ -1276,6 +1290,12 @@ export default function CadastroClientesCad() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Lançar venda" onClick={() => navigate(`/vendas/nova?cliente_id=${cliente.id}`)}>
+                                  <ShoppingCart className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Histórico" onClick={() => { setHistoricoCliente({ id: cliente.id, nome: cliente.nome }); setHistoricoOpen(true); }}>
+                                  <History className="h-4 w-4" />
+                                </Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8" title="Unidades" onClick={() => { setUnidadesClienteId(cliente.id); setUnidadesClienteNome(cliente.nome); setUnidadesDialogOpen(true); }}>
                                   <Building2 className="h-4 w-4" />
                                 </Button>
@@ -1339,7 +1359,15 @@ export default function CadastroClientesCad() {
               {editingCliente ? "Editar Cliente" : "Novo Cliente"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 sm:space-y-4 flex-1 overflow-y-auto min-h-0 pr-1">
+          <Tabs defaultValue="cadastro" className="flex-1 flex flex-col min-h-0">
+            <TabsList className="grid grid-cols-2 w-full sm:w-fit shrink-0">
+              <TabsTrigger value="cadastro" className="text-xs sm:text-sm">Dados Cadastrais</TabsTrigger>
+              <TabsTrigger value="precos" disabled={!editingCliente} className="text-xs sm:text-sm">
+                Preço Negociado
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="cadastro" className="flex-1 overflow-y-auto min-h-0 mt-3">
+          <div className="space-y-3 sm:space-y-4 pr-1">
             <div className="min-w-0">
               <Label className="text-xs sm:text-sm">Nome *</Label>
               <Input
@@ -1557,6 +1585,11 @@ export default function CadastroClientesCad() {
               </Button>
             </div>
           </div>
+            </TabsContent>
+            <TabsContent value="precos" className="flex-1 overflow-y-auto min-h-0 mt-3">
+              {editingCliente && <PrecosNegociadosTab clienteId={editingCliente.id} />}
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 

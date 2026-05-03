@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect, type KeyboardEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
@@ -965,14 +965,21 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     }
   };
 
-  // Load initial client when in embedded mode (e.g., from CallerIdPopup)
+  // Load initial client when in embedded mode (e.g., from CallerIdPopup) OR via URL ?cliente_id=
+  const [searchParams] = useSearchParams();
+  const urlClienteId = searchParams.get("cliente_id");
+  const urlRepetirPedido = searchParams.get("repetir_pedido");
+  const effectiveClienteId = initialClienteId || urlClienteId;
+  const initLoadedRef = useRef(false);
+
   useEffect(() => {
-    if (!initialClienteId || !embedded) return;
+    if (!effectiveClienteId || initLoadedRef.current) return;
+    initLoadedRef.current = true;
     const loadCliente = async () => {
       const { data } = await supabase
         .from("clientes")
         .select("*")
-        .eq("id", initialClienteId)
+        .eq("id", effectiveClienteId)
         .single();
       if (data) {
         setCustomer({
@@ -987,9 +994,30 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           observacao: "",
         });
       }
+
+      // Repetir pedido: carregar itens do pedido informado
+      if (urlRepetirPedido) {
+        const { data: itensPedido } = await supabase
+          .from("pedido_itens")
+          .select("produto_id, quantidade, preco_unitario, produtos(nome)")
+          .eq("pedido_id", urlRepetirPedido);
+        if (itensPedido && itensPedido.length > 0) {
+          const novos: ItemVenda[] = itensPedido.map((it: any) => ({
+            id: crypto.randomUUID(),
+            produto_id: it.produto_id,
+            nome: it.produtos?.nome || "Produto",
+            quantidade: it.quantidade,
+            preco_unitario: Number(it.preco_unitario),
+            total: it.quantidade * Number(it.preco_unitario),
+          }));
+          setItens(novos);
+          toast({ title: "Pedido replicado", description: `${novos.length} item(ns) carregado(s) do pedido anterior.` });
+        }
+      }
     };
     loadCliente();
-  }, [initialClienteId, embedded]);
+  }, [effectiveClienteId, urlRepetirPedido]);
+
 
   const metaCard = (
     <Card className="venda-card venda-gasmais-card venda-tone-cliente border-primary/20 bg-card/95">
