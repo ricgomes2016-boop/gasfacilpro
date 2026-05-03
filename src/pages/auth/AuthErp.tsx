@@ -5,9 +5,9 @@ import { useAuthForm } from "@/hooks/useAuthForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import iconErp from "@/assets/icons/icon-erp.png";
+import { CircleAuthLayout } from "@/components/auth/CircleAuthLayout";
 
 const ERP_ROLES: AppRole[] = ["admin", "gestor", "financeiro", "operacional"];
 
@@ -16,7 +16,6 @@ export default function AuthErp() {
   const { user, roles, loading, signOut } = useAuth();
   const form = useAuthForm();
 
-  // ERP always uses email login
   useEffect(() => {
     form.setLoginMethod("email");
   }, []);
@@ -29,14 +28,13 @@ export default function AuthErp() {
   useEffect(() => {
     if (!user || loading) return;
     if (roles.length === 0) return;
-    
-    // Super admin should be redirected to admin panel
+
     if (roles.includes("super_admin")) {
       navigate("/admin");
       return;
     }
-    
-    const hasAccess = ERP_ROLES.some(r => roles.includes(r));
+
+    const hasAccess = ERP_ROLES.some((r) => roles.includes(r));
     if (!hasAccess) {
       signOut();
       setRoleError(true);
@@ -54,86 +52,79 @@ export default function AuthErp() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/10 to-primary/5 p-4">
-      <Card className="w-full max-w-md border-primary/20">
-        <CardHeader className="text-center space-y-4">
-          <div className="flex justify-center">
-            <div className="h-14 w-14 rounded-xl overflow-hidden shadow-lg">
-              <img src={iconErp} alt="ERP" className="h-14 w-14 object-cover" />
-            </div>
-          </div>
-          <div className="flex items-center justify-center gap-2">
-            <CardTitle className="text-2xl font-bold">GásFácil Pro — ERP</CardTitle>
-          </div>
-          <CardDescription>
-            Sistema de gestão da distribuidora
-          </CardDescription>
-        </CardHeader>
+    <CircleAuthLayout
+      portalKey="erp"
+      title="GásFácil Pro — ERP"
+      subtitle="Sistema de gestão da distribuidora"
+      gradientFrom="220 90% 60%"
+      gradientTo="265 80% 55%"
+      logo={
+        <div className="h-14 w-14 rounded-xl overflow-hidden shadow-lg">
+          <img src={iconErp} alt="ERP" className="h-14 w-14 object-cover" />
+        </div>
+      }
+    >
+      {roleError && (
+        <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+          Esta conta não possui acesso ao sistema de gestão. Use o portal correto para o seu perfil.
+        </div>
+      )}
+      {form.errors.general && (
+        <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+          {form.errors.general}
+        </div>
+      )}
 
-        <CardContent>
-          {roleError && (
-            <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
-              Esta conta não possui acesso ao sistema de gestão. Use o portal correto para o seu perfil.
-            </div>
-          )}
-          {form.errors.general && (
-            <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
-              {form.errors.general}
-            </div>
-          )}
+      <form onSubmit={form.handleLogin} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="erp-email">Email</Label>
+          <Input
+            id="erp-email"
+            type="email"
+            placeholder="Digite seu email"
+            value={form.loginEmail}
+            onChange={(e) => form.setLoginEmail(e.target.value)}
+            disabled={form.isLoading}
+          />
+          {form.errors.email && <p className="text-sm text-destructive">{form.errors.email}</p>}
+        </div>
 
-          <form onSubmit={form.handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="erp-email">Email</Label>
-              <Input
-                id="erp-email"
-                type="email"
-                placeholder="Digite seu email"
-                value={form.loginEmail}
-                onChange={(e) => form.setLoginEmail(e.target.value)}
-                disabled={form.isLoading}
-              />
-              {form.errors.email && <p className="text-sm text-destructive">{form.errors.email}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="erp-password">Senha</Label>
-              <div className="relative">
-                <Input
-                  id="erp-password"
-                  type={form.showPassword ? "text" : "password"}
-                  placeholder="Digite sua senha"
-                  value={form.loginPassword}
-                  onChange={(e) => form.setLoginPassword(e.target.value)}
-                  disabled={form.isLoading}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full px-3"
-                  onClick={() => form.setShowPassword(!form.showPassword)}
-                >
-                  {form.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-              {form.errors.password && <p className="text-sm text-destructive">{form.errors.password}</p>}
-            </div>
-
-            <Button type="submit" className="w-full" disabled={form.isLoading}>
-              {form.isLoading ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</>
-              ) : (
-                "Entrar no Sistema"
-              )}
+        <div className="space-y-2">
+          <Label htmlFor="erp-password">Senha</Label>
+          <div className="relative">
+            <Input
+              id="erp-password"
+              type={form.showPassword ? "text" : "password"}
+              placeholder="Digite sua senha"
+              value={form.loginPassword}
+              onChange={(e) => form.setLoginPassword(e.target.value)}
+              disabled={form.isLoading}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-0 top-0 h-full px-3"
+              onClick={() => form.setShowPassword(!form.showPassword)}
+            >
+              {form.showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
-          </form>
+          </div>
+          {form.errors.password && <p className="text-sm text-destructive">{form.errors.password}</p>}
+        </div>
 
-          <p className="text-center text-xs text-muted-foreground mt-4">
-            Acesso restrito a administradores e operadores
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+        <Button type="submit" className="w-full" disabled={form.isLoading}>
+          {form.isLoading ? (
+            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Entrando...</>
+          ) : (
+            "Entrar no Sistema"
+          )}
+        </Button>
+      </form>
+
+      <p className="text-center text-xs text-muted-foreground mt-4">
+        Acesso restrito a administradores e operadores
+      </p>
+    </CircleAuthLayout>
   );
 }
