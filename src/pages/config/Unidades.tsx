@@ -347,7 +347,7 @@ export default function UnidadesConfig() {
               </DialogTitle>
             </DialogHeader>
             {editingUnidade && (
-              <Tabs defaultValue="geral" className="w-full">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="geral">Geral</TabsTrigger>
                   <TabsTrigger value="endereco">Endereço</TabsTrigger>
