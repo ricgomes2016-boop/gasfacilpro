@@ -58,11 +58,14 @@ export function CallerIdPopup() {
       audio.play().catch(e => console.log("Audio play prevented", e));
     } catch(e) {}
 
-    // Desktop notification when tab is not visible
-    notify(
-      `🚚 Novo Pedido - ${nova.cliente_nome || nova.telefone}`,
-      nova.tipo === "whatsapp" ? "Pedido via WhatsApp recebido" : "Nova chamada recebida",
-    );
+    // Desktop notification SEMPRE (mesmo com aba visível) — garante visibilidade fora do sistema
+    const tituloNotif = nova.pedido_gerado_id
+      ? `🚚 Pedido confirmado - ${nova.cliente_nome || nova.telefone}`
+      : `📞 Bia atendendo - ${nova.cliente_nome || nova.telefone}`;
+    const corpoNotif = nova.pedido_gerado_id
+      ? "A Bia registrou um novo pedido. Toque para visualizar."
+      : "Chamada recebida. A Bia está atendendo o cliente.";
+    notify(tituloNotif, corpoNotif);
 
     if (nova.pedido_gerado_id || nova.cliente_id) {
       const { data } = await supabase
