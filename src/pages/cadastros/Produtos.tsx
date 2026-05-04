@@ -263,6 +263,13 @@ export default function Produtos() {
     },
   });
 
+  const vasilhameOptions = useMemo(
+    () => produtos.filter((p) => p.tipo_botijao === "vazio" && p.id !== editandoProduto?.id),
+    [produtos, editandoProduto?.id]
+  );
+    },
+  });
+
   // Mutation para criar produto (com auto-criação do par vazio)
   const criarProduto = useMutation({
     mutationFn: async (dados: ProdutoForm) => {
