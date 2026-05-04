@@ -44,6 +44,7 @@ export default function UnidadesConfig() {
   const [showSenhaCert, setShowSenhaCert] = useState(false);
   const [showCsc, setShowCsc] = useState(false);
   const [uploadingCert, setUploadingCert] = useState(false);
+  const [activeTab, setActiveTab] = useState("geral");
 
   useEffect(() => {
     fetchUnidades();
