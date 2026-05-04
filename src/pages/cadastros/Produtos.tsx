@@ -267,8 +267,7 @@ export default function Produtos() {
     () => produtos.filter((p) => p.tipo_botijao === "vazio" && p.id !== editandoProduto?.id),
     [produtos, editandoProduto?.id]
   );
-    },
-  });
+
 
   // Mutation para criar produto (com auto-criação do par vazio)
   const criarProduto = useMutation({
