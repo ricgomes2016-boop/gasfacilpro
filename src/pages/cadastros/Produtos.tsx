@@ -360,6 +360,7 @@ export default function Produtos() {
           tipo_botijao: dados.tipo_botijao || null,
           image_url: dados.image_url || null,
           estoque_unico: dados.estoque_unico,
+          ...buildFiscalPayload(dados),
         })
         .eq("id", id)
         .select()
