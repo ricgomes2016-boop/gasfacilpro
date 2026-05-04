@@ -1,32 +1,25 @@
-## Ajustar velocidade da voz da Bia via API ElevenLabs
+## Objetivo
+Quando a Bia identifica o cliente pelo cadastro (via caller-id), ela NÃO deve recitar o endereço completo no telefone. Deve apenas pedir: "me confirma seu endereço" e aguardar o cliente falar. O endereço cadastrado serve só de referência interna — o que o cliente disser prevalece.
 
-Os secrets `ELEVENLABS_API_KEY` e `ELEVENLABS_AGENT_ID` já estão configurados — ou seja, dá pra ajustar **automaticamente** sem você precisar entrar no painel.
+Motivo: as chamadas chegam via encaminhamento (GoTo 0800 → Vonage), e em muitos casos o número que chega é o do operador, não o do cliente real. Mesmo quando há match, o número pode ser de um familiar/antigo morador. Confirmar lendo o endereço em voz alta induz o cliente a dizer "isso" mesmo quando está errado.
 
-### O que vou fazer
+## Mudança técnica
 
-Criar uma edge function `elevenlabs-update-bia-voice` que:
+**Arquivo:** `supabase/functions/elevenlabs-bia-tools/index.ts` (action `identificar_cliente`, linhas ~156-174)
 
-- **GET** → consulta a config TTS atual do agente Bia (mostra `voice_id`, `model_id`, `speed`, `stability` etc.).
-- **POST** com `{ "speed": 0.9 }` → faz `PATCH https://api.elevenlabs.io/v1/convai/agents/{agent_id}` ajustando apenas o bloco `conversation_config.tts.speed`, **preservando** voz, modelo e demais configurações.
+Ajustar o payload de retorno quando o cliente é encontrado:
 
-Aceita parâmetros opcionais:
-- `speed` (0.7–1.2, default `0.9`)
-- `stability` (0–1, opcional)
-- `similarity_boost` (0–1, opcional)
+1. **Remover** a frase em `mensagem` que recita rua/número/bairro.
+2. **Trocar** por instrução para a Bia apenas perguntar: *"Me confirma seu endereço, por favor?"* — sem citar nada do cadastro.
+3. Manter os campos `endereco`, `numero`, `bairro`, `cidade`, `endereco_completo` no JSON de retorno (uso interno do agente, não falado).
+4. Adicionar instrução explícita no campo `mensagem`: *"NÃO leia o endereço cadastrado em voz alta. Pergunte abertamente e compare silenciosamente com o cadastro. Se o cliente ditar um endereço diferente, use o que ele falou."*
 
-### Fluxo de execução (logo após aprovar)
+Para cliente novo (linha 173) — manter como está, já pede o endereço aberto.
 
-1. Crio a function.
-2. Chamo `GET` → te mostro o `speed` atual.
-3. Chamo `POST { "speed": 0.9 }` → reduz 10%.
-4. Te confirmo o resultado (status + valores aplicados).
+## Resultado esperado
+- Bia atende → "Oi, aqui é a Bia, com quem falo?" → cliente diz nome
+- Bia: "Me confirma seu endereço, por favor?"
+- Cliente dita endereço → Bia usa o que foi falado (não o do cadastro) ao criar o pedido
 
-Se quiser outra velocidade (ex. `0.85` mais devagar ainda, ou `0.95` só um toque), é só me dizer no momento.
-
-### Arquivos
-- `supabase/functions/elevenlabs-update-bia-voice/index.ts` — nova function (GET + POST)
-
-### Observações
-- A function NÃO precisa estar em `supabase/config.toml` — Lovable deploya com `verify_jwt = false` por padrão, e ela é uma ferramenta interna chamada por mim.
-- Não mexe no System Prompt nem nas tools — só no parâmetro `tts.speed` do agente.
-- Pode ser deletada depois se você preferir, ou deixada para ajustes futuros.
+## Arquivos alterados
+- `supabase/functions/elevenlabs-bia-tools/index.ts` (1 edit pontual no retorno de `identificar_cliente`)
