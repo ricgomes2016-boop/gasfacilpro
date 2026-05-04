@@ -289,6 +289,7 @@ export default function Produtos() {
           estoque_unico: isEstoqueUnico,
           ativo: true,
           unidade_id: unidadeAtual?.id || null,
+          ...fiscalPayload,
         })
         .select()
         .single();
