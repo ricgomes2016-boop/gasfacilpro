@@ -30,8 +30,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Package, Plus, Search, Edit, Trash2, Flame, Droplets, Box, Loader2, ScanBarcode, Camera, CameraOff, Zap } from "lucide-react";
+import { Package, Plus, Search, Edit, Trash2, Flame, Droplets, Box, Loader2, ScanBarcode, Camera, CameraOff, Zap, FileText, Receipt, Boxes, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
