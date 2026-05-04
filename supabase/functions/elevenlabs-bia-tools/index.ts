@@ -72,6 +72,55 @@ serve(async (req) => {
 
     const { empresa, unidade } = await resolverEmpresaUnidade(supabase, body);
 
+    // ============== Helper: regras de horário/domingo ==============
+    // Espelha src/hooks/useSundayRules.ts (regra do sistema):
+    //  - Domingo: fechamento máximo 14:00, sem entrega de água
+    //  - Demais dias: usa horario_abertura/horario_fechamento da unidade
+    const SUNDAY_MAX_CLOSING = "14:00";
+    async function getRegrasFuncionamento() {
+      const { data: u } = await supabase
+        .from("unidades")
+        .select("horario_abertura, horario_fechamento")
+        .eq("id", unidade.id)
+        .maybeSingle();
+      const opening = u?.horario_abertura || "07:00";
+      let closing = u?.horario_fechamento || "18:00";
+
+      const now = new Date();
+      // Converte para horário de Brasília (UTC-3)
+      const brt = new Date(now.getTime() + (-3 * 60 + now.getTimezoneOffset()) * 60000);
+      const isSunday = brt.getDay() === 0;
+      const currentTime = `${String(brt.getHours()).padStart(2, "0")}:${String(brt.getMinutes()).padStart(2, "0")}`;
+
+      if (isSunday && closing > SUNDAY_MAX_CLOSING) closing = SUNDAY_MAX_CLOSING;
+
+      const isOpen = currentTime >= opening && currentTime < closing;
+      return {
+        isSunday,
+        isOpen,
+        opening,
+        closing,
+        currentTime,
+        waterDeliveryAllowed: !isSunday,
+      };
+    }
+
+    // ============== ACTION: verificar_horario ==============
+    if (action === "verificar_horario") {
+      const r = await getRegrasFuncionamento();
+      let mensagem = "";
+      if (!r.isOpen) {
+        mensagem = r.isSunday
+          ? `LOJA FECHADA. Hoje é domingo: funcionamento somente até ${r.closing} (apenas RETIRADA presencial na portaria, SEM entrega). Horário atual: ${r.currentTime}. Informe ao cliente que não é possível atender agora e ofereça registrar para o próximo horário de abertura (${r.opening}).`
+          : `LOJA FECHADA. Horário de funcionamento: ${r.opening} às ${r.closing}. Horário atual: ${r.currentTime}. Informe educadamente e ofereça anotar o pedido para o próximo dia útil.`;
+      } else if (r.isSunday) {
+        mensagem = `LOJA ABERTA, mas é DOMINGO. Regras especiais: (1) Fechamento HOJE às ${r.closing}. (2) NÃO há entrega de água aos domingos — apenas retirada presencial na portaria. (3) Gás pode ser entregue normalmente. Se o cliente pedir água, informe que aos domingos só há retirada presencial até ${r.closing}.`;
+      } else {
+        mensagem = `Loja aberta. Horário hoje: ${r.opening} às ${r.closing}. Horário atual: ${r.currentTime}. Atendimento normal (gás e água com entrega).`;
+      }
+      return ok({ ...r, mensagem });
+    }
+
     // ============== ACTION: identificar_cliente ==============
     if (action === "identificar_cliente") {
       const telefoneRaw = String(body.telefone || "").replace(/\D/g, "");
@@ -248,6 +297,25 @@ serve(async (req) => {
         prodNorm.includes("CARGA")
       ) nomeProduto = "Gás P13"; // Padrão: "um gás" = P13
       else return err(`Produto não reconhecido: ${produto}. Use P13, P20, P45 ou Água.`);
+
+      // ===== Regras de funcionamento (espelha sistema) =====
+      const regras = await getRegrasFuncionamento();
+      if (!regras.isOpen) {
+        return ok({
+          sucesso: false,
+          fora_horario: true,
+          mensagem: regras.isSunday
+            ? `NÃO crie o pedido. Loja fechada (domingo, fechamento ${regras.closing}). Informe ao cliente: "Hoje é domingo e já encerramos o atendimento às ${regras.closing}. Posso anotar para amanhã a partir das ${regras.opening}?"`
+            : `NÃO crie o pedido. Loja fora do horário (${regras.opening} às ${regras.closing}). Informe educadamente ao cliente e ofereça anotar para o próximo horário de funcionamento.`,
+        });
+      }
+      if (regras.isSunday && nomeProduto === "Água Mineral 20L") {
+        return ok({
+          sucesso: false,
+          domingo_sem_agua: true,
+          mensagem: `NÃO crie o pedido de água. Aos DOMINGOS não há entrega de água — apenas RETIRADA presencial na portaria até ${regras.closing}. Informe ao cliente: "Aos domingos não fazemos entrega de água, somente retirada presencial na portaria até as ${regras.closing}. Posso ajudar com gás?"`,
+        });
+      }
 
       const { data: prod } = await supabase
         .from("produtos")
