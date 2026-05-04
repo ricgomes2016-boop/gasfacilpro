@@ -151,6 +151,36 @@ const initialForm: ProdutoForm = {
   unidade_comercial: "UN",
 };
 
+function parseNumOrNull(v: string): number | null {
+  if (!v || !v.trim()) return null;
+  const n = parseFloat(v.replace(",", "."));
+  return isNaN(n) ? null : n;
+}
+
+function buildFiscalPayload(dados: ProdutoForm) {
+  return {
+    ncm: dados.ncm || null,
+    cest: dados.cest || null,
+    codigo_anp: dados.codigo_anp || null,
+    descricao_anp: dados.descricao_anp || null,
+    unidade_tributavel: dados.unidade_tributavel || null,
+    cfop_saida: dados.cfop_saida || null,
+    cfop_entrada_padrao: dados.cfop_entrada_padrao || null,
+    cst_icms: dados.cst_icms || null,
+    csosn_icms: dados.csosn_icms || null,
+    cst_pis: dados.cst_pis || null,
+    cst_cofins: dados.cst_cofins || null,
+    aliquota_pis: parseNumOrNull(dados.aliquota_pis),
+    aliquota_cofins: parseNumOrNull(dados.aliquota_cofins),
+    aliquota_icms: parseNumOrNull(dados.aliquota_icms),
+    monofasico: !!dados.monofasico,
+    fator_conversao_anp: parseNumOrNull(dados.fator_conversao_anp),
+    produto_vasilhame_id: dados.produto_vasilhame_id && dados.produto_vasilhame_id !== "nenhum" ? dados.produto_vasilhame_id : null,
+    origem_mercadoria: dados.origem_mercadoria || null,
+    unidade_comercial: dados.unidade_comercial || null,
+  };
+}
+
 export default function Produtos() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
