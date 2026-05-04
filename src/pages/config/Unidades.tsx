@@ -284,7 +284,7 @@ export default function UnidadesConfig() {
                       <Badge variant={unidade.tipo === "matriz" ? "default" : "secondary"}>
                         {unidade.tipo === "matriz" ? "Matriz" : "Filial"}
                       </Badge>
-                      <Button size="icon" variant="ghost" onClick={() => setEditingUnidade({ ...unidade })}>
+                      <Button size="icon" variant="ghost" onClick={() => { setActiveTab("geral"); setEditingUnidade({ ...unidade }); }}>
                         <Edit className="h-4 w-4" />
                       </Button>
                     </div>
