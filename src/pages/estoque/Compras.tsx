@@ -212,6 +212,7 @@ export default function Compras() {
     });
     setItens([]);
     setNovoItem({ produto_id: "", quantidade: "1", preco_unitario: "" });
+    setNfFiscal(null);
   };
 
   const handleSave = async () => {
