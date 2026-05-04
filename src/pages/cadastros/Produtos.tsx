@@ -1194,9 +1194,23 @@ export default function Produtos() {
                         </span>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
-                        <Badge variant={produto.ativo ? "default" : "destructive"}>
-                          {produto.ativo ? "Ativo" : "Inativo"}
-                        </Badge>
+                        <div className="flex flex-col gap-1 items-start">
+                          <Badge variant={produto.ativo ? "default" : "destructive"}>
+                            {produto.ativo ? "Ativo" : "Inativo"}
+                          </Badge>
+                          {(!produto.ncm || (produto.categoria === "gas" && !produto.codigo_anp)) && (
+                            <Badge variant="warning" className="gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              Fiscal incompleto
+                            </Badge>
+                          )}
+                          {produto.monofasico && (
+                            <Badge variant="info" className="gap-1">
+                              <Receipt className="h-3 w-3" />
+                              Monofásico
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1 md:gap-2">
