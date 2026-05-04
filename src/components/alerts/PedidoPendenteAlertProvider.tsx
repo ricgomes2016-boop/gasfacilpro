@@ -26,18 +26,23 @@ export function PedidoPendenteAlertProvider() {
     if (!somAtivo) stopAlarm();
   }, [somAtivo, stopAlarm]);
 
-  // Notificação push para pedidos novos
+  // Solicita permissão de notificação automaticamente (uma vez)
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
+
+  // Notificação push para pedidos novos — SEMPRE (mesmo com aba visível)
   useEffect(() => {
     pendentes.forEach((p) => {
       if (!notificadosRef.current.has(p.id)) {
         notificadosRef.current.add(p.id);
-        if (document.hidden) {
-          sendNotification({
-            title: "🛵 Novo Pedido Pendente",
-            body: `${p.cliente_nome} · R$ ${p.valor_total.toFixed(2)}`,
-            tag: `pedido-${p.id}`,
-          });
-        }
+        sendNotification({
+          title: "🛵 Novo Pedido Pendente",
+          body: `${p.cliente_nome} · R$ ${p.valor_total.toFixed(2)} · ${p.itens_resumo}`,
+          tag: `pedido-${p.id}`,
+        });
       }
     });
   }, [pendentes, sendNotification]);

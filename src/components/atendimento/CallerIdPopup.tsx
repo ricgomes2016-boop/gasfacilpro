@@ -58,11 +58,14 @@ export function CallerIdPopup() {
       audio.play().catch(e => console.log("Audio play prevented", e));
     } catch(e) {}
 
-    // Desktop notification when tab is not visible
-    notify(
-      `🚚 Novo Pedido - ${nova.cliente_nome || nova.telefone}`,
-      nova.tipo === "whatsapp" ? "Pedido via WhatsApp recebido" : "Nova chamada recebida",
-    );
+    // Desktop notification SEMPRE (mesmo com aba visível) — garante visibilidade fora do sistema
+    const tituloNotif = nova.pedido_gerado_id
+      ? `🚚 Pedido confirmado - ${nova.cliente_nome || nova.telefone}`
+      : `📞 Bia atendendo - ${nova.cliente_nome || nova.telefone}`;
+    const corpoNotif = nova.pedido_gerado_id
+      ? "A Bia registrou um novo pedido. Toque para visualizar."
+      : "Chamada recebida. A Bia está atendendo o cliente.";
+    notify(tituloNotif, corpoNotif);
 
     if (nova.pedido_gerado_id || nova.cliente_id) {
       const { data } = await supabase
@@ -108,6 +111,13 @@ export function CallerIdPopup() {
     }
   }, [notify]);
 
+  // Auto-request notification permission once
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
+
   useEffect(() => {
     let lastSeenId: string | null = null;
 
@@ -117,7 +127,6 @@ export function CallerIdPopup() {
         .from("chamadas_recebidas")
         .select("*")
         .eq("status", "recebida")
-        .not("pedido_gerado_id", "is", null)
         .gte("created_at", since)
         .order("created_at", { ascending: false })
         .limit(1);
@@ -138,12 +147,18 @@ export function CallerIdPopup() {
         { event: "*", schema: "public", table: "chamadas_recebidas" },
         async (payload) => {
           const nova = (payload.new || payload.old) as ChamadaRecebida;
-          // Só dispara o popup quando a ligação tiver um pedido efetivamente gerado pela Bia.
-          // Ligações apenas recebidas (sem pedido confirmado) não interrompem o ERP.
-          if (!nova?.pedido_gerado_id) return;
-          if (nova.id === lastSeenId) return;
-          lastSeenId = nova.id;
-          handleNovaChamada(nova);
+          if (!nova?.id) return;
+          // Atualização: pedido foi linkado a uma chamada já exibida → atualiza o card atual
+          if (payload.eventType === "UPDATE" && nova.pedido_gerado_id) {
+            handleNovaChamada(nova);
+            return;
+          }
+          // Nova chamada recebida (com ou sem pedido) → mostra popup imediato
+          if (payload.eventType === "INSERT" && nova.status === "recebida") {
+            if (nova.id === lastSeenId) return;
+            lastSeenId = nova.id;
+            handleNovaChamada(nova);
+          }
         }
       )
       .subscribe();
@@ -265,7 +280,9 @@ export function CallerIdPopup() {
           ) : (
             <div className="h-20 flex items-center justify-center bg-muted/30 rounded-lg border border-dashed text-center p-4">
               <p className="text-xs text-muted-foreground italic">
-                {chamada.cliente_id ? "Buscando dados do pedido..." : "Aguardando detalhes da Bia..."}
+                {chamada.pedido_gerado_id
+                  ? "Buscando dados do pedido..."
+                  : "📞 Bia em atendimento — aguardando o cliente confirmar o pedido..."}
               </p>
             </div>
           )}

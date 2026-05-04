@@ -540,6 +540,46 @@ serve(async (req) => {
         preco_unitario: precoUnitario,
       });
 
+      // === Linka a chamada (Bia voip) ao pedido para disparar CallerIdPopup via realtime
+      try {
+        const desdeChamadaIso = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const { data: chamadaRecente } = await supabase
+          .from("chamadas_recebidas")
+          .select("id")
+          .eq("unidade_id", unidade.id)
+          .eq("tipo", "voip")
+          .is("pedido_gerado_id", null)
+          .gte("created_at", desdeChamadaIso)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (chamadaRecente?.id) {
+          await supabase
+            .from("chamadas_recebidas")
+            .update({
+              pedido_gerado_id: pedido.id,
+              cliente_id: finalClienteId,
+              cliente_nome: nome || null,
+            })
+            .eq("id", chamadaRecente.id);
+        } else {
+          // Sem chamada prévia (ex.: criar_pedido direto): cria linha para disparar popup
+          await supabase.from("chamadas_recebidas").insert({
+            telefone: String(telefone || "").replace(/\D/g, "") || null,
+            cliente_id: finalClienteId,
+            cliente_nome: nome || null,
+            tipo: "voip",
+            status: "recebida",
+            unidade_id: unidade.id,
+            pedido_gerado_id: pedido.id,
+            observacoes: "Pedido criado pela Bia (IA)",
+          });
+        }
+      } catch (linkErr) {
+        console.error("[ELEVENLABS-BIA] Erro linkando chamada ao pedido:", linkErr);
+      }
+
       const pagamentoLabel =
         formaPgto === "a_definir"
           ? "a combinar com o entregador"

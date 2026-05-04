@@ -1,68 +1,65 @@
-## Objetivo
-1. **Preço**: A Bia deve usar a `tabela_precos` configurada em **Configurações → Regras da Bia** (e não o `preco_telefone`/`preco` da tabela `produtos`).
-2. **Latência**: Reduzir o tempo de espera entre o cliente terminar de falar e a Bia responder (configuração de turn-taking no agente ElevenLabs).
 
----
+## Problema identificado
 
-## Mudanças
+O popup da Bia (ligação + pedido criado) não está aparecendo por **3 bugs encontrados na investigação**:
 
-### 1. Fonte de preço = Regras da Bia (`configuracoes_empresa.regras_bia.tabela_precos`)
+### Bug 1 — `identificar_cliente` não dispara o popup
+Em `supabase/functions/elevenlabs-bia-tools/index.ts` (linhas 209 e 243), quando a Bia recebe a chamada e identifica o cliente, ela insere em `chamadas_recebidas` **sem `pedido_gerado_id`** (fica `null`).
 
-**Arquivo:** `supabase/functions/elevenlabs-bia-tools/index.ts`
-
-**a)** Adicionar helper `getTabelaPrecosBia()` que carrega `regras_bia.tabela_precos` da tabela `configuracoes_empresa` da empresa Central Gás (já fixa via `EMPRESA_BIA_ID`).
-
-**b)** Mapeamento produto → chave da tabela:
-- `Gás P13` → `gas_p13`
-- `Gás P20` → `gas_p20`
-- `Gás P45` → `gas_p45`
-- `Água Mineral 20L` → `agua_20l`
-
-**c)** Em `criar_pedido` (linha ~330), trocar a ordem de prioridade do preço para:
-1. **`tabela_precos[chave].preco`** das Regras da Bia (fonte primária)
-2. Fallback: `preco_telefone` do produto
-3. Fallback final: `preco` do produto
-4. **Manter** o "último preço cobrado ao cliente" apenas se existir e for maior que zero (para preservar acordos com clientes recorrentes) — ou remover, conforme decisão do usuário (ver nota).
-
-**d)** Adicionar nova action **`consultar_precos`** (opcional, mas útil): retorna a tabela de preços formatada para a Bia ler na hora que o cliente perguntar "quanto é o gás?". Hoje a Bia inventa ou usa preço antigo do cadastro.
-
-**e)** Registrar tool `consultar_precos` no agente ElevenLabs via API (PATCH em `/v1/convai/agents/{id}`) apontando para a mesma edge function (`elevenlabs-bia-tools` com `action=consultar_precos`).
-
-**Nota sobre "último preço do cliente":** hoje, se o cliente já comprou antes, a Bia usa o preço da última compra dele. Isso pode causar divergência com a tabela das Regras. **Recomendo manter** apenas como referência mas priorizar a tabela das Regras (que é a "fonte da verdade" agora). Confirmar na implementação.
-
----
-
-### 2. Reduzir tempo de espera após o cliente falar
-
-A latência depois que o cliente termina de falar é controlada por dois parâmetros do agente ElevenLabs (`conversation_config.turn`):
-
-- **`turn_timeout`** (segundos de silêncio antes da Bia decidir que o cliente terminou) — atualmente provavelmente em 7-10s (default). Reduzir para **2s**.
-- **`silence_end_call_timeout`** — não mexer (é para encerrar ligação).
-- **`mode`**: garantir `turn`/`silence` rápido.
-
-Adicional:
-- **`asr.user_input_audio_format`**: manter, mas validar.
-- **`tts.optimize_streaming_latency`**: subir para `3` ou `4` (mais latência de qualidade vs. mais rápido). Vamos para `3`.
-
-**Como aplicar:** PATCH em `https://api.elevenlabs.io/v1/convai/agents/{ELEVENLABS_AGENT_ID}` com:
-```json
-{
-  "conversation_config": {
-    "turn": { "turn_timeout": 2, "mode": "turn" },
-    "tts": { "optimize_streaming_latency": 3 }
-  }
-}
+Mas o `CallerIdPopup` (linhas 120 e 143 de `src/components/atendimento/CallerIdPopup.tsx`) só mostra o popup se `pedido_gerado_id IS NOT NULL`:
+```ts
+.not("pedido_gerado_id", "is", null)
+...
+if (!nova?.pedido_gerado_id) return;
 ```
+Resultado: a chamada chega, mas o popup nunca aparece durante a ligação.
 
-Executado via script Python one-off (mesmo padrão das atualizações anteriores de voz/prompt). Não precisa criar UI.
+### Bug 2 — `criar_pedido` não atualiza a chamada com o pedido gerado
+Quando a Bia cria o pedido (linha 485 de `elevenlabs-bia-tools/index.ts`), ela **não faz UPDATE em `chamadas_recebidas`** linkando o `pedido_gerado_id`. Por isso, mesmo após criar o pedido, o realtime não dispara o popup (a linha existente continua com `pedido_gerado_id = null`).
+
+### Bug 3 — Pedidos da Bia são filtrados do alerta de pendentes
+Em `src/hooks/usePedidosPendentesAlert.ts` linha 49:
+```ts
+.filter((p: any) => p.canal_venda !== "telefone_ia")
+```
+Pedidos com canal `telefone_ia` (criados pela Bia) são removidos do alerta de pedidos pendentes — então **nenhum dos dois popups** aparece.
+
+### Bug 4 — Notificação desktop não dispara quando o sistema está em background
+- O `useDesktopNotification` só dispara se `Notification.permission === "granted"` — pode não ter sido pedida.
+- O service worker está desabilitado em iframe/preview (`src/main.tsx`), o que é correto, mas em produção precisa estar registrado para a notificação aparecer com o app fechado.
 
 ---
 
-## Resumo dos arquivos alterados
-- `supabase/functions/elevenlabs-bia-tools/index.ts` — nova action `consultar_precos`, prioridade de preço pela tabela das Regras da Bia.
-- **API ElevenLabs** (script one-off, sem código persistente): registra a tool `consultar_precos` e ajusta `turn_timeout=2` + `optimize_streaming_latency=3`.
+## Plano de correção
+
+### 1. Edge Function `elevenlabs-bia-tools/index.ts`
+- Após `criar_pedido` ter sucesso (após linha 541), fazer UPDATE em `chamadas_recebidas`:
+  - Buscar a última chamada `tipo='voip'` da unidade nos últimos 10 minutos sem `pedido_gerado_id`
+  - Atualizar com `pedido_gerado_id = pedido.id` e `cliente_id = finalClienteId`
+  - Isso dispara o realtime e o `CallerIdPopup` aparece com os dados do pedido recém-criado.
+
+### 2. `src/components/atendimento/CallerIdPopup.tsx`
+- Mostrar o popup **também durante a ligação** (sem `pedido_gerado_id`), não só após criar pedido. Mudar o filtro para mostrar qualquer chamada `recebida` recente, mas com visual "Bia atendendo…" enquanto o pedido não veio. Quando o realtime trouxer o UPDATE com `pedido_gerado_id`, atualizar o card no mesmo lugar com os detalhes do pedido.
+- Tocar o som de campainha já no início da chamada.
+- Solicitar permissão de notificação desktop automaticamente na primeira montagem (se `permission === "default"`).
+
+### 3. `src/hooks/usePedidosPendentesAlert.ts`
+- Remover o filtro `p.canal_venda !== "telefone_ia"` (linha 49), para que pedidos criados pela Bia também entrem no alerta global de pedidos pendentes — assim, mesmo se o `CallerIdPopup` for fechado, o `PedidoPendenteModal` continua chamando atenção até o atendente aceitar.
+
+### 4. `src/components/alerts/PedidoPendenteAlertProvider.tsx` + `useDesktopNotification`
+- Disparar a notificação desktop **sempre** que chega novo pedido (não só quando `document.hidden`), com `requireInteraction: true` e som — para garantir visibilidade quando o usuário não está no sistema.
+- Pedir `Notification.requestPermission()` automaticamente ao montar o provider, uma única vez.
+- Garantir que o `tag` seja único por pedido (já está via `pedido-${p.id}`), permitindo múltiplas notificações empilhadas.
+
+### 5. Service Worker (`src/sw.js` / `vite.config.ts`)
+- Confirmar que o service worker está registrado em produção (já está em `main.tsx`) e que `showNotification` é chamada via `registration.showNotification` (já está em `useDesktopNotification.ts`) — isso permite a notificação aparecer mesmo com a aba fechada/minimizada.
+- Adicionar handler `notificationclick` no SW para focar/abrir a aba `/vendas/pedidos` ao clicar.
+
+---
 
 ## Resultado esperado
-- Cliente: "Quanto é o P13?" → Bia consulta `consultar_precos` → responde com o preço exato configurado em Regras da Bia.
-- Cliente termina de falar → Bia responde em ~2s (vs. ~7s hoje).
-- Pedidos criados usam preço da tabela das Regras (não mais do cadastro de produtos).
+
+1. **Durante a ligação**: assim que a Bia atende, popup aparece no canto inferior direito com "Bia atendendo — {telefone/cliente}".
+2. **Quando o pedido é criado**: o mesmo popup atualiza para mostrar produto, valor, endereço e botão "REPASSAR ENTREGADOR". Toca som.
+3. **Se o usuário estiver em outra aba/app**: notificação desktop com som aparece, clicável, levando direto para `/vendas/pedidos`.
+4. **Persistência**: mesmo que feche o popup, o `PedidoPendenteModal` continua alertando até o atendente aceitar.
