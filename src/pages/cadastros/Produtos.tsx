@@ -239,6 +239,7 @@ export default function Produtos() {
       const categoria = dados.categoria || null;
       const isEstoqueUnico = dados.estoque_unico;
       const isBotijaoOuAgua = !isEstoqueUnico && (categoria === "gas" || categoria === "agua") && tipoBotijao === "cheio";
+      const fiscalPayload = buildFiscalPayload(dados);
 
       // Criar produto cheio
       const { data: produtoCheio, error } = await supabase
