@@ -266,26 +266,43 @@ export default function Compras() {
       }
     }
 
-    // Create new products if needed
-    const resolvedItens: { produto_id: string; quantidade: number; preco_unitario: number }[] = [];
+    // Create new products if needed (com dados fiscais do XML quando disponíveis)
+    const resolvedItens: { produto_id: string; quantidade: number; preco_unitario: number; fiscal?: ItemFiscal }[] = [];
     for (const item of itens) {
       let prodId = item.produto_id;
       if (item.is_new && item.produto_nome) {
-        const { data: newProd, error: prodError } = await supabase.from("produtos").insert({
+        const f = item.fiscal || {};
+        const isMonofasico = (f.cst_pis === "04" || f.cst_cofins === "04" || (f.codigo_anp || "").startsWith("21"));
+        const isGas = /g[áa]s|glp|p[\s-]?13|p[\s-]?20|p[\s-]?45/i.test(item.produto_nome);
+        const { data: newProd, error: prodError } = await (supabase as any).from("produtos").insert({
           nome: item.produto_nome,
           preco: item.preco_unitario,
           ativo: true,
           unidade_id: unidadeAtual?.id || null,
+          categoria: isGas ? "gas" : null,
+          ncm: f.ncm || null,
+          cest: f.cest || null,
+          cfop_entrada_padrao: f.cfop || null,
+          codigo_anp: f.codigo_anp || null,
+          cst_icms: f.cst_icms || null,
+          csosn_icms: f.csosn_icms || null,
+          cst_pis: f.cst_pis || null,
+          cst_cofins: f.cst_cofins || null,
+          aliquota_pis: f.aliquota_pis ?? null,
+          aliquota_cofins: f.aliquota_cofins ?? null,
+          unidade_tributavel: f.unidade_xml || null,
+          monofasico: isMonofasico,
         }).select("id").single();
 
         if (prodError) { toast.error("Erro ao cadastrar produto: " + prodError.message); return; }
         prodId = newProd.id;
         toast.success(`Produto "${item.produto_nome}" cadastrado!`);
       }
-      resolvedItens.push({ produto_id: prodId, quantidade: item.quantidade, preco_unitario: item.preco_unitario });
+      resolvedItens.push({ produto_id: prodId, quantidade: item.quantidade, preco_unitario: item.preco_unitario, fiscal: item.fiscal });
     }
 
-    const { data: compra, error } = await supabase.from("compras").insert({
+    const nf = nfFiscal || {};
+    const { data: compra, error } = await (supabase as any).from("compras").insert({
       fornecedor_id: fornecedorId,
       unidade_id: unidadeAtual?.id || null,
       valor_total: totalCompra,
@@ -297,6 +314,26 @@ export default function Compras() {
       data_pagamento: form.data_pagamento || null,
       observacoes: form.observacoes || null,
       status: "pendente",
+      serie: nf.serie || null,
+      modelo: nf.modelo || null,
+      natureza_operacao: nf.natureza_operacao || null,
+      cfop_predominante: nf.cfop_predominante || null,
+      valor_produtos: nf.valor_produtos ?? null,
+      valor_desconto: nf.valor_desconto ?? null,
+      valor_seguro: nf.valor_seguro ?? null,
+      valor_outros: nf.valor_outros ?? null,
+      valor_icms: nf.valor_icms ?? null,
+      valor_icms_st: nf.valor_icms_st ?? null,
+      valor_ipi: nf.valor_ipi ?? null,
+      valor_pis: nf.valor_pis ?? null,
+      valor_cofins: nf.valor_cofins ?? null,
+      base_icms: nf.base_icms ?? null,
+      base_icms_st: nf.base_icms_st ?? null,
+      transportadora_nome: nf.transportadora_nome || null,
+      transportadora_cnpj: nf.transportadora_cnpj || null,
+      placa_veiculo: nf.placa_veiculo || null,
+      modalidade_frete: nf.modalidade_frete || null,
+      xml_content: nf.xml_content || null,
     }).select("id").single();
 
     if (error) { toast.error("Erro: " + error.message); return; }
@@ -307,8 +344,26 @@ export default function Compras() {
         produto_id: i.produto_id,
         quantidade: i.quantidade,
         preco_unitario: i.preco_unitario,
+        descricao_xml: i.fiscal?.descricao_xml || null,
+        codigo_produto_fornecedor: i.fiscal?.codigo_produto_fornecedor || null,
+        unidade_xml: i.fiscal?.unidade_xml || null,
+        ncm: i.fiscal?.ncm || null,
+        cest: i.fiscal?.cest || null,
+        cfop: i.fiscal?.cfop || null,
+        codigo_anp: i.fiscal?.codigo_anp || null,
+        cst_icms: i.fiscal?.cst_icms || null,
+        csosn_icms: i.fiscal?.csosn_icms || null,
+        cst_pis: i.fiscal?.cst_pis || null,
+        cst_cofins: i.fiscal?.cst_cofins || null,
+        aliquota_icms: i.fiscal?.aliquota_icms ?? null,
+        aliquota_pis: i.fiscal?.aliquota_pis ?? null,
+        aliquota_cofins: i.fiscal?.aliquota_cofins ?? null,
+        valor_icms: i.fiscal?.valor_icms ?? null,
+        valor_pis: i.fiscal?.valor_pis ?? null,
+        valor_cofins: i.fiscal?.valor_cofins ?? null,
+        valor_desconto: i.fiscal?.valor_desconto ?? null,
       }));
-      const { error: itensError } = await supabase.from("compra_itens").insert(itensData);
+      const { error: itensError } = await (supabase as any).from("compra_itens").insert(itensData);
       if (itensError) { toast.error("Erro nos itens: " + itensError.message); }
 
       // Atualizar estoque dos produtos comprados
