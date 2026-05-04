@@ -200,15 +200,7 @@ Deno.serve(async (req) => {
   }
 
   const ncco: any[] = [
-    // Tiny audible confirmation so the customer always hears something even
-    // if the SIP leg fails. Helps isolate "carrier delivered audio" vs "SIP fail".
-    {
-      action: 'talk',
-      text: 'Conectando você a Central Gás, um momento.',
-      language: 'pt-BR',
-      style: 2,
-      bargeIn: false,
-    },
+    // Encaminhamento direto ao agente da Bia — sem mensagem intermediária.
     {
       action: 'connect',
       from,

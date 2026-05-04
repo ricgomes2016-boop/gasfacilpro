@@ -170,7 +170,7 @@ serve(async (req) => {
 
       return ok({
         encontrado: false,
-        mensagem: "Cliente novo. Peça o nome completo e endereço (rua, número, bairro).",
+        mensagem: "Cliente novo. Peça apenas o PRIMEIRO NOME (não o nome completo) e o endereço (rua, número, bairro).",
       });
     }
 
