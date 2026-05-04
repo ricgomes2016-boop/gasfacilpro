@@ -164,7 +164,12 @@ serve(async (req) => {
           numero: c.numero,
           bairro: c.bairro,
           cidade: c.cidade,
-          mensagem: `Cliente encontrado: ${c.nome}. Endereço: ${c.endereco || "não cadastrado"}, ${c.numero || ""} - ${c.bairro || ""}. Confirme o endereço com o cliente.`,
+          mensagem:
+            `Cliente identificado no cadastro: ${c.nome}. ` +
+            `IMPORTANTE: NÃO leia o endereço cadastrado em voz alta. ` +
+            `A chamada chega via encaminhamento (0800), então o número pode não ser do cliente real. ` +
+            `Pergunte abertamente: "Me confirma seu endereço, por favor?" e aguarde o cliente ditar. ` +
+            `Compare silenciosamente com o cadastro. Se o cliente ditar um endereço diferente, use SEMPRE o que ele falou (não o cadastrado) ao criar o pedido.`,
         });
       }
 
