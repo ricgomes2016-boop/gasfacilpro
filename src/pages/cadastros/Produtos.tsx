@@ -538,6 +538,13 @@ export default function Produtos() {
                     : "Preencha os dados para cadastrar um novo produto."}
                 </DialogDescription>
               </DialogHeader>
+              <Tabs defaultValue="geral" className="mt-4">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="geral" className="gap-1.5"><Package className="h-3.5 w-3.5" />Geral</TabsTrigger>
+                  <TabsTrigger value="fiscal" className="gap-1.5"><Receipt className="h-3.5 w-3.5" />Fiscal</TabsTrigger>
+                  <TabsTrigger value="vasilhame" className="gap-1.5"><Boxes className="h-3.5 w-3.5" />Vasilhame</TabsTrigger>
+                </TabsList>
+                <TabsContent value="geral">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div className="space-y-2 md:col-span-2">
                   <Label>Nome do Produto *</Label>
