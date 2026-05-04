@@ -108,6 +108,13 @@ export function CallerIdPopup() {
     }
   }, [notify]);
 
+  // Auto-request notification permission once
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
+
   useEffect(() => {
     let lastSeenId: string | null = null;
 
@@ -117,7 +124,6 @@ export function CallerIdPopup() {
         .from("chamadas_recebidas")
         .select("*")
         .eq("status", "recebida")
-        .not("pedido_gerado_id", "is", null)
         .gte("created_at", since)
         .order("created_at", { ascending: false })
         .limit(1);
@@ -138,12 +144,18 @@ export function CallerIdPopup() {
         { event: "*", schema: "public", table: "chamadas_recebidas" },
         async (payload) => {
           const nova = (payload.new || payload.old) as ChamadaRecebida;
-          // Só dispara o popup quando a ligação tiver um pedido efetivamente gerado pela Bia.
-          // Ligações apenas recebidas (sem pedido confirmado) não interrompem o ERP.
-          if (!nova?.pedido_gerado_id) return;
-          if (nova.id === lastSeenId) return;
-          lastSeenId = nova.id;
-          handleNovaChamada(nova);
+          if (!nova?.id) return;
+          // Atualização: pedido foi linkado a uma chamada já exibida → atualiza o card atual
+          if (payload.eventType === "UPDATE" && nova.pedido_gerado_id) {
+            handleNovaChamada(nova);
+            return;
+          }
+          // Nova chamada recebida (com ou sem pedido) → mostra popup imediato
+          if (payload.eventType === "INSERT" && nova.status === "recebida") {
+            if (nova.id === lastSeenId) return;
+            lastSeenId = nova.id;
+            handleNovaChamada(nova);
+          }
         }
       )
       .subscribe();
