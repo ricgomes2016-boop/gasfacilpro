@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
@@ -30,8 +30,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Package, Plus, Search, Edit, Trash2, Flame, Droplets, Box, Loader2, ScanBarcode, Camera, CameraOff, Zap } from "lucide-react";
+import { Package, Plus, Search, Edit, Trash2, Flame, Droplets, Box, Loader2, ScanBarcode, Camera, CameraOff, Zap, FileText, Receipt, Boxes, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -57,6 +58,26 @@ interface Produto {
   tipo_botijao: string | null;
   image_url: string | null;
   estoque_unico: boolean;
+  // Fiscal
+  ncm?: string | null;
+  cest?: string | null;
+  codigo_anp?: string | null;
+  descricao_anp?: string | null;
+  unidade_tributavel?: string | null;
+  cfop_saida?: string | null;
+  cfop_entrada_padrao?: string | null;
+  cst_icms?: string | null;
+  csosn_icms?: string | null;
+  cst_pis?: string | null;
+  cst_cofins?: string | null;
+  aliquota_pis?: number | null;
+  aliquota_cofins?: number | null;
+  aliquota_icms?: number | null;
+  monofasico?: boolean | null;
+  fator_conversao_anp?: number | null;
+  produto_vasilhame_id?: string | null;
+  origem_mercadoria?: string | null;
+  unidade_comercial?: string | null;
 }
 
 interface ProdutoForm {
@@ -73,6 +94,26 @@ interface ProdutoForm {
   tipo_botijao: string;
   image_url: string | null;
   estoque_unico: boolean;
+  // Fiscal
+  ncm: string;
+  cest: string;
+  codigo_anp: string;
+  descricao_anp: string;
+  unidade_tributavel: string;
+  cfop_saida: string;
+  cfop_entrada_padrao: string;
+  cst_icms: string;
+  csosn_icms: string;
+  cst_pis: string;
+  cst_cofins: string;
+  aliquota_pis: string;
+  aliquota_cofins: string;
+  aliquota_icms: string;
+  monofasico: boolean;
+  fator_conversao_anp: string;
+  produto_vasilhame_id: string;
+  origem_mercadoria: string;
+  unidade_comercial: string;
 }
 
 const initialForm: ProdutoForm = {
@@ -89,7 +130,56 @@ const initialForm: ProdutoForm = {
   tipo_botijao: "",
   image_url: null,
   estoque_unico: false,
+  ncm: "",
+  cest: "",
+  codigo_anp: "",
+  descricao_anp: "",
+  unidade_tributavel: "KG",
+  cfop_saida: "",
+  cfop_entrada_padrao: "",
+  cst_icms: "",
+  csosn_icms: "",
+  cst_pis: "",
+  cst_cofins: "",
+  aliquota_pis: "0",
+  aliquota_cofins: "0",
+  aliquota_icms: "0",
+  monofasico: false,
+  fator_conversao_anp: "",
+  produto_vasilhame_id: "nenhum",
+  origem_mercadoria: "0",
+  unidade_comercial: "UN",
 };
+
+function parseNumOrNull(v: string): number | null {
+  if (!v || !v.trim()) return null;
+  const n = parseFloat(v.replace(",", "."));
+  return isNaN(n) ? null : n;
+}
+
+function buildFiscalPayload(dados: ProdutoForm) {
+  return {
+    ncm: dados.ncm || null,
+    cest: dados.cest || null,
+    codigo_anp: dados.codigo_anp || null,
+    descricao_anp: dados.descricao_anp || null,
+    unidade_tributavel: dados.unidade_tributavel || null,
+    cfop_saida: dados.cfop_saida || null,
+    cfop_entrada_padrao: dados.cfop_entrada_padrao || null,
+    cst_icms: dados.cst_icms || null,
+    csosn_icms: dados.csosn_icms || null,
+    cst_pis: dados.cst_pis || null,
+    cst_cofins: dados.cst_cofins || null,
+    aliquota_pis: parseNumOrNull(dados.aliquota_pis),
+    aliquota_cofins: parseNumOrNull(dados.aliquota_cofins),
+    aliquota_icms: parseNumOrNull(dados.aliquota_icms),
+    monofasico: !!dados.monofasico,
+    fator_conversao_anp: parseNumOrNull(dados.fator_conversao_anp),
+    produto_vasilhame_id: dados.produto_vasilhame_id && dados.produto_vasilhame_id !== "nenhum" ? dados.produto_vasilhame_id : null,
+    origem_mercadoria: dados.origem_mercadoria || null,
+    unidade_comercial: dados.unidade_comercial || null,
+  };
+}
 
 export default function Produtos() {
   const { toast } = useToast();
@@ -101,7 +191,8 @@ export default function Produtos() {
   const { unidadeAtual } = useUnidade();
   const [scannerAtivo, setScannerAtivo] = useState(false);
   const [scanFeedback, setScanFeedback] = useState<string | null>(null);
-  
+
+
   // Import states
   const [importItems, setImportItems] = useState<Array<{
     nome: string; categoria: string; preco: number; estoque: number;
@@ -172,6 +263,12 @@ export default function Produtos() {
     },
   });
 
+  const vasilhameOptions = useMemo(
+    () => produtos.filter((p) => p.tipo_botijao === "vazio" && p.id !== editandoProduto?.id),
+    [produtos, editandoProduto?.id]
+  );
+
+
   // Mutation para criar produto (com auto-criação do par vazio)
   const criarProduto = useMutation({
     mutationFn: async (dados: ProdutoForm) => {
@@ -179,6 +276,7 @@ export default function Produtos() {
       const categoria = dados.categoria || null;
       const isEstoqueUnico = dados.estoque_unico;
       const isBotijaoOuAgua = !isEstoqueUnico && (categoria === "gas" || categoria === "agua") && tipoBotijao === "cheio";
+      const fiscalPayload = buildFiscalPayload(dados);
 
       // Criar produto cheio
       const { data: produtoCheio, error } = await supabase
@@ -198,6 +296,7 @@ export default function Produtos() {
           estoque_unico: isEstoqueUnico,
           ativo: true,
           unidade_id: unidadeAtual?.id || null,
+          ...fiscalPayload,
         })
         .select()
         .single();
@@ -268,6 +367,7 @@ export default function Produtos() {
           tipo_botijao: dados.tipo_botijao || null,
           image_url: dados.image_url || null,
           estoque_unico: dados.estoque_unico,
+          ...buildFiscalPayload(dados),
         })
         .eq("id", id)
         .select()
@@ -331,6 +431,7 @@ export default function Produtos() {
   const handleEditar = (produto: Produto) => {
     setEditandoProduto(produto);
     setForm({
+      ...initialForm,
       nome: produto.nome,
       categoria: produto.categoria || "",
       preco: produto.preco.toString().replace(".", ","),
@@ -344,6 +445,25 @@ export default function Produtos() {
       tipo_botijao: produto.tipo_botijao || "",
       image_url: produto.image_url || null,
       estoque_unico: produto.estoque_unico ?? false,
+      ncm: produto.ncm || "",
+      cest: produto.cest || "",
+      codigo_anp: produto.codigo_anp || "",
+      descricao_anp: produto.descricao_anp || "",
+      unidade_tributavel: produto.unidade_tributavel || "KG",
+      cfop_saida: produto.cfop_saida || "",
+      cfop_entrada_padrao: produto.cfop_entrada_padrao || "",
+      cst_icms: produto.cst_icms || "",
+      csosn_icms: produto.csosn_icms || "",
+      cst_pis: produto.cst_pis || "",
+      cst_cofins: produto.cst_cofins || "",
+      aliquota_pis: (produto.aliquota_pis ?? 0).toString().replace(".", ","),
+      aliquota_cofins: (produto.aliquota_cofins ?? 0).toString().replace(".", ","),
+      aliquota_icms: (produto.aliquota_icms ?? 0).toString().replace(".", ","),
+      monofasico: produto.monofasico ?? false,
+      fator_conversao_anp: (produto.fator_conversao_anp ?? "").toString().replace(".", ","),
+      produto_vasilhame_id: produto.produto_vasilhame_id || "nenhum",
+      origem_mercadoria: produto.origem_mercadoria || "0",
+      unidade_comercial: produto.unidade_comercial || "UN",
     });
     setDialogAberto(true);
   };
@@ -425,6 +545,13 @@ export default function Produtos() {
                     : "Preencha os dados para cadastrar um novo produto."}
                 </DialogDescription>
               </DialogHeader>
+              <Tabs defaultValue="geral" className="mt-4">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="geral" className="gap-1.5"><Package className="h-3.5 w-3.5" />Geral</TabsTrigger>
+                  <TabsTrigger value="fiscal" className="gap-1.5"><Receipt className="h-3.5 w-3.5" />Fiscal</TabsTrigger>
+                  <TabsTrigger value="vasilhame" className="gap-1.5"><Boxes className="h-3.5 w-3.5" />Vasilhame</TabsTrigger>
+                </TabsList>
+                <TabsContent value="geral">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div className="space-y-2 md:col-span-2">
                   <Label>Nome do Produto *</Label>
@@ -441,11 +568,24 @@ export default function Produtos() {
                     onValueChange={(value) => {
                       const isBotijaoCategoria = value === "gas" || value === "agua";
                       const isAcessorioOuOutro = value === "acessorio" || value === "outro";
+                      const isGas = value === "gas";
+                      const isAcessorio = value === "acessorio";
                       setForm({
                         ...form,
                         categoria: value,
                         tipo_botijao: isBotijaoCategoria ? "cheio" : form.tipo_botijao,
                         estoque_unico: isAcessorioOuOutro ? true : false,
+                        // Smart defaults fiscais
+                        ncm: form.ncm || (isGas ? "27111910" : isAcessorio ? "" : form.ncm),
+                        cest: form.cest || (isGas ? "0600600" : form.cest),
+                        cfop_saida: form.cfop_saida || (isGas ? "5656" : isAcessorio ? "5102" : form.cfop_saida),
+                        cfop_entrada_padrao: form.cfop_entrada_padrao || (isGas ? "1652" : form.cfop_entrada_padrao),
+                        unidade_tributavel: isGas ? "KG" : form.unidade_tributavel,
+                        monofasico: isGas ? true : form.monofasico,
+                        cst_pis: isGas ? "04" : form.cst_pis,
+                        cst_cofins: isGas ? "04" : form.cst_cofins,
+                        aliquota_pis: isGas ? "0" : form.aliquota_pis,
+                        aliquota_cofins: isGas ? "0" : form.aliquota_cofins,
                       });
                     }}
                   >
@@ -647,6 +787,241 @@ export default function Produtos() {
                   />
                 </div>
               </div>
+                </TabsContent>
+
+                <TabsContent value="fiscal" className="mt-4 space-y-4">
+                  <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-muted-foreground">
+                      <strong className="text-foreground">GLP / Combustíveis:</strong> use NCM 2711.19.10, CFOP 5656, CST PIS/COFINS 04 (Monofásico) e informe Código ANP. Acessórios: NCM próprio, CFOP 5102, tributação normal.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-lg border border-input p-3 bg-primary/5">
+                    <div>
+                      <Label className="text-sm font-medium flex items-center gap-2">
+                        <Flame className="h-4 w-4 text-warning" />
+                        Regime Monofásico (GLP / Combustíveis)
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Aplica CST PIS/COFINS 04 (alíquota zero - tributado na origem) automaticamente.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={form.monofasico}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setForm({
+                            ...form,
+                            monofasico: true,
+                            cst_pis: "04",
+                            cst_cofins: "04",
+                            aliquota_pis: "0",
+                            aliquota_cofins: "0",
+                            unidade_tributavel: form.unidade_tributavel || "KG",
+                          });
+                        } else {
+                          setForm({ ...form, monofasico: false });
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>NCM *</Label>
+                      <Input
+                        placeholder="2711.19.10"
+                        value={form.ncm}
+                        onChange={(e) => setForm({ ...form, ncm: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>CEST</Label>
+                      <Input
+                        placeholder="06.006.00"
+                        value={form.cest}
+                        onChange={(e) => setForm({ ...form, cest: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Código ANP {form.monofasico && "*"}</Label>
+                      <Input
+                        placeholder="210203001 (GLP P13)"
+                        value={form.codigo_anp}
+                        onChange={(e) => setForm({ ...form, codigo_anp: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Descrição ANP</Label>
+                      <Input
+                        placeholder="GLP - Gás Liquefeito de Petróleo"
+                        value={form.descricao_anp}
+                        onChange={(e) => setForm({ ...form, descricao_anp: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Unidade Comercial</Label>
+                      <Input
+                        placeholder="UN"
+                        value={form.unidade_comercial}
+                        onChange={(e) => setForm({ ...form, unidade_comercial: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Unidade Tributável (ANP)</Label>
+                      <Select
+                        value={form.unidade_tributavel}
+                        onValueChange={(v) => setForm({ ...form, unidade_tributavel: v })}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="KG">KG (Quilograma)</SelectItem>
+                          <SelectItem value="L">L (Litro)</SelectItem>
+                          <SelectItem value="M3">M³ (Metro Cúbico)</SelectItem>
+                          <SelectItem value="UN">UN (Unidade)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Fator Conversão ANP</Label>
+                      <Input
+                        placeholder="13 (KG por P13)"
+                        value={form.fator_conversao_anp}
+                        onChange={(e) => setForm({ ...form, fator_conversao_anp: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Origem da Mercadoria</Label>
+                      <Select
+                        value={form.origem_mercadoria}
+                        onValueChange={(v) => setForm({ ...form, origem_mercadoria: v })}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">0 - Nacional</SelectItem>
+                          <SelectItem value="1">1 - Estrangeira (Imp. direta)</SelectItem>
+                          <SelectItem value="2">2 - Estrangeira (Mercado interno)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>CFOP Saída</Label>
+                      <Input
+                        placeholder="5656 (GLP) ou 5102"
+                        value={form.cfop_saida}
+                        onChange={(e) => setForm({ ...form, cfop_saida: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>CFOP Entrada Padrão</Label>
+                      <Input
+                        placeholder="1652 / 2652"
+                        value={form.cfop_entrada_padrao}
+                        onChange={(e) => setForm({ ...form, cfop_entrada_padrao: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-border/45 p-3 space-y-3">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Tributação ICMS</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>CST ICMS (Lucro Real/Presumido)</Label>
+                        <Input
+                          placeholder="60 (ST) ou 00"
+                          value={form.cst_icms}
+                          onChange={(e) => setForm({ ...form, cst_icms: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>CSOSN (Simples Nacional)</Label>
+                        <Input
+                          placeholder="500 ou 102"
+                          value={form.csosn_icms}
+                          onChange={(e) => setForm({ ...form, csosn_icms: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Alíquota ICMS (%)</Label>
+                        <Input
+                          placeholder="0,00"
+                          value={form.aliquota_icms}
+                          onChange={(e) => setForm({ ...form, aliquota_icms: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-border/45 p-3 space-y-3">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Tributação PIS / COFINS</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>CST PIS</Label>
+                        <Input
+                          placeholder="04 (Monofásico) ou 01"
+                          value={form.cst_pis}
+                          onChange={(e) => setForm({ ...form, cst_pis: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>CST COFINS</Label>
+                        <Input
+                          placeholder="04 (Monofásico) ou 01"
+                          value={form.cst_cofins}
+                          onChange={(e) => setForm({ ...form, cst_cofins: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Alíquota PIS (%)</Label>
+                        <Input
+                          placeholder="0,00"
+                          value={form.aliquota_pis}
+                          onChange={(e) => setForm({ ...form, aliquota_pis: e.target.value })}
+                          disabled={form.monofasico}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Alíquota COFINS (%)</Label>
+                        <Input
+                          placeholder="0,00"
+                          value={form.aliquota_cofins}
+                          onChange={(e) => setForm({ ...form, aliquota_cofins: e.target.value })}
+                          disabled={form.monofasico}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="vasilhame" className="mt-4 space-y-4">
+                  <div className="rounded-lg border border-info/30 bg-info/5 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      <strong className="text-foreground">Vasilhame em comodato:</strong> vincule o produto cheio (GLP) ao seu vasilhame correspondente. Isso permite separar o custo do gás (consumível) do valor do casco (ativo) durante a importação do XML da distribuidora.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Produto Vasilhame Vinculado</Label>
+                    <Select
+                      value={form.produto_vasilhame_id}
+                      onValueChange={(v) => setForm({ ...form, produto_vasilhame_id: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o vasilhame correspondente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nenhum">Nenhum</SelectItem>
+                        {vasilhameOptions.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Apenas produtos marcados como "Vazio" aparecem nesta lista.
+                    </p>
+                  </div>
+                </TabsContent>
+              </Tabs>
               <div className="flex justify-end gap-2 mt-4">
                 <Button
                   variant="outline"
@@ -819,9 +1194,23 @@ export default function Produtos() {
                         </span>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
-                        <Badge variant={produto.ativo ? "default" : "destructive"}>
-                          {produto.ativo ? "Ativo" : "Inativo"}
-                        </Badge>
+                        <div className="flex flex-col gap-1 items-start">
+                          <Badge variant={produto.ativo ? "default" : "destructive"}>
+                            {produto.ativo ? "Ativo" : "Inativo"}
+                          </Badge>
+                          {(!produto.ncm || (produto.categoria === "gas" && !produto.codigo_anp)) && (
+                            <Badge variant="warning" className="gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              Fiscal incompleto
+                            </Badge>
+                          )}
+                          {produto.monofasico && (
+                            <Badge variant="info" className="gap-1">
+                              <Receipt className="h-3 w-3" />
+                              Monofásico
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1 md:gap-2">
