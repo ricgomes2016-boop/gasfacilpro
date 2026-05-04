@@ -298,6 +298,25 @@ serve(async (req) => {
       ) nomeProduto = "Gás P13"; // Padrão: "um gás" = P13
       else return err(`Produto não reconhecido: ${produto}. Use P13, P20, P45 ou Água.`);
 
+      // ===== Regras de funcionamento (espelha sistema) =====
+      const regras = await getRegrasFuncionamento();
+      if (!regras.isOpen) {
+        return ok({
+          sucesso: false,
+          fora_horario: true,
+          mensagem: regras.isSunday
+            ? `NÃO crie o pedido. Loja fechada (domingo, fechamento ${regras.closing}). Informe ao cliente: "Hoje é domingo e já encerramos o atendimento às ${regras.closing}. Posso anotar para amanhã a partir das ${regras.opening}?"`
+            : `NÃO crie o pedido. Loja fora do horário (${regras.opening} às ${regras.closing}). Informe educadamente ao cliente e ofereça anotar para o próximo horário de funcionamento.`,
+        });
+      }
+      if (regras.isSunday && nomeProduto === "Água Mineral 20L") {
+        return ok({
+          sucesso: false,
+          domingo_sem_agua: true,
+          mensagem: `NÃO crie o pedido de água. Aos DOMINGOS não há entrega de água — apenas RETIRADA presencial na portaria até ${regras.closing}. Informe ao cliente: "Aos domingos não fazemos entrega de água, somente retirada presencial na portaria até as ${regras.closing}. Posso ajudar com gás?"`,
+        });
+      }
+
       const { data: prod } = await supabase
         .from("produtos")
         .select("id, preco, nome, preco_telefone")
