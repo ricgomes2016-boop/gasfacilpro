@@ -9557,14 +9557,32 @@ export type Database = {
       }
       unidades: {
         Row: {
+          aliquota_cofins_padrao: number | null
+          aliquota_icms_padrao: number | null
+          aliquota_pis_padrao: number | null
           ativo: boolean | null
           bairro: string | null
           bairros_atendidos: string | null
           cep: string | null
+          certificado_a1_path: string | null
+          certificado_a1_senha: string | null
+          certificado_a1_titular: string | null
+          certificado_a1_validade: string | null
+          cfop_padrao_devolucao: string | null
+          cfop_padrao_venda: string | null
           chave_pix: string | null
           cidade: string | null
+          cnae_principal: string | null
           cnpj: string | null
+          contador_cpf_cnpj: string | null
+          contador_crc: string | null
+          contador_email: string | null
+          contador_nome: string | null
+          contador_telefone: string | null
           created_at: string
+          cst_csosn_padrao: string | null
+          cte_proximo_numero: number | null
+          cte_serie: number | null
           email: string | null
           empresa_id: string | null
           endereco: string | null
@@ -9572,22 +9590,57 @@ export type Database = {
           horario_abertura: string | null
           horario_fechamento: string | null
           id: string
+          inscricao_estadual: string | null
+          inscricao_estadual_st: string | null
+          inscricao_municipal: string | null
           latitude: number | null
           longitude: number | null
+          natureza_operacao_padrao: string | null
+          nfce_csc_id: string | null
+          nfce_csc_token: string | null
+          nfce_proximo_numero: number | null
+          nfce_serie: number | null
+          nfe_ambiente: string | null
+          nfe_proximo_numero: number | null
+          nfe_serie: number | null
           nome: string
+          nome_fantasia: string | null
+          provedor_nfe: string | null
+          provedor_nfe_token: string | null
+          provedor_nfe_url: string | null
+          razao_social: string | null
+          regime_tributario: string | null
           telefone: string | null
           tipo: string
           updated_at: string
         }
         Insert: {
+          aliquota_cofins_padrao?: number | null
+          aliquota_icms_padrao?: number | null
+          aliquota_pis_padrao?: number | null
           ativo?: boolean | null
           bairro?: string | null
           bairros_atendidos?: string | null
           cep?: string | null
+          certificado_a1_path?: string | null
+          certificado_a1_senha?: string | null
+          certificado_a1_titular?: string | null
+          certificado_a1_validade?: string | null
+          cfop_padrao_devolucao?: string | null
+          cfop_padrao_venda?: string | null
           chave_pix?: string | null
           cidade?: string | null
+          cnae_principal?: string | null
           cnpj?: string | null
+          contador_cpf_cnpj?: string | null
+          contador_crc?: string | null
+          contador_email?: string | null
+          contador_nome?: string | null
+          contador_telefone?: string | null
           created_at?: string
+          cst_csosn_padrao?: string | null
+          cte_proximo_numero?: number | null
+          cte_serie?: number | null
           email?: string | null
           empresa_id?: string | null
           endereco?: string | null
@@ -9595,22 +9648,57 @@ export type Database = {
           horario_abertura?: string | null
           horario_fechamento?: string | null
           id?: string
+          inscricao_estadual?: string | null
+          inscricao_estadual_st?: string | null
+          inscricao_municipal?: string | null
           latitude?: number | null
           longitude?: number | null
+          natureza_operacao_padrao?: string | null
+          nfce_csc_id?: string | null
+          nfce_csc_token?: string | null
+          nfce_proximo_numero?: number | null
+          nfce_serie?: number | null
+          nfe_ambiente?: string | null
+          nfe_proximo_numero?: number | null
+          nfe_serie?: number | null
           nome: string
+          nome_fantasia?: string | null
+          provedor_nfe?: string | null
+          provedor_nfe_token?: string | null
+          provedor_nfe_url?: string | null
+          razao_social?: string | null
+          regime_tributario?: string | null
           telefone?: string | null
           tipo?: string
           updated_at?: string
         }
         Update: {
+          aliquota_cofins_padrao?: number | null
+          aliquota_icms_padrao?: number | null
+          aliquota_pis_padrao?: number | null
           ativo?: boolean | null
           bairro?: string | null
           bairros_atendidos?: string | null
           cep?: string | null
+          certificado_a1_path?: string | null
+          certificado_a1_senha?: string | null
+          certificado_a1_titular?: string | null
+          certificado_a1_validade?: string | null
+          cfop_padrao_devolucao?: string | null
+          cfop_padrao_venda?: string | null
           chave_pix?: string | null
           cidade?: string | null
+          cnae_principal?: string | null
           cnpj?: string | null
+          contador_cpf_cnpj?: string | null
+          contador_crc?: string | null
+          contador_email?: string | null
+          contador_nome?: string | null
+          contador_telefone?: string | null
           created_at?: string
+          cst_csosn_padrao?: string | null
+          cte_proximo_numero?: number | null
+          cte_serie?: number | null
           email?: string | null
           empresa_id?: string | null
           endereco?: string | null
@@ -9618,9 +9706,26 @@ export type Database = {
           horario_abertura?: string | null
           horario_fechamento?: string | null
           id?: string
+          inscricao_estadual?: string | null
+          inscricao_estadual_st?: string | null
+          inscricao_municipal?: string | null
           latitude?: number | null
           longitude?: number | null
+          natureza_operacao_padrao?: string | null
+          nfce_csc_id?: string | null
+          nfce_csc_token?: string | null
+          nfce_proximo_numero?: number | null
+          nfce_serie?: number | null
+          nfe_ambiente?: string | null
+          nfe_proximo_numero?: number | null
+          nfe_serie?: number | null
           nome?: string
+          nome_fantasia?: string | null
+          provedor_nfe?: string | null
+          provedor_nfe_token?: string | null
+          provedor_nfe_url?: string | null
+          razao_social?: string | null
+          regime_tributario?: string | null
           telefone?: string | null
           tipo?: string
           updated_at?: string
