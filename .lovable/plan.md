@@ -1,68 +1,91 @@
 ## Objetivo
 
-Em **Estoque → Compras**, o botão "Importar XML" já existe, mas hoje extrai apenas o básico (nº NF, chave, data, frete, descrição/qtd/preço dos itens). Vamos torná-lo um importador fiscal completo:
+Em **Configurações → Unidades**, transformar o diálogo de edição em **abas** e adicionar uma aba **Fiscal** completa, incluindo certificado digital A1 (upload), tokens NFC-e/CSC, ambiente (homologação/produção), série/numeração, regime tributário, CNAE, IE, IM, etc. Também adicionar **Inscrição Estadual** e **Inscrição Municipal** ao cadastro principal.
 
-- Lê **todas** as informações fiscais do XML (emitente, destinatário, totais, impostos, transporte, duplicatas, dados por item).
-- Se o **fornecedor não existir**, cadastra automaticamente em `fornecedores` **e** espelha o registro em `clientes` com `tipo = 'fornecedor'` (para aparecer no Cadastro de Clientes).
-- Se o **produto não existir**, cadastra com NCM, CEST, CFOP, código ANP, unidade tributável e CSTs já preenchidos a partir do XML (aproveita as 20 colunas fiscais já existentes em `produtos`).
-- Salva os dados fiscais da nota e de cada item em `compras` / `compra_itens`.
+## 1. Migração de banco (`unidades`)
 
-## Mudanças
+Adicionar colunas (todas nullable):
 
-### 1. Banco — migration
+**Identificação fiscal**
+- `inscricao_estadual` text
+- `inscricao_municipal` text
+- `inscricao_estadual_st` text (Substituição Tributária)
+- `regime_tributario` text — Simples Nacional / Lucro Presumido / Lucro Real / MEI
+- `cnae_principal` text
+- `razao_social` text
+- `nome_fantasia` text
 
-`compras` (adicionar colunas):
-- `serie`, `modelo`, `natureza_operacao`, `cfop_predominante`
-- `valor_produtos`, `valor_desconto`, `valor_seguro`, `valor_outros`
-- `valor_icms`, `valor_icms_st`, `valor_ipi`, `valor_pis`, `valor_cofins`, `base_icms`, `base_icms_st`
-- `transportadora_nome`, `transportadora_cnpj`, `placa_veiculo`, `modalidade_frete`
-- `xml_content` (text) — guarda o XML bruto para reimpressão/auditoria
+**Certificado Digital A1**
+- `certificado_a1_path` text (path no Storage)
+- `certificado_a1_senha` text (criptografada — armazenada apenas via edge function futura; por ora texto restrito ao gestor via RLS)
+- `certificado_a1_validade` date
+- `certificado_a1_titular` text
 
-`compra_itens` (adicionar colunas):
-- `descricao_xml`, `codigo_produto_fornecedor`, `unidade_xml`
-- `ncm`, `cest`, `cfop`, `codigo_anp`
-- `cst_icms`, `csosn_icms`, `cst_pis`, `cst_cofins`
-- `aliquota_icms`, `aliquota_pis`, `aliquota_cofins`
-- `valor_icms`, `valor_pis`, `valor_cofins`, `valor_desconto`
+**NFe / NFC-e / CT-e**
+- `nfe_ambiente` text — `homologacao` | `producao` (default `homologacao`)
+- `nfe_serie` integer (default 1)
+- `nfe_proximo_numero` integer (default 1)
+- `nfce_serie` integer (default 1)
+- `nfce_proximo_numero` integer (default 1)
+- `nfce_csc_id` text (ID do Token CSC SEFAZ)
+- `nfce_csc_token` text (Código de Segurança do Contribuinte)
+- `cte_serie` integer
+- `cte_proximo_numero` integer
 
-`clientes` (adicionar, opcional p/ fornecedor cadastrado via cliente):
-- `cnpj`, `razao_social`, `nome_fantasia`, `inscricao_estadual` (se ainda não houver — verificar no apply)
+**Configurações fiscais padrão**
+- `cfop_padrao_venda` text (default `5102` / `5656` para gás)
+- `cfop_padrao_devolucao` text (default `1202`)
+- `natureza_operacao_padrao` text (default `Venda de mercadoria`)
+- `aliquota_icms_padrao` numeric(5,2)
+- `aliquota_pis_padrao` numeric(5,2)
+- `aliquota_cofins_padrao` numeric(5,2)
+- `cst_csosn_padrao` text
 
-### 2. `src/pages/estoque/Compras.tsx` — `handleImportXML`
+**Contador / Responsável fiscal**
+- `contador_nome` text
+- `contador_cpf_cnpj` text
+- `contador_crc` text
+- `contador_email` text
+- `contador_telefone` text
 
-Reescrever o parser para extrair:
-- **Emitente**: CNPJ, razão social, nome fantasia, IE, endereço, município, UF, telefone.
-- **Identificação NF**: nNF, serie, mod, natOp, dhEmi, dhSaiEnt, chave.
-- **Totais (`ICMSTot`)**: vProd, vNF, vFrete, vSeg, vDesc, vOutro, vICMS, vST, vIPI, vPIS, vCOFINS, vBC, vBCST.
-- **Transporte**: modFrete, transporta/xNome+CNPJ, veicTransp/placa.
-- **Duplicatas (`cobr/dup`)**: usa `dVenc` da 1ª duplicata como `data_pagamento`.
-- **Por item (`det`)**: cProd, xProd, NCM, CEST, CFOP, uCom, qCom, vUnCom, vProd, vDesc, comb/cProdANP, ICMS (CST/CSOSN, vBC, pICMS, vICMS), PIS (CST, pPIS, vPIS), COFINS.
+**Provedor de emissão**
+- `provedor_nfe` text (ex.: `focus_nfe`, `tecnospeed`, `enotas`, `nenhum`)
+- `provedor_nfe_token` text
+- `provedor_nfe_url` text
 
-Fluxo após parse:
-1. **Fornecedor**:
-   - Busca em `fornecedores` por CNPJ exato.
-   - Se não achar → cria em `fornecedores` com todos os dados do emitente; também faz `upsert` em `clientes` com `tipo='fornecedor'` e mesmos dados (para listar em Cadastros/Clientes filtrando por Fornecedor).
-2. **Produtos**:
-   - Tenta casar por nome; se não achar, marca `is_new=true` carregando NCM, CEST, CFOP, ANP, CSTs do próprio item.
-   - Ao salvar, `produtos` é criado com esses campos fiscais já preenchidos (e `monofasico=true` quando CST PIS/COFINS = 04 ou cProdANP iniciado por 21).
-3. **Compra**: grava todos os totais e dados de transporte; `compra_itens` recebe os campos fiscais por item; `xml_content` guarda o XML bruto.
-4. Toast detalhado: "NF 12345 importada · Fornecedor X · 5 itens (2 novos) · R$ 1.234,56".
+Storage bucket privado **`certificados-fiscais`** (não-listável) para upload do `.pfx` com RLS restringindo acesso ao `empresa_id` do usuário (admin/gestor).
 
-### 3. Cadastro de Clientes — exibir Fornecedores
+## 2. UI — `src/pages/config/Unidades.tsx`
 
-Em `src/pages/Clientes.tsx`, adicionar:
-- Filtro/aba "Fornecedor" que lista clientes com `tipo='fornecedor'`.
-- No formulário de cliente, opção de tipo "Fornecedor" (já que `clientes.tipo` é text).
+Refatorar o `Dialog` de edição usando `Tabs` (mantém todo o restante da página):
 
-### 4. Detalhes técnicos
+```text
+[ Geral ] [ Endereço ] [ Operação ] [ Fiscal ]
+```
 
-- Parsing 100% client-side com `DOMParser` (já usado hoje), sem precisar de edge function.
-- Anti-duplicidade: antes de salvar, checar `compras.chave_nfe` — se já existir, avisar e não duplicar.
-- Validar tamanho do XML (até ~5MB).
-- Mensagens de erro específicas por etapa (parse / fornecedor / produtos / compra).
+- **Geral**: Nome, Razão Social, Nome Fantasia, CNPJ, **Inscrição Estadual**, **IE Substituto Tributário**, **Inscrição Municipal**, CNAE, Regime Tributário (Select), Telefone, Email.
+- **Endereço**: Endereço, Número, Bairro, CEP, Cidade, Estado.
+- **Operação**: Chave PIX, Horários (abertura/fechamento), Bairros atendidos.
+- **Fiscal** (nova) — sub-seções com `<Card>`:
+  1. **Certificado Digital A1**: upload `.pfx/.p12` (input file → Supabase Storage `certificados-fiscais`), campo senha (type=password), data de validade, titular. Badge mostrando "Válido até …" / "Vencido".
+  2. **Ambiente NFe/NFC-e**: Select Homologação/Produção, alerta visual quando produção.
+  3. **Numeração**: Série e próximo número de NFe, NFC-e e CT-e (grid).
+  4. **Token NFC-e (CSC)**: ID CSC + Token CSC.
+  5. **Tributação padrão**: Regime, CFOP venda, CFOP devolução, Natureza da operação, alíquotas ICMS/PIS/COFINS, CST/CSOSN.
+  6. **Provedor de Emissão**: Select (Focus NFe / TecnoSpeed / eNotas / Nenhum), URL, Token.
+  7. **Contador**: Nome, CPF/CNPJ, CRC, Email, Telefone.
 
-### Arquivos afetados
+Atualizar `handleSave` para gravar todos os novos campos. Manter `Unidade` type cast com `as any` (types regenerados automaticamente após migração).
 
-- `supabase/migrations/<timestamp>_compras_xml_fiscal.sql` (novo)
-- `src/pages/estoque/Compras.tsx` (reescreve `handleImportXML`, ajusta `handleSave` para persistir novos campos)
-- `src/pages/Clientes.tsx` (filtro/opção tipo Fornecedor)
+## 3. Segurança
+
+- Senha do certificado e token CSC: campos `type="password"` com botão olho.
+- Bucket `certificados-fiscais` privado; políticas RLS de `storage.objects` permitindo apenas admin/gestor da mesma empresa (path prefix = `empresa_id/unidade_id/...`).
+- Ignorar memória de segurança (não logar senhas).
+
+## Arquivos
+
+- **Migração nova**: `supabase/migrations/<ts>_unidades_fiscal.sql` — ALTER TABLE + bucket + policies.
+- **Edição**: `src/pages/config/Unidades.tsx` — refator do Dialog para Tabs + nova aba Fiscal + upload de certificado.
+
+Sem mudanças em `App.tsx`, rotas ou providers.
