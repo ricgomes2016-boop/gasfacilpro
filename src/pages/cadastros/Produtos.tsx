@@ -391,6 +391,7 @@ export default function Produtos() {
   const handleEditar = (produto: Produto) => {
     setEditandoProduto(produto);
     setForm({
+      ...initialForm,
       nome: produto.nome,
       categoria: produto.categoria || "",
       preco: produto.preco.toString().replace(".", ","),
@@ -404,6 +405,25 @@ export default function Produtos() {
       tipo_botijao: produto.tipo_botijao || "",
       image_url: produto.image_url || null,
       estoque_unico: produto.estoque_unico ?? false,
+      ncm: produto.ncm || "",
+      cest: produto.cest || "",
+      codigo_anp: produto.codigo_anp || "",
+      descricao_anp: produto.descricao_anp || "",
+      unidade_tributavel: produto.unidade_tributavel || "KG",
+      cfop_saida: produto.cfop_saida || "",
+      cfop_entrada_padrao: produto.cfop_entrada_padrao || "",
+      cst_icms: produto.cst_icms || "",
+      csosn_icms: produto.csosn_icms || "",
+      cst_pis: produto.cst_pis || "",
+      cst_cofins: produto.cst_cofins || "",
+      aliquota_pis: (produto.aliquota_pis ?? 0).toString().replace(".", ","),
+      aliquota_cofins: (produto.aliquota_cofins ?? 0).toString().replace(".", ","),
+      aliquota_icms: (produto.aliquota_icms ?? 0).toString().replace(".", ","),
+      monofasico: produto.monofasico ?? false,
+      fator_conversao_anp: (produto.fator_conversao_anp ?? "").toString().replace(".", ","),
+      produto_vasilhame_id: produto.produto_vasilhame_id || "nenhum",
+      origem_mercadoria: produto.origem_mercadoria || "0",
+      unidade_comercial: produto.unidade_comercial || "UN",
     });
     setDialogAberto(true);
   };
