@@ -767,6 +767,241 @@ export default function Produtos() {
                   />
                 </div>
               </div>
+                </TabsContent>
+
+                <TabsContent value="fiscal" className="mt-4 space-y-4">
+                  <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-muted-foreground">
+                      <strong className="text-foreground">GLP / Combustíveis:</strong> use NCM 2711.19.10, CFOP 5656, CST PIS/COFINS 04 (Monofásico) e informe Código ANP. Acessórios: NCM próprio, CFOP 5102, tributação normal.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-lg border border-input p-3 bg-primary/5">
+                    <div>
+                      <Label className="text-sm font-medium flex items-center gap-2">
+                        <Flame className="h-4 w-4 text-warning" />
+                        Regime Monofásico (GLP / Combustíveis)
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Aplica CST PIS/COFINS 04 (alíquota zero - tributado na origem) automaticamente.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={form.monofasico}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setForm({
+                            ...form,
+                            monofasico: true,
+                            cst_pis: "04",
+                            cst_cofins: "04",
+                            aliquota_pis: "0",
+                            aliquota_cofins: "0",
+                            unidade_tributavel: form.unidade_tributavel || "KG",
+                          });
+                        } else {
+                          setForm({ ...form, monofasico: false });
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>NCM *</Label>
+                      <Input
+                        placeholder="2711.19.10"
+                        value={form.ncm}
+                        onChange={(e) => setForm({ ...form, ncm: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>CEST</Label>
+                      <Input
+                        placeholder="06.006.00"
+                        value={form.cest}
+                        onChange={(e) => setForm({ ...form, cest: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Código ANP {form.monofasico && "*"}</Label>
+                      <Input
+                        placeholder="210203001 (GLP P13)"
+                        value={form.codigo_anp}
+                        onChange={(e) => setForm({ ...form, codigo_anp: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Descrição ANP</Label>
+                      <Input
+                        placeholder="GLP - Gás Liquefeito de Petróleo"
+                        value={form.descricao_anp}
+                        onChange={(e) => setForm({ ...form, descricao_anp: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Unidade Comercial</Label>
+                      <Input
+                        placeholder="UN"
+                        value={form.unidade_comercial}
+                        onChange={(e) => setForm({ ...form, unidade_comercial: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Unidade Tributável (ANP)</Label>
+                      <Select
+                        value={form.unidade_tributavel}
+                        onValueChange={(v) => setForm({ ...form, unidade_tributavel: v })}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="KG">KG (Quilograma)</SelectItem>
+                          <SelectItem value="L">L (Litro)</SelectItem>
+                          <SelectItem value="M3">M³ (Metro Cúbico)</SelectItem>
+                          <SelectItem value="UN">UN (Unidade)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Fator Conversão ANP</Label>
+                      <Input
+                        placeholder="13 (KG por P13)"
+                        value={form.fator_conversao_anp}
+                        onChange={(e) => setForm({ ...form, fator_conversao_anp: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Origem da Mercadoria</Label>
+                      <Select
+                        value={form.origem_mercadoria}
+                        onValueChange={(v) => setForm({ ...form, origem_mercadoria: v })}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0">0 - Nacional</SelectItem>
+                          <SelectItem value="1">1 - Estrangeira (Imp. direta)</SelectItem>
+                          <SelectItem value="2">2 - Estrangeira (Mercado interno)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>CFOP Saída</Label>
+                      <Input
+                        placeholder="5656 (GLP) ou 5102"
+                        value={form.cfop_saida}
+                        onChange={(e) => setForm({ ...form, cfop_saida: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>CFOP Entrada Padrão</Label>
+                      <Input
+                        placeholder="1652 / 2652"
+                        value={form.cfop_entrada_padrao}
+                        onChange={(e) => setForm({ ...form, cfop_entrada_padrao: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-border/45 p-3 space-y-3">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Tributação ICMS</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>CST ICMS (Lucro Real/Presumido)</Label>
+                        <Input
+                          placeholder="60 (ST) ou 00"
+                          value={form.cst_icms}
+                          onChange={(e) => setForm({ ...form, cst_icms: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>CSOSN (Simples Nacional)</Label>
+                        <Input
+                          placeholder="500 ou 102"
+                          value={form.csosn_icms}
+                          onChange={(e) => setForm({ ...form, csosn_icms: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Alíquota ICMS (%)</Label>
+                        <Input
+                          placeholder="0,00"
+                          value={form.aliquota_icms}
+                          onChange={(e) => setForm({ ...form, aliquota_icms: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-border/45 p-3 space-y-3">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Tributação PIS / COFINS</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>CST PIS</Label>
+                        <Input
+                          placeholder="04 (Monofásico) ou 01"
+                          value={form.cst_pis}
+                          onChange={(e) => setForm({ ...form, cst_pis: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>CST COFINS</Label>
+                        <Input
+                          placeholder="04 (Monofásico) ou 01"
+                          value={form.cst_cofins}
+                          onChange={(e) => setForm({ ...form, cst_cofins: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Alíquota PIS (%)</Label>
+                        <Input
+                          placeholder="0,00"
+                          value={form.aliquota_pis}
+                          onChange={(e) => setForm({ ...form, aliquota_pis: e.target.value })}
+                          disabled={form.monofasico}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Alíquota COFINS (%)</Label>
+                        <Input
+                          placeholder="0,00"
+                          value={form.aliquota_cofins}
+                          onChange={(e) => setForm({ ...form, aliquota_cofins: e.target.value })}
+                          disabled={form.monofasico}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="vasilhame" className="mt-4 space-y-4">
+                  <div className="rounded-lg border border-info/30 bg-info/5 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      <strong className="text-foreground">Vasilhame em comodato:</strong> vincule o produto cheio (GLP) ao seu vasilhame correspondente. Isso permite separar o custo do gás (consumível) do valor do casco (ativo) durante a importação do XML da distribuidora.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Produto Vasilhame Vinculado</Label>
+                    <Select
+                      value={form.produto_vasilhame_id}
+                      onValueChange={(v) => setForm({ ...form, produto_vasilhame_id: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o vasilhame correspondente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nenhum">Nenhum</SelectItem>
+                        {vasilhameOptions.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Apenas produtos marcados como "Vazio" aparecem nesta lista.
+                    </p>
+                  </div>
+                </TabsContent>
+              </Tabs>
               <div className="flex justify-end gap-2 mt-4">
                 <Button
                   variant="outline"
