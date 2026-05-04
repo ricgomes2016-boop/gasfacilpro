@@ -59,12 +59,57 @@ interface Produto {
   preco: number;
 }
 
+interface ItemFiscal {
+  descricao_xml?: string;
+  codigo_produto_fornecedor?: string;
+  unidade_xml?: string;
+  ncm?: string;
+  cest?: string;
+  cfop?: string;
+  codigo_anp?: string;
+  cst_icms?: string;
+  csosn_icms?: string;
+  cst_pis?: string;
+  cst_cofins?: string;
+  aliquota_icms?: number;
+  aliquota_pis?: number;
+  aliquota_cofins?: number;
+  valor_icms?: number;
+  valor_pis?: number;
+  valor_cofins?: number;
+  valor_desconto?: number;
+}
+
 interface ItemCompra {
   produto_id: string;
   produto_nome?: string;
   quantidade: number;
   preco_unitario: number;
   is_new?: boolean;
+  fiscal?: ItemFiscal;
+}
+
+interface NfFiscal {
+  serie?: string;
+  modelo?: string;
+  natureza_operacao?: string;
+  cfop_predominante?: string;
+  valor_produtos?: number;
+  valor_desconto?: number;
+  valor_seguro?: number;
+  valor_outros?: number;
+  valor_icms?: number;
+  valor_icms_st?: number;
+  valor_ipi?: number;
+  valor_pis?: number;
+  valor_cofins?: number;
+  base_icms?: number;
+  base_icms_st?: number;
+  transportadora_nome?: string;
+  transportadora_cnpj?: string;
+  placa_veiculo?: string;
+  modalidade_frete?: string;
+  xml_content?: string;
 }
 
 export default function Compras() {
