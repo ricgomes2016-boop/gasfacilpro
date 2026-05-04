@@ -280,7 +280,9 @@ export function CallerIdPopup() {
           ) : (
             <div className="h-20 flex items-center justify-center bg-muted/30 rounded-lg border border-dashed text-center p-4">
               <p className="text-xs text-muted-foreground italic">
-                {chamada.cliente_id ? "Buscando dados do pedido..." : "Aguardando detalhes da Bia..."}
+                {chamada.pedido_gerado_id
+                  ? "Buscando dados do pedido..."
+                  : "📞 Bia em atendimento — aguardando o cliente confirmar o pedido..."}
               </p>
             </div>
           )}
