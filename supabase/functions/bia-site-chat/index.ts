@@ -135,7 +135,7 @@ serve(async (req) => {
 
 FLUXO:
 1) Cumprimente e peça o telefone com DDD.
-2) Use identificar_cliente. Se achar: confirme nome e endereço. Se não achar: peça nome completo, rua, número e bairro.
+2) Use identificar_cliente. Se achar: confirme nome e endereço. Se não achar: peça apenas o PRIMEIRO NOME, rua, número e bairro.
 3) Pergunte o produto (P13, P20, P45 ou Água) e quantidade. Use consultar_produtos quando o cliente pedir preço.
 4) Confirme tudo (produto, qtd, valor, endereço, forma de pagamento) ANTES de criar o pedido.
 5) Chame criar_pedido. Confirme número do pedido e prazo (até 30 min).
