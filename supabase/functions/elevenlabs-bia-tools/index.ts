@@ -379,17 +379,17 @@ serve(async (req) => {
 
       if (!prod) return err(`Produto ${nomeProduto} não cadastrado na unidade`);
 
-      let precoUnitario = Number(prod.preco_telefone || prod.preco || 0);
-      if (finalClienteId) {
-        const { data: ultimoItem } = await supabase
-          .from("pedido_itens")
-          .select("preco_unitario, pedidos!inner(cliente_id)")
-          .eq("produto_id", prod.id)
-          .eq("pedidos.cliente_id", finalClienteId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (ultimoItem?.preco_unitario) precoUnitario = Number(ultimoItem.preco_unitario);
+      // Preço: PRIORIDADE = tabela das Regras da Bia (configuracoes_empresa.regras_bia.tabela_precos)
+      // Fallbacks: preco_telefone do produto -> preco do produto.
+      // (Removido o "último preço cobrado ao cliente": tabela das Regras é a fonte oficial.)
+      let precoUnitario = 0;
+      const chaveTab = chaveTabelaParaProduto(nomeProduto);
+      if (chaveTab) {
+        const tp = await getTabelaPrecosBia();
+        precoUnitario = Number(tp[chaveTab]?.preco || 0);
+      }
+      if (!precoUnitario) {
+        precoUnitario = Number(prod.preco_telefone || prod.preco || 0);
       }
 
       const qty = Math.max(1, Number(qtdInput) || 1);
