@@ -44,6 +44,7 @@ export default function UnidadesConfig() {
   const [showSenhaCert, setShowSenhaCert] = useState(false);
   const [showCsc, setShowCsc] = useState(false);
   const [uploadingCert, setUploadingCert] = useState(false);
+  const [activeTab, setActiveTab] = useState("geral");
 
   useEffect(() => {
     fetchUnidades();
@@ -72,11 +73,78 @@ export default function UnidadesConfig() {
     }
   };
 
+  const validateFiscal = (u: AnyUnidade): string[] => {
+    const errs: string[] = [];
+    const has = (v: any) => v !== null && v !== undefined && String(v).trim() !== "";
+
+    const certAny = has(u.certificado_a1_path) || has(u.certificado_a1_senha) || has(u.certificado_a1_validade) || has(u.certificado_a1_titular);
+    if (certAny) {
+      if (!has(u.certificado_a1_path)) errs.push("Certificado A1: envie o arquivo .pfx ou .p12.");
+      if (!has(u.certificado_a1_senha)) errs.push("Certificado A1: informe a senha.");
+      if (!has(u.certificado_a1_validade)) errs.push("Certificado A1: informe a data de validade.");
+      else {
+        const d = new Date(u.certificado_a1_validade);
+        if (isNaN(d.getTime())) errs.push("Certificado A1: data de validade inválida.");
+        else if (d < new Date(new Date().toDateString())) errs.push("Certificado A1 está vencido — substitua antes de emitir notas.");
+      }
+    }
+
+    const cscAny = has(u.nfce_csc_id) || has(u.nfce_csc_token);
+    if (cscAny) {
+      if (!has(u.nfce_csc_id)) errs.push("CSC NFC-e: informe o ID do CSC.");
+      if (!has(u.nfce_csc_token)) errs.push("CSC NFC-e: informe o Token CSC.");
+      else if (String(u.nfce_csc_token).trim().length < 16) {
+        errs.push("CSC NFC-e: o Token deve ter no mínimo 16 caracteres.");
+      }
+    }
+
+    if (has(u.provedor_nfe) && u.provedor_nfe !== "nenhum") {
+      if (!has(u.provedor_nfe_url)) errs.push("Provedor de NFe: informe a URL da API.");
+      else if (!/^https?:\/\//i.test(String(u.provedor_nfe_url))) errs.push("Provedor de NFe: URL deve começar com http:// ou https://.");
+      if (!has(u.provedor_nfe_token)) errs.push("Provedor de NFe: informe o Token / API Key.");
+    }
+
+    if (u.nfe_ambiente === "producao") {
+      if (!has(u.certificado_a1_path) || !has(u.certificado_a1_senha)) {
+        errs.push("Ambiente Produção exige Certificado A1 e senha cadastrados.");
+      }
+      if (!has(u.cnpj)) errs.push("Ambiente Produção exige CNPJ da unidade.");
+      if (!has(u.inscricao_estadual)) errs.push("Ambiente Produção exige Inscrição Estadual (use ISENTO se aplicável).");
+      if (!has(u.regime_tributario)) errs.push("Ambiente Produção exige Regime Tributário definido.");
+    }
+
+    const intCheck = (label: string, val: any) => {
+      if (!has(val)) return;
+      const n = Number(val);
+      if (!Number.isFinite(n) || !Number.isInteger(n) || n < 1) errs.push(`${label} deve ser número inteiro ≥ 1.`);
+    };
+    intCheck("NFe - Série", u.nfe_serie);
+    intCheck("NFe - Próximo nº", u.nfe_proximo_numero);
+    intCheck("NFC-e - Série", u.nfce_serie);
+    intCheck("NFC-e - Próximo nº", u.nfce_proximo_numero);
+    intCheck("CT-e - Série", u.cte_serie);
+    intCheck("CT-e - Próximo nº", u.cte_proximo_numero);
+
+    return errs;
+  };
+
   const handleSave = async () => {
     if (!editingUnidade) return;
+    const u = editingUnidade;
+
+    const errs = validateFiscal(u);
+    if (errs.length > 0) {
+      setActiveTab("fiscal");
+      toast({
+        title: "Configuração fiscal incompleta",
+        description: errs.slice(0, 4).join(" • ") + (errs.length > 4 ? ` (+${errs.length - 4} pendência(s))` : ""),
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
-      const u = editingUnidade;
       const payload: any = {
         // Geral
         nome: u.nome,
@@ -216,7 +284,7 @@ export default function UnidadesConfig() {
                       <Badge variant={unidade.tipo === "matriz" ? "default" : "secondary"}>
                         {unidade.tipo === "matriz" ? "Matriz" : "Filial"}
                       </Badge>
-                      <Button size="icon" variant="ghost" onClick={() => setEditingUnidade({ ...unidade })}>
+                      <Button size="icon" variant="ghost" onClick={() => { setActiveTab("geral"); setEditingUnidade({ ...unidade }); }}>
                         <Edit className="h-4 w-4" />
                       </Button>
                     </div>
@@ -279,7 +347,7 @@ export default function UnidadesConfig() {
               </DialogTitle>
             </DialogHeader>
             {editingUnidade && (
-              <Tabs defaultValue="geral" className="w-full">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="geral">Geral</TabsTrigger>
                   <TabsTrigger value="endereco">Endereço</TabsTrigger>
