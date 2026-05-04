@@ -568,11 +568,24 @@ export default function Produtos() {
                     onValueChange={(value) => {
                       const isBotijaoCategoria = value === "gas" || value === "agua";
                       const isAcessorioOuOutro = value === "acessorio" || value === "outro";
+                      const isGas = value === "gas";
+                      const isAcessorio = value === "acessorio";
                       setForm({
                         ...form,
                         categoria: value,
                         tipo_botijao: isBotijaoCategoria ? "cheio" : form.tipo_botijao,
                         estoque_unico: isAcessorioOuOutro ? true : false,
+                        // Smart defaults fiscais
+                        ncm: form.ncm || (isGas ? "27111910" : isAcessorio ? "" : form.ncm),
+                        cest: form.cest || (isGas ? "0600600" : form.cest),
+                        cfop_saida: form.cfop_saida || (isGas ? "5656" : isAcessorio ? "5102" : form.cfop_saida),
+                        cfop_entrada_padrao: form.cfop_entrada_padrao || (isGas ? "1652" : form.cfop_entrada_padrao),
+                        unidade_tributavel: isGas ? "KG" : form.unidade_tributavel,
+                        monofasico: isGas ? true : form.monofasico,
+                        cst_pis: isGas ? "04" : form.cst_pis,
+                        cst_cofins: isGas ? "04" : form.cst_cofins,
+                        aliquota_pis: isGas ? "0" : form.aliquota_pis,
+                        aliquota_cofins: isGas ? "0" : form.aliquota_cofins,
                       });
                     }}
                   >
