@@ -105,6 +105,58 @@ serve(async (req) => {
       };
     }
 
+    // ============== Helper: tabela de preços (Regras da Bia) ==============
+    // Carrega configuracoes_empresa.regras_bia.tabela_precos da empresa fixa.
+    // Esta é a FONTE OFICIAL de preços que a Bia deve usar (não mais produtos.preco).
+    async function getTabelaPrecosBia(): Promise<Record<string, { preco: number; preco_desconto: number }>> {
+      const { data } = await supabase
+        .from("configuracoes_empresa")
+        .select("regras_bia")
+        .eq("empresa_id", empresa.id)
+        .maybeSingle();
+      const tp = (data?.regras_bia as any)?.tabela_precos || {};
+      return {
+        gas_p13: tp.gas_p13 || { preco: 0, preco_desconto: 0 },
+        gas_p20: tp.gas_p20 || { preco: 0, preco_desconto: 0 },
+        gas_p45: tp.gas_p45 || { preco: 0, preco_desconto: 0 },
+        agua_20l: tp.agua_20l || { preco: 0, preco_desconto: 0 },
+      };
+    }
+
+    function chaveTabelaParaProduto(nomeProduto: string): string | null {
+      switch (nomeProduto) {
+        case "Gás P13": return "gas_p13";
+        case "Gás P20": return "gas_p20";
+        case "Gás P45": return "gas_p45";
+        case "Água Mineral 20L": return "agua_20l";
+        default: return null;
+      }
+    }
+
+    // ============== ACTION: consultar_precos ==============
+    // Bia chama isso quando o cliente pergunta "quanto é o gás?".
+    // Retorna preços oficiais da tabela das Regras da Bia.
+    if (action === "consultar_precos") {
+      const tp = await getTabelaPrecosBia();
+      const itens = [
+        { nome: "Gás P13", preco: tp.gas_p13.preco },
+        { nome: "Gás P20", preco: tp.gas_p20.preco },
+        { nome: "Gás P45", preco: tp.gas_p45.preco },
+        { nome: "Água Mineral 20L", preco: tp.agua_20l.preco },
+      ].filter((i) => i.preco > 0);
+
+      const lista = itens
+        .map((i) => `${i.nome}: R$ ${i.preco.toFixed(2).replace(".", ",")}`)
+        .join("; ");
+
+      return ok({
+        precos: itens,
+        mensagem: itens.length
+          ? `Preços oficiais da tabela: ${lista}. Use SEMPRE estes valores. NUNCA invente preços.`
+          : "Tabela de preços não configurada. Peça ao cliente um momento e avise o gestor.",
+      });
+    }
+
     // ============== ACTION: verificar_horario ==============
     if (action === "verificar_horario") {
       const r = await getRegrasFuncionamento();
@@ -327,17 +379,17 @@ serve(async (req) => {
 
       if (!prod) return err(`Produto ${nomeProduto} não cadastrado na unidade`);
 
-      let precoUnitario = Number(prod.preco_telefone || prod.preco || 0);
-      if (finalClienteId) {
-        const { data: ultimoItem } = await supabase
-          .from("pedido_itens")
-          .select("preco_unitario, pedidos!inner(cliente_id)")
-          .eq("produto_id", prod.id)
-          .eq("pedidos.cliente_id", finalClienteId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (ultimoItem?.preco_unitario) precoUnitario = Number(ultimoItem.preco_unitario);
+      // Preço: PRIORIDADE = tabela das Regras da Bia (configuracoes_empresa.regras_bia.tabela_precos)
+      // Fallbacks: preco_telefone do produto -> preco do produto.
+      // (Removido o "último preço cobrado ao cliente": tabela das Regras é a fonte oficial.)
+      let precoUnitario = 0;
+      const chaveTab = chaveTabelaParaProduto(nomeProduto);
+      if (chaveTab) {
+        const tp = await getTabelaPrecosBia();
+        precoUnitario = Number(tp[chaveTab]?.preco || 0);
+      }
+      if (!precoUnitario) {
+        precoUnitario = Number(prod.preco_telefone || prod.preco || 0);
       }
 
       const qty = Math.max(1, Number(qtdInput) || 1);
