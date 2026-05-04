@@ -1908,6 +1908,7 @@ export type Database = {
           bloqueio_credito: boolean | null
           cep: string | null
           cidade: string | null
+          cnpj: string | null
           codigo_cliente: number | null
           codigo_indicacao: string | null
           codigo_indicacao_usado: string | null
@@ -1917,14 +1918,18 @@ export type Database = {
           email: string | null
           empresa_id: string | null
           endereco: string | null
+          estado: string | null
           id: string
           indicado_por_cliente_id: string | null
+          inscricao_estadual: string | null
           latitude: number | null
           limite_credito: number | null
           longitude: number | null
           motivo_bloqueio: string | null
           nome: string
+          nome_fantasia: string | null
           numero: string | null
+          razao_social: string | null
           saldo_devedor: number | null
           score_risco: string | null
           telefone: string | null
@@ -1937,6 +1942,7 @@ export type Database = {
           bloqueio_credito?: boolean | null
           cep?: string | null
           cidade?: string | null
+          cnpj?: string | null
           codigo_cliente?: number | null
           codigo_indicacao?: string | null
           codigo_indicacao_usado?: string | null
@@ -1946,14 +1952,18 @@ export type Database = {
           email?: string | null
           empresa_id?: string | null
           endereco?: string | null
+          estado?: string | null
           id?: string
           indicado_por_cliente_id?: string | null
+          inscricao_estadual?: string | null
           latitude?: number | null
           limite_credito?: number | null
           longitude?: number | null
           motivo_bloqueio?: string | null
           nome: string
+          nome_fantasia?: string | null
           numero?: string | null
+          razao_social?: string | null
           saldo_devedor?: number | null
           score_risco?: string | null
           telefone?: string | null
@@ -1966,6 +1976,7 @@ export type Database = {
           bloqueio_credito?: boolean | null
           cep?: string | null
           cidade?: string | null
+          cnpj?: string | null
           codigo_cliente?: number | null
           codigo_indicacao?: string | null
           codigo_indicacao_usado?: string | null
@@ -1975,14 +1986,18 @@ export type Database = {
           email?: string | null
           empresa_id?: string | null
           endereco?: string | null
+          estado?: string | null
           id?: string
           indicado_por_cliente_id?: string | null
+          inscricao_estadual?: string | null
           latitude?: number | null
           limite_credito?: number | null
           longitude?: number | null
           motivo_bloqueio?: string | null
           nome?: string
+          nome_fantasia?: string | null
           numero?: string | null
+          razao_social?: string | null
           saldo_devedor?: number | null
           score_risco?: string | null
           telefone?: string | null
@@ -2133,28 +2148,82 @@ export type Database = {
       }
       compra_itens: {
         Row: {
+          aliquota_cofins: number | null
+          aliquota_icms: number | null
+          aliquota_pis: number | null
+          cest: string | null
+          cfop: string | null
+          codigo_anp: string | null
+          codigo_produto_fornecedor: string | null
           compra_id: string
           created_at: string
+          csosn_icms: string | null
+          cst_cofins: string | null
+          cst_icms: string | null
+          cst_pis: string | null
+          descricao_xml: string | null
           id: string
+          ncm: string | null
           preco_unitario: number
           produto_id: string | null
           quantidade: number
+          unidade_xml: string | null
+          valor_cofins: number | null
+          valor_desconto: number | null
+          valor_icms: number | null
+          valor_pis: number | null
         }
         Insert: {
+          aliquota_cofins?: number | null
+          aliquota_icms?: number | null
+          aliquota_pis?: number | null
+          cest?: string | null
+          cfop?: string | null
+          codigo_anp?: string | null
+          codigo_produto_fornecedor?: string | null
           compra_id: string
           created_at?: string
+          csosn_icms?: string | null
+          cst_cofins?: string | null
+          cst_icms?: string | null
+          cst_pis?: string | null
+          descricao_xml?: string | null
           id?: string
+          ncm?: string | null
           preco_unitario: number
           produto_id?: string | null
           quantidade?: number
+          unidade_xml?: string | null
+          valor_cofins?: number | null
+          valor_desconto?: number | null
+          valor_icms?: number | null
+          valor_pis?: number | null
         }
         Update: {
+          aliquota_cofins?: number | null
+          aliquota_icms?: number | null
+          aliquota_pis?: number | null
+          cest?: string | null
+          cfop?: string | null
+          codigo_anp?: string | null
+          codigo_produto_fornecedor?: string | null
           compra_id?: string
           created_at?: string
+          csosn_icms?: string | null
+          cst_cofins?: string | null
+          cst_icms?: string | null
+          cst_pis?: string | null
+          descricao_xml?: string | null
           id?: string
+          ncm?: string | null
           preco_unitario?: number
           produto_id?: string | null
           quantidade?: number
+          unidade_xml?: string | null
+          valor_cofins?: number | null
+          valor_desconto?: number | null
+          valor_icms?: number | null
+          valor_pis?: number | null
         }
         Relationships: [
           {
@@ -2175,6 +2244,9 @@ export type Database = {
       }
       compras: {
         Row: {
+          base_icms: number | null
+          base_icms_st: number | null
+          cfop_predominante: string | null
           chave_nfe: string | null
           created_at: string
           data_compra: string | null
@@ -2183,15 +2255,35 @@ export type Database = {
           data_recebimento: string | null
           fornecedor_id: string | null
           id: string
+          modalidade_frete: string | null
+          modelo: string | null
+          natureza_operacao: string | null
           numero_nota_fiscal: string | null
           observacoes: string | null
+          placa_veiculo: string | null
+          serie: string | null
           status: string | null
+          transportadora_cnpj: string | null
+          transportadora_nome: string | null
           unidade_id: string | null
           updated_at: string
+          valor_cofins: number | null
+          valor_desconto: number | null
           valor_frete: number | null
+          valor_icms: number | null
+          valor_icms_st: number | null
+          valor_ipi: number | null
+          valor_outros: number | null
+          valor_pis: number | null
+          valor_produtos: number | null
+          valor_seguro: number | null
           valor_total: number | null
+          xml_content: string | null
         }
         Insert: {
+          base_icms?: number | null
+          base_icms_st?: number | null
+          cfop_predominante?: string | null
           chave_nfe?: string | null
           created_at?: string
           data_compra?: string | null
@@ -2200,15 +2292,35 @@ export type Database = {
           data_recebimento?: string | null
           fornecedor_id?: string | null
           id?: string
+          modalidade_frete?: string | null
+          modelo?: string | null
+          natureza_operacao?: string | null
           numero_nota_fiscal?: string | null
           observacoes?: string | null
+          placa_veiculo?: string | null
+          serie?: string | null
           status?: string | null
+          transportadora_cnpj?: string | null
+          transportadora_nome?: string | null
           unidade_id?: string | null
           updated_at?: string
+          valor_cofins?: number | null
+          valor_desconto?: number | null
           valor_frete?: number | null
+          valor_icms?: number | null
+          valor_icms_st?: number | null
+          valor_ipi?: number | null
+          valor_outros?: number | null
+          valor_pis?: number | null
+          valor_produtos?: number | null
+          valor_seguro?: number | null
           valor_total?: number | null
+          xml_content?: string | null
         }
         Update: {
+          base_icms?: number | null
+          base_icms_st?: number | null
+          cfop_predominante?: string | null
           chave_nfe?: string | null
           created_at?: string
           data_compra?: string | null
@@ -2217,13 +2329,30 @@ export type Database = {
           data_recebimento?: string | null
           fornecedor_id?: string | null
           id?: string
+          modalidade_frete?: string | null
+          modelo?: string | null
+          natureza_operacao?: string | null
           numero_nota_fiscal?: string | null
           observacoes?: string | null
+          placa_veiculo?: string | null
+          serie?: string | null
           status?: string | null
+          transportadora_cnpj?: string | null
+          transportadora_nome?: string | null
           unidade_id?: string | null
           updated_at?: string
+          valor_cofins?: number | null
+          valor_desconto?: number | null
           valor_frete?: number | null
+          valor_icms?: number | null
+          valor_icms_st?: number | null
+          valor_ipi?: number | null
+          valor_outros?: number | null
+          valor_pis?: number | null
+          valor_produtos?: number | null
+          valor_seguro?: number | null
           valor_total?: number | null
+          xml_content?: string | null
         }
         Relationships: [
           {
