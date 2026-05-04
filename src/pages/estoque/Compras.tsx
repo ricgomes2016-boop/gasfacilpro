@@ -238,6 +238,32 @@ export default function Compras() {
       if (fornError) { toast.error("Erro ao cadastrar fornecedor: " + fornError.message); return; }
       fornecedorId = newForn.id;
       toast.success(`Fornecedor "${form.fornecedor_novo.razao_social}" cadastrado!`);
+
+      // Espelha em clientes (tipo='fornecedor') se ainda não existir por CNPJ
+      if (empresa?.id) {
+        const cnpjLimpo = (form.fornecedor_novo.cnpj || "").replace(/\D/g, "");
+        let exists = false;
+        if (cnpjLimpo) {
+          const { data: existing } = await (supabase as any).from("clientes")
+            .select("id").eq("empresa_id", empresa.id).eq("cnpj", cnpjLimpo).maybeSingle();
+          exists = !!existing;
+        }
+        if (!exists) {
+          await (supabase as any).from("clientes").insert({
+            empresa_id: empresa.id,
+            nome: form.fornecedor_novo.razao_social,
+            razao_social: form.fornecedor_novo.razao_social,
+            nome_fantasia: form.fornecedor_novo.nome_fantasia || null,
+            cnpj: cnpjLimpo || null,
+            telefone: form.fornecedor_novo.telefone || null,
+            endereco: form.fornecedor_novo.endereco || null,
+            cidade: form.fornecedor_novo.cidade || null,
+            estado: form.fornecedor_novo.estado || null,
+            tipo: "fornecedor",
+            ativo: true,
+          });
+        }
+      }
     }
 
     // Create new products if needed
