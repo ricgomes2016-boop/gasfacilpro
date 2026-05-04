@@ -60,9 +60,10 @@ Deno.serve(async (req) => {
     if (stability !== undefined) newTts.stability = stability;
     if (similarity_boost !== undefined) newTts.similarity_boost = similarity_boost;
 
+    // Enviar somente o subobjeto tts — reenviar conversation_config inteiro
+    // dispara erro "both tools and tool_ids" no agente.
     const patchPayload = {
       conversation_config: {
-        ...(current?.conversation_config ?? {}),
         tts: newTts,
       },
     };
