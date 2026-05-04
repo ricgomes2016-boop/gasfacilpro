@@ -58,6 +58,26 @@ interface Produto {
   tipo_botijao: string | null;
   image_url: string | null;
   estoque_unico: boolean;
+  // Fiscal
+  ncm?: string | null;
+  cest?: string | null;
+  codigo_anp?: string | null;
+  descricao_anp?: string | null;
+  unidade_tributavel?: string | null;
+  cfop_saida?: string | null;
+  cfop_entrada_padrao?: string | null;
+  cst_icms?: string | null;
+  csosn_icms?: string | null;
+  cst_pis?: string | null;
+  cst_cofins?: string | null;
+  aliquota_pis?: number | null;
+  aliquota_cofins?: number | null;
+  aliquota_icms?: number | null;
+  monofasico?: boolean | null;
+  fator_conversao_anp?: number | null;
+  produto_vasilhame_id?: string | null;
+  origem_mercadoria?: string | null;
+  unidade_comercial?: string | null;
 }
 
 interface ProdutoForm {
@@ -74,6 +94,26 @@ interface ProdutoForm {
   tipo_botijao: string;
   image_url: string | null;
   estoque_unico: boolean;
+  // Fiscal
+  ncm: string;
+  cest: string;
+  codigo_anp: string;
+  descricao_anp: string;
+  unidade_tributavel: string;
+  cfop_saida: string;
+  cfop_entrada_padrao: string;
+  cst_icms: string;
+  csosn_icms: string;
+  cst_pis: string;
+  cst_cofins: string;
+  aliquota_pis: string;
+  aliquota_cofins: string;
+  aliquota_icms: string;
+  monofasico: boolean;
+  fator_conversao_anp: string;
+  produto_vasilhame_id: string;
+  origem_mercadoria: string;
+  unidade_comercial: string;
 }
 
 const initialForm: ProdutoForm = {
@@ -90,6 +130,25 @@ const initialForm: ProdutoForm = {
   tipo_botijao: "",
   image_url: null,
   estoque_unico: false,
+  ncm: "",
+  cest: "",
+  codigo_anp: "",
+  descricao_anp: "",
+  unidade_tributavel: "KG",
+  cfop_saida: "",
+  cfop_entrada_padrao: "",
+  cst_icms: "",
+  csosn_icms: "",
+  cst_pis: "",
+  cst_cofins: "",
+  aliquota_pis: "0",
+  aliquota_cofins: "0",
+  aliquota_icms: "0",
+  monofasico: false,
+  fator_conversao_anp: "",
+  produto_vasilhame_id: "nenhum",
+  origem_mercadoria: "0",
+  unidade_comercial: "UN",
 };
 
 export default function Produtos() {
