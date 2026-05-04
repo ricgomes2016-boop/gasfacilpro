@@ -141,6 +141,7 @@ export default function Compras() {
 
   const [itens, setItens] = useState<ItemCompra[]>([]);
   const [novoItem, setNovoItem] = useState({ produto_id: "", quantidade: "1", preco_unitario: "" });
+  const [nfFiscal, setNfFiscal] = useState<NfFiscal | null>(null);
 
   const fetchCompras = async () => {
     let query = supabase
