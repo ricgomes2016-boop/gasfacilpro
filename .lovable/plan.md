@@ -1,79 +1,68 @@
 ## Objetivo
 
-Aplicar em todas as telas de login (`AuthErp`, `AuthCliente`, `AuthEntregador`, `AuthPainel`, `AuthParceiro`, `AuthTransportadora`, `AuthApi`, `AuthContador`) um novo layout inspirado na imagem de referência: formulário à esquerda + grande círculo gradiente à direita exibindo uma **frase motivacional aleatória** a cada acesso.
+Em **Estoque → Compras**, o botão "Importar XML" já existe, mas hoje extrai apenas o básico (nº NF, chave, data, frete, descrição/qtd/preço dos itens). Vamos torná-lo um importador fiscal completo:
 
-## Layout (referência da imagem)
+- Lê **todas** as informações fiscais do XML (emitente, destinatário, totais, impostos, transporte, duplicatas, dados por item).
+- Se o **fornecedor não existir**, cadastra automaticamente em `fornecedores` **e** espelha o registro em `clientes` com `tipo = 'fornecedor'` (para aparecer no Cadastro de Clientes).
+- Se o **produto não existir**, cadastra com NCM, CEST, CFOP, código ANP, unidade tributável e CSTs já preenchidos a partir do XML (aproveita as 20 colunas fiscais já existentes em `produtos`).
+- Salva os dados fiscais da nota e de cada item em `compras` / `compra_itens`.
 
-```
-┌─────────────────────────────────────────────┐
-│  [logo]                    ╭───────────╮    │
-│  Título portal             │           │    │
-│                            │  "Frase   │    │
-│  Email/Telefone            │  motiva-  │    │
-│  [_______________]         │  cional"  │    │
-│                            │           │    │
-│  Senha                     │  — autor  │    │
-│  [_______________]         ╰───────────╯    │
-│                          (gradiente do      │
-│  [ Entrar ]               tema do portal)   │
-└─────────────────────────────────────────────┘
-```
+## Mudanças
 
-- **Desktop (≥ md)**: split 50/50 — formulário esquerda, círculo gradiente direita.
-- **Mobile (< md)**: círculo vira um header decorativo compacto no topo (h-40) com a frase, e formulário ocupa o restante. Mantém legibilidade em 384px.
-- O círculo tem `border-radius: 50%` cortado pela borda direita (overflow hidden no container), com gradiente HSL derivado da cor `--primary` de cada portal (tokens já existentes em `brandThemes.ts` / `theme-*.css`).
-- Animações suaves: `animate-fade-in` no card, leve `animate-pulse` lento no círculo (gradient breathing), troca de frase com fade ao montar.
+### 1. Banco — migration
 
-## Frases motivacionais
+`compras` (adicionar colunas):
+- `serie`, `modelo`, `natureza_operacao`, `cfop_predominante`
+- `valor_produtos`, `valor_desconto`, `valor_seguro`, `valor_outros`
+- `valor_icms`, `valor_icms_st`, `valor_ipi`, `valor_pis`, `valor_cofins`, `base_icms`, `base_icms_st`
+- `transportadora_nome`, `transportadora_cnpj`, `placa_veiculo`, `modalidade_frete`
+- `xml_content` (text) — guarda o XML bruto para reimpressão/auditoria
 
-Criar `src/lib/motivationalQuotes.ts` com ~20 frases categorizadas por portal (gestão, entrega, cliente, contador, parceiro). Função `getRandomQuote(app)` retorna uma frase aleatória a cada render inicial (via `useState(() => getRandomQuote(app))` para fixar durante a sessão da tela).
+`compra_itens` (adicionar colunas):
+- `descricao_xml`, `codigo_produto_fornecedor`, `unidade_xml`
+- `ncm`, `cest`, `cfop`, `codigo_anp`
+- `cst_icms`, `csosn_icms`, `cst_pis`, `cst_cofins`
+- `aliquota_icms`, `aliquota_pis`, `aliquota_cofins`
+- `valor_icms`, `valor_pis`, `valor_cofins`, `valor_desconto`
 
-Exemplos:
-- ERP: "Gestão eficiente é o combustível do crescimento."
-- Entregador: "Cada entrega é uma promessa cumprida."
-- Cliente: "Praticidade na palma da sua mão."
-- Contador: "Números organizados, decisões certeiras."
+`clientes` (adicionar, opcional p/ fornecedor cadastrado via cliente):
+- `cnpj`, `razao_social`, `nome_fantasia`, `inscricao_estadual` (se ainda não houver — verificar no apply)
 
-## Componente compartilhado
+### 2. `src/pages/estoque/Compras.tsx` — `handleImportXML`
 
-Criar `src/components/auth/CircleAuthLayout.tsx`:
+Reescrever o parser para extrair:
+- **Emitente**: CNPJ, razão social, nome fantasia, IE, endereço, município, UF, telefone.
+- **Identificação NF**: nNF, serie, mod, natOp, dhEmi, dhSaiEnt, chave.
+- **Totais (`ICMSTot`)**: vProd, vNF, vFrete, vSeg, vDesc, vOutro, vICMS, vST, vIPI, vPIS, vCOFINS, vBC, vBCST.
+- **Transporte**: modFrete, transporta/xNome+CNPJ, veicTransp/placa.
+- **Duplicatas (`cobr/dup`)**: usa `dVenc` da 1ª duplicata como `data_pagamento`.
+- **Por item (`det`)**: cProd, xProd, NCM, CEST, CFOP, uCom, qCom, vUnCom, vProd, vDesc, comb/cProdANP, ICMS (CST/CSOSN, vBC, pICMS, vICMS), PIS (CST, pPIS, vPIS), COFINS.
 
-```tsx
-interface CircleAuthLayoutProps {
-  portalKey: "erp" | "cliente" | "entregador" | "painel" | "parceiro" | "transportadora" | "api" | "contador";
-  icon: string;        // imagem do portal
-  title: string;
-  subtitle: string;
-  gradientFrom: string; // HSL ex: "265 85% 65%"
-  gradientTo: string;
-  children: ReactNode;  // o formulário
-}
-```
+Fluxo após parse:
+1. **Fornecedor**:
+   - Busca em `fornecedores` por CNPJ exato.
+   - Se não achar → cria em `fornecedores` com todos os dados do emitente; também faz `upsert` em `clientes` com `tipo='fornecedor'` e mesmos dados (para listar em Cadastros/Clientes filtrando por Fornecedor).
+2. **Produtos**:
+   - Tenta casar por nome; se não achar, marca `is_new=true` carregando NCM, CEST, CFOP, ANP, CSTs do próprio item.
+   - Ao salvar, `produtos` é criado com esses campos fiscais já preenchidos (e `monofasico=true` quando CST PIS/COFINS = 04 ou cProdANP iniciado por 21).
+3. **Compra**: grava todos os totais e dados de transporte; `compra_itens` recebe os campos fiscais por item; `xml_content` guarda o XML bruto.
+4. Toast detalhado: "NF 12345 importada · Fornecedor X · 5 itens (2 novos) · R$ 1.234,56".
 
-Responsável por:
-- Renderizar split layout responsivo
-- Escolher frase aleatória via `getRandomQuote(portalKey)` (fixa por mount)
-- Aplicar gradiente do portal no círculo
-- Manter compatibilidade com cards atuais (form fica como children, sem mexer em `useAuthForm`)
+### 3. Cadastro de Clientes — exibir Fornecedores
 
-## Arquivos a alterar
+Em `src/pages/Clientes.tsx`, adicionar:
+- Filtro/aba "Fornecedor" que lista clientes com `tipo='fornecedor'`.
+- No formulário de cliente, opção de tipo "Fornecedor" (já que `clientes.tipo` é text).
 
-1. **Criar** `src/lib/motivationalQuotes.ts` — catálogo + `getRandomQuote(app)`.
-2. **Criar** `src/components/auth/CircleAuthLayout.tsx` — layout split + círculo.
-3. **Refatorar visualmente** (sem alterar lógica de auth/redirect):
-   - `src/pages/auth/AuthErp.tsx`
-   - `src/pages/auth/AuthCliente.tsx`
-   - `src/pages/auth/AuthEntregador.tsx`
-   - `src/pages/auth/AuthPainel.tsx`
-   - `src/pages/auth/AuthParceiro.tsx`
-   - `src/pages/auth/AuthTransportadora.tsx`
-   - `src/pages/auth/AuthApi.tsx`
-   - `src/pages/auth/AuthContador.tsx`
-4. **Remover** (se ainda existir e não for usado em outro lugar) `src/components/auth/AnimatedAuthCard.tsx` criado anteriormente.
+### 4. Detalhes técnicos
 
-## Restrições respeitadas
+- Parsing 100% client-side com `DOMParser` (já usado hoje), sem precisar de edge function.
+- Anti-duplicidade: antes de salvar, checar `compras.chave_nfe` — se já existir, avisar e não duplicar.
+- Validar tamanho do XML (até ~5MB).
+- Mensagens de erro específicas por etapa (parse / fornecedor / produtos / compra).
 
-- Não toca em `App.tsx`, providers, rotas, `useAuthForm`, `AuthContext`, lógica de redirect por role.
-- Usa tokens HSL de `index.css` / `brandThemes.ts` (sem cores hardcoded).
-- Tipografia Plus Jakarta Sans já global.
-- Mobile-first: testado mentalmente em 384px (largura atual do usuário).
+### Arquivos afetados
+
+- `supabase/migrations/<timestamp>_compras_xml_fiscal.sql` (novo)
+- `src/pages/estoque/Compras.tsx` (reescreve `handleImportXML`, ajusta `handleSave` para persistir novos campos)
+- `src/pages/Clientes.tsx` (filtro/opção tipo Fornecedor)

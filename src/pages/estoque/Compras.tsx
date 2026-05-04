@@ -59,12 +59,57 @@ interface Produto {
   preco: number;
 }
 
+interface ItemFiscal {
+  descricao_xml?: string;
+  codigo_produto_fornecedor?: string;
+  unidade_xml?: string;
+  ncm?: string;
+  cest?: string;
+  cfop?: string;
+  codigo_anp?: string;
+  cst_icms?: string;
+  csosn_icms?: string;
+  cst_pis?: string;
+  cst_cofins?: string;
+  aliquota_icms?: number;
+  aliquota_pis?: number;
+  aliquota_cofins?: number;
+  valor_icms?: number;
+  valor_pis?: number;
+  valor_cofins?: number;
+  valor_desconto?: number;
+}
+
 interface ItemCompra {
   produto_id: string;
   produto_nome?: string;
   quantidade: number;
   preco_unitario: number;
   is_new?: boolean;
+  fiscal?: ItemFiscal;
+}
+
+interface NfFiscal {
+  serie?: string;
+  modelo?: string;
+  natureza_operacao?: string;
+  cfop_predominante?: string;
+  valor_produtos?: number;
+  valor_desconto?: number;
+  valor_seguro?: number;
+  valor_outros?: number;
+  valor_icms?: number;
+  valor_icms_st?: number;
+  valor_ipi?: number;
+  valor_pis?: number;
+  valor_cofins?: number;
+  base_icms?: number;
+  base_icms_st?: number;
+  transportadora_nome?: string;
+  transportadora_cnpj?: string;
+  placa_veiculo?: string;
+  modalidade_frete?: string;
+  xml_content?: string;
 }
 
 export default function Compras() {
@@ -96,6 +141,7 @@ export default function Compras() {
 
   const [itens, setItens] = useState<ItemCompra[]>([]);
   const [novoItem, setNovoItem] = useState({ produto_id: "", quantidade: "1", preco_unitario: "" });
+  const [nfFiscal, setNfFiscal] = useState<NfFiscal | null>(null);
 
   const fetchCompras = async () => {
     let query = supabase
@@ -166,6 +212,7 @@ export default function Compras() {
     });
     setItens([]);
     setNovoItem({ produto_id: "", quantidade: "1", preco_unitario: "" });
+    setNfFiscal(null);
   };
 
   const handleSave = async () => {
@@ -191,28 +238,71 @@ export default function Compras() {
       if (fornError) { toast.error("Erro ao cadastrar fornecedor: " + fornError.message); return; }
       fornecedorId = newForn.id;
       toast.success(`Fornecedor "${form.fornecedor_novo.razao_social}" cadastrado!`);
+
+      // Espelha em clientes (tipo='fornecedor') se ainda não existir por CNPJ
+      if (empresa?.id) {
+        const cnpjLimpo = (form.fornecedor_novo.cnpj || "").replace(/\D/g, "");
+        let exists = false;
+        if (cnpjLimpo) {
+          const { data: existing } = await (supabase as any).from("clientes")
+            .select("id").eq("empresa_id", empresa.id).eq("cnpj", cnpjLimpo).maybeSingle();
+          exists = !!existing;
+        }
+        if (!exists) {
+          await (supabase as any).from("clientes").insert({
+            empresa_id: empresa.id,
+            nome: form.fornecedor_novo.razao_social,
+            razao_social: form.fornecedor_novo.razao_social,
+            nome_fantasia: form.fornecedor_novo.nome_fantasia || null,
+            cnpj: cnpjLimpo || null,
+            telefone: form.fornecedor_novo.telefone || null,
+            endereco: form.fornecedor_novo.endereco || null,
+            cidade: form.fornecedor_novo.cidade || null,
+            estado: form.fornecedor_novo.estado || null,
+            tipo: "fornecedor",
+            ativo: true,
+          });
+        }
+      }
     }
 
-    // Create new products if needed
-    const resolvedItens: { produto_id: string; quantidade: number; preco_unitario: number }[] = [];
+    // Create new products if needed (com dados fiscais do XML quando disponíveis)
+    const resolvedItens: { produto_id: string; quantidade: number; preco_unitario: number; fiscal?: ItemFiscal }[] = [];
     for (const item of itens) {
       let prodId = item.produto_id;
       if (item.is_new && item.produto_nome) {
-        const { data: newProd, error: prodError } = await supabase.from("produtos").insert({
+        const f = item.fiscal || {};
+        const isMonofasico = (f.cst_pis === "04" || f.cst_cofins === "04" || (f.codigo_anp || "").startsWith("21"));
+        const isGas = /g[áa]s|glp|p[\s-]?13|p[\s-]?20|p[\s-]?45/i.test(item.produto_nome);
+        const { data: newProd, error: prodError } = await (supabase as any).from("produtos").insert({
           nome: item.produto_nome,
           preco: item.preco_unitario,
           ativo: true,
           unidade_id: unidadeAtual?.id || null,
+          categoria: isGas ? "gas" : null,
+          ncm: f.ncm || null,
+          cest: f.cest || null,
+          cfop_entrada_padrao: f.cfop || null,
+          codigo_anp: f.codigo_anp || null,
+          cst_icms: f.cst_icms || null,
+          csosn_icms: f.csosn_icms || null,
+          cst_pis: f.cst_pis || null,
+          cst_cofins: f.cst_cofins || null,
+          aliquota_pis: f.aliquota_pis ?? null,
+          aliquota_cofins: f.aliquota_cofins ?? null,
+          unidade_tributavel: f.unidade_xml || null,
+          monofasico: isMonofasico,
         }).select("id").single();
 
         if (prodError) { toast.error("Erro ao cadastrar produto: " + prodError.message); return; }
         prodId = newProd.id;
         toast.success(`Produto "${item.produto_nome}" cadastrado!`);
       }
-      resolvedItens.push({ produto_id: prodId, quantidade: item.quantidade, preco_unitario: item.preco_unitario });
+      resolvedItens.push({ produto_id: prodId, quantidade: item.quantidade, preco_unitario: item.preco_unitario, fiscal: item.fiscal });
     }
 
-    const { data: compra, error } = await supabase.from("compras").insert({
+    const nf = nfFiscal || {};
+    const { data: compra, error } = await (supabase as any).from("compras").insert({
       fornecedor_id: fornecedorId,
       unidade_id: unidadeAtual?.id || null,
       valor_total: totalCompra,
@@ -224,6 +314,26 @@ export default function Compras() {
       data_pagamento: form.data_pagamento || null,
       observacoes: form.observacoes || null,
       status: "pendente",
+      serie: nf.serie || null,
+      modelo: nf.modelo || null,
+      natureza_operacao: nf.natureza_operacao || null,
+      cfop_predominante: nf.cfop_predominante || null,
+      valor_produtos: nf.valor_produtos ?? null,
+      valor_desconto: nf.valor_desconto ?? null,
+      valor_seguro: nf.valor_seguro ?? null,
+      valor_outros: nf.valor_outros ?? null,
+      valor_icms: nf.valor_icms ?? null,
+      valor_icms_st: nf.valor_icms_st ?? null,
+      valor_ipi: nf.valor_ipi ?? null,
+      valor_pis: nf.valor_pis ?? null,
+      valor_cofins: nf.valor_cofins ?? null,
+      base_icms: nf.base_icms ?? null,
+      base_icms_st: nf.base_icms_st ?? null,
+      transportadora_nome: nf.transportadora_nome || null,
+      transportadora_cnpj: nf.transportadora_cnpj || null,
+      placa_veiculo: nf.placa_veiculo || null,
+      modalidade_frete: nf.modalidade_frete || null,
+      xml_content: nf.xml_content || null,
     }).select("id").single();
 
     if (error) { toast.error("Erro: " + error.message); return; }
@@ -234,8 +344,26 @@ export default function Compras() {
         produto_id: i.produto_id,
         quantidade: i.quantidade,
         preco_unitario: i.preco_unitario,
+        descricao_xml: i.fiscal?.descricao_xml || null,
+        codigo_produto_fornecedor: i.fiscal?.codigo_produto_fornecedor || null,
+        unidade_xml: i.fiscal?.unidade_xml || null,
+        ncm: i.fiscal?.ncm || null,
+        cest: i.fiscal?.cest || null,
+        cfop: i.fiscal?.cfop || null,
+        codigo_anp: i.fiscal?.codigo_anp || null,
+        cst_icms: i.fiscal?.cst_icms || null,
+        csosn_icms: i.fiscal?.csosn_icms || null,
+        cst_pis: i.fiscal?.cst_pis || null,
+        cst_cofins: i.fiscal?.cst_cofins || null,
+        aliquota_icms: i.fiscal?.aliquota_icms ?? null,
+        aliquota_pis: i.fiscal?.aliquota_pis ?? null,
+        aliquota_cofins: i.fiscal?.aliquota_cofins ?? null,
+        valor_icms: i.fiscal?.valor_icms ?? null,
+        valor_pis: i.fiscal?.valor_pis ?? null,
+        valor_cofins: i.fiscal?.valor_cofins ?? null,
+        valor_desconto: i.fiscal?.valor_desconto ?? null,
       }));
-      const { error: itensError } = await supabase.from("compra_itens").insert(itensData);
+      const { error: itensError } = await (supabase as any).from("compra_itens").insert(itensData);
       if (itensError) { toast.error("Erro nos itens: " + itensError.message); }
 
       // Atualizar estoque dos produtos comprados
@@ -444,6 +572,12 @@ export default function Compras() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("XML muito grande (máx 5MB)");
+      if (xmlInputRef.current) xmlInputRef.current.value = "";
+      return;
+    }
+
     try {
       const text = await file.text();
       const parser = new DOMParser();
@@ -452,72 +586,211 @@ export default function Compras() {
       const nfe = xml.querySelector("infNFe, NFe infNFe");
       if (!nfe) { toast.error("XML inválido ou não é uma NFe"); return; }
 
-      const chaveNfe = nfe.getAttribute("Id")?.replace("NFe", "") || "";
-      const nNF = nfe.querySelector("ide nNF")?.textContent || "";
-      const dhEmi = nfe.querySelector("ide dhEmi")?.textContent || "";
-      const dataCompra = dhEmi ? dhEmi.split("T")[0] : "";
-      const vNF = nfe.querySelector("total ICMSTot vNF")?.textContent || "0";
-      const vFrete = nfe.querySelector("total ICMSTot vFrete")?.textContent || "0";
-      const cnpjEmit = nfe.querySelector("emit CNPJ")?.textContent || "";
+      const tt = (sel: string, root: Element = nfe as Element) =>
+        (root.querySelector(sel)?.textContent || "").trim();
 
-      let fornecedorId = "";
-      if (cnpjEmit) {
-        const cnpjLimpo = cnpjEmit.replace(/\D/g, "");
-        const { data: fornecedorData } = await supabase
-          .from("fornecedores")
-          .select("id")
-          .ilike("cnpj", `%${cnpjLimpo.slice(0, 8)}%`)
-          .maybeSingle();
-        if (fornecedorData) fornecedorId = fornecedorData.id;
+      // Identificação
+      const chaveNfe = (nfe.getAttribute("Id") || "").replace(/^NFe/, "");
+      const nNF = tt("ide nNF");
+      const serie = tt("ide serie");
+      const modelo = tt("ide mod");
+      const natOp = tt("ide natOp");
+      const dhEmi = tt("ide dhEmi") || tt("ide dEmi");
+      const dataCompra = dhEmi ? dhEmi.split("T")[0] : "";
+
+      // Anti-duplicidade
+      if (chaveNfe) {
+        const { data: dup } = await (supabase as any).from("compras")
+          .select("id, numero_nota_fiscal").eq("chave_nfe", chaveNfe).maybeSingle();
+        if (dup) {
+          toast.error(`Esta NF-e já foi importada (NF ${dup.numero_nota_fiscal || "S/N"})`);
+          if (xmlInputRef.current) xmlInputRef.current.value = "";
+          return;
+        }
       }
 
-      const dets = nfe.querySelectorAll("det");
+      // Emitente (fornecedor)
+      const emit = nfe.querySelector("emit");
+      const cnpjEmit = (emit?.querySelector("CNPJ")?.textContent || "").replace(/\D/g, "");
+      const razaoEmit = emit?.querySelector("xNome")?.textContent?.trim() || "";
+      const fantasiaEmit = emit?.querySelector("xFant")?.textContent?.trim() || "";
+      const enderEmit = emit?.querySelector("enderEmit");
+      const endLogradouro = [
+        enderEmit?.querySelector("xLgr")?.textContent || "",
+        enderEmit?.querySelector("nro")?.textContent || "",
+      ].filter(Boolean).join(", ");
+      const cidadeEmit = enderEmit?.querySelector("xMun")?.textContent || "";
+      const ufEmit = enderEmit?.querySelector("UF")?.textContent || "";
+      const foneEmit = enderEmit?.querySelector("fone")?.textContent || "";
+
+      let fornecedorId = "";
+      let fornecedorNovo: typeof form.fornecedor_novo = null;
+      if (cnpjEmit) {
+        const cnpjFmt = formatCNPJ(cnpjEmit);
+        const existing = fornecedores.find(f => (f.cnpj || "").replace(/\D/g, "") === cnpjEmit);
+        if (existing) {
+          fornecedorId = existing.id;
+          toast.info(`Fornecedor encontrado: ${existing.razao_social}`);
+        } else {
+          fornecedorNovo = {
+            razao_social: razaoEmit || "Fornecedor não identificado",
+            nome_fantasia: fantasiaEmit || undefined,
+            cnpj: cnpjFmt,
+            endereco: endLogradouro || undefined,
+            cidade: cidadeEmit || undefined,
+            estado: ufEmit || undefined,
+            telefone: foneEmit || undefined,
+          };
+          toast.info(`Novo fornecedor será cadastrado: ${fornecedorNovo.razao_social}`);
+        }
+      }
+
+      // Totais
+      const totalNode = nfe.querySelector("total ICMSTot") as Element | null;
+      const tnum = (sel: string) => totalNode ? parseFloat(totalNode.querySelector(sel)?.textContent || "0") || 0 : 0;
+      const vNF = tnum("vNF");
+      const vProd = tnum("vProd");
+      const vFrete = tnum("vFrete");
+      const vSeg = tnum("vSeg");
+      const vDesc = tnum("vDesc");
+      const vOutro = tnum("vOutro");
+      const vICMS = tnum("vICMS");
+      const vST = tnum("vST");
+      const vIPI = tnum("vIPI");
+      const vPIS = tnum("vPIS");
+      const vCOFINS = tnum("vCOFINS");
+      const vBC = tnum("vBC");
+      const vBCST = tnum("vBCST");
+
+      // Transporte
+      const transp = nfe.querySelector("transp");
+      const modFrete = transp?.querySelector("modFrete")?.textContent || "";
+      const transpNome = transp?.querySelector("transporta xNome")?.textContent || "";
+      const transpCnpj = transp?.querySelector("transporta CNPJ")?.textContent || "";
+      const placa = transp?.querySelector("veicTransp placa")?.textContent || "";
+
+      // Cobrança - 1ª duplicata como vencimento
+      const dVenc = nfe.querySelector("cobr dup dVenc")?.textContent || "";
+
+      // Itens
+      const dets = Array.from(nfe.querySelectorAll("det"));
       const itensXml: ItemCompra[] = [];
-      dets.forEach(det => {
-        const xProd = det.querySelector("prod xProd")?.textContent || "";
-        const qCom = parseFloat(det.querySelector("prod qCom")?.textContent || "1");
-        const vUnCom = parseFloat(det.querySelector("prod vUnCom")?.textContent || "0");
+      const cfops: string[] = [];
+
+      for (const det of dets) {
+        const prod = det.querySelector("prod");
+        if (!prod) continue;
+        const xProd = prod.querySelector("xProd")?.textContent?.trim() || "";
+        const cProd = prod.querySelector("cProd")?.textContent?.trim() || "";
+        const ncm = prod.querySelector("NCM")?.textContent?.trim() || "";
+        const cest = prod.querySelector("CEST")?.textContent?.trim() || "";
+        const cfop = prod.querySelector("CFOP")?.textContent?.trim() || "";
+        const uCom = prod.querySelector("uCom")?.textContent?.trim() || "";
+        const qCom = parseFloat(prod.querySelector("qCom")?.textContent || "1") || 1;
+        const vUnCom = parseFloat(prod.querySelector("vUnCom")?.textContent || "0") || 0;
+        const vDescItem = parseFloat(prod.querySelector("vDesc")?.textContent || "0") || 0;
+        const cProdANP = prod.querySelector("comb cProdANP")?.textContent?.trim() || "";
+
+        if (cfop) cfops.push(cfop);
+
+        const imposto = det.querySelector("imposto");
+        const icmsNode = imposto?.querySelector("ICMS > *") as Element | null;
+        const cstIcms = icmsNode?.querySelector("CST")?.textContent?.trim() || "";
+        const csosnIcms = icmsNode?.querySelector("CSOSN")?.textContent?.trim() || "";
+        const pICMS = parseFloat(icmsNode?.querySelector("pICMS")?.textContent || "0") || 0;
+        const vICMSItem = parseFloat(icmsNode?.querySelector("vICMS")?.textContent || "0") || 0;
+
+        const pisNode = imposto?.querySelector("PIS > *") as Element | null;
+        const cstPis = pisNode?.querySelector("CST")?.textContent?.trim() || "";
+        const pPIS = parseFloat(pisNode?.querySelector("pPIS")?.textContent || "0") || 0;
+        const vPISItem = parseFloat(pisNode?.querySelector("vPIS")?.textContent || "0") || 0;
+
+        const cofinsNode = imposto?.querySelector("COFINS > *") as Element | null;
+        const cstCofins = cofinsNode?.querySelector("CST")?.textContent?.trim() || "";
+        const pCOFINS = parseFloat(cofinsNode?.querySelector("pCOFINS")?.textContent || "0") || 0;
+        const vCOFINSItem = parseFloat(cofinsNode?.querySelector("vCOFINS")?.textContent || "0") || 0;
+
+        const fiscal: ItemFiscal = {
+          descricao_xml: xProd,
+          codigo_produto_fornecedor: cProd || undefined,
+          unidade_xml: uCom || undefined,
+          ncm: ncm || undefined,
+          cest: cest || undefined,
+          cfop: cfop || undefined,
+          codigo_anp: cProdANP || undefined,
+          cst_icms: cstIcms || undefined,
+          csosn_icms: csosnIcms || undefined,
+          cst_pis: cstPis || undefined,
+          cst_cofins: cstCofins || undefined,
+          aliquota_icms: pICMS || undefined,
+          aliquota_pis: pPIS || undefined,
+          aliquota_cofins: pCOFINS || undefined,
+          valor_icms: vICMSItem || undefined,
+          valor_pis: vPISItem || undefined,
+          valor_cofins: vCOFINSItem || undefined,
+          valor_desconto: vDescItem || undefined,
+        };
 
         const produtoEncontrado = produtos.find(p =>
+          p.nome.toLowerCase() === xProd.toLowerCase() ||
           p.nome.toLowerCase().includes(xProd.toLowerCase()) ||
           xProd.toLowerCase().includes(p.nome.toLowerCase())
         );
 
-        if (produtoEncontrado) {
-          itensXml.push({
-            produto_id: produtoEncontrado.id,
-            quantidade: Math.round(qCom),
-            preco_unitario: vUnCom,
-          });
-        } else {
-          itensXml.push({
-            produto_id: `new_${Date.now()}_${Math.random()}`,
-            produto_nome: xProd,
-            quantidade: Math.round(qCom),
-            preco_unitario: vUnCom,
-            is_new: true,
-          });
-        }
+        itensXml.push(produtoEncontrado ? {
+          produto_id: produtoEncontrado.id,
+          quantidade: Math.max(1, Math.round(qCom)),
+          preco_unitario: vUnCom,
+          fiscal,
+        } : {
+          produto_id: `new_${Date.now()}_${Math.random()}`,
+          produto_nome: xProd,
+          quantidade: Math.max(1, Math.round(qCom)),
+          preco_unitario: vUnCom,
+          is_new: true,
+          fiscal,
+        });
+      }
+
+      // CFOP predominante
+      const cfopCount: Record<string, number> = {};
+      cfops.forEach(c => { cfopCount[c] = (cfopCount[c] || 0) + 1; });
+      const cfopPred = Object.entries(cfopCount).sort((a, b) => b[1] - a[1])[0]?.[0] || "";
+
+      setNfFiscal({
+        serie, modelo, natureza_operacao: natOp, cfop_predominante: cfopPred,
+        valor_produtos: vProd, valor_desconto: vDesc, valor_seguro: vSeg, valor_outros: vOutro,
+        valor_icms: vICMS, valor_icms_st: vST, valor_ipi: vIPI, valor_pis: vPIS, valor_cofins: vCOFINS,
+        base_icms: vBC, base_icms_st: vBCST,
+        transportadora_nome: transpNome || undefined,
+        transportadora_cnpj: transpCnpj || undefined,
+        placa_veiculo: placa || undefined,
+        modalidade_frete: modFrete || undefined,
+        xml_content: text,
       });
 
       setForm(prev => ({
         ...prev,
-        numero_nota_fiscal: nNF,
-        chave_nfe: chaveNfe,
+        numero_nota_fiscal: nNF || prev.numero_nota_fiscal,
+        chave_nfe: chaveNfe || prev.chave_nfe,
         data_compra: dataCompra || prev.data_compra,
-        valor_frete: vFrete !== "0" ? formatCurrency((parseFloat(vFrete) * 100).toFixed(0)) : "",
+        data_pagamento: dVenc || prev.data_pagamento,
+        valor_frete: vFrete > 0 ? formatCurrency((vFrete * 100).toFixed(0)) : prev.valor_frete,
         fornecedor_id: fornecedorId || prev.fornecedor_id,
+        fornecedor_novo: fornecedorNovo || prev.fornecedor_novo,
       }));
 
       if (itensXml.length > 0) {
         setItens(itensXml);
-        const newCount = itensXml.filter(i => i.is_new).length;
-        toast.success(`${itensXml.length} item(ns) importado(s)${newCount > 0 ? `, ${newCount} novo(s) serão cadastrados` : ""}`);
-      } else {
-        toast.info("XML importado. Adicione os itens manualmente.");
       }
-    } catch {
-      toast.error("Erro ao processar o arquivo XML");
+
+      const novos = itensXml.filter(i => i.is_new).length;
+      toast.success(
+        `NF ${nNF || "S/N"} importada · ${itensXml.length} item(ns)${novos > 0 ? ` (${novos} novo(s))` : ""} · R$ ${vNF.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+      );
+    } catch (err: any) {
+      console.error("XML parse error:", err);
+      toast.error("Erro ao processar o XML: " + (err?.message || "formato inválido"));
     }
 
     if (xmlInputRef.current) xmlInputRef.current.value = "";
