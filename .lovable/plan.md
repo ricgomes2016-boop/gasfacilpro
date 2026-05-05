@@ -1,62 +1,76 @@
+# Bia: deixar mais lenta e mais gentil
 
-## Diagnóstico (dados reais dos últimos 7 dias)
+## Diagnóstico (ElevenLabs ao vivo)
 
-Consultei `chamadas_recebidas` e `pedidos` no banco e encontrei o seguinte:
+Configuração atual do agente `agent_2501kpf1v7ayf9r9nwdrjedmjt5s` (Sarah, voz `EXAVITQu4vr4xnSDxMaL`):
 
-- **48 chamadas registradas / apenas 1 com `pedido_gerado_id`** — ou seja, o link chamada → pedido praticamente nunca acontece, e o popup não evolui para "pedido confirmado".
-- **Toda ligação cria 2 linhas em `chamadas_recebidas`**: uma do `goto-webhook` (telefone com `+`, `tipo='telefone'`, sem `observacoes`) e outra do `elevenlabs-bia-tools/identificar_cliente` (telefone sem `+`, `tipo='voip'`, "Recebida pela Bia (IA - ElevenLabs)"). Resultado: 2 popups por ligação, e o link cai na linha errada.
-- **Pedidos da Bia (#427–#435) foram criados normalmente**, mas o UPDATE que liga `pedido_gerado_id` à chamada não acerta porque:
-  1. Em uma das ligações o pedido foi criado **antes** do `identificar_cliente` rodar (chamada 16:13:08, pedido 16:12:11). O lookup procura chamada `voip` sem pedido nos últimos 10 min — mas a Bia chamou `criar_pedido` antes da chamada existir no banco.
-  2. O lookup filtra `tipo='voip'`, mas o webhook GoTo grava `tipo='telefone'` — então linhas do GoTo nunca são linkadas.
-- **Caller-ID untrusted (0800)**: quando a chamada vem via 0800 GoTo, `identificar_cliente` registra a chamada com `telefone=null` e o popup tem só "Bia atendendo" — sem nenhum identificador útil até o cliente ditar o telefone.
-- **Edge function `elevenlabs-bia-tools` sem logs** no dashboard (não aparece em function_edge_logs) — provavelmente está sendo chamada via gateway próprio (não via supabase.functions.invoke), o que dificulta debugar.
-- **Voz/preço/desconto**: já configurados corretamente (Bella + regras P13/desconto/água ativas no agente).
-- **Popup atual** (`CallerIdPopup.tsx`) já mostra "Bia atendendo" durante a ligação e atualiza quando chega o pedido — UI ok, falta consistência dos dados.
+```json
+{
+  "speed": 1.08,            ← acelerada (default seria 1.0)
+  "stability": 0.5,
+  "similarity_boost": 0.8,
+  "expressive_mode": false, ← sem expressividade emocional
+  "model_id": "eleven_turbo_v2_5",
+  "optimize_streaming_latency": 3
+}
+```
 
-## Plano de correção (6 ajustes)
+**Causa da pressa**: `speed: 1.08` (8% mais rápida que o natural).
+**Causa da falta de gentileza**: depende de duas coisas — voz (TTS) + prompt do agente. O TTS atual é frio (`expressive_mode: false`, stability alta = monótona). E provavelmente o prompt diz "seja objetiva/rápida" mas não diz "seja calorosa".
 
-### 1. Eliminar a duplicação de chamadas (`goto-webhook` + Bia)
-Hoje cada ligação grava 2 registros. Vou:
-- No `elevenlabs-bia-tools/identificar_cliente`: em vez de **inserir** uma nova chamada, fazer **UPSERT/UPDATE** na chamada `recebida` mais recente da Central Gas dos últimos 2 min (qualquer `tipo`), preenchendo `cliente_id`, `cliente_nome`, observação "Bia atendendo" e padronizando `tipo='voip'`.
-- Se não houver chamada anterior (cenário em que GoTo não disparou webhook), aí sim insere uma nova.
+## O que vou fazer
 
-Resultado: **1 popup por ligação**, com a info da Bia consolidada.
+### 1. Ajustar TTS (voz)
+Patch via `elevenlabs-update-bia-voice`:
+- `speed: 0.95` (5% mais lenta que o natural — soa mais cuidadosa, sem virar lerda)
+- `stability: 0.4` (um pouco menos = mais variação emocional, mais humana)
+- `similarity_boost: 0.85` (mais aderência à voz Sarah, que é naturalmente acolhedora)
 
-### 2. Linkar pedido à chamada de forma robusta (`criar_pedido`)
-Trocar o lookup atual (`tipo='voip'`, últimos 10 min, sem `pedido_gerado_id`) por:
-- Buscar a **chamada mais recente da Central Gas nos últimos 15 min sem `pedido_gerado_id`** (qualquer `tipo`, qualquer status).
-- Se não achar (ex.: pedido criado antes do registro chegar), **inserir uma nova linha** já com `pedido_gerado_id` setado e `cliente_nome`/`telefone` do pedido — assim o popup aparece de qualquer jeito.
-- Se a chamada anterior existir mas tiver `cliente_id` divergente do pedido, atualizar para o `cliente_id` correto.
+### 2. Estender a edge function `elevenlabs-update-bia-voice` para também ler/atualizar o **prompt** do agente
+Hoje ela só mexe em TTS. Vou adicionar:
+- `GET ?include=prompt` → retorna prompt atual (`agent.prompt.prompt`)
+- `POST { prompt: "..." }` → patcha o prompt
+- `POST { first_message: "..." }` → patcha a saudação inicial
 
-### 3. Popup mostra dados úteis quando caller é untrusted
-Quando vem do 0800 e `identificar_cliente` cai no ramo "perguntar verbalmente", o popup hoje fica genérico. Vou:
-- Gravar `observacoes='📞 Bia perguntando telefone (0800)'` para deixar claro o estado no popup.
-- Quando a Bia receber o telefone do cliente e re-chamar `identificar_cliente`, fazer UPDATE da mesma linha (passo 1) com o telefone real e o nome do cliente — o popup atualiza ao vivo via realtime.
+### 3. Atualizar o prompt da Bia para ficar gentil
+Adicionar/reforçar no início do system prompt:
 
-### 4. Remover linhas órfãs antigas
-Marcar todas as `chamadas_recebidas` com `status='recebida'` há mais de 30 min sem `pedido_gerado_id` como `status='atendida'` — uma limpeza única para o popup parar de mostrar lixo antigo.
+> "Você é a Bia, atendente da Central Gás. Seu tom é **caloroso, paciente e gentil**, como uma recepcionista experiente que gosta do que faz. Sempre cumprimente o cliente com calma, agradeça quando ele responder, e use expressões como 'claro', 'com certeza', 'fico feliz em ajudar', 'um momentinho' (sem exagerar). Nunca corra. Se precisar de uma informação, peça com gentileza: 'Pode me dizer seu telefone com DDD, por favor?' em vez de 'Telefone?'. Confirme cada passo com o cliente antes de prosseguir."
 
-### 5. Adicionar logs estruturados no fluxo
-Hoje não vejo logs da `elevenlabs-bia-tools` no dashboard. Vou:
-- Adicionar `console.log` claros nos pontos críticos: entrada da action, resultado do lookup de chamada, sucesso/falha do UPDATE.
-- Conferir se a function está realmente sendo chamada como Supabase Edge Function (URL `…/functions/v1/elevenlabs-bia-tools`) — se estiver indo por outra rota (proxy), os logs vão para outro lugar e precisamos ajustar a URL no agente da ElevenLabs.
+Sem mexer em outras regras já existentes (ferramentas, fluxo de pedido, identificar_cliente etc.) — só **prepender** essas instruções de tom no começo.
 
-### 6. Validação pós-deploy
-Depois de aplicar:
-- Fazer 1 ligação de teste e checar via SQL: deve haver **1 linha** em `chamadas_recebidas` com `pedido_gerado_id NOT NULL` e `cliente_nome` preenchido.
-- Conferir se o popup aparece no canto inferior direito do ERP em tempo real (mesmo com a aba minimizada, via notificação desktop).
-- Validar que não existem duas chamadas para a mesma ligação.
+### 4. First message mais acolhedor
+Trocar a saudação inicial para algo como:
+> "Oi, tudo bem? Aqui é a Bia, da Central Gás. Em que eu posso te ajudar hoje?"
+
+(em vez do que provavelmente está hoje, mais seco)
+
+### 5. Página de teste rápido em `/admin/bia-voz`
+Pequena tela admin com:
+- Sliders para speed (0.85–1.10), stability (0.2–0.7), similarity_boost (0.5–1.0)
+- Textarea para o prompt
+- Input para first message
+- Botão "Salvar" (chama a edge function patchada)
+- Botão "Testar com a Bia" (link/QR para ligar e ouvir)
+
+Assim você ajusta sem depender de mim, e vai calibrando até ficar do jeito que quer.
+
+## Arquivos que vou tocar
+
+- `supabase/functions/elevenlabs-update-bia-voice/index.ts` — adicionar suporte a prompt + first_message
+- `src/pages/admin/AdminBiaVoz.tsx` — nova página
+- `src/routes/adminRoutes.ts` — adicionar rota
+- Aplicar patch inicial via edge function (rodar 1 vez): speed 0.95, stability 0.4, novo prompt e first message
+
+## O que NÃO vou fazer
+
+- Trocar de voz (Sarah é boa, é só calibrar).
+- Trocar de modelo (`eleven_turbo_v2_5` é o ideal pra latência baixa em telefone).
+- Ativar `expressive_mode: true` agora — pode adicionar latência. Deixo como toggle na página caso queira testar depois.
+- Mexer em ferramentas, identificar_cliente, criar_pedido — nada de regressão funcional.
 
 ## Resultado esperado
 
-- Toda ligação → **1 popup** que evolui de "Bia atendendo" para "Pedido #XXX confirmado".
-- Notificação desktop dispara mesmo com o sistema em background.
-- Pedido linkado à chamada em 100% dos casos (mesmo quando a ordem dos eventos inverte).
-- Operador consegue rastrear cada ligação no histórico com cliente, pedido e duração.
-
-## Detalhes técnicos
-
-- Arquivos a editar: `supabase/functions/elevenlabs-bia-tools/index.ts` (passos 1, 2, 3, 5).
-- 1 migração curta para o passo 4 (UPDATE pontual nas chamadas órfãs).
-- Sem mudança em `CallerIdPopup.tsx` — a UI já está correta, o problema era de dados.
-- Sem mudança no agente ElevenLabs (voz/prompt já ajustados).
+- Bia atende ~5% mais devagar, com leve variação emocional na fala.
+- Tom verbal gentil e acolhedor desde o primeiro "oi".
+- Você ganha um painel `/admin/bia-voz` para calibrar fino sem precisar me chamar.
