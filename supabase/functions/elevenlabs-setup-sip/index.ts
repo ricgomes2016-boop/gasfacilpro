@@ -53,8 +53,17 @@ Deno.serve(async (req) => {
 
     let phoneId: string | undefined = existing?.phone_number_id;
 
+    // Se já existe mas com phone_number diferente, deleta para recriar
+    if (existing && existing.phone_number !== phoneNumber) {
+      const delRes = await fetch(`${EL_API}/phone-numbers/${phoneId}`, {
+        method: "DELETE",
+        headers: h,
+      });
+      log.push({ step: "delete_stale_phone_number", phoneId, status: delRes.status });
+      phoneId = undefined;
+    }
+
     if (!phoneId) {
-      // 2) Criar SIP trunk phone number
       const createRes = await fetch(`${EL_API}/phone-numbers`, {
         method: "POST",
         headers: h,
@@ -67,10 +76,7 @@ Deno.serve(async (req) => {
           transport: "udp",
           media_encryption: "allowed",
           credentials: { username: sipUser, password: sipPass },
-          inbound_trunk_config: {
-            allowed_addresses: [],
-            allowed_numbers: [],
-          },
+          inbound_trunk_config: { allowed_addresses: [], allowed_numbers: [] },
         }),
       });
       const createData = await createRes.json();
@@ -78,14 +84,7 @@ Deno.serve(async (req) => {
       if (!createRes.ok) return json({ error: "create_phone_number failed", log }, 500);
       phoneId = createData.phone_number_id;
     } else {
-      log.push({ step: "phone_number_existing", phoneId });
-      // Atualiza o phone_number caso tenha mudado (ElevenLabs aceita PATCH)
-      const updNum = await fetch(`${EL_API}/phone-numbers/${phoneId}`, {
-        method: "PATCH",
-        headers: h,
-        body: JSON.stringify({ phone_number: phoneNumber, label }),
-      });
-      log.push({ step: "update_phone_number_value", status: updNum.status, data: await updNum.json().catch(() => ({})) });
+      log.push({ step: "phone_number_existing_match", phoneId });
     }
 
     // 3) Atribuir agente ao phone number
