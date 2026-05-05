@@ -1,6 +1,9 @@
 // Edge function: configura SIP Trunk GoTo + Agente Bia na ElevenLabs via API
 // Roda sob demanda. Idempotente: detecta phone number existente e atualiza.
-import { corsHeaders } from "@supabase/supabase-js/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const EL_API = "https://api.elevenlabs.io/v1/convai";
 
