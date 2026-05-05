@@ -604,40 +604,44 @@ serve(async (req) => {
         preco_unitario: precoUnitario,
       });
 
-      // === Linka a chamada (Bia voip) ao pedido para disparar CallerIdPopup via realtime
+      // === Linka a chamada ao pedido (busca janela 15min, qualquer tipo). Se não houver, cria.
+      // Usa o helper para garantir consistência: 1 chamada por ligação, sempre linkada.
       try {
-        const desdeChamadaIso = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const desdeChamadaIso = new Date(Date.now() - 15 * 60 * 1000).toISOString();
         const { data: chamadaRecente } = await supabase
           .from("chamadas_recebidas")
           .select("id")
           .eq("unidade_id", unidade.id)
-          .eq("tipo", "voip")
           .is("pedido_gerado_id", null)
           .gte("created_at", desdeChamadaIso)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
+        const obs = `✅ Pedido #${pedido.numero_sequencial} criado pela Bia · R$ ${valorTotal.toFixed(2)}`;
+
         if (chamadaRecente?.id) {
-          await supabase
+          const { error: updErr } = await supabase
             .from("chamadas_recebidas")
             .update({
               pedido_gerado_id: pedido.id,
               cliente_id: finalClienteId,
               cliente_nome: nome || null,
+              telefone: String(telefone || "").replace(/\D/g, "") || null,
+              tipo: "voip",
+              observacoes: obs,
             })
             .eq("id", chamadaRecente.id);
+          if (updErr) console.error("[BIA-LINK] update error:", updErr);
+          else console.log("[BIA-LINK] linkou pedido", pedido.id, "→ chamada", chamadaRecente.id);
         } else {
-          // Sem chamada prévia (ex.: criar_pedido direto): cria linha para disparar popup
-          await supabase.from("chamadas_recebidas").insert({
+          // Sem chamada prévia: cria já linkada
+          await upsertChamadaBia(supabase, unidade.id, {
             telefone: String(telefone || "").replace(/\D/g, "") || null,
             cliente_id: finalClienteId,
             cliente_nome: nome || null,
-            tipo: "voip",
-            status: "recebida",
-            unidade_id: unidade.id,
+            observacoes: obs,
             pedido_gerado_id: pedido.id,
-            observacoes: "Pedido criado pela Bia (IA)",
           });
         }
       } catch (linkErr) {
