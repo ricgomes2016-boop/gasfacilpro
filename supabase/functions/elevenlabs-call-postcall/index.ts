@@ -1,36 +1,91 @@
 // ElevenLabs Post-Call Webhook
 // Chamado pela ElevenLabs DEPOIS que a conversa termina, com transcript completo,
-// duração e metadados. Configurado em: Agent → Webhooks → Post-call.
+// duração e metadados. Configurado em: Workspace → Webhooks → post_call_transcription.
 //
-// Payload típico:
-// {
-//   "type": "post_call_transcription",
-//   "data": {
-//     "conversation_id": "...",
-//     "agent_id": "...",
-//     "transcript": [{ role, message, time_in_call_secs }],
-//     "metadata": {
-//       "call_duration_secs": 45,
-//       "phone_call": { "external_number": "+55...", "agent_number": "+55..." }
-//     },
-//     "analysis": { "transcript_summary": "...", "call_successful": "success" }
-//   }
-// }
+// Assinatura HMAC validada via header `ElevenLabs-Signature` no formato:
+//   t=<unix_timestamp>,v0=<hex_hmac_sha256>
+// HMAC = SHA256(secret, `${t}.${raw_body}`)
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, elevenlabs-signature",
 };
+
+async function verifySignature(
+  rawBody: string,
+  signatureHeader: string | null,
+  secret: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  if (!signatureHeader) return { ok: false, reason: "missing_signature" };
+
+  // Header: "t=1730000000,v0=abcdef..."
+  const parts = signatureHeader.split(",").reduce<Record<string, string>>(
+    (acc, kv) => {
+      const [k, v] = kv.split("=");
+      if (k && v) acc[k.trim()] = v.trim();
+      return acc;
+    },
+    {},
+  );
+
+  const t = parts["t"];
+  const v0 = parts["v0"];
+  if (!t || !v0) return { ok: false, reason: "malformed_signature" };
+
+  // Tolerância: 30 minutos
+  const ts = Number(t);
+  if (!Number.isFinite(ts)) return { ok: false, reason: "bad_timestamp" };
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (Math.abs(nowSec - ts) > 1800) return { ok: false, reason: "stale" };
+
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(`${t}.${rawBody}`));
+  const hex = Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  // Compare timing-safe-ish
+  if (hex.length !== v0.length) return { ok: false, reason: "len_mismatch" };
+  let diff = 0;
+  for (let i = 0; i < hex.length; i++) diff |= hex.charCodeAt(i) ^ v0.charCodeAt(i);
+  return diff === 0 ? { ok: true } : { ok: false, reason: "hmac_mismatch" };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const rawBody = await req.text();
+  const sigHeader = req.headers.get("elevenlabs-signature") || req.headers.get("ElevenLabs-Signature");
+  const secret = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET");
+
+  if (secret) {
+    const verify = await verifySignature(rawBody, sigHeader, secret);
+    if (!verify.ok) {
+      console.warn("[EL-POSTCALL] signature invalid:", verify.reason);
+      // 200 OK com flag para não causar retry storm (padrão do projeto)
+      return new Response(
+        JSON.stringify({ ok: false, error: "invalid_signature", reason: verify.reason }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+  } else {
+    console.warn("[EL-POSTCALL] ELEVENLABS_WEBHOOK_SECRET not set — skipping signature check");
+  }
+
   let payload: any = {};
   try {
-    payload = await req.json().catch(() => ({}));
+    payload = rawBody ? JSON.parse(rawBody) : {};
   } catch (e) {
     console.error("[EL-POSTCALL] parse error:", e);
   }
@@ -47,7 +102,6 @@ serve(async (req) => {
   const summary: string = data?.analysis?.transcript_summary || "";
   const success: string = data?.analysis?.call_successful || "";
 
-  // Concatena transcript em texto legível
   const transcriptText = transcriptArr
     .map((t: any) => {
       const role = t.role === "agent" ? "Bia" : t.role === "user" ? "Cliente" : t.role;
@@ -68,8 +122,6 @@ serve(async (req) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Encontra a chamada criada pelo initiation webhook (mais recente do mesmo telefone
-    // ou que tenha o call_sid nas observações). Se não achar, cria uma nova.
     const fromDigits = externalNumber.replace(/\D/g, "");
     const last10 = fromDigits.slice(-10);
 
