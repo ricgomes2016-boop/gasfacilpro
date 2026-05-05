@@ -1,76 +1,93 @@
-# Bia: deixar mais lenta e mais gentil
+## Plano: Migração da Bia para SIP Trunk nativo da ElevenLabs
 
-## Diagnóstico (ElevenLabs ao vivo)
+Hoje a chamada percorre 4 saltos: **GoTo 0800 → Vonage → Twilio → ElevenLabs**. Isso gera latência, custo duplicado (Vonage + Twilio), e perda de caller-id no encaminhamento PSTN.
 
-Configuração atual do agente `agent_2501kpf1v7ayf9r9nwdrjedmjt5s` (Sarah, voz `EXAVITQu4vr4xnSDxMaL`):
+A ElevenLabs aceita SIP Trunk nativo (autenticação por credencial) — exatamente o formato que a GoTo já entregou no ramal 1004. Vamos eliminar Vonage e Twilio do caminho de voz.
 
-```json
-{
-  "speed": 1.08,            ← acelerada (default seria 1.0)
-  "stability": 0.5,
-  "similarity_boost": 0.8,
-  "expressive_mode": false, ← sem expressividade emocional
-  "model_id": "eleven_turbo_v2_5",
-  "optimize_streaming_latency": 3
-}
+### Arquitetura nova
+
+```text
+Cliente → 0800 590 0492 (GoTo)
+        → SIP Trunk ramal 1004 (TLS)
+        → ElevenLabs (Bia)
+            ↳ webhook initiation  → identifica empresa + cliente
+            ↳ tools (já existem)  → identificar_cliente / criar_pedido
+            ↳ webhook post-call   → grava chamadas_recebidas
 ```
 
-**Causa da pressa**: `speed: 1.08` (8% mais rápida que o natural).
-**Causa da falta de gentileza**: depende de duas coisas — voz (TTS) + prompt do agente. O TTS atual é frio (`expressive_mode: false`, stability alta = monótona). E provavelmente o prompt diz "seja objetiva/rápida" mas não diz "seja calorosa".
+### Etapas
 
-## O que vou fazer
+**1. Configuração externa (você faz no painel)**
+- **GoTo**: confirmar que "Encontre-me/Siga-me" do ramal 1004 está desligado (já documentado em `CONFIG_GOTO_RAMAL_1004.md`).
+- **ElevenLabs → Agent → Phone Numbers → Import SIP Trunk**:
+  - Termination URI: `sip:reg.jiveip.net`
+  - Auth User: `53LcZzueOL72RsONRVMAe6ag0XSlFe`
+  - Auth Password: `ZrBAJEsTuX8Bfaut`
+  - Phone Number: `+5508005900492`
+  - Transport: TLS (fallback UDP)
+  - Atribuir ao agente "Bia – Forte Gás"
 
-### 1. Ajustar TTS (voz)
-Patch via `elevenlabs-update-bia-voice`:
-- `speed: 0.95` (5% mais lenta que o natural — soa mais cuidadosa, sem virar lerda)
-- `stability: 0.4` (um pouco menos = mais variação emocional, mais humana)
-- `similarity_boost: 0.85` (mais aderência à voz Sarah, que é naturalmente acolhedora)
+**2. Novos webhooks (eu crio)**
+A ElevenLabs nativa usa dois webhooks dedicados em vez do `twilio-voice-webhook` atual:
 
-### 2. Estender a edge function `elevenlabs-update-bia-voice` para também ler/atualizar o **prompt** do agente
-Hoje ela só mexe em TTS. Vou adicionar:
-- `GET ?include=prompt` → retorna prompt atual (`agent.prompt.prompt`)
-- `POST { prompt: "..." }` → patcha o prompt
-- `POST { first_message: "..." }` → patcha a saudação inicial
+- `supabase/functions/elevenlabs-call-initiation/index.ts`
+  - Recebe `caller_id`, `agent_id`, `called_number` da ElevenLabs antes de iniciar a conversa.
+  - Resolve empresa via `resolver_empresa_por_did` (mesma RPC usada hoje).
+  - Resolve cliente pelo telefone (se confiável — mesma lógica de `OPERATOR_LAST10`).
+  - Insere registro em `chamadas_recebidas` (popup Bina).
+  - Retorna JSON com `dynamic_variables`: `caller_phone`, `caller_confiavel`, `empresa_id`, `empresa_nome`, `unidade_id`.
 
-### 3. Atualizar o prompt da Bia para ficar gentil
-Adicionar/reforçar no início do system prompt:
+- `supabase/functions/elevenlabs-call-postcall/index.ts`
+  - Recebe transcript + duração no fim da chamada.
+  - Atualiza `chamadas_recebidas` com `duracao`, `transcript`, `status=finalizada`.
 
-> "Você é a Bia, atendente da Central Gás. Seu tom é **caloroso, paciente e gentil**, como uma recepcionista experiente que gosta do que faz. Sempre cumprimente o cliente com calma, agradeça quando ele responder, e use expressões como 'claro', 'com certeza', 'fico feliz em ajudar', 'um momentinho' (sem exagerar). Nunca corra. Se precisar de uma informação, peça com gentileza: 'Pode me dizer seu telefone com DDD, por favor?' em vez de 'Telefone?'. Confirme cada passo com o cliente antes de prosseguir."
+Ambas em `supabase/config.toml` com `verify_jwt = false` (webhooks externos).
 
-Sem mexer em outras regras já existentes (ferramentas, fluxo de pedido, identificar_cliente etc.) — só **prepender** essas instruções de tom no começo.
+**3. Configuração na ElevenLabs (você faz no painel)**
+- Agent → Webhooks:
+  - Conversation Initiation: `https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/elevenlabs-call-initiation`
+  - Post-call: `https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/elevenlabs-call-postcall`
+- Marcar "Fetch initiation client data from webhook" no agente.
 
-### 4. First message mais acolhedor
-Trocar a saudação inicial para algo como:
-> "Oi, tudo bem? Aqui é a Bia, da Central Gás. Em que eu posso te ajudar hoje?"
+**4. Manter como fallback (não remover ainda)**
+- `twilio-voice-webhook` e `vonage-voice-webhook` ficam deployados por ~7 dias.
+- Vonage/Twilio numbers continuam ativos, mas **sem encaminhamento ativo** do GoTo.
+- Se algo quebrar no SIP direto, basta reativar o forward GoTo→Vonage no painel.
 
-(em vez do que provavelmente está hoje, mais seco)
+**5. Após validação (~7 dias estáveis)**
+- Cancelar número Vonage (+55 11 5283-5921) — economia mensal.
+- Cancelar número Twilio (+1 478-429-7119) — economia em USD.
+- Deletar `vonage-voice-webhook` e `twilio-voice-webhook`.
+- Atualizar `CONFIG_GOTO_0800_FORWARD.md` para refletir nova arquitetura.
 
-### 5. Página de teste rápido em `/admin/bia-voz`
-Pequena tela admin com:
-- Sliders para speed (0.85–1.10), stability (0.2–0.7), similarity_boost (0.5–1.0)
-- Textarea para o prompt
-- Input para first message
-- Botão "Salvar" (chama a edge function patchada)
-- Botão "Testar com a Bia" (link/QR para ligar e ouvir)
+### Arquivos a criar/editar
 
-Assim você ajusta sem depender de mim, e vai calibrando até ficar do jeito que quer.
+| Arquivo | Ação |
+|---|---|
+| `supabase/functions/elevenlabs-call-initiation/index.ts` | criar |
+| `supabase/functions/elevenlabs-call-postcall/index.ts` | criar |
+| `supabase/config.toml` | adicionar blocos `[functions.elevenlabs-call-initiation]` e `[functions.elevenlabs-call-postcall]` com `verify_jwt = false` |
+| `CONFIG_ELEVENLABS_SIP_DIRECT.md` | criar (guia passo a passo painel ElevenLabs) |
+| `twilio-voice-webhook`, `vonage-voice-webhook` | **NÃO TOCAR** nesta fase (fallback) |
 
-## Arquivos que vou tocar
+### Variáveis dinâmicas enviadas para a Bia
 
-- `supabase/functions/elevenlabs-update-bia-voice/index.ts` — adicionar suporte a prompt + first_message
-- `src/pages/admin/AdminBiaVoz.tsx` — nova página
-- `src/routes/adminRoutes.ts` — adicionar rota
-- Aplicar patch inicial via edge function (rodar 1 vez): speed 0.95, stability 0.4, novo prompt e first message
+Idênticas às atuais — o prompt do agente não muda:
+- `caller_phone`, `caller_confiavel`, `called_number`, `call_sid`
+- `empresa_id`, `empresa_nome`, `unidade_id`
 
-## O que NÃO vou fazer
+Lógica de "caller-id operadora" replicada no `elevenlabs-call-initiation`, então a Bia continua perguntando o telefone quando a GoTo não enviar caller-id real via SIP header (`Diversion`/`P-Asserted-Identity`).
 
-- Trocar de voz (Sarah é boa, é só calibrar).
-- Trocar de modelo (`eleven_turbo_v2_5` é o ideal pra latência baixa em telefone).
-- Ativar `expressive_mode: true` agora — pode adicionar latência. Deixo como toggle na página caso queira testar depois.
-- Mexer em ferramentas, identificar_cliente, criar_pedido — nada de regressão funcional.
+### Ganhos esperados
 
-## Resultado esperado
+- **Latência**: ~300-600ms a menos (eliminação de 2 saltos PSTN).
+- **Custo**: cancela mensalidade Vonage SP + Twilio US.
+- **Caller-id**: SIP TLS direto preserva headers nativos da GoTo (maior chance de receber número real).
+- **Manutenção**: 1 webhook em vez de 2 (vonage + twilio).
 
-- Bia atende ~5% mais devagar, com leve variação emocional na fala.
-- Tom verbal gentil e acolhedor desde o primeiro "oi".
-- Você ganha um painel `/admin/bia-voz` para calibrar fino sem precisar me chamar.
+### Risco e mitigação
+
+- Risco: ElevenLabs pode não aceitar registro no `reg.jiveip.net` por incompatibilidade de codec/transport. 
+- Mitigação: fallback Vonage+Twilio fica deployado e rapidamente reativável (5 min no painel GoTo).
+
+Quero que eu implemente?
