@@ -87,3 +87,6 @@ verify_jwt = false
 [functions.elevenlabs-call-postcall]
 verify_jwt = false
 
+[functions.elevenlabs-import-sip-trunk]
+verify_jwt = false
+
