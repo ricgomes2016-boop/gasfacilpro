@@ -1,6 +1,8 @@
-// Edge function: ajusta a velocidade da voz do agente Bia (ElevenLabs Conversational AI).
-// GET  -> retorna config TTS atual
-// POST -> { speed?: number, stability?: number, similarity_boost?: number } (default speed 0.9)
+// Edge function: lê e ajusta voz (TTS), prompt e first_message do agente Bia (ElevenLabs Conversational AI).
+// GET                    -> retorna config TTS atual + prompt + first_message
+// POST { speed?, stability?, similarity_boost?, expressive_mode?, prompt?, first_message? }
+//   - Campos omitidos não são alterados.
+//   - speed default permanece 0.95 quando enviado sem valor explícito? Não — só altera se presente.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,16 +26,29 @@ Deno.serve(async (req) => {
   }
 
   const baseUrl = `https://api.elevenlabs.io/v1/convai/agents/${ELEVENLABS_AGENT_ID}`;
+  const headers = { "xi-api-key": ELEVENLABS_API_KEY };
 
   try {
     if (req.method === "GET") {
-      const r = await fetch(baseUrl, { headers: { "xi-api-key": ELEVENLABS_API_KEY } });
+      const r = await fetch(baseUrl, { headers });
       const text = await r.text();
       let json: any;
       try { json = JSON.parse(text); } catch { json = { raw: text }; }
       const tts = json?.conversation_config?.tts ?? null;
+      const agent = json?.conversation_config?.agent ?? {};
+      const prompt = agent?.prompt?.prompt ?? "";
+      const first_message = agent?.first_message ?? "";
+      const language = agent?.language ?? "pt";
       return new Response(
-        JSON.stringify({ ok: r.ok, status: r.status, tts, agent_id: ELEVENLABS_AGENT_ID }),
+        JSON.stringify({
+          ok: r.ok,
+          status: r.status,
+          tts,
+          prompt,
+          first_message,
+          language,
+          agent_id: ELEVENLABS_AGENT_ID,
+        }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -41,37 +56,63 @@ Deno.serve(async (req) => {
     let body: any = {};
     try { body = await req.json(); } catch { body = {}; }
 
-    const speed = typeof body.speed === "number" ? body.speed : 0.9;
+    const speed = typeof body.speed === "number" ? body.speed : undefined;
     const stability = typeof body.stability === "number" ? body.stability : undefined;
     const similarity_boost = typeof body.similarity_boost === "number" ? body.similarity_boost : undefined;
+    const expressive_mode = typeof body.expressive_mode === "boolean" ? body.expressive_mode : undefined;
+    const prompt = typeof body.prompt === "string" ? body.prompt : undefined;
+    const first_message = typeof body.first_message === "string" ? body.first_message : undefined;
 
-    if (speed < 0.7 || speed > 1.2) {
+    if (speed !== undefined && (speed < 0.7 || speed > 1.2)) {
       return new Response(
         JSON.stringify({ ok: false, error: "speed deve estar entre 0.7 e 1.2" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const getRes = await fetch(baseUrl, { headers: { "xi-api-key": ELEVENLABS_API_KEY } });
+    // Buscar config atual para fazer merge cirúrgico
+    const getRes = await fetch(baseUrl, { headers });
     const current = await getRes.json();
     const currentTts = current?.conversation_config?.tts ?? {};
+    const currentAgent = current?.conversation_config?.agent ?? {};
+    const currentPromptObj = currentAgent?.prompt ?? {};
 
-    const newTts: Record<string, unknown> = { ...currentTts, speed };
-    if (stability !== undefined) newTts.stability = stability;
-    if (similarity_boost !== undefined) newTts.similarity_boost = similarity_boost;
+    // Montar patch parcial
+    const conversation_config: Record<string, any> = {};
 
-    // Enviar somente o subobjeto tts — reenviar conversation_config inteiro
-    // dispara erro "both tools and tool_ids" no agente.
-    const patchPayload = {
-      conversation_config: {
-        tts: newTts,
-      },
-    };
+    // TTS
+    const ttsChanges: Record<string, unknown> = {};
+    if (speed !== undefined) ttsChanges.speed = speed;
+    if (stability !== undefined) ttsChanges.stability = stability;
+    if (similarity_boost !== undefined) ttsChanges.similarity_boost = similarity_boost;
+    if (expressive_mode !== undefined) ttsChanges.expressive_mode = expressive_mode;
+    if (Object.keys(ttsChanges).length > 0) {
+      conversation_config.tts = { ...currentTts, ...ttsChanges };
+    }
+
+    // Agent (prompt + first_message)
+    if (prompt !== undefined || first_message !== undefined) {
+      const agentPatch: Record<string, any> = {};
+      if (prompt !== undefined) {
+        agentPatch.prompt = { ...currentPromptObj, prompt };
+      }
+      if (first_message !== undefined) {
+        agentPatch.first_message = first_message;
+      }
+      conversation_config.agent = agentPatch;
+    }
+
+    if (Object.keys(conversation_config).length === 0) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "Nenhum campo enviado para atualizar." }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const patchRes = await fetch(baseUrl, {
       method: "PATCH",
-      headers: { "xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify(patchPayload),
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ conversation_config }),
     });
     const patchText = await patchRes.text();
     let patchJson: any;
@@ -81,9 +122,10 @@ Deno.serve(async (req) => {
       JSON.stringify({
         ok: patchRes.ok,
         status: patchRes.status,
-        applied: { speed, stability, similarity_boost },
-        previous_tts: currentTts,
-        new_tts: patchJson?.conversation_config?.tts ?? patchJson,
+        applied: { speed, stability, similarity_boost, expressive_mode, prompt: prompt !== undefined, first_message: first_message !== undefined },
+        new_tts: patchJson?.conversation_config?.tts ?? null,
+        new_first_message: patchJson?.conversation_config?.agent?.first_message ?? null,
+        raw: patchRes.ok ? undefined : patchJson,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
