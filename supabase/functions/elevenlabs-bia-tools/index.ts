@@ -280,17 +280,12 @@ serve(async (req) => {
       // If the caller-id is explicitly untrusted OR matches an operator number,
       // do NOT try to match a customer by phone. Tell the agent to ask verbally.
       if (callerExplicitlyUntrusted || (!callerConfiavel && isOperatorNumber)) {
-        // Still log the call for ops visibility, but without a fake telefone.
-        const { error: chamadaError } = await supabase.from("chamadas_recebidas").insert({
+        await upsertChamadaBia(supabase, unidade.id, {
           telefone: null,
           cliente_id: null,
           cliente_nome: null,
-          tipo: "voip",
-          status: "recebida",
-          unidade_id: unidade.id,
-          observacoes: `Bia (IA) - chamada via 0800/encaminhamento. Caller bruto: ${telefoneRaw || "vazio"}`,
+          observacoes: `📞 Bia perguntando telefone (0800/encaminhamento). Caller bruto: ${telefoneRaw || "vazio"}`,
         });
-        if (chamadaError) console.error("Erro registrando chamada (caller não confiável):", chamadaError);
 
         return ok({
           encontrado: false,
