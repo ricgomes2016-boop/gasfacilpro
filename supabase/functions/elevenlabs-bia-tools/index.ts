@@ -309,20 +309,14 @@ serve(async (req) => {
         .or(`telefone.ilike.%${last}%,telefone.ilike.%${last10b}%`)
         .limit(1);
 
-      // Register the incoming call (triggers CallerID popup)
-      const { error: chamadaError } = await supabase.from("chamadas_recebidas").insert({
+      await upsertChamadaBia(supabase, unidade.id, {
         telefone,
         cliente_id: clientes?.[0]?.id ?? null,
         cliente_nome: clientes?.[0]?.nome ?? null,
-        tipo: "voip",
-        status: "recebida",
-        unidade_id: unidade.id,
-        observacoes: "Recebida pela Bia (IA - ElevenLabs)",
+        observacoes: clientes?.[0]
+          ? `📞 Bia atendendo ${clientes[0].nome}`
+          : "📞 Bia atendendo (cliente novo)",
       });
-
-      if (chamadaError) {
-        console.error("Erro registrando chamada recebida:", chamadaError);
-      }
 
       if (clientes && clientes.length > 0) {
         const c = clientes[0];
