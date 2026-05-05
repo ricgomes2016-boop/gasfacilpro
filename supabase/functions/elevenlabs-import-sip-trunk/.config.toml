@@ -1,0 +1,2 @@
+[functions.elevenlabs-import-sip-trunk]
+verify_jwt = false
