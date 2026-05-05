@@ -79,6 +79,13 @@ Deno.serve(async (req) => {
       phoneId = createData.phone_number_id;
     } else {
       log.push({ step: "phone_number_existing", phoneId });
+      // Atualiza o phone_number caso tenha mudado (ElevenLabs aceita PATCH)
+      const updNum = await fetch(`${EL_API}/phone-numbers/${phoneId}`, {
+        method: "PATCH",
+        headers: h,
+        body: JSON.stringify({ phone_number: phoneNumber, label }),
+      });
+      log.push({ step: "update_phone_number_value", status: updNum.status, data: await updNum.json().catch(() => ({})) });
     }
 
     // 3) Atribuir agente ao phone number
