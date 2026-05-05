@@ -1,93 +1,67 @@
-## Plano: Migração da Bia para SIP Trunk nativo da ElevenLabs
+## Importar 0800 na ElevenLabs via SIP Trunk (GoTo como provedor)
 
-Hoje a chamada percorre 4 saltos: **GoTo 0800 → Vonage → Twilio → ElevenLabs**. Isso gera latência, custo duplicado (Vonage + Twilio), e perda de caller-id no encaminhamento PSTN.
+### Topologia confirmada (via screenshots GoTo Admin)
+```
++55 800 590 0492 ──► Ramal 1004 ──► SIP Trunk dispositivo ──► [ElevenLabs registra aqui]
+```
+O SIP Trunk do GoTo é inbound-only: não encaminha pra IP externo. Quem se conecta é a ElevenLabs, autenticando no `reg.jiveip.net` com as credenciais do ramal 1004.
 
-A ElevenLabs aceita SIP Trunk nativo (autenticação por credencial) — exatamente o formato que a GoTo já entregou no ramal 1004. Vamos eliminar Vonage e Twilio do caminho de voz.
+### Entregáveis
 
-### Arquitetura nova
+**1 edge function nova:** `elevenlabs-import-sip-trunk` (administrativa, one-shot)
 
-```text
-Cliente → 0800 590 0492 (GoTo)
-        → SIP Trunk ramal 1004 (TLS)
-        → ElevenLabs (Bia)
-            ↳ webhook initiation  → identifica empresa + cliente
-            ↳ tools (já existem)  → identificar_cliente / criar_pedido
-            ↳ webhook post-call   → grava chamadas_recebidas
+### O que a edge function faz
+1. Lê secrets já existentes:
+   - `ELEVENLABS_API_KEY`
+   - `ELEVENLABS_AGENT_ID`
+   - `GOTO_SIP_USER`, `GOTO_SIP_PASSWORD`, `GOTO_SIP_DOMAIN` (`reg.jiveip.net`), `GOTO_SIP_OUTBOUND_PROXY`
+
+2. Chama `POST https://api.elevenlabs.io/v1/convai/phone-numbers/create`:
+```json
+{
+  "provider": "sip_trunk",
+  "phone_number": "+5508005900492",
+  "label": "Forte Gás 0800 (GoTo Trunk 1004)",
+  "transport": "udp",
+  "address": "reg.jiveip.net",
+  "username": "<GOTO_SIP_USER>",
+  "password": "<GOTO_SIP_PASSWORD>",
+  "agent_id": "<ELEVENLABS_AGENT_ID>"
+}
 ```
 
-### Etapas
+3. Retorna em **200 OK** (padrão do projeto):
+   - **Sucesso:** `{ ok: true, phone_number_id, sip_status }`
+   - **Falha API:** `{ ok: false, error: "<mensagem da ElevenLabs>", http_status }` — sem 500
 
-**1. Configuração externa (você faz no painel)**
-- **GoTo**: confirmar que "Encontre-me/Siga-me" do ramal 1004 está desligado (já documentado em `CONFIG_GOTO_RAMAL_1004.md`).
-- **ElevenLabs → Agent → Phone Numbers → Import SIP Trunk**:
-  - Termination URI: `sip:reg.jiveip.net`
-  - Auth User: `53LcZzueOL72RsONRVMAe6ag0XSlFe`
-  - Auth Password: `ZrBAJEsTuX8Bfaut`
-  - Phone Number: `+5508005900492`
-  - Transport: TLS (fallback UDP)
-  - Atribuir ao agente "Bia – Forte Gás"
+### Segurança
+- Sem JWT (one-shot administrativa)
+- Header opcional `x-admin-secret` validado contra `ELEVENLABS_WEBHOOK_SECRET`
+- CORS habilitado padrão do projeto
 
-**2. Novos webhooks (eu crio)**
-A ElevenLabs nativa usa dois webhooks dedicados em vez do `twilio-voice-webhook` atual:
+### Como executar
+Após deploy automático, eu mesmo disparo via `curl_edge_functions` e te mostro a resposta. Você não precisa clicar em nada.
 
-- `supabase/functions/elevenlabs-call-initiation/index.ts`
-  - Recebe `caller_id`, `agent_id`, `called_number` da ElevenLabs antes de iniciar a conversa.
-  - Resolve empresa via `resolver_empresa_por_did` (mesma RPC usada hoje).
-  - Resolve cliente pelo telefone (se confiável — mesma lógica de `OPERATOR_LAST10`).
-  - Insere registro em `chamadas_recebidas` (popup Bina).
-  - Retorna JSON com `dynamic_variables`: `caller_phone`, `caller_confiavel`, `empresa_id`, `empresa_nome`, `unidade_id`.
+### Não-objetivos (não vou mexer)
+- `App.tsx`, providers, rotas — intocados
+- Banco de dados — sem alterações (número fica armazenado na ElevenLabs)
+- `supabase/config.toml` — sem mudanças
+- Nenhuma UI nova
+- Nenhuma alteração nas edge functions existentes (`elevenlabs-call-initiation`, `elevenlabs-call-postcall`, `elevenlabs-conversation-token`)
 
-- `supabase/functions/elevenlabs-call-postcall/index.ts`
-  - Recebe transcript + duração no fim da chamada.
-  - Atualiza `chamadas_recebidas` com `duracao`, `transcript`, `status=finalizada`.
+### Plano B se a API rejeitar
+A função retorna a mensagem exata de erro. Aí caímos pro caminho manual no painel ElevenLabs (Conversational AI → Phone Numbers → Import → SIP Trunk) — eu te dou os valores exatos pra colar.
 
-Ambas em `supabase/config.toml` com `verify_jwt = false` (webhooks externos).
+### Passo após sucesso
+Você liga do celular pro **0800 590 0492**. A Bia deve atender em ~2-3 segundos. Eu acompanho em tempo real:
+- `elevenlabs-call-initiation` (chegada da chamada)
+- `elevenlabs-call-postcall` (transcript salvo no banco)
 
-**3. Configuração na ElevenLabs (você faz no painel)**
-- Agent → Webhooks:
-  - Conversation Initiation: `https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/elevenlabs-call-initiation`
-  - Post-call: `https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/elevenlabs-call-postcall`
-- Marcar "Fetch initiation client data from webhook" no agente.
+Se não atender, leio os logs da ElevenLabs Call History via API e diagnostico (geralmente: `address` errado, transport TCP vs UDP, ou whitelist de IP no GoTo).
 
-**4. Manter como fallback (não remover ainda)**
-- `twilio-voice-webhook` e `vonage-voice-webhook` ficam deployados por ~7 dias.
-- Vonage/Twilio numbers continuam ativos, mas **sem encaminhamento ativo** do GoTo.
-- Se algo quebrar no SIP direto, basta reativar o forward GoTo→Vonage no painel.
-
-**5. Após validação (~7 dias estáveis)**
-- Cancelar número Vonage (+55 11 5283-5921) — economia mensal.
-- Cancelar número Twilio (+1 478-429-7119) — economia em USD.
-- Deletar `vonage-voice-webhook` e `twilio-voice-webhook`.
-- Atualizar `CONFIG_GOTO_0800_FORWARD.md` para refletir nova arquitetura.
-
-### Arquivos a criar/editar
-
-| Arquivo | Ação |
-|---|---|
-| `supabase/functions/elevenlabs-call-initiation/index.ts` | criar |
-| `supabase/functions/elevenlabs-call-postcall/index.ts` | criar |
-| `supabase/config.toml` | adicionar blocos `[functions.elevenlabs-call-initiation]` e `[functions.elevenlabs-call-postcall]` com `verify_jwt = false` |
-| `CONFIG_ELEVENLABS_SIP_DIRECT.md` | criar (guia passo a passo painel ElevenLabs) |
-| `twilio-voice-webhook`, `vonage-voice-webhook` | **NÃO TOCAR** nesta fase (fallback) |
-
-### Variáveis dinâmicas enviadas para a Bia
-
-Idênticas às atuais — o prompt do agente não muda:
-- `caller_phone`, `caller_confiavel`, `called_number`, `call_sid`
-- `empresa_id`, `empresa_nome`, `unidade_id`
-
-Lógica de "caller-id operadora" replicada no `elevenlabs-call-initiation`, então a Bia continua perguntando o telefone quando a GoTo não enviar caller-id real via SIP header (`Diversion`/`P-Asserted-Identity`).
-
-### Ganhos esperados
-
-- **Latência**: ~300-600ms a menos (eliminação de 2 saltos PSTN).
-- **Custo**: cancela mensalidade Vonage SP + Twilio US.
-- **Caller-id**: SIP TLS direto preserva headers nativos da GoTo (maior chance de receber número real).
-- **Manutenção**: 1 webhook em vez de 2 (vonage + twilio).
-
-### Risco e mitigação
-
-- Risco: ElevenLabs pode não aceitar registro no `reg.jiveip.net` por incompatibilidade de codec/transport. 
-- Mitigação: fallback Vonage+Twilio fica deployado e rapidamente reativável (5 min no painel GoTo).
-
-Quero que eu implemente?
+### Checklist final
+- [x] Topologia GoTo mapeada e confirmada
+- [x] Secrets necessários existem (`GOTO_SIP_*`, `ELEVENLABS_*`)
+- [x] Agente Bia já criado na ElevenLabs (`ELEVENLABS_AGENT_ID` setado)
+- [x] Webhooks `call-initiation` e `call-postcall` já existem
+- [ ] Aprovar este plano → eu crio a função, deploy, executo, te mostro resultado
