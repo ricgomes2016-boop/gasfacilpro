@@ -84,16 +84,17 @@ serve(async (req) => {
         .limit(1);
 
       if (byConv && byConv.length > 0) {
+        const obs =
+          `Bia (ElevenLabs SIP) - ${success || "encerrada"}\n` +
+          (summary ? `Resumo: ${summary}\n` : "") +
+          `call_sid: ${conversationId}\n\n` +
+          `--- Transcript ---\n${transcriptText}`;
         const { error } = await supabase
           .from("chamadas_recebidas")
           .update({
             status: "finalizada",
             duracao_segundos: durationSecs,
-            transcript: transcriptText,
-            observacoes:
-              `Bia (ElevenLabs SIP) - ${success || "encerrada"}` +
-              (summary ? `\nResumo: ${summary}` : "") +
-              `\ncall_sid: ${conversationId}`,
+            observacoes: obs.slice(0, 8000),
           })
           .eq("id", byConv[0].id);
         if (error) console.error("[EL-POSTCALL] update by conv:", error);
@@ -110,16 +111,17 @@ serve(async (req) => {
         .limit(1);
 
       if (byPhone && byPhone.length > 0) {
+        const obs =
+          `Bia (ElevenLabs SIP) - ${success || "encerrada"}\n` +
+          (summary ? `Resumo: ${summary}\n` : "") +
+          `call_sid: ${conversationId}\n\n` +
+          `--- Transcript ---\n${transcriptText}`;
         await supabase
           .from("chamadas_recebidas")
           .update({
             status: "finalizada",
             duracao_segundos: durationSecs,
-            transcript: transcriptText,
-            observacoes:
-              `Bia (ElevenLabs SIP) - ${success || "encerrada"}` +
-              (summary ? `\nResumo: ${summary}` : "") +
-              `\ncall_sid: ${conversationId}`,
+            observacoes: obs.slice(0, 8000),
           })
           .eq("id", byPhone[0].id);
         updated = true;
