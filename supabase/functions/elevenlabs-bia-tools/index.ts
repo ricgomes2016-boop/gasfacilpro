@@ -23,6 +23,81 @@ const err = (msg: string, status = 400) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+// Upsert chamada: reaproveita uma chamada `recebida` recente da unidade
+// (ex.: criada pelo goto-webhook segundos antes) para evitar 2 popups por ligação.
+// Se não existir chamada recente, cria uma nova. Retorna o id da chamada usada.
+async function upsertChamadaBia(
+  supabase: any,
+  unidadeId: string,
+  payload: {
+    telefone?: string | null;
+    cliente_id?: string | null;
+    cliente_nome?: string | null;
+    observacoes: string;
+    pedido_gerado_id?: string | null;
+  }
+): Promise<string | null> {
+  try {
+    const desdeIso = new Date(Date.now() - 3 * 60 * 1000).toISOString(); // 3 min
+    const { data: existente } = await supabase
+      .from("chamadas_recebidas")
+      .select("id, pedido_gerado_id, cliente_id, cliente_nome, telefone")
+      .eq("unidade_id", unidadeId)
+      .eq("status", "recebida")
+      .gte("created_at", desdeIso)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existente?.id) {
+      const updates: any = {
+        tipo: "voip",
+        observacoes: payload.observacoes,
+      };
+      if (payload.telefone) updates.telefone = payload.telefone;
+      if (payload.cliente_id) updates.cliente_id = payload.cliente_id;
+      if (payload.cliente_nome) updates.cliente_nome = payload.cliente_nome;
+      if (payload.pedido_gerado_id) updates.pedido_gerado_id = payload.pedido_gerado_id;
+
+      const { error: updErr } = await supabase
+        .from("chamadas_recebidas")
+        .update(updates)
+        .eq("id", existente.id);
+      if (updErr) {
+        console.error("[BIA-UPSERT] update error:", updErr);
+      } else {
+        console.log("[BIA-UPSERT] reusou chamada", existente.id);
+      }
+      return existente.id;
+    }
+
+    const { data: nova, error: insErr } = await supabase
+      .from("chamadas_recebidas")
+      .insert({
+        telefone: payload.telefone ?? null,
+        cliente_id: payload.cliente_id ?? null,
+        cliente_nome: payload.cliente_nome ?? null,
+        tipo: "voip",
+        status: "recebida",
+        unidade_id: unidadeId,
+        observacoes: payload.observacoes,
+        pedido_gerado_id: payload.pedido_gerado_id ?? null,
+      })
+      .select("id")
+      .single();
+
+    if (insErr) {
+      console.error("[BIA-UPSERT] insert error:", insErr);
+      return null;
+    }
+    console.log("[BIA-UPSERT] criou chamada nova", nova?.id);
+    return nova?.id ?? null;
+  } catch (e) {
+    console.error("[BIA-UPSERT] exception:", e);
+    return null;
+  }
+}
+
 async function resolverEmpresaUnidade(supabase: any, _body: any) {
   // Bia atende SEMPRE pela Central Gas (empresa fixa)
   const { data: empresa } = await supabase
