@@ -1,65 +1,62 @@
 
-## Problema identificado
+## Diagnóstico (dados reais dos últimos 7 dias)
 
-O popup da Bia (ligação + pedido criado) não está aparecendo por **3 bugs encontrados na investigação**:
+Consultei `chamadas_recebidas` e `pedidos` no banco e encontrei o seguinte:
 
-### Bug 1 — `identificar_cliente` não dispara o popup
-Em `supabase/functions/elevenlabs-bia-tools/index.ts` (linhas 209 e 243), quando a Bia recebe a chamada e identifica o cliente, ela insere em `chamadas_recebidas` **sem `pedido_gerado_id`** (fica `null`).
+- **48 chamadas registradas / apenas 1 com `pedido_gerado_id`** — ou seja, o link chamada → pedido praticamente nunca acontece, e o popup não evolui para "pedido confirmado".
+- **Toda ligação cria 2 linhas em `chamadas_recebidas`**: uma do `goto-webhook` (telefone com `+`, `tipo='telefone'`, sem `observacoes`) e outra do `elevenlabs-bia-tools/identificar_cliente` (telefone sem `+`, `tipo='voip'`, "Recebida pela Bia (IA - ElevenLabs)"). Resultado: 2 popups por ligação, e o link cai na linha errada.
+- **Pedidos da Bia (#427–#435) foram criados normalmente**, mas o UPDATE que liga `pedido_gerado_id` à chamada não acerta porque:
+  1. Em uma das ligações o pedido foi criado **antes** do `identificar_cliente` rodar (chamada 16:13:08, pedido 16:12:11). O lookup procura chamada `voip` sem pedido nos últimos 10 min — mas a Bia chamou `criar_pedido` antes da chamada existir no banco.
+  2. O lookup filtra `tipo='voip'`, mas o webhook GoTo grava `tipo='telefone'` — então linhas do GoTo nunca são linkadas.
+- **Caller-ID untrusted (0800)**: quando a chamada vem via 0800 GoTo, `identificar_cliente` registra a chamada com `telefone=null` e o popup tem só "Bia atendendo" — sem nenhum identificador útil até o cliente ditar o telefone.
+- **Edge function `elevenlabs-bia-tools` sem logs** no dashboard (não aparece em function_edge_logs) — provavelmente está sendo chamada via gateway próprio (não via supabase.functions.invoke), o que dificulta debugar.
+- **Voz/preço/desconto**: já configurados corretamente (Bella + regras P13/desconto/água ativas no agente).
+- **Popup atual** (`CallerIdPopup.tsx`) já mostra "Bia atendendo" durante a ligação e atualiza quando chega o pedido — UI ok, falta consistência dos dados.
 
-Mas o `CallerIdPopup` (linhas 120 e 143 de `src/components/atendimento/CallerIdPopup.tsx`) só mostra o popup se `pedido_gerado_id IS NOT NULL`:
-```ts
-.not("pedido_gerado_id", "is", null)
-...
-if (!nova?.pedido_gerado_id) return;
-```
-Resultado: a chamada chega, mas o popup nunca aparece durante a ligação.
+## Plano de correção (6 ajustes)
 
-### Bug 2 — `criar_pedido` não atualiza a chamada com o pedido gerado
-Quando a Bia cria o pedido (linha 485 de `elevenlabs-bia-tools/index.ts`), ela **não faz UPDATE em `chamadas_recebidas`** linkando o `pedido_gerado_id`. Por isso, mesmo após criar o pedido, o realtime não dispara o popup (a linha existente continua com `pedido_gerado_id = null`).
+### 1. Eliminar a duplicação de chamadas (`goto-webhook` + Bia)
+Hoje cada ligação grava 2 registros. Vou:
+- No `elevenlabs-bia-tools/identificar_cliente`: em vez de **inserir** uma nova chamada, fazer **UPSERT/UPDATE** na chamada `recebida` mais recente da Central Gas dos últimos 2 min (qualquer `tipo`), preenchendo `cliente_id`, `cliente_nome`, observação "Bia atendendo" e padronizando `tipo='voip'`.
+- Se não houver chamada anterior (cenário em que GoTo não disparou webhook), aí sim insere uma nova.
 
-### Bug 3 — Pedidos da Bia são filtrados do alerta de pendentes
-Em `src/hooks/usePedidosPendentesAlert.ts` linha 49:
-```ts
-.filter((p: any) => p.canal_venda !== "telefone_ia")
-```
-Pedidos com canal `telefone_ia` (criados pela Bia) são removidos do alerta de pedidos pendentes — então **nenhum dos dois popups** aparece.
+Resultado: **1 popup por ligação**, com a info da Bia consolidada.
 
-### Bug 4 — Notificação desktop não dispara quando o sistema está em background
-- O `useDesktopNotification` só dispara se `Notification.permission === "granted"` — pode não ter sido pedida.
-- O service worker está desabilitado em iframe/preview (`src/main.tsx`), o que é correto, mas em produção precisa estar registrado para a notificação aparecer com o app fechado.
+### 2. Linkar pedido à chamada de forma robusta (`criar_pedido`)
+Trocar o lookup atual (`tipo='voip'`, últimos 10 min, sem `pedido_gerado_id`) por:
+- Buscar a **chamada mais recente da Central Gas nos últimos 15 min sem `pedido_gerado_id`** (qualquer `tipo`, qualquer status).
+- Se não achar (ex.: pedido criado antes do registro chegar), **inserir uma nova linha** já com `pedido_gerado_id` setado e `cliente_nome`/`telefone` do pedido — assim o popup aparece de qualquer jeito.
+- Se a chamada anterior existir mas tiver `cliente_id` divergente do pedido, atualizar para o `cliente_id` correto.
 
----
+### 3. Popup mostra dados úteis quando caller é untrusted
+Quando vem do 0800 e `identificar_cliente` cai no ramo "perguntar verbalmente", o popup hoje fica genérico. Vou:
+- Gravar `observacoes='📞 Bia perguntando telefone (0800)'` para deixar claro o estado no popup.
+- Quando a Bia receber o telefone do cliente e re-chamar `identificar_cliente`, fazer UPDATE da mesma linha (passo 1) com o telefone real e o nome do cliente — o popup atualiza ao vivo via realtime.
 
-## Plano de correção
+### 4. Remover linhas órfãs antigas
+Marcar todas as `chamadas_recebidas` com `status='recebida'` há mais de 30 min sem `pedido_gerado_id` como `status='atendida'` — uma limpeza única para o popup parar de mostrar lixo antigo.
 
-### 1. Edge Function `elevenlabs-bia-tools/index.ts`
-- Após `criar_pedido` ter sucesso (após linha 541), fazer UPDATE em `chamadas_recebidas`:
-  - Buscar a última chamada `tipo='voip'` da unidade nos últimos 10 minutos sem `pedido_gerado_id`
-  - Atualizar com `pedido_gerado_id = pedido.id` e `cliente_id = finalClienteId`
-  - Isso dispara o realtime e o `CallerIdPopup` aparece com os dados do pedido recém-criado.
+### 5. Adicionar logs estruturados no fluxo
+Hoje não vejo logs da `elevenlabs-bia-tools` no dashboard. Vou:
+- Adicionar `console.log` claros nos pontos críticos: entrada da action, resultado do lookup de chamada, sucesso/falha do UPDATE.
+- Conferir se a function está realmente sendo chamada como Supabase Edge Function (URL `…/functions/v1/elevenlabs-bia-tools`) — se estiver indo por outra rota (proxy), os logs vão para outro lugar e precisamos ajustar a URL no agente da ElevenLabs.
 
-### 2. `src/components/atendimento/CallerIdPopup.tsx`
-- Mostrar o popup **também durante a ligação** (sem `pedido_gerado_id`), não só após criar pedido. Mudar o filtro para mostrar qualquer chamada `recebida` recente, mas com visual "Bia atendendo…" enquanto o pedido não veio. Quando o realtime trouxer o UPDATE com `pedido_gerado_id`, atualizar o card no mesmo lugar com os detalhes do pedido.
-- Tocar o som de campainha já no início da chamada.
-- Solicitar permissão de notificação desktop automaticamente na primeira montagem (se `permission === "default"`).
-
-### 3. `src/hooks/usePedidosPendentesAlert.ts`
-- Remover o filtro `p.canal_venda !== "telefone_ia"` (linha 49), para que pedidos criados pela Bia também entrem no alerta global de pedidos pendentes — assim, mesmo se o `CallerIdPopup` for fechado, o `PedidoPendenteModal` continua chamando atenção até o atendente aceitar.
-
-### 4. `src/components/alerts/PedidoPendenteAlertProvider.tsx` + `useDesktopNotification`
-- Disparar a notificação desktop **sempre** que chega novo pedido (não só quando `document.hidden`), com `requireInteraction: true` e som — para garantir visibilidade quando o usuário não está no sistema.
-- Pedir `Notification.requestPermission()` automaticamente ao montar o provider, uma única vez.
-- Garantir que o `tag` seja único por pedido (já está via `pedido-${p.id}`), permitindo múltiplas notificações empilhadas.
-
-### 5. Service Worker (`src/sw.js` / `vite.config.ts`)
-- Confirmar que o service worker está registrado em produção (já está em `main.tsx`) e que `showNotification` é chamada via `registration.showNotification` (já está em `useDesktopNotification.ts`) — isso permite a notificação aparecer mesmo com a aba fechada/minimizada.
-- Adicionar handler `notificationclick` no SW para focar/abrir a aba `/vendas/pedidos` ao clicar.
-
----
+### 6. Validação pós-deploy
+Depois de aplicar:
+- Fazer 1 ligação de teste e checar via SQL: deve haver **1 linha** em `chamadas_recebidas` com `pedido_gerado_id NOT NULL` e `cliente_nome` preenchido.
+- Conferir se o popup aparece no canto inferior direito do ERP em tempo real (mesmo com a aba minimizada, via notificação desktop).
+- Validar que não existem duas chamadas para a mesma ligação.
 
 ## Resultado esperado
 
-1. **Durante a ligação**: assim que a Bia atende, popup aparece no canto inferior direito com "Bia atendendo — {telefone/cliente}".
-2. **Quando o pedido é criado**: o mesmo popup atualiza para mostrar produto, valor, endereço e botão "REPASSAR ENTREGADOR". Toca som.
-3. **Se o usuário estiver em outra aba/app**: notificação desktop com som aparece, clicável, levando direto para `/vendas/pedidos`.
-4. **Persistência**: mesmo que feche o popup, o `PedidoPendenteModal` continua alertando até o atendente aceitar.
+- Toda ligação → **1 popup** que evolui de "Bia atendendo" para "Pedido #XXX confirmado".
+- Notificação desktop dispara mesmo com o sistema em background.
+- Pedido linkado à chamada em 100% dos casos (mesmo quando a ordem dos eventos inverte).
+- Operador consegue rastrear cada ligação no histórico com cliente, pedido e duração.
+
+## Detalhes técnicos
+
+- Arquivos a editar: `supabase/functions/elevenlabs-bia-tools/index.ts` (passos 1, 2, 3, 5).
+- 1 migração curta para o passo 4 (UPDATE pontual nas chamadas órfãs).
+- Sem mudança em `CallerIdPopup.tsx` — a UI já está correta, o problema era de dados.
+- Sem mudança no agente ElevenLabs (voz/prompt já ajustados).

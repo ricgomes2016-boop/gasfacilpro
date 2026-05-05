@@ -23,6 +23,81 @@ const err = (msg: string, status = 400) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+// Upsert chamada: reaproveita uma chamada `recebida` recente da unidade
+// (ex.: criada pelo goto-webhook segundos antes) para evitar 2 popups por ligação.
+// Se não existir chamada recente, cria uma nova. Retorna o id da chamada usada.
+async function upsertChamadaBia(
+  supabase: any,
+  unidadeId: string,
+  payload: {
+    telefone?: string | null;
+    cliente_id?: string | null;
+    cliente_nome?: string | null;
+    observacoes: string;
+    pedido_gerado_id?: string | null;
+  }
+): Promise<string | null> {
+  try {
+    const desdeIso = new Date(Date.now() - 3 * 60 * 1000).toISOString(); // 3 min
+    const { data: existente } = await supabase
+      .from("chamadas_recebidas")
+      .select("id, pedido_gerado_id, cliente_id, cliente_nome, telefone")
+      .eq("unidade_id", unidadeId)
+      .eq("status", "recebida")
+      .gte("created_at", desdeIso)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existente?.id) {
+      const updates: any = {
+        tipo: "voip",
+        observacoes: payload.observacoes,
+      };
+      if (payload.telefone) updates.telefone = payload.telefone;
+      if (payload.cliente_id) updates.cliente_id = payload.cliente_id;
+      if (payload.cliente_nome) updates.cliente_nome = payload.cliente_nome;
+      if (payload.pedido_gerado_id) updates.pedido_gerado_id = payload.pedido_gerado_id;
+
+      const { error: updErr } = await supabase
+        .from("chamadas_recebidas")
+        .update(updates)
+        .eq("id", existente.id);
+      if (updErr) {
+        console.error("[BIA-UPSERT] update error:", updErr);
+      } else {
+        console.log("[BIA-UPSERT] reusou chamada", existente.id);
+      }
+      return existente.id;
+    }
+
+    const { data: nova, error: insErr } = await supabase
+      .from("chamadas_recebidas")
+      .insert({
+        telefone: payload.telefone ?? null,
+        cliente_id: payload.cliente_id ?? null,
+        cliente_nome: payload.cliente_nome ?? null,
+        tipo: "voip",
+        status: "recebida",
+        unidade_id: unidadeId,
+        observacoes: payload.observacoes,
+        pedido_gerado_id: payload.pedido_gerado_id ?? null,
+      })
+      .select("id")
+      .single();
+
+    if (insErr) {
+      console.error("[BIA-UPSERT] insert error:", insErr);
+      return null;
+    }
+    console.log("[BIA-UPSERT] criou chamada nova", nova?.id);
+    return nova?.id ?? null;
+  } catch (e) {
+    console.error("[BIA-UPSERT] exception:", e);
+    return null;
+  }
+}
+
 async function resolverEmpresaUnidade(supabase: any, _body: any) {
   // Bia atende SEMPRE pela Central Gas (empresa fixa)
   const { data: empresa } = await supabase
@@ -205,17 +280,12 @@ serve(async (req) => {
       // If the caller-id is explicitly untrusted OR matches an operator number,
       // do NOT try to match a customer by phone. Tell the agent to ask verbally.
       if (callerExplicitlyUntrusted || (!callerConfiavel && isOperatorNumber)) {
-        // Still log the call for ops visibility, but without a fake telefone.
-        const { error: chamadaError } = await supabase.from("chamadas_recebidas").insert({
+        await upsertChamadaBia(supabase, unidade.id, {
           telefone: null,
           cliente_id: null,
           cliente_nome: null,
-          tipo: "voip",
-          status: "recebida",
-          unidade_id: unidade.id,
-          observacoes: `Bia (IA) - chamada via 0800/encaminhamento. Caller bruto: ${telefoneRaw || "vazio"}`,
+          observacoes: `📞 Bia perguntando telefone (0800/encaminhamento). Caller bruto: ${telefoneRaw || "vazio"}`,
         });
-        if (chamadaError) console.error("Erro registrando chamada (caller não confiável):", chamadaError);
 
         return ok({
           encontrado: false,
@@ -239,20 +309,14 @@ serve(async (req) => {
         .or(`telefone.ilike.%${last}%,telefone.ilike.%${last10b}%`)
         .limit(1);
 
-      // Register the incoming call (triggers CallerID popup)
-      const { error: chamadaError } = await supabase.from("chamadas_recebidas").insert({
+      await upsertChamadaBia(supabase, unidade.id, {
         telefone,
         cliente_id: clientes?.[0]?.id ?? null,
         cliente_nome: clientes?.[0]?.nome ?? null,
-        tipo: "voip",
-        status: "recebida",
-        unidade_id: unidade.id,
-        observacoes: "Recebida pela Bia (IA - ElevenLabs)",
+        observacoes: clientes?.[0]
+          ? `📞 Bia atendendo ${clientes[0].nome}`
+          : "📞 Bia atendendo (cliente novo)",
       });
-
-      if (chamadaError) {
-        console.error("Erro registrando chamada recebida:", chamadaError);
-      }
 
       if (clientes && clientes.length > 0) {
         const c = clientes[0];
@@ -540,40 +604,44 @@ serve(async (req) => {
         preco_unitario: precoUnitario,
       });
 
-      // === Linka a chamada (Bia voip) ao pedido para disparar CallerIdPopup via realtime
+      // === Linka a chamada ao pedido (busca janela 15min, qualquer tipo). Se não houver, cria.
+      // Usa o helper para garantir consistência: 1 chamada por ligação, sempre linkada.
       try {
-        const desdeChamadaIso = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const desdeChamadaIso = new Date(Date.now() - 15 * 60 * 1000).toISOString();
         const { data: chamadaRecente } = await supabase
           .from("chamadas_recebidas")
           .select("id")
           .eq("unidade_id", unidade.id)
-          .eq("tipo", "voip")
           .is("pedido_gerado_id", null)
           .gte("created_at", desdeChamadaIso)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
+        const obs = `✅ Pedido #${pedido.numero_sequencial} criado pela Bia · R$ ${valorTotal.toFixed(2)}`;
+
         if (chamadaRecente?.id) {
-          await supabase
+          const { error: updErr } = await supabase
             .from("chamadas_recebidas")
             .update({
               pedido_gerado_id: pedido.id,
               cliente_id: finalClienteId,
               cliente_nome: nome || null,
+              telefone: String(telefone || "").replace(/\D/g, "") || null,
+              tipo: "voip",
+              observacoes: obs,
             })
             .eq("id", chamadaRecente.id);
+          if (updErr) console.error("[BIA-LINK] update error:", updErr);
+          else console.log("[BIA-LINK] linkou pedido", pedido.id, "→ chamada", chamadaRecente.id);
         } else {
-          // Sem chamada prévia (ex.: criar_pedido direto): cria linha para disparar popup
-          await supabase.from("chamadas_recebidas").insert({
+          // Sem chamada prévia: cria já linkada
+          await upsertChamadaBia(supabase, unidade.id, {
             telefone: String(telefone || "").replace(/\D/g, "") || null,
             cliente_id: finalClienteId,
             cliente_nome: nome || null,
-            tipo: "voip",
-            status: "recebida",
-            unidade_id: unidade.id,
+            observacoes: obs,
             pedido_gerado_id: pedido.id,
-            observacoes: "Pedido criado pela Bia (IA)",
           });
         }
       } catch (linkErr) {
