@@ -1,7 +1,8 @@
 // Edge Function: elevenlabs-import-sip-trunk
-// One-shot administrativa — importa o número 0800 na ElevenLabs como SIP Trunk usando credenciais GoTo,
-// e em seguida atribui o agente Bia ao número via PATCH.
-// Padrão do projeto: sempre 200 OK com flags { ok: boolean, ... }, nunca 500.
+// One-shot administrativa — UPSERT do número 0800 na ElevenLabs como SIP Trunk usando credenciais GoTo.
+// 1. Tenta CREATE. Se conflict (409), faz LIST + PATCH com as configs novas.
+// 2. Atribui o agente Bia ao número via PATCH agent_id.
+// Sempre retorna 200 OK com flags.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,13 +27,21 @@ async function safeJson(resp: Response) {
   }
 }
 
+function maskPayload(p: Record<string, unknown>) {
+  const masked: Record<string, unknown> = JSON.parse(JSON.stringify(p));
+  const inb = masked.inbound_trunk_config as { credentials?: { password?: string } } | undefined;
+  const out = masked.outbound_trunk_config as { credentials?: { password?: string } } | undefined;
+  if (inb?.credentials?.password) inb.credentials.password = "***";
+  if (out?.credentials?.password) out.credentials.password = "***";
+  return masked;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Optional admin guard
     const adminSecret = Deno.env.get("ELEVENLABS_WEBHOOK_SECRET");
     const headerSecret = req.headers.get("x-admin-secret");
     if (adminSecret && headerSecret && headerSecret !== adminSecret) {
@@ -65,21 +74,14 @@ Deno.serve(async (req) => {
     const phoneNumber = (body.phone_number as string) || "+5508005900492";
     const label = (body.label as string) || "Forte Gás 0800 (GoTo Trunk 1004)";
     const transport = ((body.transport as string) || "udp").toLowerCase();
-    // outbound address: prefer outbound proxy if present (more specific than reg.jiveip.net)
     const outboundAddress =
       (body.address as string) || GOTO_SIP_OUTBOUND_PROXY || GOTO_SIP_DOMAIN;
     const agentId = (body.agent_id as string) || ELEVENLABS_AGENT_ID!;
     const mediaEncryption = (body.media_encryption as string) || "allowed";
 
-    const credentials = {
-      username: GOTO_SIP_USER,
-      password: GOTO_SIP_PASSWORD,
-    };
+    const credentials = { username: GOTO_SIP_USER, password: GOTO_SIP_PASSWORD };
 
-    const payload: Record<string, unknown> = {
-      provider: "sip_trunk",
-      phone_number: phoneNumber,
-      label,
+    const trunkConfig = {
       inbound_trunk_config: {
         credentials,
         media_encryption: mediaEncryption,
@@ -92,90 +94,127 @@ Deno.serve(async (req) => {
       },
     };
 
-    console.log("[elevenlabs-import-sip-trunk] Step 1: create phone number", {
-      phoneNumber,
-      outboundAddress,
-      transport,
-      username: GOTO_SIP_USER,
-      agentId,
+    const apiHeaders = {
+      "xi-api-key": ELEVENLABS_API_KEY!,
+      "Content-Type": "application/json",
+    };
+
+    let phoneNumberId: string | null = null;
+    let createOrUpdateResp: unknown = null;
+
+    // Step 1: Try to CREATE
+    const createPayload = {
+      provider: "sip_trunk",
+      phone_number: phoneNumber,
+      label,
+      ...trunkConfig,
+    };
+
+    console.log("[elevenlabs-import-sip-trunk] Step 1: create", { phoneNumber, outboundAddress, transport });
+
+    const createResp = await fetch("https://api.elevenlabs.io/v1/convai/phone-numbers", {
+      method: "POST",
+      headers: apiHeaders,
+      body: JSON.stringify(createPayload),
     });
-
-    const createResp = await fetch(
-      "https://api.elevenlabs.io/v1/convai/phone-numbers",
-      {
-        method: "POST",
-        headers: {
-          "xi-api-key": ELEVENLABS_API_KEY!,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      },
-    );
-
     const created = await safeJson(createResp);
-    console.log(
-      "[elevenlabs-import-sip-trunk] Create response",
-      createResp.status,
-      created.text,
-    );
+    console.log("[elevenlabs-import-sip-trunk] Create response", createResp.status, created.text);
 
-    if (!createResp.ok) {
+    if (createResp.ok) {
+      phoneNumberId = (created.parsed as { phone_number_id?: string })?.phone_number_id ?? null;
+      createOrUpdateResp = created.parsed;
+    } else if (createResp.status === 409) {
+      // Number already exists. Find it and PATCH with new config.
+      console.log("[elevenlabs-import-sip-trunk] Conflict — listing existing numbers");
+      const listResp = await fetch("https://api.elevenlabs.io/v1/convai/phone-numbers", {
+        method: "GET",
+        headers: apiHeaders,
+      });
+      const listed = await safeJson(listResp);
+      console.log("[elevenlabs-import-sip-trunk] List response", listResp.status, listed.text.slice(0, 800));
+
+      if (!listResp.ok) {
+        return json({ ok: false, step: "list", http_status: listResp.status, error: listed.parsed }, 200);
+      }
+
+      const items = Array.isArray(listed.parsed)
+        ? (listed.parsed as Array<Record<string, unknown>>)
+        : ((listed.parsed as { phone_numbers?: Array<Record<string, unknown>> })?.phone_numbers ?? []);
+
+      const found = items.find((n) => {
+        const num = (n.phone_number as string) || "";
+        return num === phoneNumber || num.replace(/\D/g, "") === phoneNumber.replace(/\D/g, "");
+      });
+
+      if (!found) {
+        return json({
+          ok: false,
+          step: "find_existing",
+          error: "Number not found in list despite 409 conflict",
+          all_numbers: items.map((n) => ({ id: n.phone_number_id, num: n.phone_number, label: n.label, provider: n.provider })),
+        }, 200);
+      }
+
+      phoneNumberId = (found.phone_number_id as string) ?? null;
+      console.log("[elevenlabs-import-sip-trunk] Found existing", { phoneNumberId, found });
+
+      if (!phoneNumberId) {
+        return json({ ok: false, step: "find_existing", error: "Found number but no phone_number_id", found }, 200);
+      }
+
+      // PATCH with new trunk config + label
+      const patchPayload = { label, ...trunkConfig };
+      console.log("[elevenlabs-import-sip-trunk] PATCH config", { phoneNumberId });
+
+      const patchResp = await fetch(
+        `https://api.elevenlabs.io/v1/convai/phone-numbers/${phoneNumberId}`,
+        { method: "PATCH", headers: apiHeaders, body: JSON.stringify(patchPayload) },
+      );
+      const patched = await safeJson(patchResp);
+      console.log("[elevenlabs-import-sip-trunk] Patch config response", patchResp.status, patched.text);
+
+      if (!patchResp.ok) {
+        return json({
+          ok: false,
+          step: "update_existing_config",
+          phone_number_id: phoneNumberId,
+          http_status: patchResp.status,
+          error: patched.parsed,
+          sent_payload: maskPayload(patchPayload),
+        }, 200);
+      }
+      createOrUpdateResp = patched.parsed;
+    } else {
       return json({
         ok: false,
         step: "create_phone_number",
         http_status: createResp.status,
         error: created.parsed,
-        sent_payload: {
-          ...payload,
-          inbound_trunk_config: { ...payload.inbound_trunk_config as object, credentials: { username: GOTO_SIP_USER, password: "***" } },
-          outbound_trunk_config: { ...payload.outbound_trunk_config as object, credentials: { username: GOTO_SIP_USER, password: "***" } },
-        },
+        sent_payload: maskPayload(createPayload),
       }, 200);
     }
-
-    const phoneNumberId =
-      (created.parsed as { phone_number_id?: string })?.phone_number_id ?? null;
 
     if (!phoneNumberId) {
-      return json({
-        ok: false,
-        step: "create_phone_number",
-        error: "No phone_number_id returned",
-        response: created.parsed,
-      }, 200);
+      return json({ ok: false, step: "resolve_phone_number_id", error: "No phone_number_id resolved", response: createOrUpdateResp }, 200);
     }
 
-    // Step 2: Assign agent to the phone number via PATCH
+    // Step 2: Assign agent
     console.log("[elevenlabs-import-sip-trunk] Step 2: assign agent", { phoneNumberId, agentId });
-
-    const patchResp = await fetch(
+    const assignResp = await fetch(
       `https://api.elevenlabs.io/v1/convai/phone-numbers/${phoneNumberId}`,
-      {
-        method: "PATCH",
-        headers: {
-          "xi-api-key": ELEVENLABS_API_KEY!,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ agent_id: agentId }),
-      },
+      { method: "PATCH", headers: apiHeaders, body: JSON.stringify({ agent_id: agentId }) },
     );
+    const assigned = await safeJson(assignResp);
+    console.log("[elevenlabs-import-sip-trunk] Assign agent response", assignResp.status, assigned.text);
 
-    const patched = await safeJson(patchResp);
-    console.log(
-      "[elevenlabs-import-sip-trunk] Patch response",
-      patchResp.status,
-      patched.text,
-    );
-
-    if (!patchResp.ok) {
+    if (!assignResp.ok) {
       return json({
         ok: false,
         step: "assign_agent",
         phone_number_id: phoneNumberId,
-        http_status: patchResp.status,
-        error: patched.parsed,
-        note:
-          "Phone number was created but agent assignment failed. You can assign manually in the ElevenLabs dashboard.",
+        http_status: assignResp.status,
+        error: assigned.parsed,
+        note: "Phone number config updated, but agent assignment failed.",
       }, 200);
     }
 
@@ -183,14 +222,11 @@ Deno.serve(async (req) => {
       ok: true,
       phone_number_id: phoneNumberId,
       agent_id: agentId,
-      create_response: created.parsed,
-      patch_response: patched.parsed,
+      config_response: createOrUpdateResp,
+      assign_response: assigned.parsed,
     }, 200);
   } catch (err) {
     console.error("[elevenlabs-import-sip-trunk] Unhandled error", err);
-    return json(
-      { ok: false, error: err instanceof Error ? err.message : String(err) },
-      200,
-    );
+    return json({ ok: false, error: err instanceof Error ? err.message : String(err) }, 200);
   }
 });
