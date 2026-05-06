@@ -75,6 +75,17 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
     return list;
   }, [compras, search, filtroTipo]);
 
+  const totaisFiltrados = useMemo(() => {
+    let qtd = 0, total = 0, desconto = 0;
+    for (const c of filtered) {
+      const q = Number(c.quantidade || 0) || (Number(c.qtd_p13 || 0) + Number(c.qtd_p20 || 0) + Number(c.qtd_p45 || 0) + Number(c.qtd_agua || 0));
+      qtd += q;
+      total += Number(c.custo_total || 0);
+      desconto += Number(c.desconto || 0);
+    }
+    return { qtd, total, desconto };
+  }, [filtered]);
+
   const display = showAll ? filtered : filtered.slice(0, 30);
 
   const updateField = useMutation({
