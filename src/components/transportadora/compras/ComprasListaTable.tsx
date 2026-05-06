@@ -63,6 +63,11 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
     if (filtroTipo !== "todos") {
       list = list.filter((c) => (c.tipo_produto || "outros") === filtroTipo);
     }
+    if (filtroConf === "conferidas") {
+      list = list.filter((c) => !!c.conferida);
+    } else if (filtroConf === "nao_conferidas") {
+      list = list.filter((c) => !c.conferida);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((c) =>
