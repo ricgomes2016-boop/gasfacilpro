@@ -194,6 +194,7 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                 const qtd = Number(c.quantidade || 0) || (Number(c.qtd_p13 || 0) + Number(c.qtd_p20 || 0) + Number(c.qtd_p45 || 0) + Number(c.qtd_agua || 0));
                 const pu = Number(c.preco_unitario || 0);
                 const desc = Number(c.desconto || 0);
+                const puLiquido = qtd > 0 && desc > 0 ? pu - desc / qtd : pu;
                 return (
                   <tr key={c.id} className={`hover:bg-muted/20 ${isDup ? "bg-warning/5" : ""} ${c.pago ? "opacity-60" : ""}`}>
                     <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{fmtDate(c.data)}</td>
@@ -220,7 +221,12 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{c.cfop || "—"}</td>
                     <td className="px-3 py-2 text-center text-foreground">{qtd > 0 ? formatNumber(qtd, 0) : "—"}</td>
-                    <td className="px-3 py-2 text-primary font-semibold">{pu > 0 ? formatCurrency(pu) : "—"}</td>
+                    <td className="px-3 py-2 text-primary font-semibold">
+                      {puLiquido > 0 ? formatCurrency(puLiquido) : "—"}
+                      {desc > 0 && pu > 0 && (
+                        <div className="text-[9px] text-muted-foreground font-normal line-through">{formatCurrency(pu)}</div>
+                      )}
+                    </td>
                     <td className="px-3 py-2 text-success">{desc > 0 ? formatCurrency(desc) : "—"}</td>
                     <td className="px-3 py-2 font-bold text-foreground">{formatCurrency(Number(c.custo_total))}</td>
                     <td className="px-3 py-2">
