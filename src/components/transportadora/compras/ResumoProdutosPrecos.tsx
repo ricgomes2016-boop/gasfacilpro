@@ -68,7 +68,12 @@ export function ResumoProdutosPrecos({ compras }: Props) {
       const prod = detectarProduto(c);
       if (!prod) return;
       const qtd = Number(c[`qtd_${prod.toLowerCase()}`] || c.quantidade || 0);
-      const pu = Number(c.preco_unitario || 0);
+      const puBruto = Number(c.preco_unitario || 0);
+      const qtdNF = Number(c.quantidade || 0)
+        || (Number(c.qtd_p13 || 0) + Number(c.qtd_p20 || 0) + Number(c.qtd_p45 || 0) + Number(c.qtd_agua || 0));
+      const desc = Number(c.desconto || 0);
+      const descRateado = qtdNF > 0 ? (desc * qtd) / qtdNF : 0;
+      const pu = qtd > 0 ? ((puBruto * qtd) - descRateado) / qtd : puBruto;
       if (qtd <= 0 || pu <= 0) return;
       const key = `${prod}__${pu.toFixed(2)}`;
       const r = map.get(key) || { precoUnit: pu, produto: prod, qtd: 0 };
