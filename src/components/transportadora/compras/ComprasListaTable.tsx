@@ -75,6 +75,17 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
     return list;
   }, [compras, search, filtroTipo]);
 
+  const totaisFiltrados = useMemo(() => {
+    let qtd = 0, total = 0, desconto = 0;
+    for (const c of filtered) {
+      const q = Number(c.quantidade || 0) || (Number(c.qtd_p13 || 0) + Number(c.qtd_p20 || 0) + Number(c.qtd_p45 || 0) + Number(c.qtd_agua || 0));
+      qtd += q;
+      total += Number(c.custo_total || 0);
+      desconto += Number(c.desconto || 0);
+    }
+    return { qtd, total, desconto };
+  }, [filtered]);
+
   const display = showAll ? filtered : filtered.slice(0, 30);
 
   const updateField = useMutation({
@@ -194,6 +205,7 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                 const qtd = Number(c.quantidade || 0) || (Number(c.qtd_p13 || 0) + Number(c.qtd_p20 || 0) + Number(c.qtd_p45 || 0) + Number(c.qtd_agua || 0));
                 const pu = Number(c.preco_unitario || 0);
                 const desc = Number(c.desconto || 0);
+                const puLiquido = qtd > 0 && desc > 0 ? pu - desc / qtd : pu;
                 return (
                   <tr key={c.id} className={`hover:bg-muted/20 ${isDup ? "bg-warning/5" : ""} ${c.pago ? "opacity-60" : ""}`}>
                     <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{fmtDate(c.data)}</td>
@@ -220,7 +232,12 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{c.cfop || "—"}</td>
                     <td className="px-3 py-2 text-center text-foreground">{qtd > 0 ? formatNumber(qtd, 0) : "—"}</td>
-                    <td className="px-3 py-2 text-primary font-semibold">{pu > 0 ? formatCurrency(pu) : "—"}</td>
+                    <td className="px-3 py-2 text-primary font-semibold">
+                      {puLiquido > 0 ? formatCurrency(puLiquido) : "—"}
+                      {desc > 0 && pu > 0 && (
+                        <div className="text-[9px] text-muted-foreground font-normal line-through">{formatCurrency(pu)}</div>
+                      )}
+                    </td>
                     <td className="px-3 py-2 text-success">{desc > 0 ? formatCurrency(desc) : "—"}</td>
                     <td className="px-3 py-2 font-bold text-foreground">{formatCurrency(Number(c.custo_total))}</td>
                     <td className="px-3 py-2">
@@ -270,7 +287,20 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                 </tr>
               )}
             </tbody>
+            {filtered.length > 0 && (
+              <tfoot className="bg-muted/40 border-t-2 border-border">
+                <tr className="font-semibold">
+                  <td colSpan={6} className="px-3 py-2.5 text-right text-foreground">Totais ({filtered.length} {filtered.length === 1 ? "registro" : "registros"})</td>
+                  <td className="px-3 py-2.5 text-center text-foreground">{formatNumber(totaisFiltrados.qtd, 0)}</td>
+                  <td className="px-3 py-2.5"></td>
+                  <td className="px-3 py-2.5 text-success">{totaisFiltrados.desconto > 0 ? formatCurrency(totaisFiltrados.desconto) : "—"}</td>
+                  <td className="px-3 py-2.5 text-foreground font-bold">{formatCurrency(totaisFiltrados.total)}</td>
+                  <td colSpan={2}></td>
+                </tr>
+              </tfoot>
+            )}
           </table>
+
         </div>
 
         {filtered.length > 30 && (
