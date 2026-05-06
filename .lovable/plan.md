@@ -1,67 +1,45 @@
-## Importar 0800 na ElevenLabs via SIP Trunk (GoTo como provedor)
+## Problema
 
-### Topologia confirmada (via screenshots GoTo Admin)
-```
-+55 800 590 0492 ──► Ramal 1004 ──► SIP Trunk dispositivo ──► [ElevenLabs registra aqui]
-```
-O SIP Trunk do GoTo é inbound-only: não encaminha pra IP externo. Quem se conecta é a ElevenLabs, autenticando no `reg.jiveip.net` com as credenciais do ramal 1004.
+Na tela `/transportadora/compras` o usuário relatou:
 
-### Entregáveis
+1. **Compras de 02/04/2026 não aparecem** — apesar de existirem 11 registros no banco para essa data (NACIONAL GAS, ~R$ 121k em P13/P20/P45 cheio + vasilhames).
+2. **Card "Resumo por Loja"** está mostrando linhas de Cheio **e** Vasilhame, mas precisa mostrar apenas **Cheio**.
 
-**1 edge function nova:** `elevenlabs-import-sip-trunk` (administrativa, one-shot)
+## Causa raiz
 
-### O que a edge function faz
-1. Lê secrets já existentes:
-   - `ELEVENLABS_API_KEY`
-   - `ELEVENLABS_AGENT_ID`
-   - `GOTO_SIP_USER`, `GOTO_SIP_PASSWORD`, `GOTO_SIP_DOMAIN` (`reg.jiveip.net`), `GOTO_SIP_OUTBOUND_PROXY`
+### 1. Compras "sumidas"
+Em `src/pages/transportadora/TranspCompras.tsx` (linhas 153-160), a query carrega só as **100 compras mais recentes**:
 
-2. Chama `POST https://api.elevenlabs.io/v1/convai/phone-numbers/create`:
-```json
-{
-  "provider": "sip_trunk",
-  "phone_number": "+5508005900492",
-  "label": "Forte Gás 0800 (GoTo Trunk 1004)",
-  "transport": "udp",
-  "address": "reg.jiveip.net",
-  "username": "<GOTO_SIP_USER>",
-  "password": "<GOTO_SIP_PASSWORD>",
-  "agent_id": "<ELEVENLABS_AGENT_ID>"
-}
+```ts
+.from("transp_compras").select("*").order("data", { ascending: false }).limit(100);
 ```
 
-3. Retorna em **200 OK** (padrão do projeto):
-   - **Sucesso:** `{ ok: true, phone_number_id, sip_status }`
-   - **Falha API:** `{ ok: false, error: "<mensagem da ElevenLabs>", http_status }` — sem 500
+Como o sistema tem volume alto de XMLs importados, o dia 02/04/2026 já caiu fora do top 100, então nem entra no array `compras` que alimenta o filtro por mês/filial. Por isso o "Resumo por Loja" e a lista somem.
 
-### Segurança
-- Sem JWT (one-shot administrativa)
-- Header opcional `x-admin-secret` validado contra `ELEVENLABS_WEBHOOK_SECRET`
-- CORS habilitado padrão do projeto
+### 2. Vasilhame no Resumo por Loja
+`src/components/transportadora/compras/ResumoPorLoja.tsx` agrupa por `tipo` (cheio/vasilhame) e renderiza ambos com badge colorida. Precisa filtrar para exibir só `cheio`.
 
-### Como executar
-Após deploy automático, eu mesmo disparo via `curl_edge_functions` e te mostro a resposta. Você não precisa clicar em nada.
+## Plano de correção
 
-### Não-objetivos (não vou mexer)
-- `App.tsx`, providers, rotas — intocados
-- Banco de dados — sem alterações (número fica armazenado na ElevenLabs)
-- `supabase/config.toml` — sem mudanças
-- Nenhuma UI nova
-- Nenhuma alteração nas edge functions existentes (`elevenlabs-call-initiation`, `elevenlabs-call-postcall`, `elevenlabs-conversation-token`)
+### Ajuste 1 — Carregar compras pelo período selecionado (TranspCompras.tsx)
+Trocar a query fixa por uma query parametrizada pelo `periodo` (mês YYYY-MM) e sem o limite de 100:
 
-### Plano B se a API rejeitar
-A função retorna a mensagem exata de erro. Aí caímos pro caminho manual no painel ElevenLabs (Conversational AI → Phone Numbers → Import → SIP Trunk) — eu te dou os valores exatos pra colar.
+- Adicionar `periodo` na `queryKey` para refazer o fetch ao trocar de mês.
+- Filtrar no servidor por `mes_referencia = periodo` (campo já existe na tabela).
+- Subir o limite para 2000 (mais que suficiente para um mês inteiro de XMLs).
+- Manter o restante do componente igual; o `useMemo` `comprasPeriodo` continua funcionando.
 
-### Passo após sucesso
-Você liga do celular pro **0800 590 0492**. A Bia deve atender em ~2-3 segundos. Eu acompanho em tempo real:
-- `elevenlabs-call-initiation` (chegada da chamada)
-- `elevenlabs-call-postcall` (transcript salvo no banco)
+### Ajuste 2 — Resumo por Loja somente Cheio (ResumoPorLoja.tsx)
+- Ignorar registros com `tipo_produto !== "cheio"` logo no início do `forEach`.
+- Remover a coluna "Tipo" da tabela (não há mais necessidade de distinguir).
+- Atualizar o título para "Resumo por Loja — GLP Cheio".
+- Manter o detalhamento por produto (P13 / P20 / P45) já existente.
 
-Se não atender, leio os logs da ElevenLabs Call History via API e diagnostico (geralmente: `address` errado, transport TCP vs UDP, ou whitelist de IP no GoTo).
+### Não muda
+- Estrutura de rotas, layout, KPIs de toneladas, comparativo de fornecedores, gráficos e lista de compras (`ComprasListaTable`/`ComprasSimplesTable`) ficam intactos.
+- Nada de refatorar `App.tsx` ou providers (regra de estabilidade).
 
-### Checklist final
-- [x] Topologia GoTo mapeada e confirmada
-- [x] Secrets necessários existem (`GOTO_SIP_*`, `ELEVENLABS_*`)
-- [x] Agente Bia já criado na ElevenLabs (`ELEVENLABS_AGENT_ID` setado)
-- [x] Webhooks `call-initiation` e `call-postcall` já existem
-- [ ] Aprovar este plano → eu crio a função, deploy, executo, te mostro resultado
+## Resultado esperado
+- Ao selecionar período `2026-04`, as 11 compras do dia 02/04 aparecem na lista, no Resumo por Loja e nos KPIs.
+- Card "Resumo por Loja" mostra apenas linhas Cheias (P13/P20/P45), com o Total Geral recalculado só sobre Cheio.
+- Trocar o seletor de mês passa a recarregar do banco automaticamente.

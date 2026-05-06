@@ -151,9 +151,14 @@ export default function TranspCompras() {
   });
 
   const { data: compras = [], isLoading } = useQuery({
-    queryKey: ["transp-compras"],
+    queryKey: ["transp-compras", periodo],
     queryFn: async () => {
-      const { data } = await (supabase as any).from("transp_compras").select("*").order("data", { ascending: false }).limit(100);
+      const { data } = await (supabase as any)
+        .from("transp_compras")
+        .select("*")
+        .eq("mes_referencia", periodo)
+        .order("data", { ascending: false })
+        .limit(2000);
       return data || [];
     },
     enabled: !!user,
