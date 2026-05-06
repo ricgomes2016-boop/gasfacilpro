@@ -292,12 +292,27 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                         {c.pago && <Check className="h-3 w-3" />}
                       </button>
                     </td>
+                    <td className="px-3 py-2">
+                      <button
+                        onClick={() => toggleConferida(c)}
+                        className={`inline-flex items-center justify-center h-5 w-5 rounded border ${
+                          c.conferida ? "bg-primary border-primary text-primary-foreground" : "border-border hover:border-primary"
+                        }`}
+                        title={
+                          c.conferida
+                            ? `Conferida${c.conferida_em ? ` em ${fmtDate(String(c.conferida_em).slice(0, 10))}` : ""} — clique para desmarcar`
+                            : "Marcar NF como conferida"
+                        }
+                      >
+                        {c.conferida && <Check className="h-3 w-3" />}
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
               {display.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="text-center py-8 text-muted-foreground">Nenhuma compra encontrada</td>
+                  <td colSpan={13} className="text-center py-8 text-muted-foreground">Nenhuma compra encontrada</td>
                 </tr>
               )}
             </tbody>
