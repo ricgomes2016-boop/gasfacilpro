@@ -37,17 +37,27 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
   const [filtroConf, setFiltroConf] = useState<"todos" | "conferidas" | "nao_conferidas">("todos");
 
   const dupNFs = useMemo(() => {
+    // Considera duplicado apenas quando NF + fornecedor + produto + quantidade + valor coincidem
+    // (NFs com vários itens diferentes na mesma nota NÃO são duplicidade)
     const counts: Record<string, number> = {};
+    const keyOf = (c: any) => {
+      const nfKey = c.chave_nfe || (c.numero_nf ? `${c.numero_nf}_${c.fornecedor}` : null);
+      if (!nfKey) return null;
+      const prod = (c.produto_descricao || "").trim().toLowerCase();
+      const qtd = Number(c.quantidade || 0);
+      const val = Number(c.custo_total || 0).toFixed(2);
+      return `${nfKey}__${prod}__${qtd}__${val}`;
+    };
     compras.forEach((c) => {
-      const key = c.chave_nfe || (c.numero_nf ? `${c.numero_nf}_${c.fornecedor}` : null);
-      if (!key) return;
-      counts[key] = (counts[key] || 0) + 1;
+      const k = keyOf(c);
+      if (!k) return;
+      counts[k] = (counts[k] || 0) + 1;
     });
     return new Set(
       compras
         .filter((c) => {
-          const key = c.chave_nfe || (c.numero_nf ? `${c.numero_nf}_${c.fornecedor}` : null);
-          return key && counts[key] > 1;
+          const k = keyOf(c);
+          return k && counts[k] > 1;
         })
         .map((c) => c.numero_nf || c.id)
     );
@@ -78,8 +88,15 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
         (c.produto_descricao || "").toLowerCase().includes(q)
       );
     }
-    return list;
-  }, [compras, search, filtroTipo, filtroConf]);
+    // Ordena por data DESC, depois por loja ASC
+    const lojaName = (id?: string | null) => (id ? (unidadesMap?.get(id) || "") : "");
+    return [...list].sort((a, b) => {
+      const da = String(a.data || "");
+      const db = String(b.data || "");
+      if (da !== db) return db.localeCompare(da);
+      return lojaName(a.unidade_id).localeCompare(lojaName(b.unidade_id), "pt-BR");
+    });
+  }, [compras, search, filtroTipo, filtroConf, unidadesMap]);
 
   const totaisFiltrados = useMemo(() => {
     let qtd = 0, total = 0, desconto = 0;
