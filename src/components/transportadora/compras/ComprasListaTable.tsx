@@ -185,18 +185,37 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
               </div>
             </div>
           </div>
-          <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit">
-            {chips.map((c) => (
-              <button
-                key={c.v}
-                onClick={() => { setFiltroTipo(c.v); setShowAll(false); }}
-                className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
-                  filtroTipo === c.v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {c.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit">
+              {chips.map((c) => (
+                <button
+                  key={c.v}
+                  onClick={() => { setFiltroTipo(c.v); setShowAll(false); }}
+                  className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                    filtroTipo === c.v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit">
+              {([
+                { v: "todos", label: "Todas" },
+                { v: "conferidas", label: "✓ Conferidas" },
+                { v: "nao_conferidas", label: "Não conferidas" },
+              ] as const).map((c) => (
+                <button
+                  key={c.v}
+                  onClick={() => { setFiltroConf(c.v); setShowAll(false); }}
+                  className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                    filtroConf === c.v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
