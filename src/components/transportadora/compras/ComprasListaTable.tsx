@@ -240,7 +240,7 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
           <table className="w-full text-xs">
             <thead className="bg-muted/40">
               <tr className="text-left">
-                {["Data", "Loja", "Fornecedor", "NF", "Tipo", "CFOP", "Qtd", "Preço Unit.", "Desconto", "Total", "Vencimento", "Pago", "Conferida"].map((h) => (
+                {["Conferida", "Data", "Loja", "Fornecedor", "NF", "Tipo", "CFOP", "Qtd", "Preço Unit.", "Desconto", "Total", "Vencimento", "Pago"].map((h) => (
                   <th key={h} className="px-3 py-2.5 font-medium text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -264,6 +264,21 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                 const puLiquido = qtd > 0 && desc > 0 ? pu - desc / qtd : pu;
                 return (
                   <tr key={c.id} className={`hover:bg-muted/20 ${isDup ? "bg-warning/5" : ""} ${c.pago ? "opacity-60" : ""}`}>
+                    <td className="px-3 py-2">
+                      <button
+                        onClick={() => toggleConferida(c)}
+                        className={`inline-flex items-center justify-center h-5 w-5 rounded border ${
+                          c.conferida ? "bg-primary border-primary text-primary-foreground" : "border-border hover:border-primary"
+                        }`}
+                        title={
+                          c.conferida
+                            ? `Conferida${c.conferida_em ? ` em ${fmtDate(String(c.conferida_em).slice(0, 10))}` : ""} — clique para desmarcar`
+                            : "Marcar NF como conferida"
+                        }
+                      >
+                        {c.conferida && <Check className="h-3 w-3" />}
+                      </button>
+                    </td>
                     <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{fmtDate(c.data)}</td>
                     <td className="px-3 py-2 text-foreground">{lojaNome(c.unidade_id)}</td>
                     <td className="px-3 py-2 text-foreground font-medium max-w-[180px] truncate" title={c.fornecedor}>
@@ -334,21 +349,6 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                         {c.pago && <Check className="h-3 w-3" />}
                       </button>
                     </td>
-                    <td className="px-3 py-2">
-                      <button
-                        onClick={() => toggleConferida(c)}
-                        className={`inline-flex items-center justify-center h-5 w-5 rounded border ${
-                          c.conferida ? "bg-primary border-primary text-primary-foreground" : "border-border hover:border-primary"
-                        }`}
-                        title={
-                          c.conferida
-                            ? `Conferida${c.conferida_em ? ` em ${fmtDate(String(c.conferida_em).slice(0, 10))}` : ""} — clique para desmarcar`
-                            : "Marcar NF como conferida"
-                        }
-                      >
-                        {c.conferida && <Check className="h-3 w-3" />}
-                      </button>
-                    </td>
                   </tr>
                 );
               })}
@@ -361,12 +361,12 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
             {filtered.length > 0 && (
               <tfoot className="bg-muted/40 border-t-2 border-border">
                 <tr className="font-semibold">
-                  <td colSpan={6} className="px-3 py-2.5 text-right text-foreground">Totais ({filtered.length} {filtered.length === 1 ? "registro" : "registros"})</td>
+                  <td colSpan={7} className="px-3 py-2.5 text-right text-foreground">Totais ({filtered.length} {filtered.length === 1 ? "registro" : "registros"})</td>
                   <td className="px-3 py-2.5 text-center text-foreground">{formatNumber(totaisFiltrados.qtd, 0)}</td>
                   <td className="px-3 py-2.5"></td>
                   <td className="px-3 py-2.5 text-success">{totaisFiltrados.desconto > 0 ? formatCurrency(totaisFiltrados.desconto) : "—"}</td>
                   <td className="px-3 py-2.5 text-foreground font-bold">{formatCurrency(totaisFiltrados.total)}</td>
-                  <td colSpan={3}></td>
+                  <td colSpan={2}></td>
                 </tr>
               </tfoot>
             )}
