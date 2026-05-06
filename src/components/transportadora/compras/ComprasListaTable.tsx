@@ -57,6 +57,13 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
     [compras]
   );
 
+  const totaisFiltrados = useMemo(() => {
+    let qtd = 0;
+    let total = 0;
+    let desconto = 0;
+    return { qtd, total, desconto };
+  }, []);
+
   const filtered = useMemo(() => {
     let list = compras;
     if (filtroTipo !== "todos") {
