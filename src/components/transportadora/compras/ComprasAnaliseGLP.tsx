@@ -8,6 +8,17 @@ interface Props {
 }
 
 export function ComprasAnaliseGLP({ compras }: Props) {
+  // Helper: preço unitário líquido (com desconto rateado pela quantidade do item)
+  const puLiquido = (c: any, qtdItem: number) => {
+    const u = Number(c.preco_unitario || 0);
+    const qtdNF = Number(c.quantidade || 0)
+      || (Number(c.qtd_p13 || 0) + Number(c.qtd_p20 || 0) + Number(c.qtd_p45 || 0) + Number(c.qtd_agua || 0));
+    const desc = Number(c.desconto || 0);
+    if (qtdItem <= 0) return u;
+    const descRateado = qtdNF > 0 ? (desc * qtdItem) / qtdNF : 0;
+    return ((u * qtdItem) - descRateado) / qtdItem;
+  };
+
   const stats = useMemo(() => {
     const totalGasto = compras.reduce((s, c) => s + Number(c.custo_total || 0), 0);
     const qtdNotas = compras.length;
@@ -18,7 +29,8 @@ export function ComprasAnaliseGLP({ compras }: Props) {
     let somaCusto = 0, somaQtd = 0;
     compras.forEach((c) => {
       const q = Number(c.qtd_p13 || 0);
-      somaCusto += Number(c.custo_unit_p13 || 0) * q;
+      if (q <= 0) return;
+      somaCusto += puLiquido(c, q) * q;
       somaQtd += q;
     });
     const precoMedioP13 = somaQtd > 0 ? somaCusto / somaQtd : 0;
@@ -30,12 +42,12 @@ export function ComprasAnaliseGLP({ compras }: Props) {
     compras.forEach((c) => {
       const mes = c.mes_referencia || String(c.data).slice(0, 7);
       const r = map.get(mes) || { mes, somaP13: 0, qtdP13: 0, somaP20: 0, qtdP20: 0, somaP45: 0, qtdP45: 0 };
-      r.somaP13 += Number(c.custo_unit_p13 || 0) * Number(c.qtd_p13 || 0);
-      r.qtdP13 += Number(c.qtd_p13 || 0);
-      r.somaP20 += Number(c.custo_unit_p20 || 0) * Number(c.qtd_p20 || 0);
-      r.qtdP20 += Number(c.qtd_p20 || 0);
-      r.somaP45 += Number(c.custo_unit_p45 || 0) * Number(c.qtd_p45 || 0);
-      r.qtdP45 += Number(c.qtd_p45 || 0);
+      const q13 = Number(c.qtd_p13 || 0);
+      const q20 = Number(c.qtd_p20 || 0);
+      const q45 = Number(c.qtd_p45 || 0);
+      if (q13 > 0) { r.somaP13 += puLiquido(c, q13) * q13; r.qtdP13 += q13; }
+      if (q20 > 0) { r.somaP20 += puLiquido(c, q20) * q20; r.qtdP20 += q20; }
+      if (q45 > 0) { r.somaP45 += puLiquido(c, q45) * q45; r.qtdP45 += q45; }
       map.set(mes, r);
     });
     return Array.from(map.values())
