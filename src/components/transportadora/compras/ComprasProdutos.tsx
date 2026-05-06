@@ -17,26 +17,34 @@ const PRODUTOS = [
 export function ComprasProdutos({ compras }: Props) {
   const resumo = useMemo(() => {
     return PRODUTOS.map((p) => {
-      let totalQtd = 0, somaCusto = 0, totalGasto = 0;
+      let totalQtd = 0, totalLiquido = 0;
       let menor = Infinity, maior = 0;
       compras.forEach((c) => {
         const q = Number(c[p.qtdField] || 0);
         const u = Number(c[p.custoField] || 0);
         if (q > 0) {
+          // Distribui o desconto da NF proporcionalmente entre os itens (qtd deste produto / qtd total da NF)
+          const qtdNF = Number(c.quantidade || 0)
+            || (Number(c.qtd_p13 || 0) + Number(c.qtd_p20 || 0) + Number(c.qtd_p45 || 0) + Number(c.qtd_agua || 0));
+          const desc = Number(c.desconto || 0);
+          const descRateado = qtdNF > 0 ? (desc * q) / qtdNF : 0;
+          const valorBruto = u * q;
+          const valorLiquido = valorBruto - descRateado;
+          const uLiquido = q > 0 ? valorLiquido / q : u;
+
           totalQtd += q;
-          somaCusto += u * q;
-          totalGasto += u * q;
-          if (u < menor) menor = u;
-          if (u > maior) maior = u;
+          totalLiquido += valorLiquido;
+          if (uLiquido < menor) menor = uLiquido;
+          if (uLiquido > maior) maior = uLiquido;
         }
       });
       return {
         ...p,
         totalQtd,
-        precoMedio: totalQtd > 0 ? somaCusto / totalQtd : 0,
+        precoMedio: totalQtd > 0 ? totalLiquido / totalQtd : 0,
         menor: menor === Infinity ? 0 : menor,
         maior,
-        totalGasto,
+        totalGasto: totalLiquido,
       };
     });
   }, [compras]);
