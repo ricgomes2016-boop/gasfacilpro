@@ -106,6 +106,20 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
     toast.success(novo ? "NF marcada como paga" : "NF desmarcada");
   };
 
+  const toggleConferida = async (c: any) => {
+    const novo = !c.conferida;
+    const { data: { user } } = await supabase.auth.getUser();
+    updateField.mutate({
+      id: c.id,
+      patch: {
+        conferida: novo,
+        conferida_em: novo ? new Date().toISOString() : null,
+        conferida_por: novo ? user?.id || null : null,
+      },
+    });
+    toast.success(novo ? "NF conferida" : "Conferência removida");
+  };
+
   const saveVenc = (c: any, val: string) => {
     setEditingVenc((p) => { const n = { ...p }; delete n[c.id]; return n; });
     updateField.mutate({ id: c.id, patch: { data_vencimento: val || null } });
@@ -184,7 +198,7 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
           <table className="w-full text-xs">
             <thead className="bg-muted/40">
               <tr className="text-left">
-                {["Data", "Loja", "Fornecedor", "NF", "Tipo", "CFOP", "Qtd", "Preço Unit.", "Desconto", "Total", "Vencimento", "Pago"].map((h) => (
+                {["Data", "Loja", "Fornecedor", "NF", "Tipo", "CFOP", "Qtd", "Preço Unit.", "Desconto", "Total", "Vencimento", "Pago", "Conferida"].map((h) => (
                   <th key={h} className="px-3 py-2.5 font-medium text-muted-foreground whitespace-nowrap">{h}</th>
                 ))}
               </tr>
@@ -278,12 +292,27 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                         {c.pago && <Check className="h-3 w-3" />}
                       </button>
                     </td>
+                    <td className="px-3 py-2">
+                      <button
+                        onClick={() => toggleConferida(c)}
+                        className={`inline-flex items-center justify-center h-5 w-5 rounded border ${
+                          c.conferida ? "bg-primary border-primary text-primary-foreground" : "border-border hover:border-primary"
+                        }`}
+                        title={
+                          c.conferida
+                            ? `Conferida${c.conferida_em ? ` em ${fmtDate(String(c.conferida_em).slice(0, 10))}` : ""} — clique para desmarcar`
+                            : "Marcar NF como conferida"
+                        }
+                      >
+                        {c.conferida && <Check className="h-3 w-3" />}
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
               {display.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="text-center py-8 text-muted-foreground">Nenhuma compra encontrada</td>
+                  <td colSpan={13} className="text-center py-8 text-muted-foreground">Nenhuma compra encontrada</td>
                 </tr>
               )}
             </tbody>
@@ -295,7 +324,7 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                   <td className="px-3 py-2.5"></td>
                   <td className="px-3 py-2.5 text-success">{totaisFiltrados.desconto > 0 ? formatCurrency(totaisFiltrados.desconto) : "—"}</td>
                   <td className="px-3 py-2.5 text-foreground font-bold">{formatCurrency(totaisFiltrados.total)}</td>
-                  <td colSpan={2}></td>
+                  <td colSpan={3}></td>
                 </tr>
               </tfoot>
             )}
