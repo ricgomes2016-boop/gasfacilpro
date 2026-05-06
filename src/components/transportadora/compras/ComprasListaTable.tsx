@@ -79,7 +79,7 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
       );
     }
     return list;
-  }, [compras, search, filtroTipo]);
+  }, [compras, search, filtroTipo, filtroConf]);
 
   const totaisFiltrados = useMemo(() => {
     let qtd = 0, total = 0, desconto = 0;
