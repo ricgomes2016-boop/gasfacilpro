@@ -34,6 +34,7 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
   const [showAll, setShowAll] = useState(false);
   const [editingVenc, setEditingVenc] = useState<Record<string, string>>({});
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>("cheio");
+  const [filtroConf, setFiltroConf] = useState<"todos" | "conferidas" | "nao_conferidas">("todos");
 
   const dupNFs = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -62,6 +63,11 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
     if (filtroTipo !== "todos") {
       list = list.filter((c) => (c.tipo_produto || "outros") === filtroTipo);
     }
+    if (filtroConf === "conferidas") {
+      list = list.filter((c) => !!c.conferida);
+    } else if (filtroConf === "nao_conferidas") {
+      list = list.filter((c) => !c.conferida);
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter((c) =>
@@ -73,7 +79,7 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
       );
     }
     return list;
-  }, [compras, search, filtroTipo]);
+  }, [compras, search, filtroTipo, filtroConf]);
 
   const totaisFiltrados = useMemo(() => {
     let qtd = 0, total = 0, desconto = 0;
@@ -179,18 +185,37 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
               </div>
             </div>
           </div>
-          <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit">
-            {chips.map((c) => (
-              <button
-                key={c.v}
-                onClick={() => { setFiltroTipo(c.v); setShowAll(false); }}
-                className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
-                  filtroTipo === c.v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {c.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit">
+              {chips.map((c) => (
+                <button
+                  key={c.v}
+                  onClick={() => { setFiltroTipo(c.v); setShowAll(false); }}
+                  className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                    filtroTipo === c.v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit">
+              {([
+                { v: "todos", label: "Todas" },
+                { v: "conferidas", label: "✓ Conferidas" },
+                { v: "nao_conferidas", label: "Não conferidas" },
+              ] as const).map((c) => (
+                <button
+                  key={c.v}
+                  onClick={() => { setFiltroConf(c.v); setShowAll(false); }}
+                  className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                    filtroConf === c.v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
