@@ -106,6 +106,20 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
     toast.success(novo ? "NF marcada como paga" : "NF desmarcada");
   };
 
+  const toggleConferida = async (c: any) => {
+    const novo = !c.conferida;
+    const { data: { user } } = await supabase.auth.getUser();
+    updateField.mutate({
+      id: c.id,
+      patch: {
+        conferida: novo,
+        conferida_em: novo ? new Date().toISOString() : null,
+        conferida_por: novo ? user?.id || null : null,
+      },
+    });
+    toast.success(novo ? "NF conferida" : "Conferência removida");
+  };
+
   const saveVenc = (c: any, val: string) => {
     setEditingVenc((p) => { const n = { ...p }; delete n[c.id]; return n; });
     updateField.mutate({ id: c.id, patch: { data_vencimento: val || null } });
