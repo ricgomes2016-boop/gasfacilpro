@@ -1,0 +1,4 @@
+ALTER TABLE public.transp_compras
+  ADD COLUMN IF NOT EXISTS conferida BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS conferida_em TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS conferida_por UUID;

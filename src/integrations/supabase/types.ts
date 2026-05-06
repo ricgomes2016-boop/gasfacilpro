@@ -8768,6 +8768,9 @@ export type Database = {
           chave_nfe: string | null
           cidade_fornecedor: string | null
           cnpj_destinatario: string | null
+          conferida: boolean
+          conferida_em: string | null
+          conferida_por: string | null
           created_at: string | null
           custo_combustivel: number | null
           custo_logistico_total: number | null
@@ -8810,6 +8813,9 @@ export type Database = {
           chave_nfe?: string | null
           cidade_fornecedor?: string | null
           cnpj_destinatario?: string | null
+          conferida?: boolean
+          conferida_em?: string | null
+          conferida_por?: string | null
           created_at?: string | null
           custo_combustivel?: number | null
           custo_logistico_total?: number | null
@@ -8852,6 +8858,9 @@ export type Database = {
           chave_nfe?: string | null
           cidade_fornecedor?: string | null
           cnpj_destinatario?: string | null
+          conferida?: boolean
+          conferida_em?: string | null
+          conferida_por?: string | null
           created_at?: string | null
           custo_combustivel?: number | null
           custo_logistico_total?: number | null
