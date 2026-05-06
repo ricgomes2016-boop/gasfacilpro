@@ -361,12 +361,12 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
             {filtered.length > 0 && (
               <tfoot className="bg-muted/40 border-t-2 border-border">
                 <tr className="font-semibold">
-                  <td colSpan={6} className="px-3 py-2.5 text-right text-foreground">Totais ({filtered.length} {filtered.length === 1 ? "registro" : "registros"})</td>
+                  <td colSpan={7} className="px-3 py-2.5 text-right text-foreground">Totais ({filtered.length} {filtered.length === 1 ? "registro" : "registros"})</td>
                   <td className="px-3 py-2.5 text-center text-foreground">{formatNumber(totaisFiltrados.qtd, 0)}</td>
                   <td className="px-3 py-2.5"></td>
                   <td className="px-3 py-2.5 text-success">{totaisFiltrados.desconto > 0 ? formatCurrency(totaisFiltrados.desconto) : "—"}</td>
                   <td className="px-3 py-2.5 text-foreground font-bold">{formatCurrency(totaisFiltrados.total)}</td>
-                  <td colSpan={3}></td>
+                  <td colSpan={2}></td>
                 </tr>
               </tfoot>
             )}
