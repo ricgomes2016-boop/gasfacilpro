@@ -88,8 +88,15 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
         (c.produto_descricao || "").toLowerCase().includes(q)
       );
     }
-    return list;
-  }, [compras, search, filtroTipo, filtroConf]);
+    // Ordena por data DESC, depois por loja ASC
+    const lojaName = (id?: string | null) => (id ? (unidadesMap?.get(id) || "") : "");
+    return [...list].sort((a, b) => {
+      const da = String(a.data || "");
+      const db = String(b.data || "");
+      if (da !== db) return db.localeCompare(da);
+      return lojaName(a.unidade_id).localeCompare(lojaName(b.unidade_id), "pt-BR");
+    });
+  }, [compras, search, filtroTipo, filtroConf, unidadesMap]);
 
   const totaisFiltrados = useMemo(() => {
     let qtd = 0, total = 0, desconto = 0;
