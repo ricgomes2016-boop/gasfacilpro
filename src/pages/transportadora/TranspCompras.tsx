@@ -213,10 +213,18 @@ export default function TranspCompras() {
       totalP20 += qp20;
       totalP45 += qp45;
       totalAgua += qagua;
-      somaCustoP13 += Number(c.custo_unit_p13) * qp13;
-      somaCustoP20 += Number(c.custo_unit_p20) * qp20;
-      somaCustoP45 += Number(c.custo_unit_p45) * qp45;
-      somaCustoAgua += Number(c.custo_unit_agua) * qagua;
+      // Rateia o desconto da NF proporcionalmente para obter custo unitário líquido
+      const qtdNF = Number(c.quantidade || 0) || (qp13 + qp20 + qp45 + qagua);
+      const desc = Number(c.desconto || 0);
+      const liquido = (u: number, q: number) => {
+        if (q <= 0) return 0;
+        const descRateado = qtdNF > 0 ? (desc * q) / qtdNF : 0;
+        return (u * q) - descRateado;
+      };
+      somaCustoP13 += liquido(Number(c.custo_unit_p13) || 0, qp13);
+      somaCustoP20 += liquido(Number(c.custo_unit_p20) || 0, qp20);
+      somaCustoP45 += liquido(Number(c.custo_unit_p45) || 0, qp45);
+      somaCustoAgua += liquido(Number(c.custo_unit_agua) || 0, qagua);
       totalGasto += Number(c.custo_total);
     });
 
