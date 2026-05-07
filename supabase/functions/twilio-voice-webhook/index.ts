@@ -1,11 +1,16 @@
-// Twilio Voice webhook → conecta a chamada à Bia (ElevenLabs Conversational AI)
-// Fluxo: Cliente liga no DID GoTo → SIP Trunk (ramal 1004) → Twilio (54.172.60.0:5060)
-//        → este webhook (Voice URL no número Twilio) → TwiML <Connect><Stream> → Bia (ElevenLabs)
+// Twilio Voice webhook → Bia (ElevenLabs Conversational AI) — DIRETO, sem GoTo/Vonage/Vapi.
 //
-// Adicionalmente:
-//  - Identifica a empresa pelo DID de destino (To) via tabela did_empresa_routing
-//  - Registra a chamada em chamadas_recebidas (popup Bina no front)
-//  - Encaminha caller_phone + empresa_id + empresa_nome como parâmetros para o agente
+// Fluxo atual:
+//   Cliente disca 0800 OU DID 4337-7717-463
+//        → operadora encaminha para o número Twilio +55 43 2398-0020
+//        → Twilio dispara este webhook (Voice URL configurado no número)
+//        → resolvemos empresa pelo DID original (To/Diversion/X-Original-To)
+//        → registramos em `chamadas_recebidas`
+//        → respondemos com TwiML do ElevenLabs (Bia atende em tempo real).
+//
+// Quando o caller-id original se perde no encaminhamento (sentinel 0000…,
+// número da própria operadora, etc.), marcamos `caller_confiavel=false` e a
+// Bia pede o telefone verbalmente.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
