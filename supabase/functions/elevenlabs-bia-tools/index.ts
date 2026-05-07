@@ -630,13 +630,30 @@ serve(async (req) => {
         return err("Erro ao criar pedido: " + pedidoErr.message);
       }
 
-      // Cria item do pedido
-      await supabase.from("pedido_itens").insert({
+      // Cria item do pedido — CRÍTICO: pedido NUNCA pode ficar sem item.
+      // Se falhar, removemos o pedido recém-criado e retornamos erro para a Bia.
+      const { error: itemErr } = await supabase.from("pedido_itens").insert({
         pedido_id: pedido.id,
         produto_id: prod.id,
         quantidade: qty,
         preco_unitario: precoUnitario,
       });
+      if (itemErr) {
+        console.error("[ELEVENLABS-BIA] Falha ao inserir item, removendo pedido:", pedido.id, itemErr);
+        await supabase.from("pedidos").delete().eq("id", pedido.id);
+        return err("Erro ao registrar item do pedido: " + itemErr.message);
+      }
+
+      // Validação de segurança: confirma que o item existe no banco
+      const { count: itensCount } = await supabase
+        .from("pedido_itens")
+        .select("id", { count: "exact", head: true })
+        .eq("pedido_id", pedido.id);
+      if (!itensCount || itensCount === 0) {
+        console.error("[ELEVENLABS-BIA] Pedido sem itens detectado, removendo:", pedido.id);
+        await supabase.from("pedidos").delete().eq("id", pedido.id);
+        return err("Pedido não pôde ser registrado (sem itens). Tente novamente.");
+      }
 
       // === Linka a chamada ao pedido (busca janela 15min, qualquer tipo). Se não houver, cria.
       // Usa o helper para garantir consistência: 1 chamada por ligação, sempre linkada.
