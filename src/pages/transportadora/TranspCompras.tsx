@@ -484,7 +484,58 @@ export default function TranspCompras() {
                 <RefreshCw className={`h-4 w-4 ${importing ? "animate-spin" : ""}`} />
                 Reprocessar mês ({periodo})
               </Button>
+              <Button
+                onClick={() => setChaveOpen(true)}
+                variant="outline"
+                className="gap-2 h-10 flex-1 sm:flex-none"
+                title="Importar uma NF-e digitando a chave de acesso (44 dígitos) ou colando o XML"
+              >
+                <KeyRound className="h-4 w-4" />
+                Importar por chave
+              </Button>
             </div>
+
+            <Dialog open={chaveOpen} onOpenChange={(o) => { setChaveOpen(o); if (!o) { setChaveAcesso(""); setXmlColado(""); setPrecisaXml(false); } }}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader><DialogTitle>Importar NF-e por chave de acesso</DialogTitle></DialogHeader>
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs">Chave de acesso (44 dígitos)</Label>
+                    <Input
+                      value={chaveAcesso}
+                      onChange={(e) => setChaveAcesso(e.target.value)}
+                      placeholder="00000000000000000000000000000000000000000000"
+                      maxLength={60}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Tentaremos baixar o XML automaticamente. Se não conseguirmos, cole o XML abaixo.
+                    </p>
+                  </div>
+                  {precisaXml && (
+                    <div className="rounded-md bg-warning/10 border border-warning/30 p-2 text-xs text-warning-foreground">
+                      Não foi possível baixar automaticamente. Baixe o XML no portal da SEFAZ ou no e-mail do fornecedor e cole abaixo.
+                    </div>
+                  )}
+                  <div>
+                    <Label className="text-xs">XML (opcional — cole o conteúdo)</Label>
+                    <Textarea
+                      value={xmlColado}
+                      onChange={(e) => setXmlColado(e.target.value)}
+                      placeholder="<?xml version='1.0'...><nfeProc>...</nfeProc>"
+                      className="h-32 font-mono text-xs"
+                    />
+                  </div>
+                  <Button
+                    onClick={importarPorChave}
+                    disabled={importandoChave || (!chaveAcesso && !xmlColado)}
+                    className="w-full gap-2"
+                  >
+                    <Download className={`h-4 w-4 ${importandoChave ? "animate-pulse" : ""}`} />
+                    {importandoChave ? "Importando..." : "Importar nota"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
             <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap pt-1 border-t border-border/40">
               <span>
                 Última importação:{" "}
