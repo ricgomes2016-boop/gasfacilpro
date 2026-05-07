@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Bot, Clock, Package, HandCoins, MessageSquare, Save, Loader2, Droplets, Flame, Container, Truck, RefreshCw, MapPin, BarChart3, AlertTriangle } from "lucide-react";
+import AdminBiaVoz from "@/pages/admin/AdminBiaVoz";
 
 interface PrecoProduto {
   preco: number;
@@ -616,6 +617,22 @@ export default function RegrasBia() {
               rows={3}
               placeholder="Ex: Estamos fechados agora, mas posso agendar seu pedido!"
             />
+          </CardContent>
+        </Card>
+
+        {/* Voz da Bia (TTS + saudação + system prompt) */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Bot className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg">Voz da Bia</CardTitle>
+                <CardDescription>Tom, velocidade, saudação e personalidade da assistente que atende ligações</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="px-0 md:px-2">
+            <AdminBiaVoz />
           </CardContent>
         </Card>
 
