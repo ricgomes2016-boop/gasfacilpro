@@ -1,45 +1,47 @@
-## Problema
+## Objetivo
 
-Na tela `/transportadora/compras` o usuário relatou:
+Concluir a integração do segundo número Twilio (**+55 43 2398-0020**) ao webhook da Bia, garantindo que chamadas para esse DID sejam atendidas em nome da **Forte Gás** (mesma empresa do +554337717463).
 
-1. **Compras de 02/04/2026 não aparecem** — apesar de existirem 11 registros no banco para essa data (NACIONAL GAS, ~R$ 121k em P13/P20/P45 cheio + vasilhames).
-2. **Card "Resumo por Loja"** está mostrando linhas de Cheio **e** Vasilhame, mas precisa mostrar apenas **Cheio**.
+## Situação atual
 
-## Causa raiz
+- Webhook `twilio-voice-webhook` já implantado e funcional.
+- Tabela `did_empresa_routing` possui apenas o DID `+554337717463` mapeado para Forte Gás.
+- Usuário já configurou no console Twilio o **Voice URL** do número `+554323980020` apontando para o webhook.
+- O webhook resolve a empresa via RPC `resolver_empresa_por_did(_did)`. Sem mapeamento, ele cai no fallback (Forte Gás), mas o ideal é cadastrar explicitamente para auditoria, logs e futuro multi-empresa.
 
-### 1. Compras "sumidas"
-Em `src/pages/transportadora/TranspCompras.tsx` (linhas 153-160), a query carrega só as **100 compras mais recentes**:
+## O que vou fazer
 
-```ts
-.from("transp_compras").select("*").order("data", { ascending: false }).limit(100);
+### 1. Cadastrar o novo DID em `did_empresa_routing`
+Inserir registro:
+- `did = '+554323980020'`
+- `empresa_id = c94c210b-8dbd-4d91-914e-2db146b8cf94` (Forte Gás)
+- `unidade_id = NULL` (resolverá unidade matriz por padrão, igual ao DID atual)
+- `ativo = true`
+
+### 2. Validar o webhook com payload simulado
+Chamar `twilio-voice-webhook` via `curl_edge_functions` simulando uma requisição POST form-urlencoded da Twilio:
 ```
+From=+5543999990000&To=+554323980020&CallSid=TEST_DID_2398
+```
+Esperado:
+- HTTP 200
+- TwiML retornado pelo ElevenLabs (`<Response>...<Connect><Stream>...`)
+- `empresa_nome="Forte Gas"` nos logs do edge function
+- Registro inserido em `chamadas_recebidas` com `empresa_id` = Forte Gás
 
-Como o sistema tem volume alto de XMLs importados, o dia 02/04/2026 já caiu fora do top 100, então nem entra no array `compras` que alimenta o filtro por mês/filial. Por isso o "Resumo por Loja" e a lista somem.
+### 3. Verificar logs
+Ler `supabase--edge_function_logs` para `twilio-voice-webhook` e confirmar que o DID foi resolvido corretamente.
 
-### 2. Vasilhame no Resumo por Loja
-`src/components/transportadora/compras/ResumoPorLoja.tsx` agrupa por `tipo` (cheio/vasilhame) e renderiza ambos com badge colorida. Precisa filtrar para exibir só `cheio`.
+## O que NÃO vou alterar
 
-## Plano de correção
+- Não vou tocar em `App.tsx`, rotas ou no código do webhook (`supabase/functions/twilio-voice-webhook/index.ts`) — ele já trata múltiplos DIDs via RPC.
+- Não vou criar UI nova de configuração agora (pode virar tarefa futura se você precisar gerenciar vários DIDs pelo painel).
 
-### Ajuste 1 — Carregar compras pelo período selecionado (TranspCompras.tsx)
-Trocar a query fixa por uma query parametrizada pelo `periodo` (mês YYYY-MM) e sem o limite de 100:
+## Teste final manual (depois do deploy)
 
-- Adicionar `periodo` na `queryKey` para refazer o fetch ao trocar de mês.
-- Filtrar no servidor por `mes_referencia = periodo` (campo já existe na tabela).
-- Subir o limite para 2000 (mais que suficiente para um mês inteiro de XMLs).
-- Manter o restante do componente igual; o `useMemo` `comprasPeriodo` continua funcionando.
+Você liga para **+55 43 2398-0020** e:
+1. A Bia atende dizendo o nome "Forte Gás".
+2. A chamada aparece em `chamadas_recebidas` (Bina/popup).
+3. Twilio Console → Monitor → Logs → Calls registra a ligação como `completed`.
 
-### Ajuste 2 — Resumo por Loja somente Cheio (ResumoPorLoja.tsx)
-- Ignorar registros com `tipo_produto !== "cheio"` logo no início do `forEach`.
-- Remover a coluna "Tipo" da tabela (não há mais necessidade de distinguir).
-- Atualizar o título para "Resumo por Loja — GLP Cheio".
-- Manter o detalhamento por produto (P13 / P20 / P45) já existente.
-
-### Não muda
-- Estrutura de rotas, layout, KPIs de toneladas, comparativo de fornecedores, gráficos e lista de compras (`ComprasListaTable`/`ComprasSimplesTable`) ficam intactos.
-- Nada de refatorar `App.tsx` ou providers (regra de estabilidade).
-
-## Resultado esperado
-- Ao selecionar período `2026-04`, as 11 compras do dia 02/04 aparecem na lista, no Resumo por Loja e nos KPIs.
-- Card "Resumo por Loja" mostra apenas linhas Cheias (P13/P20/P45), com o Total Geral recalculado só sobre Cheio.
-- Trocar o seletor de mês passa a recarregar do banco automaticamente.
+Se quiser, depois posso adicionar uma página em `/admin` para CRUD de DIDs (mapear novos números sem precisar de migration).
