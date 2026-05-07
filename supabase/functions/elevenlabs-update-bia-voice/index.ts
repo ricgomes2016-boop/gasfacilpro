@@ -93,6 +93,9 @@ Deno.serve(async (req) => {
     if (expressive_mode !== undefined) ttsChanges.expressive_mode = expressive_mode;
     if (voice_id !== undefined) ttsChanges.voice_id = voice_id;
     if (style !== undefined) ttsChanges.style = style;
+    if (model_id !== undefined) ttsChanges.model_id = model_id;
+    if (use_speaker_boost !== undefined) ttsChanges.use_speaker_boost = use_speaker_boost;
+    if (optimize_streaming_latency !== undefined) ttsChanges.optimize_streaming_latency = optimize_streaming_latency;
     if (Object.keys(ttsChanges).length > 0) {
       conversation_config.tts = { ...currentTts, ...ttsChanges };
     }
