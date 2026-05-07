@@ -28,8 +28,14 @@ const AGUA_TO_P13 = 1;
 
 interface CompraForm {
   data: string;
+  unidade_id: string;
   fornecedor: string;
   cidade_fornecedor: string;
+  numero_nf: string;
+  produto_descricao: string;
+  quantidade: number;
+  preco_unitario: number;
+  desconto: number;
   distancia_ida_km: number;
   veiculo_id: string;
   qtd_p13: number;
@@ -47,8 +53,14 @@ interface CompraForm {
 
 const defaultForm: CompraForm = {
   data: format(new Date(), "yyyy-MM-dd"),
+  unidade_id: "",
   fornecedor: "",
   cidade_fornecedor: "",
+  numero_nf: "",
+  produto_descricao: "",
+  quantidade: 0,
+  preco_unitario: 0,
+  desconto: 0,
   distancia_ida_km: 0,
   veiculo_id: "",
   qtd_p13: 0,
@@ -280,24 +292,31 @@ export default function TranspCompras() {
   const save = useMutation({
     mutationFn: async () => {
       const c = calcCustos(form);
+      const valorCompra = form.valor_compra || (form.quantidade * form.preco_unitario - form.desconto);
       const { error } = await (supabase as any).from("transp_compras").insert({
         empresa_id: profile?.empresa_id,
+        unidade_id: form.unidade_id || null,
         data: form.data,
         fornecedor: form.fornecedor,
         cidade_fornecedor: form.cidade_fornecedor || null,
+        numero_nf: form.numero_nf || null,
+        produto_descricao: form.produto_descricao || null,
+        quantidade: form.quantidade || null,
+        preco_unitario: form.preco_unitario || null,
+        desconto: form.desconto || 0,
         distancia_ida_km: form.distancia_ida_km,
         veiculo_id: form.veiculo_id || null,
         qtd_p13: form.qtd_p13,
         qtd_p20: form.qtd_p20,
         qtd_p45: form.qtd_p45,
         qtd_agua: form.qtd_agua,
-        valor_compra: form.valor_compra,
+        valor_compra: valorCompra,
         custo_combustivel: c.combustivel,
         custo_pedagio: form.custo_pedagio,
         custo_refeicao: form.custo_refeicao,
         custo_outros: form.custo_outros,
         custo_logistico_total: c.logisticoTotal,
-        custo_total: c.custoTotal,
+        custo_total: c.custoTotal || valorCompra,
         custo_unit_p13: c.custo_unit_p13,
         custo_unit_p20: c.custo_unit_p20,
         custo_unit_p45: c.custo_unit_p45,
@@ -361,17 +380,49 @@ export default function TranspCompras() {
                 <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div><Label>Data</Label><Input type="date" value={form.data} onChange={(e) => set("data", e.target.value)} /></div>
-                    <div><Label>Fornecedor</Label><Input value={form.fornecedor} onChange={(e) => set("fornecedor", e.target.value)} placeholder="Ex: Nacional Gás" /></div>
+                    <div>
+                      <Label>Loja / Unidade *</Label>
+                      <Select value={form.unidade_id || "nenhum"} onValueChange={(v) => set("unidade_id", v === "nenhum" ? "" : v)}>
+                        <SelectTrigger><SelectValue placeholder="Selecione a loja" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="nenhum">— Nenhuma —</SelectItem>
+                          {unidades.map((u: any) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label>Fornecedor *</Label><Input value={form.fornecedor} onChange={(e) => set("fornecedor", e.target.value)} placeholder="Ex: Nacional Gás" /></div>
+                    <div><Label>Número NF</Label><Input value={form.numero_nf} onChange={(e) => set("numero_nf", e.target.value)} placeholder="Ex: 374238" /></div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div><Label>Cidade Fornecedor</Label><Input value={form.cidade_fornecedor} onChange={(e) => set("cidade_fornecedor", e.target.value)} placeholder="Ex: Apucarana" /></div>
                     <div><Label>Distância ida (km)</Label><Input type="number" value={form.distancia_ida_km} onChange={(e) => set("distancia_ida_km", +e.target.value)} /></div>
                   </div>
+
+                  <div className="border-t border-border/40 pt-3">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">PRODUTO PRINCIPAL</p>
+                    <div><Label className="text-xs">Descrição do produto</Label><Input value={form.produto_descricao} onChange={(e) => set("produto_descricao", e.target.value)} placeholder="Ex: GAS LIQ. PETROLEO P13" /></div>
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      <div><Label className="text-xs">Quantidade</Label><Input type="number" step="0.01" value={form.quantidade} onChange={(e) => set("quantidade", +e.target.value)} /></div>
+                      <div><Label className="text-xs">Preço unit. (R$)</Label><Input type="number" step="0.01" value={form.preco_unitario} onChange={(e) => set("preco_unitario", +e.target.value)} /></div>
+                      <div><Label className="text-xs">Desconto (R$)</Label><Input type="number" step="0.01" value={form.desconto} onChange={(e) => set("desconto", +e.target.value)} /></div>
+                    </div>
+                    {form.quantidade > 0 && form.preco_unitario > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Subtotal: <strong>{formatCurrency(form.quantidade * form.preco_unitario - (form.desconto || 0))}</strong>
+                      </p>
+                    )}
+                  </div>
+
                   <div>
                     <Label>Veículo</Label>
-                    <Select value={form.veiculo_id} onValueChange={handleVeiculoChange}>
+                    <Select value={form.veiculo_id || "nenhum"} onValueChange={(v) => handleVeiculoChange(v === "nenhum" ? "" : v)}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>{veiculos.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.placa} ({v.tipo})</SelectItem>)}</SelectContent>
+                      <SelectContent>
+                        <SelectItem value="nenhum">— Nenhum —</SelectItem>
+                        {veiculos.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.placa} ({v.tipo})</SelectItem>)}
+                      </SelectContent>
                     </Select>
                   </div>
 
@@ -424,7 +475,7 @@ export default function TranspCompras() {
                   </div>
 
                   <div><Label>Observações</Label><Input value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} /></div>
-                  <Button type="submit" className="w-full" disabled={save.isPending || !form.fornecedor}>Registrar Compra</Button>
+                  <Button type="submit" className="w-full" disabled={save.isPending || !form.fornecedor || !form.unidade_id || !form.produto_descricao || form.quantidade <= 0 || form.preco_unitario <= 0}>Registrar Compra</Button>
                 </form>
               </DialogContent>
             </Dialog>
@@ -496,11 +547,16 @@ export default function TranspCompras() {
             </div>
 
             <Dialog open={chaveOpen} onOpenChange={(o) => { setChaveOpen(o); if (!o) { setChaveAcesso(""); setXmlColado(""); setPrecisaXml(false); } }}>
-              <DialogContent className="max-w-lg">
-                <DialogHeader><DialogTitle>Importar NF-e por chave de acesso</DialogTitle></DialogHeader>
+              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogHeader><DialogTitle>Importar NF-e manualmente</DialogTitle></DialogHeader>
                 <div className="space-y-3">
+                  <div className="rounded-md bg-info/10 border border-info/30 p-2 text-xs">
+                    💡 <strong>Como funciona:</strong> O download direto pelo Portal SEFAZ exige certificado digital A1. 
+                    A forma mais rápida é <strong>baixar o arquivo XML</strong> no portal da SEFAZ ou no e-mail do fornecedor 
+                    e colar/enviar abaixo.
+                  </div>
                   <div>
-                    <Label className="text-xs">Chave de acesso (44 dígitos)</Label>
+                    <Label className="text-xs">Chave de acesso (44 dígitos) — opcional</Label>
                     <Input
                       value={chaveAcesso}
                       onChange={(e) => setChaveAcesso(e.target.value)}
@@ -508,16 +564,26 @@ export default function TranspCompras() {
                       maxLength={60}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Tentaremos baixar o XML automaticamente. Se não conseguirmos, cole o XML abaixo.
+                      Usada para detectar duplicidade. Tentaremos baixar automaticamente, mas geralmente é necessário colar o XML.
                     </p>
                   </div>
-                  {precisaXml && (
-                    <div className="rounded-md bg-warning/10 border border-warning/30 p-2 text-xs text-warning-foreground">
-                      Não foi possível baixar automaticamente. Baixe o XML no portal da SEFAZ ou no e-mail do fornecedor e cole abaixo.
-                    </div>
-                  )}
                   <div>
-                    <Label className="text-xs">XML (opcional — cole o conteúdo)</Label>
+                    <Label className="text-xs">Arquivo XML (.xml)</Label>
+                    <Input
+                      type="file"
+                      accept=".xml,text/xml,application/xml"
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        if (f) {
+                          const txt = await f.text();
+                          setXmlColado(txt);
+                          toast.success("XML carregado", { description: f.name });
+                        }
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Ou cole o conteúdo do XML aqui</Label>
                     <Textarea
                       value={xmlColado}
                       onChange={(e) => setXmlColado(e.target.value)}
@@ -525,6 +591,11 @@ export default function TranspCompras() {
                       className="h-32 font-mono text-xs"
                     />
                   </div>
+                  {precisaXml && (
+                    <div className="rounded-md bg-warning/10 border border-warning/30 p-2 text-xs">
+                      ⚠️ Não foi possível baixar pela chave. Por favor envie o arquivo XML acima.
+                    </div>
+                  )}
                   <Button
                     onClick={importarPorChave}
                     disabled={importandoChave || (!chaveAcesso && !xmlColado)}
