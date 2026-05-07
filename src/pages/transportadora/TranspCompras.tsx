@@ -380,17 +380,49 @@ export default function TranspCompras() {
                 <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div><Label>Data</Label><Input type="date" value={form.data} onChange={(e) => set("data", e.target.value)} /></div>
-                    <div><Label>Fornecedor</Label><Input value={form.fornecedor} onChange={(e) => set("fornecedor", e.target.value)} placeholder="Ex: Nacional Gás" /></div>
+                    <div>
+                      <Label>Loja / Unidade *</Label>
+                      <Select value={form.unidade_id || "nenhum"} onValueChange={(v) => set("unidade_id", v === "nenhum" ? "" : v)}>
+                        <SelectTrigger><SelectValue placeholder="Selecione a loja" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="nenhum">— Nenhuma —</SelectItem>
+                          {unidades.map((u: any) => <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><Label>Fornecedor *</Label><Input value={form.fornecedor} onChange={(e) => set("fornecedor", e.target.value)} placeholder="Ex: Nacional Gás" /></div>
+                    <div><Label>Número NF</Label><Input value={form.numero_nf} onChange={(e) => set("numero_nf", e.target.value)} placeholder="Ex: 374238" /></div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div><Label>Cidade Fornecedor</Label><Input value={form.cidade_fornecedor} onChange={(e) => set("cidade_fornecedor", e.target.value)} placeholder="Ex: Apucarana" /></div>
                     <div><Label>Distância ida (km)</Label><Input type="number" value={form.distancia_ida_km} onChange={(e) => set("distancia_ida_km", +e.target.value)} /></div>
                   </div>
+
+                  <div className="border-t border-border/40 pt-3">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">PRODUTO PRINCIPAL</p>
+                    <div><Label className="text-xs">Descrição do produto</Label><Input value={form.produto_descricao} onChange={(e) => set("produto_descricao", e.target.value)} placeholder="Ex: GAS LIQ. PETROLEO P13" /></div>
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      <div><Label className="text-xs">Quantidade</Label><Input type="number" step="0.01" value={form.quantidade} onChange={(e) => set("quantidade", +e.target.value)} /></div>
+                      <div><Label className="text-xs">Preço unit. (R$)</Label><Input type="number" step="0.01" value={form.preco_unitario} onChange={(e) => set("preco_unitario", +e.target.value)} /></div>
+                      <div><Label className="text-xs">Desconto (R$)</Label><Input type="number" step="0.01" value={form.desconto} onChange={(e) => set("desconto", +e.target.value)} /></div>
+                    </div>
+                    {form.quantidade > 0 && form.preco_unitario > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Subtotal: <strong>{formatCurrency(form.quantidade * form.preco_unitario - (form.desconto || 0))}</strong>
+                      </p>
+                    )}
+                  </div>
+
                   <div>
                     <Label>Veículo</Label>
-                    <Select value={form.veiculo_id} onValueChange={handleVeiculoChange}>
+                    <Select value={form.veiculo_id || "nenhum"} onValueChange={(v) => handleVeiculoChange(v === "nenhum" ? "" : v)}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>{veiculos.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.placa} ({v.tipo})</SelectItem>)}</SelectContent>
+                      <SelectContent>
+                        <SelectItem value="nenhum">— Nenhum —</SelectItem>
+                        {veiculos.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.placa} ({v.tipo})</SelectItem>)}
+                      </SelectContent>
                     </Select>
                   </div>
 
