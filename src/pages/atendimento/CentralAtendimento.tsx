@@ -155,20 +155,24 @@ export default function CentralAtendimento() {
 
   // Fetch chamadas
   const fetchChamadas = async () => {
+    const inicio = getInicioPeriodo(periodo);
     let query = supabase
       .from("chamadas_recebidas")
       .select("*")
-      .gte("created_at", inicioHoje)
+      .gte("created_at", inicio)
       .order("created_at", { ascending: false })
-      .limit(200);
+      .limit(periodo === "hoje" ? 200 : 500);
 
     if (filtroStatus !== "todos") {
       query = query.eq("status", filtroStatus);
     }
+    if (unidadeAtual?.id) {
+      query = query.eq("unidade_id", unidadeAtual.id);
+    }
 
     const { data, error } = await query;
     if (error) toast.error("Erro ao carregar chamadas");
-    else setChamadas(data || []);
+    else setChamadas((data as any) || []);
     setLoading(false);
   };
 
