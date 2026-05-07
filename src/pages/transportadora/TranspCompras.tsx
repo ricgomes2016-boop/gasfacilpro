@@ -293,9 +293,16 @@ export default function TranspCompras() {
     mutationFn: async () => {
       const c = calcCustos(form);
       const valorCompra = form.valor_compra || (form.quantidade * form.preco_unitario - form.desconto);
+      // Inferir tipo_produto: vasilhame se descrição menciona, água se for galão, senão cheio (padrão para gás)
+      const desc = (form.produto_descricao || "").toLowerCase();
+      let tipo_produto: "cheio" | "vasilhame" | "outros" = "cheio";
+      if (/vasilhame|vazio|sem\s+carga|botij[aã]o\s+vazio/.test(desc)) tipo_produto = "vasilhame";
+      else if (form.qtd_agua > 0 || /[áa]gua|gal[ãa]o/.test(desc)) tipo_produto = "outros";
+      else if (form.qtd_p13 > 0 || form.qtd_p20 > 0 || form.qtd_p45 > 0 || /g[aá]s|glp|p[\s-]?13|p[\s-]?20|p[\s-]?45/.test(desc)) tipo_produto = "cheio";
       const { error } = await (supabase as any).from("transp_compras").insert({
         empresa_id: profile?.empresa_id,
         unidade_id: form.unidade_id || null,
+        tipo_produto,
         data: form.data,
         fornecedor: form.fornecedor,
         cidade_fornecedor: form.cidade_fornecedor || null,
