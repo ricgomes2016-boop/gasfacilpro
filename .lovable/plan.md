@@ -1,58 +1,48 @@
-# Fluxo Twilio direto → Bia (ElevenLabs)
+## Diagnóstico
 
-## Novo fluxo
+Configuração atual da Bia (ElevenLabs Conversational AI):
+- **Voice ID**: `pFZP5JQG7iQjIQuC4Bku` (Lily — voz inglesa, sotaque carregado em PT)
+- **Model**: `eleven_multilingual_v2` (qualidade alta, mas latência maior e prosódia mais "lida" no telefone)
+- **stability 0.40 / similarity 0.85 / speed 0.98 / expressive_mode false**
 
-```text
-Cliente disca 0800 OU 4337-7717-463
-        │
-        └─► Operadora encaminha para o nº Twilio +55 43 2398-0020
-                    │
-                    └─► Twilio dispara Voice Webhook (este projeto)
-                              │
-                              ├─ Resolve empresa pelo DID original (To/Diversion)
-                              ├─ Registra em `chamadas_recebidas`
-                              └─ Retorna TwiML do ElevenLabs → Bia atende
+A Vapi soava mais natural porque usava por padrão **OpenAI TTS** com vozes treinadas para conversação telefônica. No ElevenLabs, para aproximar dessa naturalidade em ligação, precisamos de:
+1. Voz **nativa PT-BR** (não Lily multilingue).
+2. Modelo **`eleven_turbo_v2_5`** ou **`eleven_flash_v2_5`** — feitos para conversa em tempo real, prosódia mais espontânea e latência menor (essencial em telefonia, onde latência alta força o modelo a "cortar" emoção).
+3. **`style` > 0** (atualmente nem está setado) para dar entonação coloquial.
+4. Reduzir `stability` p/ ~0.30 → mais variação humana.
+
+## Plano
+
+### 1. Aplicar preset "Brasileira Natural" via `elevenlabs-update-bia-voice`
+Patch único no agente ElevenLabs:
+```
+voice_id: "FGY2WhTYpPnrIDTdsKH5"   // Laura — feminina, calorosa, funciona muito bem em PT
+model_id: "eleven_turbo_v2_5"
+stability: 0.30
+similarity_boost: 0.80
+style: 0.55
+use_speaker_boost: true
+speed: 1.0
+optimize_streaming_latency: 3
+expressive_mode: false              // expressive aumenta latência no telefone
 ```
 
-GoTo SIP, Vonage e Vapi **não são mais usados** no atendimento. O único caminho ativo é Twilio → ElevenLabs.
+### 2. Adicionar botão de preset "Brasileira Natural" em `src/pages/admin/AdminBiaVoz.tsx`
+Hoje há `gentle / neutral / fast / lily_jovem`. Vou adicionar **`brasileira_natural`** com os parâmetros acima, para que você consiga voltar/alternar com 1 clique.
 
-## Mudanças
+### 3. Botão extra "Preset Vapi-like (Sarah PT)"
+Alternativa caso Laura não agrade — usa `EXAVITQu4vr4xnSDxMaL` (Sarah) com mesmos settings. Sarah tem timbre mais jovem/Vapi-like.
 
-### 1. `supabase/functions/twilio-voice-webhook/index.ts`
-- Atualizar cabeçalho/comentários descrevendo o fluxo direto Twilio → ElevenLabs.
-- Atualizar `OPERATOR_LAST10` para refletir só os números atuais:
-  - `4323980020` (DID Twilio Central — quando aparece como caller depois do forward)
-  - `8005900492` / `5900492` (0800 Forte Gás)
-  - Remover `1152835921` (Vonage — não é mais usado).
-- Manter a leitura de `SipHeader_Diversion` / `X-Original-To` (a operadora pode mandar o DID original).
-- Manter fallback para DID `+554337717463` quando `did_empresa_routing` não casar.
+### 4. Aplicar imediatamente o preset "Brasileira Natural"
+Após o deploy do botão, disparo a chamada para já deixar a Bia rodando com a nova voz. Você liga em **+55 43 2398-0020** e confirma.
 
-### 2. `src/pages/admin/AdminWhatsappCentral.tsx` / configurações de telefonia (se existirem labels mencionando Vapi/GoTo/Vonage)
-- Apenas atualizar textos/descrições para "Twilio + ElevenLabs". Sem mexer em rotas, providers, nem código de outros canais.
+## Resultado esperado
+- Voz feminina PT-BR sem sotaque inglês.
+- Latência menor (turbo + latency 3) → menos pausas robóticas entre frases.
+- Entonação coloquial ("oi, tudo bem?" soando natural, não declamado).
+- Se ainda não agradar, alternamos com 1 clique entre Laura / Sarah / Lily / presets antigos.
 
-### 3. Memória do projeto
-- Atualizar `mem://integrations/goto-sip-trunk-vapi`, `mem://integrations/vonage-vapi-sip` e `mem://integrations/caller-id-encaminhamento-0800` marcando como **descontinuado**.
-- Criar `mem://integrations/twilio-elevenlabs-direct` com:
-  - DID Twilio: **+55 43 2398-0020**
-  - Voice Webhook: `https://<project>.supabase.co/functions/v1/twilio-voice-webhook`
-  - Agente Bia: secret `ELEVENLABS_AGENT_ID`
-  - Empresa Forte Gás identificada pelos DIDs `+554337717463` e `+554323980020` (já em `did_empresa_routing`).
-
-## O que NÃO vai mudar
-
-- Edge functions `vapi-*`, `vonage-voice-webhook`, `goto-webhook` ficam no repo (sem uso, mas sem deletar para não quebrar histórico). Apenas paramos de apontar webhooks externos para elas.
-- `elevenlabs-bia-tools` (tools `identificar_cliente` / `criar_pedido`) continua igual — já é agnóstica de operadora.
-- `chamadas_recebidas`, aba "Chamadas" da Central, Regras da Bia, Voz da Bia: nenhuma alteração.
-
-## Configuração no painel Twilio (passo manual do usuário)
-
-Após o deploy, no console Twilio → Phone Numbers → +55 43 2398-0020:
-- **A CALL COMES IN**: Webhook → `https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/twilio-voice-webhook` (HTTP POST).
-- Garantir que o número está em E.164 e habilitado para receber chamadas.
-
-## Validação
-
-1. Ligar no 0800 → escutar a Bia atender com a voz/saudação atuais.
-2. Ligar direto no 4337-7717-463 → idem.
-3. Conferir que aparece linha em **Atendimento → Chamadas** com `did = +554323980020` (ou DID original se a operadora mandar Diversion) e `tipo = 'voip'`.
-4. Logs de `twilio-voice-webhook` devem mostrar `Empresa resolvida pelo DID` e `register-call` 200 OK do ElevenLabs.
+## Detalhes técnicos
+- Sem mudança em `twilio-voice-webhook` nem em `register-call` — só patch no agente ElevenLabs via API `PATCH /v1/convai/agents/{id}`.
+- `model_id` `eleven_turbo_v2_5` suporta PT nativo e é o recomendado pela ElevenLabs para Conversational AI em telefonia.
+- Mantém `agent_output_audio_format: pcm_16000` (compatível com Twilio Media Streams).
