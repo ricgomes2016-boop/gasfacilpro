@@ -235,7 +235,11 @@ export default function CentralAtendimento() {
   const chamadasFiltradas = chamadas.filter((c) => {
     if (!busca) return true;
     const term = busca.toLowerCase();
-    return c.telefone.includes(term) || c.cliente_nome?.toLowerCase().includes(term);
+    return (
+      (c.telefone || "").toLowerCase().includes(term) ||
+      (c.did || "").toLowerCase().includes(term) ||
+      (c.cliente_nome || "").toLowerCase().includes(term)
+    );
   });
 
   const stats = {
