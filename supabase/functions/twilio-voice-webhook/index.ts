@@ -191,6 +191,7 @@ serve(async (req) => {
         .from("chamadas_recebidas")
         .insert({
           telefone: callerConfiavel ? from : null,
+          did: to || null,
           cliente_id: clienteId,
           cliente_nome: clienteNome,
           tipo: "voip",
