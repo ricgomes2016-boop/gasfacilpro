@@ -134,13 +134,18 @@ function parseNFeXml(xml: string): ParsedNFe | null {
   };
 }
 
-async function outlookFetch(path: string): Promise<any> {
+async function outlookFetch(pathOrUrl: string): Promise<any> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const OUTLOOK_KEY = Deno.env.get("MICROSOFT_OUTLOOK_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY não configurada");
   if (!OUTLOOK_KEY) throw new Error("MICROSOFT_OUTLOOK_API_KEY não configurada — conecte o Outlook");
 
-  const res = await fetch(`${GATEWAY_URL}${path}`, {
+  // Aceita path relativo OU URL absoluta (para @odata.nextLink)
+  let url = pathOrUrl.startsWith("http")
+    ? pathOrUrl.replace("https://graph.microsoft.com/v1.0", GATEWAY_URL)
+    : `${GATEWAY_URL}${pathOrUrl}`;
+
+  const res = await fetch(url, {
     headers: {
       "Authorization": `Bearer ${LOVABLE_API_KEY}`,
       "X-Connection-Api-Key": OUTLOOK_KEY,
@@ -203,17 +208,28 @@ Deno.serve(async (req) => {
 
     const desde = new Date(Date.now() - dias * 86400000).toISOString();
 
-    const filterParts = [`receivedDateTime ge ${desde}`];
+    const filterParts = [`receivedDateTime ge ${desde}`, `hasAttachments eq true`];
     if (filtroRemetente) {
       filterParts.push(`from/emailAddress/address eq '${filtroRemetente}'`);
     }
     const filter = encodeURIComponent(filterParts.join(" and "));
     const select = encodeURIComponent("id,subject,from,receivedDateTime,hasAttachments");
+    const orderby = encodeURIComponent("receivedDateTime desc");
 
     console.log(`[importar_xml_outlook] Buscando emails desde ${desde}, filtro: ${filtroRemetente || "(todos)"}`);
-    const list = await outlookFetch(`/me/messages?$filter=${filter}&$select=${select}&$top=100`);
-    const messages = (list.value || []).filter((m: any) => m.hasAttachments === true);
-    console.log(`[importar_xml_outlook] ${messages.length} emails com anexos`);
+
+    // Paginação: segue @odata.nextLink até esgotar (máx 20 páginas = 2000 emails)
+    const messages: any[] = [];
+    let next: string | null = `/me/messages?$filter=${filter}&$select=${select}&$orderby=${orderby}&$top=100`;
+    let pages = 0;
+    while (next && pages < 20) {
+      const list: any = await outlookFetch(next);
+      const batch = (list.value || []).filter((m: any) => m.hasAttachments === true);
+      messages.push(...batch);
+      next = list["@odata.nextLink"] || null;
+      pages++;
+    }
+    console.log(`[importar_xml_outlook] ${messages.length} emails com anexos (${pages} página(s))`);
 
     let total_xmls = 0;
     let total_importados = 0;
