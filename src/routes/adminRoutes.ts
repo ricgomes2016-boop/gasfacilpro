@@ -9,6 +9,7 @@ const AdminWhatsAppConfig = lazy(() => import("@/pages/admin/AdminWhatsAppConfig
 const AdminDiagnosticoWhatsApp = lazy(() => import("@/pages/admin/AdminDiagnosticoWhatsApp"));
 const AdminMetaIntegracoes = lazy(() => import("@/pages/admin/AdminMetaIntegracoes"));
 const AdminBiaVoz = lazy(() => import("@/pages/admin/AdminBiaVoz"));
+const AdminChamadasRecebidas = lazy(() => import("@/pages/admin/AdminChamadasRecebidas"));
 
 export const adminRoutes: RouteConfig[] = [
   { path: "/admin", component: AdminDashboard, roles: ["super_admin"] },
@@ -19,4 +20,5 @@ export const adminRoutes: RouteConfig[] = [
   { path: "/admin/diagnostico-whatsapp", component: AdminDiagnosticoWhatsApp, roles: ["super_admin"] },
   { path: "/admin/meta-integracoes", component: AdminMetaIntegracoes, roles: ["super_admin"] },
   { path: "/admin/bia-voz", component: AdminBiaVoz, roles: ["super_admin"] },
+  { path: "/admin/chamadas-recebidas", component: AdminChamadasRecebidas, roles: ["super_admin"] },
 ];
