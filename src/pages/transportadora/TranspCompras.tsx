@@ -547,11 +547,16 @@ export default function TranspCompras() {
             </div>
 
             <Dialog open={chaveOpen} onOpenChange={(o) => { setChaveOpen(o); if (!o) { setChaveAcesso(""); setXmlColado(""); setPrecisaXml(false); } }}>
-              <DialogContent className="max-w-lg">
-                <DialogHeader><DialogTitle>Importar NF-e por chave de acesso</DialogTitle></DialogHeader>
+              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogHeader><DialogTitle>Importar NF-e manualmente</DialogTitle></DialogHeader>
                 <div className="space-y-3">
+                  <div className="rounded-md bg-info/10 border border-info/30 p-2 text-xs">
+                    💡 <strong>Como funciona:</strong> O download direto pelo Portal SEFAZ exige certificado digital A1. 
+                    A forma mais rápida é <strong>baixar o arquivo XML</strong> no portal da SEFAZ ou no e-mail do fornecedor 
+                    e colar/enviar abaixo.
+                  </div>
                   <div>
-                    <Label className="text-xs">Chave de acesso (44 dígitos)</Label>
+                    <Label className="text-xs">Chave de acesso (44 dígitos) — opcional</Label>
                     <Input
                       value={chaveAcesso}
                       onChange={(e) => setChaveAcesso(e.target.value)}
@@ -559,16 +564,26 @@ export default function TranspCompras() {
                       maxLength={60}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Tentaremos baixar o XML automaticamente. Se não conseguirmos, cole o XML abaixo.
+                      Usada para detectar duplicidade. Tentaremos baixar automaticamente, mas geralmente é necessário colar o XML.
                     </p>
                   </div>
-                  {precisaXml && (
-                    <div className="rounded-md bg-warning/10 border border-warning/30 p-2 text-xs text-warning-foreground">
-                      Não foi possível baixar automaticamente. Baixe o XML no portal da SEFAZ ou no e-mail do fornecedor e cole abaixo.
-                    </div>
-                  )}
                   <div>
-                    <Label className="text-xs">XML (opcional — cole o conteúdo)</Label>
+                    <Label className="text-xs">Arquivo XML (.xml)</Label>
+                    <Input
+                      type="file"
+                      accept=".xml,text/xml,application/xml"
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        if (f) {
+                          const txt = await f.text();
+                          setXmlColado(txt);
+                          toast.success("XML carregado", { description: f.name });
+                        }
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Ou cole o conteúdo do XML aqui</Label>
                     <Textarea
                       value={xmlColado}
                       onChange={(e) => setXmlColado(e.target.value)}
@@ -576,6 +591,11 @@ export default function TranspCompras() {
                       className="h-32 font-mono text-xs"
                     />
                   </div>
+                  {precisaXml && (
+                    <div className="rounded-md bg-warning/10 border border-warning/30 p-2 text-xs">
+                      ⚠️ Não foi possível baixar pela chave. Por favor envie o arquivo XML acima.
+                    </div>
+                  )}
                   <Button
                     onClick={importarPorChave}
                     disabled={importandoChave || (!chaveAcesso && !xmlColado)}
