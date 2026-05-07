@@ -33,7 +33,7 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
   const [search, setSearch] = useState("");
   const [showAll, setShowAll] = useState(false);
   const [editingVenc, setEditingVenc] = useState<Record<string, string>>({});
-  const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>("cheio");
+  const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>("todos");
   const [filtroConf, setFiltroConf] = useState<"todos" | "conferidas" | "nao_conferidas">("todos");
 
   const dupNFs = useMemo(() => {
