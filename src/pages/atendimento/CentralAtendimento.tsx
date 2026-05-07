@@ -312,37 +312,6 @@ export default function CentralAtendimento() {
       <Header title="Central de Atendimento" subtitle="Dashboard operacional em tempo real" />
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
 
-        {/* Atalho Chat WhatsApp interno — número fixo (43)3524-1094 não cadastrável no app por restrição Meta */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-green-500/10 border border-green-500/30 rounded-lg p-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-500/20 rounded-full">
-              <MessageSquare className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium">WhatsApp Central Gás · (43) 3524-1094</p>
-              <p className="text-xs text-muted-foreground">
-                Atendimento humano direto no sistema, sem precisar abrir o WhatsApp Web.
-              </p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            onClick={() => inboxRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-            className="bg-green-600 hover:bg-green-700 text-white gap-2"
-          >
-            <MessageSquare className="h-4 w-4" /> Abrir Chat
-          </Button>
-        </div>
-
-        {/* Chat WhatsApp embutido */}
-        <div ref={inboxRef} className="space-y-2">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4 text-green-600" />
-            <h2 className="text-sm font-semibold">Chat WhatsApp</h2>
-          </div>
-          <WhatsAppInbox className="h-[600px]" />
-        </div>
-
         {/* Banner de permissão de notificações desktop */}
         {"Notification" in window && Notification.permission === "default" && (
           <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 flex items-center justify-between gap-3">
@@ -452,8 +421,12 @@ export default function CentralAtendimento() {
               <Phone className="h-3.5 w-3.5" />
               Chamadas
             </TabsTrigger>
-            <TabsTrigger value="whatsapp" className="gap-1.5">
+            <TabsTrigger value="chat" className="gap-1.5">
               <MessageSquare className="h-3.5 w-3.5" />
+              Chat WhatsApp
+            </TabsTrigger>
+            <TabsTrigger value="whatsapp" className="gap-1.5">
+              <Zap className="h-3.5 w-3.5" />
               Respostas Rápidas
             </TabsTrigger>
           </TabsList>
@@ -675,6 +648,20 @@ export default function CentralAtendimento() {
           </TabsContent>
 
           {/* === RESPOSTAS RÁPIDAS WHATSAPP === */}
+          <TabsContent value="chat" className="mt-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-green-600" />
+                  Chat WhatsApp · (43) 3524-1094
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <WhatsAppInbox className="h-[600px]" />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="whatsapp" className="mt-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card>
