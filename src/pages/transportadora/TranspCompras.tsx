@@ -136,6 +136,7 @@ export default function TranspCompras() {
     }
   }
 
+  async function importarXmlOutlook() {
     setImporting(true);
     setUltimoResultado(null);
     try {
