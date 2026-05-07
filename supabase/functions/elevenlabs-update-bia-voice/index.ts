@@ -62,6 +62,8 @@ Deno.serve(async (req) => {
     const expressive_mode = typeof body.expressive_mode === "boolean" ? body.expressive_mode : undefined;
     const prompt = typeof body.prompt === "string" ? body.prompt : undefined;
     const first_message = typeof body.first_message === "string" ? body.first_message : undefined;
+    const voice_id = typeof body.voice_id === "string" ? body.voice_id : undefined;
+    const style = typeof body.style === "number" ? body.style : undefined;
 
     if (speed !== undefined && (speed < 0.7 || speed > 1.2)) {
       return new Response(
@@ -86,6 +88,8 @@ Deno.serve(async (req) => {
     if (stability !== undefined) ttsChanges.stability = stability;
     if (similarity_boost !== undefined) ttsChanges.similarity_boost = similarity_boost;
     if (expressive_mode !== undefined) ttsChanges.expressive_mode = expressive_mode;
+    if (voice_id !== undefined) ttsChanges.voice_id = voice_id;
+    if (style !== undefined) ttsChanges.style = style;
     if (Object.keys(ttsChanges).length > 0) {
       conversation_config.tts = { ...currentTts, ...ttsChanges };
     }
