@@ -139,6 +139,7 @@ export default function CentralAtendimento() {
   const [entregadoresAtivos, setEntregadoresAtivos] = useState<{ id: string; nome: string; status: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [periodo, setPeriodo] = useState<string>("hoje");
   const [busca, setBusca] = useState("");
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState("");
