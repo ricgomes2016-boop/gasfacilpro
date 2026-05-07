@@ -292,24 +292,31 @@ export default function TranspCompras() {
   const save = useMutation({
     mutationFn: async () => {
       const c = calcCustos(form);
+      const valorCompra = form.valor_compra || (form.quantidade * form.preco_unitario - form.desconto);
       const { error } = await (supabase as any).from("transp_compras").insert({
         empresa_id: profile?.empresa_id,
+        unidade_id: form.unidade_id || null,
         data: form.data,
         fornecedor: form.fornecedor,
         cidade_fornecedor: form.cidade_fornecedor || null,
+        numero_nf: form.numero_nf || null,
+        produto_descricao: form.produto_descricao || null,
+        quantidade: form.quantidade || null,
+        preco_unitario: form.preco_unitario || null,
+        desconto: form.desconto || 0,
         distancia_ida_km: form.distancia_ida_km,
         veiculo_id: form.veiculo_id || null,
         qtd_p13: form.qtd_p13,
         qtd_p20: form.qtd_p20,
         qtd_p45: form.qtd_p45,
         qtd_agua: form.qtd_agua,
-        valor_compra: form.valor_compra,
+        valor_compra: valorCompra,
         custo_combustivel: c.combustivel,
         custo_pedagio: form.custo_pedagio,
         custo_refeicao: form.custo_refeicao,
         custo_outros: form.custo_outros,
         custo_logistico_total: c.logisticoTotal,
-        custo_total: c.custoTotal,
+        custo_total: c.custoTotal || valorCompra,
         custo_unit_p13: c.custo_unit_p13,
         custo_unit_p20: c.custo_unit_p20,
         custo_unit_p45: c.custo_unit_p45,
