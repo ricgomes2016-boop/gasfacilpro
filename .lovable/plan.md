@@ -1,86 +1,58 @@
+# Fluxo Twilio direto → Bia (ElevenLabs)
 
-# Otimização da Bia: latência, identificação de endereço e voz
+## Novo fluxo
 
-## Objetivos
-1. Reduzir o tempo que a Bia leva pra responder após o cliente falar.
-2. Evitar duplicação de cliente — quando a Bia pedir o endereço, ela deve buscar pelo telefone falado e, se houver cadastro, **usar o endereço já cadastrado** (apenas confirmar verbalmente).
-3. Deixar a voz da Bia mais **jovem e natural** (Lily com ajuste fino), mantendo a apresentação "Bia da Central Gás".
+```text
+Cliente disca 0800 OU 4337-7717-463
+        │
+        └─► Operadora encaminha para o nº Twilio +55 43 2398-0020
+                    │
+                    └─► Twilio dispara Voice Webhook (este projeto)
+                              │
+                              ├─ Resolve empresa pelo DID original (To/Diversion)
+                              ├─ Registra em `chamadas_recebidas`
+                              └─ Retorna TwiML do ElevenLabs → Bia atende
+```
 
----
+GoTo SIP, Vonage e Vapi **não são mais usados** no atendimento. O único caminho ativo é Twilio → ElevenLabs.
 
-## 1. Reduzir latência (resposta mais rápida)
+## Mudanças
 
-A latência atual vem de: TTS lento + modelo pesado + tools que fazem várias queries em série + estabilidade alta da voz. Ações:
+### 1. `supabase/functions/twilio-voice-webhook/index.ts`
+- Atualizar cabeçalho/comentários descrevendo o fluxo direto Twilio → ElevenLabs.
+- Atualizar `OPERATOR_LAST10` para refletir só os números atuais:
+  - `4323980020` (DID Twilio Central — quando aparece como caller depois do forward)
+  - `8005900492` / `5900492` (0800 Forte Gás)
+  - Remover `1152835921` (Vonage — não é mais usado).
+- Manter a leitura de `SipHeader_Diversion` / `X-Original-To` (a operadora pode mandar o DID original).
+- Manter fallback para DID `+554337717463` quando `did_empresa_routing` não casar.
 
-### 1a. Voz: trocar modelo TTS para o mais rápido
-Atualizar o agente ElevenLabs (via `elevenlabs-update-bia-voice`) para usar:
-- `tts.model_id = "eleven_flash_v2_5"` (latência ~75ms vs ~400ms do `eleven_turbo_v2_5`/multilingual). Lily soa muito bem em flash_v2_5 e mantém PT-BR.
-- `tts.optimize_streaming_latency = 3` (otimização agressiva, ainda boa qualidade).
-- `tts.expressive_mode = false` (já está, manter — expressivo aumenta latência).
+### 2. `src/pages/admin/AdminWhatsappCentral.tsx` / configurações de telefonia (se existirem labels mencionando Vapi/GoTo/Vonage)
+- Apenas atualizar textos/descrições para "Twilio + ElevenLabs". Sem mexer em rotas, providers, nem código de outros canais.
 
-### 1b. LLM: garantir modelo rápido
-Verificar `agent.llm` no ElevenLabs e definir um modelo de baixa latência (ex: `gemini-2.0-flash` ou `gpt-4o-mini`) caso esteja em modelo "pro". Adicionar campo no edge function `elevenlabs-update-bia-voice` para permitir trocar `llm.model` via UI da página `AdminBiaVoz`.
+### 3. Memória do projeto
+- Atualizar `mem://integrations/goto-sip-trunk-vapi`, `mem://integrations/vonage-vapi-sip` e `mem://integrations/caller-id-encaminhamento-0800` marcando como **descontinuado**.
+- Criar `mem://integrations/twilio-elevenlabs-direct` com:
+  - DID Twilio: **+55 43 2398-0020**
+  - Voice Webhook: `https://<project>.supabase.co/functions/v1/twilio-voice-webhook`
+  - Agente Bia: secret `ELEVENLABS_AGENT_ID`
+  - Empresa Forte Gás identificada pelos DIDs `+554337717463` e `+554323980020` (já em `did_empresa_routing`).
 
-### 1c. Tools: paralelizar e cortar consultas redundantes
-Em `supabase/functions/elevenlabs-bia-tools/index.ts`:
-- `identificar_cliente`: hoje busca cliente em série depois faz upsertChamada. Trocar por `Promise.all([buscaCliente, upsertChamada])`.
-- `criar_pedido`: tabela de preços, produto, regras de horário e checagem de duplicado são feitas em série — paralelizar `getRegrasFuncionamento`, `getTabelaPrecosBia` e `produtos lookup`.
-- Remover o `select limit 5` de "clientes mesmo telefone" que faz uma 2ª query — usar o telefone já normalizado do `identificar_cliente`.
+## O que NÃO vai mudar
 
-### 1d. Saudação inicial mais curta
-Reduzir `first_message` para ≤8 palavras (ex.: *"Oi, aqui é a Bia da Central Gás. Pois não?"*). Frase grande atrasa o primeiro turno.
+- Edge functions `vapi-*`, `vonage-voice-webhook`, `goto-webhook` ficam no repo (sem uso, mas sem deletar para não quebrar histórico). Apenas paramos de apontar webhooks externos para elas.
+- `elevenlabs-bia-tools` (tools `identificar_cliente` / `criar_pedido`) continua igual — já é agnóstica de operadora.
+- `chamadas_recebidas`, aba "Chamadas" da Central, Regras da Bia, Voz da Bia: nenhuma alteração.
 
----
+## Configuração no painel Twilio (passo manual do usuário)
 
-## 2. Endereço: usar cadastro existente (anti-duplicação)
-
-Hoje a Bia é instruída a **NÃO** ler o endereço cadastrado e **sempre** pedir verbalmente — isso gera duplicação porque, quando o cliente confirma "é o mesmo", a IA frequentemente cria cliente novo com endereço incompleto.
-
-### Mudanças
-
-**A. `identificar_cliente` (edge function)** — Quando o cliente é encontrado, retornar mensagem nova:
-> "Cliente identificado: **{nome}**, endereço cadastrado **{rua, nº, bairro}**. Confirme dizendo: 'É a mesma entrega de sempre, na **{rua}**, número **{número}**?' — se o cliente confirmar (sim/isso/correto/igual), chame `criar_pedido` passando **APENAS** `cliente_id` (sem endereço/numero/bairro novos). Só peça endereço diferente se o cliente disser explicitamente que mudou."
-
-**B. `criar_pedido` (edge function)** — Quando vier `cliente_id` sem endereço:
-- Buscar `endereco/numero/bairro/cep` do cliente automaticamente e usar como `endereco_entrega`.
-- **Nunca criar novo cliente** se `cliente_id` foi enviado.
-- Se a Bia mandar endereço **diferente** do cadastrado para um `cliente_id` existente, **não criar cliente novo** — apenas registrar `endereco_entrega` no pedido (entrega pontual em outro lugar) e adicionar uma observação `"Endereço alternativo informado por telefone"`.
-
-**C. Nova action `confirmar_endereco_cadastrado`** (opcional, mais robusta) — A Bia chama com `cliente_id` para reaproveitar o endereço. Retorna o pedido pronto pra criar.
-
-**D. Atualizar o system prompt da Bia** (via página `/admin/bia/voz` → campo `prompt`) com regra clara:
-- "Se `identificar_cliente` retornou `encontrado: true`, **confirme o endereço cadastrado em uma única frase** ('Confirma a entrega na Rua X, 123?'). Se o cliente disser sim, use só `cliente_id` ao criar o pedido. Nunca pergunte rua/número/bairro de novo se o cliente confirmou."
-- "Nunca crie novo cliente se `identificar_cliente` retornou `cliente_id`."
-
----
-
-## 3. Voz mais jovem e natural (Lily refinada)
-
-Manter `voice_id = pFZP5JQG7iQjIQuC4Bku` (Lily). Ajustes:
-
-| Parâmetro | Valor proposto | Por quê |
-|---|---|---|
-| `model_id` | `eleven_flash_v2_5` | Mais natural em PT-BR + baixa latência |
-| `stability` | `0.35` | Mais variação emocional → menos robótica |
-| `similarity_boost` | `0.75` | Mantém o timbre jovem da Lily |
-| `style` | `0.45` | Acrescenta expressividade jovem |
-| `use_speaker_boost` | `true` | Clareza no telefone |
-| `speed` | `1.02` | Levemente acima do natural — soa mais "viva" |
-
-Aplicar em 2 etapas:
-1. Adicionar `model_id`, `style` e `optimize_streaming_latency` aos parâmetros aceitos pelo edge function `elevenlabs-update-bia-voice` (hoje só aceita speed/stability/similarity_boost/expressive_mode).
-2. Expor no painel `AdminBiaVoz.tsx` um botão **"Aplicar preset Lily Jovem"** que envia esses valores de uma vez.
-3. Rodar o preset automaticamente na primeira execução pós-deploy (script único de setup).
-
----
-
-## Arquivos afetados
-
-- `supabase/functions/elevenlabs-update-bia-voice/index.ts` — aceitar `model_id`, `style`, `optimize_streaming_latency`, `llm_model`.
-- `supabase/functions/elevenlabs-bia-tools/index.ts` — paralelizar queries; reaproveitar endereço cadastrado em `criar_pedido` quando vier só `cliente_id`; nunca criar cliente novo se `cliente_id` informado; nova mensagem em `identificar_cliente`.
-- `src/pages/admin/AdminBiaVoz.tsx` — novo preset "Lily Jovem", campos para model TTS e modelo LLM.
-- Atualização do **system prompt** e **first_message** da Bia (via UI após deploy, ou script único).
+Após o deploy, no console Twilio → Phone Numbers → +55 43 2398-0020:
+- **A CALL COMES IN**: Webhook → `https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/twilio-voice-webhook` (HTTP POST).
+- Garantir que o número está em E.164 e habilitado para receber chamadas.
 
 ## Validação
-Após deploy: ligar no 4337717463 → confirmar (a) primeira fala em <2s, (b) Bia confirma endereço cadastrado em vez de pedir do zero, (c) tom da voz mais jovem.
 
+1. Ligar no 0800 → escutar a Bia atender com a voz/saudação atuais.
+2. Ligar direto no 4337-7717-463 → idem.
+3. Conferir que aparece linha em **Atendimento → Chamadas** com `did = +554323980020` (ou DID original se a operadora mandar Diversion) e `tipo = 'voip'`.
+4. Logs de `twilio-voice-webhook` devem mostrar `Empresa resolvida pelo DID` e `register-call` 200 OK do ElevenLabs.
