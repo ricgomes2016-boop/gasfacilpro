@@ -123,8 +123,9 @@ serve(async (req) => {
   const fromDigits = from.replace(/\D/g, "");
   const fromLast10 = fromDigits.slice(-10);
   const OPERATOR_LAST10 = new Set<string>([
-    "1152835921", // Vonage DID Central Gás
-    "8005900492", // GoTo 0800
+    "4323980020", // Twilio DID Central (caller após forward da operadora)
+    "4337717463", // DID Forte Gás (caso operadora encaminhe usando o próprio DID como caller)
+    "8005900492", // 0800 Forte Gás
     "5900492",
   ]);
   const callerConfiavel =
