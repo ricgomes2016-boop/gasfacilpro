@@ -228,8 +228,14 @@ export default function AdminBiaVoz() {
             <Button variant="secondary" size="sm" onClick={() => applyPreset("fast")}>
               Preset: Rápida (antiga)
             </Button>
-            <Button variant="default" size="sm" onClick={() => applyPreset("lily_jovem")} disabled={saving}>
-              ⚡ Aplicar Lily Jovem (rápida + natural)
+            <Button variant="default" size="sm" onClick={() => applyPreset("brasileira_natural")} disabled={saving}>
+              🇧🇷 Brasileira Natural (Laura)
+            </Button>
+            <Button variant="default" size="sm" onClick={() => applyPreset("sarah_vapi")} disabled={saving}>
+              ✨ Sarah (Vapi-like)
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => applyPreset("lily_jovem")} disabled={saving}>
+              ⚡ Lily Jovem
             </Button>
           </div>
 
