@@ -421,8 +421,12 @@ export default function CentralAtendimento() {
               <Phone className="h-3.5 w-3.5" />
               Chamadas
             </TabsTrigger>
-            <TabsTrigger value="whatsapp" className="gap-1.5">
+            <TabsTrigger value="chat" className="gap-1.5">
               <MessageSquare className="h-3.5 w-3.5" />
+              Chat WhatsApp
+            </TabsTrigger>
+            <TabsTrigger value="whatsapp" className="gap-1.5">
+              <Zap className="h-3.5 w-3.5" />
               Respostas Rápidas
             </TabsTrigger>
           </TabsList>
