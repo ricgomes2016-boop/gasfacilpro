@@ -1,34 +1,40 @@
-## Contexto
+## Diagnóstico
 
-A aba **Chamadas** em `src/pages/atendimento/CentralAtendimento.tsx` já lê da tabela `chamadas_recebidas` (mesma tabela alimentada pelo `twilio-voice-webhook` quando alguém liga para o DID Twilio/Vonage e fala com a Bia), mas hoje:
+Suas 2 ligações para 4337717463 (encaminhadas para 4323980020) FORAM registradas no banco. Confirmei direto:
 
-- Mostra **apenas chamadas do dia atual** (`gte inicioHoje`).
-- Não exibe **DID** (número que recebeu a ligação), **duração** nem **observações** (ex.: "Encaminhada via 0800/operadora").
-- Não tem filtro de **período**.
+- `2026-05-07 13:25` — telefone `+551140403654`, DID `+554323980020`, status `recebida`
+- `2026-05-07 11:41` e `11:38` — telefone `+554323980020`, status `recebida`
 
-O usuário quer ver o registro das ligações na aba Chamadas — hoje quem queria histórico precisava ir em `/admin/chamadas-recebidas` (página admin já existente).
+Mas elas **não aparecem na aba "Chamadas"** porque na última iteração eu adicionei este filtro em `CentralAtendimento.tsx` (linha 169-170):
 
-## Mudanças (apenas em `CentralAtendimento.tsx`)
+```ts
+if (unidadeAtual?.id) {
+  query = query.eq("unidade_id", unidadeAtual.id);
+}
+```
 
-1. **Filtro de período** (Select novo ao lado do filtro Status): `Hoje | 7 dias | 30 dias`. Default: `Hoje`. A query passa a usar `gte("created_at", inicio)` calculado dinamicamente.
-2. **Ampliar a interface `Chamada**` para incluir `did`, `duracao_segundos`, `observacoes`, `unidade_id`, `empresa_id`. Selecionar todos no `select("*")` (já é `*`, só tipar).
-3. **Filtrar por unidade atual** quando `unidadeAtual?.id` existir (`.eq("unidade_id", unidadeAtual.id)`), para alinhar com o resto do dashboard.
-4. **Aumentar o limit** de 200 → 500 quando período > hoje.
-5. **Linha de chamada** — adicionar metadados visíveis ao lado do tempo relativo:
-  - **DID** formatado (ex.: `+55 (43) 3771-7463`) com ícone `PhoneIncoming`.
-  - **Duração** (ex.: `42s` ou `1m 12s`) quando `duracao_segundos > 0`.
-  - **Observações** truncadas em uma segunda linha discreta (`text-xs text-muted-foreground italic`) quando existirem — útil para identificar chamadas via 0800.
-6. **Stat "Tempo Médio"** continua usando `duracao_segundos`, mas agora com base no período selecionado.
-7. **Realtime**: o canal já escuta `chamadas_recebidas` (INSERT/UPDATE/DELETE) — apenas garantir que o `fetchChamadas` re-execute respeitando o novo período. Adicionar `periodo` ao array de dependências do `useEffect`.
+E **todas as chamadas inseridas pelas edge functions de voz (`elevenlabs-call-initiation`, `twilio-voice-webhook`, `vonage-voice-webhook`) gravam `unidade_id = NULL`** — o resolver por DID só retorna `empresa_id` confiável, a unidade fica vazia. Resultado: filtro `.eq("unidade_id", x)` exclui 100% delas.
 
-## Detalhes técnicos
+## Correção
 
-- Helper local `getInicioPeriodo(p: "hoje" | "7d" | "30d")` retornando ISO string.
-- Helper `formatDid(d: string | null)` reaproveitando a lógica de `AdminChamadasRecebidas.tsx` (formato `+55 (DD) XXXX-XXXX`).
-- Helper `formatDuracao(s: number | null)`.
-- Sem mudanças de schema, sem migrações. Sem alteração em rotas, providers ou `App.tsx`.
+Trocar o filtro estrito por um que **inclua chamadas sem unidade** (mesmo padrão já usado para os outros filtros nas linhas 188-189 e 203-204):
 
-## Fora de escopo
+```ts
+if (unidadeAtual?.id) {
+  query = query.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
+}
+```
 
-- Não duplicar a página admin de chamadas — a aba continua sendo a versão "operacional" simplificada.
-- Sem mudanças no `twilio-voice-webhook`, `goto-webhook` ou na Bia.
+Assim a aba mostra:
+- chamadas explicitamente da unidade atual, e
+- chamadas globais (sem unidade definida) — que é o caso de TODAS as ligações de voz hoje.
+
+## Arquivo afetado
+
+- `src/pages/atendimento/CentralAtendimento.tsx` — apenas as linhas 169-170 dentro de `fetchChamadas`.
+
+Sem mudanças de schema, edge functions, rotas ou App.tsx. Após o ajuste, suas ligações de hoje (e as próximas) aparecem imediatamente na aba "Chamadas" com período "Hoje".
+
+## Observação adicional (opcional, não incluída)
+
+A médio prazo vale fazer as edge functions de voz preencherem `unidade_id` quando houver apenas 1 unidade ativa para a empresa do DID — mas isso é uma melhoria separada. Esta correção resolve o sintoma reportado.
