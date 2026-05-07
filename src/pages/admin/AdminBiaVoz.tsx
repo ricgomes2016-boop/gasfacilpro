@@ -101,13 +101,39 @@ export default function AdminBiaVoz() {
     }
   };
 
-  const applyPreset = (preset: "gentle" | "neutral" | "fast") => {
+  const applyPreset = async (preset: "gentle" | "neutral" | "fast" | "lily_jovem") => {
     if (preset === "gentle") {
       setConfig((c) => ({ ...c, speed: 0.92, stability: 0.40, similarity_boost: 0.85 }));
     } else if (preset === "neutral") {
       setConfig((c) => ({ ...c, speed: 1.0, stability: 0.5, similarity_boost: 0.8 }));
-    } else {
+    } else if (preset === "fast") {
       setConfig((c) => ({ ...c, speed: 1.08, stability: 0.5, similarity_boost: 0.8 }));
+    } else if (preset === "lily_jovem") {
+      // Aplica preset jovem + natural + baixa latência diretamente no agente
+      setSaving(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("elevenlabs-update-bia-voice", {
+          body: {
+            voice_id: "pFZP5JQG7iQjIQuC4Bku", // Lily
+            model_id: "eleven_flash_v2_5",
+            speed: 1.02,
+            stability: 0.35,
+            similarity_boost: 0.75,
+            style: 0.45,
+            use_speaker_boost: true,
+            optimize_streaming_latency: 3,
+            expressive_mode: false,
+          },
+        });
+        if (error) throw error;
+        if (!data?.ok) throw new Error(data?.error || "Falha ao aplicar preset");
+        toast.success("Preset 'Lily Jovem' aplicado!", { description: "Faça uma ligação de teste." });
+        await load();
+      } catch (err: any) {
+        toast.error("Erro ao aplicar preset", { description: err?.message });
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
