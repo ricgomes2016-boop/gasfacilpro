@@ -134,13 +134,18 @@ function parseNFeXml(xml: string): ParsedNFe | null {
   };
 }
 
-async function outlookFetch(path: string): Promise<any> {
+async function outlookFetch(pathOrUrl: string): Promise<any> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const OUTLOOK_KEY = Deno.env.get("MICROSOFT_OUTLOOK_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY não configurada");
   if (!OUTLOOK_KEY) throw new Error("MICROSOFT_OUTLOOK_API_KEY não configurada — conecte o Outlook");
 
-  const res = await fetch(`${GATEWAY_URL}${path}`, {
+  // Aceita path relativo OU URL absoluta (para @odata.nextLink)
+  let url = pathOrUrl.startsWith("http")
+    ? pathOrUrl.replace("https://graph.microsoft.com/v1.0", GATEWAY_URL)
+    : `${GATEWAY_URL}${pathOrUrl}`;
+
+  const res = await fetch(url, {
     headers: {
       "Authorization": `Bearer ${LOVABLE_API_KEY}`,
       "X-Connection-Api-Key": OUTLOOK_KEY,
