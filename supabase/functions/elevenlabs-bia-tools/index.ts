@@ -320,21 +320,22 @@ serve(async (req) => {
 
       if (clientes && clientes.length > 0) {
         const c = clientes[0];
+        const enderecoFmt = `${c.endereco || ""}, ${c.numero || "s/n"} - ${c.bairro || ""}`.trim();
         return ok({
           encontrado: true,
           cliente_id: c.id,
           nome: c.nome,
-          endereco_completo: `${c.endereco || ""}, ${c.numero || "s/n"} - ${c.bairro || ""}`.trim(),
+          endereco_completo: enderecoFmt,
           endereco: c.endereco,
           numero: c.numero,
           bairro: c.bairro,
           cidade: c.cidade,
           mensagem:
-            `Cliente identificado no cadastro: ${c.nome}. ` +
-            `IMPORTANTE: NÃO leia o endereço cadastrado em voz alta. ` +
-            `A chamada chega via encaminhamento (0800), então o número pode não ser do cliente real. ` +
-            `Pergunte abertamente: "Me confirma seu endereço, por favor?" e aguarde o cliente ditar. ` +
-            `Compare silenciosamente com o cadastro. Se o cliente ditar um endereço diferente, use SEMPRE o que ele falou (não o cadastrado) ao criar o pedido.`,
+            `Cliente identificado: ${c.nome}. Endereço cadastrado: ${enderecoFmt}. ` +
+            `CONFIRME EM UMA ÚNICA FRASE CURTA: "Confirma a entrega na ${c.endereco || "rua cadastrada"}, número ${c.numero || "[peça o número]"}?". ` +
+            `Se o cliente disser SIM/ISSO/CORRETO/IGUAL/MESMO LUGAR, chame criar_pedido passando APENAS cliente_id (NÃO envie endereco/numero/bairro novos — eu uso o cadastro). ` +
+            `Só pergunte rua/número/bairro se o cliente disser EXPLICITAMENTE que mudou ou que é entrega em outro lugar. ` +
+            `NUNCA crie cliente novo: este já existe.`,
         });
       }
 
