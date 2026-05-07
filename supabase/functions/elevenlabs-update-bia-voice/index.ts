@@ -64,6 +64,9 @@ Deno.serve(async (req) => {
     const first_message = typeof body.first_message === "string" ? body.first_message : undefined;
     const voice_id = typeof body.voice_id === "string" ? body.voice_id : undefined;
     const style = typeof body.style === "number" ? body.style : undefined;
+    const model_id = typeof body.model_id === "string" ? body.model_id : undefined;
+    const use_speaker_boost = typeof body.use_speaker_boost === "boolean" ? body.use_speaker_boost : undefined;
+    const optimize_streaming_latency = typeof body.optimize_streaming_latency === "number" ? body.optimize_streaming_latency : undefined;
 
     if (speed !== undefined && (speed < 0.7 || speed > 1.2)) {
       return new Response(
