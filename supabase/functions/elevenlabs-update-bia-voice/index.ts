@@ -88,6 +88,8 @@ Deno.serve(async (req) => {
     if (stability !== undefined) ttsChanges.stability = stability;
     if (similarity_boost !== undefined) ttsChanges.similarity_boost = similarity_boost;
     if (expressive_mode !== undefined) ttsChanges.expressive_mode = expressive_mode;
+    if (voice_id !== undefined) ttsChanges.voice_id = voice_id;
+    if (style !== undefined) ttsChanges.style = style;
     if (Object.keys(ttsChanges).length > 0) {
       conversation_config.tts = { ...currentTts, ...ttsChanges };
     }
