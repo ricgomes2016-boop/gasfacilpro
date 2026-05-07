@@ -28,14 +28,43 @@ import { WhatsAppInbox } from "@/components/atendimento/WhatsAppInbox";
 
 interface Chamada {
   id: string;
-  telefone: string;
+  telefone: string | null;
+  did: string | null;
   cliente_id: string | null;
   cliente_nome: string | null;
   tipo: string;
   status: string;
   duracao_segundos: number | null;
   observacoes: string | null;
+  unidade_id: string | null;
+  empresa_id: string | null;
   created_at: string;
+}
+
+function formatDid(p: string | null): string {
+  if (!p) return "—";
+  const d = p.replace(/\D/g, "");
+  if (d.length === 13) return `+${d.slice(0,2)} (${d.slice(2,4)}) ${d.slice(4,9)}-${d.slice(9)}`;
+  if (d.length === 12) return `+${d.slice(0,2)} (${d.slice(2,4)}) ${d.slice(4,8)}-${d.slice(8)}`;
+  if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+  return p;
+}
+
+function formatDuracao(s: number | null): string {
+  if (!s || s <= 0) return "";
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return r ? `${m}m ${r}s` : `${m}m`;
+}
+
+function getInicioPeriodo(p: string): string {
+  const d = new Date();
+  if (p === "7d") { d.setDate(d.getDate() - 7); return d.toISOString(); }
+  if (p === "30d") { d.setDate(d.getDate() - 30); return d.toISOString(); }
+  d.setHours(0,0,0,0);
+  return d.toISOString();
 }
 
 interface PedidoFila {
