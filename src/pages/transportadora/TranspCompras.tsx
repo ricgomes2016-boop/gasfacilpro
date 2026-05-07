@@ -96,8 +96,46 @@ export default function TranspCompras() {
   const [diasBusca, setDiasBusca] = useState(Number(localStorage.getItem("transp_xml_dias") || "30"));
   const [ultimaImportacao, setUltimaImportacao] = useState<string | null>(localStorage.getItem("transp_xml_ultima"));
   const [ultimoResultado, setUltimoResultado] = useState<any>(null);
+  const [chaveOpen, setChaveOpen] = useState(false);
+  const [chaveAcesso, setChaveAcesso] = useState("");
+  const [xmlColado, setXmlColado] = useState("");
+  const [importandoChave, setImportandoChave] = useState(false);
+  const [precisaXml, setPrecisaXml] = useState(false);
 
-  async function importarXmlOutlook() {
+  async function importarPorChave() {
+    setImportandoChave(true);
+    try {
+      const chaveLimpa = chaveAcesso.replace(/\D/g, "");
+      const { data, error } = await supabase.functions.invoke("importar_nfe_manual", {
+        body: { chave: chaveLimpa || null, xml: xmlColado || null },
+      });
+      if (error) throw error;
+      if (data?.requer_xml) {
+        setPrecisaXml(true);
+        toast.warning("Cole o XML", { description: data.message });
+        return;
+      }
+      if (data?.ok === false) {
+        toast.error("Não importado", { description: data.error || data.message });
+        return;
+      }
+      if (data?.ja_existente) {
+        toast.info("Já importada", { description: data.message });
+      } else {
+        toast.success("Nota importada!", {
+          description: `NF ${data?.numero_nf || ""} · ${data?.inseridos || 0} item(ns)`,
+        });
+      }
+      qc.invalidateQueries({ queryKey: ["transp-compras"] });
+      setChaveOpen(false);
+      setChaveAcesso(""); setXmlColado(""); setPrecisaXml(false);
+    } catch (err: any) {
+      toast.error("Erro", { description: err.message });
+    } finally {
+      setImportandoChave(false);
+    }
+  }
+
     setImporting(true);
     setUltimoResultado(null);
     try {
