@@ -648,6 +648,20 @@ export default function CentralAtendimento() {
           </TabsContent>
 
           {/* === RESPOSTAS RÁPIDAS WHATSAPP === */}
+          <TabsContent value="chat" className="mt-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-green-600" />
+                  Chat WhatsApp · (43) 3524-1094
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <WhatsAppInbox className="h-[600px]" />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="whatsapp" className="mt-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card>
