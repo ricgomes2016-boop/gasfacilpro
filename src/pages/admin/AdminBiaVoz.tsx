@@ -187,7 +187,9 @@ export default function AdminBiaVoz() {
             <Button variant="secondary" size="sm" onClick={() => applyPreset("fast")}>
               Preset: Rápida (antiga)
             </Button>
-          </div>
+            <Button variant="default" size="sm" onClick={() => applyPreset("lily_jovem")} disabled={saving}>
+              ⚡ Aplicar Lily Jovem (rápida + natural)
+            </Button>
 
           <div className="space-y-2">
             <div className="flex justify-between items-center">
