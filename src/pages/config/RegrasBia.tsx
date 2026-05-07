@@ -620,6 +620,22 @@ export default function RegrasBia() {
           </CardContent>
         </Card>
 
+        {/* Voz da Bia (TTS + saudação + system prompt) */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Bot className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-lg">Voz da Bia</CardTitle>
+                <CardDescription>Tom, velocidade, saudação e personalidade da assistente que atende ligações</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="px-0 md:px-2">
+            <AdminBiaVoz />
+          </CardContent>
+        </Card>
+
         {/* Salvar */}
         <div className="flex justify-end pb-6">
           <Button onClick={handleSave} disabled={saving || loading} size="lg">
