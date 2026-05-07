@@ -351,49 +351,85 @@ serve(async (req) => {
         cliente_id,
         nome,
         telefone,
-        endereco,
-        numero,
-        bairro,
-        cep,
-        referencia,
         produto,
         quantidade,
         forma_pagamento,
       } = body;
+      let { endereco, numero, bairro, cep, referencia } = body;
 
       if (!produto) return err("Produto é obrigatório");
       const qtdInput = quantidade ?? 1;
 
       // Resolve / create cliente
       let finalClienteId = cliente_id;
-      if (!finalClienteId) {
+      let finalClienteNome = nome;
+
+      if (finalClienteId) {
+        // Cliente já existe — buscar dados cadastrados e reaproveitar endereço
+        // se a Bia não enviou um novo. NUNCA criar cliente duplicado.
+        const { data: clienteCad } = await supabase
+          .from("clientes")
+          .select("nome, endereco, numero, bairro, cep, cidade")
+          .eq("id", finalClienteId)
+          .maybeSingle();
+        if (clienteCad) {
+          finalClienteNome = finalClienteNome || clienteCad.nome;
+          // Se a Bia não passou endereço, usa o cadastrado (cenário "é o mesmo de sempre")
+          if (!endereco && clienteCad.endereco) endereco = clienteCad.endereco;
+          if (!numero && clienteCad.numero) numero = clienteCad.numero;
+          if (!bairro && clienteCad.bairro) bairro = clienteCad.bairro;
+          if (!cep && clienteCad.cep) cep = clienteCad.cep;
+        }
+      } else {
         if (!nome || !telefone) return err("Nome e telefone obrigatórios para cliente novo");
         const telDigits = String(telefone).replace(/\D/g, "");
-        const { data: novoCliente, error: clienteErr } = await supabase
-          .from("clientes")
-          .insert({
-            nome,
-            telefone: telDigits,
-            endereco,
-            numero,
-            bairro,
-            cep: cep || null,
-            cidade: body.cidade || null,
-            empresa_id: empresa.id,
-            ativo: true,
-          })
-          .select("id")
-          .single();
-        if (clienteErr) {
-          console.error("Erro criando cliente:", clienteErr);
-          return err("Erro ao cadastrar cliente: " + clienteErr.message);
+
+        // Antes de criar, tenta achar cliente por telefone para evitar duplicação
+        if (telDigits.length >= 10) {
+          const last10 = telDigits.slice(-10);
+          const { data: existente } = await supabase
+            .from("clientes")
+            .select("id, nome, endereco, numero, bairro, cep")
+            .eq("empresa_id", empresa.id)
+            .ilike("telefone", `%${last10}%`)
+            .limit(1)
+            .maybeSingle();
+          if (existente?.id) {
+            finalClienteId = existente.id;
+            finalClienteNome = existente.nome;
+            if (!endereco && existente.endereco) endereco = existente.endereco;
+            if (!numero && existente.numero) numero = existente.numero;
+            if (!bairro && existente.bairro) bairro = existente.bairro;
+            if (!cep && existente.cep) cep = existente.cep;
+          }
         }
-        finalClienteId = novoCliente.id;
-        // Vincula à unidade Central Gás
-        await supabase.from("cliente_unidades").insert({
-          cliente_id: finalClienteId,
-          unidade_id: unidade.id,
-        });
+
+        if (!finalClienteId) {
+          const { data: novoCliente, error: clienteErr } = await supabase
+            .from("clientes")
+            .insert({
+              nome,
+              telefone: telDigits,
+              endereco,
+              numero,
+              bairro,
+              cep: cep || null,
+              cidade: body.cidade || null,
+              empresa_id: empresa.id,
+              ativo: true,
+            })
+            .select("id")
+            .single();
+          if (clienteErr) {
+            console.error("Erro criando cliente:", clienteErr);
+            return err("Erro ao cadastrar cliente: " + clienteErr.message);
+          }
+          finalClienteId = novoCliente.id;
+          await supabase.from("cliente_unidades").insert({
+            cliente_id: finalClienteId,
+            unidade_id: unidade.id,
+          });
+        }
       }
 
       // Match produto (P13 / P20 / P45 / Água) - "gás/botijão/bujão" sozinho => P13
