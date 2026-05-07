@@ -28,8 +28,14 @@ const AGUA_TO_P13 = 1;
 
 interface CompraForm {
   data: string;
+  unidade_id: string;
   fornecedor: string;
   cidade_fornecedor: string;
+  numero_nf: string;
+  produto_descricao: string;
+  quantidade: number;
+  preco_unitario: number;
+  desconto: number;
   distancia_ida_km: number;
   veiculo_id: string;
   qtd_p13: number;
@@ -47,8 +53,14 @@ interface CompraForm {
 
 const defaultForm: CompraForm = {
   data: format(new Date(), "yyyy-MM-dd"),
+  unidade_id: "",
   fornecedor: "",
   cidade_fornecedor: "",
+  numero_nf: "",
+  produto_descricao: "",
+  quantidade: 0,
+  preco_unitario: 0,
+  desconto: 0,
   distancia_ida_km: 0,
   veiculo_id: "",
   qtd_p13: 0,
