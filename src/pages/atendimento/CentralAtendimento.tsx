@@ -543,7 +543,7 @@ export default function CentralAtendimento() {
                     />
                   </div>
                   <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                    <SelectTrigger className="w-[160px]">
+                    <SelectTrigger className="w-full sm:w-[160px]">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -552,6 +552,16 @@ export default function CentralAtendimento() {
                       <SelectItem value="atendida">Atendidas</SelectItem>
                       <SelectItem value="perdida">Perdidas</SelectItem>
                       <SelectItem value="retornar">Retornar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={periodo} onValueChange={setPeriodo}>
+                    <SelectTrigger className="w-full sm:w-[140px]">
+                      <SelectValue placeholder="Período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hoje">Hoje</SelectItem>
+                      <SelectItem value="7d">Últimos 7 dias</SelectItem>
+                      <SelectItem value="30d">Últimos 30 dias</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
