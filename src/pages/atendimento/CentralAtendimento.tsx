@@ -573,11 +573,12 @@ export default function CentralAtendimento() {
                 {loading ? (
                   <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>
                 ) : chamadasFiltradas.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">Nenhuma chamada hoje</p>
+                  <p className="text-sm text-muted-foreground text-center py-8">Nenhuma chamada no período</p>
                 ) : (
                   <div className="space-y-1">
                     {chamadasFiltradas.map((chamada, idx) => {
                       const status = statusConfig[chamada.status] || statusConfig.recebida;
+                      const dur = formatDuracao(chamada.duracao_segundos);
                       return (
                         <div key={chamada.id}>
                           {idx > 0 && <Separator className="my-3" />}
@@ -590,28 +591,46 @@ export default function CentralAtendimento() {
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-medium truncate">
-                                  {chamada.cliente_nome || chamada.telefone}
+                                  {chamada.cliente_nome || formatDid(chamada.telefone) || "Desconhecido"}
                                 </span>
                                 <Badge variant={status.variant} className="text-xs">
                                   {status.label}
                                 </Badge>
+                                {dur && (
+                                  <Badge variant="outline" className="text-xs gap-1">
+                                    <Timer className="h-3 w-3" /> {dur}
+                                  </Badge>
+                                )}
                               </div>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                {chamada.cliente_nome && <span>{chamada.telefone}</span>}
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap mt-0.5">
+                                {chamada.cliente_nome && chamada.telefone && (
+                                  <span className="font-mono">{formatDid(chamada.telefone)}</span>
+                                )}
+                                {chamada.did && (
+                                  <span className="flex items-center gap-1">
+                                    <PhoneIncoming className="h-3 w-3" />
+                                    <span className="font-mono">{formatDid(chamada.did)}</span>
+                                  </span>
+                                )}
                                 <Clock className="h-3 w-3" />
                                 <span>
                                   {formatDistanceToNow(new Date(chamada.created_at), { addSuffix: true, locale: ptBR })}
                                 </span>
                               </div>
+                              {chamada.observacoes && (
+                                <p className="text-xs text-muted-foreground italic truncate mt-0.5">
+                                  {chamada.observacoes}
+                                </p>
+                              )}
                             </div>
                             <div className="flex gap-1.5">
                               <Button
                                 size="sm"
                                 variant="ghost"
                                 className="gap-1 text-xs h-7"
-                                onClick={() => openWhatsappFor(chamada.telefone, chamada.cliente_nome)}
+                                onClick={() => openWhatsappFor(chamada.telefone || "", chamada.cliente_nome)}
                               >
                                 <Zap className="h-3.5 w-3.5 text-green-600" />
                               </Button>
