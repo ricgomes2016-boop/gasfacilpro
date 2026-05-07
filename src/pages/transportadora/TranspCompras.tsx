@@ -11,7 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { P45_TO_P13, P20_TO_P13, formatCurrency, formatNumber } from "@/lib/transp-utils";
 import { toast } from "sonner";
-import { Plus, ShoppingCart, Download, RefreshCw, BarChart3, Package, List } from "lucide-react";
+import { Plus, ShoppingCart, Download, RefreshCw, BarChart3, Package, List, KeyRound } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ComprasAnaliseGLP } from "@/components/transportadora/compras/ComprasAnaliseGLP";
@@ -95,6 +96,45 @@ export default function TranspCompras() {
   const [diasBusca, setDiasBusca] = useState(Number(localStorage.getItem("transp_xml_dias") || "30"));
   const [ultimaImportacao, setUltimaImportacao] = useState<string | null>(localStorage.getItem("transp_xml_ultima"));
   const [ultimoResultado, setUltimoResultado] = useState<any>(null);
+  const [chaveOpen, setChaveOpen] = useState(false);
+  const [chaveAcesso, setChaveAcesso] = useState("");
+  const [xmlColado, setXmlColado] = useState("");
+  const [importandoChave, setImportandoChave] = useState(false);
+  const [precisaXml, setPrecisaXml] = useState(false);
+
+  async function importarPorChave() {
+    setImportandoChave(true);
+    try {
+      const chaveLimpa = chaveAcesso.replace(/\D/g, "");
+      const { data, error } = await supabase.functions.invoke("importar_nfe_manual", {
+        body: { chave: chaveLimpa || null, xml: xmlColado || null },
+      });
+      if (error) throw error;
+      if (data?.requer_xml) {
+        setPrecisaXml(true);
+        toast.warning("Cole o XML", { description: data.message });
+        return;
+      }
+      if (data?.ok === false) {
+        toast.error("Não importado", { description: data.error || data.message });
+        return;
+      }
+      if (data?.ja_existente) {
+        toast.info("Já importada", { description: data.message });
+      } else {
+        toast.success("Nota importada!", {
+          description: `NF ${data?.numero_nf || ""} · ${data?.inseridos || 0} item(ns)`,
+        });
+      }
+      qc.invalidateQueries({ queryKey: ["transp-compras"] });
+      setChaveOpen(false);
+      setChaveAcesso(""); setXmlColado(""); setPrecisaXml(false);
+    } catch (err: any) {
+      toast.error("Erro", { description: err.message });
+    } finally {
+      setImportandoChave(false);
+    }
+  }
 
   async function importarXmlOutlook() {
     setImporting(true);
@@ -444,7 +484,58 @@ export default function TranspCompras() {
                 <RefreshCw className={`h-4 w-4 ${importing ? "animate-spin" : ""}`} />
                 Reprocessar mês ({periodo})
               </Button>
+              <Button
+                onClick={() => setChaveOpen(true)}
+                variant="outline"
+                className="gap-2 h-10 flex-1 sm:flex-none"
+                title="Importar uma NF-e digitando a chave de acesso (44 dígitos) ou colando o XML"
+              >
+                <KeyRound className="h-4 w-4" />
+                Importar por chave
+              </Button>
             </div>
+
+            <Dialog open={chaveOpen} onOpenChange={(o) => { setChaveOpen(o); if (!o) { setChaveAcesso(""); setXmlColado(""); setPrecisaXml(false); } }}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader><DialogTitle>Importar NF-e por chave de acesso</DialogTitle></DialogHeader>
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs">Chave de acesso (44 dígitos)</Label>
+                    <Input
+                      value={chaveAcesso}
+                      onChange={(e) => setChaveAcesso(e.target.value)}
+                      placeholder="00000000000000000000000000000000000000000000"
+                      maxLength={60}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Tentaremos baixar o XML automaticamente. Se não conseguirmos, cole o XML abaixo.
+                    </p>
+                  </div>
+                  {precisaXml && (
+                    <div className="rounded-md bg-warning/10 border border-warning/30 p-2 text-xs text-warning-foreground">
+                      Não foi possível baixar automaticamente. Baixe o XML no portal da SEFAZ ou no e-mail do fornecedor e cole abaixo.
+                    </div>
+                  )}
+                  <div>
+                    <Label className="text-xs">XML (opcional — cole o conteúdo)</Label>
+                    <Textarea
+                      value={xmlColado}
+                      onChange={(e) => setXmlColado(e.target.value)}
+                      placeholder="<?xml version='1.0'...><nfeProc>...</nfeProc>"
+                      className="h-32 font-mono text-xs"
+                    />
+                  </div>
+                  <Button
+                    onClick={importarPorChave}
+                    disabled={importandoChave || (!chaveAcesso && !xmlColado)}
+                    className="w-full gap-2"
+                  >
+                    <Download className={`h-4 w-4 ${importandoChave ? "animate-pulse" : ""}`} />
+                    {importandoChave ? "Importando..." : "Importar nota"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
             <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap pt-1 border-t border-border/40">
               <span>
                 Última importação:{" "}
