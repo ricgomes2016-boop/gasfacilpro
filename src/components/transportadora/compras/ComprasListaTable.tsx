@@ -155,11 +155,21 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
   const lojaNome = (id?: string | null) =>
     id ? (unidadesMap?.get(id) || "—") : "—";
 
+  const tipoCounts = useMemo(() => {
+    const c = { todos: compras.length, cheio: 0, vasilhame: 0, outros: 0 } as Record<FiltroTipo, number>;
+    for (const x of compras) {
+      const t = (x.tipo_produto || "outros") as FiltroTipo;
+      if (t === "cheio" || t === "vasilhame") c[t]++;
+      else c.outros++;
+    }
+    return c;
+  }, [compras]);
+
   const chips: { v: FiltroTipo; label: string }[] = [
-    { v: "todos", label: "Todos" },
-    { v: "cheio", label: "Cheio" },
-    { v: "vasilhame", label: "Vasilhame" },
-    { v: "outros", label: "Outros" },
+    { v: "todos", label: `Todos (${tipoCounts.todos})` },
+    { v: "cheio", label: `Cheio (${tipoCounts.cheio})` },
+    { v: "vasilhame", label: `Vasilhame (${tipoCounts.vasilhame})` },
+    { v: "outros", label: `Outros (${tipoCounts.outros})` },
   ];
 
   return (
