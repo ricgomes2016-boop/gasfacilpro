@@ -64,6 +64,9 @@ Deno.serve(async (req) => {
     const first_message = typeof body.first_message === "string" ? body.first_message : undefined;
     const voice_id = typeof body.voice_id === "string" ? body.voice_id : undefined;
     const style = typeof body.style === "number" ? body.style : undefined;
+    const model_id = typeof body.model_id === "string" ? body.model_id : undefined;
+    const use_speaker_boost = typeof body.use_speaker_boost === "boolean" ? body.use_speaker_boost : undefined;
+    const optimize_streaming_latency = typeof body.optimize_streaming_latency === "number" ? body.optimize_streaming_latency : undefined;
 
     if (speed !== undefined && (speed < 0.7 || speed > 1.2)) {
       return new Response(
@@ -90,6 +93,9 @@ Deno.serve(async (req) => {
     if (expressive_mode !== undefined) ttsChanges.expressive_mode = expressive_mode;
     if (voice_id !== undefined) ttsChanges.voice_id = voice_id;
     if (style !== undefined) ttsChanges.style = style;
+    if (model_id !== undefined) ttsChanges.model_id = model_id;
+    if (use_speaker_boost !== undefined) ttsChanges.use_speaker_boost = use_speaker_boost;
+    if (optimize_streaming_latency !== undefined) ttsChanges.optimize_streaming_latency = optimize_streaming_latency;
     if (Object.keys(ttsChanges).length > 0) {
       conversation_config.tts = { ...currentTts, ...ttsChanges };
     }
