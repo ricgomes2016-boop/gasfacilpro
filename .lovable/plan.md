@@ -1,48 +1,38 @@
 ## Diagnóstico
 
-Configuração atual da Bia (ElevenLabs Conversational AI):
-- **Voice ID**: `pFZP5JQG7iQjIQuC4Bku` (Lily — voz inglesa, sotaque carregado em PT)
-- **Model**: `eleven_multilingual_v2` (qualidade alta, mas latência maior e prosódia mais "lida" no telefone)
-- **stability 0.40 / similarity 0.85 / speed 0.98 / expressive_mode false**
+Consultando o banco, o dia **04/05/2026 ESTÁ importado**, com 2 NF-e da NACIONAL GAS:
+- NF 374238 — BOTIJAO P-13 — `tipo_produto: vasilhame` (CFOP 5921)
+- NF 374239 — BOTIJAO P-13 — `tipo_produto: vasilhame` (CFOP 5921)
 
-A Vapi soava mais natural porque usava por padrão **OpenAI TTS** com vozes treinadas para conversação telefônica. No ElevenLabs, para aproximar dessa naturalidade em ligação, precisamos de:
-1. Voz **nativa PT-BR** (não Lily multilingue).
-2. Modelo **`eleven_turbo_v2_5`** ou **`eleven_flash_v2_5`** — feitos para conversa em tempo real, prosódia mais espontânea e latência menor (essencial em telefonia, onde latência alta força o modelo a "cortar" emoção).
-3. **`style` > 0** (atualmente nem está setado) para dar entonação coloquial.
-4. Reduzir `stability` p/ ~0.30 → mais variação humana.
+Resumo do mês 05/2026 (NACIONAL GAS):
+```
+2026-05-02 → 8 cheio + 5 vasilhame
+2026-05-04 → 0 cheio + 2 vasilhame   ← só vasilhame
+2026-05-06 → 5 cheio + 5 vasilhame
+```
+
+**Causa do dia 04 não aparecer:** o componente `ComprasListaTable.tsx` (linha 36) inicia com `filtroTipo = "cheio"` por padrão. Como o dia 04/05 só tem registros do tipo `vasilhame`, ele é escondido pelo filtro.
+
+Adicionalmente, observa-se um **gap de numeração** entre NF 374138 (dia 02) e 374238 (dia 04). Isso pode significar que entre os dias 03 e 04 houve NF-e "cheio" emitidas para nossa empresa que não chegaram no Outlook (ou estão em outra pasta), OU foram emitidas para outras transportadoras pelo fornecedor. Vale rodar uma re-importação ampliada para confirmar.
 
 ## Plano
 
-### 1. Aplicar preset "Brasileira Natural" via `elevenlabs-update-bia-voice`
-Patch único no agente ElevenLabs:
-```
-voice_id: "FGY2WhTYpPnrIDTdsKH5"   // Laura — feminina, calorosa, funciona muito bem em PT
-model_id: "eleven_turbo_v2_5"
-stability: 0.30
-similarity_boost: 0.80
-style: 0.55
-use_speaker_boost: true
-speed: 1.0
-optimize_streaming_latency: 3
-expressive_mode: false              // expressive aumenta latência no telefone
-```
+### 1. Mudar filtro padrão da tabela para "todos"
+Em `src/components/transportadora/compras/ComprasListaTable.tsx` linha 36:
+- `useState<FiltroTipo>("cheio")` → `useState<FiltroTipo>("todos")`
 
-### 2. Adicionar botão de preset "Brasileira Natural" em `src/pages/admin/AdminBiaVoz.tsx`
-Hoje há `gentle / neutral / fast / lily_jovem`. Vou adicionar **`brasileira_natural`** com os parâmetros acima, para que você consiga voltar/alternar com 1 clique.
+Assim o usuário vê todos os tipos por padrão (cheio + vasilhame + outros) e percebe o dia 04.
 
-### 3. Botão extra "Preset Vapi-like (Sarah PT)"
-Alternativa caso Laura não agrade — usa `EXAVITQu4vr4xnSDxMaL` (Sarah) com mesmos settings. Sarah tem timbre mais jovem/Vapi-like.
+### 2. Adicionar badge contador por tipo no seletor
+Mostrar contagem ao lado de cada botão de filtro: "Todos (25)", "Cheio (13)", "Vasilhame (12)" — para deixar evidente quantos registros existem em cada categoria e evitar confusão futura.
 
-### 4. Aplicar imediatamente o preset "Brasileira Natural"
-Após o deploy do botão, disparo a chamada para já deixar a Bia rodando com a nova voz. Você liga em **+55 43 2398-0020** e confirma.
+### 3. Re-importação ampliada (diagnóstico)
+Disparar `importar_xml_outlook` com `dias=10` (ao invés do padrão 30 dias retroativo a partir de hoje) para garantir que toda NF-e dos dias 03–05 que estiver no Outlook seja capturada. Os registros já existentes são deduplicados por `(empresa_id, chave_nfe, produto_descricao)` então não há risco de duplicar.
 
-## Resultado esperado
-- Voz feminina PT-BR sem sotaque inglês.
-- Latência menor (turbo + latency 3) → menos pausas robóticas entre frases.
-- Entonação coloquial ("oi, tudo bem?" soando natural, não declamado).
-- Se ainda não agradar, alternamos com 1 clique entre Laura / Sarah / Lily / presets antigos.
+### 4. Reportar resultado
+Após re-importar, mostrar ao usuário se apareceram NF-e novas para os dias 03–05. Se não apareceram, confirma que o gap é real do fornecedor (NFs emitidas para outras empresas).
 
 ## Detalhes técnicos
-- Sem mudança em `twilio-voice-webhook` nem em `register-call` — só patch no agente ElevenLabs via API `PATCH /v1/convai/agents/{id}`.
-- `model_id` `eleven_turbo_v2_5` suporta PT nativo e é o recomendado pela ElevenLabs para Conversational AI em telefonia.
-- Mantém `agent_output_audio_format: pcm_16000` (compatível com Twilio Media Streams).
+- Sem mudanças de schema, sem migrations.
+- 1 arquivo alterado: `ComprasListaTable.tsx`.
+- 1 chamada edge function de re-importação.
