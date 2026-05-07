@@ -28,14 +28,43 @@ import { WhatsAppInbox } from "@/components/atendimento/WhatsAppInbox";
 
 interface Chamada {
   id: string;
-  telefone: string;
+  telefone: string | null;
+  did: string | null;
   cliente_id: string | null;
   cliente_nome: string | null;
   tipo: string;
   status: string;
   duracao_segundos: number | null;
   observacoes: string | null;
+  unidade_id: string | null;
+  empresa_id: string | null;
   created_at: string;
+}
+
+function formatDid(p: string | null): string {
+  if (!p) return "—";
+  const d = p.replace(/\D/g, "");
+  if (d.length === 13) return `+${d.slice(0,2)} (${d.slice(2,4)}) ${d.slice(4,9)}-${d.slice(9)}`;
+  if (d.length === 12) return `+${d.slice(0,2)} (${d.slice(2,4)}) ${d.slice(4,8)}-${d.slice(8)}`;
+  if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+  return p;
+}
+
+function formatDuracao(s: number | null): string {
+  if (!s || s <= 0) return "";
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return r ? `${m}m ${r}s` : `${m}m`;
+}
+
+function getInicioPeriodo(p: string): string {
+  const d = new Date();
+  if (p === "7d") { d.setDate(d.getDate() - 7); return d.toISOString(); }
+  if (p === "30d") { d.setDate(d.getDate() - 30); return d.toISOString(); }
+  d.setHours(0,0,0,0);
+  return d.toISOString();
 }
 
 interface PedidoFila {
@@ -110,6 +139,7 @@ export default function CentralAtendimento() {
   const [entregadoresAtivos, setEntregadoresAtivos] = useState<{ id: string; nome: string; status: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [periodo, setPeriodo] = useState<string>("hoje");
   const [busca, setBusca] = useState("");
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState("");
@@ -125,20 +155,24 @@ export default function CentralAtendimento() {
 
   // Fetch chamadas
   const fetchChamadas = async () => {
+    const inicio = getInicioPeriodo(periodo);
     let query = supabase
       .from("chamadas_recebidas")
       .select("*")
-      .gte("created_at", inicioHoje)
+      .gte("created_at", inicio)
       .order("created_at", { ascending: false })
-      .limit(200);
+      .limit(periodo === "hoje" ? 200 : 500);
 
     if (filtroStatus !== "todos") {
       query = query.eq("status", filtroStatus);
     }
+    if (unidadeAtual?.id) {
+      query = query.eq("unidade_id", unidadeAtual.id);
+    }
 
     const { data, error } = await query;
     if (error) toast.error("Erro ao carregar chamadas");
-    else setChamadas(data || []);
+    else setChamadas((data as any) || []);
     setLoading(false);
   };
 
@@ -194,14 +228,18 @@ export default function CentralAtendimento() {
       supabase.removeChannel(channel);
       clearInterval(refreshInterval);
     };
-  }, [filtroStatus, unidadeAtual?.id]);
+  }, [filtroStatus, periodo, unidadeAtual?.id]);
 
   // === Computed Stats ===
 
   const chamadasFiltradas = chamadas.filter((c) => {
     if (!busca) return true;
     const term = busca.toLowerCase();
-    return c.telefone.includes(term) || c.cliente_nome?.toLowerCase().includes(term);
+    return (
+      (c.telefone || "").toLowerCase().includes(term) ||
+      (c.did || "").toLowerCase().includes(term) ||
+      (c.cliente_nome || "").toLowerCase().includes(term)
+    );
   });
 
   const stats = {
@@ -505,7 +543,7 @@ export default function CentralAtendimento() {
                     />
                   </div>
                   <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                    <SelectTrigger className="w-[160px]">
+                    <SelectTrigger className="w-full sm:w-[160px]">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -514,6 +552,16 @@ export default function CentralAtendimento() {
                       <SelectItem value="atendida">Atendidas</SelectItem>
                       <SelectItem value="perdida">Perdidas</SelectItem>
                       <SelectItem value="retornar">Retornar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={periodo} onValueChange={setPeriodo}>
+                    <SelectTrigger className="w-full sm:w-[140px]">
+                      <SelectValue placeholder="Período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hoje">Hoje</SelectItem>
+                      <SelectItem value="7d">Últimos 7 dias</SelectItem>
+                      <SelectItem value="30d">Últimos 30 dias</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -525,11 +573,12 @@ export default function CentralAtendimento() {
                 {loading ? (
                   <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>
                 ) : chamadasFiltradas.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">Nenhuma chamada hoje</p>
+                  <p className="text-sm text-muted-foreground text-center py-8">Nenhuma chamada no período</p>
                 ) : (
                   <div className="space-y-1">
                     {chamadasFiltradas.map((chamada, idx) => {
                       const status = statusConfig[chamada.status] || statusConfig.recebida;
+                      const dur = formatDuracao(chamada.duracao_segundos);
                       return (
                         <div key={chamada.id}>
                           {idx > 0 && <Separator className="my-3" />}
@@ -542,28 +591,46 @@ export default function CentralAtendimento() {
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-medium truncate">
-                                  {chamada.cliente_nome || chamada.telefone}
+                                  {chamada.cliente_nome || formatDid(chamada.telefone) || "Desconhecido"}
                                 </span>
                                 <Badge variant={status.variant} className="text-xs">
                                   {status.label}
                                 </Badge>
+                                {dur && (
+                                  <Badge variant="outline" className="text-xs gap-1">
+                                    <Timer className="h-3 w-3" /> {dur}
+                                  </Badge>
+                                )}
                               </div>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                {chamada.cliente_nome && <span>{chamada.telefone}</span>}
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap mt-0.5">
+                                {chamada.cliente_nome && chamada.telefone && (
+                                  <span className="font-mono">{formatDid(chamada.telefone)}</span>
+                                )}
+                                {chamada.did && (
+                                  <span className="flex items-center gap-1">
+                                    <PhoneIncoming className="h-3 w-3" />
+                                    <span className="font-mono">{formatDid(chamada.did)}</span>
+                                  </span>
+                                )}
                                 <Clock className="h-3 w-3" />
                                 <span>
                                   {formatDistanceToNow(new Date(chamada.created_at), { addSuffix: true, locale: ptBR })}
                                 </span>
                               </div>
+                              {chamada.observacoes && (
+                                <p className="text-xs text-muted-foreground italic truncate mt-0.5">
+                                  {chamada.observacoes}
+                                </p>
+                              )}
                             </div>
                             <div className="flex gap-1.5">
                               <Button
                                 size="sm"
                                 variant="ghost"
                                 className="gap-1 text-xs h-7"
-                                onClick={() => openWhatsappFor(chamada.telefone, chamada.cliente_nome)}
+                                onClick={() => openWhatsappFor(chamada.telefone || "", chamada.cliente_nome)}
                               >
                                 <Zap className="h-3.5 w-3.5 text-green-600" />
                               </Button>
