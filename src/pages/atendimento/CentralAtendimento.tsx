@@ -228,7 +228,7 @@ export default function CentralAtendimento() {
       supabase.removeChannel(channel);
       clearInterval(refreshInterval);
     };
-  }, [filtroStatus, unidadeAtual?.id]);
+  }, [filtroStatus, periodo, unidadeAtual?.id]);
 
   // === Computed Stats ===
 
