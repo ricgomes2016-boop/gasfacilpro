@@ -475,7 +475,7 @@ export default function TranspCompras() {
                   </div>
 
                   <div><Label>Observações</Label><Input value={form.observacoes} onChange={(e) => set("observacoes", e.target.value)} /></div>
-                  <Button type="submit" className="w-full" disabled={save.isPending || !form.fornecedor}>Registrar Compra</Button>
+                  <Button type="submit" className="w-full" disabled={save.isPending || !form.fornecedor || !form.unidade_id || !form.produto_descricao || form.quantidade <= 0 || form.preco_unitario <= 0}>Registrar Compra</Button>
                 </form>
               </DialogContent>
             </Dialog>
