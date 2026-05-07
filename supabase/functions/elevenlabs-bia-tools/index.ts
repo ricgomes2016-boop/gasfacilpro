@@ -451,8 +451,20 @@ serve(async (req) => {
       ) nomeProduto = "Gás P13"; // Padrão: "um gás" = P13
       else return err(`Produto não reconhecido: ${produto}. Use P13, P20, P45 ou Água.`);
 
-      // ===== Regras de funcionamento (espelha sistema) =====
-      const regras = await getRegrasFuncionamento();
+      // ===== Paraleliza: regras + tabela preços + produto lookup =====
+      const [regras, tabelaPrecos, prodResult] = await Promise.all([
+        getRegrasFuncionamento(),
+        getTabelaPrecosBia(),
+        supabase
+          .from("produtos")
+          .select("id, preco, nome, preco_telefone")
+          .eq("unidade_id", unidade.id)
+          .ilike("nome", nomeProduto)
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      const prod = prodResult.data;
+
       if (!regras.isOpen) {
         return ok({
           sucesso: false,
@@ -470,28 +482,13 @@ serve(async (req) => {
         });
       }
 
-      const { data: prod } = await supabase
-        .from("produtos")
-        .select("id, preco, nome, preco_telefone")
-        .eq("unidade_id", unidade.id)
-        .ilike("nome", nomeProduto)
-        .limit(1)
-        .maybeSingle();
-
       if (!prod) return err(`Produto ${nomeProduto} não cadastrado na unidade`);
 
-      // Preço: PRIORIDADE = tabela das Regras da Bia (configuracoes_empresa.regras_bia.tabela_precos)
-      // Fallbacks: preco_telefone do produto -> preco do produto.
-      // (Removido o "último preço cobrado ao cliente": tabela das Regras é a fonte oficial.)
+      // Preço: tabela das Regras da Bia > preco_telefone > preco
       let precoUnitario = 0;
       const chaveTab = chaveTabelaParaProduto(nomeProduto);
-      if (chaveTab) {
-        const tp = await getTabelaPrecosBia();
-        precoUnitario = Number(tp[chaveTab]?.preco || 0);
-      }
-      if (!precoUnitario) {
-        precoUnitario = Number(prod.preco_telefone || prod.preco || 0);
-      }
+      if (chaveTab) precoUnitario = Number(tabelaPrecos[chaveTab]?.preco || 0);
+      if (!precoUnitario) precoUnitario = Number(prod.preco_telefone || prod.preco || 0);
 
       const qty = Math.max(1, Number(qtdInput) || 1);
 
