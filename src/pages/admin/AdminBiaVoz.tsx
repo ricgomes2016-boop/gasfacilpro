@@ -101,7 +101,48 @@ export default function AdminBiaVoz() {
     }
   };
 
-  const applyPreset = async (preset: "gentle" | "neutral" | "fast" | "lily_jovem") => {
+  const applyAgentPreset = async (label: string, payload: Record<string, unknown>) => {
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("elevenlabs-update-bia-voice", { body: payload });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error || "Falha ao aplicar preset");
+      toast.success(`Preset '${label}' aplicado!`, { description: "Faça uma ligação de teste." });
+      await load();
+    } catch (err: any) {
+      toast.error("Erro ao aplicar preset", { description: err?.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const applyPreset = async (preset: "gentle" | "neutral" | "fast" | "lily_jovem" | "brasileira_natural" | "sarah_vapi") => {
+    if (preset === "brasileira_natural") {
+      return applyAgentPreset("Brasileira Natural (Laura)", {
+        voice_id: "FGY2WhTYpPnrIDTdsKH5",
+        model_id: "eleven_turbo_v2_5",
+        stability: 0.30,
+        similarity_boost: 0.80,
+        style: 0.55,
+        use_speaker_boost: true,
+        speed: 1.0,
+        optimize_streaming_latency: 3,
+        expressive_mode: false,
+      });
+    }
+    if (preset === "sarah_vapi") {
+      return applyAgentPreset("Sarah (Vapi-like)", {
+        voice_id: "EXAVITQu4vr4xnSDxMaL",
+        model_id: "eleven_turbo_v2_5",
+        stability: 0.30,
+        similarity_boost: 0.80,
+        style: 0.55,
+        use_speaker_boost: true,
+        speed: 1.0,
+        optimize_streaming_latency: 3,
+        expressive_mode: false,
+      });
+    }
     if (preset === "gentle") {
       setConfig((c) => ({ ...c, speed: 0.92, stability: 0.40, similarity_boost: 0.85 }));
     } else if (preset === "neutral") {
@@ -187,8 +228,14 @@ export default function AdminBiaVoz() {
             <Button variant="secondary" size="sm" onClick={() => applyPreset("fast")}>
               Preset: Rápida (antiga)
             </Button>
-            <Button variant="default" size="sm" onClick={() => applyPreset("lily_jovem")} disabled={saving}>
-              ⚡ Aplicar Lily Jovem (rápida + natural)
+            <Button variant="default" size="sm" onClick={() => applyPreset("brasileira_natural")} disabled={saving}>
+              🇧🇷 Brasileira Natural (Laura)
+            </Button>
+            <Button variant="default" size="sm" onClick={() => applyPreset("sarah_vapi")} disabled={saving}>
+              ✨ Sarah (Vapi-like)
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => applyPreset("lily_jovem")} disabled={saving}>
+              ⚡ Lily Jovem
             </Button>
           </div>
 
