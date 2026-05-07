@@ -660,7 +660,7 @@ serve(async (req) => {
             .update({
               pedido_gerado_id: pedido.id,
               cliente_id: finalClienteId,
-              cliente_nome: nome || null,
+              cliente_nome: finalClienteNome || null,
               telefone: String(telefone || "").replace(/\D/g, "") || null,
               tipo: "voip",
               observacoes: obs,
@@ -673,7 +673,7 @@ serve(async (req) => {
           await upsertChamadaBia(supabase, unidade.id, {
             telefone: String(telefone || "").replace(/\D/g, "") || null,
             cliente_id: finalClienteId,
-            cliente_nome: nome || null,
+            cliente_nome: finalClienteNome || null,
             observacoes: obs,
             pedido_gerado_id: pedido.id,
           });
