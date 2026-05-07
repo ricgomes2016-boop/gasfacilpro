@@ -293,9 +293,26 @@ export default function TranspCompras() {
     mutationFn: async () => {
       const c = calcCustos(form);
       const valorCompra = form.valor_compra || (form.quantidade * form.preco_unitario - form.desconto);
+      // Inferir tipo_produto: vasilhame se descrição menciona, água se for galão, senão cheio (padrão para gás)
+      const desc = (form.produto_descricao || "").toLowerCase();
+      let tipo_produto: "cheio" | "vasilhame" | "outros" = "cheio";
+      if (/vasilhame|vazio|sem\s+carga|botij[aã]o\s+vazio/.test(desc)) tipo_produto = "vasilhame";
+      else if (form.qtd_agua > 0 || /[áa]gua|gal[ãa]o/.test(desc)) tipo_produto = "outros";
+      else if (form.qtd_p13 > 0 || form.qtd_p20 > 0 || form.qtd_p45 > 0 || /g[aá]s|glp|p[\s-]?13|p[\s-]?20|p[\s-]?45/.test(desc)) tipo_produto = "cheio";
+
+      // Auto-distribuir quantidade nos campos P13/P20/P45/Água se ainda zerados
+      let qp13 = form.qtd_p13, qp20 = form.qtd_p20, qp45 = form.qtd_p45, qagua = form.qtd_agua;
+      const algumPreenchido = qp13 > 0 || qp20 > 0 || qp45 > 0 || qagua > 0;
+      if (!algumPreenchido && form.quantidade > 0 && tipo_produto === "cheio") {
+        if (/p[\s-]?45|45\s*kg/.test(desc)) qp45 = form.quantidade;
+        else if (/p[\s-]?20|20\s*kg/.test(desc)) qp20 = form.quantidade;
+        else qp13 = form.quantidade; // padrão P13
+      }
+
       const { error } = await (supabase as any).from("transp_compras").insert({
         empresa_id: profile?.empresa_id,
         unidade_id: form.unidade_id || null,
+        tipo_produto,
         data: form.data,
         fornecedor: form.fornecedor,
         cidade_fornecedor: form.cidade_fornecedor || null,
@@ -306,10 +323,10 @@ export default function TranspCompras() {
         desconto: form.desconto || 0,
         distancia_ida_km: form.distancia_ida_km,
         veiculo_id: form.veiculo_id || null,
-        qtd_p13: form.qtd_p13,
-        qtd_p20: form.qtd_p20,
-        qtd_p45: form.qtd_p45,
-        qtd_agua: form.qtd_agua,
+        qtd_p13: qp13,
+        qtd_p20: qp20,
+        qtd_p45: qp45,
+        qtd_agua: qagua,
         valor_compra: valorCompra,
         custo_combustivel: c.combustivel,
         custo_pedagio: form.custo_pedagio,
