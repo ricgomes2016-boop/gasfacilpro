@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Bot, Clock, Package, HandCoins, MessageSquare, Save, Loader2, Droplets, Flame, Container, Truck, RefreshCw, MapPin, BarChart3, AlertTriangle } from "lucide-react";
+import AdminBiaVoz from "@/pages/admin/AdminBiaVoz";
 
 interface PrecoProduto {
   preco: number;
