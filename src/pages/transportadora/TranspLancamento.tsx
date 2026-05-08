@@ -307,7 +307,15 @@ export default function TranspLancamento() {
               <Button className="gap-2"><Plus className="h-4 w-4" />Nova Despesa</Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
-              <DialogHeader><DialogTitle>Registrar Despesa</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{editingId ? "Editar Despesa" : "Registrar Despesa"}</DialogTitle></DialogHeader>
+              {editingId && existingComprovante && !previewUrl && !removeComprovante && (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/30 p-2 text-xs">
+                  <button type="button" onClick={() => abrirComprovante(existingComprovante)} className="flex items-center gap-1 text-primary hover:underline">
+                    <FileText className="h-3.5 w-3.5" /> Ver comprovante atual
+                  </button>
+                  <button type="button" onClick={() => setRemoveComprovante(true)} className="text-destructive hover:underline">Remover</button>
+                </div>
+              )}
 
               <div className="relative">
                 <input
