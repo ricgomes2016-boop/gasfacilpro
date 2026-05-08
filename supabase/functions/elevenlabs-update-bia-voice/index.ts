@@ -36,7 +36,11 @@ Deno.serve(async (req) => {
       try { json = JSON.parse(text); } catch { json = { raw: text }; }
       const tts = json?.conversation_config?.tts ?? null;
       const agent = json?.conversation_config?.agent ?? {};
-      const prompt = agent?.prompt?.prompt ?? "";
+      const promptObj = agent?.prompt ?? {};
+      const prompt = promptObj?.prompt ?? "";
+      const llm = promptObj?.llm ?? null;
+      const temperature = promptObj?.temperature ?? null;
+      const max_tokens = promptObj?.max_tokens ?? null;
       const first_message = agent?.first_message ?? "";
       const language = agent?.language ?? "pt";
       return new Response(
@@ -45,6 +49,9 @@ Deno.serve(async (req) => {
           status: r.status,
           tts,
           prompt,
+          llm,
+          temperature,
+          max_tokens,
           first_message,
           language,
           agent_id: ELEVENLABS_AGENT_ID,
