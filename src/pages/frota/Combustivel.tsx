@@ -599,6 +599,15 @@ export default function Combustivel() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  {filtered.length > 0 && (
+                    <TableRow className="bg-muted/40 font-semibold">
+                      <TableCell colSpan={8} className="text-right text-sm">Totais ({filtered.length} registro{filtered.length > 1 ? "s" : ""}):</TableCell>
+                      <TableCell className="text-sm">{totalLitrosFiltrado.toFixed(1)} L</TableCell>
+                      <TableCell />
+                      <TableCell className="text-sm">R$ {totalValorFiltrado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                      <TableCell colSpan={2} className="text-xs text-muted-foreground">Média R$/L: R$ {mediaPorLitro.toFixed(2)}</TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
