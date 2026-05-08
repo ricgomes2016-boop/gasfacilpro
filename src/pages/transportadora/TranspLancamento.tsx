@@ -13,7 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/transp-utils";
 import { toast } from "sonner";
-import { Plus, Receipt, Camera, Loader2, Sparkles, FileText, X, TrendingUp, Truck, BarChart3, Calendar } from "lucide-react";
+import { Plus, Receipt, Camera, Loader2, Sparkles, FileText, X, TrendingUp, Truck, BarChart3, Calendar, Pencil, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format, startOfMonth, endOfMonth, subMonths, subDays } from "date-fns";
 
 const TIPOS_DESPESA = [
@@ -42,6 +43,10 @@ export default function TranspLancamento() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [removeComprovante, setRemoveComprovante] = useState(false);
+  const [existingComprovante, setExistingComprovante] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -198,27 +203,54 @@ export default function TranspLancamento() {
 
   const save = useMutation({
     mutationFn: async () => {
-      let comprovante_url = null;
+      let comprovante_url: string | null | undefined = undefined;
       if (form.comprovante) {
         const ext = form.comprovante.name.split(".").pop();
         const path = `${profile?.empresa_id}/${Date.now()}.${ext}`;
         const { error: upErr } = await supabase.storage.from("transp-comprovantes").upload(path, form.comprovante);
         if (upErr) throw upErr;
         comprovante_url = path;
+      } else if (editingId && removeComprovante) {
+        comprovante_url = null;
       }
-      const { error } = await (supabase as any).from("transp_despesas").insert({
-        empresa_id: profile?.empresa_id,
-        tipo: form.tipo, descricao: form.descricao || null, valor: form.valor,
-        data: form.data, veiculo_id: form.veiculo_id && form.veiculo_id !== "nenhum" ? form.veiculo_id : null,
-        mes_referencia: form.data.slice(0, 7), comprovante_url,
-      });
+
+      if (editingId) {
+        const payload: any = {
+          tipo: form.tipo, descricao: form.descricao || null, valor: form.valor,
+          data: form.data, veiculo_id: form.veiculo_id && form.veiculo_id !== "nenhum" ? form.veiculo_id : null,
+          mes_referencia: form.data.slice(0, 7),
+        };
+        if (comprovante_url !== undefined) payload.comprovante_url = comprovante_url;
+        const { error } = await (supabase as any).from("transp_despesas").update(payload).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any).from("transp_despesas").insert({
+          empresa_id: profile?.empresa_id,
+          tipo: form.tipo, descricao: form.descricao || null, valor: form.valor,
+          data: form.data, veiculo_id: form.veiculo_id && form.veiculo_id !== "nenhum" ? form.veiculo_id : null,
+          mes_referencia: form.data.slice(0, 7), comprovante_url: comprovante_url ?? null,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["transp-despesas"] });
+      toast.success(editingId ? "Despesa atualizada!" : "Despesa registrada!");
+      setOpen(false);
+      resetForm();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("transp_despesas").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["transp-despesas"] });
-      toast.success("Despesa registrada!");
-      setOpen(false);
-      resetForm();
+      toast.success("Despesa excluída!");
+      setDeleteId(null);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -226,6 +258,25 @@ export default function TranspLancamento() {
   const resetForm = () => {
     setForm({ tipo: "combustivel", descricao: "", valor: 0, data: format(new Date(), "yyyy-MM-dd"), veiculo_id: "", comprovante: null });
     setPreviewUrl(null);
+    setEditingId(null);
+    setRemoveComprovante(false);
+    setExistingComprovante(null);
+  };
+
+  const abrirEdicao = (d: any) => {
+    setEditingId(d.id);
+    setForm({
+      tipo: d.tipo || "combustivel",
+      descricao: d.descricao || "",
+      valor: Number(d.valor) || 0,
+      data: d.data || format(new Date(), "yyyy-MM-dd"),
+      veiculo_id: d.veiculo_id || "",
+      comprovante: null,
+    });
+    setExistingComprovante(d.comprovante_url || null);
+    setRemoveComprovante(false);
+    setPreviewUrl(null);
+    setOpen(true);
   };
 
   const limparFiltros = () => {
@@ -256,7 +307,15 @@ export default function TranspLancamento() {
               <Button className="gap-2"><Plus className="h-4 w-4" />Nova Despesa</Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
-              <DialogHeader><DialogTitle>Registrar Despesa</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{editingId ? "Editar Despesa" : "Registrar Despesa"}</DialogTitle></DialogHeader>
+              {editingId && existingComprovante && !previewUrl && !removeComprovante && (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/30 p-2 text-xs">
+                  <button type="button" onClick={() => abrirComprovante(existingComprovante)} className="flex items-center gap-1 text-primary hover:underline">
+                    <FileText className="h-3.5 w-3.5" /> Ver comprovante atual
+                  </button>
+                  <button type="button" onClick={() => setRemoveComprovante(true)} className="text-destructive hover:underline">Remover</button>
+                </div>
+              )}
 
               <div className="relative">
                 <input
@@ -583,6 +642,7 @@ export default function TranspLancamento() {
                     <TableHead>Veículo</TableHead>
                     <TableHead className="text-center">Comp.</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
+                    <TableHead className="text-right w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -600,6 +660,16 @@ export default function TranspLancamento() {
                         ) : "—"}
                       </TableCell>
                       <TableCell className="text-right font-semibold">{formatCurrency(Number(d.valor))}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => abrirEdicao(d)} title="Editar">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteId(d.id)} title="Excluir">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -607,6 +677,7 @@ export default function TranspLancamento() {
                   <TableRow>
                     <TableCell colSpan={5} className="font-semibold">Total ({kpis.qtd})</TableCell>
                     <TableCell className="text-right font-bold">{formatCurrency(kpis.total)}</TableCell>
+                    <TableCell />
                   </TableRow>
                 </TableFooter>
               </Table>
@@ -614,6 +685,24 @@ export default function TranspLancamento() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir despesa?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteId && remove.mutate(deleteId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {remove.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TransportadoraLayout>
   );
 }
