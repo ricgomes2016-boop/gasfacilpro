@@ -1,38 +1,53 @@
-## Diagnóstico
+## Objetivo
 
-Consultando o banco, o dia **04/05/2026 ESTÁ importado**, com 2 NF-e da NACIONAL GAS:
-- NF 374238 — BOTIJAO P-13 — `tipo_produto: vasilhame` (CFOP 5921)
-- NF 374239 — BOTIJAO P-13 — `tipo_produto: vasilhame` (CFOP 5921)
+Hoje, quando o cliente liga/escreve para cancelar um pedido, a Bia responde "ligue para a empresa". Vamos ensinar a Bia a:
 
-Resumo do mês 05/2026 (NACIONAL GAS):
-```
-2026-05-02 → 8 cheio + 5 vasilhame
-2026-05-04 → 0 cheio + 2 vasilhame   ← só vasilhame
-2026-05-06 → 5 cheio + 5 vasilhame
-```
+1. **Tentar reter o cliente** com uma abordagem amigável (entender o motivo, oferecer agilizar entrega, oferecer um pequeno desconto, reagendar).
+2. Se o cliente **insistir**, executar o **cancelamento direto no sistema** via uma nova tag de comando, sem pedir para ligar para a empresa.
 
-**Causa do dia 04 não aparecer:** o componente `ComprasListaTable.tsx` (linha 36) inicia com `filtroTipo = "cheio"` por padrão. Como o dia 04/05 só tem registros do tipo `vasilhame`, ele é escondido pelo filtro.
+## Mudanças
 
-Adicionalmente, observa-se um **gap de numeração** entre NF 374138 (dia 02) e 374238 (dia 04). Isso pode significar que entre os dias 03 e 04 houve NF-e "cheio" emitidas para nossa empresa que não chegaram no Outlook (ou estão em outra pasta), OU foram emitidas para outras transportadoras pelo fornecedor. Vale rodar uma re-importação ampliada para confirmar.
+### 1. Prompt da Bia (`supabase/functions/_shared/bia-core.ts` → `buildSystemPrompt`)
 
-## Plano
+Adicionar um novo bloco de regras "CANCELAMENTO DE PEDIDO":
 
-### 1. Mudar filtro padrão da tabela para "todos"
-Em `src/components/transportadora/compras/ComprasListaTable.tsx` linha 36:
-- `useState<FiltroTipo>("cheio")` → `useState<FiltroTipo>("todos")`
+- Detectar intenção de cancelar ("quero cancelar", "desistir", "não quero mais", "cancela meu pedido").
+- Buscar o pedido ativo do cliente (já temos `orderStatus` no contexto). Se não houver pedido ativo, responder educadamente que não há pedido em andamento.
+- Se houver pedido ativo:
+  - **1ª tentativa de retenção**: perguntar o motivo de forma empática ("Posso te ajudar? O que aconteceu?").
+  - **2ª tentativa**: oferecer solução conforme o motivo (demora → "consigo agilizar com o entregador"; preço → oferecer desconto dentro das regras de negociação já existentes; horário → reagendar).
+  - **3ª resposta (cliente insiste)**: confirmar uma última vez ("Tem certeza que deseja cancelar o pedido #XXXX no valor de R$ Y?").
+  - **Confirmação final**: gerar a tag `[CANCELAR_PEDIDO]pedido_id: <id>\nmotivo: <texto curto>[/CANCELAR_PEDIDO]` e responder ao cliente que o pedido foi cancelado.
+- Regra de ouro: **nunca** mais dizer "ligue para a empresa" para cancelar — a Bia resolve.
 
-Assim o usuário vê todos os tipos por padrão (cheio + vasilhame + outros) e percebe o dia 04.
+Para isso, `getOrderStatus` precisa devolver o **id completo** do pedido (hoje devolve `id.slice(0,8)`). Vamos manter o curto para exibir e adicionar `idFull` para uso interno na tag.
 
-### 2. Adicionar badge contador por tipo no seletor
-Mostrar contagem ao lado de cada botão de filtro: "Todos (25)", "Cheio (13)", "Vasilhame (12)" — para deixar evidente quantos registros existem em cada categoria e evitar confusão futura.
+### 2. Processamento da tag em todos os webhooks da Bia
 
-### 3. Re-importação ampliada (diagnóstico)
-Disparar `importar_xml_outlook` com `dias=10` (ao invés do padrão 30 dias retroativo a partir de hoje) para garantir que toda NF-e dos dias 03–05 que estiver no Outlook seja capturada. Os registros já existentes são deduplicados por `(empresa_id, chave_nfe, produto_descricao)` então não há risco de duplicar.
+Onde já existe o tratamento de `[PEDIDO_CONFIRMADO]` (gateway-webhook, e demais webhooks da Bia que usam `bia-core`), adicionar tratamento equivalente para `[CANCELAR_PEDIDO]`:
 
-### 4. Reportar resultado
-Após re-importar, mostrar ao usuário se apareceram NF-e novas para os dias 03–05. Se não apareceram, confirma que o gap é real do fornecedor (NFs emitidas para outras empresas).
+- Extrair `pedido_id` e `motivo`.
+- Validar que o pedido pertence ao `cliente.id` e que o status atual permite cancelamento (`pendente`, `em_preparo`, `agendado`; bloquear se já estiver `saiu_entrega` ou `entregue` — nesse caso a Bia avisa que o pedido já está a caminho/entregue e oferece falar com a equipe).
+- Atualizar `pedidos`: `status = 'cancelado'`, gravar `motivo_cancelamento` (em `observacoes` se a coluna não existir) e `cancelado_em = now()`.
+- Remover a tag da resposta antes de enviar ao cliente.
+- Registrar no `registerCall`/log para o painel saber que houve cancelamento via Bia.
 
-## Detalhes técnicos
-- Sem mudanças de schema, sem migrations.
-- 1 arquivo alterado: `ComprasListaTable.tsx`.
-- 1 chamada edge function de re-importação.
+Centralizar a lógica em uma função nova em `bia-core.ts`: `cancelOrder(supabase, pedidoId, clienteId, motivo)` para reaproveitar entre webhooks (gateway, vapi, twilio, elevenlabs).
+
+### 3. Aplicar nos webhooks existentes
+
+- `supabase/functions/gateway-webhook/index.ts`
+- `supabase/functions/vapi-webhook/index.ts` (adicionar tool `cancelar_pedido` análoga a `criar_pedido`, chamando `cancelOrder`)
+- Demais webhooks da Bia que importam `bia-core` (twilio/elevenlabs já existentes) — apenas plugar o mesmo bloco de tratamento da tag.
+
+### 4. Sem mudanças de schema obrigatórias
+
+Se a tabela `pedidos` não tiver `cancelado_em`/`motivo_cancelamento`, gravamos o motivo concatenado em `observacoes` para evitar migração agora. (Posso fazer a migração depois se você preferir colunas dedicadas.)
+
+## Resultado esperado
+
+- Cliente liga, pede cancelamento → Bia tenta entender e reter.
+- Cliente insiste → Bia confirma e cancela o pedido no sistema, sem mandar ligar para a empresa.
+- Pedido aparece como `cancelado` no painel, com motivo registrado.
+
+Posso prosseguir com a implementação?
