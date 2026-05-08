@@ -642,6 +642,7 @@ export default function TranspLancamento() {
                     <TableHead>Veículo</TableHead>
                     <TableHead className="text-center">Comp.</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
+                    <TableHead className="text-right w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -659,6 +660,16 @@ export default function TranspLancamento() {
                         ) : "—"}
                       </TableCell>
                       <TableCell className="text-right font-semibold">{formatCurrency(Number(d.valor))}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => abrirEdicao(d)} title="Editar">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteId(d.id)} title="Excluir">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -666,6 +677,7 @@ export default function TranspLancamento() {
                   <TableRow>
                     <TableCell colSpan={5} className="font-semibold">Total ({kpis.qtd})</TableCell>
                     <TableCell className="text-right font-bold">{formatCurrency(kpis.total)}</TableCell>
+                    <TableCell />
                   </TableRow>
                 </TableFooter>
               </Table>
