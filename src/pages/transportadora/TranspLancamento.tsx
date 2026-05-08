@@ -1,18 +1,20 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { TransportadoraLayout } from "@/components/transportadora/TransportadoraLayout";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/transp-utils";
 import { toast } from "sonner";
-import { Plus, Receipt, Camera, Loader2, Sparkles } from "lucide-react";
-import { format } from "date-fns";
+import { Plus, Receipt, Camera, Loader2, Sparkles, FileText, X, TrendingUp, Truck, BarChart3, Calendar } from "lucide-react";
+import { format, startOfMonth, endOfMonth, subMonths, subDays } from "date-fns";
 
 const TIPOS_DESPESA = [
   { value: "combustivel", label: "Combustível" },
@@ -22,6 +24,19 @@ const TIPOS_DESPESA = [
   { value: "pedagio", label: "Pedágio" },
   { value: "outros", label: "Outros" },
 ];
+
+type PeriodoPreset = "mes_atual" | "mes_anterior" | "ultimos_30" | "personalizado";
+
+function rangeFromPreset(preset: PeriodoPreset, ci?: string, cf?: string) {
+  const hoje = new Date();
+  if (preset === "mes_atual") return { ini: format(startOfMonth(hoje), "yyyy-MM-dd"), fim: format(endOfMonth(hoje), "yyyy-MM-dd") };
+  if (preset === "mes_anterior") {
+    const p = subMonths(hoje, 1);
+    return { ini: format(startOfMonth(p), "yyyy-MM-dd"), fim: format(endOfMonth(p), "yyyy-MM-dd") };
+  }
+  if (preset === "ultimos_30") return { ini: format(subDays(hoje, 30), "yyyy-MM-dd"), fim: format(hoje, "yyyy-MM-dd") };
+  return { ini: ci || format(startOfMonth(hoje), "yyyy-MM-dd"), fim: cf || format(endOfMonth(hoje), "yyyy-MM-dd") };
+}
 
 export default function TranspLancamento() {
   const { user } = useAuth();
@@ -35,10 +50,25 @@ export default function TranspLancamento() {
     data: format(new Date(), "yyyy-MM-dd"), veiculo_id: "", comprovante: null as File | null,
   });
 
+  // Filtros
+  const [preset, setPreset] = useState<PeriodoPreset>("mes_atual");
+  const [customIni, setCustomIni] = useState("");
+  const [customFim, setCustomFim] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState<string>("todos");
+  const [filtroVeiculo, setFiltroVeiculo] = useState<string>("todos");
+  const [busca, setBusca] = useState("");
+
+  const { ini, fim } = useMemo(() => rangeFromPreset(preset, customIni, customFim), [preset, customIni, customFim]);
+
   const { data: despesas = [], isLoading } = useQuery({
-    queryKey: ["transp-despesas"],
+    queryKey: ["transp-despesas", ini, fim],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("transp_despesas").select("*").order("data", { ascending: false }).limit(50);
+      const { data, error } = await (supabase as any)
+        .from("transp_despesas")
+        .select("*")
+        .gte("data", ini)
+        .lte("data", fim)
+        .order("data", { ascending: false });
       if (error) throw error;
       return data || [];
     },
@@ -63,6 +93,74 @@ export default function TranspLancamento() {
     enabled: !!user,
   });
 
+  const placaById = useMemo(() => {
+    const m: Record<string, string> = {};
+    (veiculos as any[]).forEach((v) => { m[v.id] = v.placa; });
+    return m;
+  }, [veiculos]);
+
+  const filtered = useMemo(() => {
+    const b = busca.trim().toLowerCase();
+    return (despesas as any[]).filter((d) => {
+      if (filtroTipo !== "todos" && d.tipo !== filtroTipo) return false;
+      if (filtroVeiculo === "sem") { if (d.veiculo_id) return false; }
+      else if (filtroVeiculo !== "todos" && d.veiculo_id !== filtroVeiculo) return false;
+      if (b && !(d.descricao || "").toLowerCase().includes(b)) return false;
+      return true;
+    });
+  }, [despesas, filtroTipo, filtroVeiculo, busca]);
+
+  // KPIs
+  const kpis = useMemo(() => {
+    const total = filtered.reduce((a, d) => a + Number(d.valor || 0), 0);
+    const qtd = filtered.length;
+    const ticket = qtd > 0 ? total / qtd : 0;
+    const maior = filtered.reduce((m, d) => (Number(d.valor) > Number(m?.valor || 0) ? d : m), null as any);
+    return { total, qtd, ticket, maior };
+  }, [filtered]);
+
+  // Resumo por tipo
+  const resumoTipo = useMemo(() => {
+    const map: Record<string, { qtd: number; total: number }> = {};
+    filtered.forEach((d) => {
+      const k = d.tipo || "outros";
+      if (!map[k]) map[k] = { qtd: 0, total: 0 };
+      map[k].qtd += 1;
+      map[k].total += Number(d.valor || 0);
+    });
+    const total = kpis.total || 1;
+    return Object.entries(map)
+      .map(([tipo, v]) => ({ tipo, ...v, pct: (v.total / total) * 100 }))
+      .sort((a, b) => b.total - a.total);
+  }, [filtered, kpis.total]);
+
+  // Resumo por veículo
+  const resumoVeiculo = useMemo(() => {
+    const map: Record<string, { qtd: number; total: number }> = {};
+    filtered.forEach((d) => {
+      const k = d.veiculo_id || "__sem__";
+      if (!map[k]) map[k] = { qtd: 0, total: 0 };
+      map[k].qtd += 1;
+      map[k].total += Number(d.valor || 0);
+    });
+    return Object.entries(map)
+      .map(([id, v]) => ({ id, placa: id === "__sem__" ? "Sem veículo" : (placaById[id] || "—"), ...v }))
+      .sort((a, b) => b.total - a.total);
+  }, [filtered, placaById]);
+
+  // Resumo mensal
+  const resumoMensal = useMemo(() => {
+    const map: Record<string, { qtd: number; total: number; porTipo: Record<string, number> }> = {};
+    filtered.forEach((d) => {
+      const k = (d.data || "").slice(0, 7);
+      if (!map[k]) map[k] = { qtd: 0, total: 0, porTipo: {} };
+      map[k].qtd += 1;
+      map[k].total += Number(d.valor || 0);
+      map[k].porTipo[d.tipo] = (map[k].porTipo[d.tipo] || 0) + Number(d.valor || 0);
+    });
+    return Object.entries(map).map(([mes, v]) => ({ mes, ...v })).sort((a, b) => b.mes.localeCompare(a.mes));
+  }, [filtered]);
+
   const handlePhotoCapture = async (file: File) => {
     setForm(f => ({ ...f, comprovante: file }));
     const url = URL.createObjectURL(file);
@@ -70,7 +168,6 @@ export default function TranspLancamento() {
     setScanning(true);
 
     try {
-      // Convert to base64
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve, reject) => {
         reader.onload = () => resolve(reader.result as string);
@@ -78,10 +175,7 @@ export default function TranspLancamento() {
         reader.readAsDataURL(file);
       });
 
-      const { data, error } = await supabase.functions.invoke("receipt-ocr", {
-        body: { image_base64: base64 },
-      });
-
+      const { data, error } = await supabase.functions.invoke("receipt-ocr", { body: { image_base64: base64 } });
       if (error) throw error;
 
       if (data) {
@@ -134,16 +228,28 @@ export default function TranspLancamento() {
     setPreviewUrl(null);
   };
 
-  const mesAtual = new Date().toISOString().slice(0, 7);
-  const totalMes = despesas.filter((d: any) => d.data?.startsWith(mesAtual)).reduce((acc: number, d: any) => acc + Number(d.valor), 0);
+  const limparFiltros = () => {
+    setPreset("mes_atual");
+    setCustomIni(""); setCustomFim("");
+    setFiltroTipo("todos"); setFiltroVeiculo("todos"); setBusca("");
+  };
+
+  const tipoLabel = (v: string) => TIPOS_DESPESA.find(t => t.value === v)?.label || v;
+
+  const abrirComprovante = async (path: string) => {
+    const { data } = await supabase.storage.from("transp-comprovantes").createSignedUrl(path, 60);
+    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+  };
 
   return (
     <TransportadoraLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Despesas</h1>
-            <p className="text-muted-foreground text-sm">Despesas reais do mês · Total: <strong>{formatCurrency(totalMes)}</strong></p>
+            <p className="text-muted-foreground text-sm">
+              Período: <strong>{ini}</strong> a <strong>{fim}</strong> · {kpis.qtd} lançamento(s)
+            </p>
           </div>
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
             <DialogTrigger asChild>
@@ -152,7 +258,6 @@ export default function TranspLancamento() {
             <DialogContent className="max-w-md">
               <DialogHeader><DialogTitle>Registrar Despesa</DialogTitle></DialogHeader>
 
-              {/* Camera/AI Scan Area */}
               <div className="relative">
                 <input
                   ref={cameraRef}
@@ -200,7 +305,6 @@ export default function TranspLancamento() {
                 )}
               </div>
 
-              {/* Divider */}
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-px bg-border" />
                 <span className="text-xs text-muted-foreground">ou preencha manualmente</span>
@@ -249,27 +353,266 @@ export default function TranspLancamento() {
           </Dialog>
         </div>
 
-        <div className="grid gap-3">
-          {despesas.map((d: any) => (
-            <Card key={d.id} className="border-border/40">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                    <Receipt className="h-5 w-5 text-muted-foreground" />
+        {/* Filtros */}
+        <Card className="border-border/40">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div>
+                <Label className="text-xs">Período</Label>
+                <Select value={preset} onValueChange={(v) => setPreset(v as PeriodoPreset)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mes_atual">Mês atual</SelectItem>
+                    <SelectItem value="mes_anterior">Mês anterior</SelectItem>
+                    <SelectItem value="ultimos_30">Últimos 30 dias</SelectItem>
+                    <SelectItem value="personalizado">Personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {preset === "personalizado" && (
+                <>
+                  <div>
+                    <Label className="text-xs">De</Label>
+                    <Input type="date" value={customIni} onChange={(e) => setCustomIni(e.target.value)} />
                   </div>
                   <div>
-                    <p className="font-semibold text-sm text-foreground capitalize">{TIPOS_DESPESA.find(t => t.value === d.tipo)?.label || d.tipo}</p>
-                    <p className="text-xs text-muted-foreground">{d.data} {d.descricao && `· ${d.descricao}`}</p>
+                    <Label className="text-xs">Até</Label>
+                    <Input type="date" value={customFim} onChange={(e) => setCustomFim(e.target.value)} />
                   </div>
-                </div>
-                <p className="font-bold text-foreground">{formatCurrency(Number(d.valor))}</p>
-              </CardContent>
-            </Card>
-          ))}
-          {!isLoading && despesas.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground text-sm">Nenhuma despesa registrada</div>
-          )}
+                </>
+              )}
+              <div>
+                <Label className="text-xs">Tipo</Label>
+                <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {TIPOS_DESPESA.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Veículo</Label>
+                <Select value={filtroVeiculo} onValueChange={setFiltroVeiculo}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="sem">Sem veículo</SelectItem>
+                    {veiculos.map((v: any) => <SelectItem key={v.id} value={v.id}>{v.placa}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Buscar</Label>
+                <Input placeholder="Descrição..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+              </div>
+            </div>
+            <div className="mt-3 flex justify-end">
+              <Button variant="ghost" size="sm" onClick={limparFiltros} className="gap-1">
+                <X className="h-3 w-3" /> Limpar filtros
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* KPIs */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Card className="border-border/40">
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Total no período</p>
+              <p className="text-xl font-bold text-foreground">{formatCurrency(kpis.total)}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-border/40">
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Lançamentos</p>
+              <p className="text-xl font-bold text-foreground">{kpis.qtd}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-border/40">
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Ticket médio</p>
+              <p className="text-xl font-bold text-foreground">{formatCurrency(kpis.ticket)}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-border/40">
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">Maior despesa</p>
+              <p className="text-xl font-bold text-foreground">{formatCurrency(Number(kpis.maior?.valor || 0))}</p>
+              <p className="text-xs text-muted-foreground capitalize">{kpis.maior ? tipoLabel(kpis.maior.tipo) : "—"}</p>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Resumo por tipo + por veículo */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Card className="border-border/40">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" /> Resumo por categoria
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {resumoTipo.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">Sem dados no recorte atual</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead className="text-right">Qtd</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="w-[140px]">% do total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {resumoTipo.map((r) => (
+                      <TableRow key={r.tipo}>
+                        <TableCell className="font-medium">{tipoLabel(r.tipo)}</TableCell>
+                        <TableCell className="text-right">{r.qtd}</TableCell>
+                        <TableCell className="text-right font-semibold">{formatCurrency(r.total)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                              <div className="h-full bg-primary" style={{ width: `${Math.min(100, r.pct)}%` }} />
+                            </div>
+                            <span className="text-xs text-muted-foreground w-10 text-right">{r.pct.toFixed(0)}%</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/40">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Truck className="h-5 w-5 text-primary" /> Resumo por veículo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {resumoVeiculo.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">Sem dados no recorte atual</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Placa</TableHead>
+                      <TableHead className="text-right">Qtd</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {resumoVeiculo.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-medium">{r.placa}</TableCell>
+                        <TableCell className="text-right">{r.qtd}</TableCell>
+                        <TableCell className="text-right font-semibold">{formatCurrency(r.total)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Resumo mensal (>1 mês) */}
+        {resumoMensal.length > 1 && (
+          <Card className="border-border/40">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" /> Resumo mensal
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Mês</TableHead>
+                    <TableHead className="text-right">Qtd</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead>Por tipo</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {resumoMensal.map((m) => (
+                    <TableRow key={m.mes}>
+                      <TableCell className="font-medium">{m.mes}</TableCell>
+                      <TableCell className="text-right">{m.qtd}</TableCell>
+                      <TableCell className="text-right font-semibold">{formatCurrency(m.total)}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {Object.entries(m.porTipo).sort((a, b) => b[1] - a[1]).map(([t, v]) => (
+                            <Badge key={t} variant="secondary" className="text-[11px]">
+                              {tipoLabel(t)}: {formatCurrency(v)}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tabela de lançamentos */}
+        <Card className="border-border/40">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-primary" /> Lançamentos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-12 text-muted-foreground text-sm">Carregando...</div>
+            ) : filtered.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground text-sm">Nenhuma despesa no recorte</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Veículo</TableHead>
+                    <TableHead className="text-center">Comp.</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((d: any) => (
+                    <TableRow key={d.id}>
+                      <TableCell className="whitespace-nowrap">{d.data}</TableCell>
+                      <TableCell className="capitalize">{tipoLabel(d.tipo)}</TableCell>
+                      <TableCell className="text-muted-foreground">{d.descricao || "—"}</TableCell>
+                      <TableCell>{d.veiculo_id ? (placaById[d.veiculo_id] || "—") : "—"}</TableCell>
+                      <TableCell className="text-center">
+                        {d.comprovante_url ? (
+                          <button onClick={() => abrirComprovante(d.comprovante_url)} className="text-primary hover:underline">
+                            <FileText className="h-4 w-4 inline" />
+                          </button>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">{formatCurrency(Number(d.valor))}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell colSpan={5} className="font-semibold">Total ({kpis.qtd})</TableCell>
+                    <TableCell className="text-right font-bold">{formatCurrency(kpis.total)}</TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </TransportadoraLayout>
   );

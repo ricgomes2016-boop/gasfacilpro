@@ -1,51 +1,54 @@
+## Melhorias na tela "Despesas" (Portal do Transporte)
 
-# Plano: Filtros e melhorias em Gestão de Frota → Controle de Combustível
+Arquivo: `src/pages/transportadora/TranspLancamento.tsx`
 
-Arquivo principal: `src/pages/frota/Combustivel.tsx`
+### 1. Filtros no topo (acima da listagem)
+- **Período**: presets `Mês atual` (default) · `Mês anterior` · `Últimos 30 dias` · `Personalizado` (campos `data inicial` e `data final`).
+- **Tipo de despesa**: select com os mesmos `TIPOS_DESPESA` + opção "Todos".
+- **Veículo**: select com placas ativas + "Todos" + "Sem veículo".
+- **Busca**: input texto para descrição.
+- **Botão "Limpar filtros"**.
+- Remover o `.limit(50)` do query — paginar/filtrar no client a partir do período selecionado, ou filtrar direto na query por `data` (recomendado para performance: filtrar por intervalo no Supabase).
 
-## Situação atual
-- Já existe: filtro por **período** (data início/fim), por **status** (pendente/acertado), busca livre (placa/motorista/posto), geração de PDF e Acerto.
-- A tabela `abastecimentos` tem `veiculo_id` (FK → `veiculos`), `entregador_id` (FK → `entregadores`) e `motorista` (texto livre, legado).
-- O form atual só grava `motorista` como texto, não vincula `entregador_id`.
-- Não existem filtros dedicados por veículo nem por motorista, e os KPIs não respondem aos filtros.
+### 2. Cards de resumo (KPIs reativos aos filtros)
+4 cards no topo:
+- **Total no período** (R$)
+- **Quantidade de lançamentos**
+- **Ticket médio** (total ÷ qtd)
+- **Maior despesa** (R$ + tipo)
 
-## O que será feito
+### 3. Resumo por tipo de despesa
+Card "Resumo por categoria" com tabela:
+| Tipo | Qtd | Total (R$) | % do total |
 
-### 1. Filtros novos na barra (acima da tabela)
-- **Veículo** (Select): "Todos os veículos" + lista de `veiculos` ativos (placa — modelo).
-- **Motorista** (Select): "Todos os motoristas" + lista combinada de:
-  - `entregadores` ativos da unidade (preferencial, via `entregador_id`),
-  - + nomes distintos já registrados em `abastecimentos.motorista` (legado, sem entregador vinculado).
-- **Tipo de combustível** (Select pequeno): Todos / Gasolina / Etanol / Diesel / GNV.
-- Mantém: período (de/até), status, busca livre, PDF.
-- Botão **"Limpar filtros"** quando houver algum aplicado.
-- Layout responsivo: filtros agrupam em 2 colunas no mobile, linha única no desktop. Persistir em `useState` (sem URL).
+Ordenado por valor desc, com barra de progresso visual no % (usando `bg-primary/20` + largura).
 
-### 2. KPIs reativos aos filtros
-Os 4 cards (Gasto mensal, Litros, Pendentes, Veículos ativos) passam a refletir o **conjunto filtrado** (mantendo rótulos claros: "no período/filtro selecionado"). Adicionar 2 KPIs extras quando há filtro de veículo OU motorista ativo:
-- **Média R$/L** do recorte.
-- **Km/L estimado** (apenas se veículo selecionado e houver pelo menos 2 abastecimentos com `km` > 0 — calcular pelo delta de km ÷ litros entre registros consecutivos).
+### 4. Resumo por veículo (quando houver despesas com `veiculo_id`)
+Card "Resumo por veículo":
+| Placa | Qtd | Total (R$) |
 
-### 3. Vincular entregador no formulário
-- Trocar o input texto **Motorista** por um Select de entregadores da unidade + opção "Outro (digitar)" para preservar entrada livre (legado/terceiros).
-- Ao escolher entregador, gravar `entregador_id` e também `motorista` = nome (compatibilidade com PDF/relatórios existentes).
-- Sem migração de dados — registros antigos continuam aparecendo via campo `motorista`.
+Inclui linha "Sem veículo" para despesas não atreladas.
 
-### 4. Tabela / cards mobile
-- Adicionar coluna **Tipo** (já existe no objeto, falta exibir).
-- Mostrar nome via `entregadores.nome` quando houver `entregador_id`, senão `motorista`.
-- Linha de **totais** no rodapé da tabela (litros, valor, qtd) refletindo o filtrado.
+### 5. Resumo mensal
+Card "Resumo mensal" (aparece quando o período cobre >1 mês):
+| Mês | Qtd | Total (R$) | Por tipo (badges resumidos) |
 
-### 5. PDF
-- Cabeçalho passa a listar os filtros aplicados (Veículo X, Motorista Y, Período, Tipo).
-- Já usa `filtered` → herda automaticamente os novos filtros.
+Ordenado desc por mês.
 
-## Sem mudanças
-- Sem migração SQL (todas as colunas necessárias já existem).
-- Sem alterações em rotas, layout ou outros módulos da Frota.
-- Acerto, OCR de cupom e exclusão permanecem iguais.
+### 6. Conversão da listagem em tabela
+Substituir o grid de cards atual por uma `Table` com colunas:
+**Data · Tipo · Descrição · Veículo · Comprovante · Valor**
+- Linha de rodapé (`TableFooter`) com totalizadores: qtd e soma de valores filtrados.
+- Coluna "Comprovante" mostra ícone clicável quando `comprovante_url` existe (abre no storage).
+- Manter o card mobile-friendly: tabela em desktop, cards empilhados em telas <640px (responsivo via classes Tailwind).
 
-## Detalhes técnicos
-- Carregar `entregadores` ativos da unidade no mesmo `fetchData` (`select id, nome` com `eq("ativo", true)` e filtro por `unidade_id` se aplicável).
-- Filtro de motorista compara: `a.entregador_id === filtroMotorista` OU (legado) `a.motorista === filtroMotoristaNome` quando a opção for de "motorista livre".
-- Manter tipagem `any` consistente com o restante do arquivo (não introduzir refactor amplo).
+### 7. Preservar
+- Botão "Nova Despesa" e fluxo de OCR não mudam.
+- `TIPOS_DESPESA`, integração com Supabase, RLS e payload do insert permanecem iguais.
+- Sem migração de banco.
+
+### Detalhes técnicos
+- Carregar `entregadores` ativos não é necessário (esta tela não tem motorista).
+- Filtros via `useState`, derivados via `useMemo` sobre o array `despesas` retornado.
+- Resumos: reduce agrupando por `tipo`, `veiculo_id` e `mes_referencia`/`data.slice(0,7)`.
+- Manter tipagem `any` consistente com o restante do arquivo.
