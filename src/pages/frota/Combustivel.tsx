@@ -163,7 +163,16 @@ export default function Combustivel() {
     }
   };
 
-  const filtered = abastecimentos.filter((a) => {
+  // Lista de motoristas legados (sem entregador_id) presentes nos dados
+  const motoristasLegado = useMemo(() => {
+    const set = new Set<string>();
+    abastecimentos.forEach((a: any) => {
+      if (!a.entregador_id && a.motorista) set.add(a.motorista.trim());
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [abastecimentos]);
+
+  const filtered = useMemo(() => abastecimentos.filter((a) => {
     const matchBusca = !busca ||
       (a.veiculos as any)?.placa?.toLowerCase().includes(busca.toLowerCase()) ||
       a.motorista?.toLowerCase().includes(busca.toLowerCase()) ||
@@ -171,16 +180,72 @@ export default function Combustivel() {
     const matchStatus = filtroStatus === "todos" || a.status === filtroStatus;
     const matchDataInicio = !dataInicio || a.data >= dataInicio;
     const matchDataFim = !dataFim || a.data <= dataFim;
-    return matchBusca && matchStatus && matchDataInicio && matchDataFim;
-  });
+    const matchVeiculo = filtroVeiculo === "todos" || a.veiculo_id === filtroVeiculo;
+    const matchTipo = filtroTipo === "todos" || a.tipo === filtroTipo;
+    let matchMotorista = true;
+    if (filtroMotorista !== "todos") {
+      if (filtroMotorista.startsWith(MOTORISTA_LIVRE_PREFIX)) {
+        const nome = filtroMotorista.slice(MOTORISTA_LIVRE_PREFIX.length);
+        matchMotorista = !a.entregador_id && (a.motorista || "").trim() === nome;
+      } else {
+        matchMotorista = a.entregador_id === filtroMotorista;
+      }
+    }
+    return matchBusca && matchStatus && matchDataInicio && matchDataFim && matchVeiculo && matchTipo && matchMotorista;
+  }), [abastecimentos, busca, filtroStatus, dataInicio, dataFim, filtroVeiculo, filtroTipo, filtroMotorista]);
+
+  const hasFiltro = filtroVeiculo !== "todos" || filtroMotorista !== "todos" || filtroTipo !== "todos" || !!dataInicio || !!dataFim || filtroStatus !== "todos" || !!busca;
+
+  const limparFiltros = () => {
+    setFiltroVeiculo("todos"); setFiltroMotorista("todos"); setFiltroTipo("todos");
+    setDataInicio(""); setDataFim(""); setFiltroStatus("todos"); setBusca("");
+  };
+
+  // KPIs reativos ao recorte filtrado
+  const totalValorFiltrado = useMemo(() => filtered.reduce((s, a) => s + Number(a.valor), 0), [filtered]);
+  const totalLitrosFiltrado = useMemo(() => filtered.reduce((s, a) => s + Number(a.litros), 0), [filtered]);
+  const mediaPorLitro = totalLitrosFiltrado > 0 ? totalValorFiltrado / totalLitrosFiltrado : 0;
+
+  // Km/L estimado: precisa de veículo selecionado, ordena por km crescente e calcula deltas
+  const kmPorLitro = useMemo(() => {
+    if (filtroVeiculo === "todos") return null;
+    const lista = [...filtered].filter(a => Number(a.km) > 0).sort((a, b) => Number(a.km) - Number(b.km));
+    if (lista.length < 2) return null;
+    let kmTotal = 0; let litrosEntre = 0;
+    for (let i = 1; i < lista.length; i++) {
+      const dKm = Number(lista[i].km) - Number(lista[i - 1].km);
+      if (dKm > 0 && dKm < 5000) { // descarta outliers
+        kmTotal += dKm;
+        litrosEntre += Number(lista[i].litros);
+      }
+    }
+    return litrosEntre > 0 ? kmTotal / litrosEntre : null;
+  }, [filtered, filtroVeiculo]);
+
+  const filtrosLabel = useMemo(() => {
+    const parts: string[] = [];
+    if (filtroVeiculo !== "todos") {
+      const v = veiculos.find(x => x.id === filtroVeiculo);
+      if (v) parts.push(`Veículo: ${v.placa}${v.modelo ? " - " + v.modelo : ""}`);
+    }
+    if (filtroMotorista !== "todos") {
+      if (filtroMotorista.startsWith(MOTORISTA_LIVRE_PREFIX)) {
+        parts.push(`Motorista: ${filtroMotorista.slice(MOTORISTA_LIVRE_PREFIX.length)}`);
+      } else {
+        const e = entregadores.find(x => x.id === filtroMotorista);
+        if (e) parts.push(`Motorista: ${e.nome}`);
+      }
+    }
+    if (filtroTipo !== "todos") parts.push(`Tipo: ${filtroTipo}`);
+    if (filtroStatus !== "todos") parts.push(`Status: ${filtroStatus}`);
+    return parts.join(" • ");
+  }, [filtroVeiculo, filtroMotorista, filtroTipo, filtroStatus, veiculos, entregadores]);
 
   const gerarPDF = () => {
-    const rows = filtered.map((a) =>
-      `${parseLocalDate(a.data).toLocaleDateString("pt-BR")} | ${(a.veiculos as any)?.placa || "-"} | ${a.motorista} | ${Number(a.litros)}L ${a.tipo} | R$ ${Number(a.valor).toFixed(2)} | ${a.posto || "-"} | ${a.nota_fiscal || "-"} | ${a.status === "acertado" ? "Acertado" : "Pendente"}`
-    );
-    const totalVal = filtered.reduce((s, a) => s + Number(a.valor), 0);
-    const totalLit = filtered.reduce((s, a) => s + Number(a.litros), 0);
-    const printContent = `<html><head><title>Relatório Combustível</title><style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px}h2{text-align:center}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:bold}.total{font-weight:bold;font-size:14px;margin-top:15px}</style></head><body><h2>Relatório de Combustível</h2><p>Período: ${dataInicio ? parseLocalDate(dataInicio).toLocaleDateString("pt-BR") : "Início"} a ${dataFim ? parseLocalDate(dataFim).toLocaleDateString("pt-BR") : "Hoje"} | Total: ${filtered.length} registros</p><table><thead><tr><th>Data</th><th>Veículo</th><th>Motorista</th><th>Litros</th><th>Tipo</th><th>Valor</th><th>Posto</th><th>NF</th><th>Status</th></tr></thead><tbody>${filtered.map(a => `<tr><td>${parseLocalDate(a.data).toLocaleDateString("pt-BR")}</td><td>${(a.veiculos as any)?.placa || "-"}</td><td>${a.motorista}</td><td>${Number(a.litros)}L</td><td>${a.tipo}</td><td>R$ ${Number(a.valor).toFixed(2)}</td><td>${a.posto || "-"}</td><td>${a.nota_fiscal || "-"}</td><td>${a.status === "acertado" ? "Acertado" : "Pendente"}</td></tr>`).join("")}</tbody></table><p class="total">Total: R$ ${totalVal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} | ${totalLit.toFixed(1)}L</p></body></html>`;
+    const totalVal = totalValorFiltrado;
+    const totalLit = totalLitrosFiltrado;
+    const filtrosHtml = filtrosLabel ? `<p style="margin-top:0;color:#555">${filtrosLabel}</p>` : "";
+    const printContent = `<html><head><title>Relatório Combustível</title><style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px}h2{text-align:center;margin-bottom:6px}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:bold}.total{font-weight:bold;font-size:14px;margin-top:15px}</style></head><body><h2>Relatório de Combustível</h2><p>Período: ${dataInicio ? parseLocalDate(dataInicio).toLocaleDateString("pt-BR") : "Início"} a ${dataFim ? parseLocalDate(dataFim).toLocaleDateString("pt-BR") : "Hoje"} | Total: ${filtered.length} registros</p>${filtrosHtml}<table><thead><tr><th>Data</th><th>Veículo</th><th>Motorista</th><th>Litros</th><th>Tipo</th><th>Valor</th><th>Posto</th><th>NF</th><th>Status</th></tr></thead><tbody>${filtered.map(a => `<tr><td>${parseLocalDate(a.data).toLocaleDateString("pt-BR")}</td><td>${(a.veiculos as any)?.placa || "-"}</td><td>${(a.entregadores as any)?.nome || a.motorista || "-"}</td><td>${Number(a.litros)}L</td><td>${a.tipo}</td><td>R$ ${Number(a.valor).toFixed(2)}</td><td>${a.posto || "-"}</td><td>${a.nota_fiscal || "-"}</td><td>${a.status === "acertado" ? "Acertado" : "Pendente"}</td></tr>`).join("")}</tbody></table><p class="total">Total: R$ ${totalVal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} | ${totalLit.toFixed(1)}L | Média R$/L: R$ ${mediaPorLitro.toFixed(2)}${kmPorLitro ? ` | Km/L: ${kmPorLitro.toFixed(2)}` : ""}</p></body></html>`;
     const w = window.open('', '_blank');
     if (w) { w.document.write(printContent); w.document.close(); w.print(); }
   };
