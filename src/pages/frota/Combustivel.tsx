@@ -498,6 +498,54 @@ export default function Combustivel() {
           </CardContent>
         </Card>
 
+        {/* Resumo Mensal por Despesa */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <CardTitle className="text-base flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" /> Resumo Mensal de Combustível</CardTitle>
+              <span className="text-xs text-muted-foreground">{filtrosLabel || "Todos os registros"}</span>
+            </div>
+          </CardHeader>
+          <CardContent className="px-3 sm:px-6">
+            {resumoMensal.length === 0 ? (
+              <p className="text-center py-6 text-sm text-muted-foreground">Sem dados no recorte atual</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Mês</TableHead>
+                      <TableHead className="text-right">Abastecimentos</TableHead>
+                      <TableHead className="text-right">Litros</TableHead>
+                      <TableHead className="text-right">Valor Total</TableHead>
+                      <TableHead className="text-right">Média R$/L</TableHead>
+                      <TableHead>Por tipo</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {resumoMensal.map((r) => (
+                      <TableRow key={r.key}>
+                        <TableCell className="font-medium capitalize">{r.label}</TableCell>
+                        <TableCell className="text-right">{r.qtd}</TableCell>
+                        <TableCell className="text-right font-semibold text-orange-600">{r.litros.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} L</TableCell>
+                        <TableCell className="text-right font-semibold">R$ {r.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-right">R$ {(r.litros > 0 ? r.valor / r.litros : 0).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {Object.entries(r.porTipo).map(([t, l]) => (
+                              <Badge key={t} variant="outline" className="text-xs">{t}: {l.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}L</Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Table */}
         <Card>
           <CardHeader>
