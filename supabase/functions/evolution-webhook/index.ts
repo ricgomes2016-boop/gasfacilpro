@@ -178,6 +178,9 @@ serve(async (req) => {
 
     await saveMessage(supabase, conversationId, "assistant", reply);
 
+    // Process cancellation tag
+    { const cancelRes = await processCancelTagInReply(supabase, reply, cliente.id); reply = cancelRes.reply; }
+
     // Process order if confirmed
     const orderMatch = reply.match(/\[PEDIDO_CONFIRMADO\]([\s\S]*?)\[\/PEDIDO_CONFIRMADO\]/);
     if (orderMatch) {
