@@ -579,7 +579,7 @@ export default function Combustivel() {
                       <TableCell><Badge variant={a.status === "acertado" ? "default" : "secondary"}>{a.status === "acertado" ? "Acertado" : "Pendente"}</Badge></TableCell>
                       <TableCell>{a.entregador_id ? <Badge variant="outline" className="text-primary border-primary">📱 {(a.entregadores as any)?.nome || "Entregador"}</Badge> : <span className="text-xs text-muted-foreground">Gestão</span>}</TableCell>
                       <TableCell className="font-medium">{(a.veiculos as any)?.placa || "-"}</TableCell>
-                      <TableCell>{a.motorista}</TableCell>
+                      <TableCell>{(a.entregadores as any)?.nome || a.motorista}</TableCell>
                       <TableCell>{parseLocalDate(a.data).toLocaleDateString("pt-BR")}</TableCell>
                       <TableCell>{a.posto || "-"}</TableCell>
                       <TableCell>{a.nota_fiscal || "-"}</TableCell>
