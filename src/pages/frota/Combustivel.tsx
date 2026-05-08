@@ -261,6 +261,7 @@ export default function Combustivel() {
     try {
       const { error } = await (supabase as any).from("abastecimentos").insert({
         veiculo_id: form.veiculo_id,
+        entregador_id: form.entregador_id || null,
         motorista: form.motorista,
         data: form.data,
         km: Number(form.km) || 0,
@@ -275,7 +276,7 @@ export default function Combustivel() {
       if (error) throw error;
       toast.success("Abastecimento registrado!");
       setShowForm(false);
-      setForm({ veiculo_id: "", motorista: "", data: getBrasiliaDateString(), km: "", litros: "", tipo: "Gasolina", valor: "", posto: "", nota_fiscal: "" });
+      setForm({ veiculo_id: "", entregador_id: "", motorista: "", data: getBrasiliaDateString(), km: "", litros: "", tipo: "Gasolina", valor: "", posto: "", nota_fiscal: "" });
       fetchData();
     } catch (e: any) {
       toast.error(e.message || "Erro ao salvar");
