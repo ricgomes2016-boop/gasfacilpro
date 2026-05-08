@@ -500,6 +500,28 @@ export function stripCancelTag(reply: string): string {
   return reply.replace(/\[CANCELAR_PEDIDO\][\s\S]*?\[\/CANCELAR_PEDIDO\]/g, "").trim();
 }
 
+// Process the cancel tag in an AI reply, executing the cancellation in DB.
+// Returns the cleaned reply (tag removed) plus a flag.
+export async function processCancelTagInReply(
+  supabase: any,
+  reply: string,
+  clienteId: string | null,
+): Promise<{ reply: string; cancelled: boolean; reason?: string }> {
+  const parsed = parseCancelTag(reply);
+  if (!parsed) return { reply, cancelled: false };
+  const cleaned = stripCancelTag(reply);
+  if (!parsed.pedido_id) return { reply: cleaned, cancelled: false, reason: "missing_id" };
+  const result = await cancelOrder(supabase, parsed.pedido_id, clienteId, parsed.motivo);
+  if (!result.ok) {
+    console.error("Bia cancel failed:", result.reason, parsed);
+    const fallback = result.reason === "status_blocked"
+      ? `${cleaned}\n\n(Aviso: o pedido já está ${result.status} e não pode mais ser cancelado pelo sistema. A equipe foi avisada.)`
+      : `${cleaned}\n\n(Aviso: não consegui cancelar agora. A equipe foi avisada.)`;
+    return { reply: fallback, cancelled: false, reason: result.reason };
+  }
+  return { reply: cleaned, cancelled: true };
+}
+
 // ========== PRODUCTS ==========
 export async function getProducts(supabase: any, unidadeId: string | null, config?: BiaConfig | null) {
   let q = supabase.from("produtos").select("nome, preco, estoque, categoria")
