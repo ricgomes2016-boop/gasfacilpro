@@ -36,7 +36,11 @@ Deno.serve(async (req) => {
       try { json = JSON.parse(text); } catch { json = { raw: text }; }
       const tts = json?.conversation_config?.tts ?? null;
       const agent = json?.conversation_config?.agent ?? {};
-      const prompt = agent?.prompt?.prompt ?? "";
+      const promptObj = agent?.prompt ?? {};
+      const prompt = promptObj?.prompt ?? "";
+      const llm = promptObj?.llm ?? null;
+      const temperature = promptObj?.temperature ?? null;
+      const max_tokens = promptObj?.max_tokens ?? null;
       const first_message = agent?.first_message ?? "";
       const language = agent?.language ?? "pt";
       return new Response(
@@ -45,6 +49,9 @@ Deno.serve(async (req) => {
           status: r.status,
           tts,
           prompt,
+          llm,
+          temperature,
+          max_tokens,
           first_message,
           language,
           agent_id: ELEVENLABS_AGENT_ID,
@@ -67,6 +74,9 @@ Deno.serve(async (req) => {
     const model_id = typeof body.model_id === "string" ? body.model_id : undefined;
     const use_speaker_boost = typeof body.use_speaker_boost === "boolean" ? body.use_speaker_boost : undefined;
     const optimize_streaming_latency = typeof body.optimize_streaming_latency === "number" ? body.optimize_streaming_latency : undefined;
+    const llm = typeof body.llm === "string" ? body.llm : undefined;
+    const temperature = typeof body.temperature === "number" ? body.temperature : undefined;
+    const max_tokens = typeof body.max_tokens === "number" ? body.max_tokens : undefined;
 
     if (speed !== undefined && (speed < 0.7 || speed > 1.2)) {
       return new Response(
@@ -100,12 +110,26 @@ Deno.serve(async (req) => {
       conversation_config.tts = { ...currentTts, ...ttsChanges };
     }
 
-    // Agent (prompt + first_message)
-    if (prompt !== undefined || first_message !== undefined) {
+    // Agent (prompt + first_message + llm/temperature/max_tokens)
+    if (prompt !== undefined || first_message !== undefined || llm !== undefined || temperature !== undefined || max_tokens !== undefined) {
       const agentPatch: Record<string, any> = {};
-      if (prompt !== undefined) {
-        agentPatch.prompt = { ...currentPromptObj, prompt };
+      const promptPatch: Record<string, any> = { ...currentPromptObj };
+      // ElevenLabs rejects PATCH if both `tools` and `tool_ids` are present.
+      // Keep only tool_ids (modern field) when present; otherwise keep tools.
+      if (Array.isArray(promptPatch.tool_ids) && promptPatch.tool_ids.length > 0) {
+        delete promptPatch.tools;
+      } else if (Array.isArray(promptPatch.tools) && promptPatch.tools.length > 0) {
+        delete promptPatch.tool_ids;
+      } else {
+        delete promptPatch.tools;
+        delete promptPatch.tool_ids;
       }
+      let promptChanged = false;
+      if (prompt !== undefined) { promptPatch.prompt = prompt; promptChanged = true; }
+      if (llm !== undefined) { promptPatch.llm = llm; promptChanged = true; }
+      if (temperature !== undefined) { promptPatch.temperature = temperature; promptChanged = true; }
+      if (max_tokens !== undefined) { promptPatch.max_tokens = max_tokens; promptChanged = true; }
+      if (promptChanged) agentPatch.prompt = promptPatch;
       if (first_message !== undefined) {
         agentPatch.first_message = first_message;
       }
