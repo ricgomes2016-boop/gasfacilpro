@@ -394,12 +394,12 @@ export default function Combustivel() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Gasto Mensal</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold">R$ {gastoMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="text-xs text-muted-foreground">Este mês</p></CardContent>
+            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">{hasFiltro ? "Gasto Filtrado" : "Gasto Mensal"}</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader>
+            <CardContent><div className="text-2xl font-bold">R$ {(hasFiltro ? totalValorFiltrado : gastoMensal).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="text-xs text-muted-foreground">{hasFiltro ? `${filtered.length} registro(s)` : "Este mês"}</p></CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Litros Consumidos</CardTitle><Fuel className="h-4 w-4 text-orange-600" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-orange-600">{litrosMensal.toLocaleString("pt-BR", { minimumFractionDigits: 1 })} L</div><p className="text-xs text-muted-foreground">Este mês</p></CardContent>
+            <CardContent><div className="text-2xl font-bold text-orange-600">{(hasFiltro ? totalLitrosFiltrado : litrosMensal).toLocaleString("pt-BR", { minimumFractionDigits: 1 })} L</div><p className="text-xs text-muted-foreground">{hasFiltro ? `Média R$/L: R$ ${mediaPorLitro.toFixed(2)}` : "Este mês"}</p></CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Pendentes Acerto</CardTitle><Receipt className="h-4 w-4 text-yellow-600" /></CardHeader>
@@ -409,10 +409,72 @@ export default function Combustivel() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">Veículos Ativos</CardTitle><Truck className="h-4 w-4 text-blue-600" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-blue-600">{veiculosAtivos}</div><p className="text-xs text-muted-foreground">Na frota</p></CardContent>
+            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm font-medium">{filtroVeiculo !== "todos" && kmPorLitro != null ? "Km/L Estimado" : "Veículos Ativos"}</CardTitle><Truck className="h-4 w-4 text-blue-600" /></CardHeader>
+            <CardContent>
+              {filtroVeiculo !== "todos" && kmPorLitro != null ? (
+                <><div className="text-2xl font-bold text-blue-600">{kmPorLitro.toFixed(2)}</div><p className="text-xs text-muted-foreground">km por litro</p></>
+              ) : (
+                <><div className="text-2xl font-bold text-blue-600">{veiculosAtivos}</div><p className="text-xs text-muted-foreground">Na frota</p></>
+              )}
+            </CardContent>
           </Card>
         </div>
+
+        {/* Filtros: Veículo / Motorista / Tipo */}
+        <Card>
+          <CardContent className="p-3 md:p-4">
+            <div className="flex flex-col md:flex-row md:items-end gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
+                <div>
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1"><Truck className="h-3 w-3" /> Veículo</Label>
+                  <Select value={filtroVeiculo} onValueChange={setFiltroVeiculo}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os veículos</SelectItem>
+                      {veiculos.map(v => (
+                        <SelectItem key={v.id} value={v.id}>{v.placa}{v.modelo ? ` - ${v.modelo}` : ""}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1"><Filter className="h-3 w-3" /> Motorista</Label>
+                  <Select value={filtroMotorista} onValueChange={setFiltroMotorista}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os motoristas</SelectItem>
+                      {entregadores.length > 0 && (
+                        <>
+                          {entregadores.map(e => (
+                            <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                          ))}
+                        </>
+                      )}
+                      {motoristasLegado.map(nome => (
+                        <SelectItem key={`l-${nome}`} value={`${MOTORISTA_LIVRE_PREFIX}${nome}`}>{nome} <span className="text-muted-foreground text-xs">(livre)</span></SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1"><Fuel className="h-3 w-3" /> Combustível</Label>
+                  <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os tipos</SelectItem>
+                      {TIPOS_COMBUSTIVEL.map(t => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {hasFiltro && (
+                <Button variant="outline" size="sm" onClick={limparFiltros} className="shrink-0">Limpar filtros</Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Table */}
         <Card>
