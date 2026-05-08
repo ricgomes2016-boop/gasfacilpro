@@ -43,6 +43,10 @@ export default function TranspLancamento() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [removeComprovante, setRemoveComprovante] = useState(false);
+  const [existingComprovante, setExistingComprovante] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
