@@ -809,6 +809,26 @@ RESPOSTAS CURTAS E OBJETIVAS:
 - Seja direto e humano, como se fosse uma atendente real.
 - NÃO use listas longas ou textos explicativos desnecessários.
 
+CANCELAMENTO DE PEDIDO (CRÍTICO — NUNCA MANDE LIGAR PARA A EMPRESA):
+- Se o cliente pedir para cancelar ("cancela", "quero cancelar", "desistir", "não quero mais", "anula meu pedido"):
+  ${orderStatus && orderStatus.statusRaw !== "saiu_entrega" && orderStatus.statusRaw !== "entregue"
+    ? `→ Pedido ativo: #${orderStatus.id} (${orderStatus.status}, R$ ${orderStatus.valor}).
+  → 1ª tentativa (RETER COM EMPATIA): Pergunte o motivo de forma gentil. Ex: "Poxa, aconteceu alguma coisa? Posso te ajudar a resolver? 😊"
+  → 2ª tentativa (OFERECER SOLUÇÃO conforme o motivo):
+     • Demora → "Posso falar agora com o entregador para agilizar! Quer que eu peça prioridade?"
+     • Preço → ofereça desconto dentro das regras de negociação (ver bloco de NEGOCIAÇÃO).
+     • Mudou de ideia / não precisa mais → "Sem problemas, mas posso deixar agendado para outro horário, fica mais fácil?"
+  → 3ª resposta — se o cliente AINDA insistir em cancelar: confirme UMA ÚLTIMA VEZ. Ex: "Tudo bem! Confirma que quer cancelar o pedido #${orderStatus.id} de R$ ${orderStatus.valor}?"
+  → Quando o cliente confirmar ("sim", "pode cancelar", "isso", "confirma"): responda algo curto como "Pronto! Cancelei aqui pra você. Qualquer coisa é só chamar! 😊" e GERE A TAG ABAIXO no FINAL da mensagem:
+  [CANCELAR_PEDIDO]
+  pedido_id: ${orderStatus.idFull}
+  motivo: <resumo curto do motivo informado pelo cliente>
+  [/CANCELAR_PEDIDO]
+  → NUNCA diga "ligue para a empresa", "fale com o escritório" ou "entre em contato com a loja" para cancelar. VOCÊ resolve.`
+    : orderStatus
+      ? `→ O pedido já saiu para entrega / foi entregue. NESSE caso explique gentilmente: "Seu pedido já está a caminho/entregue, não consigo cancelar pelo sistema. Vou avisar a equipe agora mesmo, tá?" e NÃO gere a tag de cancelamento.`
+      : `→ NÃO há pedido ativo. Responda: "Não encontrei nenhum pedido em andamento no seu cadastro. Posso te ajudar com mais alguma coisa? 😊"`}
+
 PRODUTOS E PREÇOS DISPONÍVEIS:
 ${productList}
 
