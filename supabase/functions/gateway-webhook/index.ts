@@ -10,6 +10,7 @@ import {
   getOffHoursMessage,
   getEntregadorLocation,
   identifyContact,
+  processCancelTagInReply,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
