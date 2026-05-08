@@ -9,7 +9,7 @@ import {
   createOrder, sendTyping, sendMessage, sendLocation, registerCall,
   downloadAudio, transcribeAudio, getEntregadorLocation,
   getOffHoursMessage,
-  identifyContact, checkRateLimit,
+  identifyContact, checkRateLimit, processCancelTagInReply,
   type BiaConfig,
 } from "../_shared/bia-core.ts";
 
