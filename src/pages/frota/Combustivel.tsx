@@ -222,6 +222,28 @@ export default function Combustivel() {
     return litrosEntre > 0 ? kmTotal / litrosEntre : null;
   }, [filtered, filtroVeiculo]);
 
+  // Resumo mensal (agrupado por ano-mês) considerando o recorte filtrado
+  const resumoMensal = useMemo(() => {
+    const map = new Map<string, { litros: number; valor: number; qtd: number; porTipo: Record<string, number> }>();
+    filtered.forEach((a: any) => {
+      const d = parseLocalDate(a.data);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const cur = map.get(key) || { litros: 0, valor: 0, qtd: 0, porTipo: {} };
+      cur.litros += Number(a.litros) || 0;
+      cur.valor += Number(a.valor) || 0;
+      cur.qtd += 1;
+      cur.porTipo[a.tipo] = (cur.porTipo[a.tipo] || 0) + (Number(a.litros) || 0);
+      map.set(key, cur);
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([k, v]) => {
+        const [y, m] = k.split("-");
+        const label = new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+        return { key: k, label, ...v };
+      });
+  }, [filtered]);
+
   const filtrosLabel = useMemo(() => {
     const parts: string[] = [];
     if (filtroVeiculo !== "todos") {
