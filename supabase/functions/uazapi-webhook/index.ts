@@ -8,7 +8,7 @@ import {
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall,
   downloadAudio, transcribeAudio, getEntregadorLocation, collectBufferedMessages, getOffHoursMessage,
-  identifyContact,
+  identifyContact, processCancelTagInReply,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
@@ -189,6 +189,9 @@ serve(async (req) => {
     }
 
     await saveMessage(supabase, conversationId, "assistant", reply);
+
+    // Process cancellation tag
+    { const cancelRes = await processCancelTagInReply(supabase, reply, cliente.id); reply = cancelRes.reply; }
 
     // Process order
     const orderMatch = reply.match(/\[PEDIDO_CONFIRMADO\]([\s\S]*?)\[\/PEDIDO_CONFIRMADO\]/);

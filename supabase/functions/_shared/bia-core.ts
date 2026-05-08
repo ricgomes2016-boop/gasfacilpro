@@ -442,9 +442,84 @@ export async function getOrderStatus(supabase: any, clienteId: string | null, ph
 
   return {
     id: p.id.slice(0, 8),
+    idFull: p.id,
+    statusRaw: p.status,
     status: statusMap[p.status] || p.status,
     valor: p.valor_total,
   };
+}
+
+// ========== CANCEL ORDER ==========
+export async function cancelOrder(
+  supabase: any,
+  pedidoId: string,
+  clienteId: string | null,
+  motivo: string,
+): Promise<{ ok: boolean; reason?: string; status?: string }> {
+  if (!pedidoId) return { ok: false, reason: "missing_id" };
+
+  const { data: pedido, error } = await supabase.from("pedidos")
+    .select("id, status, cliente_id, observacoes")
+    .eq("id", pedidoId).maybeSingle();
+
+  if (error || !pedido) return { ok: false, reason: "not_found" };
+  if (clienteId && pedido.cliente_id && pedido.cliente_id !== clienteId) {
+    return { ok: false, reason: "not_owner" };
+  }
+  const blocked = ["entregue", "cancelado", "saiu_entrega"];
+  if (blocked.includes(pedido.status)) {
+    return { ok: false, reason: "status_blocked", status: pedido.status };
+  }
+
+  const obs = `${pedido.observacoes ? pedido.observacoes + "\n" : ""}[Cancelado pela Bia em ${new Date().toISOString()}] Motivo: ${motivo || "não informado"}`;
+  const { error: updErr } = await supabase.from("pedidos")
+    .update({ status: "cancelado", observacoes: obs })
+    .eq("id", pedidoId);
+
+  if (updErr) {
+    console.error("cancelOrder update error:", updErr);
+    return { ok: false, reason: "update_failed" };
+  }
+  return { ok: true };
+}
+
+// ========== PROCESS CANCEL TAG (helper for webhooks) ==========
+export function parseCancelTag(reply: string): { pedido_id: string; motivo: string } | null {
+  const m = reply.match(/\[CANCELAR_PEDIDO\]([\s\S]*?)\[\/CANCELAR_PEDIDO\]/);
+  if (!m) return null;
+  const block = m[1];
+  const idMatch = block.match(/pedido_id:\s*([0-9a-f-]{8,})/i);
+  const motMatch = block.match(/motivo:\s*([^\n]+)/i);
+  return {
+    pedido_id: (idMatch?.[1] || "").trim(),
+    motivo: (motMatch?.[1] || "não informado").trim(),
+  };
+}
+
+export function stripCancelTag(reply: string): string {
+  return reply.replace(/\[CANCELAR_PEDIDO\][\s\S]*?\[\/CANCELAR_PEDIDO\]/g, "").trim();
+}
+
+// Process the cancel tag in an AI reply, executing the cancellation in DB.
+// Returns the cleaned reply (tag removed) plus a flag.
+export async function processCancelTagInReply(
+  supabase: any,
+  reply: string,
+  clienteId: string | null,
+): Promise<{ reply: string; cancelled: boolean; reason?: string }> {
+  const parsed = parseCancelTag(reply);
+  if (!parsed) return { reply, cancelled: false };
+  const cleaned = stripCancelTag(reply);
+  if (!parsed.pedido_id) return { reply: cleaned, cancelled: false, reason: "missing_id" };
+  const result = await cancelOrder(supabase, parsed.pedido_id, clienteId, parsed.motivo);
+  if (!result.ok) {
+    console.error("Bia cancel failed:", result.reason, parsed);
+    const fallback = result.reason === "status_blocked"
+      ? `${cleaned}\n\n(Aviso: o pedido já está ${result.status} e não pode mais ser cancelado pelo sistema. A equipe foi avisada.)`
+      : `${cleaned}\n\n(Aviso: não consegui cancelar agora. A equipe foi avisada.)`;
+    return { reply: fallback, cancelled: false, reason: result.reason };
+  }
+  return { reply: cleaned, cancelled: true };
 }
 
 // ========== PRODUCTS ==========
@@ -755,6 +830,26 @@ RESPOSTAS CURTAS E OBJETIVAS:
 - Responda em no máximo 2-3 linhas.
 - Seja direto e humano, como se fosse uma atendente real.
 - NÃO use listas longas ou textos explicativos desnecessários.
+
+CANCELAMENTO DE PEDIDO (CRÍTICO — NUNCA MANDE LIGAR PARA A EMPRESA):
+- Se o cliente pedir para cancelar ("cancela", "quero cancelar", "desistir", "não quero mais", "anula meu pedido"):
+  ${orderStatus && orderStatus.statusRaw !== "saiu_entrega" && orderStatus.statusRaw !== "entregue"
+    ? `→ Pedido ativo: #${orderStatus.id} (${orderStatus.status}, R$ ${orderStatus.valor}).
+  → 1ª tentativa (RETER COM EMPATIA): Pergunte o motivo de forma gentil. Ex: "Poxa, aconteceu alguma coisa? Posso te ajudar a resolver? 😊"
+  → 2ª tentativa (OFERECER SOLUÇÃO conforme o motivo):
+     • Demora → "Posso falar agora com o entregador para agilizar! Quer que eu peça prioridade?"
+     • Preço → ofereça desconto dentro das regras de negociação (ver bloco de NEGOCIAÇÃO).
+     • Mudou de ideia / não precisa mais → "Sem problemas, mas posso deixar agendado para outro horário, fica mais fácil?"
+  → 3ª resposta — se o cliente AINDA insistir em cancelar: confirme UMA ÚLTIMA VEZ. Ex: "Tudo bem! Confirma que quer cancelar o pedido #${orderStatus.id} de R$ ${orderStatus.valor}?"
+  → Quando o cliente confirmar ("sim", "pode cancelar", "isso", "confirma"): responda algo curto como "Pronto! Cancelei aqui pra você. Qualquer coisa é só chamar! 😊" e GERE A TAG ABAIXO no FINAL da mensagem:
+  [CANCELAR_PEDIDO]
+  pedido_id: ${orderStatus.idFull}
+  motivo: <resumo curto do motivo informado pelo cliente>
+  [/CANCELAR_PEDIDO]
+  → NUNCA diga "ligue para a empresa", "fale com o escritório" ou "entre em contato com a loja" para cancelar. VOCÊ resolve.`
+    : orderStatus
+      ? `→ O pedido já saiu para entrega / foi entregue. NESSE caso explique gentilmente: "Seu pedido já está a caminho/entregue, não consigo cancelar pelo sistema. Vou avisar a equipe agora mesmo, tá?" e NÃO gere a tag de cancelamento.`
+      : `→ NÃO há pedido ativo. Responda: "Não encontrei nenhum pedido em andamento no seu cadastro. Posso te ajudar com mais alguma coisa? 😊"`}
 
 PRODUTOS E PREÇOS DISPONÍVEIS:
 ${productList}

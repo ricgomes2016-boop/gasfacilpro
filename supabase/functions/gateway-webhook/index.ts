@@ -10,6 +10,7 @@ import {
   getOffHoursMessage,
   getEntregadorLocation,
   identifyContact,
+  processCancelTagInReply,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
@@ -117,6 +118,12 @@ serve(async (req) => {
     }
 
     await saveMessage(supabase, conversationId, "assistant", reply);
+
+    // Process cancellation tag (Bia cancelling an order on customer's behalf)
+    {
+      const cancelRes = await processCancelTagInReply(supabase, reply, cliente.id);
+      reply = cancelRes.reply;
+    }
 
     // Process order
     const orderMatch = reply.match(/\[PEDIDO_CONFIRMADO\]([\s\S]*?)\[\/PEDIDO_CONFIRMADO\]/);

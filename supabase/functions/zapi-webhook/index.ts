@@ -9,7 +9,7 @@ import {
   createOrder, sendTyping, sendMessage, sendLocation, registerCall,
   downloadAudio, transcribeAudio, getEntregadorLocation,
   getOffHoursMessage,
-  identifyContact, checkRateLimit,
+  identifyContact, checkRateLimit, processCancelTagInReply,
   type BiaConfig,
 } from "../_shared/bia-core.ts";
 
@@ -169,6 +169,9 @@ serve(async (req) => {
     }
 
     await saveMessage(supabase, conversationId, "assistant", reply);
+
+    // Process cancellation tag
+    { const cancelRes = await processCancelTagInReply(supabase, reply, cliente.id); reply = cancelRes.reply; }
 
     // Process order
     const orderMatch = reply.match(/\[PEDIDO_CONFIRMADO\]([\s\S]*?)\[\/PEDIDO_CONFIRMADO\]/);
