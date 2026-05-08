@@ -103,12 +103,16 @@ Deno.serve(async (req) => {
       conversation_config.tts = { ...currentTts, ...ttsChanges };
     }
 
-    // Agent (prompt + first_message)
-    if (prompt !== undefined || first_message !== undefined) {
+    // Agent (prompt + first_message + llm/temperature/max_tokens)
+    if (prompt !== undefined || first_message !== undefined || llm !== undefined || temperature !== undefined || max_tokens !== undefined) {
       const agentPatch: Record<string, any> = {};
-      if (prompt !== undefined) {
-        agentPatch.prompt = { ...currentPromptObj, prompt };
-      }
+      const promptPatch: Record<string, any> = { ...currentPromptObj };
+      let promptChanged = false;
+      if (prompt !== undefined) { promptPatch.prompt = prompt; promptChanged = true; }
+      if (llm !== undefined) { promptPatch.llm = llm; promptChanged = true; }
+      if (temperature !== undefined) { promptPatch.temperature = temperature; promptChanged = true; }
+      if (max_tokens !== undefined) { promptPatch.max_tokens = max_tokens; promptChanged = true; }
+      if (promptChanged) agentPatch.prompt = promptPatch;
       if (first_message !== undefined) {
         agentPatch.first_message = first_message;
       }
