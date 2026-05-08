@@ -10,20 +10,28 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  errorInfo: ErrorInfo | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+  static getDerivedStateFromError(error: Error): Partial<State> {
+    return { hasError: true };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Log erro para monitoramento
     console.error("ErrorBoundary caught:", error, errorInfo);
+    
+    // Atualizar estado com informações completas
+    this.setState({ error, errorInfo });
+    
+    // TODO: Integrar com Sentry quando disponível
+    // Sentry.captureException(error, { contexts: { react: errorInfo } });
   }
 
   handleReset = () => {
@@ -58,6 +66,24 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="text-sm text-muted-foreground">
               Ocorreu um erro inesperado. Tente novamente.
             </p>
+            
+            {/* Debug info em desenvolvimento */}
+            {process.env.NODE_ENV === "development" && this.state.error && (
+              <div className="p-3 bg-red-50 rounded-lg border border-red-200 text-left">
+                <p className="text-xs font-mono text-red-700 break-words">
+                  {this.state.error.message}
+                </p>
+                {this.state.errorInfo && (
+                  <details className="mt-2 text-xs text-red-600">
+                    <summary className="cursor-pointer font-semibold">Stack trace</summary>
+                    <pre className="mt-2 overflow-auto bg-red-100 p-2 rounded text-xs">
+                      {this.state.errorInfo.componentStack}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            )}
+            
             <div className="flex gap-2 justify-center">
               <Button variant="outline" onClick={this.handleGoBack}>
                 Voltar
