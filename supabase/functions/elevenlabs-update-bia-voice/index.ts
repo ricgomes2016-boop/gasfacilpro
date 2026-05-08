@@ -114,6 +114,16 @@ Deno.serve(async (req) => {
     if (prompt !== undefined || first_message !== undefined || llm !== undefined || temperature !== undefined || max_tokens !== undefined) {
       const agentPatch: Record<string, any> = {};
       const promptPatch: Record<string, any> = { ...currentPromptObj };
+      // ElevenLabs rejects PATCH if both `tools` and `tool_ids` are present.
+      // Keep only tool_ids (modern field) when present; otherwise keep tools.
+      if (Array.isArray(promptPatch.tool_ids) && promptPatch.tool_ids.length > 0) {
+        delete promptPatch.tools;
+      } else if (Array.isArray(promptPatch.tools) && promptPatch.tools.length > 0) {
+        delete promptPatch.tool_ids;
+      } else {
+        delete promptPatch.tools;
+        delete promptPatch.tool_ids;
+      }
       let promptChanged = false;
       if (prompt !== undefined) { promptPatch.prompt = prompt; promptChanged = true; }
       if (llm !== undefined) { promptPatch.llm = llm; promptChanged = true; }
