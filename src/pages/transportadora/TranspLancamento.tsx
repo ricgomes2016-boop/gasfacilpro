@@ -203,27 +203,54 @@ export default function TranspLancamento() {
 
   const save = useMutation({
     mutationFn: async () => {
-      let comprovante_url = null;
+      let comprovante_url: string | null | undefined = undefined;
       if (form.comprovante) {
         const ext = form.comprovante.name.split(".").pop();
         const path = `${profile?.empresa_id}/${Date.now()}.${ext}`;
         const { error: upErr } = await supabase.storage.from("transp-comprovantes").upload(path, form.comprovante);
         if (upErr) throw upErr;
         comprovante_url = path;
+      } else if (editingId && removeComprovante) {
+        comprovante_url = null;
       }
-      const { error } = await (supabase as any).from("transp_despesas").insert({
-        empresa_id: profile?.empresa_id,
-        tipo: form.tipo, descricao: form.descricao || null, valor: form.valor,
-        data: form.data, veiculo_id: form.veiculo_id && form.veiculo_id !== "nenhum" ? form.veiculo_id : null,
-        mes_referencia: form.data.slice(0, 7), comprovante_url,
-      });
+
+      if (editingId) {
+        const payload: any = {
+          tipo: form.tipo, descricao: form.descricao || null, valor: form.valor,
+          data: form.data, veiculo_id: form.veiculo_id && form.veiculo_id !== "nenhum" ? form.veiculo_id : null,
+          mes_referencia: form.data.slice(0, 7),
+        };
+        if (comprovante_url !== undefined) payload.comprovante_url = comprovante_url;
+        const { error } = await (supabase as any).from("transp_despesas").update(payload).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any).from("transp_despesas").insert({
+          empresa_id: profile?.empresa_id,
+          tipo: form.tipo, descricao: form.descricao || null, valor: form.valor,
+          data: form.data, veiculo_id: form.veiculo_id && form.veiculo_id !== "nenhum" ? form.veiculo_id : null,
+          mes_referencia: form.data.slice(0, 7), comprovante_url: comprovante_url ?? null,
+        });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["transp-despesas"] });
+      toast.success(editingId ? "Despesa atualizada!" : "Despesa registrada!");
+      setOpen(false);
+      resetForm();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("transp_despesas").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["transp-despesas"] });
-      toast.success("Despesa registrada!");
-      setOpen(false);
-      resetForm();
+      toast.success("Despesa excluída!");
+      setDeleteId(null);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -231,6 +258,25 @@ export default function TranspLancamento() {
   const resetForm = () => {
     setForm({ tipo: "combustivel", descricao: "", valor: 0, data: format(new Date(), "yyyy-MM-dd"), veiculo_id: "", comprovante: null });
     setPreviewUrl(null);
+    setEditingId(null);
+    setRemoveComprovante(false);
+    setExistingComprovante(null);
+  };
+
+  const abrirEdicao = (d: any) => {
+    setEditingId(d.id);
+    setForm({
+      tipo: d.tipo || "combustivel",
+      descricao: d.descricao || "",
+      valor: Number(d.valor) || 0,
+      data: d.data || format(new Date(), "yyyy-MM-dd"),
+      veiculo_id: d.veiculo_id || "",
+      comprovante: null,
+    });
+    setExistingComprovante(d.comprovante_url || null);
+    setRemoveComprovante(false);
+    setPreviewUrl(null);
+    setOpen(true);
   };
 
   const limparFiltros = () => {
