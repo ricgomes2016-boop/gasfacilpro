@@ -13,7 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/transp-utils";
 import { toast } from "sonner";
-import { Plus, Receipt, Camera, Loader2, Sparkles, FileText, X, TrendingUp, Truck, BarChart3, Calendar } from "lucide-react";
+import { Plus, Receipt, Camera, Loader2, Sparkles, FileText, X, TrendingUp, Truck, BarChart3, Calendar, Pencil, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format, startOfMonth, endOfMonth, subMonths, subDays } from "date-fns";
 
 const TIPOS_DESPESA = [
