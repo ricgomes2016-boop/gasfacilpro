@@ -119,6 +119,16 @@ serve(async (req) => {
 
     await saveMessage(supabase, conversationId, "assistant", reply);
 
+    // Process cancellation tag (Bia cancelling an order on customer's behalf)
+    {
+      const cancelRes = await processCancelTagInReply(supabase, reply, cliente.id);
+      if (cancelRes.cancelled || cancelRes.reason) {
+        reply = cancelRes.reply;
+        await sendMessage(config, phone, reply);
+        return OK({ ok: true, cancelled: cancelRes.cancelled });
+      }
+    }
+
     // Process order
     const orderMatch = reply.match(/\[PEDIDO_CONFIRMADO\]([\s\S]*?)\[\/PEDIDO_CONFIRMADO\]/);
     if (orderMatch) {
