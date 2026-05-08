@@ -122,11 +122,7 @@ serve(async (req) => {
     // Process cancellation tag (Bia cancelling an order on customer's behalf)
     {
       const cancelRes = await processCancelTagInReply(supabase, reply, cliente.id);
-      if (cancelRes.cancelled || cancelRes.reason) {
-        reply = cancelRes.reply;
-        await sendMessage(config, phone, reply);
-        return OK({ ok: true, cancelled: cancelRes.cancelled });
-      }
+      reply = cancelRes.reply;
     }
 
     // Process order
