@@ -646,7 +646,33 @@ export default function Combustivel() {
             </div>
             <div>
               <Label>Motorista *</Label>
-              <Input value={form.motorista} onChange={(e) => setForm({ ...form, motorista: e.target.value })} placeholder="Nome do motorista" />
+              <Select
+                value={form.entregador_id || "_livre"}
+                onValueChange={(v) => {
+                  if (v === "_livre") {
+                    setForm({ ...form, entregador_id: "", motorista: "" });
+                  } else {
+                    const ent = entregadores.find(e => e.id === v);
+                    setForm({ ...form, entregador_id: v, motorista: ent?.nome || "" });
+                  }
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {entregadores.map(e => (
+                    <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                  ))}
+                  <SelectItem value="_livre">Outro (digitar)</SelectItem>
+                </SelectContent>
+              </Select>
+              {!form.entregador_id && (
+                <Input
+                  className="mt-2"
+                  value={form.motorista}
+                  onChange={(e) => setForm({ ...form, motorista: e.target.value })}
+                  placeholder="Nome do motorista"
+                />
+              )}
             </div>
             <div>
               <Label>Data</Label>
