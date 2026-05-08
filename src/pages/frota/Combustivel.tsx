@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { parseLocalDate, getBrasiliaDateString } from "@/lib/utils";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
@@ -23,6 +23,14 @@ interface Veiculo {
   modelo?: string;
 }
 
+interface Entregador {
+  id: string;
+  nome: string;
+}
+
+const MOTORISTA_LIVRE_PREFIX = "livre:";
+const TIPOS_COMBUSTIVEL = ["Gasolina", "Etanol", "Diesel", "GNV"];
+
 export default function Combustivel() {
   const { unidadeAtual } = useUnidade();
   const [loading, setLoading] = useState(true);
@@ -34,12 +42,19 @@ export default function Combustivel() {
   const [litrosMensal, setLitrosMensal] = useState(0);
   const [veiculosAtivos, setVeiculosAtivos] = useState(0);
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
+  const [entregadores, setEntregadores] = useState<Entregador[]>([]);
+
+  // Filtros novos
+  const [filtroVeiculo, setFiltroVeiculo] = useState<string>("todos");
+  const [filtroMotorista, setFiltroMotorista] = useState<string>("todos");
+  const [filtroTipo, setFiltroTipo] = useState<string>("todos");
 
   // Form state
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     veiculo_id: "",
+    entregador_id: "" as string, // "" = digitar livre
     motorista: "",
     data: getBrasiliaDateString(),
     km: "",
@@ -131,12 +146,16 @@ export default function Combustivel() {
       setGastoMensal(mesData.reduce((s: number, a: any) => s + Number(a.valor), 0));
       setLitrosMensal(mesData.reduce((s: number, a: any) => s + Number(a.litros), 0));
 
-      const [{ count }, { data: veiculosData }] = await Promise.all([
+      let entQ = supabase.from("entregadores").select("id, nome").eq("ativo", true).order("nome");
+      if (unidadeAtual?.id) entQ = entQ.eq("unidade_id", unidadeAtual.id);
+      const [{ count }, { data: veiculosData }, { data: entregData }] = await Promise.all([
         supabase.from("veiculos").select("id", { count: "exact" }).eq("ativo", true),
         supabase.from("veiculos").select("id, placa, modelo").eq("ativo", true).order("placa"),
+        entQ,
       ]);
       setVeiculosAtivos(count || 0);
       setVeiculos(veiculosData || []);
+      setEntregadores((entregData as any) || []);
     } catch (e) {
       console.error(e);
     } finally {
