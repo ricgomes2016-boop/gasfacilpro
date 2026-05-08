@@ -442,9 +442,62 @@ export async function getOrderStatus(supabase: any, clienteId: string | null, ph
 
   return {
     id: p.id.slice(0, 8),
+    idFull: p.id,
+    statusRaw: p.status,
     status: statusMap[p.status] || p.status,
     valor: p.valor_total,
   };
+}
+
+// ========== CANCEL ORDER ==========
+export async function cancelOrder(
+  supabase: any,
+  pedidoId: string,
+  clienteId: string | null,
+  motivo: string,
+): Promise<{ ok: boolean; reason?: string; status?: string }> {
+  if (!pedidoId) return { ok: false, reason: "missing_id" };
+
+  const { data: pedido, error } = await supabase.from("pedidos")
+    .select("id, status, cliente_id, observacoes")
+    .eq("id", pedidoId).maybeSingle();
+
+  if (error || !pedido) return { ok: false, reason: "not_found" };
+  if (clienteId && pedido.cliente_id && pedido.cliente_id !== clienteId) {
+    return { ok: false, reason: "not_owner" };
+  }
+  const blocked = ["entregue", "cancelado", "saiu_entrega"];
+  if (blocked.includes(pedido.status)) {
+    return { ok: false, reason: "status_blocked", status: pedido.status };
+  }
+
+  const obs = `${pedido.observacoes ? pedido.observacoes + "\n" : ""}[Cancelado pela Bia em ${new Date().toISOString()}] Motivo: ${motivo || "não informado"}`;
+  const { error: updErr } = await supabase.from("pedidos")
+    .update({ status: "cancelado", observacoes: obs })
+    .eq("id", pedidoId);
+
+  if (updErr) {
+    console.error("cancelOrder update error:", updErr);
+    return { ok: false, reason: "update_failed" };
+  }
+  return { ok: true };
+}
+
+// ========== PROCESS CANCEL TAG (helper for webhooks) ==========
+export function parseCancelTag(reply: string): { pedido_id: string; motivo: string } | null {
+  const m = reply.match(/\[CANCELAR_PEDIDO\]([\s\S]*?)\[\/CANCELAR_PEDIDO\]/);
+  if (!m) return null;
+  const block = m[1];
+  const idMatch = block.match(/pedido_id:\s*([0-9a-f-]{8,})/i);
+  const motMatch = block.match(/motivo:\s*([^\n]+)/i);
+  return {
+    pedido_id: (idMatch?.[1] || "").trim(),
+    motivo: (motMatch?.[1] || "não informado").trim(),
+  };
+}
+
+export function stripCancelTag(reply: string): string {
+  return reply.replace(/\[CANCELAR_PEDIDO\][\s\S]*?\[\/CANCELAR_PEDIDO\]/g, "").trim();
 }
 
 // ========== PRODUCTS ==========
