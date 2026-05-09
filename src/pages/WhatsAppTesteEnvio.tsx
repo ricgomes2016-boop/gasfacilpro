@@ -96,7 +96,7 @@ export default function WhatsAppTesteEnvio() {
         .eq("unidade_id", unidadeId)
         .order("created_at", { ascending: false })
         .limit(20);
-      if (mounted) setEnvios((data as Envio[]) || []);
+      if (mounted) setEnvios((data as unknown as Envio[]) || []);
     })();
 
     const channel = supabase
