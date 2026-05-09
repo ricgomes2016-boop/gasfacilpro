@@ -64,6 +64,43 @@ serve(async (req) => {
       for (const change of entry.changes || []) {
         if (change.field !== "messages") continue;
         const value = change.value;
+
+        // ===== Status updates (delivery / read receipts) for test sends =====
+        if (Array.isArray(value?.statuses) && value.statuses.length) {
+          for (const st of value.statuses) {
+            const wamid = st?.id;
+            const newStatus = st?.status; // sent, delivered, read, failed
+            if (!wamid || !newStatus) continue;
+            try {
+              const { data: existing } = await supabase
+                .from("whatsapp_test_envios")
+                .select("id, status_history")
+                .eq("wamid", wamid)
+                .maybeSingle();
+              if (existing) {
+                const history = Array.isArray(existing.status_history) ? existing.status_history : [];
+                history.push({
+                  status: newStatus,
+                  at: new Date().toISOString(),
+                  timestamp: st?.timestamp || null,
+                  errors: st?.errors || null,
+                });
+                await supabase
+                  .from("whatsapp_test_envios")
+                  .update({
+                    status: newStatus,
+                    status_history: history,
+                    webhook_received_at: new Date().toISOString(),
+                    error: st?.errors?.[0]?.message || null,
+                  })
+                  .eq("id", existing.id);
+              }
+            } catch (e) {
+              console.error("status update failed for", wamid, e);
+            }
+          }
+        }
+
         if (!value?.messages?.length) continue;
 
         const metadata = value.metadata;
