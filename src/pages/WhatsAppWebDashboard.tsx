@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Send,
   LogOut,
@@ -12,7 +11,11 @@ import {
   Clock,
   CheckCircle2,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
+import { useEmpresa } from "@/contexts/EmpresaContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Message {
   id: string;
@@ -34,29 +37,69 @@ interface Contact {
 }
 
 export default function WhatsAppWebDashboard() {
+  const { empresaSelecionada } = useEmpresa();
+  const { user } = useAuth();
+
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [contacts, setContacts] = useState<Contact[]>([
-    {
-      id: "1",
-      name: "Cliente 1",
-      number: "55 43 99999-1111",
-      lastMessage: "Olá, tudo bem?",
-      lastMessageTime: new Date(Date.now() - 3600000),
-      unreadCount: 2,
-    },
-    {
-      id: "2",
-      name: "Cliente 2",
-      number: "55 43 99999-2222",
-      lastMessage: "Qual é o preço?",
-      lastMessageTime: new Date(Date.now() - 7200000),
-      unreadCount: 0,
-    },
-  ]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
+
+  // Verificar conexão e carregar dados
+  useEffect(() => {
+    if (!empresaSelecionada?.id) return;
+
+    const sessionId = localStorage.getItem(`whatsapp_session_${empresaSelecionada.id}`);
+    const savedPhone = localStorage.getItem(`whatsapp_phone_${empresaSelecionada.id}`);
+
+    if (!sessionId) {
+      // Redirecionar para login se não houver sessão
+      window.location.href = "/whatsapp/web/login";
+      return;
+    }
+
+    setPhoneNumber(savedPhone || "");
+    setIsConnected(true);
+
+    // Simular carregamento de contatos
+    setTimeout(() => {
+      const mockContacts: Contact[] = [
+        {
+          id: "1",
+          name: "João Silva",
+          number: "5511987654321",
+          lastMessage: "Olá, tudo bem?",
+          lastMessageTime: new Date(),
+          unreadCount: 2,
+        },
+        {
+          id: "2",
+          name: "Maria Santos",
+          number: "5511912345678",
+          lastMessage: "Qual é o preço?",
+          lastMessageTime: new Date(Date.now() - 3600000),
+          unreadCount: 0,
+        },
+        {
+          id: "3",
+          name: "Pedro Oliveira",
+          number: "5521998765432",
+          lastMessage: "Obrigada pela resposta!",
+          lastMessageTime: new Date(Date.now() - 7200000),
+          unreadCount: 1,
+        },
+      ];
+
+      setContacts(mockContacts);
+      setSelectedContact(mockContacts[0]);
+      setPageLoading(false);
+    }, 1000);
+  }, [empresaSelecionada?.id]);
 
   // Simular carregamento de mensagens
   useEffect(() => {
@@ -129,6 +172,10 @@ export default function WhatsAppWebDashboard() {
 
   const handleDisconnect = () => {
     if (confirm("Tem certeza que deseja desconectar o WhatsApp?")) {
+      if (empresaSelecionada?.id) {
+        localStorage.removeItem(`whatsapp_session_${empresaSelecionada.id}`);
+        localStorage.removeItem(`whatsapp_phone_${empresaSelecionada.id}`);
+      }
       window.location.href = "/whatsapp/web/login";
     }
   };
@@ -139,6 +186,27 @@ export default function WhatsAppWebDashboard() {
       c.number.includes(searchTerm)
   );
 
+  if (pageLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="w-12 h-12 animate-spin text-green-600" />
+      </div>
+    );
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="flex items-center justify-center h-screen p-4">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Sessão expirada. Por favor, conecte novamente.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
       {/* Header */}
@@ -146,7 +214,12 @@ export default function WhatsAppWebDashboard() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <MessageCircle className="w-6 h-6" />
-            <h1 className="text-xl font-bold">WhatsApp Web - GasFácil</h1>
+            <div>
+              <h1 className="text-xl font-bold">WhatsApp Web - GasFácil</h1>
+              <p className="text-xs text-green-100">
+                {phoneNumber} • Empresa: {empresaSelecionada?.nome}
+              </p>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button
@@ -188,6 +261,7 @@ export default function WhatsAppWebDashboard() {
           <div className="flex-1 overflow-y-auto">
             {filteredContacts.length === 0 ? (
               <div className="p-4 text-center text-gray-500">
+                <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p>Nenhum contato encontrado</p>
               </div>
             ) : (
