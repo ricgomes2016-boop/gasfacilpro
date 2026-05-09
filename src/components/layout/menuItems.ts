@@ -87,6 +87,7 @@ import {
   Mail,
   Download,
   MessageCircle,
+  Send,
   type LucideIcon,
 } from "lucide-react";
 
