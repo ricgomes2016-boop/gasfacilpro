@@ -177,6 +177,7 @@ export function inferAppFromPath(pathname: string): Exclude<SubdomainApp, null> 
     "/meu-perfil",
     "/configuracoes",
     "/chat",
+    "/whatsapp",
   ];
 
   if (erpPrefixes.some((prefix) => matchesRouteSegment(pathname, prefix))) {
@@ -225,7 +226,7 @@ export function isRouteAllowedForSubdomain(app: SubdomainApp, pathname: string):
         || matchesRouteSegment(pathname, "/clientes") || matchesRouteSegment(pathname, "/financeiro") || matchesRouteSegment(pathname, "/fiscal")
         || matchesRouteSegment(pathname, "/frota") || matchesRouteSegment(pathname, "/rh") || matchesRouteSegment(pathname, "/config")
         || matchesRouteSegment(pathname, "/operacional") || matchesRouteSegment(pathname, "/atendimento") || matchesRouteSegment(pathname, "/onboarding")
-        || matchesRouteSegment(pathname, "/entregas") || matchesRouteSegment(pathname, "/marketing") || matchesRouteSegment(pathname, "/assistente") || matchesRouteSegment(pathname, "/assistente-ia") || matchesRouteSegment(pathname, "/meu-perfil") || matchesRouteSegment(pathname, "/configuracoes") || matchesRouteSegment(pathname, "/integracoes") || matchesRouteSegment(pathname, "/chat") || matchesRouteSegment(pathname, "/centralgascp") || matchesRouteSegment(pathname, "/fortegas") || matchesRouteSegment(pathname, "/japagas");
+        || matchesRouteSegment(pathname, "/entregas") || matchesRouteSegment(pathname, "/marketing") || matchesRouteSegment(pathname, "/assistente") || matchesRouteSegment(pathname, "/assistente-ia") || matchesRouteSegment(pathname, "/meu-perfil") || matchesRouteSegment(pathname, "/configuracoes") || matchesRouteSegment(pathname, "/integracoes") || matchesRouteSegment(pathname, "/chat") || matchesRouteSegment(pathname, "/whatsapp") || matchesRouteSegment(pathname, "/centralgascp") || matchesRouteSegment(pathname, "/fortegas") || matchesRouteSegment(pathname, "/japagas");
     case "api":
       // api.gasfacilpro.com.br — Hub de Integrações
       return pathname === "/auth" || matchesRouteSegment(pathname, "/integracoes");
