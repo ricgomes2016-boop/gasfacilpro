@@ -10550,6 +10550,62 @@ export type Database = {
           },
         ]
       }
+      whatsapp_test_envios: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          error: string | null
+          id: string
+          message: string
+          status: string
+          status_history: Json
+          to_number: string
+          unidade_id: string
+          updated_at: string
+          user_id: string | null
+          wamid: string | null
+          webhook_received_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          error?: string | null
+          id?: string
+          message: string
+          status?: string
+          status_history?: Json
+          to_number: string
+          unidade_id: string
+          updated_at?: string
+          user_id?: string | null
+          wamid?: string | null
+          webhook_received_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          error?: string | null
+          id?: string
+          message?: string
+          status?: string
+          status_history?: Json
+          to_number?: string
+          unidade_id?: string
+          updated_at?: string
+          user_id?: string | null
+          wamid?: string | null
+          webhook_received_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_test_envios_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       vw_alertas_cnh: {
