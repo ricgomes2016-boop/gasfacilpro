@@ -1,54 +1,83 @@
-## Melhorias na tela "Despesas" (Portal do Transporte)
+## Diagnóstico
 
-Arquivo: `src/pages/transportadora/TranspLancamento.tsx`
+Validei o token permanente direto na Meta Graph API. Resultado:
 
-### 1. Filtros no topo (acima da listagem)
-- **Período**: presets `Mês atual` (default) · `Mês anterior` · `Últimos 30 dias` · `Personalizado` (campos `data inicial` e `data final`).
-- **Tipo de despesa**: select com os mesmos `TIPOS_DESPESA` + opção "Todos".
-- **Veículo**: select com placas ativas + "Todos" + "Sem veículo".
-- **Busca**: input texto para descrição.
-- **Botão "Limpar filtros"**.
-- Remover o `.limit(50)` do query — paginar/filtrar no client a partir do período selecionado, ou filtrar direto na query por `data` (recomendado para performance: filtrar por intervalo no Supabase).
+**✅ Token está correto e permanente**
+- Tipo: `SYSTEM_USER`, `expires_at: 0` (não expira)
+- App: `gasfacil` (App ID `1466286284853004`)
+- Scopes: `whatsapp_business_management`, `whatsapp_business_messaging`
+- System User: `Gasfacilpro Bot` (ID `122112472941073551`)
 
-### 2. Cards de resumo (KPIs reativos aos filtros)
-4 cards no topo:
-- **Total no período** (R$)
-- **Quantidade de lançamentos**
-- **Ticket médio** (total ÷ qtd)
-- **Maior despesa** (R$ + tipo)
+**❌ Os IDs salvos no banco NÃO funcionam com este token**
 
-### 3. Resumo por tipo de despesa
-Card "Resumo por categoria" com tabela:
-| Tipo | Qtd | Total (R$) | % do total |
+A linha em `integracoes_whatsapp` da unidade Central Gás tem:
+- `meta_phone_number_id = 1068574169676609`
+- `meta_waba_id = 1738917314133461`
+- `instance_id = 1006245305913016` (não bate com nada — provavelmente App ID antigo)
 
-Ordenado por valor desc, com barra de progresso visual no % (usando `bg-primary/20` + largura).
+Ao chamar `GET /1068574169676609` e `POST /1068574169676609/messages` com o token novo, a Meta responde:
 
-### 4. Resumo por veículo (quando houver despesas com `veiculo_id`)
-Card "Resumo por veículo":
-| Placa | Qtd | Total (R$) |
+```
+"Object with ID '1068574169676609' does not exist, 
+cannot be loaded due to missing permissions"
+```
 
-Inclui linha "Sem veículo" para despesas não atreladas.
+Mesmo erro para a WABA `1738917314133461`. Ou seja: **o WhatsApp NÃO vai funcionar até corrigir esses IDs e/ou a assinatura da WABA pelo app gasfacil**.
 
-### 5. Resumo mensal
-Card "Resumo mensal" (aparece quando o período cobre >1 mês):
-| Mês | Qtd | Total (R$) | Por tipo (badges resumidos) |
+**Outro item desatualizado na memória:** Meta Business ID na memória (`898649429546834`) ≠ o que aparece na URL do screenshot (`931318668260512`). O atual é `931318668260512` (Portfólio "Central Gás").
 
-Ordenado desc por mês.
+## Causas prováveis
 
-### 6. Conversão da listagem em tabela
-Substituir o grid de cards atual por uma `Table` com colunas:
-**Data · Tipo · Descrição · Veículo · Comprovante · Valor**
-- Linha de rodapé (`TableFooter`) com totalizadores: qtd e soma de valores filtrados.
-- Coluna "Comprovante" mostra ícone clicável quando `comprovante_url` existe (abre no storage).
-- Manter o card mobile-friendly: tabela em desktop, cards empilhados em telas <640px (responsivo via classes Tailwind).
+1. O Phone Number ID e WABA ID foram regerados quando o número foi migrado/recadastrado para o app `gasfacil`, e o banco continua com os IDs antigos.
+2. A WABA "Central Gás" pode não estar **subscrita** ao app `gasfacil` (`POST /{waba_id}/subscribed_apps`) — isso é exigido independentemente do System User ter Controle Total.
 
-### 7. Preservar
-- Botão "Nova Despesa" e fluxo de OCR não mudam.
-- `TIPOS_DESPESA`, integração com Supabase, RLS e payload do insert permanecem iguais.
-- Sem migração de banco.
+## Plano de ação
 
-### Detalhes técnicos
-- Carregar `entregadores` ativos não é necessário (esta tela não tem motorista).
-- Filtros via `useState`, derivados via `useMemo` sobre o array `despesas` retornado.
-- Resumos: reduce agrupando por `tipo`, `veiculo_id` e `mes_referencia`/`data.slice(0,7)`.
-- Manter tipagem `any` consistente com o restante do arquivo.
+### 1. Coletar os IDs corretos (precisa de você)
+No Meta Business Suite, abrir **WhatsApp Manager → Visão geral**, clicar no número **(43) 3524-1094** e copiar:
+- **Phone Number ID** (não é o número do telefone)
+- **WhatsApp Business Account ID (WABA)**
+
+E o mesmo para o número da Central GasCP, se for usar.
+
+Alternativa: posso criar uma edge function `meta-discover-numbers` que, recebendo o Business ID `931318668260512`, tenta listar WABAs e telefones via Graph API (precisa do scope `business_management` — se não tiver, voltamos ao passo manual).
+
+### 2. Atualizar o banco
+Migration para a unidade `aa5b7c93-4fe6-4dba-a0b5-2af43cd20614`:
+- `meta_phone_number_id` = ID novo
+- `meta_waba_id` = ID novo
+- `meta_access_token` = token permanente (`EAAU1lG…ZBhGVaCwZDZD`)
+- `instance_id` = `1466286284853004` (App ID gasfacil) ou apenas limpo
+- `status_conexao` = `conectado`
+
+E também atualizar o secret `META_WHATSAPP_TOKEN` (usado por algumas edge functions como fallback) com o token permanente.
+
+### 3. Subscrever o app na WABA
+Chamar uma vez:
+```
+POST https://graph.facebook.com/v21.0/{WABA_ID}/subscribed_apps
+Authorization: Bearer {TOKEN_PERMANENTE}
+```
+Faço isso via uma edge function `meta-subscribe-waba` (one-shot) ou via curl direto após você confirmar os IDs.
+
+### 4. Configurar webhook na WABA
+Apontar o webhook da WABA para:
+```
+https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/meta-webhook
+```
+com o `verify_token` = valor de `meta_verify_token` da linha (se estiver vazio, gero um).
+
+### 5. Teste end-to-end
+- Edge function `meta-diagnostico` deve retornar tudo verde.
+- Enviar uma mensagem de teste via `meta-webhook` → `bia-core` para o WhatsApp humano (43) 99966-1816.
+
+### 6. Atualizar memória
+- Business ID corrigido: `898649429546834` → `931318668260512`.
+- Registrar System User `Gasfacilpro Bot` (ID `122112472941073551`) como dono do token permanente.
+- Marcar token como permanente (não mais 24h).
+
+## O que preciso de você agora
+
+Me passe o **Phone Number ID** e o **WABA ID** atuais do número 4335241094 (e do GasCP, se quiser ativar também). Sem esses dois números, o passo 2 não pode ser executado e o WhatsApp continuará desconectado.
+
+Se preferir, te guio passo a passo em prints de onde clicar no WhatsApp Manager.
