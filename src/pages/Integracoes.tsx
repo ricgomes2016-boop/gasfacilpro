@@ -1,260 +1,25 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
-} from "@/components/ui/dialog";
-
-import {
-  Plug, MessageSquare, CreditCard, FileText, Truck, Globe, Webhook,
-  CheckCircle2, Settings, Zap, BarChart3, ScanBarcode,
-  Phone, Mail, Loader2, ExternalLink, AlertTriangle, Building2, Shield,
-  QrCode, RefreshCw, Smartphone, Plus, Trash2,
-  Signal, Wifi, WifiOff, Copy, CheckCheck, KeyRound,
-} from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useUnidade } from "@/contexts/UnidadeContext";
 
-interface ConfigField {
-  key: string;
-  label: string;
-  type: "text" | "password" | "url";
-  placeholder: string;
-}
+import { integracoes } from "./integracoes/data";
+import type { Integracao } from "./integracoes/types";
+import { IntegracoesKpis } from "./integracoes/IntegracoesKpis";
+import { IntegracoesList } from "./integracoes/IntegracoesList";
+import { SugestoesCard } from "./integracoes/SugestoesCard";
 
-interface Integracao {
-  id: string;
-  nome: string;
-  descricao: string;
-  icon: React.ElementType;
-  status: "conectado" | "disponivel" | "em_breve";
-  categoria: "pagamento" | "comunicacao" | "fiscal" | "logistica" | "produtividade";
-  configFields?: ConfigField[];
-  helpUrl?: string;
-  beneficios?: string[];
-  isWhatsapp?: boolean;
-}
-
-
-const integracoes: Integracao[] = [
-  {
-    id: "boleto_leitura",
-    nome: "Leitura de Boletos (IA)",
-    descricao: "Escaneie boletos com a câmera ou envie PDF — a IA extrai fornecedor, valor, vencimento e código de barras automaticamente",
-    icon: ScanBarcode,
-    status: "conectado",
-    categoria: "pagamento",
-    configFields: [
-      { key: "habilitado", label: "Leitura de boletos habilitada", type: "text", placeholder: "sim" },
-    ],
-    beneficios: [
-      "Leitura automática por câmera ou PDF",
-      "Extração de código de barras e linha digitável",
-      "Classificação automática de categoria",
-      "Lançamento direto em Contas a Pagar",
-    ],
-  },
-  {
-    id: "pix",
-    nome: "PIX Automático",
-    descricao: "Geração de QR Code PIX para pagamentos instantâneos com conciliação automática",
-    icon: CreditCard,
-    status: "conectado",
-    categoria: "pagamento",
-    configFields: [
-      { key: "chave_pix", label: "Chave PIX", type: "text", placeholder: "CPF, CNPJ, e-mail ou telefone" },
-      { key: "nome_beneficiario", label: "Nome do beneficiário", type: "text", placeholder: "Nome que aparece no PIX" },
-    ],
-    beneficios: [
-      "QR Code dinâmico por venda",
-      "Conciliação automática de recebimentos",
-      "Múltiplas chaves por unidade",
-    ],
-  },
-  {
-    id: "pagbank",
-    nome: "PagBank / Maquininha",
-    descricao: "Integração com terminais físicos PagBank para débito, crédito e PIX na maquininha",
-    icon: CreditCard,
-    status: "conectado",
-    categoria: "pagamento",
-    configFields: [
-      { key: "terminal_serial", label: "Serial do Terminal", type: "text", placeholder: "Número de série da maquininha" },
-      { key: "pagbank_token", label: "Token PagBank", type: "password", placeholder: "Token de integração" },
-    ],
-    beneficios: [
-      "Débito, crédito e PIX via terminal",
-      "Cálculo automático de taxas",
-      "Agenda de recebíveis D+1/D+30",
-      "Dashboard financeiro por terminal",
-    ],
-  },
-  {
-    id: "nfe",
-    nome: "Emissão de NF-e / NFC-e",
-    descricao: "Emissão automática de notas fiscais integrada ao módulo fiscal via Focus NFe",
-    icon: FileText,
-    status: "disponivel",
-    categoria: "fiscal",
-    configFields: [
-      { key: "FOCUS_NFE_TOKEN", label: "Token Focus NFe", type: "password", placeholder: "Token da API Focus NFe" },
-      { key: "FOCUS_NFE_ENV", label: "Ambiente", type: "text", placeholder: "homologacao ou producao" },
-    ],
-    beneficios: [
-      "NF-e, NFC-e, CT-e e MDF-e",
-      "Envio automático ao SEFAZ",
-      "XML e DANFE gerados automaticamente",
-    ],
-    helpUrl: "https://focusnfe.com.br/",
-  },
-  {
-    id: "google_maps",
-    nome: "Google Maps",
-    descricao: "Geocodificação de endereços e otimização de rotas de entrega em tempo real",
-    icon: Globe,
-    status: "conectado",
-    categoria: "logistica",
-    configFields: [
-      { key: "google_maps_api_key", label: "API Key Google Maps", type: "password", placeholder: "Chave da API Google Maps" },
-    ],
-    beneficios: [
-      "Geocodificação automática de clientes",
-      "Otimização de rotas de entrega",
-      "Rastreamento em tempo real",
-      "Mapa de calor de clientes",
-    ],
-  },
-  {
-    id: "bina_goto",
-    nome: "Bina / GoTo Connect",
-    descricao: "Identificação automática de chamadas recebidas com popup do cliente e histórico",
-    icon: Phone,
-    status: "disponivel",
-    categoria: "comunicacao",
-    configFields: [
-      { key: "GOTO_CLIENT_ID", label: "Client ID", type: "text", placeholder: "Client ID GoTo" },
-      { key: "GOTO_SECRET", label: "Client Secret", type: "password", placeholder: "Secret GoTo" },
-    ],
-    beneficios: [
-      "Popup com dados do cliente ao receber ligação",
-      "Histórico de chamadas integrado",
-      "Criação de pedido direto da ligação",
-    ],
-    helpUrl: "https://developer.goto.com/",
-  },
-  {
-    id: "email_smtp",
-    nome: "E-mail Transacional",
-    descricao: "Envio de boletos, notas fiscais e lembretes por e-mail (modo simulação — configure SMTP para envio real)",
-    icon: Mail,
-    status: "conectado",
-    categoria: "comunicacao",
-    configFields: [
-      { key: "smtp_host", label: "Servidor SMTP", type: "text", placeholder: "smtp.gmail.com" },
-      { key: "smtp_port", label: "Porta", type: "text", placeholder: "587" },
-      { key: "smtp_user", label: "Usuário", type: "text", placeholder: "email@empresa.com" },
-      { key: "smtp_password", label: "Senha", type: "password", placeholder: "Senha do e-mail" },
-    ],
-    beneficios: [
-      "Envio de NF-e e boletos por e-mail",
-      "Templates personalizáveis por tipo",
-      "Histórico completo de envios",
-      "Automações configuráveis",
-    ],
-  },
-  {
-    id: "ifood",
-    nome: "iFood / Rappi",
-    descricao: "Recebimento automático de pedidos de marketplaces de delivery",
-    icon: Truck,
-    status: "em_breve",
-    categoria: "logistica",
-    beneficios: [
-      "Pedidos sincronizados automaticamente",
-      "Status atualizado em tempo real",
-      "Cardápio integrado",
-    ],
-  },
-  {
-    id: "contabilidade",
-    nome: "Exportação Contábil",
-    descricao: "Exportação de lançamentos financeiros em XLSX para Domínio, Alterdata, Fortes e SPED EFD",
-    icon: BarChart3,
-    status: "conectado",
-    categoria: "produtividade",
-    configFields: [
-      { key: "sistema_contabil", label: "Sistema Contábil", type: "text", placeholder: "Domínio, Alterdata, Fortes..." },
-      { key: "codigo_empresa", label: "Código da Empresa", type: "text", placeholder: "Código no sistema contábil" },
-    ],
-    beneficios: [
-      "CSV e XLSX para importação direta",
-      "Formatos Domínio, Alterdata e Fortes",
-      "Layout SPED EFD simplificado",
-      "Exportação por período e unidade",
-    ],
-  },
-  {
-    id: "whatsapp_meta",
-    nome: "WhatsApp Oficial (Meta Cloud API)",
-    descricao: "Conecte a Assistente BIA ao WhatsApp Oficial via API da Meta — com suporte a Coexistência (QR Code) para usar o mesmo número no celular e na API simultaneamente",
-    icon: MessageSquare,
-    status: "disponivel",
-    categoria: "comunicacao",
-    beneficios: [
-      "Coexistência: use o WhatsApp no celular e na API ao mesmo tempo",
-      "Embedded Signup: conecte via Facebook com QR Code",
-      "Número de telefone oficial verificado pela Meta",
-      "Mensagens via Cloud API com alta confiabilidade",
-      "Suporte a texto, áudio, imagens e interações",
-      "Webhook configurado automaticamente",
-    ],
-    helpUrl: "https://developers.facebook.com/docs/whatsapp/cloud-api",
-  },
-  {
-    id: "webhook",
-    nome: "Webhooks Customizados",
-    descricao: "Envie eventos do sistema (novo pedido, status, pagamento) para qualquer endpoint externo",
-    icon: Webhook,
-    status: "disponivel",
-    categoria: "produtividade",
-    configFields: [
-      { key: "WEBHOOK_URL", label: "URL do Webhook", type: "url", placeholder: "https://seu-sistema.com/webhook" },
-      { key: "WEBHOOK_SECRET", label: "Secret (opcional)", type: "password", placeholder: "Chave de autenticação" },
-    ],
-    beneficios: [
-      "Eventos em tempo real para sistemas externos",
-      "Automação com Zapier, Make, N8N",
-      "Payload customizável por evento",
-    ],
-  },
-];
-
-const statusConfig = {
-  conectado: { label: "Conectado", variant: "default" as const, dotColor: "bg-green-500" },
-  disponivel: { label: "Disponível", variant: "secondary" as const, dotColor: "bg-blue-500" },
-  em_breve: { label: "Em breve", variant: "outline" as const, dotColor: "bg-muted-foreground" },
-};
-
-
-const categoriasLabel: Record<string, { label: string; icon: React.ElementType }> = {
-  pagamento: { label: "Pagamento", icon: CreditCard },
-  comunicacao: { label: "Comunicação", icon: MessageSquare },
-  fiscal: { label: "Fiscal", icon: FileText },
-  logistica: { label: "Logística", icon: Truck },
-  produtividade: { label: "Produtividade", icon: Zap },
-};
+// Lazy-load dialogs (heavy)
+const GenericConfigDialog = lazy(() => import("./integracoes/dialogs/GenericConfigDialog").then(m => ({ default: m.GenericConfigDialog })));
+const WhatsAppEvolutionDialog = lazy(() => import("./integracoes/dialogs/WhatsAppEvolutionDialog").then(m => ({ default: m.WhatsAppEvolutionDialog })));
+const MetaDialog = lazy(() => import("./integracoes/dialogs/MetaDialog").then(m => ({ default: m.MetaDialog })));
+const QrEvolutionDialog = lazy(() => import("./integracoes/dialogs/QrEvolutionDialog").then(m => ({ default: m.QrEvolutionDialog })));
+const CoexQrDialog = lazy(() => import("./integracoes/dialogs/CoexQrDialog").then(m => ({ default: m.CoexQrDialog })));
 
 export default function Integracoes() {
   const [selectedIntegracao, setSelectedIntegracao] = useState<Integracao | null>(null);
@@ -266,18 +31,17 @@ export default function Integracoes() {
   const { empresa } = useEmpresa();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Generic per-unit configs from integracoes_config
+  // Generic per-unit configs
   const [genericConfigs, setGenericConfigs] = useState<any[]>([]);
   const [configUnidadeId, setConfigUnidadeId] = useState("");
   const [configValues, setConfigValues] = useState<Record<string, string>>({});
   const [configEditId, setConfigEditId] = useState<string | null>(null);
 
-  // WhatsApp simplified connection
+  // WhatsApp Evolution
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [whatsappConfigs, setWhatsappConfigs] = useState<any[]>([]);
   const [wpUnidadeId, setWpUnidadeId] = useState("");
   const [wpInstanceId, setWpInstanceId] = useState("");
-  const [wpSaving, setWpSaving] = useState(false);
   const [wpCreating, setWpCreating] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
@@ -287,7 +51,7 @@ export default function Integracoes() {
   const [connectionStatuses, setConnectionStatuses] = useState<Record<string, string>>({});
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Meta (WhatsApp Oficial) config
+  // Meta
   const [metaDialogOpen, setMetaDialogOpen] = useState(false);
   const [metaConfigs, setMetaConfigs] = useState<any[]>([]);
   const [metaUnidadeId, setMetaUnidadeId] = useState("");
@@ -299,10 +63,9 @@ export default function Integracoes() {
   const [metaDeletingId, setMetaDeletingId] = useState<string | null>(null);
   const [metaEditId, setMetaEditId] = useState<string | null>(null);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
-  // Modo de conexão Meta: 'token' (manual) ou 'embedded_signup' (QR Code / Coexistência)
   const [metaConexaoModo, setMetaConexaoModo] = useState<"token" | "embedded_signup">("token");
   const [metaAppId, setMetaAppId] = useState("1695439258558329");
-  const [embeddedSignupLoading, setEmbeddedSignupLoading] = useState(false);
+  const [embeddedSignupLoading] = useState(false);
   const [coexQrDialogOpen, setCoexQrDialogOpen] = useState(false);
   const [coexQrCode, setCoexQrCode] = useState<string | null>(null);
   const [coexQrCountdown, setCoexQrCountdown] = useState(120);
@@ -324,10 +87,8 @@ export default function Integracoes() {
       toast.error("Selecione a unidade e informe o App ID da Meta.");
       return;
     }
-    // Salvar estado na sessionStorage para recuperar após o redirecionamento OAuth
     sessionStorage.setItem("meta_oauth_unidade_id", metaUnidadeId);
     sessionStorage.setItem("meta_oauth_app_id", metaAppId);
-    // Construir URL de autorização OAuth do Business Login com Coexistência
     const redirectUri = `${window.location.origin}/integracoes`;
     const extras = JSON.stringify({ setup: {}, featureType: "coexistence", sessionInfoVersion: "3" });
     const authUrl =
@@ -341,16 +102,14 @@ export default function Integracoes() {
     window.location.href = authUrl;
   };
 
-  // Processar callback OAuth da Meta após redirecionamento de volta para /integracoes
+  // Processar callback OAuth da Meta
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     const errorParam = params.get("error");
     if (errorParam) {
       toast.error("Autorização cancelada ou negada pelo Facebook.");
-      // Limpar params da URL
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, "", cleanUrl);
+      window.history.replaceState({}, "", window.location.pathname);
       return;
     }
     if (!code) return;
@@ -358,15 +117,12 @@ export default function Integracoes() {
     const savedAppId = sessionStorage.getItem("meta_oauth_app_id");
     if (!savedUnidadeId || !savedAppId) {
       toast.error("Sessão OAuth expirada. Tente novamente.");
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, "", cleanUrl);
+      window.history.replaceState({}, "", window.location.pathname);
       return;
     }
-    // Limpar params da URL e sessionStorage imediatamente
     sessionStorage.removeItem("meta_oauth_unidade_id");
     sessionStorage.removeItem("meta_oauth_app_id");
     window.history.replaceState({}, "", window.location.pathname);
-    // Processar o código OAuth
     const redirectUri = `${window.location.origin}/integracoes`;
     toast.loading("Processando autorização do WhatsApp...", { id: "meta-oauth" });
     supabase.functions.invoke("meta-embedded-signup", {
@@ -416,7 +172,7 @@ export default function Integracoes() {
       const msg = err instanceof Error ? err.message : String(err);
       toast.error("Erro inesperado: " + msg, { id: "meta-oauth" });
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchCoexQrCode = async (phoneNumberId: string, token: string) => {
@@ -456,7 +212,6 @@ export default function Integracoes() {
         if (error) throw error;
         toast.success("Configuração Meta atualizada!");
       } else {
-        // Check if already exists for this unit
         const { data: existing } = await supabase.from("integracoes_whatsapp")
           .select("id").eq("unidade_id", metaUnidadeId).eq("provedor", "meta").maybeSingle();
         if (existing) {
@@ -534,7 +289,6 @@ export default function Integracoes() {
     setQrDialogOpen(true);
     setQrLoading(true);
     try {
-      // Try create first (idempotent)
       try {
         await supabase.functions.invoke("evolution-proxy", {
           body: { action: "create", instance_id: cfg.instance_id },
@@ -542,8 +296,6 @@ export default function Integracoes() {
       } catch (err) {
         console.warn("Instance creation warning:", err);
       }
-
-      // Get QR code
       const { data, error } = await supabase.functions.invoke("evolution-proxy", {
         body: { action: "qrcode", instance_id: cfg.instance_id },
       });
@@ -586,7 +338,6 @@ export default function Integracoes() {
       .order("created_at");
     setWhatsappConfigs(data || []);
 
-    // Load connection status for each config
     for (const cfg of (data || [])) {
       if (cfg.provedor === "evolution") {
         try {
@@ -616,7 +367,7 @@ export default function Integracoes() {
     loadMetaConfigs();
   }, []);
 
-  // Auto-open WhatsApp dialog from URL param (?open=whatsapp)
+  // Auto-open WhatsApp dialog from URL param
   useEffect(() => {
     if (searchParams.get("open") === "whatsapp") {
       setWhatsappDialogOpen(true);
@@ -625,7 +376,7 @@ export default function Integracoes() {
     }
   }, [searchParams]);
 
-  // Auto-generate instance name based on empresa slug + unidade name
+  // Auto-generate instance name
   useEffect(() => {
     if (wpUnidadeId && empresa?.slug) {
       const unidade = unidades.find(u => u.id === wpUnidadeId);
@@ -639,9 +390,8 @@ export default function Integracoes() {
         setWpInstanceId(`${empresa.slug}_${normalizedName}`);
       }
     }
-  }, [wpUnidadeId, empresa?.slug]);
+  }, [wpUnidadeId, empresa?.slug, unidades]);
 
-  // --- Simplified WhatsApp: Create Connection ---
   const handleCreateConnection = async () => {
     if (!wpUnidadeId || !wpInstanceId) {
       toast.error("Selecione a unidade e defina o nome da instância.");
@@ -649,17 +399,12 @@ export default function Integracoes() {
     }
     setWpCreating(true);
     try {
-      // 1. Create instance on Evolution API
       const { data: createData, error: createError } = await supabase.functions.invoke("evolution-proxy", {
         body: { action: "create", instance_id: wpInstanceId },
       });
-      
       if (createError) throw createError;
-      
-      // Extract auto-generated token
       const generatedToken = createData?._generated_token || createData?.hash?.apikey || "";
-      
-      // 2. Save to integracoes_whatsapp
+
       const { error: insertError } = await supabase.from("integracoes_whatsapp").insert({
         unidade_id: wpUnidadeId,
         instance_id: wpInstanceId,
@@ -671,7 +416,6 @@ export default function Integracoes() {
       });
       if (insertError) throw insertError;
 
-      // 3. Sync with whatsapp_gateway_instances
       if (empresa?.id) {
         await supabase.from("whatsapp_gateway_instances").upsert({
           empresa_id: empresa.id,
@@ -683,10 +427,9 @@ export default function Integracoes() {
         }, { onConflict: "empresa_id,instance_name" });
       }
 
-      // 4. Configure webhook automatically
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "gcrdftnnbgsogoqcmcxo";
-      const webhookUrl = `https://${projectId}.supabase.co/functions/v1/evolution-webhook?unidade_id=${wpUnidadeId}&instance=${wpInstanceId}`;
-      
+      const projId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "gcrdftnnbgsogoqcmcxo";
+      const webhookUrl = `https://${projId}.supabase.co/functions/v1/evolution-webhook?unidade_id=${wpUnidadeId}&instance=${wpInstanceId}`;
+
       await supabase.functions.invoke("evolution-proxy", {
         body: {
           action: "webhook",
@@ -703,15 +446,10 @@ export default function Integracoes() {
       });
 
       toast.success("Conexão criada com sucesso!");
-      
-      // 5. Show QR code
       await loadWhatsappConfigs();
       setWpUnidadeId("");
       setWpInstanceId("");
-      
-      // Open QR dialog for this new instance
-      const newCfg = { instance_id: wpInstanceId };
-      handleEvolutionConnect(newCfg);
+      handleEvolutionConnect({ instance_id: wpInstanceId });
     } catch (err: any) {
       console.error("Create connection error:", err);
       toast.error(err.message || "Erro ao criar conexão");
@@ -723,16 +461,13 @@ export default function Integracoes() {
   const deleteWhatsappConfig = async (id: string, instanceId: string) => {
     setDeletingId(id);
     try {
-      // Delete from Evolution API
       try {
         await supabase.functions.invoke("evolution-proxy", {
           body: { action: "delete", instance_id: instanceId },
         });
       } catch {
-        // Ignore deletion errors from Evolution
+        // ignore
       }
-      
-      // Delete from DB
       await supabase.from("integracoes_whatsapp").delete().eq("id", id);
       await supabase.from("whatsapp_gateway_instances").delete().eq("instance_name", instanceId);
       toast.success("Conexão removida.");
@@ -780,14 +515,6 @@ export default function Integracoes() {
     setConfigOpen(true);
   };
 
-  // Auto-open WhatsApp dialog if requested via URL
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("open") === "whatsapp") {
-      setWhatsappDialogOpen(true);
-    }
-  }, [whatsappConfigs.length]);
-
   // Pré-carrega o SDK do Facebook quando o dialog Meta é aberto no modo embedded_signup
   useEffect(() => {
     if (metaDialogOpen && metaConexaoModo === "embedded_signup") {
@@ -805,7 +532,6 @@ export default function Integracoes() {
     }
   }, [metaDialogOpen, metaConexaoModo]);
 
-  // --- Generic integration handlers ---
   const handleSaveGenericConfig = async () => {
     if (!configUnidadeId || !selectedIntegracao) {
       toast.error("Selecione a unidade.");
@@ -863,8 +589,8 @@ export default function Integracoes() {
     loadGenericConfigs();
   };
 
-  const getConfigsForIntegracao = (integracaoId: string) =>
-    genericConfigs.filter((c) => c.integracao_id === integracaoId);
+  const getConfigsCountForIntegracao = (integracaoId: string) =>
+    genericConfigs.filter((c) => c.integracao_id === integracaoId).length;
 
   const conectadas = integracoes.filter((i) => i.status === "conectado").length;
   const disponiveis = integracoes.filter((i) => i.status === "disponivel").length;
@@ -876,69 +602,16 @@ export default function Integracoes() {
       ? integracoes.filter(i => i.status === "conectado")
       : integracoes.filter(i => i.status === "disponivel" || i.status === "em_breve");
 
-  const filteredCategorias = [...new Set(filteredIntegracoes.map(i => i.categoria))];
-
-  // (auto-open handled above in earlier useEffect)
-
   return (
     <MainLayout>
       <Header title="Integrações" subtitle="Conecte serviços externos por unidade e amplie o poder do seu sistema" />
       <div className="p-4 md:p-6 space-y-6">
-        {/* KPI Cards */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-          <Card>
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-lg bg-green-500/10">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{conectadas}</p>
-                  <p className="text-xs text-muted-foreground">Ativas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-lg bg-blue-500/10">
-                  <Plug className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{disponiveis}</p>
-                  <p className="text-xs text-muted-foreground">Disponíveis</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-lg bg-amber-500/10">
-                  <Zap className="h-5 w-5 text-amber-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{emBreve}</p>
-                  <p className="text-xs text-muted-foreground">Em breve</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-lg bg-muted">
-                  <Shield className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{integracoes.length}</p>
-                  <p className="text-xs text-muted-foreground">Total</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <IntegracoesKpis
+          conectadas={conectadas}
+          disponiveis={disponiveis}
+          emBreve={emBreve}
+          total={integracoes.length}
+        />
 
         <Tabs value={tabAtiva} onValueChange={setTabAtiva}>
           <TabsList>
@@ -948,721 +621,120 @@ export default function Integracoes() {
           </TabsList>
         </Tabs>
 
-        {filteredCategorias.map((cat) => {
-          const items = filteredIntegracoes.filter((i) => i.categoria === cat);
-          if (items.length === 0) return null;
-          const catConfig = categoriasLabel[cat];
-          const CatIcon = catConfig?.icon || Plug;
+        <IntegracoesList
+          integracoes={filteredIntegracoes}
+          whatsappConfigsCount={whatsappConfigs.length}
+          getConfigsCountForIntegracao={getConfigsCountForIntegracao}
+          onConfigure={handleOpenConfig}
+        />
 
-          return (
-            <Card key={cat}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <CatIcon className="h-4 w-4 text-muted-foreground" />
-                  {catConfig?.label || cat}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1">
-                {items.map((integracao, idx) => {
-                  const Icon = integracao.icon;
-                  const status = statusConfig[integracao.status];
-                  // Count per-unit configs
-                  const unitConfigs = integracao.isWhatsapp
-                    ? whatsappConfigs
-                    : getConfigsForIntegracao(integracao.id);
-
-                  return (
-                    <div key={integracao.id}>
-                      {idx > 0 && <Separator className="my-4" />}
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <div className="p-2.5 rounded-lg bg-muted shrink-0">
-                            <Icon className="h-5 w-5 text-muted-foreground" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-medium">{integracao.nome}</p>
-                              <Badge variant={status.variant} className="gap-1">
-                                <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
-                                {status.label}
-                              </Badge>
-                              {unitConfigs.length > 0 && (
-                                <Badge variant="outline" className="gap-1 text-[10px]">
-                                  <Building2 className="h-3 w-3" />
-                                  {unitConfigs.length} unidade{unitConfigs.length > 1 ? "s" : ""}
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
-                              {integracao.descricao}
-                            </p>
-                            {integracao.beneficios && integracao.beneficios.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5 mt-2">
-                                {integracao.beneficios.slice(0, 3).map((b, i) => (
-                                  <Badge key={i} variant="outline" className="text-[10px] font-normal">
-                                    {b}
-                                  </Badge>
-                                ))}
-                                {integracao.beneficios.length > 3 && (
-                                  <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground">
-                                    +{integracao.beneficios.length - 3}
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="pl-11 sm:pl-0 flex items-center gap-2">
-                          {integracao.status === "em_breve" ? (
-                            <Badge variant="outline" className="text-muted-foreground">Em breve</Badge>
-                          ) : (
-                            <Button variant="outline" size="sm" className="gap-1" onClick={() => handleOpenConfig(integracao)}>
-                              <Settings className="h-3.5 w-3.5" />
-                              Configurar
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          );
-        })}
-
-        {/* Sugestão proativa */}
-        <Card className="border-dashed border-primary/30 bg-primary/5">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-primary/10 shrink-0">
-                <Zap className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold mb-1">💡 Sugestões de integração</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Com base no seu uso, recomendamos configurar estas integrações para aumentar a produtividade:
-                </p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                    <span><strong>NF-e / NFC-e:</strong> Automatize a emissão fiscal e elimine processos manuais no SEFAZ.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                    <span><strong>Bina / GoTo:</strong> Identifique clientes ao atender o telefone e ganhe agilidade no atendimento.</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                    <span><strong>Webhooks:</strong> Conecte com Zapier/Make/N8N para automações externas ilimitadas.</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <SugestoesCard />
       </div>
 
-      {/* Dialog genérico por Unidade */}
-      <Dialog open={configOpen} onOpenChange={(open) => { setConfigOpen(open); if (!open) resetGenericForm(); }}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {selectedIntegracao && <selectedIntegracao.icon className="h-5 w-5" />}
-              {selectedIntegracao?.nome} — por Unidade
-            </DialogTitle>
-            <DialogDescription>
-              Configure esta integração individualmente para cada unidade/filial.
-              {selectedIntegracao?.helpUrl && (
-                <a href={selectedIntegracao.helpUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary mt-1 hover:underline">
-                  <ExternalLink className="h-3 w-3" /> Documentação do serviço
-                </a>
-              )}
-            </DialogDescription>
-          </DialogHeader>
+      <Suspense fallback={null}>
+        {configOpen && (
+          <GenericConfigDialog
+            open={configOpen}
+            onOpenChange={setConfigOpen}
+            integracao={selectedIntegracao}
+            unidades={unidades}
+            configs={genericConfigs}
+            configUnidadeId={configUnidadeId}
+            setConfigUnidadeId={setConfigUnidadeId}
+            configValues={configValues}
+            setConfigValues={setConfigValues}
+            configEditId={configEditId}
+            saving={saving}
+            onSave={handleSaveGenericConfig}
+            onReset={resetGenericForm}
+            onEdit={editGenericConfig}
+            onDelete={deleteGenericConfig}
+          />
+        )}
 
-          {/* Existing configs for this integration */}
-          {selectedIntegracao && getConfigsForIntegracao(selectedIntegracao.id).length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Configurações ativas:</p>
-              {getConfigsForIntegracao(selectedIntegracao.id).map((cfg) => (
-                <div key={cfg.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm">{cfg.unidades?.nome || "Unidade"}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {Object.entries(cfg.config || {}).filter(([, v]) => v).map(([k]) => k).join(", ") || "Configurado"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Badge variant={cfg.ativo ? "default" : "secondary"} className="text-[10px]">
-                      {cfg.ativo ? "Ativo" : "Inativo"}
-                    </Badge>
-                    <Button variant="ghost" size="sm" onClick={() => editGenericConfig(cfg, selectedIntegracao)}>
-                      <Settings className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteGenericConfig(cfg.id)}>
-                      <span className="text-xs">✕</span>
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <Separator />
-            </div>
-          )}
+        {whatsappDialogOpen && (
+          <WhatsAppEvolutionDialog
+            open={whatsappDialogOpen}
+            onOpenChange={setWhatsappDialogOpen}
+            whatsappConfigs={whatsappConfigs}
+            connectionStatuses={connectionStatuses}
+            unidades={unidades}
+            wpUnidadeId={wpUnidadeId}
+            setWpUnidadeId={setWpUnidadeId}
+            wpInstanceId={wpInstanceId}
+            setWpInstanceId={setWpInstanceId}
+            wpCreating={wpCreating}
+            deletingId={deletingId}
+            onConnect={handleEvolutionConnect}
+            onStatus={handleEvolutionStatus}
+            onDelete={deleteWhatsappConfig}
+            onCreate={handleCreateConnection}
+          />
+        )}
 
-          {/* Form */}
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label>Unidade</Label>
-              <Select value={configUnidadeId} onValueChange={setConfigUnidadeId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a unidade" />
-                </SelectTrigger>
-                <SelectContent>
-                  {unidades.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {metaDialogOpen && (
+          <MetaDialog
+            open={metaDialogOpen}
+            onOpenChange={setMetaDialogOpen}
+            metaWebhookUrl={metaWebhookUrl}
+            copiedWebhook={copiedWebhook}
+            onCopyWebhook={copyWebhookUrl}
+            metaConfigs={metaConfigs}
+            metaDeletingId={metaDeletingId}
+            unidades={unidades}
+            metaEditId={metaEditId}
+            metaConexaoModo={metaConexaoModo}
+            setMetaConexaoModo={setMetaConexaoModo}
+            metaUnidadeId={metaUnidadeId}
+            setMetaUnidadeId={setMetaUnidadeId}
+            metaAccessToken={metaAccessToken}
+            setMetaAccessToken={setMetaAccessToken}
+            metaPhoneNumberId={metaPhoneNumberId}
+            setMetaPhoneNumberId={setMetaPhoneNumberId}
+            metaWabaId={metaWabaId}
+            setMetaWabaId={setMetaWabaId}
+            metaVerifyToken={metaVerifyToken}
+            setMetaVerifyToken={setMetaVerifyToken}
+            metaSaving={metaSaving}
+            metaAppId={metaAppId}
+            setMetaAppId={setMetaAppId}
+            embeddedSignupLoading={embeddedSignupLoading}
+            onSaveMeta={handleSaveMeta}
+            onEditMeta={handleEditMeta}
+            onDeleteMeta={handleDeleteMeta}
+            onResetMeta={resetMetaForm}
+            onEmbeddedSignup={handleEmbeddedSignup}
+            onShowCoexQr={(phoneNumberId, token) => {
+              setCoexQrCode(null);
+              setCoexQrCountdown(120);
+              setCoexQrDialogOpen(true);
+              fetchCoexQrCode(phoneNumberId, token);
+            }}
+          />
+        )}
 
-            {selectedIntegracao?.configFields?.map((field) => (
-              <div key={field.key} className="space-y-1.5">
-                <Label htmlFor={`cfg-${field.key}`}>{field.label}</Label>
-                <Input
-                  id={`cfg-${field.key}`}
-                  type={field.type === "password" ? "password" : "text"}
-                  placeholder={field.placeholder}
-                  value={configValues[field.key] || ""}
-                  onChange={(e) => setConfigValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
-                />
-              </div>
-            ))}
+        {coexQrDialogOpen && (
+          <CoexQrDialog
+            open={coexQrDialogOpen}
+            onOpenChange={setCoexQrDialogOpen}
+            coexQrCode={coexQrCode}
+            coexQrCountdown={coexQrCountdown}
+          />
+        )}
 
-            {/* Benefits */}
-            {selectedIntegracao?.beneficios && (
-              <div className="p-3 rounded-lg bg-muted/50 space-y-1.5">
-                <p className="text-xs font-medium">Recursos:</p>
-                {selectedIntegracao.beneficios.map((b, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs">
-                    <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
-                    <span>{b}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setConfigOpen(false); resetGenericForm(); }}>Cancelar</Button>
-            <Button onClick={handleSaveGenericConfig} disabled={saving}>
-              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {configEditId ? "Atualizar" : "Vincular à Unidade"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog WhatsApp — Simplified */}
-      <Dialog open={whatsappDialogOpen} onOpenChange={setWhatsappDialogOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-              <MessageSquare className="h-6 w-6 text-primary" />
-              Central de WhatsApp
-            </DialogTitle>
-            <DialogDescription>
-              Gerencie as conexões de WhatsApp das suas lojas e filiais.
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Active Connections */}
-          {whatsappConfigs.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <Smartphone className="h-4 w-4 text-primary" />
-                Conexões Ativas
-              </h3>
-              <div className="grid gap-2">
-                {whatsappConfigs.map((cfg) => {
-                  const connStatus = connectionStatuses[cfg.id] || "disconnected";
-                  const isConnected = connStatus === "open" || connStatus === "connected";
-                  return (
-                    <div key={cfg.id} className="p-3 rounded-xl border bg-card/50 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className={`p-2 rounded-lg ${isConnected ? "bg-green-500/10" : "bg-muted"}`}>
-                            <Smartphone className={`h-5 w-5 ${isConnected ? "text-green-600" : "text-muted-foreground"}`} />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-bold truncate">{cfg.instance_id}</p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {(cfg as any).unidades?.nome || "Unidade"}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge 
-                          variant={isConnected ? "default" : "secondary"} 
-                          className={`text-[10px] gap-1 shrink-0 ${isConnected ? "bg-green-500/10 text-green-700 border-green-500/20" : ""}`}
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-green-500" : "bg-muted-foreground"}`} />
-                          {isConnected ? "Conectado" : "Desconectado"}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2 mt-3 pl-11">
-                        <Button 
-                          variant="outline" size="sm" 
-                          className="h-7 text-[10px] gap-1 px-2 font-bold" 
-                          onClick={() => handleEvolutionConnect(cfg)}
-                        >
-                          <QrCode className="h-3 w-3" />
-                          {isConnected ? "Reconectar" : "Conectar"}
-                        </Button>
-                        <Button 
-                          variant="outline" size="sm" 
-                          className="h-7 text-[10px] gap-1 px-2" 
-                          onClick={() => handleEvolutionStatus(cfg)}
-                        >
-                          <Signal className="h-3 w-3" />
-                          Status
-                        </Button>
-                        <Button 
-                          variant="ghost" size="sm" 
-                          className="h-7 text-[10px] gap-1 px-2 text-destructive hover:text-destructive" 
-                          onClick={() => deleteWhatsappConfig(cfg.id, cfg.instance_id)}
-                          disabled={deletingId === cfg.id}
-                        >
-                          {deletingId === cfg.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-                          Excluir
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <Separator />
-            </div>
-          )}
-
-          {/* New Connection Form */}
-          <div className="space-y-4 pt-2">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <Plus className="h-4 w-4 text-primary" />
-              Nova Conexão
-            </h3>
-            
-            <div className="grid gap-4 bg-muted/20 p-4 rounded-2xl border border-primary/10">
-              <div className="space-y-2">
-                <Label className="text-xs font-bold">Filial / Unidade</Label>
-                <Select value={wpUnidadeId} onValueChange={setWpUnidadeId}>
-                  <SelectTrigger className="h-10 text-xs"><SelectValue placeholder="Selecione a unidade..." /></SelectTrigger>
-                  <SelectContent>
-                    {unidades.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-bold">Nome da Instância</Label>
-                <Input 
-                  className="h-10 text-xs font-mono" 
-                  value={wpInstanceId} 
-                  onChange={(e) => setWpInstanceId(e.target.value)} 
-                  placeholder="Ex: suaempresa_matriz" 
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Gerado automaticamente ao selecionar a unidade. Editável se necessário.
-                </p>
-              </div>
-
-              <Button 
-                onClick={handleCreateConnection} 
-                disabled={wpCreating || !wpUnidadeId || !wpInstanceId} 
-                className="w-full gap-2 font-bold py-5"
-              >
-                {wpCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                Criar Conexão e Gerar QR Code
-              </Button>
-            </div>
-          </div>
-
-          <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t">
-            <Button variant="ghost" onClick={() => setWhatsappDialogOpen(false)} className="font-semibold">Fechar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog WhatsApp Oficial — Meta Cloud API */}
-      <Dialog open={metaDialogOpen} onOpenChange={(open) => { setMetaDialogOpen(open); if (!open) { resetMetaForm(); setMetaConexaoModo("token"); } }}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-              <KeyRound className="h-6 w-6 text-primary" />
-              WhatsApp Oficial — Meta Cloud API
-            </DialogTitle>
-            <DialogDescription>
-              Configure a API oficial do WhatsApp da Meta. Escolha entre Token Manual ou Embedded Signup com <strong>Coexistência (QR Code)</strong>.
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Webhook URL */}
-          <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 space-y-2">
-            <p className="text-xs font-bold text-blue-700 uppercase tracking-widest">URL do Webhook (configure no painel Meta)</p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 text-[11px] font-mono bg-muted px-3 py-2 rounded-lg break-all">{metaWebhookUrl}</code>
-              <Button variant="outline" size="sm" className="shrink-0 gap-1" onClick={copyWebhookUrl}>
-                {copiedWebhook ? <CheckCheck className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
-                {copiedWebhook ? "Copiado!" : "Copiar"}
-              </Button>
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              Cole esta URL no campo <strong>Webhook URL</strong> no painel do Meta for Developers.
-            </p>
-          </div>
-
-          {/* Existing Configs */}
-          {metaConfigs.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                Configurações Ativas
-              </h3>
-              <div className="grid gap-2">
-                {metaConfigs.map((cfg) => (
-                  <div key={cfg.id} className="p-3 rounded-xl border bg-card/50">
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0">
-                        <p className="text-sm font-bold">{cfg.unidades?.nome || "Unidade"}</p>
-                        <p className="text-[11px] text-muted-foreground font-mono">
-                          Phone ID: {cfg.meta_phone_number_id || "-"}
-                        </p>
-                        {cfg.provedor === "meta_coex" && (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full mt-1">
-                            <QrCode className="h-2.5 w-2.5" /> Coexistência
-                          </span>
-                        )}
-                      </div>
-                      <Badge variant="default" className="bg-green-500/10 text-green-700 border-green-500/20 text-[10px] gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                        Ativo
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1 px-2" onClick={() => handleEditMeta(cfg)}>
-                        <Settings className="h-3 w-3" />
-                        Editar
-                      </Button>
-                      {cfg.provedor === "meta_coex" && cfg.meta_access_token && (
-                        <Button
-                          variant="outline" size="sm"
-                          className="h-7 text-[10px] gap-1 px-2 border-green-500 text-green-700 hover:bg-green-50"
-                          onClick={() => {
-                            setCoexQrCode(null);
-                            setCoexQrCountdown(120);
-                            setCoexQrDialogOpen(true);
-                            fetchCoexQrCode(cfg.meta_phone_number_id, cfg.meta_access_token);
-                          }}
-                        >
-                          <QrCode className="h-3 w-3" />
-                          QR Code
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost" size="sm"
-                        className="h-7 text-[10px] gap-1 px-2 text-destructive hover:text-destructive"
-                        onClick={() => handleDeleteMeta(cfg.id)}
-                        disabled={metaDeletingId === cfg.id}
-                      >
-                        {metaDeletingId === cfg.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-                        Remover
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Separator />
-            </div>
-          )}
-
-          {/* Modo de Conexão */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <Plus className="h-4 w-4 text-primary" />
-              {metaEditId ? "Editar Configuração" : "Nova Configuração"}
-            </h3>
-
-            {/* Seletor de modo */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setMetaConexaoModo("token")}
-                className={`flex flex-col items-start gap-2 p-3 rounded-xl border-2 transition-all text-left ${
-                  metaConexaoModo === "token" ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
-                }`}
-              >
-                <KeyRound className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-xs font-bold">Token Manual</p>
-                  <p className="text-[10px] text-muted-foreground">Insira credenciais manualmente</p>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setMetaConexaoModo("embedded_signup")}
-                className={`flex flex-col items-start gap-2 p-3 rounded-xl border-2 transition-all text-left ${
-                  metaConexaoModo === "embedded_signup" ? "border-[#1877F2] bg-blue-50 dark:bg-blue-950/20" : "border-border hover:border-blue-400"
-                }`}
-              >
-                <svg className="h-5 w-5 text-[#1877F2]" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                </svg>
-                <div>
-                  <p className="text-xs font-bold">Embedded Signup</p>
-                  <p className="text-[10px] text-muted-foreground">QR Code + Coexistência (recomendado)</p>
-                </div>
-              </button>
-            </div>
-
-            {/* Unidade (comum a ambos os modos) */}
-            <div className="space-y-2">
-              <Label className="text-xs font-bold">Filial / Unidade <span className="text-destructive">*</span></Label>
-              <Select value={metaUnidadeId} onValueChange={setMetaUnidadeId} disabled={!!metaEditId}>
-                <SelectTrigger className="h-10 text-xs"><SelectValue placeholder="Selecione a unidade..." /></SelectTrigger>
-                <SelectContent>
-                  {unidades.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Modo Token Manual */}
-            {metaConexaoModo === "token" && (
-              <div className="grid gap-4 bg-muted/20 p-4 rounded-2xl border border-primary/10">
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold">Access Token <span className="text-destructive">*</span></Label>
-                  <Input
-                    className="h-10 text-xs font-mono"
-                    type="password"
-                    value={metaAccessToken}
-                    onChange={(e) => setMetaAccessToken(e.target.value)}
-                    placeholder="EAAxxxxxxx..."
-                  />
-                  <p className="text-[10px] text-muted-foreground">Token permanente do Sistema de Usuários.</p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold">Phone Number ID <span className="text-destructive">*</span></Label>
-                  <Input
-                    className="h-10 text-xs font-mono"
-                    value={metaPhoneNumberId}
-                    onChange={(e) => setMetaPhoneNumberId(e.target.value)}
-                    placeholder="123456789012345"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold">WABA ID</Label>
-                  <Input
-                    className="h-10 text-xs font-mono"
-                    value={metaWabaId}
-                    onChange={(e) => setMetaWabaId(e.target.value)}
-                    placeholder="987654321098765"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold">Verify Token</Label>
-                  <Input
-                    className="h-10 text-xs font-mono"
-                    value={metaVerifyToken}
-                    onChange={(e) => setMetaVerifyToken(e.target.value)}
-                    placeholder="gasfacil_meta_verify"
-                  />
-                </div>
-                <Button
-                  onClick={handleSaveMeta}
-                  disabled={metaSaving || !metaUnidadeId || !metaAccessToken || !metaPhoneNumberId}
-                  className="w-full gap-2 font-bold py-5"
-                >
-                  {metaSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                  {metaEditId ? "Atualizar Configuração" : "Salvar e Ativar"}
-                </Button>
-              </div>
-            )}
-
-            {/* Modo Embedded Signup */}
-            {metaConexaoModo === "embedded_signup" && (
-              <div className="grid gap-4 bg-blue-50/50 dark:bg-blue-950/10 p-4 rounded-2xl border border-blue-200 dark:border-blue-800">
-                <div className="space-y-1.5">
-                  <p className="text-xs font-bold text-blue-800 dark:text-blue-200">Como funciona a Coexistência:</p>
-                  <ul className="text-xs text-muted-foreground space-y-1">
-                    <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" /> Continue usando o WhatsApp no celular normalmente</li>
-                    <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" /> A BIA responde automaticamente via API Oficial</li>
-                    <li className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" /> Mensagens aparecem nos dois lugares</li>
-                    <li className="flex items-center gap-1.5"><AlertTriangle className="h-3 w-3 text-amber-500 shrink-0" /> Requer App Review aprovado na Meta</li>
-                  </ul>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-bold">App ID da Meta <span className="text-destructive">*</span></Label>
-                  <Input
-                    className="h-10 text-xs font-mono"
-                    value={metaAppId}
-                    onChange={(e) => setMetaAppId(e.target.value)}
-                    placeholder="925541403793729"
-                  />
-                  <p className="text-[10px] text-muted-foreground">
-                    Encontre em{" "}
-                    <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-primary underline">
-                      developers.facebook.com/apps
-                    </a>
-                  </p>
-                </div>
-                <Button
-                  onClick={handleEmbeddedSignup}
-                  disabled={embeddedSignupLoading || !metaUnidadeId || !metaAppId}
-                  className="w-full gap-2 font-bold py-5 bg-[#1877F2] hover:bg-[#166FE5] text-white"
-                >
-                  {embeddedSignupLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                    </svg>
-                  )}
-                  Continuar com Facebook
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {/* Instructions */}
-          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 space-y-2">
-            <p className="text-xs font-bold text-amber-700 uppercase tracking-widest">Como configurar no painel Meta</p>
-            <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>Acesse <strong>developers.facebook.com</strong> e abra seu App</li>
-              <li>Vá em <strong>WhatsApp &gt; Configuração</strong> e copie o <strong>Phone Number ID</strong></li>
-              <li>Gere um <strong>Token de Acesso Permanente</strong> em Configurações do Sistema</li>
-              <li>Em <strong>Webhooks</strong>, cole a URL acima e o <strong>Verify Token</strong></li>
-              <li>Assine o campo <strong>messages</strong> no webhook</li>
-              <li>Para Coexistência: habilite o recurso no App e solicite App Review</li>
-            </ol>
-          </div>
-
-          <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t">
-            {metaEditId && (
-              <Button variant="ghost" onClick={resetMetaForm} className="mr-auto">Cancelar edição</Button>
-            )}
-            <Button variant="ghost" onClick={() => { setMetaDialogOpen(false); resetMetaForm(); setMetaConexaoModo("token"); }}>Fechar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog QR Code Coexistência Meta */}
-      <Dialog open={coexQrDialogOpen} onOpenChange={setCoexQrDialogOpen}>
-        <DialogContent className="max-w-sm text-center">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-center gap-2 text-xl font-bold">
-              <QrCode className="h-6 w-6 text-green-600" />
-              QR Code — Coexistência
-            </DialogTitle>
-            <DialogDescription>
-              Abra o WhatsApp no celular, vá em <strong>Configurações → Aparelhos Conectados</strong> e escaneie o código abaixo.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-4 py-4">
-            {coexQrCode ? (
-              <>
-                <div className="relative">
-                  <img
-                    src={coexQrCode}
-                    alt="QR Code Coexistência"
-                    className="w-64 h-64 rounded-xl border-4 border-green-500 shadow-lg"
-                  />
-                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-green-500 text-white text-xs px-3 py-1 rounded-full whitespace-nowrap">
-                    Escaneie com o WhatsApp
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
-                  <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
-                  Aguardando conexão... expira em {coexQrCountdown}s
-                </div>
-                <p className="text-xs text-muted-foreground text-center max-w-[220px]">
-                  Após escanear, aguarde a confirmação. Não feche esta janela.
-                </p>
-              </>
-            ) : (
-              <div className="flex flex-col items-center gap-3 py-8">
-                <div className="relative">
-                  <div className="h-16 w-16 rounded-full border-4 border-green-200 border-t-green-500 animate-spin" />
-                  <QrCode className="h-6 w-6 text-green-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                </div>
-                <span className="text-sm text-muted-foreground">Gerando QR Code...</span>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog QR Code Evolution API */}
-      <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-              <QrCode className="h-6 w-6 text-primary" />
-              Conectar WhatsApp
-            </DialogTitle>
-            <DialogDescription className="font-medium">
-              Vincule seu aparelho para ativar as mensagens automáticas da instância <strong>{qrInstanceName}</strong>.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-6 py-6">
-            {qrLoading ? (
-              <div className="flex flex-col items-center gap-3 py-10">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="text-sm font-semibold animate-pulse">Gerando link seguro...</p>
-              </div>
-            ) : qrStatus === "connected" ? (
-              <div className="flex flex-col items-center gap-3 py-10 text-center">
-                <div className="bg-green-500/10 p-4 rounded-full">
-                  <Wifi className="h-10 w-10 text-green-600" />
-                </div>
-                <p className="text-lg font-bold text-green-700">Conectado com Sucesso!</p>
-                <p className="text-sm text-muted-foreground">Sua unidade já está enviando mensagens.</p>
-              </div>
-            ) : qrCodeData ? (
-              <div className="flex flex-col items-center gap-6 w-full">
-                <div className="p-4 bg-background rounded-3xl shadow-2xl ring-8 ring-primary/5 border-2 border-primary/10">
-                  <img
-                    src={qrCodeData.startsWith("data:") ? qrCodeData : `data:image/png;base64,${qrCodeData}`}
-                    alt="QR Code WhatsApp"
-                    className="w-56 h-56"
-                  />
-                </div>
-                
-                <div className="bg-primary/5 p-4 rounded-xl border border-primary/10 text-center w-full space-y-2">
-                  <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Instruções de Pareamento</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    1. Abra o <strong>WhatsApp</strong> no seu celular<br/>
-                    2. Toque em <strong>Aparelhos Conectados</strong><br/>
-                    3. Toque em <strong>Conectar um aparelho</strong> e aponte a câmera.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-3 py-8">
-                <WifiOff className="h-12 w-12 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">QR Code não disponível</p>
-                <Button variant="outline" size="sm" onClick={() => {
-                  const cfg = whatsappConfigs.find(c => c.instance_id === qrInstanceName);
-                  if (cfg) handleEvolutionConnect(cfg);
-                }}>
-                  Tentar novamente
-                </Button>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+        {qrDialogOpen && (
+          <QrEvolutionDialog
+            open={qrDialogOpen}
+            onOpenChange={setQrDialogOpen}
+            qrInstanceName={qrInstanceName}
+            qrLoading={qrLoading}
+            qrStatus={qrStatus}
+            qrCodeData={qrCodeData}
+            whatsappConfigs={whatsappConfigs}
+            onRetry={handleEvolutionConnect}
+          />
+        )}
+      </Suspense>
     </MainLayout>
   );
 }
