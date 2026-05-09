@@ -252,7 +252,7 @@ export default function WhatsAppWebLogin() {
 
   // Ir para configurações
   const handleGoToConfig = () => {
-    navigate("/admin/whatsapp");
+    navigate("/integracoes?open=whatsapp");
   };
 
   return (

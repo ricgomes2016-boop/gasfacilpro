@@ -139,7 +139,7 @@ export default function WhatsAppWebDashboard() {
                 </>
               )}
             </Badge>
-            <Button variant="outline" size="sm" onClick={() => navigate("/admin/whatsapp")}>
+            <Button variant="outline" size="sm" onClick={() => navigate("/integracoes?open=whatsapp")}>
               <Settings className="h-4 w-4 mr-1" />
               Config
             </Button>
@@ -426,7 +426,7 @@ export default function WhatsAppWebDashboard() {
 
             {/* Link to full config */}
             <div className="text-center">
-              <Button variant="link" onClick={() => navigate("/admin/whatsapp")}>
+              <Button variant="link" onClick={() => navigate("/integracoes?open=whatsapp")}>
                 Configurações avançadas →
               </Button>
             </div>
