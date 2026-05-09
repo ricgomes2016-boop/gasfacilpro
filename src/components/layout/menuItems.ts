@@ -115,6 +115,7 @@ export const menuItems: MenuItem[] = [
       { icon: MessageCircle, label: "WhatsApp Web", path: "/whatsapp/web/login" },
       { icon: Smartphone, label: "Inbox WhatsApp", path: "/chat" },
       { icon: Smartphone, label: "Config WhatsApp", path: "/integracoes?open=whatsapp" },
+      { icon: MessageCircle, label: "Credenciais Meta", path: "/whatsapp/credenciais" },
     ],
   },
   {
