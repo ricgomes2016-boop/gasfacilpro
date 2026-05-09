@@ -1,18 +1,10 @@
 import {
-  ScanBarcode,
-  CreditCard,
-  FileText,
-  Globe,
-  Phone,
-  Mail,
-  Truck,
-  BarChart3,
-  MessageSquare,
-  Webhook,
+  ScanBarcode, CreditCard, FileText, Globe, Phone, Mail, Truck, BarChart3,
+  MessageSquare, Webhook, Zap,
 } from "lucide-react";
 import type { Integracao } from "./types";
 
-export const integracoesData: Integracao[] = [
+export const integracoes: Integracao[] = [
   {
     id: "boleto_leitura",
     nome: "Leitura de Boletos (IA)",
@@ -204,3 +196,17 @@ export const integracoesData: Integracao[] = [
     ],
   },
 ];
+
+export const statusConfig = {
+  conectado: { label: "Conectado", variant: "default" as const, dotColor: "bg-green-500" },
+  disponivel: { label: "Disponível", variant: "secondary" as const, dotColor: "bg-blue-500" },
+  em_breve: { label: "Em breve", variant: "outline" as const, dotColor: "bg-muted-foreground" },
+};
+
+export const categoriasLabel: Record<string, { label: string; icon: React.ElementType }> = {
+  pagamento: { label: "Pagamento", icon: CreditCard },
+  comunicacao: { label: "Comunicação", icon: MessageSquare },
+  fiscal: { label: "Fiscal", icon: FileText },
+  logistica: { label: "Logística", icon: Truck },
+  produtividade: { label: "Produtividade", icon: Zap },
+};
