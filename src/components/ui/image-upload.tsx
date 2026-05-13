@@ -29,26 +29,42 @@ export function ImageUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
 
+  const compressImage = (file: File, maxWidth = 1600, quality = 0.8): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ratio = Math.min(maxWidth / img.width, maxWidth / img.height, 1);
+          canvas.width = Math.round(img.width * ratio);
+          canvas.height = Math.round(img.height * ratio);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return reject(new Error("Canvas indisponível"));
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(
+            (blob) => (blob ? resolve(blob) : reject(new Error("Falha ao comprimir"))),
+            "image/jpeg",
+            quality
+          );
+        };
+        img.onerror = () => reject(new Error("Imagem inválida"));
+        img.src = ev.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error("Falha ao ler arquivo"));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    const validTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    if (!validTypes.includes(file.type)) {
+    // Validate file type (allow generic image/* from camera capture)
+    if (!file.type.startsWith("image/")) {
       toast({
         title: "Tipo de arquivo inválido",
-        description: "Use imagens JPG, PNG, WebP ou GIF.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Arquivo muito grande",
-        description: "O tamanho máximo é 5MB.",
+        description: "Selecione uma imagem.",
         variant: "destructive",
       });
       return;
@@ -57,16 +73,29 @@ export function ImageUpload({
     setIsUploading(true);
 
     try {
-      // Generate unique filename
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      // Always compress to JPEG to avoid huge camera files & HEIC issues
+      let uploadBlob: Blob = file;
+      let ext = "jpg";
+      try {
+        uploadBlob = await compressImage(file);
+      } catch (err) {
+        console.warn("Compressão falhou, enviando original:", err);
+        ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      }
+
+      if (uploadBlob.size > 10 * 1024 * 1024) {
+        throw new Error("Imagem muito grande mesmo após compressão (máx 10MB).");
+      }
+
+      const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(fileName, file, {
+        .upload(fileName, uploadBlob, {
           cacheControl: "3600",
           upsert: false,
+          contentType: "image/jpeg",
         });
 
       if (uploadError) throw uploadError;
