@@ -54,6 +54,7 @@ export default function WhatsAppTesteEnvio() {
   const [unidadeId, setUnidadeId] = useState<string>("");
   const [to, setTo] = useState("");
   const [message, setMessage] = useState("Olá! Esta é uma mensagem de teste do GásFácil Pro 🚀");
+  const [useTemplate, setUseTemplate] = useState(true);
   const [sending, setSending] = useState(false);
   const [envios, setEnvios] = useState<Envio[]>([]);
 
