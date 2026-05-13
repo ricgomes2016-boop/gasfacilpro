@@ -12,6 +12,7 @@ interface ImageUploadProps {
   folder?: string;
   className?: string;
   disabled?: boolean;
+  allowCamera?: boolean;
 }
 
 export function ImageUpload({
@@ -21,10 +22,12 @@ export function ImageUpload({
   folder = "products",
   className,
   disabled = false,
+  allowCamera = false,
 }: ImageUploadProps) {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
