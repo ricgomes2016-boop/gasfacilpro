@@ -97,7 +97,7 @@ const statusOptions = [
   { value: "excluido", label: "Excluído", color: "bg-destructive/10 text-destructive" },
 ];
 
-const emptyForm = { placa: "", modelo: "", marca: "", ano: "", km_atual: "", tipo: "moto", entregador_id: "", valor_fipe: "", status: "ativo" };
+const emptyForm = { placa: "", modelo: "", marca: "", ano: "", km_atual: "", tipo: "moto", entregador_id: "", valor_fipe: "", status: "ativo", foto_url: "" };
 
 export default function Veiculos() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
