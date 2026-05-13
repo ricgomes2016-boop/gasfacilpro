@@ -133,12 +133,19 @@ export default function WhatsAppTesteEnvio() {
     if (!unidadeId) return toast.error("Selecione uma unidade");
     const digits = to.replace(/\D/g, "");
     if (digits.length < 10) return toast.error("Informe um número válido com DDD (ex: 5543999990000)");
-    if (!message.trim()) return toast.error("Mensagem vazia");
+    if (!useTemplate && !message.trim()) return toast.error("Mensagem vazia");
 
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("meta-test-send", {
-        body: { unidade_id: unidadeId, to: digits, message },
+        body: {
+          unidade_id: unidadeId,
+          to: digits,
+          message: useTemplate ? null : message,
+          use_template: useTemplate,
+          template_name: "hello_world",
+          template_lang: "en_US",
+        },
       });
       if (error) throw error;
       if (!data?.ok) {
