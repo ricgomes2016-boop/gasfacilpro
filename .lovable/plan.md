@@ -1,71 +1,36 @@
 ## Diagnóstico
 
-Investiguei o backend e encontrei sinais claros de que **o envio nem chegou ao servidor**:
+Verifiquei os logs e o banco:
 
-- A tabela `whatsapp_test_envios` está **vazia** (nenhum envio registrado).
-- A edge function `meta-test-send` **não tem nenhum log** — nunca foi executada com sucesso.
-- A `meta-webhook` e a `whatsapp-send` (usada no `/chat`) também sem logs recentes.
-- Credenciais Meta da unidade Central Gás estão corretas no banco (`meta_phone_number_id = 1085213844678248`, `meta_waba_id = 2166317874121379`, `status_conexao = conectado`).
+- **Bia respondeu sim** à Janaina (16:10:13 UTC: *"Oie! Tudo ótimo por aqui..."*) e a Meta confirmou `sent → delivered → read` às 16:11. Ou seja, a entrega no WhatsApp da Janaina **funcionou**.
+- O problema real é que a Bia **não se apresenta como "Central Gás"** — o `buildSystemPrompt` em `supabase/functions/_shared/bia-core.ts` usa apenas *"assistente virtual da empresa de gás"*, sem injetar o nome da empresa (`empresas.nome`). A integração Meta do número `554335241094` ESTÁ corretamente vinculada à unidade **Central Gas** (`empresa_id` confirmado), só falta usar esse nome no prompt.
+- O `WhatsAppInbox.tsx` hoje só lista conversas existentes — não tem o botão "nova conversa" do WhatsApp Web.
 
-Ou seja: o problema **não é** com a Meta API ou com o número — é com a chamada da função do navegador → Supabase.
+## O que vou fazer
 
-### Causa provável
+### 1. Bia responde como "Central Gás"
+- Em `checkBusinessHours` (bia-core.ts) já buscamos `empresas.nome` via join — vou expor `empresaNome` no retorno.
+- Atualizar a assinatura de `buildSystemPrompt` para receber `empresaNome` e usar em todas as variantes do prompt: *"Você é a Bia, atendente da **Central Gás**..."*, incluindo a primeira saudação.
+- Atualizar as 3 chamadas (`meta-webhook`, `gateway-webhook`, e qualquer outra que use `buildSystemPrompt`) para passar o novo parâmetro.
 
-Em `supabase/functions/meta-test-send/index.ts` a autenticação usa:
+### 2. Botão "Nova conversa" no WhatsAppInbox
+- Adicionar ícone de lápis no header da sidebar (igual WhatsApp Web).
+- Abre um `Dialog` com:
+  - Campo de busca que faz autocomplete em `clientes` (RPC `autocomplete_clientes_v2` já existe).
+  - Opção "Novo número" → input de telefone livre.
+- Ao selecionar: cria/atualiza a `ai_conversas` com o telefone e seleciona a conversa. O envio segue pelo `whatsapp-send` existente.
+- Importante: WhatsApp Cloud API só permite enviar mensagem livre se o cliente conversou nas últimas 24h — fora disso precisa template. Vou exibir um aviso no modal quando o número for novo.
 
-```ts
-const { data: claimsData } = await userClient.auth.getClaims(
-  authHeader.replace("Bearer ", "")
-);
-```
+### 3. Teste end-to-end
+Após implementar, vou disparar via `whatsapp-send` para o número `554399692765` (Janaina) com texto tipo *"Olá Janaina, aqui é a Bia da Central Gás 👋 teste"* e checar o status no webhook (`sent/delivered`).
 
-`auth.getClaims(token)` com argumento string não é a assinatura suportada pelo `@supabase/supabase-js@2.45` — ela retorna erro/`null` e a função responde **401 Unauthorized** sem deixar log de execução (e sem inserir linha em `whatsapp_test_envios`). Por isso a UI parece "enviar" mas nada chega ao WhatsApp e nada aparece na lista de envios.
+## Arquivos afetados
 
-A função `whatsapp-send` (usada no Inbox `/chat`) também pode estar afetada porque resolve config com `unidade_id: null` — vou validar.
+- `supabase/functions/_shared/bia-core.ts` (expor `empresaNome`, ajustar `buildSystemPrompt`)
+- `supabase/functions/meta-webhook/index.ts` e `gateway-webhook/index.ts` (passar o nome)
+- `src/components/atendimento/WhatsAppInbox.tsx` (botão + dialog "nova conversa")
+- 1 componente novo `NovaConversaDialog.tsx` para manter o inbox enxuto
 
-## Plano de correção
+Sem mudanças de banco e sem mexer em RLS, App.tsx ou rotas.
 
-### 1. Corrigir autenticação em `meta-test-send`
-Trocar para o padrão validado do projeto:
-
-```ts
-const { data: { user }, error } = await userClient.auth.getUser();
-if (error || !user) return json({ ok: false, error: "Unauthorized" }, 401);
-const userId = user.id;
-```
-
-E garantir que **toda** falha (auth, validação, Meta API) grave uma linha `failed` em `whatsapp_test_envios` com `error` legível, para a UI mostrar o motivo em vez de ficar silenciosa.
-
-### 2. Logar e devolver erro detalhado da Meta
-Sempre que a Meta API responder erro, salvar `metaJson.error` completo (code, type, message, error_subcode) no campo `error` e em `status_history` — facilita identificar problemas como "número não está na lista de testes", "template required (24h window)", etc.
-
-### 3. Validar a regra das 24h da Meta Cloud API
-A Meta Cloud API só permite enviar **mensagens de texto livre** se o destinatário tiver enviado uma mensagem nas últimas 24h. Caso contrário, exige template aprovado. Vou:
-- Adicionar suporte opcional a envio via **template `hello_world`** (template padrão sempre aprovado) na tela de Teste de Envio.
-- Mostrar aviso na UI: "Para números que nunca falaram com você, use o template hello_world".
-
-### 4. Garantir que o número de teste está autorizado
-Em contas Meta novas (não verificadas), só é possível enviar para até 5 números cadastrados na lista "Recipient phone number" do WhatsApp Manager. Vou adicionar um link/aviso na tela explicando isso.
-
-### 5. Validar `whatsapp-send` do Inbox `/chat`
-- Confirmar que `resolveConfig` consegue achar a integração `meta` quando `unidade_id` chega `null` (hoje passa `null` direto).
-- Se não achar, fazer fallback resolvendo pela `empresa_id` do usuário autenticado.
-
-### 6. Redeploy e teste end-to-end
-- Deploy de `meta-test-send` e (se alterada) `whatsapp-send`.
-- Disparar via `curl_edge_functions` autenticado para o número `5543999661816` com template `hello_world` e confirmar:
-  - linha em `whatsapp_test_envios` com `wamid` retornado;
-  - log da função sem erro;
-  - webhook `meta-webhook` recebendo `sent → delivered` e atualizando a linha.
-
-### 7. Reportar resultado
-Mostrar para você: `wamid` gerado, status final (sent/delivered/failed), e erro detalhado da Meta caso ainda falhe — assim você sabe exatamente o que ajustar (autorizar número, abrir janela 24h, ou trocar template).
-
-## Detalhes técnicos (referência)
-
-Arquivos tocados:
-- `supabase/functions/meta-test-send/index.ts` — auth fix, registro de erro, suporte a template.
-- `supabase/functions/whatsapp-send/index.ts` — fallback de resolução de config por empresa.
-- `src/pages/WhatsAppTesteEnvio.tsx` — toggle "texto livre / template hello_world", aviso sobre 24h e lista de números autorizados.
-
-Sem mudanças no `App.tsx`, providers ou rotas.
+Posso prosseguir?
