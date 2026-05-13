@@ -144,6 +144,16 @@ export default function CadastroClientesCad() {
 
   // Mesclar clientes
   const [isMesclarOpen, setIsMesclarOpen] = useState(false);
+  const [selectedMergeIds, setSelectedMergeIds] = useState<Set<string>>(new Set());
+  const [mesclarPreSelected, setMesclarPreSelected] = useState<string[] | undefined>(undefined);
+
+  const toggleMergeId = (id: string) => {
+    setSelectedMergeIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   // Unidades dialog
   const [unidadesDialogOpen, setUnidadesDialogOpen] = useState(false);
@@ -1043,9 +1053,20 @@ export default function CadastroClientesCad() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="outline" className="gap-2 flex-1 sm:flex-none" onClick={() => setIsMesclarOpen(true)}>
+            <Button
+              variant={selectedMergeIds.size >= 2 ? "default" : "outline"}
+              className="gap-2 flex-1 sm:flex-none"
+              onClick={() => {
+                if (selectedMergeIds.size >= 2) {
+                  setMesclarPreSelected([...selectedMergeIds]);
+                } else {
+                  setMesclarPreSelected(undefined);
+                }
+                setIsMesclarOpen(true);
+              }}
+            >
               <Merge className="h-4 w-4" />
-              Mesclar
+              {selectedMergeIds.size >= 2 ? `Mesclar (${selectedMergeIds.size})` : "Mesclar"}
             </Button>
             <Button className="gap-2 flex-1 sm:flex-none" onClick={openCreateModal}>
               <Plus className="h-4 w-4" />
@@ -1190,6 +1211,12 @@ export default function CadastroClientesCad() {
                   {filteredClientes.map((cliente) => (
                     <div key={cliente.id} className="semantic-mobile-card">
                       <div className="flex items-start justify-between gap-2">
+                        <Checkbox
+                          checked={selectedMergeIds.has(cliente.id)}
+                          onCheckedChange={() => toggleMergeId(cliente.id)}
+                          className="mt-1"
+                          aria-label="Selecionar para mesclar"
+                        />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             {cliente.codigo_cliente && (
@@ -1254,6 +1281,20 @@ export default function CadastroClientesCad() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-10">
+                          <Checkbox
+                            checked={filteredClientes.length > 0 && filteredClientes.every(c => selectedMergeIds.has(c.id))}
+                            onCheckedChange={(v) => {
+                              setSelectedMergeIds(prev => {
+                                const next = new Set(prev);
+                                if (v) filteredClientes.forEach(c => next.add(c.id));
+                                else filteredClientes.forEach(c => next.delete(c.id));
+                                return next;
+                              });
+                            }}
+                            aria-label="Selecionar todos"
+                          />
+                        </TableHead>
                         <TableHead className="w-20">Código</TableHead>
                         <TableHead>Nome</TableHead>
                         <TableHead>Telefone</TableHead>
@@ -1271,7 +1312,14 @@ export default function CadastroClientesCad() {
                         const num = cliente.numero || "";
                         const rua = cliente.endereco || "";
                         return (
-                          <TableRow key={cliente.id}>
+                          <TableRow key={cliente.id} data-state={selectedMergeIds.has(cliente.id) ? "selected" : undefined}>
+                            <TableCell className="w-10">
+                              <Checkbox
+                                checked={selectedMergeIds.has(cliente.id)}
+                                onCheckedChange={() => toggleMergeId(cliente.id)}
+                                aria-label={`Selecionar ${cliente.nome}`}
+                              />
+                            </TableCell>
                             <TableCell className="font-mono text-xs text-muted-foreground">
                               {cliente.codigo_cliente ? `#${cliente.codigo_cliente}` : "-"}
                             </TableCell>
@@ -1704,8 +1752,15 @@ export default function CadastroClientesCad() {
       {/* Mesclar Clientes Dialog */}
       <MesclarClientesDialog
         open={isMesclarOpen}
-        onOpenChange={setIsMesclarOpen}
-        onMerged={fetchClientes}
+        onOpenChange={(o) => {
+          setIsMesclarOpen(o);
+          if (!o) setMesclarPreSelected(undefined);
+        }}
+        onMerged={() => {
+          setSelectedMergeIds(new Set());
+          fetchClientes();
+        }}
+        preSelectedIds={mesclarPreSelected}
       />
 
       {/* Cliente Unidades Dialog */}

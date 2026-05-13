@@ -41,6 +41,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onMerged: () => void;
+  preSelectedIds?: string[];
 }
 
 function normalizeStr(s: string | null | undefined): string {
@@ -61,7 +62,7 @@ function buildNameKey(c: Cliente): string {
   return normalizeStr(c.nome);
 }
 
-export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
+export function MesclarClientesDialog({ open, onOpenChange, onMerged, preSelectedIds }: Props) {
   const [step, setStep] = useState<"detect" | "merge">("detect");
   const [loading, setLoading] = useState(false);
   const [merging, setMerging] = useState(false);
@@ -71,17 +72,56 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [masterId, setMasterId] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("nome");
+  const [manualMode, setManualMode] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setStep("detect");
       setSelectedGroup(null);
       setSelectedIds(new Set());
       setMasterId("");
       setActiveTab("nome");
-      detectDuplicates();
+      if (preSelectedIds && preSelectedIds.length >= 2) {
+        setManualMode(true);
+        loadManualSelection(preSelectedIds);
+      } else {
+        setManualMode(false);
+        setStep("detect");
+        detectDuplicates();
+      }
     }
   }, [open]);
+
+  const loadManualSelection = async (ids: string[]) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("*")
+        .in("id", ids)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      const clientes = (data || []) as Cliente[];
+      if (clientes.length < 2) {
+        toast.error("Selecione ao menos 2 clientes para mesclar.");
+        onOpenChange(false);
+        return;
+      }
+      const group: DuplicateGroup = {
+        key: "manual",
+        label: `Seleção manual (${clientes.length})`,
+        icon: "name",
+        clientes,
+      };
+      setSelectedGroup(group);
+      setSelectedIds(new Set(clientes.map(c => c.id)));
+      setMasterId(clientes[0].id);
+      setStep("merge");
+    } catch (err: any) {
+      toast.error("Erro ao carregar seleção: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const detectDuplicates = async () => {
     setLoading(true);
@@ -186,9 +226,13 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
       toast.success(`${toMerge.length} cliente(s) mesclado(s) com sucesso!`);
       onMerged();
 
-      await detectDuplicates();
-      setStep("detect");
-      setSelectedGroup(null);
+      if (manualMode) {
+        onOpenChange(false);
+      } else {
+        await detectDuplicates();
+        setStep("detect");
+        setSelectedGroup(null);
+      }
     } catch (err: any) {
       toast.error("Erro ao mesclar: " + err.message);
     } finally {
@@ -398,9 +442,15 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged }: Props) {
         <DialogFooter className="gap-2">
           {step === "merge" ? (
             <>
-              <Button variant="outline" onClick={() => setStep("detect")} disabled={merging}>
-                ← Voltar
-              </Button>
+              {manualMode ? (
+                <Button variant="outline" onClick={() => onOpenChange(false)} disabled={merging}>
+                  Cancelar
+                </Button>
+              ) : (
+                <Button variant="outline" onClick={() => setStep("detect")} disabled={merging}>
+                  ← Voltar
+                </Button>
+              )}
               <Button
                 onClick={handleMerge}
                 disabled={merging || selectedIds.size < 2 || !masterId}
