@@ -1752,8 +1752,15 @@ export default function CadastroClientesCad() {
       {/* Mesclar Clientes Dialog */}
       <MesclarClientesDialog
         open={isMesclarOpen}
-        onOpenChange={setIsMesclarOpen}
-        onMerged={fetchClientes}
+        onOpenChange={(o) => {
+          setIsMesclarOpen(o);
+          if (!o) setMesclarPreSelected(undefined);
+        }}
+        onMerged={() => {
+          setSelectedMergeIds(new Set());
+          fetchClientes();
+        }}
+        preSelectedIds={mesclarPreSelected}
       />
 
       {/* Cliente Unidades Dialog */}
