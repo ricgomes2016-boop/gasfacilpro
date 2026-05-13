@@ -14,10 +14,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Send, Search, MessageSquare, ArrowLeft, Bot, Headset, User, Smile, Paperclip, Mic } from "lucide-react";
+import { Send, Search, MessageSquare, ArrowLeft, Bot, Headset, User, Smile, Paperclip, Mic, SquarePen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useWhatsAppNotifications } from "@/contexts/WhatsAppNotificationContext";
+import { NovaConversaDialog } from "./NovaConversaDialog";
 
 interface Conversa {
   id: string;
@@ -48,6 +49,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [novaOpen, setNovaOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { unreadByConversation, setSelectedConversaId, markAsRead } = useWhatsAppNotifications();
@@ -205,6 +207,13 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
             <User className="h-5 w-5 text-[#8696a0]" />
           </div>
           <div className="flex-1" />
+          <button
+            onClick={() => setNovaOpen(true)}
+            title="Nova conversa"
+            className="p-2 rounded-full hover:bg-[#e9edef] transition-colors"
+          >
+            <SquarePen className="h-5 w-5 text-[#54656f]" />
+          </button>
           <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors">
             <svg viewBox="0 0 24 24" width="20" height="20" className="text-[#54656f]">
               <path fill="currentColor" d="M12 7a2 2 0 1 0-.001-4.001A2 2 0 0 0 12 7zm0 2a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 9zm0 6a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 15z"/>
