@@ -1211,6 +1211,12 @@ export default function CadastroClientesCad() {
                   {filteredClientes.map((cliente) => (
                     <div key={cliente.id} className="semantic-mobile-card">
                       <div className="flex items-start justify-between gap-2">
+                        <Checkbox
+                          checked={selectedMergeIds.has(cliente.id)}
+                          onCheckedChange={() => toggleMergeId(cliente.id)}
+                          className="mt-1"
+                          aria-label="Selecionar para mesclar"
+                        />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             {cliente.codigo_cliente && (
