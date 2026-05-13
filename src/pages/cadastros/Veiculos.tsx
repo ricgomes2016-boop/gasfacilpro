@@ -332,7 +332,11 @@ export default function Veiculos() {
               <TabsTrigger value="excluido">Excluídos ({countByStatus("excluido")})</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
+          <div className="flex w-full gap-2 lg:w-auto">
+            <Button variant="outline" onClick={handleExportarPDF} className="h-10 flex-1 gap-2 lg:flex-none">
+              <FileDown className="h-4 w-4" />Exportar PDF
+            </Button>
+            <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditId(null); setForm(emptyForm); } }}>
             <DialogTrigger asChild>
               <Button className="h-10 w-full gap-2 shadow-sm lg:w-auto"><Plus className="h-4 w-4" />Novo Veículo</Button>
             </DialogTrigger>
