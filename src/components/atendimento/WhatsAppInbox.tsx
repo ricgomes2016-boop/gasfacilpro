@@ -500,11 +500,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
               </button>
 
               {/* Contact Avatar */}
-              <div className="w-10 h-10 rounded-full bg-[#dfe5e7] flex items-center justify-center flex-shrink-0">
-                <span className="text-[#8696a0] text-sm font-medium">
-                  {selectedConversa?.titulo.slice(0, 2).toUpperCase()}
-                </span>
-              </div>
+              <ChatAvatar url={selectedConversa?.foto_url} name={selectedConversa?.titulo || "??"} size="sm" />
 
               {/* Contact Info */}
               <div className="flex-1 min-w-0">
