@@ -220,7 +220,60 @@ export default function Veiculos() {
     fetchVeiculos();
   };
 
-  const getEntregador = (id: string | null) => {
+  const handleTransferir = async () => {
+    if (!transferVeiculo || !transferUnidadeId) {
+      toast.error("Selecione a filial de destino");
+      return;
+    }
+    const { error } = await supabase.from("veiculos").update({ unidade_id: transferUnidadeId }).eq("id", transferVeiculo.id);
+    if (error) { toast.error("Erro ao transferir: " + error.message); return; }
+    const dest = unidades.find(u => u.id === transferUnidadeId);
+    toast.success(`Veículo ${transferVeiculo.placa} transferido para ${dest?.nome || "filial"}`);
+    setTransferVeiculo(null);
+    setTransferUnidadeId("");
+    fetchVeiculos();
+  };
+
+  const getUnidadeNome = (id: string | null) => unidades.find(u => u.id === id)?.nome || "—";
+
+  const handleExportarPDF = () => {
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Relatório de Veículos", 14, 15);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Unidade: ${unidadeAtual?.nome || "Todas"}`, 14, 22);
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 120);
+    doc.text(`Gerado em ${new Date().toLocaleString("pt-BR")} — Total: ${filtered.length} veículo(s)`, 14, 28);
+    doc.setTextColor(0, 0, 0);
+
+    autoTable(doc, {
+      startY: 33,
+      head: [["Placa", "Modelo", "Marca", "Ano", "Tipo", "KM", "Status", "Filial", "Entregador", "FIPE (R$)"]],
+      body: filtered.map(v => [
+        v.placa,
+        v.modelo,
+        v.marca || "—",
+        v.ano?.toString() || "—",
+        v.tipo || "—",
+        v.km_atual?.toLocaleString("pt-BR") || "0",
+        statusOptions.find(s => s.value === (v.status || "ativo"))?.label || v.status || "—",
+        getUnidadeNome(v.unidade_id),
+        getEntregadorNome(v.entregador_id) || "—",
+        Number(v.valor_fipe || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
+      ]),
+      styles: { fontSize: 9, cellPadding: 2 },
+      headStyles: { fillColor: [41, 98, 89], textColor: 255, fontStyle: "bold" },
+    });
+
+    doc.save(`Veiculos_${new Date().toISOString().slice(0, 10)}.pdf`);
+    toast.success("PDF gerado!");
+  };
+
+  const handleImprimir = () => window.print();
+
     if (!id) return null;
     return entregadores.find(e => e.id === id) || null;
   };
