@@ -30,6 +30,32 @@ import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { VeiculoDetalheDialog } from "@/components/frota/VeiculoDetalheDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ImageUpload } from "@/components/ui/image-upload";
+
+const PLACA_MERCOSUL_REGEX = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;
+const PLACA_LEGADO_REGEX = /^[A-Z]{3}[0-9]{4}$/;
+function formatPlacaMercosul(value: string): string {
+  const clean = (value || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7);
+  let out = "";
+  for (let i = 0; i < clean.length; i++) {
+    const ch = clean[i];
+    // posições: 0,1,2 letras | 3 número | 4 letra | 5,6 números
+    if (i < 3) {
+      if (/[A-Z]/.test(ch)) out += ch;
+    } else if (i === 3) {
+      if (/[0-9]/.test(ch)) out += ch;
+    } else if (i === 4) {
+      if (/[A-Z]/.test(ch)) out += ch;
+      else if (/[0-9]/.test(ch)) {
+        // permite placa antiga: aceita número e segue com números
+        out += ch;
+      }
+    } else {
+      if (/[0-9]/.test(ch)) out += ch;
+    }
+  }
+  return out;
+}
 
 interface Entregador {
   id: string;
