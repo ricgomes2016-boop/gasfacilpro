@@ -432,11 +432,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                   )}
                 >
                   {/* Avatar */}
-                  <div className="w-12 h-12 rounded-full bg-[#dfe5e7] flex items-center justify-center flex-shrink-0">
-                    <span className="text-[#8696a0] text-sm font-medium">
-                      {c.titulo.slice(0, 2).toUpperCase()}
-                    </span>
-                  </div>
+                  <ChatAvatar url={c.foto_url} name={c.titulo} size="md" />
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
