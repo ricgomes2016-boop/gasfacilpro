@@ -474,6 +474,7 @@ export default function Veiculos() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-16">Foto</TableHead>
                     <TableHead>Placa</TableHead>
                     <TableHead>Modelo</TableHead>
                     <TableHead>Tipo</TableHead>
