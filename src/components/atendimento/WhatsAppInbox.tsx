@@ -271,8 +271,10 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                       </span>
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
-                      <p className="text-[#667781] text-sm truncate">
-                        Toque para ver mensagens
+                      <p className="text-[#667781] text-sm truncate flex-1">
+                        {c.last_role === "assistant" && <span className="text-[#6b3fa0] mr-1">BIA:</span>}
+                        {c.last_role === "human" && <span className="text-[#00a884] mr-1">Você:</span>}
+                        {c.last_message?.replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/g, "").trim() || "Sem mensagens"}
                       </p>
                       {unread > 0 && (
                         <span className="bg-[#25d366] text-white text-[11px] font-medium rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 flex-shrink-0 ml-2">
