@@ -939,7 +939,7 @@ export async function saveMessage(supabase: any, conversationId: string, role: s
   await supabase.from("ai_mensagens").insert({ conversa_id: conversationId, role, content, metadata });
 }
 
-export async function upsertConversation(supabase: any, conversationId: string, title: string, telefone?: string) {
+export async function upsertConversation(supabase: any, conversationId: string, title: string, telefone?: string, unidadeId?: string | null) {
   const payload: any = {
     id: conversationId,
     user_id: "00000000-0000-0000-0000-000000000000",
@@ -947,7 +947,7 @@ export async function upsertConversation(supabase: any, conversationId: string, 
     updated_at: new Date().toISOString(),
   };
   if (telefone) payload.telefone = telefone;
-
+  if (unidadeId) payload.unidade_id = unidadeId; // trigger preenche empresa_id
 
   await supabase.from("ai_conversas").upsert(payload, { onConflict: "id" });
 }
