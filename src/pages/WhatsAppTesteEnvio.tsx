@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
-  Send, Loader2, CheckCheck, Check, Clock, AlertTriangle, Webhook, Trash2,
+  Send, Loader2, CheckCheck, Check, Clock, AlertTriangle, Webhook, Trash2, Info,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -53,6 +54,7 @@ export default function WhatsAppTesteEnvio() {
   const [unidadeId, setUnidadeId] = useState<string>("");
   const [to, setTo] = useState("");
   const [message, setMessage] = useState("Olá! Esta é uma mensagem de teste do GásFácil Pro 🚀");
+  const [useTemplate, setUseTemplate] = useState(true);
   const [sending, setSending] = useState(false);
   const [envios, setEnvios] = useState<Envio[]>([]);
 
@@ -131,12 +133,19 @@ export default function WhatsAppTesteEnvio() {
     if (!unidadeId) return toast.error("Selecione uma unidade");
     const digits = to.replace(/\D/g, "");
     if (digits.length < 10) return toast.error("Informe um número válido com DDD (ex: 5543999990000)");
-    if (!message.trim()) return toast.error("Mensagem vazia");
+    if (!useTemplate && !message.trim()) return toast.error("Mensagem vazia");
 
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("meta-test-send", {
-        body: { unidade_id: unidadeId, to: digits, message },
+        body: {
+          unidade_id: unidadeId,
+          to: digits,
+          message: useTemplate ? null : message,
+          use_template: useTemplate,
+          template_name: "hello_world",
+          template_lang: "en_US",
+        },
       });
       if (error) throw error;
       if (!data?.ok) {
@@ -194,10 +203,26 @@ export default function WhatsAppTesteEnvio() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Mensagem</Label>
-            <Textarea rows={3} value={message} onChange={(e) => setMessage(e.target.value)} maxLength={1000} />
+          <div className="flex items-center justify-between rounded-md border p-3 bg-muted/30">
+            <div className="space-y-0.5">
+              <Label className="text-sm">Enviar via template <code className="text-xs">hello_world</code></Label>
+              <p className="text-xs text-muted-foreground">
+                Obrigatório quando o destinatário não falou com você nas últimas 24h.
+              </p>
+            </div>
+            <Switch checked={useTemplate} onCheckedChange={setUseTemplate} />
           </div>
+
+          {!useTemplate && (
+            <div className="space-y-2">
+              <Label>Mensagem</Label>
+              <Textarea rows={3} value={message} onChange={(e) => setMessage(e.target.value)} maxLength={1000} />
+              <p className="text-xs text-muted-foreground flex items-start gap-1">
+                <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                Texto livre só funciona dentro da janela de 24h após o cliente te enviar uma mensagem. Caso contrário a Meta rejeita com erro 131047.
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="text-xs text-muted-foreground flex items-center gap-2">
