@@ -512,6 +512,12 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
           </>
         )}
       </div>
+
+      <NovaConversaDialog
+        open={novaOpen}
+        onOpenChange={setNovaOpen}
+        onCreated={(id) => setSelectedId(id)}
+      />
     </div>
   );
 }
