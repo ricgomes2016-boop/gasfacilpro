@@ -116,7 +116,63 @@ export default function Veiculos() {
   const [abastAgg, setAbastAgg] = useState<AbastecimentoAgg[]>([]);
   const [transferVeiculo, setTransferVeiculo] = useState<Veiculo | null>(null);
   const [transferUnidadeId, setTransferUnidadeId] = useState<string>("");
+  const [fipeLoading, setFipeLoading] = useState(false);
+  const [bulkFipeLoading, setBulkFipeLoading] = useState(false);
   const { unidadeAtual, unidades } = useUnidade();
+
+  const handleBuscarFipeForm = async () => {
+    if (!form.marca || !form.modelo) {
+      toast.error("Informe marca e modelo antes de buscar a FIPE");
+      return;
+    }
+    setFipeLoading(true);
+    try {
+      const r = await consultarFipe({
+        tipo: form.tipo,
+        marca: form.marca,
+        modelo: form.modelo,
+        ano: form.ano ? parseInt(form.ano, 10) : null,
+      });
+      if (!r) {
+        toast.error("Veículo não encontrado na tabela FIPE");
+        return;
+      }
+      setForm(f => ({ ...f, valor_fipe: r.valor.toFixed(2) }));
+      toast.success(`FIPE: ${r.marca} ${r.modelo} (${r.ano}) — R$ ${r.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`);
+    } catch (e: any) {
+      toast.error("Erro ao consultar FIPE: " + (e?.message || ""));
+    } finally {
+      setFipeLoading(false);
+    }
+  };
+
+  const handleAtualizarFipeMassa = async () => {
+    const alvo = veiculos.filter(v => v.marca && v.modelo && (v.status || "ativo") !== "excluido");
+    if (alvo.length === 0) {
+      toast.error("Nenhum veículo elegível para atualização");
+      return;
+    }
+    setBulkFipeLoading(true);
+    let ok = 0, fail = 0;
+    for (const v of alvo) {
+      try {
+        const r = await consultarFipe({ tipo: v.tipo, marca: v.marca, modelo: v.modelo, ano: v.ano });
+        if (r && r.valor > 0) {
+          const { error } = await supabase.from("veiculos").update({ valor_fipe: r.valor }).eq("id", v.id);
+          if (error) throw error;
+          ok++;
+        } else {
+          fail++;
+        }
+      } catch {
+        fail++;
+      }
+    }
+    setBulkFipeLoading(false);
+    toast.success(`FIPE atualizada: ${ok} sucesso, ${fail} sem correspondência`);
+    fetchVeiculos();
+  };
+
 
   const fetchVeiculos = async () => {
     let query = supabase
