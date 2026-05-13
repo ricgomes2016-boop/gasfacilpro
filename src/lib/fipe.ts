@@ -23,7 +23,7 @@ function norm(s: string): string {
     .trim();
 }
 
-function bestMatch<T extends { nome: string }>(items: T[], target: string): T | null {
+function bestMatch<T extends { nome: string; codigo: string | number }>(items: T[], target: string): T | null {
   if (!items?.length || !target) return null;
   const t = norm(target);
   // exato
