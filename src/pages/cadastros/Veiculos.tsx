@@ -456,7 +456,13 @@ export default function Veiculos() {
                 </div>
                 <div className="space-y-2">
                   <Label>Valor FIPE (R$)</Label>
-                  <Input type="number" value={form.valor_fipe} onChange={e => setForm({...form, valor_fipe: e.target.value})} placeholder="25000.00" />
+                  <div className="flex gap-2">
+                    <Input type="number" value={form.valor_fipe} onChange={e => setForm({...form, valor_fipe: e.target.value})} placeholder="25000.00" />
+                    <Button type="button" variant="outline" onClick={handleBuscarFipeForm} disabled={fipeLoading} className="gap-1 shrink-0">
+                      {fipeLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <DollarSign className="h-4 w-4" />}
+                      FIPE
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Status</Label>
