@@ -154,8 +154,13 @@ export default function Veiculos() {
       toast.error("Placa e Modelo são obrigatórios");
       return;
     }
+    const placaNorm = form.placa.toUpperCase().trim();
+    if (!PLACA_MERCOSUL_REGEX.test(placaNorm) && !PLACA_LEGADO_REGEX.test(placaNorm)) {
+      toast.error("Placa inválida. Use formato Mercosul (ABC1D23) ou antigo (ABC1234).");
+      return;
+    }
     const payload: any = {
-      placa: form.placa.toUpperCase(),
+      placa: placaNorm,
       modelo: form.modelo,
       marca: form.marca || null,
       ano: form.ano ? parseInt(form.ano) : null,
@@ -165,6 +170,7 @@ export default function Veiculos() {
       valor_fipe: form.valor_fipe ? parseFloat(form.valor_fipe) : null,
       status: form.status || "ativo",
       ativo: form.status !== "excluido",
+      foto_url: form.foto_url || null,
     };
     if (!editId && unidadeAtual?.id) {
       payload.unidade_id = unidadeAtual.id;
@@ -196,6 +202,7 @@ export default function Veiculos() {
       entregador_id: v.entregador_id || "",
       valor_fipe: v.valor_fipe?.toString() || "",
       status: v.status || "ativo",
+      foto_url: v.foto_url || "",
     });
     setEditId(v.id);
     setOpen(true);
