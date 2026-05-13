@@ -390,6 +390,10 @@ export default function Veiculos() {
             </TabsList>
           </Tabs>
           <div className="flex w-full gap-2 lg:w-auto">
+            <Button variant="outline" onClick={handleAtualizarFipeMassa} disabled={bulkFipeLoading} className="h-10 flex-1 gap-2 lg:flex-none">
+              {bulkFipeLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Atualizar FIPE
+            </Button>
             <Button variant="outline" onClick={handleExportarPDF} className="h-10 flex-1 gap-2 lg:flex-none">
               <FileDown className="h-4 w-4" />Exportar PDF
             </Button>
