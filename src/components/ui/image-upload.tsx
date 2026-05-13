@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, X, Loader2, ImageIcon } from "lucide-react";
+import { Upload, X, Loader2, ImageIcon, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +12,7 @@ interface ImageUploadProps {
   folder?: string;
   className?: string;
   disabled?: boolean;
+  allowCamera?: boolean;
 }
 
 export function ImageUpload({
@@ -21,10 +22,12 @@ export function ImageUpload({
   folder = "products",
   className,
   disabled = false,
+  allowCamera = false,
 }: ImageUploadProps) {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -124,6 +127,17 @@ export function ImageUpload({
         className="hidden"
         disabled={disabled || isUploading}
       />
+      {allowCamera && (
+        <input
+          ref={cameraRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileSelect}
+          className="hidden"
+          disabled={disabled || isUploading}
+        />
+      )}
 
       {value ? (
         <div className="relative inline-block">
@@ -144,27 +158,46 @@ export function ImageUpload({
           </Button>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={disabled || isUploading}
-          className={cn(
-            "flex flex-col items-center justify-center h-32 w-32 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors",
-            "bg-muted/50 hover:bg-muted cursor-pointer",
-            (disabled || isUploading) && "opacity-50 cursor-not-allowed"
-          )}
-        >
-          {isUploading ? (
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          ) : (
-            <>
-              <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
-              <span className="text-xs text-muted-foreground text-center px-2">
-                Clique para enviar
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={disabled || isUploading}
+            className={cn(
+              "flex flex-col items-center justify-center h-32 w-32 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors",
+              "bg-muted/50 hover:bg-muted cursor-pointer",
+              (disabled || isUploading) && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            {isUploading ? (
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <ImageIcon className="h-8 w-8 text-muted-foreground mb-2" />
+                <span className="text-xs text-muted-foreground text-center px-2">
+                  Enviar arquivo
+                </span>
+              </>
+            )}
+          </button>
+          {allowCamera && (
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              disabled={disabled || isUploading}
+              className={cn(
+                "flex flex-col items-center justify-center h-32 w-32 rounded-lg border-2 border-dashed border-primary/40 hover:border-primary transition-colors",
+                "bg-primary/5 hover:bg-primary/10 cursor-pointer",
+                (disabled || isUploading) && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <Camera className="h-8 w-8 text-primary mb-2" />
+              <span className="text-xs text-primary text-center px-2 font-medium">
+                Tirar foto
               </span>
-            </>
+            </button>
           )}
-        </button>
+        </div>
       )}
     </div>
   );

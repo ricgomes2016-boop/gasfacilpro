@@ -414,6 +414,7 @@ export default function Veiculos() {
                     onChange={(url) => setForm({ ...form, foto_url: url || "" })}
                     bucket="vehicle-photos"
                     folder="veiculos"
+                    allowCamera
                   />
                 </div>
               </div>
