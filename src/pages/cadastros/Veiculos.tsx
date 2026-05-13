@@ -621,6 +621,9 @@ export default function Veiculos() {
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(v)} title="Editar">
                             <Edit className="h-4 w-4" />
                           </Button>
+                          <Button variant="ghost" size="icon" onClick={() => { setTransferVeiculo(v); setTransferUnidadeId(""); }} title="Transferir para filial">
+                            <Building2 className="h-4 w-4" />
+                          </Button>
                           {v.status !== "excluido" && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
