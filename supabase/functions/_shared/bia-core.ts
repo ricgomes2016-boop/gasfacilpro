@@ -251,10 +251,17 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
   const { data: u } = await supabase.from("unidades")
     .select("horario_abertura, horario_fechamento, empresa_id, cidade, estado, bairros_atendidos").eq("id", unidadeId).maybeSingle();
 
+  let empresaNome: string | null = null;
+  if (u?.empresa_id) {
+    const { data: emp } = await supabase.from("empresas").select("nome").eq("id", u.empresa_id).maybeSingle();
+    empresaNome = emp?.nome || null;
+  }
+
   const unidadeLocation = {
     cidade: u?.cidade || null,
     estado: u?.estado || null,
     bairros: Array.isArray(u?.bairros_atendidos) ? u.bairros_atendidos : [],
+    empresaNome,
   };
 
   if (!u?.empresa_id) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: u?.empresa_id || null, unidadeLocation };
@@ -657,9 +664,11 @@ export function buildSystemPrompt(
   history?: any[],
   gasDoPovoConfig?: { entrega: boolean; taxa: number },
   contactIdentity?: ContactIdentity,
-  unidadeLocation?: { cidade: string | null; estado: string | null; bairros: string[] }
+  unidadeLocation?: { cidade: string | null; estado: string | null; bairros: string[]; empresaNome?: string | null }
 ): string {
   const agentName = config.agentName || "Bia";
+  const empresaNome = unidadeLocation?.empresaNome || null;
+  const empresaLabel = empresaNome ? `da ${empresaNome}` : "da empresa de gás";
   const now = new Date();
   const brt = new Date(now.getTime() + (-3 * 60 + now.getTimezoneOffset()) * 60000);
   const hour = brt.getHours();
@@ -691,7 +700,7 @@ export function buildSystemPrompt(
 
   // If contact is entregador or parceiro, return specialized prompt
   if (contactIdentity?.tipo === "entregador") {
-    return `Você é a ${agentName}, assistente virtual da empresa de gás.
+    return `Você é a ${agentName}, assistente virtual ${empresaLabel}.
 
 CONTEXTO: Você está conversando com o ENTREGADOR ${contactIdentity.nome || "da equipe"}. Ele faz parte da equipe de entregas.
 
@@ -707,7 +716,7 @@ ${orderStatus ? `PEDIDOS EM ANDAMENTO:\n- Pedido #${orderStatus.id}: ${orderStat
   }
 
   if (contactIdentity?.tipo === "parceiro") {
-    return `Você é a ${agentName}, assistente virtual da empresa de gás.
+    return `Você é a ${agentName}, assistente virtual ${empresaLabel}.
 
 CONTEXTO: Você está conversando com o PARCEIRO INSTITUCIONAL ${contactIdentity.nome || ""}.
 
@@ -757,7 +766,7 @@ REGRAS OBRIGATÓRIAS:
 - Se o endereço informado pelo cliente for claramente de outra cidade/estado, recuse a entrega com gentileza.`;
   }
 
-  return `Você é a ${agentName}, assistente virtual de vendas de gás da empresa. Seu atendimento deve ser CALOROSO, HUMANO e NATURAL — como uma atendente simpática de verdade, não um robô.${areaAtendimentoSection}
+  return `Você é a ${agentName}, atendente virtual de vendas de gás ${empresaLabel}. Quando se apresentar ou cumprimentar, mencione "${empresaNome || "nossa loja"}" naturalmente (ex: "Aqui é a ${agentName} da ${empresaNome || "loja"}!"). Seu atendimento deve ser CALOROSO, HUMANO e NATURAL — como uma atendente simpática de verdade, não um robô.${areaAtendimentoSection}
 
 PERSONALIDADE:
 - Seja ACOLHEDORA e SIMPÁTICA, use emojis com moderação (1-2 por mensagem)
