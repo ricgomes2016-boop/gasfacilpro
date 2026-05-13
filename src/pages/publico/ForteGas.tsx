@@ -4,6 +4,7 @@ import {
   MessageCircle, Droplets, Menu, X, Zap, Sparkles, ArrowRight, Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Helmet } from "react-helmet-async";
 import forteGasLogo from "@/assets/forte-gas-logo.png";
 import heroArt from "@/assets/forte-gas-hero-art.png";
 
@@ -563,6 +564,16 @@ export default function ForteGas() {
 
   return (
     <div className="min-h-screen bg-[#0a0118] text-white">
+      <Helmet>
+        <title>Forte Gás — Entrega de gás em Cornélio Procópio (PR)</title>
+        <meta name="description" content="Forte Gás: entrega rápida de gás de cozinha em Cornélio Procópio (PR). Peça pelo WhatsApp (43) 98432-8383." />
+        <link rel="canonical" href="https://gasfacilpro.lovable.app/fortegas" />
+        <meta property="og:title" content="Forte Gás — Gás rápido em Cornélio Procópio" />
+        <meta property="og:description" content="Entrega rápida de gás de cozinha em Cornélio Procópio (PR)." />
+        <meta property="og:url" content="https://gasfacilpro.lovable.app/fortegas" />
+        <meta property="og:image" content="https://gasfacilpro.lovable.app/og-image.png" />
+        <meta property="og:type" content="website" />
+      </Helmet>
       <Header />
       <Hero onAskBia={askBia} />
       <Sobre />
