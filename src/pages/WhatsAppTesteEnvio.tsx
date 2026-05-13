@@ -8,8 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
-  Send, Loader2, CheckCheck, Check, Clock, AlertTriangle, Webhook, Trash2,
+  Send, Loader2, CheckCheck, Check, Clock, AlertTriangle, Webhook, Trash2, Info,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
