@@ -62,11 +62,39 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
 
   useEffect(() => {
     const fetchConversas = async () => {
+      // Apenas conversas reais de WhatsApp (cliente externo) — telefone preenchido
       const { data } = await supabase
         .from("ai_conversas")
-        .select("id, titulo, updated_at")
-        .order("updated_at", { ascending: false });
-      setConversas(data || []);
+        .select("id, titulo, updated_at, telefone")
+        .not("telefone", "is", null)
+        .order("updated_at", { ascending: false })
+        .limit(200);
+
+      const convs = (data || []) as Conversa[];
+
+      // Carrega prévia da última mensagem de cada conversa
+      if (convs.length) {
+        const ids = convs.map((c) => c.id);
+        const { data: msgs } = await supabase
+          .from("ai_mensagens")
+          .select("conversa_id, role, content, created_at")
+          .in("conversa_id", ids)
+          .order("created_at", { ascending: false })
+          .limit(500);
+        const lastByConv = new Map<string, { role: string; content: string }>();
+        (msgs || []).forEach((m: any) => {
+          if (!lastByConv.has(m.conversa_id)) {
+            lastByConv.set(m.conversa_id, { role: m.role, content: m.content });
+          }
+        });
+        convs.forEach((c) => {
+          const last = lastByConv.get(c.id);
+          c.last_message = last?.content || null;
+          c.last_role = last?.role || null;
+        });
+      }
+
+      setConversas(convs);
       setLoading(false);
     };
     fetchConversas();
@@ -74,6 +102,9 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     const channel = supabase
       .channel("inbox-conversas-shared")
       .on("postgres_changes", { event: "*", schema: "public", table: "ai_conversas" }, () => {
+        fetchConversas();
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "ai_mensagens" }, () => {
         fetchConversas();
       })
       .subscribe();
