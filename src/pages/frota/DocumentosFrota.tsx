@@ -16,7 +16,7 @@ import {
   Tabs, TabsContent, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
 import {
-  Shield, AlertTriangle, CheckCircle2, Loader2, Edit, Truck, User,
+  Shield, AlertTriangle, CheckCircle2, Loader2, Edit, Truck, User, Upload,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -32,6 +32,72 @@ export default function DocumentosFrota() {
   const [editEntregador, setEditEntregador] = useState<any | null>(null);
   const [formVeiculo, setFormVeiculo] = useState({ crlv_vencimento: "", seguro_vencimento: "", seguro_empresa: "" });
   const [formEntregador, setFormEntregador] = useState({ cnh_vencimento: "" });
+  const [importingId, setImportingId] = useState<string | null>(null);
+
+  const compressImage = (file: File, maxWidth = 1600): Promise<string> =>
+    new Promise((resolve, reject) => {
+      if (file.type === "application/pdf") {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result as string);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ratio = Math.min(maxWidth / img.width, 1);
+          canvas.width = img.width * ratio;
+          canvas.height = img.height * ratio;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return reject("Canvas error");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.85));
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handleImportCrlv = async (veiculo: any, file: File) => {
+    setImportingId(veiculo.id);
+    try {
+      const imageBase64 = await compressImage(file);
+      const { data, error } = await supabase.functions.invoke("parse-crlv", { body: { imageBase64 } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const placaCRLV = (data.placa || "").toUpperCase();
+      const placaVeic = (veiculo.placa || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
+      if (placaCRLV && placaVeic && placaCRLV !== placaVeic) {
+        const ok = confirm(`A placa do CRLV (${placaCRLV}) não corresponde à do veículo (${placaVeic}). Deseja continuar mesmo assim?`);
+        if (!ok) { setImportingId(null); return; }
+      }
+
+      if (!data.crlv_vencimento) {
+        toast.error("Não foi possível identificar a data de vencimento.");
+        setImportingId(null);
+        return;
+      }
+
+      const { error: upErr } = await supabase
+        .from("veiculos")
+        .update({ crlv_vencimento: data.crlv_vencimento } as any)
+        .eq("id", veiculo.id);
+      if (upErr) throw upErr;
+
+      toast.success(`CRLV importado! Vencimento: ${new Date(data.crlv_vencimento).toLocaleDateString("pt-BR")}`);
+      fetchData();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao importar CRLV");
+    } finally {
+      setImportingId(null);
+    }
+  };
 
   useEffect(() => { fetchData(); }, [unidadeAtual?.id]);
 
@@ -162,16 +228,36 @@ export default function DocumentosFrota() {
                             </TableCell>
                             <TableCell>{v.seguro_empresa || "—"}</TableCell>
                             <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" onClick={() => {
-                                setEditVeiculo(v);
-                                setFormVeiculo({
-                                  crlv_vencimento: v.crlv_vencimento || "",
-                                  seguro_vencimento: v.seguro_vencimento || "",
-                                  seguro_empresa: v.seguro_empresa || "",
-                                });
-                              }}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="Importar CRLV (foto ou PDF)"
+                                  disabled={importingId === v.id}
+                                  onClick={() => {
+                                    const input = document.createElement("input");
+                                    input.type = "file";
+                                    input.accept = "image/*,application/pdf";
+                                    input.onchange = (ev: any) => {
+                                      const f = ev.target.files?.[0];
+                                      if (f) handleImportCrlv(v, f);
+                                    };
+                                    input.click();
+                                  }}
+                                >
+                                  {importingId === v.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => {
+                                  setEditVeiculo(v);
+                                  setFormVeiculo({
+                                    crlv_vencimento: v.crlv_vencimento || "",
+                                    seguro_vencimento: v.seguro_vencimento || "",
+                                    seguro_empresa: v.seguro_empresa || "",
+                                  });
+                                }}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
