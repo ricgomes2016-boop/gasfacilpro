@@ -673,6 +673,37 @@ export default function Veiculos() {
           onOpenChange={(o) => { if (!o) setDetalheVeiculo(null); }}
           veiculo={detalheVeiculo}
         />
+
+        {/* Transferir filial */}
+        <Dialog open={!!transferVeiculo} onOpenChange={(o) => { if (!o) { setTransferVeiculo(null); setTransferUnidadeId(""); } }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Transferir veículo para filial</DialogTitle>
+              <DialogDescription>
+                Veículo <strong>{transferVeiculo?.placa}</strong> — {transferVeiculo?.modelo}
+                <br />
+                <span className="text-xs">Filial atual: {getUnidadeNome(transferVeiculo?.unidade_id ?? null)}</span>
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 mt-2">
+              <Label>Filial de destino</Label>
+              <Select value={transferUnidadeId} onValueChange={setTransferUnidadeId}>
+                <SelectTrigger><SelectValue placeholder="Selecione a filial" /></SelectTrigger>
+                <SelectContent>
+                  {unidades
+                    .filter(u => u.id !== transferVeiculo?.unidade_id)
+                    .map(u => (
+                      <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col-reverse gap-2 mt-4 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={() => setTransferVeiculo(null)}>Cancelar</Button>
+              <Button onClick={handleTransferir} disabled={!transferUnidadeId}>Transferir</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );
