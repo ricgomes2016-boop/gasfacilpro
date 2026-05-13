@@ -1312,7 +1312,14 @@ export default function CadastroClientesCad() {
                         const num = cliente.numero || "";
                         const rua = cliente.endereco || "";
                         return (
-                          <TableRow key={cliente.id}>
+                          <TableRow key={cliente.id} data-state={selectedMergeIds.has(cliente.id) ? "selected" : undefined}>
+                            <TableCell className="w-10">
+                              <Checkbox
+                                checked={selectedMergeIds.has(cliente.id)}
+                                onCheckedChange={() => toggleMergeId(cliente.id)}
+                                aria-label={`Selecionar ${cliente.nome}`}
+                              />
+                            </TableCell>
                             <TableCell className="font-mono text-xs text-muted-foreground">
                               {cliente.codigo_cliente ? `#${cliente.codigo_cliente}` : "-"}
                             </TableCell>
