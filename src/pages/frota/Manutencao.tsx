@@ -518,7 +518,18 @@ export default function Manutencao() {
                   </div>
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center gap-2">
-                      <Badge variant={m.status === "Concluída" ? "default" : m.status === "Em andamento" ? "secondary" : "outline"} className="text-xs">{m.status}</Badge>
+                      {m.status === "Paga" ? (
+                        <Badge variant="outline" className="text-xs">Paga</Badge>
+                      ) : (
+                        <Select value={m.status} onValueChange={(v) => handleStatusChange(m.id, v)}>
+                          <SelectTrigger className="h-7 w-[130px] text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Agendada">Agendada</SelectItem>
+                            <SelectItem value="Em andamento">Em andamento</SelectItem>
+                            <SelectItem value="Concluída">Concluída</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                       <Badge variant={m.tipo === "Preventiva" ? "secondary" : "destructive"} className="text-xs">{m.tipo}</Badge>
                     </div>
                     <span className="font-bold text-sm">R$ {Number(m.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
