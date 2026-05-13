@@ -586,10 +586,42 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                               </div>
                             )}
 
+                            {/* Media content */}
+                            {msg.metadata?.media_url && (
+                              <div className="mb-1">
+                                {msg.metadata.media_type === "image" ? (
+                                  <a href={msg.metadata.media_url} target="_blank" rel="noreferrer">
+                                    <img
+                                      src={msg.metadata.media_url}
+                                      alt={msg.metadata.filename || "imagem"}
+                                      className="max-w-[280px] max-h-[320px] rounded-md object-cover"
+                                    />
+                                  </a>
+                                ) : msg.metadata.media_type === "audio" ? (
+                                  <audio controls src={msg.metadata.media_url} className="max-w-[260px]" />
+                                ) : msg.metadata.media_type === "video" ? (
+                                  <video controls src={msg.metadata.media_url} className="max-w-[280px] max-h-[320px] rounded-md" />
+                                ) : (
+                                  <a
+                                    href={msg.metadata.media_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center gap-2 bg-black/5 hover:bg-black/10 rounded-md p-2 text-[#111b21] no-underline"
+                                  >
+                                    <FileText className="h-5 w-5 text-[#54656f]" />
+                                    <span className="text-[13px] truncate max-w-[180px]">{msg.metadata.filename || "arquivo"}</span>
+                                    <Download className="h-4 w-4 text-[#54656f] ml-auto" />
+                                  </a>
+                                )}
+                              </div>
+                            )}
+
                             {/* Message content */}
-                            <p className="whitespace-pre-wrap break-words leading-[1.35] text-[14.2px]">
-                              {msg.content}
-                            </p>
+                            {msg.content && (
+                              <p className="whitespace-pre-wrap break-words leading-[1.35] text-[14.2px]">
+                                {msg.content}
+                              </p>
+                            )}
 
                             {/* Timestamp */}
                             <div className="flex items-center justify-end gap-1 -mb-0.5 mt-0.5">
