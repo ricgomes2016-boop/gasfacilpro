@@ -1601,6 +1601,191 @@ export async function sendLocation(config: BiaConfig, phone: string, lat: number
   } catch (e) { console.error("Send location error:", e); }
 }
 
+// ========== SEND MEDIA (WHATSAPP) ==========
+export interface SendMediaInput {
+  /** Public/signed URL of the media. */
+  mediaUrl: string;
+  /** image | audio | video | document */
+  mediaType: "image" | "audio" | "video" | "document";
+  /** Optional caption for image/video/document. */
+  caption?: string;
+  /** Filename for document. */
+  filename?: string;
+  /** MIME type (used by some providers). */
+  mimeType?: string;
+}
+
+export async function sendMedia(config: BiaConfig, phone: string, input: SendMediaInput) {
+  const { mediaUrl, mediaType, caption, filename, mimeType } = input;
+  try {
+    const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
+
+    if (config.provedor === "evolution") {
+      const baseUrl = config.evolutionBaseUrl;
+      const instance = config.evolutionInstanceName;
+      if (!baseUrl || !instance) { console.error("Evolution: missing baseUrl or instance"); return; }
+
+      let url: string;
+      let body: any;
+
+      if (mediaType === "audio") {
+        url = `${baseUrl}/message/sendWhatsAppAudio/${instance}`;
+        body = { number: `${cleanPhone}@s.whatsapp.net`, audio: mediaUrl };
+      } else {
+        url = `${baseUrl}/message/sendMedia/${instance}`;
+        body = {
+          number: `${cleanPhone}@s.whatsapp.net`,
+          mediatype: mediaType,
+          mimetype: mimeType,
+          media: mediaUrl,
+          caption: caption || "",
+          fileName: filename || "arquivo",
+        };
+      }
+
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": config.token },
+        body: JSON.stringify(body),
+      });
+      console.log("Evolution sendMedia response:", resp.status, (await resp.text()).substring(0, 300));
+
+    } else if (config.provedor === "meta") {
+      // Meta requires sending media by URL (image/video/document/audio)
+      const phoneNumberId = config.metaPhoneNumberId || config.instanceId;
+      const url = `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`;
+      const mediaPayload: any = { link: mediaUrl };
+      if (mediaType === "document") {
+        if (filename) mediaPayload.filename = filename;
+        if (caption) mediaPayload.caption = caption;
+      } else if (mediaType === "image" || mediaType === "video") {
+        if (caption) mediaPayload.caption = caption;
+      }
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${config.token}` },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: cleanPhone,
+          type: mediaType,
+          [mediaType]: mediaPayload,
+        }),
+      });
+      console.log("Meta sendMedia response:", resp.status, (await resp.text()).substring(0, 300));
+
+    } else if (config.provedor === "zapi") {
+      const endpointMap: Record<string, string> = {
+        image: "send-image", audio: "send-audio", video: "send-video", document: "send-document",
+      };
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/${endpointMap[mediaType]}`;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (config.securityToken) headers["Client-Token"] = config.securityToken;
+      const body: any = { phone: cleanPhone };
+      if (mediaType === "image") { body.image = mediaUrl; if (caption) body.caption = caption; }
+      else if (mediaType === "audio") { body.audio = mediaUrl; }
+      else if (mediaType === "video") { body.video = mediaUrl; if (caption) body.caption = caption; }
+      else if (mediaType === "document") { body.document = mediaUrl; body.fileName = filename || "arquivo"; }
+      const resp = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
+      console.log("Z-API sendMedia response:", resp.status, (await resp.text()).substring(0, 300));
+
+    } else if (config.provedor === "gateway") {
+      const url = `${config.gatewayBaseUrl}/instances/${config.gatewayInstanceName}/send-media`;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
+        body: JSON.stringify({ phone: cleanPhone, mediaUrl, mediaType, caption, filename, mimeType }),
+      });
+      console.log("Gateway sendMedia response:", resp.status, (await resp.text()).substring(0, 300));
+
+    } else {
+      // uazapi
+      const endpointMap: Record<string, string> = {
+        image: "send/media", audio: "send/media", video: "send/media", document: "send/media",
+      };
+      const url = `https://free.uazapi.com/${endpointMap[mediaType]}`;
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "token": config.token },
+        body: JSON.stringify({
+          number: cleanPhone,
+          type: mediaType,
+          file: mediaUrl,
+          caption: caption || "",
+          docName: filename,
+        }),
+      });
+      console.log("UaZapi sendMedia response:", resp.status, (await resp.text()).substring(0, 300));
+    }
+  } catch (e) { console.error("sendMedia error:", e); }
+}
+
+// ========== FETCH PROFILE PICTURE ==========
+/**
+ * Returns a profile picture URL for the given phone number from the WhatsApp provider.
+ * Returns null if not available (Meta does not expose end-user profile pictures).
+ */
+export async function fetchContactProfilePicture(config: BiaConfig, phone: string): Promise<string | null> {
+  try {
+    const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
+
+    if (config.provedor === "evolution") {
+      const baseUrl = config.evolutionBaseUrl;
+      const instance = config.evolutionInstanceName;
+      if (!baseUrl || !instance) return null;
+      const resp = await fetch(`${baseUrl}/chat/fetchProfilePictureUrl/${instance}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": config.token },
+        body: JSON.stringify({ number: `${cleanPhone}@s.whatsapp.net` }),
+      });
+      if (!resp.ok) return null;
+      const data = await resp.json().catch(() => null);
+      return data?.profilePictureUrl || data?.url || null;
+
+    } else if (config.provedor === "zapi") {
+      const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/profile-picture?phone=${cleanPhone}`;
+      const headers: Record<string, string> = {};
+      if (config.securityToken) headers["Client-Token"] = config.securityToken;
+      const resp = await fetch(url, { headers });
+      if (!resp.ok) return null;
+      const data = await resp.json().catch(() => null);
+      return data?.link || data?.url || null;
+    }
+    // Meta + uazapi + gateway: not implemented / not supported
+    return null;
+  } catch (e) {
+    console.error("fetchContactProfilePicture error:", e);
+    return null;
+  }
+}
+
+/**
+ * Returns the WhatsApp Business profile picture URL for the store itself.
+ */
+export async function fetchStoreProfilePicture(config: BiaConfig): Promise<string | null> {
+  try {
+    if (config.provedor === "meta") {
+      const phoneNumberId = config.metaPhoneNumberId || config.instanceId;
+      const resp = await fetch(
+        `https://graph.facebook.com/v22.0/${phoneNumberId}/whatsapp_business_profile?fields=profile_picture_url`,
+        { headers: { "Authorization": `Bearer ${config.token}` } }
+      );
+      if (!resp.ok) return null;
+      const data = await resp.json().catch(() => null);
+      return data?.data?.[0]?.profile_picture_url || null;
+
+    } else if (config.provedor === "evolution") {
+      // Evolution does not have a direct endpoint; reuse fetchProfilePictureUrl with own number when known
+      return null;
+    }
+    return null;
+  } catch (e) {
+    console.error("fetchStoreProfilePicture error:", e);
+    return null;
+  }
+}
+
 // ========== REGISTER CALL ==========
 export async function registerCall(
   supabase: any,
