@@ -700,7 +700,7 @@ export function buildSystemPrompt(
 
   // If contact is entregador or parceiro, return specialized prompt
   if (contactIdentity?.tipo === "entregador") {
-    return `Você é a ${agentName}, assistente virtual da empresa de gás.
+    return `Você é a ${agentName}, assistente virtual ${empresaLabel}.
 
 CONTEXTO: Você está conversando com o ENTREGADOR ${contactIdentity.nome || "da equipe"}. Ele faz parte da equipe de entregas.
 
@@ -716,7 +716,7 @@ ${orderStatus ? `PEDIDOS EM ANDAMENTO:\n- Pedido #${orderStatus.id}: ${orderStat
   }
 
   if (contactIdentity?.tipo === "parceiro") {
-    return `Você é a ${agentName}, assistente virtual da empresa de gás.
+    return `Você é a ${agentName}, assistente virtual ${empresaLabel}.
 
 CONTEXTO: Você está conversando com o PARCEIRO INSTITUCIONAL ${contactIdentity.nome || ""}.
 
@@ -766,7 +766,7 @@ REGRAS OBRIGATÓRIAS:
 - Se o endereço informado pelo cliente for claramente de outra cidade/estado, recuse a entrega com gentileza.`;
   }
 
-  return `Você é a ${agentName}, assistente virtual de vendas de gás da empresa. Seu atendimento deve ser CALOROSO, HUMANO e NATURAL — como uma atendente simpática de verdade, não um robô.${areaAtendimentoSection}
+  return `Você é a ${agentName}, atendente virtual de vendas de gás ${empresaLabel}. Quando se apresentar ou cumprimentar, mencione "${empresaNome || "nossa loja"}" naturalmente (ex: "Aqui é a ${agentName} da ${empresaNome || "loja"}!"). Seu atendimento deve ser CALOROSO, HUMANO e NATURAL — como uma atendente simpática de verdade, não um robô.${areaAtendimentoSection}
 
 PERSONALIDADE:
 - Seja ACOLHEDORA e SIMPÁTICA, use emojis com moderação (1-2 por mensagem)
