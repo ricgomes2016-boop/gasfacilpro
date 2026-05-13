@@ -41,6 +41,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onMerged: () => void;
+  preSelectedIds?: string[];
 }
 
 function normalizeStr(s: string | null | undefined): string {
