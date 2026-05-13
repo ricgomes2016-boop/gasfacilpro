@@ -203,10 +203,26 @@ export default function WhatsAppTesteEnvio() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Mensagem</Label>
-            <Textarea rows={3} value={message} onChange={(e) => setMessage(e.target.value)} maxLength={1000} />
+          <div className="flex items-center justify-between rounded-md border p-3 bg-muted/30">
+            <div className="space-y-0.5">
+              <Label className="text-sm">Enviar via template <code className="text-xs">hello_world</code></Label>
+              <p className="text-xs text-muted-foreground">
+                Obrigatório quando o destinatário não falou com você nas últimas 24h.
+              </p>
+            </div>
+            <Switch checked={useTemplate} onCheckedChange={setUseTemplate} />
           </div>
+
+          {!useTemplate && (
+            <div className="space-y-2">
+              <Label>Mensagem</Label>
+              <Textarea rows={3} value={message} onChange={(e) => setMessage(e.target.value)} maxLength={1000} />
+              <p className="text-xs text-muted-foreground flex items-start gap-1">
+                <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                Texto livre só funciona dentro da janela de 24h após o cliente te enviar uma mensagem. Caso contrário a Meta rejeita com erro 131047.
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="text-xs text-muted-foreground flex items-center gap-2">
