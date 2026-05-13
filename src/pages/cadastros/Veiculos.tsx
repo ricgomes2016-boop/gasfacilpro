@@ -431,6 +431,7 @@ export default function Veiculos() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* KPI Cards */}
