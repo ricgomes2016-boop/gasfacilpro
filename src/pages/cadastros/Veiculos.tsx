@@ -492,6 +492,15 @@ export default function Veiculos() {
                     const kmL = getKmL(v.id);
                     return (
                     <TableRow key={v.id} className={(v.status === "excluido" || v.status === "inativo") ? "opacity-60" : ""}>
+                      <TableCell className="w-16">
+                        {v.foto_url ? (
+                          <img src={v.foto_url} alt={v.placa} className="h-12 w-12 rounded-lg object-cover border border-border" />
+                        ) : (
+                          <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
+                            <Car className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="font-mono font-bold">{v.placa}</TableCell>
                       <TableCell>
                         <div className="text-sm">{v.modelo}</div>
