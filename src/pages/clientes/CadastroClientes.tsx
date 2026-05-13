@@ -1281,6 +1281,20 @@ export default function CadastroClientesCad() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-10">
+                          <Checkbox
+                            checked={filteredClientes.length > 0 && filteredClientes.every(c => selectedMergeIds.has(c.id))}
+                            onCheckedChange={(v) => {
+                              setSelectedMergeIds(prev => {
+                                const next = new Set(prev);
+                                if (v) filteredClientes.forEach(c => next.add(c.id));
+                                else filteredClientes.forEach(c => next.delete(c.id));
+                                return next;
+                              });
+                            }}
+                            aria-label="Selecionar todos"
+                          />
+                        </TableHead>
                         <TableHead className="w-20">Código</TableHead>
                         <TableHead>Nome</TableHead>
                         <TableHead>Telefone</TableHead>
