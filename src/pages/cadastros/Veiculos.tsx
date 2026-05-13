@@ -274,6 +274,7 @@ export default function Veiculos() {
 
   const handleImprimir = () => window.print();
 
+  const getEntregador = (id: string | null) => {
     if (!id) return null;
     return entregadores.find(e => e.id === id) || null;
   };
