@@ -1,10 +1,10 @@
 -- Atualização das credenciais da API Oficial Meta (WhatsApp Cloud API) para Central Gás
 -- Data: 09/05/2026
 -- NÚMERO: +55 43 3524-1094
--- Phone Number ID (NOVO): 108521384467824(8)
--- WhatsApp Business Account ID (WABA - NOVO): 216631787412137(9)
+-- Phone Number ID (CORRETO): 1085213844678248
+-- WhatsApp Business Account ID (WABA - CORRETO): 2166317874121379
 -- App ID: 1466286284853004
--- Token: Temporário (gerado via developers.facebook.com)
+-- Token: PERMANENTE (System User 'Gasfacilpro Bot' - ID: 61582206536907 - Nunca expira)
 -- Webhook URL: https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/meta-webhook
 -- Verify Token: gasfacil_meta_verify
 
@@ -12,17 +12,17 @@ BEGIN;
 
 -- Atualizar integração da Central Gás com novo token e Phone Number ID
 UPDATE public.integracoes_whatsapp SET
-  instance_id          = 'meta_108521384467824',
-  token                = 'EAAU1lGElzwwBRTZBILQikSOChaGhxkUU7SlCelj68DYyMqHCCyYwestHS3D1FUBYNpdL89Cd2B2fClS9IZBo6kup6pi60IZB1F0NrJ5MUwOCGjZCkRWaiA8duEaEYfV7ZCnqZBFizzJh0N9h4lWDVH0ZBB8s7DkYTsZCG7jOlzLT4wLDtmTW5Mpmcvt7w4h9B5JpUAmCsU5Ctxvg5etfA9DwgZAuIkzxpofZCAxzf80bjisaVGtaJ1V5kZBmnpygiWQBB4BVMxOnHDo9iucyIXvEPc9s1a7',
+  instance_id          = 'meta_1085213844678248',
+  token                = 'EAAU1lGElzwwBRWq5yN6Ewmg1FYqTtKy43hSyGElCSJfsDcTq2hvRPpQYMWQoFl4GjrVTS2xLhdRPsAa6vcja1mDer4LJGLJxkmeG6hZA5uRkpGr2BIZCScOzRCyRWrcgCIHy1ZCKuwrslzWrlmKa22czbbLjenraiYjxeFp2jJz7ZAtpDpQ99KTqykwZBhGVaCwZDZD',
   base_url             = 'https://graph.facebook.com',
   provedor             = 'meta',
   ativo                = true,
   status_conexao       = 'conectado',
   numero_telefone      = '+55 43 3524 1094',
-  meta_phone_number_id = '108521384467824',
-  meta_waba_id         = '216631787412137',
+  meta_phone_number_id = '1085213844678248',
+  meta_waba_id         = '2166317874121379',
   meta_verify_token    = 'gasfacil_meta_verify',
-  meta_access_token    = 'EAAU1lGElzwwBRTZBILQikSOChaGhxkUU7SlCelj68DYyMqHCCyYwestHS3D1FUBYNpdL89Cd2B2fClS9IZBo6kup6pi60IZB1F0NrJ5MUwOCGjZCkRWaiA8duEaEYfV7ZCnqZBFizzJh0N9h4lWDVH0ZBB8s7DkYTsZCG7jOlzLT4wLDtmTW5Mpmcvt7w4h9B5JpUAmCsU5Ctxvg5etfA9DwgZAuIkzxpofZCAxzf80bjisaVGtaJ1V5kZBmnpygiWQBB4BVMxOnHDo9iucyIXvEPc9s1a7',
+  meta_access_token    = 'EAAU1lGElzwwBRWq5yN6Ewmg1FYqTtKy43hSyGElCSJfsDcTq2hvRPpQYMWQoFl4GjrVTS2xLhdRPsAa6vcja1mDer4LJGLJxkmeG6hZA5uRkpGr2BIZCScOzRCyRWrcgCIHy1ZCKuwrslzWrlmKa22czbbLjenraiYjxeFp2jJz7ZAtpDpQ99KTqykwZBhGVaCwZDZD',
   updated_at           = now()
 WHERE unidade_id = 'aa5b7c93-4fe6-4dba-a0b5-2af43cd20614'
   AND provedor = 'meta';
@@ -47,17 +47,17 @@ INSERT INTO public.integracoes_whatsapp (
 )
 SELECT
   'aa5b7c93-4fe6-4dba-a0b5-2af43cd20614',
-  'meta_108521384467824',
-  'EAAU1lGElzwwBRTZBILQikSOChaGhxkUU7SlCelj68DYyMqHCCyYwestHS3D1FUBYNpdL89Cd2B2fClS9IZBo6kup6pi60IZB1F0NrJ5MUwOCGjZCkRWaiA8duEaEYfV7ZCnqZBFizzJh0N9h4lWDVH0ZBB8s7DkYTsZCG7jOlzLT4wLDtmTW5Mpmcvt7w4h9B5JpUAmCsU5Ctxvg5etfA9DwgZAuIkzxpofZCAxzf80bjisaVGtaJ1V5kZBmnpygiWQBB4BVMxOnHDo9iucyIXvEPc9s1a7',
+  'meta_1085213844678248',
+  'EAAU1lGElzwwBRWq5yN6Ewmg1FYqTtKy43hSyGElCSJfsDcTq2hvRPpQYMWQoFl4GjrVTS2xLhdRPsAa6vcja1mDer4LJGLJxkmeG6hZA5uRkpGr2BIZCScOzRCyRWrcgCIHy1ZCKuwrslzWrlmKa22czbbLjenraiYjxeFp2jJz7ZAtpDpQ99KTqykwZBhGVaCwZDZD',
   'https://graph.facebook.com',
   'meta',
   true,
   'conectado',
   '+55 43 3524 1094',
-  '108521384467824',
-  '216631787412137',
+  '1085213844678248',
+  '2166317874121379',
   'gasfacil_meta_verify',
-  'EAAU1lGElzwwBRTZBILQikSOChaGhxkUU7SlCelj68DYyMqHCCyYwestHS3D1FUBYNpdL89Cd2B2fClS9IZBo6kup6pi60IZB1F0NrJ5MUwOCGjZCkRWaiA8duEaEYfV7ZCnqZBFizzJh0N9h4lWDVH0ZBB8s7DkYTsZCG7jOlzLT4wLDtmTW5Mpmcvt7w4h9B5JpUAmCsU5Ctxvg5etfA9DwgZAuIkzxpofZCAxzf80bjisaVGtaJ1V5kZBmnpygiWQBB4BVMxOnHDo9iucyIXvEPc9s1a7',
+  'EAAU1lGElzwwBRWq5yN6Ewmg1FYqTtKy43hSyGElCSJfsDcTq2hvRPpQYMWQoFl4GjrVTS2xLhdRPsAa6vcja1mDer4LJGLJxkmeG6hZA5uRkpGr2BIZCScOzRCyRWrcgCIHy1ZCKuwrslzWrlmKa22czbbLjenraiYjxeFp2jJz7ZAtpDpQ99KTqykwZBhGVaCwZDZD',
   5.00,
   10.00,
   115.00
