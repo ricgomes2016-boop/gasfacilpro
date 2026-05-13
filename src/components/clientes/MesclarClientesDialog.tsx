@@ -442,9 +442,15 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged, preSelecte
         <DialogFooter className="gap-2">
           {step === "merge" ? (
             <>
-              <Button variant="outline" onClick={() => setStep("detect")} disabled={merging}>
-                ← Voltar
-              </Button>
+              {manualMode ? (
+                <Button variant="outline" onClick={() => onOpenChange(false)} disabled={merging}>
+                  Cancelar
+                </Button>
+              ) : (
+                <Button variant="outline" onClick={() => setStep("detect")} disabled={merging}>
+                  ← Voltar
+                </Button>
+              )}
               <Button
                 onClick={handleMerge}
                 disabled={merging || selectedIds.size < 2 || !masterId}
