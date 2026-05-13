@@ -662,36 +662,74 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
 
             {/* Input Area */}
             <div className="bg-[#f0f2f5] px-4 py-2.5 flex items-end gap-2 flex-shrink-0">
-              {/* Emoji button */}
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept="image/*,audio/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip"
+                onChange={handleFilePick}
+              />
+
+              {/* Emoji button (decorativo) */}
               <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors flex-shrink-0">
                 <Smile className="h-6 w-6 text-[#54656f]" />
               </button>
 
               {/* Attach button */}
-              <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors flex-shrink-0">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={sending || recording}
+                title="Anexar arquivo"
+                className="p-2 rounded-full hover:bg-[#e9edef] transition-colors flex-shrink-0 disabled:opacity-50"
+              >
                 <Paperclip className="h-6 w-6 text-[#54656f] rotate-45" />
               </button>
 
-              {/* Text Input */}
-              <div className="flex-1 bg-white rounded-lg px-3 py-2.5 min-h-[42px] max-h-[120px] flex items-center">
-                <textarea
-                  value={newMsg}
-                  onChange={(e) => setNewMsg(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Digite uma mensagem"
-                  className="w-full bg-transparent text-[15px] text-[#3b4a54] placeholder-[#667781] outline-none resize-none leading-[1.35] max-h-[100px]"
-                  rows={1}
-                  style={{ height: 'auto', minHeight: '21px' }}
-                  onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = 'auto';
-                    target.style.height = Math.min(target.scrollHeight, 100) + 'px';
-                  }}
-                />
-              </div>
+              {/* Recording state */}
+              {recording ? (
+                <div className="flex-1 bg-white rounded-lg px-3 py-2.5 min-h-[42px] flex items-center gap-3">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-sm text-[#3b4a54] flex-1">
+                    Gravando... {Math.floor(recordingTime / 60).toString().padStart(2, "0")}:{(recordingTime % 60).toString().padStart(2, "0")}
+                  </span>
+                  <button
+                    onClick={() => stopRecording(false)}
+                    className="p-1.5 rounded-full hover:bg-[#e9edef]"
+                    title="Cancelar"
+                  >
+                    <Trash2 className="h-5 w-5 text-red-500" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex-1 bg-white rounded-lg px-3 py-2.5 min-h-[42px] max-h-[120px] flex items-center">
+                  <textarea
+                    value={newMsg}
+                    onChange={(e) => setNewMsg(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Digite uma mensagem"
+                    className="w-full bg-transparent text-[15px] text-[#3b4a54] placeholder-[#667781] outline-none resize-none leading-[1.35] max-h-[100px]"
+                    rows={1}
+                    style={{ height: 'auto', minHeight: '21px' }}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = Math.min(target.scrollHeight, 100) + 'px';
+                    }}
+                  />
+                </div>
+              )}
 
-              {/* Send / Mic button */}
-              {newMsg.trim() ? (
+              {/* Send / Mic / Stop */}
+              {recording ? (
+                <button
+                  onClick={() => stopRecording(true)}
+                  className="p-2 rounded-full bg-[#00a884] hover:bg-[#008f72] transition-colors flex-shrink-0"
+                  title="Enviar áudio"
+                >
+                  <Send className="h-6 w-6 text-white" />
+                </button>
+              ) : newMsg.trim() ? (
                 <button
                   onClick={handleSend}
                   disabled={sending}
@@ -700,7 +738,12 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                   <Send className="h-6 w-6 text-[#54656f]" />
                 </button>
               ) : (
-                <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors flex-shrink-0">
+                <button
+                  onClick={startRecording}
+                  disabled={sending}
+                  title="Gravar áudio"
+                  className="p-2 rounded-full hover:bg-[#e9edef] transition-colors flex-shrink-0 disabled:opacity-50"
+                >
                   <Mic className="h-6 w-6 text-[#54656f]" />
                 </button>
               )}
