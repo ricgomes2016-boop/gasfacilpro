@@ -1,7 +1,7 @@
-// whatsapp-send — Envia mensagem do operador humano via WhatsApp (Meta/Evolution/etc)
+// whatsapp-send — Envia mensagem (texto ou mídia) do operador humano via WhatsApp
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { resolveConfig, sendMessage } from "../_shared/bia-core.ts";
+import { resolveConfig, sendMessage, sendMedia } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,84 +17,105 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { conversa_id, content, unidade_id } = await req.json();
+    const {
+      conversa_id,
+      content,
+      unidade_id,
+      media_url,
+      media_type,    // "image" | "audio" | "video" | "document"
+      mime_type,
+      filename,
+    } = await req.json();
 
-    if (!conversa_id || !content?.trim()) {
-      return new Response(JSON.stringify({ error: "conversa_id e content são obrigatórios" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (!conversa_id) {
+      return new Response(JSON.stringify({ error: "conversa_id é obrigatório" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 1. Buscar telefone da conversa
-    const { data: conversa, error: convErr } = await supabase
+    if (!media_url && !content?.trim()) {
+      return new Response(JSON.stringify({ error: "Envie content ou media_url" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 1. Buscar telefone + unidade da conversa
+    const { data: conversa } = await supabase
       .from("ai_conversas")
-      .select("id, telefone")
+      .select("id, telefone, unidade_id")
       .eq("id", conversa_id)
       .maybeSingle();
 
-    if (convErr || !conversa) {
-      return new Response(JSON.stringify({ error: "Conversa não encontrada" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (!conversa?.telefone) {
+      return new Response(JSON.stringify({ error: "Conversa sem telefone" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (!conversa.telefone) {
-      return new Response(JSON.stringify({ error: "Conversa sem telefone associado" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const effectiveUnidade = unidade_id || conversa.unidade_id || null;
 
-    const telefone = conversa.telefone;
-
-    // 2. Resolver config do WhatsApp — tenta meta primeiro, depois evolution, zapi, uazapi, gateway
+    // 2. Resolver config
     const provedores = ["meta", "evolution", "zapi", "uazapi", "gateway"] as const;
-    let config = null;
-    for (const provedor of provedores) {
-      config = await resolveConfig(supabase, provedor, unidade_id || null, null);
+    let config: any = null;
+    for (const p of provedores) {
+      config = await resolveConfig(supabase, p, effectiveUnidade, null);
       if (config) break;
     }
-
     if (!config) {
       return new Response(JSON.stringify({ error: "Nenhuma integração WhatsApp ativa encontrada" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 3. Enviar mensagem via WhatsApp
-    await sendMessage(config, telefone, content.trim());
+    // 3. Enviar
+    if (media_url && media_type) {
+      await sendMedia(config, conversa.telefone, {
+        mediaUrl: media_url,
+        mediaType: media_type,
+        caption: content?.trim() || undefined,
+        filename,
+        mimeType: mime_type,
+      });
+    } else {
+      await sendMessage(config, conversa.telefone, content.trim());
+    }
 
-    // 4. Salvar mensagem como 'human' no banco
+    // 4. Salvar no banco
+    const messageContent = media_url
+      ? (content?.trim() || `[${media_type}]`)
+      : content.trim();
+
+    const metadata: Record<string, any> = { source: "whatsapp-send", provedor: config.provedor };
+    if (media_url) {
+      metadata.media_url = media_url;
+      metadata.media_type = media_type;
+      metadata.mime_type = mime_type;
+      metadata.filename = filename;
+    }
+
     const { error: insertErr } = await supabase.from("ai_mensagens").insert({
       conversa_id,
       role: "human",
-      content: content.trim(),
-      metadata: { source: "whatsapp-send", provedor: config.provedor },
+      content: messageContent,
+      metadata,
     });
 
     if (insertErr) {
       console.error("Erro ao salvar mensagem:", insertErr);
-      return new Response(JSON.stringify({ error: "Mensagem enviada mas erro ao salvar", details: insertErr.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ ok: false, sent: true, error: insertErr.message }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 5. Atualizar updated_at da conversa
     await supabase.from("ai_conversas").update({ updated_at: new Date().toISOString() }).eq("id", conversa_id);
 
     return new Response(JSON.stringify({ ok: true, provedor: config.provedor }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("whatsapp-send error:", error);
-    return new Response(JSON.stringify({ error: "Erro interno", details: (error as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(JSON.stringify({ ok: false, error: (error as Error).message }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
