@@ -30,6 +30,32 @@ import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { VeiculoDetalheDialog } from "@/components/frota/VeiculoDetalheDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ImageUpload } from "@/components/ui/image-upload";
+
+const PLACA_MERCOSUL_REGEX = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;
+const PLACA_LEGADO_REGEX = /^[A-Z]{3}[0-9]{4}$/;
+function formatPlacaMercosul(value: string): string {
+  const clean = (value || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7);
+  let out = "";
+  for (let i = 0; i < clean.length; i++) {
+    const ch = clean[i];
+    // posições: 0,1,2 letras | 3 número | 4 letra | 5,6 números
+    if (i < 3) {
+      if (/[A-Z]/.test(ch)) out += ch;
+    } else if (i === 3) {
+      if (/[0-9]/.test(ch)) out += ch;
+    } else if (i === 4) {
+      if (/[A-Z]/.test(ch)) out += ch;
+      else if (/[0-9]/.test(ch)) {
+        // permite placa antiga: aceita número e segue com números
+        out += ch;
+      }
+    } else {
+      if (/[0-9]/.test(ch)) out += ch;
+    }
+  }
+  return out;
+}
 
 interface Entregador {
   id: string;
@@ -61,6 +87,7 @@ interface Veiculo {
   crlv_vencimento: string | null;
   seguro_vencimento: string | null;
   seguro_empresa: string | null;
+  foto_url: string | null;
 }
 
 const statusOptions = [
@@ -70,7 +97,7 @@ const statusOptions = [
   { value: "excluido", label: "Excluído", color: "bg-destructive/10 text-destructive" },
 ];
 
-const emptyForm = { placa: "", modelo: "", marca: "", ano: "", km_atual: "", tipo: "moto", entregador_id: "", valor_fipe: "", status: "ativo" };
+const emptyForm = { placa: "", modelo: "", marca: "", ano: "", km_atual: "", tipo: "moto", entregador_id: "", valor_fipe: "", status: "ativo", foto_url: "" };
 
 export default function Veiculos() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
@@ -127,8 +154,13 @@ export default function Veiculos() {
       toast.error("Placa e Modelo são obrigatórios");
       return;
     }
+    const placaNorm = form.placa.toUpperCase().trim();
+    if (!PLACA_MERCOSUL_REGEX.test(placaNorm) && !PLACA_LEGADO_REGEX.test(placaNorm)) {
+      toast.error("Placa inválida. Use formato Mercosul (ABC1D23) ou antigo (ABC1234).");
+      return;
+    }
     const payload: any = {
-      placa: form.placa.toUpperCase(),
+      placa: placaNorm,
       modelo: form.modelo,
       marca: form.marca || null,
       ano: form.ano ? parseInt(form.ano) : null,
@@ -138,6 +170,7 @@ export default function Veiculos() {
       valor_fipe: form.valor_fipe ? parseFloat(form.valor_fipe) : null,
       status: form.status || "ativo",
       ativo: form.status !== "excluido",
+      foto_url: form.foto_url || null,
     };
     if (!editId && unidadeAtual?.id) {
       payload.unidade_id = unidadeAtual.id;
@@ -169,6 +202,7 @@ export default function Veiculos() {
       entregador_id: v.entregador_id || "",
       valor_fipe: v.valor_fipe?.toString() || "",
       status: v.status || "ativo",
+      foto_url: v.foto_url || "",
     });
     setEditId(v.id);
     setOpen(true);
@@ -248,10 +282,27 @@ export default function Veiculos() {
                 <DialogTitle>{editId ? "Editar Veículo" : "Cadastrar Novo Veículo"}</DialogTitle>
                 <DialogDescription>Preencha os dados do veículo</DialogDescription>
               </DialogHeader>
+              <div className="mt-4 flex flex-col items-start gap-2 sm:items-center sm:flex-row sm:gap-4">
+                <div className="space-y-2">
+                  <Label>Foto do veículo</Label>
+                  <ImageUpload
+                    value={form.foto_url || null}
+                    onChange={(url) => setForm({ ...form, foto_url: url || "" })}
+                    bucket="vehicle-photos"
+                    folder="veiculos"
+                  />
+                </div>
+              </div>
               <div className="grid grid-cols-1 gap-4 mt-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Placa *</Label>
-                  <Input className="w-full min-w-0" value={form.placa} onChange={e => setForm({...form, placa: e.target.value.toUpperCase()})} placeholder="ABC1D23" />
+                  <Input
+                    className="w-full min-w-0 font-mono uppercase tracking-wider"
+                    value={form.placa}
+                    onChange={(e) => setForm({ ...form, placa: formatPlacaMercosul(e.target.value) })}
+                    placeholder="ABC1D23"
+                    maxLength={7}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Modelo *</Label>
@@ -386,10 +437,19 @@ export default function Veiculos() {
                   return (
                     <div key={v.id} className={`rounded-2xl border border-border/45 bg-card p-3 shadow-sm w-full min-w-0 ${(v.status === "excluido" || v.status === "inativo") ? "opacity-60" : ""}`}>
                       <div className="flex items-start justify-between gap-3 w-full min-w-0">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-mono text-sm font-bold truncate">{v.placa}</p>
-                          <p className="text-sm font-medium truncate">{v.modelo}</p>
-                          <p className="text-xs text-muted-foreground truncate">{v.marca || "Sem marca"} {v.ano || ""}</p>
+                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                          {v.foto_url ? (
+                            <img src={v.foto_url} alt={v.placa} className="h-14 w-14 rounded-lg object-cover border border-border shrink-0" />
+                          ) : (
+                            <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                              <Car className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="font-mono text-sm font-bold truncate">{v.placa}</p>
+                            <p className="text-sm font-medium truncate">{v.modelo}</p>
+                            <p className="text-xs text-muted-foreground truncate">{v.marca || "Sem marca"} {v.ano || ""}</p>
+                          </div>
                         </div>
                         {getStatusBadge(v.status)}
                       </div>
@@ -414,6 +474,7 @@ export default function Veiculos() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-16">Foto</TableHead>
                     <TableHead>Placa</TableHead>
                     <TableHead>Modelo</TableHead>
                     <TableHead>Tipo</TableHead>
@@ -431,6 +492,15 @@ export default function Veiculos() {
                     const kmL = getKmL(v.id);
                     return (
                     <TableRow key={v.id} className={(v.status === "excluido" || v.status === "inativo") ? "opacity-60" : ""}>
+                      <TableCell className="w-16">
+                        {v.foto_url ? (
+                          <img src={v.foto_url} alt={v.placa} className="h-12 w-12 rounded-lg object-cover border border-border" />
+                        ) : (
+                          <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
+                            <Car className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="font-mono font-bold">{v.placa}</TableCell>
                       <TableCell>
                         <div className="text-sm">{v.modelo}</div>
@@ -516,7 +586,7 @@ export default function Veiculos() {
                     );
                   })}
                   {filtered.length === 0 && (
-                    <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Nenhum veículo encontrado</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">Nenhum veículo encontrado</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
