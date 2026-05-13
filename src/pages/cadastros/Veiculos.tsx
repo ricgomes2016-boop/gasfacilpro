@@ -90,6 +90,7 @@ interface Veiculo {
   seguro_vencimento: string | null;
   seguro_empresa: string | null;
   foto_url: string | null;
+  unidade_id: string | null;
 }
 
 const statusOptions = [
