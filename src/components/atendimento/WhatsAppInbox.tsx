@@ -14,10 +14,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Send, Search, MessageSquare, ArrowLeft, Bot, Headset, User, Smile, Paperclip, Mic, SquarePen } from "lucide-react";
+import { Send, Search, MessageSquare, ArrowLeft, Bot, Headset, User, Smile, Paperclip, Mic, SquarePen, X, Trash2, FileText, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useWhatsAppNotifications } from "@/contexts/WhatsAppNotificationContext";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { NovaConversaDialog } from "./NovaConversaDialog";
 
 interface Conversa {
@@ -25,8 +26,18 @@ interface Conversa {
   titulo: string;
   updated_at: string;
   telefone: string | null;
+  foto_url?: string | null;
+  unidade_id?: string | null;
   last_message?: string | null;
   last_role?: string | null;
+}
+
+interface MensagemMetadata {
+  media_url?: string;
+  media_type?: "image" | "audio" | "video" | "document";
+  mime_type?: string;
+  filename?: string;
+  [k: string]: any;
 }
 
 interface Mensagem {
@@ -35,10 +46,32 @@ interface Mensagem {
   content: string;
   created_at: string;
   conversa_id: string;
+  metadata?: MensagemMetadata | null;
 }
 
 interface WhatsAppInboxProps {
   className?: string;
+}
+
+// Avatar with safe fallback to initials
+function ChatAvatar({ url, name, size = "md" }: { url?: string | null; name: string; size?: "sm" | "md" }) {
+  const [errored, setErrored] = useState(false);
+  const sizeClass = size === "sm" ? "w-10 h-10 text-sm" : "w-12 h-12 text-sm";
+  if (url && !errored) {
+    return (
+      <img
+        src={url}
+        alt={name}
+        onError={() => setErrored(true)}
+        className={cn(sizeClass, "rounded-full object-cover bg-[#dfe5e7] flex-shrink-0")}
+      />
+    );
+  }
+  return (
+    <div className={cn(sizeClass, "rounded-full bg-[#dfe5e7] flex items-center justify-center flex-shrink-0")}>
+      <span className="text-[#8696a0] font-medium">{(name || "??").slice(0, 2).toUpperCase()}</span>
+    </div>
+  );
 }
 
 export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
