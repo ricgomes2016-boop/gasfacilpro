@@ -226,9 +226,13 @@ export function MesclarClientesDialog({ open, onOpenChange, onMerged, preSelecte
       toast.success(`${toMerge.length} cliente(s) mesclado(s) com sucesso!`);
       onMerged();
 
-      await detectDuplicates();
-      setStep("detect");
-      setSelectedGroup(null);
+      if (manualMode) {
+        onOpenChange(false);
+      } else {
+        await detectDuplicates();
+        setStep("detect");
+        setSelectedGroup(null);
+      }
     } catch (err: any) {
       toast.error("Erro ao mesclar: " + err.message);
     } finally {
