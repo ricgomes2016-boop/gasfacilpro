@@ -549,13 +549,23 @@ export default function Manutencao() {
                   {filtered.map((m) => (
                     <TableRow key={m.id}>
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          {m.status === "Concluída" && <CheckCircle2 className="h-3 w-3 text-green-600" />}
-                          {m.status === "Em andamento" && <Wrench className="h-3 w-3 text-orange-600" />}
-                          {m.status === "Agendada" && <Clock className="h-3 w-3 text-blue-600" />}
-                          {m.status === "Paga" && <DollarSign className="h-3 w-3 text-muted-foreground" />}
-                          <Badge variant={m.status === "Concluída" ? "default" : m.status === "Em andamento" ? "secondary" : m.status === "Paga" ? "outline" : "outline"}>{m.status}</Badge>
-                        </div>
+                        {m.status === "Paga" ? (
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="h-3 w-3 text-muted-foreground" />
+                            <Badge variant="outline">Paga</Badge>
+                          </div>
+                        ) : (
+                          <Select value={m.status} onValueChange={(v) => handleStatusChange(m.id, v)}>
+                            <SelectTrigger className="h-8 w-[150px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Agendada">Agendada</SelectItem>
+                              <SelectItem value="Em andamento">Em andamento</SelectItem>
+                              <SelectItem value="Concluída">Concluída</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
                       </TableCell>
                       <TableCell className="font-medium">{(m.veiculos as any)?.placa || "-"}</TableCell>
                       <TableCell><Badge variant={m.tipo === "Preventiva" ? "secondary" : "destructive"}>{m.tipo}</Badge></TableCell>
