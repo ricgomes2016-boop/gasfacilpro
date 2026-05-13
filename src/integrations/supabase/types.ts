@@ -10288,6 +10288,7 @@ export type Database = {
           created_at: string
           crlv_vencimento: string | null
           entregador_id: string | null
+          foto_url: string | null
           id: string
           km_atual: number | null
           marca: string | null
@@ -10307,6 +10308,7 @@ export type Database = {
           created_at?: string
           crlv_vencimento?: string | null
           entregador_id?: string | null
+          foto_url?: string | null
           id?: string
           km_atual?: number | null
           marca?: string | null
@@ -10326,6 +10328,7 @@ export type Database = {
           created_at?: string
           crlv_vencimento?: string | null
           entregador_id?: string | null
+          foto_url?: string | null
           id?: string
           km_atual?: number | null
           marca?: string | null

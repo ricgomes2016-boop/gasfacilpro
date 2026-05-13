@@ -1,28 +1,33 @@
 ## Objetivo
 
-Permitir mesclar apenas os clientes que o usuário selecionar manualmente, evitando o scan automático em todo o sistema.
+Em **Cadastros → Veículos** (`/cadastros/veiculos`):
+1. Adicionar campo **Foto do veículo** no modal de cadastro/edição, exibido **antes da Placa**.
+2. Aplicar **máscara Mercosul** no campo Placa (formato `ABC1D23` — 3 letras, 1 número, 1 letra, 2 números).
+3. Mostrar a miniatura da foto na **listagem** (coluna nova antes de "Placa", tanto desktop quanto mobile).
 
 ## Mudanças
 
-### 1. `src/pages/clientes/CadastroClientes.tsx` — checkboxes de seleção
-- Adicionar estado `selectedMergeIds: Set<string>` (ids reais de clientes; separado do `selectedClients` que é da importação em massa).
-- Nova coluna `<TableHead className="w-10">` no início da tabela com `<Checkbox>` por linha (e equivalente no card mobile, no canto superior direito).
-- `Checkbox` "selecionar todos visíveis" no header da coluna, agindo sobre `filteredClientes`.
-- Botão **Mesclar** muda de comportamento:
-  - Se `selectedMergeIds.size >= 2` → abre o dialog em modo **manual** passando os ids.
-  - Se `< 2` → mantém comportamento atual (auto-detecção). Texto do botão vira `Mesclar (N)` quando há seleção.
-- Após mesclagem concluída (`onMerged`): limpar `selectedMergeIds` e recarregar lista.
+### 1. Banco de dados (migration)
+- Adicionar coluna `foto_url TEXT` em `public.veiculos` (nullable).
+- Criar bucket público `vehicle-photos` em `storage.buckets` com policies de SELECT público e INSERT/UPDATE/DELETE para usuários autenticados (mesmo padrão de `product-images`).
 
-### 2. `src/components/clientes/MesclarClientesDialog.tsx` — modo manual
-- Nova prop opcional `preSelectedIds?: string[]`.
-- No `useEffect` de abertura: se `preSelectedIds` veio com 2+ ids, **pular** a etapa "detect":
-  - Buscar `clientes` apenas por `.in("id", preSelectedIds)`.
-  - Montar um único `DuplicateGroup` (label "Seleção manual"), pré-selecionar todos os ids, escolher o mais antigo como `masterId` por padrão.
-  - Setar `step = "merge"` direto.
-- Se `preSelectedIds` vazio/ausente: fluxo atual de auto-detecção continua intacto.
-- Header do dialog mostra badge "Seleção manual" quando aplicável; remove tabs Nome/Endereço nesse modo.
+### 2. `src/pages/cadastros/Veiculos.tsx`
+- `emptyForm`: incluir `foto_url: ""`.
+- Tipo `Veiculo`: incluir `foto_url?: string | null`.
+- Modal (form):
+  - Adicionar bloco com `<ImageUpload bucket="vehicle-photos" folder="veiculos" />` **acima** do campo Placa, com label "Foto do veículo".
+  - Substituir `onChange` da Placa por uma função que aplica máscara Mercosul: remove caracteres não-alfanuméricos, força uppercase, limita a 7 caracteres e formata como `LLLNLNN` (ex.: `ABC1D23`). Adicionar `maxLength={7}` e `pattern="[A-Z]{3}[0-9][A-Z][0-9]{2}"`.
+  - Validação no `handleSave`: se preenchida, deve bater com regex Mercosul `^[A-Z]{3}[0-9][A-Z][0-9]{2}$`. Caso não bata, exibir toast e abortar (mantém compat. com placas antigas que já estão no banco — só aplica regra em novos/edições do campo).
+- `payload` salva `foto_url`.
+- `startEdit` carrega `foto_url`.
+- Tabela desktop:
+  - Nova `<TableHead className="w-16">Foto</TableHead>` antes de Placa.
+  - Nova `<TableCell>` com `<img>` 40x40 arredondado se `foto_url`, senão ícone placeholder (`Car`).
+- Cards mobile: incluir miniatura à esquerda do bloco da placa.
 
-## Fora de escopo
-- Mudar a lógica do merge em si (master/secundários, transferência de referências).
-- Auto-detecção continua disponível para quem não selecionar nada.
-- Persistência da seleção entre páginas/refresh (seleção é por sessão de tela).
+### 3. Helper de máscara
+- Função local `formatPlacaMercosul(value: string)` no próprio arquivo (não vale criar util compartilhada para uma única tela).
+
+## Fora do escopo
+- Não alterar telas de transportadora/frota (`TranspVeiculos.tsx`, etc.) — usuário pediu só a tela mostrada (`/cadastros/veiculos`). Posso estender depois se desejar.
+- Não migrar placas legadas no formato antigo (`ABC1234`) — continuam aceitas em leitura.
