@@ -23,7 +23,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Truck, Plus, Search, Edit, Trash2, User, Car, ExternalLink, Eye, MapPin, Fuel, WifiOff, Building2, FileDown } from "lucide-react";
+import { Truck, Plus, Search, Edit, Trash2, User, Car, ExternalLink, Eye, MapPin, Fuel, WifiOff, Building2, FileDown, RefreshCw, DollarSign, Loader2 } from "lucide-react";
+import { consultarFipe } from "@/lib/fipe";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
