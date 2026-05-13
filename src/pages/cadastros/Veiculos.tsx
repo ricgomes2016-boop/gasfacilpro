@@ -113,7 +113,9 @@ export default function Veiculos() {
   const [filtroStatus, setFiltroStatus] = useState("ativo");
   const [detalheVeiculo, setDetalheVeiculo] = useState<Veiculo | null>(null);
   const [abastAgg, setAbastAgg] = useState<AbastecimentoAgg[]>([]);
-  const { unidadeAtual } = useUnidade();
+  const [transferVeiculo, setTransferVeiculo] = useState<Veiculo | null>(null);
+  const [transferUnidadeId, setTransferUnidadeId] = useState<string>("");
+  const { unidadeAtual, unidades } = useUnidade();
 
   const fetchVeiculos = async () => {
     let query = supabase
