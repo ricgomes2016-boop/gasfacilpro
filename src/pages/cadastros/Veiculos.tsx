@@ -87,6 +87,7 @@ interface Veiculo {
   crlv_vencimento: string | null;
   seguro_vencimento: string | null;
   seguro_empresa: string | null;
+  foto_url: string | null;
 }
 
 const statusOptions = [
