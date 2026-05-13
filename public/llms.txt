@@ -1,0 +1,10 @@
+# Gás Fácil Pro
+
+> ERP completo para distribuidoras e revendas de gás: vendas, entregas, estoque, financeiro, fiscal e atendimento integrado.
+
+## Pages
+
+- [Gás Fácil Pro](/): Plataforma ERP para revendas de gás — visão geral do produto.
+- [Central Gás CP](/centralgascp): Site institucional da Central Gás (Cornélio Procópio, PR) — pedidos de gás P13, P45 e água mineral.
+- [Forte Gás](/fortegas): Site institucional da Forte Gás — pedidos de gás e atendimento por WhatsApp.
+- [Japa Gás](/japagas): Site institucional da Japa Gás (Bandeirantes, PR) — entrega de gás de cozinha.

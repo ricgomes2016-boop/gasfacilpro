@@ -253,12 +253,23 @@ function ScrollTop() {
 }
 
 import { BiaChatWidget } from "@/components/publico/BiaChatWidget";
+import { Helmet } from "react-helmet-async";
 
 export default function CentralGasCP() {
   const [biaState, setBiaState] = useState<{ openSignal: number; prefill: string }>({ openSignal: 0, prefill: "" });
   const askBia = (msg: string) => setBiaState((s) => ({ openSignal: s.openSignal + 1, prefill: msg }));
   return (
     <div className="min-h-screen bg-white">
+      <Helmet>
+        <title>Central Gás CP — Entrega de gás P13, P45 e água em Cornélio Procópio</title>
+        <meta name="description" content="Central Gás: entrega rápida de gás de cozinha P13, P45 e água mineral em Cornélio Procópio (PR). Peça pelo WhatsApp (43) 99966-1816." />
+        <link rel="canonical" href="https://gasfacilpro.lovable.app/centralgascp" />
+        <meta property="og:title" content="Central Gás CP — Gás e água em Cornélio Procópio" />
+        <meta property="og:description" content="Entrega rápida de gás P13, P45 e água mineral em Cornélio Procópio (PR)." />
+        <meta property="og:url" content="https://gasfacilpro.lovable.app/centralgascp" />
+        <meta property="og:image" content="https://gasfacilpro.lovable.app/og-image.png" />
+        <meta property="og:type" content="website" />
+      </Helmet>
       <Header />
       <Hero onAskBia={askBia} />
       <Sobre />

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BiaChatWidget } from "@/components/publico/BiaChatWidget";
+import { Helmet } from "react-helmet-async";
 import botijoesImg from "@/assets/japa-gas/botijoes.png";
 import seg1 from "@/assets/japa-gas/seguranca-1.jpg";
 import seg2 from "@/assets/japa-gas/seguranca-2.jpg";
@@ -516,6 +517,16 @@ export default function JapaGas() {
 
   return (
     <div className="min-h-screen bg-white">
+      <Helmet>
+        <title>Japa Gás — Entrega de gás de cozinha em Bandeirantes (PR)</title>
+        <meta name="description" content="Japa Gás: entrega rápida de gás de cozinha em Bandeirantes (PR). Peça pelo WhatsApp (43) 99989-2022." />
+        <link rel="canonical" href="https://gasfacilpro.lovable.app/japagas" />
+        <meta property="og:title" content="Japa Gás — Gás de cozinha em Bandeirantes" />
+        <meta property="og:description" content="Entrega rápida de gás de cozinha em Bandeirantes (PR)." />
+        <meta property="og:url" content="https://gasfacilpro.lovable.app/japagas" />
+        <meta property="og:image" content="https://gasfacilpro.lovable.app/og-image.png" />
+        <meta property="og:type" content="website" />
+      </Helmet>
       <Header />
       <Hero onAskBia={askBia} />
       <Sobre />
