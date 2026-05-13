@@ -144,6 +144,16 @@ export default function CadastroClientesCad() {
 
   // Mesclar clientes
   const [isMesclarOpen, setIsMesclarOpen] = useState(false);
+  const [selectedMergeIds, setSelectedMergeIds] = useState<Set<string>>(new Set());
+  const [mesclarPreSelected, setMesclarPreSelected] = useState<string[] | undefined>(undefined);
+
+  const toggleMergeId = (id: string) => {
+    setSelectedMergeIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   // Unidades dialog
   const [unidadesDialogOpen, setUnidadesDialogOpen] = useState(false);
