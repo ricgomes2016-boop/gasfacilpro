@@ -16,7 +16,7 @@ import {
   Tabs, TabsContent, TabsList, TabsTrigger,
 } from "@/components/ui/tabs";
 import {
-  Shield, AlertTriangle, CheckCircle2, Loader2, Edit, Truck, User,
+  Shield, AlertTriangle, CheckCircle2, Loader2, Edit, Truck, User, Upload,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
