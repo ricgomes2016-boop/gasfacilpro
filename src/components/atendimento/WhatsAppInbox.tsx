@@ -23,6 +23,9 @@ interface Conversa {
   id: string;
   titulo: string;
   updated_at: string;
+  telefone: string | null;
+  last_message?: string | null;
+  last_role?: string | null;
 }
 
 interface Mensagem {
