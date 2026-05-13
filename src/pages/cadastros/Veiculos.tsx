@@ -282,10 +282,27 @@ export default function Veiculos() {
                 <DialogTitle>{editId ? "Editar Veículo" : "Cadastrar Novo Veículo"}</DialogTitle>
                 <DialogDescription>Preencha os dados do veículo</DialogDescription>
               </DialogHeader>
+              <div className="mt-4 flex flex-col items-start gap-2 sm:items-center sm:flex-row sm:gap-4">
+                <div className="space-y-2">
+                  <Label>Foto do veículo</Label>
+                  <ImageUpload
+                    value={form.foto_url || null}
+                    onChange={(url) => setForm({ ...form, foto_url: url || "" })}
+                    bucket="vehicle-photos"
+                    folder="veiculos"
+                  />
+                </div>
+              </div>
               <div className="grid grid-cols-1 gap-4 mt-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Placa *</Label>
-                  <Input className="w-full min-w-0" value={form.placa} onChange={e => setForm({...form, placa: e.target.value.toUpperCase()})} placeholder="ABC1D23" />
+                  <Input
+                    className="w-full min-w-0 font-mono uppercase tracking-wider"
+                    value={form.placa}
+                    onChange={(e) => setForm({ ...form, placa: formatPlacaMercosul(e.target.value) })}
+                    placeholder="ABC1D23"
+                    maxLength={7}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Modelo *</Label>
