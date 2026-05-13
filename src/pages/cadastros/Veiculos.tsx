@@ -23,7 +23,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Truck, Plus, Search, Edit, Trash2, User, Car, ExternalLink, Eye, MapPin, Fuel, WifiOff, Building2, FileDown } from "lucide-react";
+import { Truck, Plus, Search, Edit, Trash2, User, Car, ExternalLink, Eye, MapPin, Fuel, WifiOff, Building2, FileDown, RefreshCw, DollarSign, Loader2 } from "lucide-react";
+import { consultarFipe } from "@/lib/fipe";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -115,7 +116,63 @@ export default function Veiculos() {
   const [abastAgg, setAbastAgg] = useState<AbastecimentoAgg[]>([]);
   const [transferVeiculo, setTransferVeiculo] = useState<Veiculo | null>(null);
   const [transferUnidadeId, setTransferUnidadeId] = useState<string>("");
+  const [fipeLoading, setFipeLoading] = useState(false);
+  const [bulkFipeLoading, setBulkFipeLoading] = useState(false);
   const { unidadeAtual, unidades } = useUnidade();
+
+  const handleBuscarFipeForm = async () => {
+    if (!form.marca || !form.modelo) {
+      toast.error("Informe marca e modelo antes de buscar a FIPE");
+      return;
+    }
+    setFipeLoading(true);
+    try {
+      const r = await consultarFipe({
+        tipo: form.tipo,
+        marca: form.marca,
+        modelo: form.modelo,
+        ano: form.ano ? parseInt(form.ano, 10) : null,
+      });
+      if (!r) {
+        toast.error("Veículo não encontrado na tabela FIPE");
+        return;
+      }
+      setForm(f => ({ ...f, valor_fipe: r.valor.toFixed(2) }));
+      toast.success(`FIPE: ${r.marca} ${r.modelo} (${r.ano}) — R$ ${r.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`);
+    } catch (e: any) {
+      toast.error("Erro ao consultar FIPE: " + (e?.message || ""));
+    } finally {
+      setFipeLoading(false);
+    }
+  };
+
+  const handleAtualizarFipeMassa = async () => {
+    const alvo = veiculos.filter(v => v.marca && v.modelo && (v.status || "ativo") !== "excluido");
+    if (alvo.length === 0) {
+      toast.error("Nenhum veículo elegível para atualização");
+      return;
+    }
+    setBulkFipeLoading(true);
+    let ok = 0, fail = 0;
+    for (const v of alvo) {
+      try {
+        const r = await consultarFipe({ tipo: v.tipo, marca: v.marca, modelo: v.modelo, ano: v.ano });
+        if (r && r.valor > 0) {
+          const { error } = await supabase.from("veiculos").update({ valor_fipe: r.valor }).eq("id", v.id);
+          if (error) throw error;
+          ok++;
+        } else {
+          fail++;
+        }
+      } catch {
+        fail++;
+      }
+    }
+    setBulkFipeLoading(false);
+    toast.success(`FIPE atualizada: ${ok} sucesso, ${fail} sem correspondência`);
+    fetchVeiculos();
+  };
+
 
   const fetchVeiculos = async () => {
     let query = supabase
@@ -333,6 +390,10 @@ export default function Veiculos() {
             </TabsList>
           </Tabs>
           <div className="flex w-full gap-2 lg:w-auto">
+            <Button variant="outline" onClick={handleAtualizarFipeMassa} disabled={bulkFipeLoading} className="h-10 flex-1 gap-2 lg:flex-none">
+              {bulkFipeLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Atualizar FIPE
+            </Button>
             <Button variant="outline" onClick={handleExportarPDF} className="h-10 flex-1 gap-2 lg:flex-none">
               <FileDown className="h-4 w-4" />Exportar PDF
             </Button>
@@ -399,7 +460,13 @@ export default function Veiculos() {
                 </div>
                 <div className="space-y-2">
                   <Label>Valor FIPE (R$)</Label>
-                  <Input type="number" value={form.valor_fipe} onChange={e => setForm({...form, valor_fipe: e.target.value})} placeholder="25000.00" />
+                  <div className="flex gap-2">
+                    <Input type="number" value={form.valor_fipe} onChange={e => setForm({...form, valor_fipe: e.target.value})} placeholder="25000.00" />
+                    <Button type="button" variant="outline" onClick={handleBuscarFipeForm} disabled={fipeLoading} className="gap-1 shrink-0">
+                      {fipeLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <DollarSign className="h-4 w-4" />}
+                      FIPE
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Status</Label>
