@@ -1053,9 +1053,20 @@ export default function CadastroClientesCad() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="outline" className="gap-2 flex-1 sm:flex-none" onClick={() => setIsMesclarOpen(true)}>
+            <Button
+              variant={selectedMergeIds.size >= 2 ? "default" : "outline"}
+              className="gap-2 flex-1 sm:flex-none"
+              onClick={() => {
+                if (selectedMergeIds.size >= 2) {
+                  setMesclarPreSelected([...selectedMergeIds]);
+                } else {
+                  setMesclarPreSelected(undefined);
+                }
+                setIsMesclarOpen(true);
+              }}
+            >
               <Merge className="h-4 w-4" />
-              Mesclar
+              {selectedMergeIds.size >= 2 ? `Mesclar (${selectedMergeIds.size})` : "Mesclar"}
             </Button>
             <Button className="gap-2 flex-1 sm:flex-none" onClick={openCreateModal}>
               <Plus className="h-4 w-4" />
