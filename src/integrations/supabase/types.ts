@@ -114,6 +114,8 @@ export type Database = {
         Row: {
           created_at: string
           empresa_id: string | null
+          foto_atualizada_em: string | null
+          foto_url: string | null
           id: string
           telefone: string | null
           titulo: string
@@ -124,6 +126,8 @@ export type Database = {
         Insert: {
           created_at?: string
           empresa_id?: string | null
+          foto_atualizada_em?: string | null
+          foto_url?: string | null
           id?: string
           telefone?: string | null
           titulo?: string
@@ -134,6 +138,8 @@ export type Database = {
         Update: {
           created_at?: string
           empresa_id?: string | null
+          foto_atualizada_em?: string | null
+          foto_url?: string | null
           id?: string
           telefone?: string | null
           titulo?: string
@@ -5171,6 +5177,8 @@ export type Database = {
           instancia_nome: string | null
           instancia_token: string | null
           instancia_url: string | null
+          loja_foto_atualizada_em: string | null
+          loja_foto_url: string | null
           meta_access_token: string | null
           meta_phone_number_id: string | null
           meta_verify_token: string | null
@@ -5201,6 +5209,8 @@ export type Database = {
           instancia_nome?: string | null
           instancia_token?: string | null
           instancia_url?: string | null
+          loja_foto_atualizada_em?: string | null
+          loja_foto_url?: string | null
           meta_access_token?: string | null
           meta_phone_number_id?: string | null
           meta_verify_token?: string | null
@@ -5231,6 +5241,8 @@ export type Database = {
           instancia_nome?: string | null
           instancia_token?: string | null
           instancia_url?: string | null
+          loja_foto_atualizada_em?: string | null
+          loja_foto_url?: string | null
           meta_access_token?: string | null
           meta_phone_number_id?: string | null
           meta_verify_token?: string | null
