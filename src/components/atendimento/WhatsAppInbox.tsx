@@ -14,10 +14,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Send, Search, MessageSquare, ArrowLeft, Bot, Headset, User, Smile, Paperclip, Mic, SquarePen } from "lucide-react";
+import { Send, Search, MessageSquare, ArrowLeft, Bot, Headset, User, Smile, Paperclip, Mic, SquarePen, X, Trash2, FileText, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useWhatsAppNotifications } from "@/contexts/WhatsAppNotificationContext";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { NovaConversaDialog } from "./NovaConversaDialog";
 
 interface Conversa {
@@ -25,8 +26,18 @@ interface Conversa {
   titulo: string;
   updated_at: string;
   telefone: string | null;
+  foto_url?: string | null;
+  unidade_id?: string | null;
   last_message?: string | null;
   last_role?: string | null;
+}
+
+interface MensagemMetadata {
+  media_url?: string;
+  media_type?: "image" | "audio" | "video" | "document";
+  mime_type?: string;
+  filename?: string;
+  [k: string]: any;
 }
 
 interface Mensagem {
@@ -35,10 +46,32 @@ interface Mensagem {
   content: string;
   created_at: string;
   conversa_id: string;
+  metadata?: MensagemMetadata | null;
 }
 
 interface WhatsAppInboxProps {
   className?: string;
+}
+
+// Avatar with safe fallback to initials
+function ChatAvatar({ url, name, size = "md" }: { url?: string | null; name: string; size?: "sm" | "md" }) {
+  const [errored, setErrored] = useState(false);
+  const sizeClass = size === "sm" ? "w-10 h-10 text-sm" : "w-12 h-12 text-sm";
+  if (url && !errored) {
+    return (
+      <img
+        src={url}
+        alt={name}
+        onError={() => setErrored(true)}
+        className={cn(sizeClass, "rounded-full object-cover bg-[#dfe5e7] flex-shrink-0")}
+      />
+    );
+  }
+  return (
+    <div className={cn(sizeClass, "rounded-full bg-[#dfe5e7] flex items-center justify-center flex-shrink-0")}>
+      <span className="text-[#8696a0] font-medium">{(name || "??").slice(0, 2).toUpperCase()}</span>
+    </div>
+  );
 }
 
 export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
@@ -50,9 +83,17 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [novaOpen, setNovaOpen] = useState(false);
+  const [storeAvatar, setStoreAvatar] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { unreadByConversation, setSelectedConversaId, markAsRead } = useWhatsAppNotifications();
+  const { unidadeAtual } = useUnidade();
 
   // Sync selection with global context
   useEffect(() => {
@@ -62,19 +103,42 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
 
   useEffect(() => () => { setSelectedConversaId(null); }, [setSelectedConversaId]);
 
+  // Carrega foto da loja (e dispara refresh em background)
+  useEffect(() => {
+    if (!unidadeAtual?.id) { setStoreAvatar(null); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("integracoes_whatsapp")
+        .select("loja_foto_url")
+        .eq("unidade_id", unidadeAtual.id)
+        .eq("ativo", true)
+        .order("loja_foto_atualizada_em", { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) setStoreAvatar(data?.loja_foto_url || null);
+
+      // Atualiza em background (não bloqueia UI)
+      supabase.functions.invoke("whatsapp-refresh-profile", {
+        body: { unidade_id: unidadeAtual.id },
+      }).then(({ data: r }: any) => {
+        if (!cancelled && r?.loja_foto_url) setStoreAvatar(r.loja_foto_url);
+      }).catch(() => {});
+    })();
+    return () => { cancelled = true; };
+  }, [unidadeAtual?.id]);
+
   useEffect(() => {
     const fetchConversas = async () => {
-      // Apenas conversas reais de WhatsApp (cliente externo) — telefone preenchido
       const { data } = await supabase
         .from("ai_conversas")
-        .select("id, titulo, updated_at, telefone")
+        .select("id, titulo, updated_at, telefone, foto_url, unidade_id")
         .not("telefone", "is", null)
         .order("updated_at", { ascending: false })
         .limit(200);
 
       const convs = (data || []) as Conversa[];
 
-      // Carrega prévia da última mensagem de cada conversa
       if (convs.length) {
         const ids = convs.map((c) => c.id);
         const { data: msgs } = await supabase
@@ -120,12 +184,20 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     const fetchMensagens = async () => {
       const { data } = await supabase
         .from("ai_mensagens")
-        .select("id, role, content, created_at, conversa_id")
+        .select("id, role, content, created_at, conversa_id, metadata")
         .eq("conversa_id", selectedId)
         .order("created_at", { ascending: true });
-      setMensagens(data || []);
+      setMensagens((data || []) as Mensagem[]);
     };
     fetchMensagens();
+
+    // Atualiza foto do contato em background
+    const conv = conversas.find((c) => c.id === selectedId);
+    if (conv?.unidade_id) {
+      supabase.functions.invoke("whatsapp-refresh-profile", {
+        body: { unidade_id: conv.unidade_id, conversa_id: selectedId },
+      }).catch(() => {});
+    }
 
     const channel = supabase
       .channel(`inbox-msgs-shared-${selectedId}`)
@@ -150,8 +222,9 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     if (!newMsg.trim() || !selectedId) return;
     setSending(true);
     try {
+      const conv = conversas.find((c) => c.id === selectedId);
       const { data, error } = await supabase.functions.invoke("whatsapp-send", {
-        body: { conversa_id: selectedId, content: newMsg.trim(), unidade_id: null },
+        body: { conversa_id: selectedId, content: newMsg.trim(), unidade_id: conv?.unidade_id || null },
       });
       if (error) {
         toast({ title: "Erro ao enviar", description: error.message, variant: "destructive" });
@@ -164,6 +237,107 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       toast({ title: "Erro de conexão", description: err.message || "Falha ao enviar", variant: "destructive" });
     }
     setSending(false);
+  };
+
+  // ===== UPLOAD DE ARQUIVO =====
+  const detectMediaType = (file: File): "image" | "audio" | "video" | "document" => {
+    if (file.type.startsWith("image/")) return "image";
+    if (file.type.startsWith("audio/")) return "audio";
+    if (file.type.startsWith("video/")) return "video";
+    return "document";
+  };
+
+  const uploadAndSendBlob = async (blob: Blob, filename: string, mediaType: "image" | "audio" | "video" | "document", mimeType: string) => {
+    if (!selectedId) return;
+    const conv = conversas.find((c) => c.id === selectedId);
+    if (!conv) return;
+
+    // empresa_id via profile
+    const { data: profile } = await supabase.from("profiles")
+      .select("empresa_id").eq("user_id", (await supabase.auth.getUser()).data.user?.id || "").maybeSingle();
+    const empresaId = profile?.empresa_id;
+    if (!empresaId) {
+      toast({ title: "Sem empresa", description: "Não foi possível identificar a empresa do usuário", variant: "destructive" });
+      return;
+    }
+
+    setSending(true);
+    try {
+      const path = `${empresaId}/${selectedId}/${Date.now()}-${filename.replace(/[^\w.\-]/g, "_")}`;
+      const { error: upErr } = await supabase.storage.from("chat-anexos").upload(path, blob, { contentType: mimeType, upsert: false });
+      if (upErr) throw upErr;
+
+      const { data: signed } = await supabase.storage.from("chat-anexos").createSignedUrl(path, 60 * 60 * 24 * 7);
+      const mediaUrl = signed?.signedUrl;
+      if (!mediaUrl) throw new Error("Falha ao gerar URL do arquivo");
+
+      const { data, error } = await supabase.functions.invoke("whatsapp-send", {
+        body: {
+          conversa_id: selectedId,
+          unidade_id: conv.unidade_id || null,
+          media_url: mediaUrl,
+          media_type: mediaType,
+          mime_type: mimeType,
+          filename,
+          content: newMsg.trim() || undefined,
+        },
+      });
+      if (error || data?.error) {
+        toast({ title: "Erro ao enviar", description: error?.message || data?.error, variant: "destructive" });
+      } else {
+        setNewMsg("");
+      }
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err.message || "Falha ao enviar arquivo", variant: "destructive" });
+    }
+    setSending(false);
+  };
+
+  const handleFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 16 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "Máximo 16 MB", variant: "destructive" });
+      return;
+    }
+    await uploadAndSendBlob(file, file.name, detectMediaType(file), file.type || "application/octet-stream");
+  };
+
+  // ===== GRAVAÇÃO DE ÁUDIO =====
+  const startRecording = async () => {
+    if (!selectedId) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm";
+      const recorder = new MediaRecorder(stream, { mimeType: mime });
+      recordedChunksRef.current = [];
+      recorder.ondataavailable = (ev) => { if (ev.data.size > 0) recordedChunksRef.current.push(ev.data); };
+      recorder.onstop = () => { stream.getTracks().forEach((t) => t.stop()); };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setRecording(true);
+      setRecordingTime(0);
+      recordingTimerRef.current = window.setInterval(() => setRecordingTime((t) => t + 1), 1000);
+    } catch (e: any) {
+      toast({ title: "Sem microfone", description: e.message || "Permita acesso ao microfone", variant: "destructive" });
+    }
+  };
+
+  const stopRecording = (send: boolean) => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder) return;
+    if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
+    recorder.onstop = async () => {
+      recorder.stream.getTracks().forEach((t) => t.stop());
+      setRecording(false);
+      if (send && recordedChunksRef.current.length) {
+        const blob = new Blob(recordedChunksRef.current, { type: "audio/webm" });
+        await uploadAndSendBlob(blob, `audio-${Date.now()}.webm`, "audio", "audio/webm");
+      }
+      recordedChunksRef.current = [];
+    };
+    recorder.stop();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -203,9 +377,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       >
         {/* Sidebar Header */}
         <div className="h-[60px] bg-[#f0f2f5] flex items-center px-4 gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#dfe5e7] flex items-center justify-center">
-            <User className="h-5 w-5 text-[#8696a0]" />
-          </div>
+          <ChatAvatar url={storeAvatar} name={unidadeAtual?.nome || "Loja"} size="sm" />
           <div className="flex-1" />
           <button
             onClick={() => setNovaOpen(true)}
@@ -260,11 +432,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                   )}
                 >
                   {/* Avatar */}
-                  <div className="w-12 h-12 rounded-full bg-[#dfe5e7] flex items-center justify-center flex-shrink-0">
-                    <span className="text-[#8696a0] text-sm font-medium">
-                      {c.titulo.slice(0, 2).toUpperCase()}
-                    </span>
-                  </div>
+                  <ChatAvatar url={c.foto_url} name={c.titulo} size="md" />
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
@@ -332,11 +500,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
               </button>
 
               {/* Contact Avatar */}
-              <div className="w-10 h-10 rounded-full bg-[#dfe5e7] flex items-center justify-center flex-shrink-0">
-                <span className="text-[#8696a0] text-sm font-medium">
-                  {selectedConversa?.titulo.slice(0, 2).toUpperCase()}
-                </span>
-              </div>
+              <ChatAvatar url={selectedConversa?.foto_url} name={selectedConversa?.titulo || "??"} size="sm" />
 
               {/* Contact Info */}
               <div className="flex-1 min-w-0">
