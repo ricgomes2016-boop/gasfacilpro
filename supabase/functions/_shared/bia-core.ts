@@ -251,10 +251,17 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
   const { data: u } = await supabase.from("unidades")
     .select("horario_abertura, horario_fechamento, empresa_id, cidade, estado, bairros_atendidos").eq("id", unidadeId).maybeSingle();
 
+  let empresaNome: string | null = null;
+  if (u?.empresa_id) {
+    const { data: emp } = await supabase.from("empresas").select("nome").eq("id", u.empresa_id).maybeSingle();
+    empresaNome = emp?.nome || null;
+  }
+
   const unidadeLocation = {
     cidade: u?.cidade || null,
     estado: u?.estado || null,
     bairros: Array.isArray(u?.bairros_atendidos) ? u.bairros_atendidos : [],
+    empresaNome,
   };
 
   if (!u?.empresa_id) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: u?.empresa_id || null, unidadeLocation };
