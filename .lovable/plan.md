@@ -1,83 +1,71 @@
 ## Diagnóstico
 
-Validei o token permanente direto na Meta Graph API. Resultado:
+Investiguei o backend e encontrei sinais claros de que **o envio nem chegou ao servidor**:
 
-**✅ Token está correto e permanente**
-- Tipo: `SYSTEM_USER`, `expires_at: 0` (não expira)
-- App: `gasfacil` (App ID `1466286284853004`)
-- Scopes: `whatsapp_business_management`, `whatsapp_business_messaging`
-- System User: `Gasfacilpro Bot` (ID `122112472941073551`)
+- A tabela `whatsapp_test_envios` está **vazia** (nenhum envio registrado).
+- A edge function `meta-test-send` **não tem nenhum log** — nunca foi executada com sucesso.
+- A `meta-webhook` e a `whatsapp-send` (usada no `/chat`) também sem logs recentes.
+- Credenciais Meta da unidade Central Gás estão corretas no banco (`meta_phone_number_id = 1085213844678248`, `meta_waba_id = 2166317874121379`, `status_conexao = conectado`).
 
-**❌ Os IDs salvos no banco NÃO funcionam com este token**
+Ou seja: o problema **não é** com a Meta API ou com o número — é com a chamada da função do navegador → Supabase.
 
-A linha em `integracoes_whatsapp` da unidade Central Gás tem:
-- `meta_phone_number_id = 1068574169676609`
-- `meta_waba_id = 1738917314133461`
-- `instance_id = 1006245305913016` (não bate com nada — provavelmente App ID antigo)
+### Causa provável
 
-Ao chamar `GET /1068574169676609` e `POST /1068574169676609/messages` com o token novo, a Meta responde:
+Em `supabase/functions/meta-test-send/index.ts` a autenticação usa:
 
-```
-"Object with ID '1068574169676609' does not exist, 
-cannot be loaded due to missing permissions"
+```ts
+const { data: claimsData } = await userClient.auth.getClaims(
+  authHeader.replace("Bearer ", "")
+);
 ```
 
-Mesmo erro para a WABA `1738917314133461`. Ou seja: **o WhatsApp NÃO vai funcionar até corrigir esses IDs e/ou a assinatura da WABA pelo app gasfacil**.
+`auth.getClaims(token)` com argumento string não é a assinatura suportada pelo `@supabase/supabase-js@2.45` — ela retorna erro/`null` e a função responde **401 Unauthorized** sem deixar log de execução (e sem inserir linha em `whatsapp_test_envios`). Por isso a UI parece "enviar" mas nada chega ao WhatsApp e nada aparece na lista de envios.
 
-**Outro item desatualizado na memória:** Meta Business ID na memória (`898649429546834`) ≠ o que aparece na URL do screenshot (`931318668260512`). O atual é `931318668260512` (Portfólio "Central Gás").
+A função `whatsapp-send` (usada no Inbox `/chat`) também pode estar afetada porque resolve config com `unidade_id: null` — vou validar.
 
-## Causas prováveis
+## Plano de correção
 
-1. O Phone Number ID e WABA ID foram regerados quando o número foi migrado/recadastrado para o app `gasfacil`, e o banco continua com os IDs antigos.
-2. A WABA "Central Gás" pode não estar **subscrita** ao app `gasfacil` (`POST /{waba_id}/subscribed_apps`) — isso é exigido independentemente do System User ter Controle Total.
+### 1. Corrigir autenticação em `meta-test-send`
+Trocar para o padrão validado do projeto:
 
-## Plano de ação
-
-### 1. Coletar os IDs corretos (precisa de você)
-No Meta Business Suite, abrir **WhatsApp Manager → Visão geral**, clicar no número **(43) 3524-1094** e copiar:
-- **Phone Number ID** (não é o número do telefone)
-- **WhatsApp Business Account ID (WABA)**
-
-E o mesmo para o número da Central GasCP, se for usar.
-
-Alternativa: posso criar uma edge function `meta-discover-numbers` que, recebendo o Business ID `931318668260512`, tenta listar WABAs e telefones via Graph API (precisa do scope `business_management` — se não tiver, voltamos ao passo manual).
-
-### 2. Atualizar o banco
-Migration para a unidade `aa5b7c93-4fe6-4dba-a0b5-2af43cd20614`:
-- `meta_phone_number_id` = ID novo
-- `meta_waba_id` = ID novo
-- `meta_access_token` = token permanente (`EAAU1lG…ZBhGVaCwZDZD`)
-- `instance_id` = `1466286284853004` (App ID gasfacil) ou apenas limpo
-- `status_conexao` = `conectado`
-
-E também atualizar o secret `META_WHATSAPP_TOKEN` (usado por algumas edge functions como fallback) com o token permanente.
-
-### 3. Subscrever o app na WABA
-Chamar uma vez:
+```ts
+const { data: { user }, error } = await userClient.auth.getUser();
+if (error || !user) return json({ ok: false, error: "Unauthorized" }, 401);
+const userId = user.id;
 ```
-POST https://graph.facebook.com/v21.0/{WABA_ID}/subscribed_apps
-Authorization: Bearer {TOKEN_PERMANENTE}
-```
-Faço isso via uma edge function `meta-subscribe-waba` (one-shot) ou via curl direto após você confirmar os IDs.
 
-### 4. Configurar webhook na WABA
-Apontar o webhook da WABA para:
-```
-https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/meta-webhook
-```
-com o `verify_token` = valor de `meta_verify_token` da linha (se estiver vazio, gero um).
+E garantir que **toda** falha (auth, validação, Meta API) grave uma linha `failed` em `whatsapp_test_envios` com `error` legível, para a UI mostrar o motivo em vez de ficar silenciosa.
 
-### 5. Teste end-to-end
-- Edge function `meta-diagnostico` deve retornar tudo verde.
-- Enviar uma mensagem de teste via `meta-webhook` → `bia-core` para o WhatsApp humano (43) 99966-1816.
+### 2. Logar e devolver erro detalhado da Meta
+Sempre que a Meta API responder erro, salvar `metaJson.error` completo (code, type, message, error_subcode) no campo `error` e em `status_history` — facilita identificar problemas como "número não está na lista de testes", "template required (24h window)", etc.
 
-### 6. Atualizar memória
-- Business ID corrigido: `898649429546834` → `931318668260512`.
-- Registrar System User `Gasfacilpro Bot` (ID `122112472941073551`) como dono do token permanente.
-- Marcar token como permanente (não mais 24h).
+### 3. Validar a regra das 24h da Meta Cloud API
+A Meta Cloud API só permite enviar **mensagens de texto livre** se o destinatário tiver enviado uma mensagem nas últimas 24h. Caso contrário, exige template aprovado. Vou:
+- Adicionar suporte opcional a envio via **template `hello_world`** (template padrão sempre aprovado) na tela de Teste de Envio.
+- Mostrar aviso na UI: "Para números que nunca falaram com você, use o template hello_world".
 
-## O que preciso de você agora
+### 4. Garantir que o número de teste está autorizado
+Em contas Meta novas (não verificadas), só é possível enviar para até 5 números cadastrados na lista "Recipient phone number" do WhatsApp Manager. Vou adicionar um link/aviso na tela explicando isso.
 
-Me passe o **Phone Number ID** e o **WABA ID** atuais do número 4335241094 (e do GasCP, se quiser ativar também). Sem esses dois números, o passo 2 não pode ser executado e o WhatsApp continuará desconectado.
+### 5. Validar `whatsapp-send` do Inbox `/chat`
+- Confirmar que `resolveConfig` consegue achar a integração `meta` quando `unidade_id` chega `null` (hoje passa `null` direto).
+- Se não achar, fazer fallback resolvendo pela `empresa_id` do usuário autenticado.
 
-Se preferir, te guio passo a passo em prints de onde clicar no WhatsApp Manager.
+### 6. Redeploy e teste end-to-end
+- Deploy de `meta-test-send` e (se alterada) `whatsapp-send`.
+- Disparar via `curl_edge_functions` autenticado para o número `5543999661816` com template `hello_world` e confirmar:
+  - linha em `whatsapp_test_envios` com `wamid` retornado;
+  - log da função sem erro;
+  - webhook `meta-webhook` recebendo `sent → delivered` e atualizando a linha.
+
+### 7. Reportar resultado
+Mostrar para você: `wamid` gerado, status final (sent/delivered/failed), e erro detalhado da Meta caso ainda falhe — assim você sabe exatamente o que ajustar (autorizar número, abrir janela 24h, ou trocar template).
+
+## Detalhes técnicos (referência)
+
+Arquivos tocados:
+- `supabase/functions/meta-test-send/index.ts` — auth fix, registro de erro, suporte a template.
+- `supabase/functions/whatsapp-send/index.ts` — fallback de resolução de config por empresa.
+- `src/pages/WhatsAppTesteEnvio.tsx` — toggle "texto livre / template hello_world", aviso sobre 24h e lista de números autorizados.
+
+Sem mudanças no `App.tsx`, providers ou rotas.
