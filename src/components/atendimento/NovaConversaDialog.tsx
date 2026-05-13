@@ -93,11 +93,15 @@ export function NovaConversaDialog({ open, onOpenChange, onCreated }: Props) {
       toast({ title: "Telefone inválido", variant: "destructive" });
       return;
     }
+    if (!empresa?.id) {
+      toast({ title: "Empresa não identificada", variant: "destructive" });
+      return;
+    }
     setCriando(true);
     try {
       const conversaId = await generateUUIDFromString(`whatsapp_${phone}`);
 
-      // upsert
+      // upsert (empresa_id obrigatório pela RLS de tenant)
       const { error } = await supabase
         .from("ai_conversas")
         .upsert(
@@ -106,6 +110,7 @@ export function NovaConversaDialog({ open, onOpenChange, onCreated }: Props) {
             user_id: "00000000-0000-0000-0000-000000000000",
             titulo: `WhatsApp: ${titulo || phone}`,
             telefone: phone,
+            empresa_id: empresa.id,
           },
           { onConflict: "id" }
         );
