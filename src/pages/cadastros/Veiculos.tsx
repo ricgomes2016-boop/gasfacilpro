@@ -528,6 +528,7 @@ export default function Veiculos() {
                         <div className="flex shrink-0 gap-1">
                           <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => setDetalheVeiculo(v)} title="Detalhes"><Eye className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => handleEdit(v)} title="Editar"><Edit className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-10 w-10" onClick={() => { setTransferVeiculo(v); setTransferUnidadeId(""); }} title="Transferir filial"><Building2 className="h-4 w-4" /></Button>
                         </div>
                       </div>
                     </div>
