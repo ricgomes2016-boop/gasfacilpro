@@ -23,6 +23,9 @@ interface Conversa {
   id: string;
   titulo: string;
   updated_at: string;
+  telefone: string | null;
+  last_message?: string | null;
+  last_role?: string | null;
 }
 
 interface Mensagem {
@@ -59,11 +62,39 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
 
   useEffect(() => {
     const fetchConversas = async () => {
+      // Apenas conversas reais de WhatsApp (cliente externo) — telefone preenchido
       const { data } = await supabase
         .from("ai_conversas")
-        .select("id, titulo, updated_at")
-        .order("updated_at", { ascending: false });
-      setConversas(data || []);
+        .select("id, titulo, updated_at, telefone")
+        .not("telefone", "is", null)
+        .order("updated_at", { ascending: false })
+        .limit(200);
+
+      const convs = (data || []) as Conversa[];
+
+      // Carrega prévia da última mensagem de cada conversa
+      if (convs.length) {
+        const ids = convs.map((c) => c.id);
+        const { data: msgs } = await supabase
+          .from("ai_mensagens")
+          .select("conversa_id, role, content, created_at")
+          .in("conversa_id", ids)
+          .order("created_at", { ascending: false })
+          .limit(500);
+        const lastByConv = new Map<string, { role: string; content: string }>();
+        (msgs || []).forEach((m: any) => {
+          if (!lastByConv.has(m.conversa_id)) {
+            lastByConv.set(m.conversa_id, { role: m.role, content: m.content });
+          }
+        });
+        convs.forEach((c) => {
+          const last = lastByConv.get(c.id);
+          c.last_message = last?.content || null;
+          c.last_role = last?.role || null;
+        });
+      }
+
+      setConversas(convs);
       setLoading(false);
     };
     fetchConversas();
@@ -71,6 +102,9 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     const channel = supabase
       .channel("inbox-conversas-shared")
       .on("postgres_changes", { event: "*", schema: "public", table: "ai_conversas" }, () => {
+        fetchConversas();
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "ai_mensagens" }, () => {
         fetchConversas();
       })
       .subscribe();
@@ -237,8 +271,10 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                       </span>
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
-                      <p className="text-[#667781] text-sm truncate">
-                        Toque para ver mensagens
+                      <p className="text-[#667781] text-sm truncate flex-1">
+                        {c.last_role === "assistant" && <span className="text-[#6b3fa0] mr-1">BIA:</span>}
+                        {c.last_role === "human" && <span className="text-[#00a884] mr-1">Você:</span>}
+                        {c.last_message?.replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/g, "").trim() || "Sem mensagens"}
                       </p>
                       {unread > 0 && (
                         <span className="bg-[#25d366] text-white text-[11px] font-medium rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 flex-shrink-0 ml-2">
