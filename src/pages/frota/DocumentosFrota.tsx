@@ -228,16 +228,36 @@ export default function DocumentosFrota() {
                             </TableCell>
                             <TableCell>{v.seguro_empresa || "—"}</TableCell>
                             <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" onClick={() => {
-                                setEditVeiculo(v);
-                                setFormVeiculo({
-                                  crlv_vencimento: v.crlv_vencimento || "",
-                                  seguro_vencimento: v.seguro_vencimento || "",
-                                  seguro_empresa: v.seguro_empresa || "",
-                                });
-                              }}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="Importar CRLV (foto ou PDF)"
+                                  disabled={importingId === v.id}
+                                  onClick={() => {
+                                    const input = document.createElement("input");
+                                    input.type = "file";
+                                    input.accept = "image/*,application/pdf";
+                                    input.onchange = (ev: any) => {
+                                      const f = ev.target.files?.[0];
+                                      if (f) handleImportCrlv(v, f);
+                                    };
+                                    input.click();
+                                  }}
+                                >
+                                  {importingId === v.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => {
+                                  setEditVeiculo(v);
+                                  setFormVeiculo({
+                                    crlv_vencimento: v.crlv_vencimento || "",
+                                    seguro_vencimento: v.seguro_vencimento || "",
+                                    seguro_empresa: v.seguro_empresa || "",
+                                  });
+                                }}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
