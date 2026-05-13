@@ -377,9 +377,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       >
         {/* Sidebar Header */}
         <div className="h-[60px] bg-[#f0f2f5] flex items-center px-4 gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#dfe5e7] flex items-center justify-center">
-            <User className="h-5 w-5 text-[#8696a0]" />
-          </div>
+          <ChatAvatar url={storeAvatar} name={unidadeAtual?.nome || "Loja"} size="sm" />
           <div className="flex-1" />
           <button
             onClick={() => setNovaOpen(true)}
