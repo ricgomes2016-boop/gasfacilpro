@@ -271,6 +271,17 @@ export default function Manutencao() {
     }
   };
 
+  const handleStatusChange = async (id: string, novoStatus: string) => {
+    try {
+      const { error } = await supabase.from("manutencoes").update({ status: novoStatus }).eq("id", id);
+      if (error) throw error;
+      toast.success(`Status atualizado para ${novoStatus}`);
+      setManutencoes((prev) => prev.map((m) => (m.id === id ? { ...m, status: novoStatus } : m)));
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao atualizar status");
+    }
+  };
+
   const handleEdit = (m: any) => {
     setForm({
       veiculo_id: m.veiculo_id,
