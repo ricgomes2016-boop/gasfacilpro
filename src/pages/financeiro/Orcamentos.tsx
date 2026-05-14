@@ -642,7 +642,7 @@ export default function Orcamentos() {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <div className="rounded-lg bg-blue-600 p-1.5"><FileText className="h-4 w-4 text-white" /></div>
-                  Orçamento Fundepar — Pesquisa de Preço
+                  {editingFundeparId ? "Editar Orçamento Fundepar" : "Orçamento Fundepar — Pesquisa de Preço"}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
