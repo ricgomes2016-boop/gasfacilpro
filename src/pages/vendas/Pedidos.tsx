@@ -131,6 +131,7 @@ export default function Pedidos() {
   const [senhaErro, setSenhaErro] = useState("");
 
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
 
   // Canal de venda
   const [editandoCanalId, setEditandoCanalId] = useState<string | null>(null);
@@ -357,12 +358,80 @@ export default function Pedidos() {
     }
   };
 
-  const imprimirPedido = (pedido: PedidoFormatado) => {
-    const idCurto = getNumeroExibicao(pedido);
-    const itensHtml = pedido.itens.map((item) => `<div>${item.quantidade}x ${item.produto?.nome || 'Produto'} - R$ ${(item.preco_unitario * item.quantidade).toFixed(2)}</div>`).join("");
-    const printContent = `<html><head><title>Pedido #${idCurto}</title><style>body{font-family:Arial,sans-serif;padding:20px}.header{text-align:center;margin-bottom:20px}.info{margin:8px 0}.label{font-weight:bold}.total{font-size:18px;font-weight:bold;margin-top:20px}.sep{border-top:1px dashed #ccc;margin:15px 0}</style></head><body><div class="header"><h2>PEDIDO #${idCurto}</h2><p>${pedido.data}</p></div><div class="sep"></div><div class="info"><span class="label">Cliente:</span> ${pedido.cliente}</div><div class="info"><span class="label">Endereço:</span> ${pedido.endereco}</div><div class="sep"></div><div class="info"><span class="label">Itens:</span></div>${itensHtml || `<div>${pedido.produtos}</div>`}${pedido.entregador ? `<div class="sep"></div><div class="info"><span class="label">Entregador:</span> ${pedido.entregador}</div>` : ''}${pedido.observacoes ? `<div class="info"><span class="label">Obs:</span> ${pedido.observacoes}</div>` : ''}<div class="sep"></div><div class="total">TOTAL: R$ ${pedido.valor.toFixed(2)}</div></body></html>`;
-    const w = window.open('', '_blank');
-    if (w) {w.document.write(printContent);w.document.close();w.print();}
+  const imprimirPedido = async (pedido: PedidoFormatado) => {
+    try {
+      // Empresa config filtrada pela empresa ativa
+      let empresaConfig: EmpresaConfig | undefined;
+      try {
+        let cfgQuery = supabase
+          .from("configuracoes_empresa")
+          .select("nome_empresa, cnpj, telefone, endereco, mensagem_cupom")
+          .limit(1);
+        if (empresa?.id) cfgQuery = cfgQuery.eq("empresa_id", empresa.id);
+        const { data: configData } = await cfgQuery.maybeSingle();
+        empresaConfig = {
+          nome_empresa: empresa?.nome || configData?.nome_empresa || "Empresa",
+          cnpj: configData?.cnpj ?? null,
+          telefone: configData?.telefone ?? null,
+          endereco: configData?.endereco ?? null,
+          mensagem_cupom: configData?.mensagem_cupom ?? null,
+        };
+      } catch {
+        if (empresa?.nome) empresaConfig = { nome_empresa: empresa.nome };
+      }
+
+      // Buscar pagamentos do pedido
+      const { data: pagsData } = await supabase
+        .from("pedido_pagamentos")
+        .select("id, forma_pagamento, valor")
+        .eq("pedido_id", pedido.id);
+
+      const pagamentos = (pagsData || []).map((p: any) => ({
+        id: p.id,
+        forma: p.forma_pagamento,
+        valor: Number(p.valor) || 0,
+      }));
+
+      const pagamentosFinal = pagamentos.length > 0
+        ? pagamentos
+        : [{ id: "1", forma: pedido.forma_pagamento || "dinheiro", valor: pedido.valor }];
+
+      const itensReceipt = pedido.itens.map((it) => ({
+        id: it.id,
+        produto_id: it.produto_id || "",
+        nome: it.produto?.nome || "Produto",
+        preco_unitario: Number(it.preco_unitario) || 0,
+        quantidade: Number(it.quantidade) || 0,
+        total: (Number(it.preco_unitario) || 0) * (Number(it.quantidade) || 0),
+      }));
+
+      // parse data dd/MM/yyyy HH:mm or ISO
+      let dataPedido = new Date();
+      try {
+        const m = pedido.data.match(/(\d{2})\/(\d{2})\/(\d{4})[ ,]+(\d{2}):(\d{2})/);
+        if (m) dataPedido = new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5]);
+        else if (pedido.data) dataPedido = new Date(pedido.data);
+      } catch {}
+
+      generateReceiptPdf({
+        pedidoId: pedido.id,
+        pedidoNumero: pedido.numero_sequencial ?? null,
+        data: dataPedido,
+        cliente: {
+          nome: pedido.cliente,
+          telefone: "",
+          endereco: pedido.endereco,
+        },
+        itens: itensReceipt as any,
+        pagamentos: pagamentosFinal as any,
+        entregadorNome: pedido.entregador || null,
+        canalVenda: pedido.canal_venda || "balcao",
+        observacoes: pedido.observacoes,
+        empresa: empresaConfig,
+      });
+    } catch (e: any) {
+      toast({ title: "Erro ao imprimir", description: e?.message || "Falha ao gerar comprovante", variant: "destructive" });
+    }
   };
 
   const enviarWhatsApp = (pedido: PedidoFormatado) => {
