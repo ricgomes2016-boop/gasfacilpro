@@ -422,6 +422,7 @@ export default function Orcamentos() {
       municipio: orc.municipio,
       nre: orc.nre,
       estabelecimento: orc.estabelecimento,
+      cnpj_escola: orc.cnpj_escola,
       forma_pagamento: orc.forma_pagamento,
       validade_inicio: orc.validade_inicio,
       validade: orc.validade,
