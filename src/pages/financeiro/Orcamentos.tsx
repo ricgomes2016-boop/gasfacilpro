@@ -264,6 +264,7 @@ export default function Orcamentos() {
         municipio: fMunicipio,
         nre: fNre,
         estabelecimento: fEstabelecimento,
+        cnpj_escola: fCnpjEscola,
         forma_pagamento: fFormaPag,
         validade_inicio: fValidadeIni,
         validade: fValidadeFim,
