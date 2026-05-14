@@ -85,6 +85,32 @@ export default function Orcamentos() {
   ]);
   const [fProdutoOpenIdx, setFProdutoOpenIdx] = useState<number | null>(null);
   const [editingFundeparId, setEditingFundeparId] = useState<string | null>(null);
+  const [estabOpen, setEstabOpen] = useState(false);
+  const [estabSearch, setEstabSearch] = useState("");
+
+  // Busca de estabelecimento no cadastro de clientes (nome ou CNPJ)
+  const { data: estabResultados = [] } = useQuery({
+    queryKey: ["estab-clientes", empresa?.id, unidadeAtual?.id, estabSearch],
+    enabled: !!empresa?.id && estabSearch.trim().length >= 2,
+    queryFn: async () => {
+      const termo = estabSearch.trim();
+      const digits = termo.replace(/\D/g, "");
+      let q = supabase
+        .from("clientes")
+        .select("id, nome, cnpj, cidade")
+        .eq("empresa_id", empresa!.id)
+        .eq("ativo", true)
+        .limit(20);
+      if (digits.length >= 3) {
+        q = q.or(`nome.ilike.%${termo}%,cnpj.ilike.%${digits}%`);
+      } else {
+        q = q.ilike("nome", `%${termo}%`);
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   // Clientes — RPC server-side com debounce
   const { data: clientes = [] } = useQuery({
