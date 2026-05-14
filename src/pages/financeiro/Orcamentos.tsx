@@ -582,7 +582,7 @@ export default function Orcamentos() {
                                         <Check className={cn("mr-2 h-4 w-4", item.produto_id === p.id ? "opacity-100" : "opacity-0")} />
                                         <div className="flex justify-between w-full">
                                           <span>{p.nome}</span>
-                                          <span className="text-muted-foreground text-xs">R$ {Number(p.preco_venda).toFixed(2)}</span>
+                                          <span className="text-muted-foreground text-xs">R$ {Number(p.preco ?? p.preco_venda ?? 0).toFixed(2)}</span>
                                         </div>
                                       </CommandItem>
                                     ))}
@@ -705,7 +705,7 @@ export default function Orcamentos() {
                                         <Check className={cn("mr-2 h-4 w-4", item.produto_id === p.id ? "opacity-100" : "opacity-0")} />
                                         <div className="flex justify-between w-full">
                                           <span>{p.nome}</span>
-                                          <span className="text-muted-foreground text-xs">R$ {Number(p.preco_venda).toFixed(2)}</span>
+                                          <span className="text-muted-foreground text-xs">R$ {Number(p.preco ?? p.preco_venda ?? 0).toFixed(2)}</span>
                                         </div>
                                       </CommandItem>
                                     ))}
