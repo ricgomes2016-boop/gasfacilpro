@@ -107,7 +107,11 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
   linhaCab("NRE:", (d.nre || "").toUpperCase());
   linhaCab("Estabelecimento:", (d.estabelecimento || "").toUpperCase());
   if (d.cnpj_escola) linhaCab("CNPJ da Escola:", d.cnpj_escola);
-  y += 2;
+  y += 1;
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.3);
+  doc.line(14, y, W - 14, y);
+  y += 3;
 
   // Dados do fornecedor
   const fornLine = (label: string, value: string, label2?: string, value2?: string) => {
