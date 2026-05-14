@@ -28,6 +28,9 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { imprimirFundepar, type CarimboTamanho } from "@/services/orcamentoFundeparPdfService";
+import { Switch } from "@/components/ui/switch";
+import { useAssinaturaDigital } from "@/hooks/useAssinaturaDigital";
+import { ShieldCheck, ShieldAlert } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   pendente: { label: "Pendente", color: "bg-amber-500/15 text-amber-600 border-amber-500/30 dark:text-amber-400", icon: <Clock className="h-3 w-3" /> },
@@ -95,6 +98,7 @@ export default function Orcamentos() {
   };
   const [estabOpen, setEstabOpen] = useState(false);
   const [estabSearch, setEstabSearch] = useState("");
+  const assinatura = useAssinaturaDigital();
 
   // Busca de estabelecimento no cadastro de clientes (nome ou CNPJ)
   const { data: estabResultados = [] } = useQuery({
@@ -307,6 +311,7 @@ export default function Orcamentos() {
         empresa_id: empresa?.id,
         unidade_id: unidadeAtual.id,
         carimbo_tamanho: carimboTamanho,
+        assinar: assinatura.ativo,
       });
       return orc;
     },
@@ -471,6 +476,7 @@ export default function Orcamentos() {
       empresa_id: empresa?.id,
       unidade_id: orc.unidade_id || unidadeAtual?.id,
       carimbo_tamanho: carimboTamanho,
+      assinar: assinatura.ativo,
     });
   };
 
@@ -825,19 +831,45 @@ export default function Orcamentos() {
                   <Textarea value={fObs} onChange={(e) => setFObs(e.target.value)} rows={2} />
                 </div>
 
-                <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2">
-                  <Label className="text-xs whitespace-nowrap">Tamanho do carimbo:</Label>
-                  <Select value={carimboTamanho} onValueChange={(v) => setCarimboTamanho(v as CarimboTamanho)}>
-                    <SelectTrigger className="h-8 w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="padrao">Padrão</SelectItem>
-                      <SelectItem value="compacto">Compacto</SelectItem>
-                      <SelectItem value="pequeno">Pequeno</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <span className="text-[11px] text-muted-foreground ml-auto">Salvo automaticamente</span>
+                <div className="rounded-md border bg-muted/30 p-2 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs whitespace-nowrap">Tamanho do carimbo:</Label>
+                    <Select value={carimboTamanho} onValueChange={(v) => setCarimboTamanho(v as CarimboTamanho)}>
+                      <SelectTrigger className="h-8 w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="padrao">Padrão</SelectItem>
+                        <SelectItem value="compacto">Compacto</SelectItem>
+                        <SelectItem value="pequeno">Pequeno</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <span className="text-[11px] text-muted-foreground ml-auto">Salvo automaticamente</span>
+                  </div>
+                  <div className="flex items-center gap-2 border-t pt-2">
+                    {assinatura.disponivel ? (
+                      <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <ShieldAlert className="h-4 w-4 text-amber-600 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <Label className="text-xs">Assinar digitalmente (e-CNPJ)</Label>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {assinatura.carregando
+                          ? "Verificando certificado..."
+                          : assinatura.disponivel
+                            ? `${assinatura.titular || "Certificado A1 cadastrado"}${assinatura.validade ? ` · até ${new Date(assinatura.validade).toLocaleDateString("pt-BR")}` : ""}`
+                            : assinatura.vencido
+                              ? "Certificado vencido — atualize em Configurações › Unidades"
+                              : "Sem certificado A1 cadastrado nesta unidade"}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={assinatura.ativo}
+                      onCheckedChange={assinatura.setAtivo}
+                      disabled={!assinatura.disponivel}
+                    />
+                  </div>
                 </div>
 
                 <div className="flex gap-2">
@@ -851,6 +883,7 @@ export default function Orcamentos() {
                         itens: fItens, observacoes: fObs,
                         empresa_id: empresa?.id, unidade_id: unidadeAtual?.id,
                         carimbo_tamanho: carimboTamanho,
+                        assinar: assinatura.ativo,
                       })
                     }
                   >

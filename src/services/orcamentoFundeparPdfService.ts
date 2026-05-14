@@ -1,6 +1,8 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
+import { assinarPdfRemoto } from "./digitalSignature/signPdfClient";
+import { toast } from "sonner";
 
 export interface FundeparItem {
   descricao: string;
@@ -25,6 +27,8 @@ export interface FundeparPdfData {
   empresa_id?: string | null;
   unidade_id?: string | null;
   carimbo_tamanho?: CarimboTamanho;
+  /** Se true, envia o PDF para a edge function `assinar-pdf` (PAdES com e-CNPJ) */
+  assinar?: boolean;
 }
 
 const fmtBR = (d?: string | null) => {
@@ -261,7 +265,26 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
 
 export async function imprimirFundepar(d: FundeparPdfData) {
   const doc = await gerarFundeparPdf(d);
-  const blob = doc.output("blob");
+
+  let bytes = new Uint8Array(doc.output("arraybuffer"));
+
+  if (d.assinar && d.unidade_id) {
+    const t = toast.loading("Assinando PDF com e-CNPJ...");
+    const res = await assinarPdfRemoto(bytes, {
+      unidadeId: d.unidade_id,
+      motivo: "Orçamento Fundepar",
+      local: "Brasil",
+    });
+    toast.dismiss(t);
+    if (res.ok) {
+      bytes = new Uint8Array(res.pdf);
+      toast.success(`Assinado por ${res.titular || "certificado e-CNPJ"}`);
+    } else {
+      toast.error(`Não foi possível assinar: ${res.mensagem || res.motivo || "erro desconhecido"}`);
+    }
+  }
+
+  const blob = new Blob([bytes], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
   const w = window.open(url);
   if (w) {
