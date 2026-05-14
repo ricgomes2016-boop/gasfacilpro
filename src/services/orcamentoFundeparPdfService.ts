@@ -209,28 +209,31 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
   ].filter(Boolean).join(" - ");
   if (endLinha) linhasCarimbo.push(endLinha);
 
-  // Quebra a linha de endereço se exceder a largura
-  const boxW = Math.min(85, W - 40);
+  // Presets de tamanho do carimbo
+  const presets = {
+    padrao:   { boxW: 110, titleFs: 9, bodyFs: 8, lineH: 3.6, titleH: 4.4, padTop: 3, padBottom: 3, gap: 1,   inset: 6 },
+    compacto: { boxW: 95,  titleFs: 8.5, bodyFs: 7.5, lineH: 3.3, titleH: 4.0, padTop: 2.5, padBottom: 2.5, gap: 0.8, inset: 5 },
+    pequeno:  { boxW: 75,  titleFs: 7.5, bodyFs: 6.5, lineH: 2.8, titleH: 3.6, padTop: 2, padBottom: 2, gap: 0.5, inset: 4 },
+  } as const;
+  const ps = presets[d.carimbo_tamanho || "padrao"];
+
+  const boxW = Math.min(ps.boxW, W - 40);
   const boxX = (W - boxW) / 2;
-  const innerW = boxW - 4;
+  const innerW = boxW - ps.inset;
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
+  doc.setFontSize(ps.titleFs);
   const razaoLines = doc.splitTextToSize(razao, innerW);
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
+  doc.setFontSize(ps.bodyFs);
   const bodyLines: string[] = [];
   for (const l of linhasCarimbo) {
     const parts = doc.splitTextToSize(l, innerW);
     for (const p of parts) bodyLines.push(p);
   }
 
-  const lineH = 3.0;
-  const titleH = 3.8;
-  const padTop = 2;
-  const padBottom = 2;
-  const gap = 0.5;
+  const { lineH, titleH, padTop, padBottom, gap } = ps;
   const boxH = padTop + razaoLines.length * titleH + gap + bodyLines.length * lineH + padBottom;
 
   doc.rect(boxX, y, boxW, boxH);
