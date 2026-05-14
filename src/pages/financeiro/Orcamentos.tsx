@@ -434,7 +434,7 @@ export default function Orcamentos() {
       })),
       observacoes: orc.observacoes,
       empresa_id: empresa?.id,
-      unidade_id: unidadeAtual?.id || orc.unidade_id,
+      unidade_id: orc.unidade_id || unidadeAtual?.id,
     });
   };
 
