@@ -321,6 +321,28 @@ export default function Orcamentos() {
     setFValidadeFim("");
     setFObs("");
     setFItens([{ descricao: "", quantidade: 1, preco_unitario: 0, subtotal: 0 }]);
+    setEditingFundeparId(null);
+  };
+
+  const editFundepar = async (orc: any) => {
+    setEditingFundeparId(orc.id);
+    setFMunicipio(orc.municipio || "");
+    setFNre(orc.nre || "");
+    setFEstabelecimento(orc.estabelecimento || orc.cliente_nome || "");
+    setFFormaPag(orc.forma_pagamento || "À VISTA");
+    setFValidadeIni(orc.validade_inicio || "");
+    setFValidadeFim(orc.validade || "");
+    setFObs(orc.observacoes || "");
+    const { data: its } = await supabase.from("orcamento_itens").select("*").eq("orcamento_id", orc.id);
+    const loaded = (its || []).map((i: any) => ({
+      descricao: i.descricao,
+      quantidade: Number(i.quantidade),
+      preco_unitario: Number(i.preco_unitario),
+      subtotal: Number(i.subtotal),
+      produto_id: i.produto_id || undefined,
+    }));
+    setFItens(loaded.length ? loaded : [{ descricao: "", quantidade: 1, preco_unitario: 0, subtotal: 0 }]);
+    setFundeparOpen(true);
   };
 
   const selectCliente = (c: any) => {
