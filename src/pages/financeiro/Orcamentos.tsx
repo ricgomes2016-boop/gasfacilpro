@@ -835,6 +835,7 @@ export default function Orcamentos() {
                         forma_pagamento: fFormaPag, validade_inicio: fValidadeIni, validade: fValidadeFim,
                         itens: fItens, observacoes: fObs,
                         empresa_id: empresa?.id, unidade_id: unidadeAtual?.id,
+                        carimbo_tamanho: carimboTamanho,
                       })
                     }
                   >
