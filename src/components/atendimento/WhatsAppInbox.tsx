@@ -102,6 +102,17 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const { toast } = useToast();
   const { unreadByConversation, setSelectedConversaId, markAsRead } = useWhatsAppNotifications();
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
+  const { salvarCliente } = useClientes();
+
+  // Ações por conversa
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkSearch, setLinkSearch] = useState("");
+  const [linkResults, setLinkResults] = useState<Array<{ id: string; nome: string; telefone: string | null }>>([]);
+  const [editClienteOpen, setEditClienteOpen] = useState(false);
+  const [editClienteData, setEditClienteData] = useState<{ id: string; form: ClienteForm } | null>(null);
+  const [clienteByConv, setClienteByConv] = useState<Record<string, { id: string; nome: string } | null>>({});
 
   // Sync selection with global context
   useEffect(() => {
