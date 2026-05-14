@@ -207,11 +207,6 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
     doc.text(l, W / 2, y, { align: "center", maxWidth: W - 28 });
     y += 5;
   }
-  // bloco antigo de loop substituído acima — manter compatibilidade
-  if (false) for (const l of [] as string[]) {
-    doc.text(l, cx + carimboW / 2, cyy, { align: "center", maxWidth: carimboW - 6 });
-    cyy += 4;
-  }
 
   doc.setTextColor(0, 0, 0);
   doc.setDrawColor(0, 0, 0);
