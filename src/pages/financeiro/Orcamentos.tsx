@@ -85,6 +85,14 @@ export default function Orcamentos() {
   ]);
   const [fProdutoOpenIdx, setFProdutoOpenIdx] = useState<number | null>(null);
   const [editingFundeparId, setEditingFundeparId] = useState<string | null>(null);
+  const [carimboTamanho, setCarimboTamanhoState] = useState<CarimboTamanho>(() => {
+    const v = (typeof window !== "undefined" && localStorage.getItem("fundepar_carimbo_tamanho")) as CarimboTamanho | null;
+    return v === "compacto" || v === "pequeno" || v === "padrao" ? v : "padrao";
+  });
+  const setCarimboTamanho = (v: CarimboTamanho) => {
+    setCarimboTamanhoState(v);
+    try { localStorage.setItem("fundepar_carimbo_tamanho", v); } catch {}
+  };
   const [estabOpen, setEstabOpen] = useState(false);
   const [estabSearch, setEstabSearch] = useState("");
 
