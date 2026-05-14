@@ -109,7 +109,7 @@ export default function Orcamentos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produtos")
-        .select("id, nome, preco_venda, ativo")
+        .select("id, nome, preco, ativo")
         .eq("ativo", true)
         .eq("unidade_id", unidadeAtual!.id)
         .order("nome");
