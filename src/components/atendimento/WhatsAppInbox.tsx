@@ -605,13 +605,16 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
               const unread = unreadByConversation[c.id] || 0;
               const isSelected = selectedId === c.id;
               return (
-                <button
+                <div
                   key={c.id}
-                  onClick={() => setSelectedId(c.id)}
                   className={cn(
-                    "w-full flex items-center gap-3 px-3 py-3 text-left transition-colors border-b border-[#e9edef]",
+                    "group relative w-full flex items-center gap-3 px-3 py-3 text-left transition-colors border-b border-[#e9edef] cursor-pointer",
                     isSelected ? "bg-[#f0f2f5]" : "hover:bg-[#f5f6f6]"
                   )}
+                  onClick={() => setSelectedId(c.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedId(c.id); } }}
                 >
                   {/* Avatar */}
                   <ChatAvatar url={c.foto_url} name={c.titulo} size="md" />
@@ -642,7 +645,28 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                       )}
                     </div>
                   </div>
-                </button>
+
+                  {/* Row actions */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <button
+                        className="opacity-0 group-hover:opacity-100 focus:opacity-100 data-[state=open]:opacity-100 p-1.5 rounded-full hover:bg-[#e9edef] transition"
+                        aria-label="Ações da conversa"
+                      >
+                        <MoreVertical className="h-4 w-4 text-[#54656f]" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(c.id); }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Apagar conversa
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               );
             })
           )}
