@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { imprimirFundepar } from "@/services/orcamentoFundeparPdfService";
+import { imprimirFundepar, type CarimboTamanho } from "@/services/orcamentoFundeparPdfService";
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   pendente: { label: "Pendente", color: "bg-amber-500/15 text-amber-600 border-amber-500/30 dark:text-amber-400", icon: <Clock className="h-3 w-3" /> },
