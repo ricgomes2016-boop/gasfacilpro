@@ -189,29 +189,62 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
   doc.text("ASSINATURA (fornecedor)", W / 2, y, { align: "center" });
   y += 14;
 
-  // Carimbo do fornecedor (caixa azul)
-  const boxX = 14;
-  const boxW = W - 28;
-  const boxH = 28;
+  // Carimbo do fornecedor (caixa azul) — centralizado e equilibrado
+  doc.setTextColor(20, 60, 130);
   doc.setDrawColor(20, 60, 130);
   doc.setLineWidth(0.6);
-  doc.rect(boxX, y, boxW, boxH);
-  doc.setTextColor(20, 60, 130);
+
+  // Monta linhas
+  const razao = String(f.razao_social || "").toUpperCase();
+  const linhasCarimbo: string[] = [];
+  if (f.cnpj) linhasCarimbo.push(`CNPJ: ${f.cnpj}`);
+  if (f.telefone) linhasCarimbo.push(`Cel.: ${f.telefone}`);
+  const endLinha = [
+    f.endereco,
+    f.cidade && `${f.cidade}${f.uf ? " - " + f.uf : ""}`,
+    f.cep && `CEP ${f.cep}`,
+  ].filter(Boolean).join(" - ");
+  if (endLinha) linhasCarimbo.push(endLinha);
+
+  // Quebra a linha de endereço se exceder a largura
+  const boxW = Math.min(150, W - 40);
+  const boxX = (W - boxW) / 2;
+  const innerW = boxW - 8;
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.text(String(f.razao_social), boxX + boxW / 2, y + 6, { align: "center" });
+  const razaoLines = doc.splitTextToSize(razao, innerW);
+
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  let cy = y + 11;
-  const linhasCarimbo = [
-    f.cnpj ? `CNPJ: ${f.cnpj}` : "",
-    f.telefone ? `Cel.: ${f.telefone}` : "",
-    [f.endereco, f.cidade && `${f.cidade}${f.uf ? " - " + f.uf : ""}`, f.cep && `CEP ${f.cep}`]
-      .filter(Boolean).join(" - "),
-  ].filter(Boolean);
+  const bodyLines: string[] = [];
   for (const l of linhasCarimbo) {
-    doc.text(l, boxX + boxW / 2, cy, { align: "center", maxWidth: boxW - 4 });
-    cy += 5;
+    const parts = doc.splitTextToSize(l, innerW);
+    for (const p of parts) bodyLines.push(p);
+  }
+
+  const lineH = 4.2;
+  const titleH = 5.2;
+  const padTop = 5;
+  const padBottom = 5;
+  const gap = 2;
+  const boxH = padTop + razaoLines.length * titleH + gap + bodyLines.length * lineH + padBottom;
+
+  doc.rect(boxX, y, boxW, boxH);
+
+  let cy = y + padTop + titleH - 1;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  for (const r of razaoLines) {
+    doc.text(r, boxX + boxW / 2, cy, { align: "center" });
+    cy += titleH;
+  }
+  cy += gap;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  for (const l of bodyLines) {
+    doc.text(l, boxX + boxW / 2, cy, { align: "center" });
+    cy += lineH;
   }
 
   doc.setTextColor(0, 0, 0);
