@@ -46,9 +46,11 @@ async function fetchFornecedor(empresa_id?: string | null, unidade_id?: string |
     unidade = data;
   }
   const pick = (...vals: any[]) => vals.find((v) => v !== null && v !== undefined && String(v).trim() !== "") || "";
+  // Quando há unidade selecionada, priorizar SEMPRE seus dados.
+  // Só cair para a empresa quando a unidade não fornecer aquele campo específico.
   return {
-    razao_social: pick(unidade?.razao_social, empresa?.razao_social, empresa?.nome, unidade?.nome),
-    nome_fantasia: pick(unidade?.nome_fantasia, empresa?.nome_fantasia, unidade?.nome),
+    razao_social: pick(unidade?.razao_social, unidade?.nome_fantasia, unidade?.nome, empresa?.razao_social, empresa?.nome),
+    nome_fantasia: pick(unidade?.nome_fantasia, unidade?.nome, empresa?.nome_fantasia, empresa?.nome),
     cnpj: pick(unidade?.cnpj, empresa?.cnpj),
     ie: pick(unidade?.inscricao_estadual, empresa?.inscricao_estadual),
     endereco: [
