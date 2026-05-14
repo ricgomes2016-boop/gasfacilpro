@@ -105,6 +105,7 @@ export async function assinarPdfRemoto(pdfBytes: Uint8Array, opts: AssinarOpts):
         motivo: opts.motivo,
         local: opts.local,
         contato: opts.contato,
+        visivel: opts.visivel,
       },
     });
     if (error) {
