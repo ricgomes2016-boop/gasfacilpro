@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { imprimirFundepar } from "@/services/orcamentoFundeparPdfService";
+import { imprimirFundepar, type CarimboTamanho } from "@/services/orcamentoFundeparPdfService";
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   pendente: { label: "Pendente", color: "bg-amber-500/15 text-amber-600 border-amber-500/30 dark:text-amber-400", icon: <Clock className="h-3 w-3" /> },
@@ -85,6 +85,14 @@ export default function Orcamentos() {
   ]);
   const [fProdutoOpenIdx, setFProdutoOpenIdx] = useState<number | null>(null);
   const [editingFundeparId, setEditingFundeparId] = useState<string | null>(null);
+  const [carimboTamanho, setCarimboTamanhoState] = useState<CarimboTamanho>(() => {
+    const v = (typeof window !== "undefined" && localStorage.getItem("fundepar_carimbo_tamanho")) as CarimboTamanho | null;
+    return v === "compacto" || v === "pequeno" || v === "padrao" ? v : "padrao";
+  });
+  const setCarimboTamanho = (v: CarimboTamanho) => {
+    setCarimboTamanhoState(v);
+    try { localStorage.setItem("fundepar_carimbo_tamanho", v); } catch {}
+  };
   const [estabOpen, setEstabOpen] = useState(false);
   const [estabSearch, setEstabSearch] = useState("");
 
@@ -298,6 +306,7 @@ export default function Orcamentos() {
         observacoes: fObs,
         empresa_id: empresa?.id,
         unidade_id: unidadeAtual.id,
+        carimbo_tamanho: carimboTamanho,
       });
       return orc;
     },
@@ -461,6 +470,7 @@ export default function Orcamentos() {
       observacoes: orc.observacoes,
       empresa_id: empresa?.id,
       unidade_id: orc.unidade_id || unidadeAtual?.id,
+      carimbo_tamanho: carimboTamanho,
     });
   };
 
@@ -815,6 +825,21 @@ export default function Orcamentos() {
                   <Textarea value={fObs} onChange={(e) => setFObs(e.target.value)} rows={2} />
                 </div>
 
+                <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2">
+                  <Label className="text-xs whitespace-nowrap">Tamanho do carimbo:</Label>
+                  <Select value={carimboTamanho} onValueChange={(v) => setCarimboTamanho(v as CarimboTamanho)}>
+                    <SelectTrigger className="h-8 w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="padrao">Padrão</SelectItem>
+                      <SelectItem value="compacto">Compacto</SelectItem>
+                      <SelectItem value="pequeno">Pequeno</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span className="text-[11px] text-muted-foreground ml-auto">Salvo automaticamente</span>
+                </div>
+
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -825,6 +850,7 @@ export default function Orcamentos() {
                         forma_pagamento: fFormaPag, validade_inicio: fValidadeIni, validade: fValidadeFim,
                         itens: fItens, observacoes: fObs,
                         empresa_id: empresa?.id, unidade_id: unidadeAtual?.id,
+                        carimbo_tamanho: carimboTamanho,
                       })
                     }
                   >
