@@ -75,6 +75,7 @@ export default function Orcamentos() {
   const [fMunicipio, setFMunicipio] = useState("");
   const [fNre, setFNre] = useState("");
   const [fEstabelecimento, setFEstabelecimento] = useState("");
+  const [fCnpjEscola, setFCnpjEscola] = useState("");
   const [fFormaPag, setFFormaPag] = useState("À VISTA");
   const [fValidadeIni, setFValidadeIni] = useState("");
   const [fValidadeFim, setFValidadeFim] = useState("");
