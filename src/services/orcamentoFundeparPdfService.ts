@@ -277,7 +277,7 @@ export async function imprimirFundepar(d: FundeparPdfData) {
     });
     toast.dismiss(t);
     if (res.ok) {
-      bytes = res.pdf;
+      bytes = new Uint8Array(res.pdf);
       toast.success(`Assinado por ${res.titular || "certificado e-CNPJ"}`);
     } else {
       toast.error(`Não foi possível assinar: ${res.mensagem || res.motivo || "erro desconhecido"}`);
