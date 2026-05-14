@@ -29,6 +29,7 @@ import { PDVProductList, PDVItem } from "@/components/pdv/PDVProductList";
 import { PDVPayment } from "@/components/pdv/PDVPayment";
 import { PDVQuickProducts } from "@/components/pdv/PDVQuickProducts";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { CaixaBloqueadoBanner } from "@/components/caixa/CaixaBloqueadoBanner";
 
 interface Produto {
@@ -45,6 +46,7 @@ export default function PDV() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [itens, setItens] = useState<PDVItem[]>([]);
@@ -277,17 +279,23 @@ export default function PDV() {
       // Get company config for receipt
       let empresaConfig: EmpresaConfig | undefined;
       try {
-        const { data: configData } = await supabase
+        let cfgQuery = supabase
           .from("configuracoes_empresa")
           .select("nome_empresa, cnpj, telefone, endereco, mensagem_cupom")
-          .limit(1)
-          .single();
-        
-        if (configData) {
-          empresaConfig = configData;
-        }
+          .limit(1);
+        if (empresa?.id) cfgQuery = cfgQuery.eq("empresa_id", empresa.id);
+        const { data: configData } = await cfgQuery.maybeSingle();
+
+        empresaConfig = {
+          nome_empresa: empresa?.nome || configData?.nome_empresa || "Empresa",
+          cnpj: configData?.cnpj ?? null,
+          telefone: configData?.telefone ?? null,
+          endereco: configData?.endereco ?? null,
+          mensagem_cupom: configData?.mensagem_cupom ?? null,
+        };
       } catch {
         console.warn("Não foi possível carregar configurações da empresa");
+        if (empresa?.nome) empresaConfig = { nome_empresa: empresa.nome };
       }
 
       // Generate receipt
