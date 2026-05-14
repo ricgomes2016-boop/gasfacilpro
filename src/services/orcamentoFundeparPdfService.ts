@@ -189,14 +189,20 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
   doc.text("ASSINATURA (fornecedor)", W / 2, y, { align: "center" });
   y += 14;
 
-  // Carimbo — texto simples centralizado (modelo do fornecedor)
-  doc.setTextColor(0, 0, 0);
+  // Carimbo do fornecedor (caixa azul)
+  const boxX = 14;
+  const boxW = W - 28;
+  const boxH = 28;
+  doc.setDrawColor(20, 60, 130);
+  doc.setLineWidth(0.6);
+  doc.rect(boxX, y, boxW, boxH);
+  doc.setTextColor(20, 60, 130);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.text(String(f.razao_social), W / 2, y, { align: "center" });
-  y += 5;
+  doc.text(String(f.razao_social), boxX + boxW / 2, y + 6, { align: "center" });
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
+  doc.setFontSize(9);
+  let cy = y + 11;
   const linhasCarimbo = [
     f.cnpj ? `CNPJ: ${f.cnpj}` : "",
     f.telefone ? `Cel.: ${f.telefone}` : "",
@@ -204,8 +210,8 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
       .filter(Boolean).join(" - "),
   ].filter(Boolean);
   for (const l of linhasCarimbo) {
-    doc.text(l, W / 2, y, { align: "center", maxWidth: W - 28 });
-    y += 5;
+    doc.text(l, boxX + boxW / 2, cy, { align: "center", maxWidth: boxW - 4 });
+    cy += 5;
   }
 
   doc.setTextColor(0, 0, 0);
