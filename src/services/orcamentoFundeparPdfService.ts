@@ -9,6 +9,8 @@ export interface FundeparItem {
   subtotal: number;
 }
 
+export type CarimboTamanho = "compacto" | "padrao" | "pequeno";
+
 export interface FundeparPdfData {
   numero?: number | string | null;
   municipio?: string | null;
@@ -22,6 +24,7 @@ export interface FundeparPdfData {
   observacoes?: string | null;
   empresa_id?: string | null;
   unidade_id?: string | null;
+  carimbo_tamanho?: CarimboTamanho;
 }
 
 const fmtBR = (d?: string | null) => {
