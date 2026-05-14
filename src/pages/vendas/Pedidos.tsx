@@ -380,21 +380,17 @@ export default function Pedidos() {
         if (empresa?.nome) empresaConfig = { nome_empresa: empresa.nome };
       }
 
-      // Buscar pagamentos do pedido
-      const { data: pagsData } = await supabase
-        .from("pedido_pagamentos")
-        .select("id, forma_pagamento, valor")
-        .eq("pedido_id", pedido.id);
-
-      const pagamentos = (pagsData || []).map((p: any) => ({
-        id: p.id,
-        forma: p.forma_pagamento,
-        valor: Number(p.valor) || 0,
+      // Pagamentos: o pedido só armazena 'forma_pagamento' (string).
+      const formas = (pedido.forma_pagamento || "dinheiro")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const valorPorForma = pedido.valor / Math.max(1, formas.length);
+      const pagamentosFinal = formas.map((forma, idx) => ({
+        id: String(idx + 1),
+        forma,
+        valor: valorPorForma,
       }));
-
-      const pagamentosFinal = pagamentos.length > 0
-        ? pagamentos
-        : [{ id: "1", forma: pedido.forma_pagamento || "dinheiro", valor: pedido.valor }];
 
       const itensReceipt = pedido.itens.map((it) => ({
         id: it.id,
