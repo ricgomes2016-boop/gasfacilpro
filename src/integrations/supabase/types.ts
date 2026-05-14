@@ -7044,13 +7044,19 @@ export type Database = {
           created_by: string | null
           data_emissao: string
           desconto: number | null
+          estabelecimento: string | null
+          forma_pagamento: string | null
           id: string
+          municipio: string | null
+          nre: string | null
           numero: number
           observacoes: string | null
           status: string
+          tipo: string
           unidade_id: string | null
           updated_at: string
           validade: string
+          validade_inicio: string | null
           valor_total: number
         }
         Insert: {
@@ -7060,13 +7066,19 @@ export type Database = {
           created_by?: string | null
           data_emissao?: string
           desconto?: number | null
+          estabelecimento?: string | null
+          forma_pagamento?: string | null
           id?: string
+          municipio?: string | null
+          nre?: string | null
           numero?: number
           observacoes?: string | null
           status?: string
+          tipo?: string
           unidade_id?: string | null
           updated_at?: string
           validade?: string
+          validade_inicio?: string | null
           valor_total?: number
         }
         Update: {
@@ -7076,13 +7088,19 @@ export type Database = {
           created_by?: string | null
           data_emissao?: string
           desconto?: number | null
+          estabelecimento?: string | null
+          forma_pagamento?: string | null
           id?: string
+          municipio?: string | null
+          nre?: string | null
           numero?: number
           observacoes?: string | null
           status?: string
+          tipo?: string
           unidade_id?: string | null
           updated_at?: string
           validade?: string
+          validade_inicio?: string | null
           valor_total?: number
         }
         Relationships: [
