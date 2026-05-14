@@ -985,6 +985,75 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
         onOpenChange={setNovaOpen}
         onCreated={(id) => setSelectedId(id)}
       />
+
+      {/* Confirmação de apagar conversa */}
+      <AlertDialog open={!!confirmDeleteId} onOpenChange={(o) => !o && setConfirmDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar esta conversa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todas as mensagens desta conversa serão removidas permanentemente. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={() => confirmDeleteId && handleDeleteConversa(confirmDeleteId)}
+            >
+              Apagar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Vincular ao cadastro */}
+      <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vincular ao cadastro</DialogTitle>
+            <DialogDescription>
+              Selecione um cliente para vincular ao telefone {selectedConversa?.telefone}.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            placeholder="Buscar por nome ou telefone..."
+            value={linkSearch}
+            onChange={(e) => searchLink(e.target.value)}
+            autoFocus
+          />
+          <div className="max-h-72 overflow-y-auto divide-y border rounded-md">
+            {linkResults.length === 0 ? (
+              <p className="text-sm text-muted-foreground p-4 text-center">Nenhum cliente encontrado</p>
+            ) : (
+              linkResults.map((cli) => (
+                <button
+                  key={cli.id}
+                  className="w-full text-left p-3 hover:bg-muted transition"
+                  onClick={() => linkClienteToConversa(cli.id, cli.nome)}
+                >
+                  <p className="font-medium text-sm">{cli.nome}</p>
+                  {cli.telefone && <p className="text-xs text-muted-foreground">{cli.telefone}</p>}
+                </button>
+              ))
+            )}
+          </div>
+          <div className="flex justify-end">
+            <Button variant="ghost" onClick={() => setLinkDialogOpen(false)}>Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Editar cliente */}
+      {editClienteData && (
+        <ClienteFormDialog
+          open={editClienteOpen}
+          onOpenChange={setEditClienteOpen}
+          initialData={editClienteData.form}
+          editId={editClienteData.id}
+          onSave={saveClienteInline}
+        />
+      )}
     </div>
   );
 }
