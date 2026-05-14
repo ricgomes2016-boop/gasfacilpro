@@ -722,11 +722,33 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
               <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors">
                 <Search className="h-5 w-5 text-[#54656f]" />
               </button>
-              <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors">
-                <svg viewBox="0 0 24 24" width="20" height="20" className="text-[#54656f]">
-                  <path fill="currentColor" d="M12 7a2 2 0 1 0-.001-4.001A2 2 0 0 0 12 7zm0 2a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 9zm0 6a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 15z"/>
-                </svg>
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors" aria-label="Mais opções">
+                    <MoreVertical className="h-5 w-5 text-[#54656f]" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {selectedId && clienteByConv[selectedId] ? (
+                    <DropdownMenuItem onClick={openEditCliente}>
+                      <UserCog className="h-4 w-4 mr-2" />
+                      Editar cliente ({clienteByConv[selectedId]?.nome})
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={handleOpenLinkDialog}>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Vincular ao cadastro
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => selectedId && setConfirmDeleteId(selectedId)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Apagar conversa
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Messages Area - WhatsApp doodle background */}
