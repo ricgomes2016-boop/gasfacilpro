@@ -317,6 +317,7 @@ export default function Orcamentos() {
     setFMunicipio("");
     setFNre("");
     setFEstabelecimento("");
+    setFCnpjEscola("");
     setFFormaPag("À VISTA");
     setFValidadeIni("");
     setFValidadeFim("");
