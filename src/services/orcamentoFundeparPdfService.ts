@@ -189,37 +189,23 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
   doc.text("ASSINATURA (fornecedor)", W / 2, y, { align: "center" });
   y += 14;
 
-  // Bloco CARIMBO/CNPJ — desenhado como carimbo
-  const carimboW = 100;
-  const carimboH = 38;
-  const cx = (W - carimboW) / 2;
-  const cy = y;
-  doc.setDrawColor(20, 60, 130);
-  doc.setTextColor(20, 60, 130);
-  doc.setLineWidth(0.8);
-  doc.rect(cx, cy, carimboW, carimboH);
-  doc.setLineWidth(0.3);
-  doc.rect(cx + 1.5, cy + 1.5, carimboW - 3, carimboH - 3);
-
+  // Carimbo — texto simples centralizado (modelo do fornecedor)
+  doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text(String(f.razao_social).toUpperCase(), cx + carimboW / 2, cy + 6, {
-    align: "center",
-    maxWidth: carimboW - 6,
-  });
-  doc.setFontSize(8);
+  doc.setFontSize(11);
+  doc.text(String(f.razao_social), W / 2, y, { align: "center" });
+  y += 5;
   doc.setFont("helvetica", "normal");
-  let cyy = cy + 12;
+  doc.setFontSize(10);
   const linhasCarimbo = [
-    `CNPJ: ${f.cnpj || ""}`,
-    f.ie ? `IE: ${f.ie}` : "",
-    String(f.endereco).toUpperCase(),
-    `${String(f.cidade).toUpperCase()}${f.uf ? " - " + String(f.uf).toUpperCase() : ""}${f.cep ? " - CEP " + f.cep : ""}`,
-    f.telefone ? `Fone: ${f.telefone}` : "",
+    f.cnpj ? `CNPJ: ${f.cnpj}` : "",
+    f.telefone ? `Cel.: ${f.telefone}` : "",
+    [f.endereco, f.cidade && `${f.cidade}${f.uf ? " - " + f.uf : ""}`, f.cep && `CEP ${f.cep}`]
+      .filter(Boolean).join(" - "),
   ].filter(Boolean);
   for (const l of linhasCarimbo) {
-    doc.text(l, cx + carimboW / 2, cyy, { align: "center", maxWidth: carimboW - 6 });
-    cyy += 4;
+    doc.text(l, W / 2, y, { align: "center", maxWidth: W - 28 });
+    y += 5;
   }
 
   doc.setTextColor(0, 0, 0);
