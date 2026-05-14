@@ -1,33 +1,38 @@
-## Objetivo
+## Problema
 
-Em **Cadastros → Veículos** (`/cadastros/veiculos`):
-1. Adicionar campo **Foto do veículo** no modal de cadastro/edição, exibido **antes da Placa**.
-2. Aplicar **máscara Mercosul** no campo Placa (formato `ABC1D23` — 3 letras, 1 número, 1 letra, 2 números).
-3. Mostrar a miniatura da foto na **listagem** (coluna nova antes de "Placa", tanto desktop quanto mobile).
+Em `ai_mensagens` há respostas como:
+- "O nosso gás P13 (aquele botijão **azul padrão** de cozinha) está R$ 125,00…"
+- "O nosso gás P13 (aquele botijão comum de casa) tá saindo por R$ 125,00…"
 
-## Mudanças
+A cor/marca do botijão é uma **alucinação** do modelo. O prompt em `supabase/functions/_shared/bia-core.ts` (`buildSystemPrompt`) não proíbe descrever atributos visuais, e o catálogo enviado contém só `nome, preco, estoque, categoria` — sem cor.
 
-### 1. Banco de dados (migration)
-- Adicionar coluna `foto_url TEXT` em `public.veiculos` (nullable).
-- Criar bucket público `vehicle-photos` em `storage.buckets` com policies de SELECT público e INSERT/UPDATE/DELETE para usuários autenticados (mesmo padrão de `product-images`).
+Resultado: clientes podem receber descrição errada (a marca de botijão da Central Gás não é azul) e isso vira ruído de credibilidade.
 
-### 2. `src/pages/cadastros/Veiculos.tsx`
-- `emptyForm`: incluir `foto_url: ""`.
-- Tipo `Veiculo`: incluir `foto_url?: string | null`.
-- Modal (form):
-  - Adicionar bloco com `<ImageUpload bucket="vehicle-photos" folder="veiculos" />` **acima** do campo Placa, com label "Foto do veículo".
-  - Substituir `onChange` da Placa por uma função que aplica máscara Mercosul: remove caracteres não-alfanuméricos, força uppercase, limita a 7 caracteres e formata como `LLLNLNN` (ex.: `ABC1D23`). Adicionar `maxLength={7}` e `pattern="[A-Z]{3}[0-9][A-Z][0-9]{2}"`.
-  - Validação no `handleSave`: se preenchida, deve bater com regex Mercosul `^[A-Z]{3}[0-9][A-Z][0-9]{2}$`. Caso não bata, exibir toast e abortar (mantém compat. com placas antigas que já estão no banco — só aplica regra em novos/edições do campo).
-- `payload` salva `foto_url`.
-- `startEdit` carrega `foto_url`.
-- Tabela desktop:
-  - Nova `<TableHead className="w-16">Foto</TableHead>` antes de Placa.
-  - Nova `<TableCell>` com `<img>` 40x40 arredondado se `foto_url`, senão ícone placeholder (`Car`).
-- Cards mobile: incluir miniatura à esquerda do bloco da placa.
+## Correção (1 arquivo)
 
-### 3. Helper de máscara
-- Função local `formatPlacaMercosul(value: string)` no próprio arquivo (não vale criar util compartilhada para uma única tela).
+Em `supabase/functions/_shared/bia-core.ts`, dentro de `buildSystemPrompt` (no bloco "REGRAS DE OURO", logo após a regra de "PREÇO RÍGIDO"), adicionar uma nova regra crítica:
 
-## Fora do escopo
-- Não alterar telas de transportadora/frota (`TranspVeiculos.tsx`, etc.) — usuário pediu só a tela mostrada (`/cadastros/veiculos`). Posso estender depois se desejar.
-- Não migrar placas legadas no formato antigo (`ABC1234`) — continuam aceitas em leitura.
+```text
+4. NUNCA invente atributos físicos do produto: NÃO descreva cor do botijão
+   (ex: "azul", "vermelho", "padrão"), NÃO cite marca (Ultragaz, Liquigás,
+   Copagaz, Supergasbras, Nacional Gás, etc.), NÃO descreva o visual nem
+   diga "padrão" / "comum" / "tradicional". Refira-se ao produto APENAS pelo
+   nome cadastrado (ex: "Gás P13", "Gás P20", "Gás P45", "Água 20L"). Se o
+   cliente perguntar a marca/cor, responda: "Trabalhamos com a marca
+   disponível no momento — pode variar por entrega. O importante é que é
+   gás original, lacrado e dentro da validade. 😊"
+```
+
+E reforçar uma linha curta no bloco "ANTI-REPETIÇÃO" (ou criar um mini-bloco "ANTI-INVENÇÃO") pedindo explicitamente para não adicionar parênteses descritivos do tipo "(aquele botijão …)".
+
+## Por que assim
+
+- Mudança apenas no prompt → zero impacto em rotas, RLS, edge functions, banco.
+- Não muda comportamento de pedido, preço, fluxo, finalização.
+- Resolve para qualquer empresa do tenant (não é específico da Central Gás).
+- Não precisa de migration nem de mexer em `App.tsx`.
+
+## Fora de escopo
+
+- Não vou cadastrar marca/cor no produto — se no futuro a empresa quiser que a Bia diga a marca real, criamos um campo `marca` em `produtos` e injetamos no prompt. Hoje não existe.
+- Não vou regenerar respostas antigas já enviadas no WhatsApp.
