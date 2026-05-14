@@ -103,7 +103,6 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const { unreadByConversation, setSelectedConversaId, markAsRead } = useWhatsAppNotifications();
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
-  const { salvarCliente } = useClientes();
 
   // Ações por conversa
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
