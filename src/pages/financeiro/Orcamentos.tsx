@@ -228,6 +228,7 @@ export default function Orcamentos() {
             municipio: fMunicipio || undefined,
             nre: fNre || undefined,
             estabelecimento: fEstabelecimento || undefined,
+            cnpj_escola: fCnpjEscola || undefined,
             forma_pagamento: fFormaPag || "À VISTA",
             validade_inicio: fValidadeIni || undefined,
             validade: fValidadeFim || undefined,
