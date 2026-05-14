@@ -207,41 +207,41 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
   if (endLinha) linhasCarimbo.push(endLinha);
 
   // Quebra a linha de endereço se exceder a largura
-  const boxW = Math.min(110, W - 40);
+  const boxW = Math.min(85, W - 40);
   const boxX = (W - boxW) / 2;
-  const innerW = boxW - 6;
+  const innerW = boxW - 4;
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   const razaoLines = doc.splitTextToSize(razao, innerW);
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   const bodyLines: string[] = [];
   for (const l of linhasCarimbo) {
     const parts = doc.splitTextToSize(l, innerW);
     for (const p of parts) bodyLines.push(p);
   }
 
-  const lineH = 3.6;
-  const titleH = 4.4;
-  const padTop = 3;
-  const padBottom = 3;
-  const gap = 1;
+  const lineH = 3.0;
+  const titleH = 3.8;
+  const padTop = 2;
+  const padBottom = 2;
+  const gap = 0.5;
   const boxH = padTop + razaoLines.length * titleH + gap + bodyLines.length * lineH + padBottom;
 
   doc.rect(boxX, y, boxW, boxH);
 
-  let cy = y + padTop + titleH - 1;
+  let cy = y + padTop + titleH - 0.8;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   for (const r of razaoLines) {
     doc.text(r, boxX + boxW / 2, cy, { align: "center" });
     cy += titleH;
   }
   cy += gap;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   for (const l of bodyLines) {
     doc.text(l, boxX + boxW / 2, cy, { align: "center" });
     cy += lineH;
