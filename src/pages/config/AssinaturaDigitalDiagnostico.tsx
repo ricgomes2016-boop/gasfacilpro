@@ -47,7 +47,7 @@ export default function AssinaturaDigitalDiagnostico() {
       return;
     }
     toast.success(`Assinado por ${r.titular || "certificado A1"}`);
-    const blob = new Blob([r.pdf], { type: "application/pdf" });
+    const blob = new Blob([r.pdf as BlobPart], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
