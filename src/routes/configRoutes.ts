@@ -12,6 +12,7 @@ const PersonalizacaoVisual = lazy(() => import("@/pages/config/PersonalizacaoVis
 const RegrasBia = lazy(() => import("@/pages/config/RegrasBia"));
 const SiteInstitucional = lazy(() => import("@/pages/config/SiteInstitucional"));
 const MeuPerfil = lazy(() => import("@/pages/MeuPerfil"));
+const AssinaturaDigitalDiagnostico = lazy(() => import("@/pages/config/AssinaturaDigitalDiagnostico"));
 
 export const configRoutes: RouteConfig[] = [
   { path: "/meu-perfil", component: MeuPerfil, roles: ["admin", "gestor", "financeiro", "operacional"] },
@@ -25,4 +26,5 @@ export const configRoutes: RouteConfig[] = [
   { path: "/config/personalizacao", component: PersonalizacaoVisual, roles: ["admin", "gestor"] },
   { path: "/config/regras-bia", component: RegrasBia, roles: ["admin", "gestor"] },
   { path: "/config/site-institucional", component: SiteInstitucional, roles: ["admin", "gestor"] },
+  { path: "/config/assinatura-digital", component: AssinaturaDigitalDiagnostico, roles: ["admin", "gestor", "financeiro"] },
 ];

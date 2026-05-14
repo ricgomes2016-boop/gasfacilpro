@@ -31,6 +31,55 @@ export interface AssinarResultado {
   mensagem?: string;
 }
 
+export interface DiagnosticoCert {
+  titular: string;
+  cnpj: string | null;
+  emissor: string;
+  validade_inicio: string;
+  validade_fim: string;
+  serial: string;
+  algoritmo: string;
+  tamanho_chave: number | null;
+  cadeia_icp_brasil: boolean;
+  dias_para_vencer: number;
+  vencido: boolean;
+}
+
+export interface DiagnosticoResultado {
+  ok: boolean;
+  motivo?: string;
+  mensagem?: string;
+  diagnostico?: DiagnosticoCert;
+  raw?: any;
+}
+
+export async function diagnosticarCertificado(unidadeId: string): Promise<DiagnosticoResultado> {
+  try {
+    const { data, error } = await supabase.functions.invoke("assinar-pdf", {
+      body: { acao: "diagnostico", unidadeId },
+    });
+    if (error) return { ok: false, motivo: "network", mensagem: error.message };
+    return { ok: !!data?.ok, motivo: data?.motivo, mensagem: data?.mensagem, diagnostico: data?.diagnostico, raw: data };
+  } catch (e: any) {
+    return { ok: false, motivo: "exception", mensagem: e?.message };
+  }
+}
+
+export async function gerarPdfAmostraAssinado(unidadeId: string): Promise<AssinarResultado & { raw?: any }> {
+  try {
+    const { data, error } = await supabase.functions.invoke("assinar-pdf", {
+      body: { acao: "amostra", unidadeId },
+    });
+    if (error) return { ok: false, pdf: new Uint8Array(), motivo: "network", mensagem: error.message };
+    if (!data?.ok || !data?.pdfBase64Assinado) {
+      return { ok: false, pdf: new Uint8Array(), motivo: data?.motivo, mensagem: data?.mensagem, raw: data };
+    }
+    return { ok: true, pdf: b64ToBytes(data.pdfBase64Assinado), titular: data.titular, cnpj: data.cnpj, raw: data };
+  } catch (e: any) {
+    return { ok: false, pdf: new Uint8Array(), motivo: "exception", mensagem: e?.message };
+  }
+}
+
 /**
  * Envia o PDF para a edge function `assinar-pdf` que aplica PAdES com o
  * certificado A1 cadastrado na unidade. Em caso de falha, retorna o PDF

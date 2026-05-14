@@ -870,6 +870,16 @@ export default function Orcamentos() {
                       disabled={!assinatura.disponivel}
                     />
                   </div>
+                  <div className="flex justify-end -mt-1">
+                    <a
+                      href="/config/assinatura-digital"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-primary hover:underline"
+                    >
+                      Testar certificado →
+                    </a>
+                  </div>
                 </div>
 
                 <div className="flex gap-2">

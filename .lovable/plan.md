@@ -1,66 +1,66 @@
-## Plano — Orçamentos: correção + aba Fundepar
+## Objetivo
 
-### 1) Corrigir "Novo Orçamento" (não conseguia adicionar cliente/produto)
+Adicionar um diagnóstico do certificado A1 (e-CNPJ) e uma forma rápida de validar se a assinatura PAdES gerada está correta — sem precisar emitir um orçamento real.
 
-Causa provável encontrada em `src/pages/financeiro/Orcamentos.tsx`:
-- As consultas de `clientes` e `produtos` não filtram por `unidade_id`/`empresa_id`. Em empresas com muitos registros o limite padrão de 1000 do Supabase pode esconder os itens, e os Comboboxes ficam vazios. Além disso, o INSERT em `orcamentos` não envia `unidade_id`, o que pode bloquear por RLS.
-- O `value` do `CommandItem` usa template string com campos possivelmente `null` ("undefined undefined"), atrapalhando o filtro.
+---
 
-Ações:
-- Filtrar `clientes` por `empresa_id` (via `useEmpresa`) e ainda priorizar os vinculados à `unidade_atual` via `cliente_unidades`. Usar a RPC `autocomplete_clientes_v2` com debounce no `CommandInput` (server-side, mesma usada na tela de Vendas).
-- Filtrar `produtos` por `unidade_id = unidadeAtual.id` e `ativo = true`.
-- Sanitizar `CommandItem.value` (sem `undefined`).
-- Incluir `unidade_id: unidadeAtual.id` no insert do orçamento.
-- Mostrar aviso ("Selecione uma unidade") se `unidadeAtual` estiver vazio.
-- Ajustar listagem para filtrar `orcamentos` por `unidade_id` da unidade atual.
+## 1. Edge Function: novo modo "diagnóstico" no `assinar-pdf`
 
-### 2) Nova aba "Orçamento Fundepar"
+Adicionar `acao: "diagnostico" | "assinar" | "amostra"` no body (default `assinar`, mantém compatibilidade).
 
-UI:
-- Substituir o botão único "Novo Orçamento" por um menu com duas opções:
-  - "Orçamento padrão" (atual)
-  - "Orçamento Fundepar" (novo)
-- Adicionar abas no topo da tela: **Todos | Padrão | Fundepar**, filtrando por um novo campo `tipo` (`padrao` | `fundepar`).
+- **`diagnostico`** (não assina nada):
+  - Baixa o `.pfx` do bucket `certificados-fiscais`
+  - Abre com `node-forge` usando a senha cadastrada
+  - Retorna: `titular`, `cnpj`, `emissor` (CN do issuer), `validade_inicio`, `validade_fim`, `serial`, `algoritmo`, `dias_para_vencer`, `cadeia_icp_brasil` (true/false a partir do issuer "AC ... ICP-Brasil"), `tamanho_chave`
+  - Erros granulares: `pfx_nao_encontrado`, `senha_invalida`, `pfx_corrompido`, `vencido`
 
-Dialog Fundepar — campos do cabeçalho (iguais ao PDF anexado):
-- Município
-- NRE (Núcleo Regional de Educação)
-- Estabelecimento (escola)
-- Forma de pagamento (default "À VISTA")
-- Período de validade (data inicial + final)
-- Itens: nº, descrição, quantidade, valor unitário, valor total (calculado)
-- Cliente: opcional (a "escola" funciona como destinatário) — pode buscar/cadastrar opcionalmente
+- **`amostra`** (gera + assina um PDF de teste de 1 página):
+  - Cria um PDF mínimo com `pdf-lib` ("Documento de teste — Assinatura Digital — <data>")
+  - Aplica o mesmo fluxo de `assinar` (placeholder + P12Signer + SignPdf)
+  - Retorna `pdfBase64Assinado` para download
 
-Geração do PDF (impressão):
-- Layout idêntico ao PDF enviado: faixa "ESTADO DO PARANÁ / Instituto Paranaense de Desenvolvimento Educacional", título "Pesquisa de Preço 2026" (ano dinâmico), cabeçalho com Município/NRE/Estabelecimento, dados do fornecedor da `empresa`/`unidade` ativa: Razão Social, Nome Fantasia, CNPJ, Inscrição Estadual, Endereço, Cidade/UF, Fone, E-mail.
-- Tabela "Orçamentos de Itens – GÁS ENGARRAFADO" com itens.
-- Rodapé: "Cidade, dd de mmmm de aaaa", linha de assinatura "ASSINATURA (fornecedor)" e bloco **CARIMBO/CNPJ** desenhado como um carimbo (borda dupla retangular, levemente inclinado, cor preto/azul) contendo: Razão Social, CNPJ, IE, Endereço completo e telefone — extraídos automaticamente da empresa/unidade ativa.
-- Implementação via `jsPDF` + `jsPDF-autotable` (já usados em outros relatórios do projeto) num novo serviço `src/services/orcamentoFundeparPdfService.ts`. Botão "Imprimir Fundepar" no diálogo de visualização e na lista (ações da linha quando `tipo='fundepar'`).
+## 2. Cliente: helper de diagnóstico
 
-### 3) Banco de dados
+Em `src/services/digitalSignature/signPdfClient.ts`, adicionar:
+- `diagnosticarCertificado(unidadeId)` → retorna o objeto de diagnóstico
+- `gerarPdfAmostraAssinado(unidadeId)` → baixa um PDF assinado de teste
 
-Migração na tabela `public.orcamentos`:
-- `tipo text not null default 'padrao'` (`padrao` | `fundepar`)
-- `municipio text`
-- `nre text`
-- `estabelecimento text`
-- `forma_pagamento text`
-- `validade_inicio date`
-- (mantém `validade` como validade final)
+## 3. UI: nova página "Diagnóstico de Assinatura Digital"
 
-Sem alteração em RLS (segue regras existentes por `unidade_id`).
+Rota: `/configuracoes/assinatura-digital/diagnostico` (ou um card dentro da página atual de Unidades, no bloco "Certificado A1").
 
-### Detalhes técnicos
-- Tipos atualizados após migração (auto).
-- Reaproveitar `useEmpresa()` e `useUnidade()` já presentes.
-- PDF buscará os dados de carimbo de `empresas` (razão social, cnpj, ie, telefone, email) + `unidades` (endereço, cidade, uf) com fallback entre os dois.
-- Não tocar em `App.tsx`, providers ou rotas.
+Conteúdo:
+- **Bloco 1 — Status do certificado** (badge verde/vermelho)
+  - Titular, CNPJ, Emissor, Validade (com countdown), Serial, ICP-Brasil ✓/✗
+- **Bloco 2 — Teste de assinatura**
+  - Botão **"Gerar PDF de teste assinado"** → faz download de `teste-assinatura.pdf`
+  - Instruções curtas: abrir no **Adobe Acrobat Reader** → painel "Assinaturas" deve mostrar:
+    - Assinado por: <titular>
+    - "A assinatura é VÁLIDA" (após confirmar a Raiz ICP-Brasil como confiável; Adobe tem opção "Adicionar à lista de identidades confiáveis")
+    - Data, motivo e local
+- **Bloco 3 — Logs**
+  - Última resposta da edge function em formato cru (collapsible) para debug
 
-### Arquivos
-- editar: `src/pages/financeiro/Orcamentos.tsx`
-- criar: `src/components/financeiro/orcamentos/FundeparDialog.tsx`
-- criar: `src/services/orcamentoFundeparPdfService.ts`
-- migration: adicionar campos em `orcamentos`
+## 4. Acesso rápido a partir de Orçamentos › Fundepar
 
-### Fora de escopo
-- Login/RBAC, refactors em outras telas, alterações de tema global.
+No diálogo onde já existe o switch "Assinar digitalmente", adicionar link:
+> "Não tem certeza se o certificado funciona? Testar agora →"
+que abre a página de diagnóstico em nova aba.
+
+---
+
+## Detalhes técnicos
+
+- **Validação ICP-Brasil**: checar se `cert.issuer.getField("CN").value` contém `"ICP-Brasil"` ou `"AC "`. A validação completa de cadeia exige as ACs raízes do ITI; isso fica fora do escopo (Adobe Reader já faz essa validação ao abrir o PDF).
+- **PAdES vs CMS detached**: o `@signpdf/signpdf` aplica CMS PKCS#7 em `/Contents` com `/SubFilter /adbe.pkcs7.detached` — Adobe Reader reconhece como **PAdES-B-B**. Sem timestamp (TSA) — adicionar TSA ICP-Brasil é opcional e fica fora do escopo desta etapa.
+- **Tamanho do placeholder**: 16384 bytes já está adequado para certificados A1 ICP-Brasil.
+- **Sem mudanças de DB**: usa o `.pfx` já cadastrado em `unidades.certificado_a1_path/senha/validade/titular`.
+- **Sem novas dependências**: tudo já está no `assinar-pdf`.
+
+## Como você vai validar
+
+1. Abre **Configurações › Assinatura Digital › Diagnóstico**
+2. Confirma os dados do certificado (titular = razão social, CNPJ correto, validade futura, ICP-Brasil ✓)
+3. Clica **"Gerar PDF de teste assinado"** → abre no Adobe Reader
+4. Painel "Assinaturas" mostra a assinatura com seu nome/CNPJ. Se aparecer "validade desconhecida" basta marcar a Raiz ICP-Brasil como confiável uma vez.
+5. Volta em Orçamentos › Fundepar, ativa o switch e gera um PDF real — o carimbo continua igual e a assinatura digital é embutida no arquivo.
