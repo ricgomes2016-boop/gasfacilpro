@@ -108,7 +108,7 @@ export function NovaConversaDialog({ open, onOpenChange, onCreated }: Props) {
           {
             id: conversaId,
             user_id: "00000000-0000-0000-0000-000000000000",
-            titulo: `WhatsApp: ${titulo || phone}`,
+            titulo: titulo || phone,
             telefone: phone,
             empresa_id: empresa.id,
           },
