@@ -195,26 +195,51 @@ export default function Orcamentos() {
     mutationFn: async () => {
       if (!unidadeAtual?.id) throw new Error("Selecione uma unidade");
       const valorTotal = fItens.reduce((s, i) => s + i.subtotal, 0);
-      const { data: orc, error } = await supabase
-        .from("orcamentos")
-        .insert({
-          tipo: "fundepar",
-          cliente_nome: fEstabelecimento || "FUNDEPAR",
-          municipio: fMunicipio || undefined,
-          nre: fNre || undefined,
-          estabelecimento: fEstabelecimento || undefined,
-          forma_pagamento: fFormaPag || "À VISTA",
-          validade_inicio: fValidadeIni || undefined,
-          validade: fValidadeFim || undefined,
-          observacoes: fObs,
-          desconto: 0,
-          valor_total: valorTotal,
-          created_by: user?.id,
-          unidade_id: unidadeAtual.id,
-        } as any)
-        .select()
-        .single();
-      if (error) throw error;
+      let orc: any;
+
+      if (editingFundeparId) {
+        const { data, error } = await supabase
+          .from("orcamentos")
+          .update({
+            cliente_nome: fEstabelecimento || "FUNDEPAR",
+            municipio: fMunicipio || null,
+            nre: fNre || null,
+            estabelecimento: fEstabelecimento || null,
+            forma_pagamento: fFormaPag || "À VISTA",
+            validade_inicio: fValidadeIni || null,
+            validade: fValidadeFim || null,
+            observacoes: fObs,
+            valor_total: valorTotal,
+          } as any)
+          .eq("id", editingFundeparId)
+          .select()
+          .single();
+        if (error) throw error;
+        orc = data;
+        await supabase.from("orcamento_itens").delete().eq("orcamento_id", editingFundeparId);
+      } else {
+        const { data, error } = await supabase
+          .from("orcamentos")
+          .insert({
+            tipo: "fundepar",
+            cliente_nome: fEstabelecimento || "FUNDEPAR",
+            municipio: fMunicipio || undefined,
+            nre: fNre || undefined,
+            estabelecimento: fEstabelecimento || undefined,
+            forma_pagamento: fFormaPag || "À VISTA",
+            validade_inicio: fValidadeIni || undefined,
+            validade: fValidadeFim || undefined,
+            observacoes: fObs,
+            desconto: 0,
+            valor_total: valorTotal,
+            created_by: user?.id,
+            unidade_id: unidadeAtual.id,
+          } as any)
+          .select()
+          .single();
+        if (error) throw error;
+        orc = data;
+      }
 
       const itensToInsert = fItens
         .filter((i) => i.descricao.trim())
@@ -231,7 +256,6 @@ export default function Orcamentos() {
         if (ie) throw ie;
       }
 
-      // Imprime imediatamente
       await imprimirFundepar({
         numero: orc.numero,
         municipio: fMunicipio,
@@ -249,7 +273,7 @@ export default function Orcamentos() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orcamentos"] });
-      toast.success("Orçamento Fundepar criado!");
+      toast.success(editingFundeparId ? "Orçamento Fundepar atualizado!" : "Orçamento Fundepar criado!");
       resetFundepar();
       setFundeparOpen(false);
     },
