@@ -101,13 +101,115 @@ function extrairInfoCert(cert: any): CertInfo {
   };
 }
 
+function fmtDataAssinatura(d = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  // Adobe-style: 2026.05.14 20:38:03 -03'00'
+  const tz = -d.getTimezoneOffset();
+  const sign = tz >= 0 ? "+" : "-";
+  const tzh = p(Math.floor(Math.abs(tz) / 60));
+  const tzm = p(Math.abs(tz) % 60);
+  return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())} ${sign}${tzh}'${tzm}'`;
+}
+
+interface VisivelOpts {
+  pagina?: number; // 1-based; default = última
+  x: number; // pontos, origem inferior-esquerda
+  y: number;
+  largura: number;
+  altura: number;
+}
+
+async function desenharAparenciaAssinatura(
+  pdfDoc: any,
+  fonts: { regular: any; bold: any; italic: any },
+  info: { titular: string; cnpj: string | null },
+  visivel: VisivelOpts,
+) {
+  const pages = pdfDoc.getPages();
+  const idx = visivel.pagina ? Math.min(Math.max(visivel.pagina - 1, 0), pages.length - 1) : pages.length - 1;
+  const page = pages[idx];
+  const { x, y, largura: w, altura: h } = visivel;
+
+  const titularLinha = info.cnpj ? `${info.titular}:${info.cnpj}` : info.titular;
+  const dataAss = fmtDataAssinatura();
+  const leftW = w * 0.5 - 4;
+  const rightX = x + w * 0.5 + 4;
+  const rightW = w * 0.5 - 4;
+
+  // Borda discreta
+  page.drawRectangle({
+    x, y, width: w, height: h,
+    borderColor: rgb(0.55, 0.55, 0.55),
+    borderWidth: 0.4,
+  });
+
+  // ---- Lado esquerdo: nome estilizado (quebra automática) ----
+  const wrap = (txt: string, font: any, size: number, maxW: number): string[] => {
+    const words = txt.split(/\s+/);
+    const lines: string[] = [];
+    let cur = "";
+    for (const wd of words) {
+      const test = cur ? cur + " " + wd : wd;
+      if (font.widthOfTextAtSize(test, size) <= maxW) cur = test;
+      else { if (cur) lines.push(cur); cur = wd; }
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  };
+
+  let leftSize = 13;
+  let leftLines = wrap(titularLinha, fonts.bold, leftSize, leftW);
+  while ((leftLines.length * (leftSize + 2)) > h - 6 && leftSize > 7) {
+    leftSize -= 1;
+    leftLines = wrap(titularLinha, fonts.bold, leftSize, leftW);
+  }
+  const leftBlockH = leftLines.length * (leftSize + 2);
+  let ly = y + (h - leftBlockH) / 2 + leftBlockH - leftSize;
+  for (const ln of leftLines) {
+    page.drawText(ln, { x: x + 4, y: ly, size: leftSize, font: fonts.bold, color: rgb(0, 0, 0) });
+    ly -= leftSize + 2;
+  }
+
+  // ---- Lado direito: bloco "Assinado de forma digital por..." ----
+  const rightSize = 7.5;
+  const rightLines: string[] = [];
+  rightLines.push("Assinado de forma digital");
+  rightLines.push("por " + titularLinha);
+  rightLines.push("Dados: " + dataAss);
+  // wrap se necessário
+  const wrapped: string[] = [];
+  for (const ln of rightLines) {
+    const ws = wrap(ln, fonts.regular, rightSize, rightW);
+    for (const w2 of ws) wrapped.push(w2);
+  }
+  const rightBlockH = wrapped.length * (rightSize + 1.5);
+  let ry = y + (h - rightBlockH) / 2 + rightBlockH - rightSize;
+  for (const ln of wrapped) {
+    page.drawText(ln, { x: rightX, y: ry, size: rightSize, font: fonts.regular, color: rgb(0, 0, 0) });
+    ry -= rightSize + 1.5;
+  }
+}
+
 async function assinarBytes(
   pdfBytes: Uint8Array,
   pfxBytes: Uint8Array,
   pfxSenha: string,
-  meta: { titular: string; cnpj: string | null; motivo: string; local: string; contato: string },
+  meta: { titular: string; cnpj: string | null; motivo: string; local: string; contato: string; visivel?: VisivelOpts },
 ): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.load(pdfBytes);
+
+  if (meta.visivel) {
+    const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const italic = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+    await desenharAparenciaAssinatura(
+      pdfDoc,
+      { regular, bold, italic },
+      { titular: meta.titular, cnpj: meta.cnpj },
+      meta.visivel,
+    );
+  }
+
   pdflibAddPlaceholder({
     pdfDoc,
     reason: meta.motivo,
@@ -261,10 +363,15 @@ Deno.serve(async (req) => {
     }
 
     let pdfParaAssinar: Uint8Array;
+    let visivel: VisivelOpts | undefined = body?.visivel;
     if (acao === "amostra") {
       pdfParaAssinar = await gerarPdfAmostra(info);
+      visivel = visivel || { x: 50, y: 60, largura: 495, altura: 60 };
     } else {
       pdfParaAssinar = b64ToBytes(body.pdfBase64);
+      if (!visivel || typeof visivel.x !== "number" || typeof visivel.y !== "number") {
+        visivel = undefined;
+      }
     }
 
     const signedBytes = await assinarBytes(pdfParaAssinar, pfxBytes, pfxSenha, {
@@ -273,6 +380,7 @@ Deno.serve(async (req) => {
       motivo: acao === "amostra" ? "Teste de assinatura digital" : motivo,
       local,
       contato,
+      visivel,
     });
 
     return json({
