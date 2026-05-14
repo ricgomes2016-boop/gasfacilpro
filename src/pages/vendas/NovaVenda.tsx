@@ -831,14 +831,23 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       // Prepare receipt data for optional printing
       let empresaConfig: EmpresaConfig | undefined;
       try {
-        const { data: configData } = await supabase
+        let cfgQuery = supabase
           .from("configuracoes_empresa")
           .select("nome_empresa, cnpj, telefone, endereco, mensagem_cupom")
-          .limit(1)
-          .single();
-        if (configData) empresaConfig = configData;
+          .limit(1);
+        if (empresa?.id) cfgQuery = cfgQuery.eq("empresa_id", empresa.id);
+        const { data: configData } = await cfgQuery.maybeSingle();
+
+        empresaConfig = {
+          nome_empresa: empresa?.nome || configData?.nome_empresa || "Empresa",
+          cnpj: configData?.cnpj ?? null,
+          telefone: configData?.telefone ?? null,
+          endereco: configData?.endereco ?? null,
+          mensagem_cupom: configData?.mensagem_cupom ?? null,
+        };
       } catch (e) {
         console.warn("Não foi possível carregar configurações da empresa");
+        if (empresa?.nome) empresaConfig = { nome_empresa: empresa.nome };
       }
 
       const receiptData = {
