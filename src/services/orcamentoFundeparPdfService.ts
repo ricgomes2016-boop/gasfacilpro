@@ -240,14 +240,14 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
 
   let cy = y + padTop + titleH - 0.8;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
+  doc.setFontSize(ps.titleFs);
   for (const r of razaoLines) {
     doc.text(r, boxX + boxW / 2, cy, { align: "center" });
     cy += titleH;
   }
   cy += gap;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
+  doc.setFontSize(ps.bodyFs);
   for (const l of bodyLines) {
     doc.text(l, boxX + boxW / 2, cy, { align: "center" });
     cy += lineH;
