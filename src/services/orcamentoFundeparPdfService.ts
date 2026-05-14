@@ -14,6 +14,7 @@ export interface FundeparPdfData {
   municipio?: string | null;
   nre?: string | null;
   estabelecimento?: string | null;
+  cnpj_escola?: string | null;
   forma_pagamento?: string | null;
   validade_inicio?: string | null;
   validade?: string | null;
@@ -96,6 +97,7 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
   linhaCab("Mun:", (d.municipio || "").toUpperCase());
   linhaCab("NRE:", (d.nre || "").toUpperCase());
   linhaCab("Estabelecimento:", (d.estabelecimento || "").toUpperCase());
+  if (d.cnpj_escola) linhaCab("CNPJ da Escola:", d.cnpj_escola);
   y += 2;
 
   // Dados do fornecedor

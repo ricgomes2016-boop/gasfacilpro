@@ -7040,6 +7040,7 @@ export type Database = {
         Row: {
           cliente_id: string | null
           cliente_nome: string
+          cnpj_escola: string | null
           created_at: string
           created_by: string | null
           data_emissao: string
@@ -7062,6 +7063,7 @@ export type Database = {
         Insert: {
           cliente_id?: string | null
           cliente_nome: string
+          cnpj_escola?: string | null
           created_at?: string
           created_by?: string | null
           data_emissao?: string
@@ -7084,6 +7086,7 @@ export type Database = {
         Update: {
           cliente_id?: string | null
           cliente_nome?: string
+          cnpj_escola?: string | null
           created_at?: string
           created_by?: string | null
           data_emissao?: string

@@ -75,6 +75,7 @@ export default function Orcamentos() {
   const [fMunicipio, setFMunicipio] = useState("");
   const [fNre, setFNre] = useState("");
   const [fEstabelecimento, setFEstabelecimento] = useState("");
+  const [fCnpjEscola, setFCnpjEscola] = useState("");
   const [fFormaPag, setFFormaPag] = useState("À VISTA");
   const [fValidadeIni, setFValidadeIni] = useState("");
   const [fValidadeFim, setFValidadeFim] = useState("");
@@ -108,7 +109,7 @@ export default function Orcamentos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produtos")
-        .select("id, nome, preco_venda, ativo")
+        .select("id, nome, preco, ativo")
         .eq("ativo", true)
         .eq("unidade_id", unidadeAtual!.id)
         .order("nome");
@@ -205,6 +206,7 @@ export default function Orcamentos() {
             municipio: fMunicipio || null,
             nre: fNre || null,
             estabelecimento: fEstabelecimento || null,
+            cnpj_escola: fCnpjEscola || null,
             forma_pagamento: fFormaPag || "À VISTA",
             validade_inicio: fValidadeIni || null,
             validade: fValidadeFim || null,
@@ -226,6 +228,7 @@ export default function Orcamentos() {
             municipio: fMunicipio || undefined,
             nre: fNre || undefined,
             estabelecimento: fEstabelecimento || undefined,
+            cnpj_escola: fCnpjEscola || undefined,
             forma_pagamento: fFormaPag || "À VISTA",
             validade_inicio: fValidadeIni || undefined,
             validade: fValidadeFim || undefined,
@@ -261,6 +264,7 @@ export default function Orcamentos() {
         municipio: fMunicipio,
         nre: fNre,
         estabelecimento: fEstabelecimento,
+        cnpj_escola: fCnpjEscola,
         forma_pagamento: fFormaPag,
         validade_inicio: fValidadeIni,
         validade: fValidadeFim,
@@ -316,6 +320,7 @@ export default function Orcamentos() {
     setFMunicipio("");
     setFNre("");
     setFEstabelecimento("");
+    setFCnpjEscola("");
     setFFormaPag("À VISTA");
     setFValidadeIni("");
     setFValidadeFim("");
@@ -329,6 +334,7 @@ export default function Orcamentos() {
     setFMunicipio(orc.municipio || "");
     setFNre(orc.nre || "");
     setFEstabelecimento(orc.estabelecimento || orc.cliente_nome || "");
+    setFCnpjEscola(orc.cnpj_escola || "");
     setFFormaPag(orc.forma_pagamento || "À VISTA");
     setFValidadeIni(orc.validade_inicio || "");
     setFValidadeFim(orc.validade || "");
@@ -359,7 +365,7 @@ export default function Orcamentos() {
     closeFn: () => void,
   ) => {
     const updated = [...list];
-    const preco = Number(produto.preco_venda) || 0;
+    const preco = Number(produto.preco ?? produto.preco_venda) || 0;
     updated[index] = {
       ...updated[index],
       descricao: produto.nome,
@@ -416,6 +422,7 @@ export default function Orcamentos() {
       municipio: orc.municipio,
       nre: orc.nre,
       estabelecimento: orc.estabelecimento,
+      cnpj_escola: orc.cnpj_escola,
       forma_pagamento: orc.forma_pagamento,
       validade_inicio: orc.validade_inicio,
       validade: orc.validade,
@@ -581,7 +588,7 @@ export default function Orcamentos() {
                                         <Check className={cn("mr-2 h-4 w-4", item.produto_id === p.id ? "opacity-100" : "opacity-0")} />
                                         <div className="flex justify-between w-full">
                                           <span>{p.nome}</span>
-                                          <span className="text-muted-foreground text-xs">R$ {Number(p.preco_venda).toFixed(2)}</span>
+                                          <span className="text-muted-foreground text-xs">R$ {Number(p.preco ?? p.preco_venda ?? 0).toFixed(2)}</span>
                                         </div>
                                       </CommandItem>
                                     ))}
@@ -665,9 +672,15 @@ export default function Orcamentos() {
                     <Input value={fFormaPag} onChange={(e) => setFFormaPag(e.target.value)} />
                   </div>
                 </div>
-                <div>
-                  <Label>Estabelecimento</Label>
-                  <Input value={fEstabelecimento} onChange={(e) => setFEstabelecimento(e.target.value)} placeholder="Ex.: ZULMIRA MARCHESI DA SILVA, C E -EF M" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Estabelecimento</Label>
+                    <Input value={fEstabelecimento} onChange={(e) => setFEstabelecimento(e.target.value)} placeholder="Ex.: ZULMIRA MARCHESI DA SILVA, C E -EF M" />
+                  </div>
+                  <div>
+                    <Label>CNPJ da Escola</Label>
+                    <Input value={fCnpjEscola} onChange={(e) => setFCnpjEscola(e.target.value)} placeholder="00.000.000/0000-00" />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -704,7 +717,7 @@ export default function Orcamentos() {
                                         <Check className={cn("mr-2 h-4 w-4", item.produto_id === p.id ? "opacity-100" : "opacity-0")} />
                                         <div className="flex justify-between w-full">
                                           <span>{p.nome}</span>
-                                          <span className="text-muted-foreground text-xs">R$ {Number(p.preco_venda).toFixed(2)}</span>
+                                          <span className="text-muted-foreground text-xs">R$ {Number(p.preco ?? p.preco_venda ?? 0).toFixed(2)}</span>
                                         </div>
                                       </CommandItem>
                                     ))}
@@ -750,7 +763,7 @@ export default function Orcamentos() {
                     className="flex-1 gap-2"
                     onClick={() =>
                       imprimirFundepar({
-                        municipio: fMunicipio, nre: fNre, estabelecimento: fEstabelecimento,
+                        municipio: fMunicipio, nre: fNre, estabelecimento: fEstabelecimento, cnpj_escola: fCnpjEscola,
                         forma_pagamento: fFormaPag, validade_inicio: fValidadeIni, validade: fValidadeFim,
                         itens: fItens, observacoes: fObs,
                         empresa_id: empresa?.id, unidade_id: unidadeAtual?.id,
