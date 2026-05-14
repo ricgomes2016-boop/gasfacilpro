@@ -14,6 +14,7 @@ export interface FundeparPdfData {
   municipio?: string | null;
   nre?: string | null;
   estabelecimento?: string | null;
+  cnpj_escola?: string | null;
   forma_pagamento?: string | null;
   validade_inicio?: string | null;
   validade?: string | null;
