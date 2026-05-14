@@ -192,6 +192,7 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
 
   // Linha de assinatura
   doc.line(50, y, W - 50, y);
+  const sigLineY_mm = y;
   y += 5;
   doc.text("ASSINATURA (fornecedor)", W / 2, y, { align: "center" });
   y += 14;
