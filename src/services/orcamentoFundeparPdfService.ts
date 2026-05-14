@@ -261,6 +261,10 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
   doc.setTextColor(0, 0, 0);
   doc.setDrawColor(0, 0, 0);
 
+  // Anexa metadados para uso ao assinar (posição da linha de assinatura em mm)
+  (doc as any).__sigLineY_mm = sigLineY_mm;
+  (doc as any).__pageH_mm = doc.internal.pageSize.getHeight();
+  (doc as any).__pageW_mm = W;
   return doc;
 }
 
@@ -271,10 +275,28 @@ export async function imprimirFundepar(d: FundeparPdfData) {
 
   if (d.assinar && d.unidade_id) {
     const t = toast.loading("Assinando PDF com e-CNPJ...");
+
+    // Calcula a caixa da aparência visível (acima da linha de assinatura, em pontos PDF)
+    const PT_PER_MM = 2.83465;
+    const sigLineY_mm = (doc as any).__sigLineY_mm as number;
+    const pageH_mm = (doc as any).__pageH_mm as number;
+    const pageW_mm = (doc as any).__pageW_mm as number;
+    const boxW_mm = 140;
+    const boxH_mm = 18;
+    const boxX_mm = (pageW_mm - boxW_mm) / 2;
+    const visivel = {
+      x: boxX_mm * PT_PER_MM,
+      // y é o canto inferior em pts (origem inferior-esquerda do PDF)
+      y: (pageH_mm - sigLineY_mm) * PT_PER_MM,
+      largura: boxW_mm * PT_PER_MM,
+      altura: boxH_mm * PT_PER_MM,
+    };
+
     const res = await assinarPdfRemoto(bytes, {
       unidadeId: d.unidade_id,
       motivo: "Orçamento Fundepar",
       local: "Brasil",
+      visivel,
     });
     toast.dismiss(t);
     if (res.ok) {
