@@ -311,6 +311,7 @@ export default function Orcamentos() {
         empresa_id: empresa?.id,
         unidade_id: unidadeAtual.id,
         carimbo_tamanho: carimboTamanho,
+        assinar: assinatura.ativo,
       });
       return orc;
     },
@@ -475,6 +476,7 @@ export default function Orcamentos() {
       empresa_id: empresa?.id,
       unidade_id: orc.unidade_id || unidadeAtual?.id,
       carimbo_tamanho: carimboTamanho,
+      assinar: assinatura.ativo,
     });
   };
 
