@@ -117,9 +117,8 @@ async function assinarBytes(
     signatureLength: 16384,
   });
   const pdfWithPlaceholder = await pdfDoc.save({ useObjectStreams: false });
-  // @ts-ignore - Buffer via npm: shim
-  const buf = (globalThis as any).Buffer.from(pdfWithPlaceholder);
-  const signer = new P12Signer((globalThis as any).Buffer.from(pfxBytes), { passphrase: pfxSenha });
+  const buf = Buffer.from(pdfWithPlaceholder);
+  const signer = new P12Signer(Buffer.from(pfxBytes), { passphrase: pfxSenha });
   const signedBuf = await new SignPdf().sign(buf, signer);
   return new Uint8Array(signedBuf.buffer, signedBuf.byteOffset, signedBuf.byteLength);
 }
