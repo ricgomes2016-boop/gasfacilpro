@@ -8,6 +8,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import forge from "npm:node-forge@1.3.1";
+import { Buffer } from "node:buffer";
 import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
 // @ts-ignore - sem tipos
 import { SignPdf } from "npm:@signpdf/signpdf@3.2.4";
@@ -116,9 +117,8 @@ async function assinarBytes(
     signatureLength: 16384,
   });
   const pdfWithPlaceholder = await pdfDoc.save({ useObjectStreams: false });
-  // @ts-ignore - Buffer via npm: shim
-  const buf = (globalThis as any).Buffer.from(pdfWithPlaceholder);
-  const signer = new P12Signer((globalThis as any).Buffer.from(pfxBytes), { passphrase: pfxSenha });
+  const buf = Buffer.from(pdfWithPlaceholder);
+  const signer = new P12Signer(Buffer.from(pfxBytes), { passphrase: pfxSenha });
   const signedBuf = await new SignPdf().sign(buf, signer);
   return new Uint8Array(signedBuf.buffer, signedBuf.byteOffset, signedBuf.byteLength);
 }
