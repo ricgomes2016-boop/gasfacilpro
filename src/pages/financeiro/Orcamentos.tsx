@@ -331,6 +331,7 @@ export default function Orcamentos() {
     setFMunicipio(orc.municipio || "");
     setFNre(orc.nre || "");
     setFEstabelecimento(orc.estabelecimento || orc.cliente_nome || "");
+    setFCnpjEscola(orc.cnpj_escola || "");
     setFFormaPag(orc.forma_pagamento || "À VISTA");
     setFValidadeIni(orc.validade_inicio || "");
     setFValidadeFim(orc.validade || "");
