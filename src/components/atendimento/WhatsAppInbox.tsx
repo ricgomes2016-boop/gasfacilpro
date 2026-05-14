@@ -14,12 +14,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Send, Search, MessageSquare, ArrowLeft, Bot, Headset, User, Smile, Paperclip, Mic, SquarePen, X, Trash2, FileText, Download } from "lucide-react";
+import { Send, Search, MessageSquare, ArrowLeft, Bot, Headset, User, Smile, Paperclip, Mic, SquarePen, X, Trash2, FileText, Download, MoreVertical, UserPlus, UserCog } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useWhatsAppNotifications } from "@/contexts/WhatsAppNotificationContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { NovaConversaDialog } from "./NovaConversaDialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { ClienteFormDialog } from "@/components/clientes/ClienteFormDialog";
+import { useClientes, type ClienteForm } from "@/hooks/useClientes";
 
 interface Conversa {
   id: string;
