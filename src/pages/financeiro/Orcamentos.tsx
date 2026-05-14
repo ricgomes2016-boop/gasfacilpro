@@ -85,6 +85,32 @@ export default function Orcamentos() {
   ]);
   const [fProdutoOpenIdx, setFProdutoOpenIdx] = useState<number | null>(null);
   const [editingFundeparId, setEditingFundeparId] = useState<string | null>(null);
+  const [estabOpen, setEstabOpen] = useState(false);
+  const [estabSearch, setEstabSearch] = useState("");
+
+  // Busca de estabelecimento no cadastro de clientes (nome ou CNPJ)
+  const { data: estabResultados = [] } = useQuery({
+    queryKey: ["estab-clientes", empresa?.id, unidadeAtual?.id, estabSearch],
+    enabled: !!empresa?.id && estabSearch.trim().length >= 2,
+    queryFn: async () => {
+      const termo = estabSearch.trim();
+      const digits = termo.replace(/\D/g, "");
+      let q = supabase
+        .from("clientes")
+        .select("id, nome, cnpj, cidade")
+        .eq("empresa_id", empresa!.id)
+        .eq("ativo", true)
+        .limit(20);
+      if (digits.length >= 3) {
+        q = q.or(`nome.ilike.%${termo}%,cnpj.ilike.%${digits}%`);
+      } else {
+        q = q.ilike("nome", `%${termo}%`);
+      }
+      const { data, error } = await q;
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   // Clientes — RPC server-side com debounce
   const { data: clientes = [] } = useQuery({
@@ -675,7 +701,39 @@ export default function Orcamentos() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label>Estabelecimento</Label>
-                    <Input value={fEstabelecimento} onChange={(e) => setFEstabelecimento(e.target.value)} placeholder="Ex.: ZULMIRA MARCHESI DA SILVA, C E -EF M" />
+                    <Popover open={estabOpen} onOpenChange={setEstabOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" className="w-full justify-between font-normal mt-1.5 h-10">
+                          <span className="truncate">{fEstabelecimento || "Buscar no cadastro de clientes..."}</span>
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[380px] p-0" align="start">
+                        <Command shouldFilter={false}>
+                          <CommandInput placeholder="Buscar por nome ou CNPJ..." value={estabSearch} onValueChange={setEstabSearch} />
+                          <CommandList>
+                            <CommandEmpty>{estabSearch ? "Nenhum cliente encontrado." : "Digite para buscar..."}</CommandEmpty>
+                            <CommandGroup className="max-h-60 overflow-auto">
+                              {estabResultados.map((c: any) => (
+                                <CommandItem key={c.id} value={c.id} onSelect={() => {
+                                  setFEstabelecimento(c.nome || "");
+                                  if (c.cnpj) setFCnpjEscola(c.cnpj);
+                                  if (c.cidade && !fMunicipio) setFMunicipio(c.cidade);
+                                  setEstabOpen(false);
+                                }}>
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">{c.nome}</span>
+                                    {c.cnpj && <span className="text-xs text-muted-foreground">CNPJ: {c.cnpj}</span>}
+                                    {c.cidade && <span className="text-xs text-muted-foreground">{c.cidade}</span>}
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <Input value={fEstabelecimento} onChange={(e) => setFEstabelecimento(e.target.value)} placeholder="Ou digite manualmente" className="mt-2" />
                   </div>
                   <div>
                     <Label>CNPJ da Escola</Label>
