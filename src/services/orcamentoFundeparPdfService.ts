@@ -207,41 +207,41 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
   if (endLinha) linhasCarimbo.push(endLinha);
 
   // Quebra a linha de endereço se exceder a largura
-  const boxW = Math.min(150, W - 40);
+  const boxW = Math.min(110, W - 40);
   const boxX = (W - boxW) / 2;
-  const innerW = boxW - 8;
+  const innerW = boxW - 6;
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
+  doc.setFontSize(9);
   const razaoLines = doc.splitTextToSize(razao, innerW);
 
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   const bodyLines: string[] = [];
   for (const l of linhasCarimbo) {
     const parts = doc.splitTextToSize(l, innerW);
     for (const p of parts) bodyLines.push(p);
   }
 
-  const lineH = 4.2;
-  const titleH = 5.2;
-  const padTop = 5;
-  const padBottom = 5;
-  const gap = 2;
+  const lineH = 3.6;
+  const titleH = 4.4;
+  const padTop = 3;
+  const padBottom = 3;
+  const gap = 1;
   const boxH = padTop + razaoLines.length * titleH + gap + bodyLines.length * lineH + padBottom;
 
   doc.rect(boxX, y, boxW, boxH);
 
   let cy = y + padTop + titleH - 1;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
+  doc.setFontSize(9);
   for (const r of razaoLines) {
     doc.text(r, boxX + boxW / 2, cy, { align: "center" });
     cy += titleH;
   }
   cy += gap;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   for (const l of bodyLines) {
     doc.text(l, boxX + boxW / 2, cy, { align: "center" });
     cy += lineH;
