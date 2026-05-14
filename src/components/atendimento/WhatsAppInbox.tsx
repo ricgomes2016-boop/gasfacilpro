@@ -27,7 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ClienteFormDialog } from "@/components/clientes/ClienteFormDialog";
-import { useClientes, type ClienteForm } from "@/hooks/useClientes";
+import type { ClienteForm } from "@/hooks/useClientes";
 
 interface Conversa {
   id: string;
