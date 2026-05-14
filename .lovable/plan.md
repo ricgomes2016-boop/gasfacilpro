@@ -1,38 +1,56 @@
-## Problema
+## O que vamos resolver
 
-Em `ai_mensagens` há respostas como:
-- "O nosso gás P13 (aquele botijão **azul padrão** de cozinha) está R$ 125,00…"
-- "O nosso gás P13 (aquele botijão comum de casa) tá saindo por R$ 125,00…"
+Na inbox WhatsApp (`WhatsAppInbox.tsx`):
+1. Carregar foto de perfil do cliente (igual WhatsApp normal).
+2. Tirar o prefixo "WhatsApp:" do nome/número.
+3. Adicionar ações por conversa: **apagar conversa**, **editar cliente** e **vincular ao cadastro**.
 
-A cor/marca do botijão é uma **alucinação** do modelo. O prompt em `supabase/functions/_shared/bia-core.ts` (`buildSystemPrompt`) não proíbe descrever atributos visuais, e o catálogo enviado contém só `nome, preco, estoque, categoria` — sem cor.
+## Diagnóstico
 
-Resultado: clientes podem receber descrição errada (a marca de botijão da Central Gás não é azul) e isso vira ruído de credibilidade.
+- Hoje todas as conversas são salvas como `titulo = "WhatsApp: <nome|telefone>"` em 3 lugares: `evolution-webhook/index.ts:123`, `meta-webhook/index.ts:208` e `NovaConversaDialog.tsx:111`.
+- A coluna `ai_conversas.foto_url` já existe e há a função `whatsapp-refresh-profile` que busca a foto via Evolution/Meta — mas só é chamada **quando a conversa é aberta**. Por isso `has_foto = false` em todas as linhas.
+- Não existe policy `DELETE` em `ai_conversas` — precisa criar para permitir apagar.
+- `ai_mensagens` já tem `ON DELETE CASCADE` apontando para `ai_conversas`, então apagar a conversa apaga as mensagens automaticamente.
 
-## Correção (1 arquivo)
+## Mudanças
 
-Em `supabase/functions/_shared/bia-core.ts`, dentro de `buildSystemPrompt` (no bloco "REGRAS DE OURO", logo após a regra de "PREÇO RÍGIDO"), adicionar uma nova regra crítica:
+### 1. Remover prefixo "WhatsApp:"
 
-```text
-4. NUNCA invente atributos físicos do produto: NÃO descreva cor do botijão
-   (ex: "azul", "vermelho", "padrão"), NÃO cite marca (Ultragaz, Liquigás,
-   Copagaz, Supergasbras, Nacional Gás, etc.), NÃO descreva o visual nem
-   diga "padrão" / "comum" / "tradicional". Refira-se ao produto APENAS pelo
-   nome cadastrado (ex: "Gás P13", "Gás P20", "Gás P45", "Água 20L"). Se o
-   cliente perguntar a marca/cor, responda: "Trabalhamos com a marca
-   disponível no momento — pode variar por entrega. O importante é que é
-   gás original, lacrado e dentro da validade. 😊"
-```
+- `supabase/functions/evolution-webhook/index.ts` (linha 123) e `supabase/functions/meta-webhook/index.ts` (linha 208): trocar `\`WhatsApp: ${...}\`` por apenas `${cliente.nome || senderName || normalized}`.
+- `src/components/atendimento/NovaConversaDialog.tsx` (linha 111): salvar `titulo: titulo || phone` (sem prefixo).
+- Migration de backfill: `UPDATE ai_conversas SET titulo = regexp_replace(titulo, '^WhatsApp:\s*', '') WHERE titulo LIKE 'WhatsApp:%'`.
+- Redeploy: `evolution-webhook`, `meta-webhook`, `gateway-webhook`, `uazapi-webhook`, `zapi-webhook` (todos importam `bia-core`).
 
-E reforçar uma linha curta no bloco "ANTI-REPETIÇÃO" (ou criar um mini-bloco "ANTI-INVENÇÃO") pedindo explicitamente para não adicionar parênteses descritivos do tipo "(aquele botijão …)".
+### 2. Carregar foto do cliente automaticamente
 
-## Por que assim
+Estratégia: buscar a foto **uma vez por conversa**, em background, sem travar a renderização — e guardar em `foto_url` para reuso.
 
-- Mudança apenas no prompt → zero impacto em rotas, RLS, edge functions, banco.
-- Não muda comportamento de pedido, preço, fluxo, finalização.
-- Resolve para qualquer empresa do tenant (não é específico da Central Gás).
-- Não precisa de migration nem de mexer em `App.tsx`.
+- No `WhatsAppInbox.tsx`, após carregar a lista de conversas, disparar `whatsapp-refresh-profile` (em fila, com pequeno delay entre chamadas — ex: 300ms) **somente** para conversas onde `foto_url IS NULL` e `unidade_id IS NOT NULL`. Atualizar o estado local conforme cada resposta retorna.
+- Limitar a, por exemplo, 30 fotos por carga inicial para não estourar rate limit do provedor; o resto preenche conforme o usuário seleciona a conversa (já existe esse caminho).
+- A função `whatsapp-refresh-profile` já persiste em `ai_conversas.foto_url`, então nas próximas aberturas a foto vem direto do banco e é mostrada pelo `ChatAvatar`.
+
+### 3. Apagar conversa, editar cliente, vincular ao cadastro
+
+- **Migration**: criar policy `DELETE` em `ai_conversas` para `admin`/`gestor`/`operacional` da mesma `empresa_id` (mesmo padrão das policies já existentes).
+- **UI** em `WhatsAppInbox.tsx`:
+  - Em cada linha da lista, botão "⋮" (DropdownMenu do shadcn) com:
+    - **Apagar conversa** → confirmação (AlertDialog) → `supabase.from("ai_conversas").delete().eq("id", c.id)` → remove do estado local + toast.
+  - No header do chat aberto (à direita), mesmo "⋮" com:
+    - **Vincular ao cadastro** (aparece quando o telefone não bate com nenhum cliente): abre dialog de busca em `clientes` por nome/telefone com opção "criar novo cliente" (já temos `NovoClienteDialog` reutilizável). Ao selecionar/criar, gravar o `telefone` no cliente para que futuras mensagens identifiquem.
+    - **Editar cliente** (aparece quando há cliente vinculado): abre o modal padrão de edição de cliente (`ClienteFormDialog` já usado em `/clientes`).
+    - **Apagar conversa** (mesma ação acima).
+- Detecção do vínculo: `select id from clientes where telefone = <normalizado> and unidade_id = <conv.unidade_id>` ao abrir a conversa.
 
 ## Fora de escopo
 
-- Não vou cadastrar marca/cor no produto — se no futuro a empresa quiser que a Bia diga a marca real, criamos um campo `marca` em `produtos` e injetamos no prompt. Hoje não existe.
-- Não vou regenerar respostas antigas já enviadas no WhatsApp.
+- Não vou mexer em rotas, `App.tsx`, providers, nem em outras páginas.
+- Não vou alterar a lógica do bot (`bia-core.ts`) além da string do `titulo` nos webhooks.
+- Não vou criar um novo cadastro de cliente automaticamente sem o usuário clicar — só via "vincular ao cadastro".
+
+## Detalhes técnicos
+
+- Componente afetado: `src/components/atendimento/WhatsAppInbox.tsx` (apenas adições — header, dropdown, dialogs, fila de fotos).
+- Edge functions: `evolution-webhook/index.ts`, `meta-webhook/index.ts` (1 linha cada).
+- Component: `src/components/atendimento/NovaConversaDialog.tsx` (1 linha).
+- Migration: 1 update para limpar títulos antigos + 1 policy `DELETE`.
+- Reutilizar `ClienteFormDialog`/`NovoClienteDialog` existentes — não criar novos formulários.

@@ -14,12 +14,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Send, Search, MessageSquare, ArrowLeft, Bot, Headset, User, Smile, Paperclip, Mic, SquarePen, X, Trash2, FileText, Download } from "lucide-react";
+import { Send, Search, MessageSquare, ArrowLeft, Bot, Headset, User, Smile, Paperclip, Mic, SquarePen, X, Trash2, FileText, Download, MoreVertical, UserPlus, UserCog } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useWhatsAppNotifications } from "@/contexts/WhatsAppNotificationContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { NovaConversaDialog } from "./NovaConversaDialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { ClienteFormDialog } from "@/components/clientes/ClienteFormDialog";
+import type { ClienteForm } from "@/hooks/useClientes";
 
 interface Conversa {
   id: string;
@@ -94,6 +102,16 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const { toast } = useToast();
   const { unreadByConversation, setSelectedConversaId, markAsRead } = useWhatsAppNotifications();
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
+
+  // Ações por conversa
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkSearch, setLinkSearch] = useState("");
+  const [linkResults, setLinkResults] = useState<Array<{ id: string; nome: string; telefone: string | null }>>([]);
+  const [editClienteOpen, setEditClienteOpen] = useState(false);
+  const [editClienteData, setEditClienteData] = useState<{ id: string; form: ClienteForm } | null>(null);
+  const [clienteByConv, setClienteByConv] = useState<Record<string, { id: string; nome: string } | null>>({});
 
   // Sync selection with global context
   useEffect(() => {
@@ -177,6 +195,31 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
 
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  // Background fetch profile photos for conversations missing foto_url (queued, throttled)
+  useEffect(() => {
+    if (!conversas.length) return;
+    const pending = conversas.filter((c) => !c.foto_url && c.unidade_id).slice(0, 30);
+    if (!pending.length) return;
+    let cancelled = false;
+    (async () => {
+      for (const c of pending) {
+        if (cancelled) return;
+        try {
+          const { data: r }: any = await supabase.functions.invoke("whatsapp-refresh-profile", {
+            body: { unidade_id: c.unidade_id, conversa_id: c.id },
+          });
+          if (!cancelled && r?.contato_foto_url) {
+            setConversas((prev) => prev.map((x) => x.id === c.id ? { ...x, foto_url: r.contato_foto_url } : x));
+          }
+        } catch { /* ignore */ }
+        await new Promise((res) => setTimeout(res, 350));
+      }
+    })();
+    return () => { cancelled = true; };
+    // Only react to changes in the set of conversation ids — não reexecutar quando outras props mudam
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversas.map((c) => c.id).join(",")]);
 
   useEffect(() => {
     if (!selectedId) { setMensagens([]); return; }
@@ -347,6 +390,145 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     }
   };
 
+  // Look up linked client by phone whenever a conversation is opened
+  useEffect(() => {
+    if (!selectedId) return;
+    const conv = conversas.find((c) => c.id === selectedId);
+    if (!conv?.telefone || !empresa?.id) {
+      setClienteByConv((prev) => ({ ...prev, [selectedId]: null }));
+      return;
+    }
+    if (clienteByConv[selectedId] !== undefined) return;
+    const digits = (conv.telefone || "").replace(/\D/g, "");
+    (async () => {
+      const { data } = await supabase
+        .from("clientes")
+        .select("id, nome, telefone")
+        .eq("empresa_id", empresa.id)
+        .ilike("telefone", `%${digits.slice(-9)}%`)
+        .limit(5);
+      const match = (data || []).find((c) => (c.telefone || "").replace(/\D/g, "").endsWith(digits.slice(-9))) || null;
+      setClienteByConv((prev) => ({ ...prev, [selectedId]: match ? { id: match.id, nome: match.nome } : null }));
+    })();
+  }, [selectedId, conversas, empresa?.id, clienteByConv]);
+
+  // ===== Ações por conversa =====
+  const handleDeleteConversa = async (conversaId: string) => {
+    const { error } = await supabase.from("ai_conversas").delete().eq("id", conversaId);
+    if (error) {
+      toast({ title: "Erro ao apagar", description: error.message, variant: "destructive" });
+      return;
+    }
+    setConversas((prev) => prev.filter((c) => c.id !== conversaId));
+    if (selectedId === conversaId) setSelectedId(null);
+    setConfirmDeleteId(null);
+    toast({ title: "Conversa apagada" });
+  };
+
+  const handleOpenLinkDialog = async () => {
+    setLinkSearch("");
+    setLinkResults([]);
+    setLinkDialogOpen(true);
+    if (empresa?.id) {
+      const { data } = await supabase
+        .from("clientes")
+        .select("id, nome, telefone")
+        .eq("empresa_id", empresa.id)
+        .eq("ativo", true)
+        .order("nome")
+        .limit(20);
+      setLinkResults((data || []) as any);
+    }
+  };
+
+  const searchLink = async (term: string) => {
+    setLinkSearch(term);
+    if (!empresa?.id) return;
+    const t = term.trim();
+    const digits = t.replace(/\D/g, "");
+    let q = supabase.from("clientes").select("id, nome, telefone").eq("empresa_id", empresa.id).eq("ativo", true).limit(20);
+    if (t) {
+      q = digits.length >= 3
+        ? q.or(`nome.ilike.%${t}%,telefone.ilike.%${digits}%`)
+        : q.ilike("nome", `%${t}%`);
+    } else {
+      q = q.order("nome");
+    }
+    const { data } = await q;
+    setLinkResults((data || []) as any);
+  };
+
+  const linkClienteToConversa = async (clienteId: string, clienteNome: string) => {
+    if (!selectedId) return;
+    const conv = conversas.find((c) => c.id === selectedId);
+    const phone = conv?.telefone;
+    if (!phone) return;
+    const { error } = await supabase.from("clientes").update({ telefone: phone }).eq("id", clienteId);
+    if (error) {
+      toast({ title: "Erro ao vincular", description: error.message, variant: "destructive" });
+      return;
+    }
+    await supabase.from("ai_conversas").update({ titulo: clienteNome }).eq("id", selectedId);
+    setConversas((prev) => prev.map((c) => c.id === selectedId ? { ...c, titulo: clienteNome } : c));
+    setClienteByConv((prev) => ({ ...prev, [selectedId]: { id: clienteId, nome: clienteNome } }));
+    setLinkDialogOpen(false);
+    toast({ title: "Cliente vinculado", description: clienteNome });
+  };
+
+  const openEditCliente = async () => {
+    if (!selectedId) return;
+    const link = clienteByConv[selectedId];
+    if (!link) return;
+    const { data } = await supabase.from("clientes").select("*").eq("id", link.id).maybeSingle();
+    if (!data) {
+      toast({ title: "Cliente não encontrado", variant: "destructive" });
+      return;
+    }
+    setEditClienteData({
+      id: link.id,
+      form: {
+        nome: data.nome || "",
+        telefone: data.telefone || "",
+        email: data.email || "",
+        cpf: data.cpf || "",
+        endereco: data.endereco || "",
+        numero: data.numero || "",
+        bairro: data.bairro || "",
+        cidade: data.cidade || "",
+        cep: data.cep || "",
+        tipo: data.tipo || "residencial",
+        latitude: data.latitude,
+        longitude: data.longitude,
+      },
+    });
+    setEditClienteOpen(true);
+  };
+
+  const saveClienteInline = async (form: ClienteForm, editId?: string): Promise<boolean> => {
+    if (!editId) return false;
+    const { error } = await supabase.from("clientes").update({
+      nome: form.nome,
+      telefone: form.telefone || null,
+      email: form.email || null,
+      cpf: form.cpf || null,
+      endereco: form.endereco || null,
+      numero: form.numero || null,
+      bairro: form.bairro || null,
+      cidade: form.cidade || null,
+      cep: form.cep || null,
+      tipo: form.tipo,
+      latitude: form.latitude,
+      longitude: form.longitude,
+    }).eq("id", editId);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      return false;
+    }
+    toast({ title: "Cliente atualizado" });
+    if (selectedId) setClienteByConv((prev) => ({ ...prev, [selectedId]: { id: editId, nome: form.nome } }));
+    return true;
+  };
+
   const filtered = conversas
     .filter((c) => c.titulo.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
@@ -423,13 +605,16 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
               const unread = unreadByConversation[c.id] || 0;
               const isSelected = selectedId === c.id;
               return (
-                <button
+                <div
                   key={c.id}
-                  onClick={() => setSelectedId(c.id)}
                   className={cn(
-                    "w-full flex items-center gap-3 px-3 py-3 text-left transition-colors border-b border-[#e9edef]",
+                    "group relative w-full flex items-center gap-3 px-3 py-3 text-left transition-colors border-b border-[#e9edef] cursor-pointer",
                     isSelected ? "bg-[#f0f2f5]" : "hover:bg-[#f5f6f6]"
                   )}
+                  onClick={() => setSelectedId(c.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedId(c.id); } }}
                 >
                   {/* Avatar */}
                   <ChatAvatar url={c.foto_url} name={c.titulo} size="md" />
@@ -460,7 +645,28 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                       )}
                     </div>
                   </div>
-                </button>
+
+                  {/* Row actions */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <button
+                        className="opacity-0 group-hover:opacity-100 focus:opacity-100 data-[state=open]:opacity-100 p-1.5 rounded-full hover:bg-[#e9edef] transition"
+                        aria-label="Ações da conversa"
+                      >
+                        <MoreVertical className="h-4 w-4 text-[#54656f]" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(c.id); }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Apagar conversa
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               );
             })
           )}
@@ -516,11 +722,33 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
               <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors">
                 <Search className="h-5 w-5 text-[#54656f]" />
               </button>
-              <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors">
-                <svg viewBox="0 0 24 24" width="20" height="20" className="text-[#54656f]">
-                  <path fill="currentColor" d="M12 7a2 2 0 1 0-.001-4.001A2 2 0 0 0 12 7zm0 2a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 9zm0 6a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 15z"/>
-                </svg>
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors" aria-label="Mais opções">
+                    <MoreVertical className="h-5 w-5 text-[#54656f]" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {selectedId && clienteByConv[selectedId] ? (
+                    <DropdownMenuItem onClick={openEditCliente}>
+                      <UserCog className="h-4 w-4 mr-2" />
+                      Editar cliente ({clienteByConv[selectedId]?.nome})
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={handleOpenLinkDialog}>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Vincular ao cadastro
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => selectedId && setConfirmDeleteId(selectedId)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Apagar conversa
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
             {/* Messages Area - WhatsApp doodle background */}
@@ -757,6 +985,75 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
         onOpenChange={setNovaOpen}
         onCreated={(id) => setSelectedId(id)}
       />
+
+      {/* Confirmação de apagar conversa */}
+      <AlertDialog open={!!confirmDeleteId} onOpenChange={(o) => !o && setConfirmDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar esta conversa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todas as mensagens desta conversa serão removidas permanentemente. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={() => confirmDeleteId && handleDeleteConversa(confirmDeleteId)}
+            >
+              Apagar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Vincular ao cadastro */}
+      <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vincular ao cadastro</DialogTitle>
+            <DialogDescription>
+              Selecione um cliente para vincular ao telefone {selectedConversa?.telefone}.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            placeholder="Buscar por nome ou telefone..."
+            value={linkSearch}
+            onChange={(e) => searchLink(e.target.value)}
+            autoFocus
+          />
+          <div className="max-h-72 overflow-y-auto divide-y border rounded-md">
+            {linkResults.length === 0 ? (
+              <p className="text-sm text-muted-foreground p-4 text-center">Nenhum cliente encontrado</p>
+            ) : (
+              linkResults.map((cli) => (
+                <button
+                  key={cli.id}
+                  className="w-full text-left p-3 hover:bg-muted transition"
+                  onClick={() => linkClienteToConversa(cli.id, cli.nome)}
+                >
+                  <p className="font-medium text-sm">{cli.nome}</p>
+                  {cli.telefone && <p className="text-xs text-muted-foreground">{cli.telefone}</p>}
+                </button>
+              ))
+            )}
+          </div>
+          <div className="flex justify-end">
+            <Button variant="ghost" onClick={() => setLinkDialogOpen(false)}>Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Editar cliente */}
+      {editClienteData && (
+        <ClienteFormDialog
+          open={editClienteOpen}
+          onOpenChange={setEditClienteOpen}
+          initialData={editClienteData.form}
+          editId={editClienteData.id}
+          onSave={saveClienteInline}
+        />
+      )}
     </div>
   );
 }
