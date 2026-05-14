@@ -825,6 +825,21 @@ export default function Orcamentos() {
                   <Textarea value={fObs} onChange={(e) => setFObs(e.target.value)} rows={2} />
                 </div>
 
+                <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2">
+                  <Label className="text-xs whitespace-nowrap">Tamanho do carimbo:</Label>
+                  <Select value={carimboTamanho} onValueChange={(v) => setCarimboTamanho(v as CarimboTamanho)}>
+                    <SelectTrigger className="h-8 w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="padrao">Padrão</SelectItem>
+                      <SelectItem value="compacto">Compacto</SelectItem>
+                      <SelectItem value="pequeno">Pequeno</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span className="text-[11px] text-muted-foreground ml-auto">Salvo automaticamente</span>
+                </div>
+
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
