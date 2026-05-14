@@ -306,6 +306,7 @@ export default function Orcamentos() {
         observacoes: fObs,
         empresa_id: empresa?.id,
         unidade_id: unidadeAtual.id,
+        carimbo_tamanho: carimboTamanho,
       });
       return orc;
     },
