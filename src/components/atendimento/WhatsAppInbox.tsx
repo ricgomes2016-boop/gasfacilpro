@@ -390,6 +390,145 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     }
   };
 
+  // Look up linked client by phone whenever a conversation is opened
+  useEffect(() => {
+    if (!selectedId) return;
+    const conv = conversas.find((c) => c.id === selectedId);
+    if (!conv?.telefone || !empresa?.id) {
+      setClienteByConv((prev) => ({ ...prev, [selectedId]: null }));
+      return;
+    }
+    if (clienteByConv[selectedId] !== undefined) return;
+    const digits = (conv.telefone || "").replace(/\D/g, "");
+    (async () => {
+      const { data } = await supabase
+        .from("clientes")
+        .select("id, nome, telefone")
+        .eq("empresa_id", empresa.id)
+        .ilike("telefone", `%${digits.slice(-9)}%`)
+        .limit(5);
+      const match = (data || []).find((c) => (c.telefone || "").replace(/\D/g, "").endsWith(digits.slice(-9))) || null;
+      setClienteByConv((prev) => ({ ...prev, [selectedId]: match ? { id: match.id, nome: match.nome } : null }));
+    })();
+  }, [selectedId, conversas, empresa?.id, clienteByConv]);
+
+  // ===== Ações por conversa =====
+  const handleDeleteConversa = async (conversaId: string) => {
+    const { error } = await supabase.from("ai_conversas").delete().eq("id", conversaId);
+    if (error) {
+      toast({ title: "Erro ao apagar", description: error.message, variant: "destructive" });
+      return;
+    }
+    setConversas((prev) => prev.filter((c) => c.id !== conversaId));
+    if (selectedId === conversaId) setSelectedId(null);
+    setConfirmDeleteId(null);
+    toast({ title: "Conversa apagada" });
+  };
+
+  const handleOpenLinkDialog = async () => {
+    setLinkSearch("");
+    setLinkResults([]);
+    setLinkDialogOpen(true);
+    if (empresa?.id) {
+      const { data } = await supabase
+        .from("clientes")
+        .select("id, nome, telefone")
+        .eq("empresa_id", empresa.id)
+        .eq("ativo", true)
+        .order("nome")
+        .limit(20);
+      setLinkResults((data || []) as any);
+    }
+  };
+
+  const searchLink = async (term: string) => {
+    setLinkSearch(term);
+    if (!empresa?.id) return;
+    const t = term.trim();
+    const digits = t.replace(/\D/g, "");
+    let q = supabase.from("clientes").select("id, nome, telefone").eq("empresa_id", empresa.id).eq("ativo", true).limit(20);
+    if (t) {
+      q = digits.length >= 3
+        ? q.or(`nome.ilike.%${t}%,telefone.ilike.%${digits}%`)
+        : q.ilike("nome", `%${t}%`);
+    } else {
+      q = q.order("nome");
+    }
+    const { data } = await q;
+    setLinkResults((data || []) as any);
+  };
+
+  const linkClienteToConversa = async (clienteId: string, clienteNome: string) => {
+    if (!selectedId) return;
+    const conv = conversas.find((c) => c.id === selectedId);
+    const phone = conv?.telefone;
+    if (!phone) return;
+    const { error } = await supabase.from("clientes").update({ telefone: phone }).eq("id", clienteId);
+    if (error) {
+      toast({ title: "Erro ao vincular", description: error.message, variant: "destructive" });
+      return;
+    }
+    await supabase.from("ai_conversas").update({ titulo: clienteNome }).eq("id", selectedId);
+    setConversas((prev) => prev.map((c) => c.id === selectedId ? { ...c, titulo: clienteNome } : c));
+    setClienteByConv((prev) => ({ ...prev, [selectedId]: { id: clienteId, nome: clienteNome } }));
+    setLinkDialogOpen(false);
+    toast({ title: "Cliente vinculado", description: clienteNome });
+  };
+
+  const openEditCliente = async () => {
+    if (!selectedId) return;
+    const link = clienteByConv[selectedId];
+    if (!link) return;
+    const { data } = await supabase.from("clientes").select("*").eq("id", link.id).maybeSingle();
+    if (!data) {
+      toast({ title: "Cliente não encontrado", variant: "destructive" });
+      return;
+    }
+    setEditClienteData({
+      id: link.id,
+      form: {
+        nome: data.nome || "",
+        telefone: data.telefone || "",
+        email: data.email || "",
+        cpf: data.cpf || "",
+        endereco: data.endereco || "",
+        numero: data.numero || "",
+        bairro: data.bairro || "",
+        cidade: data.cidade || "",
+        cep: data.cep || "",
+        tipo: data.tipo || "residencial",
+        latitude: data.latitude,
+        longitude: data.longitude,
+      },
+    });
+    setEditClienteOpen(true);
+  };
+
+  const saveClienteInline = async (form: ClienteForm, editId?: string): Promise<boolean> => {
+    if (!editId) return false;
+    const { error } = await supabase.from("clientes").update({
+      nome: form.nome,
+      telefone: form.telefone || null,
+      email: form.email || null,
+      cpf: form.cpf || null,
+      endereco: form.endereco || null,
+      numero: form.numero || null,
+      bairro: form.bairro || null,
+      cidade: form.cidade || null,
+      cep: form.cep || null,
+      tipo: form.tipo,
+      latitude: form.latitude,
+      longitude: form.longitude,
+    }).eq("id", editId);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      return false;
+    }
+    toast({ title: "Cliente atualizado" });
+    if (selectedId) setClienteByConv((prev) => ({ ...prev, [selectedId]: { id: editId, nome: form.nome } }));
+    return true;
+  };
+
   const filtered = conversas
     .filter((c) => c.titulo.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
