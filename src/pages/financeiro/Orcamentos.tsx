@@ -825,9 +825,14 @@ export default function Orcamentos() {
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-0.5 opacity-70 group-hover:opacity-100 transition-opacity">
                               {isFundepar && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Imprimir Fundepar" onClick={() => reimprimirFundepar(orc)}>
-                                  <Printer className="h-4 w-4" />
-                                </Button>
+                                <>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar Fundepar" onClick={() => editFundepar(orc)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Imprimir Fundepar" onClick={() => reimprimirFundepar(orc)}>
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                </>
                               )}
                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedOrcamento(orc); setViewDialogOpen(true); }}>
                                 <Eye className="h-4 w-4" />
