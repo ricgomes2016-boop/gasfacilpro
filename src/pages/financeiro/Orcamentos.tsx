@@ -23,7 +23,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Plus, Search, FileText, Trash2, Eye, Copy, ChevronsUpDown, Check,
-  DollarSign, Clock, CheckCircle2, TrendingUp, ReceiptText, Printer, ChevronDown
+  DollarSign, Clock, CheckCircle2, TrendingUp, ReceiptText, Printer, ChevronDown, Pencil
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -83,6 +83,7 @@ export default function Orcamentos() {
     { descricao: "", quantidade: 1, preco_unitario: 0, subtotal: 0 },
   ]);
   const [fProdutoOpenIdx, setFProdutoOpenIdx] = useState<number | null>(null);
+  const [editingFundeparId, setEditingFundeparId] = useState<string | null>(null);
 
   // Clientes — RPC server-side com debounce
   const { data: clientes = [] } = useQuery({
@@ -194,26 +195,51 @@ export default function Orcamentos() {
     mutationFn: async () => {
       if (!unidadeAtual?.id) throw new Error("Selecione uma unidade");
       const valorTotal = fItens.reduce((s, i) => s + i.subtotal, 0);
-      const { data: orc, error } = await supabase
-        .from("orcamentos")
-        .insert({
-          tipo: "fundepar",
-          cliente_nome: fEstabelecimento || "FUNDEPAR",
-          municipio: fMunicipio || undefined,
-          nre: fNre || undefined,
-          estabelecimento: fEstabelecimento || undefined,
-          forma_pagamento: fFormaPag || "À VISTA",
-          validade_inicio: fValidadeIni || undefined,
-          validade: fValidadeFim || undefined,
-          observacoes: fObs,
-          desconto: 0,
-          valor_total: valorTotal,
-          created_by: user?.id,
-          unidade_id: unidadeAtual.id,
-        } as any)
-        .select()
-        .single();
-      if (error) throw error;
+      let orc: any;
+
+      if (editingFundeparId) {
+        const { data, error } = await supabase
+          .from("orcamentos")
+          .update({
+            cliente_nome: fEstabelecimento || "FUNDEPAR",
+            municipio: fMunicipio || null,
+            nre: fNre || null,
+            estabelecimento: fEstabelecimento || null,
+            forma_pagamento: fFormaPag || "À VISTA",
+            validade_inicio: fValidadeIni || null,
+            validade: fValidadeFim || null,
+            observacoes: fObs,
+            valor_total: valorTotal,
+          } as any)
+          .eq("id", editingFundeparId)
+          .select()
+          .single();
+        if (error) throw error;
+        orc = data;
+        await supabase.from("orcamento_itens").delete().eq("orcamento_id", editingFundeparId);
+      } else {
+        const { data, error } = await supabase
+          .from("orcamentos")
+          .insert({
+            tipo: "fundepar",
+            cliente_nome: fEstabelecimento || "FUNDEPAR",
+            municipio: fMunicipio || undefined,
+            nre: fNre || undefined,
+            estabelecimento: fEstabelecimento || undefined,
+            forma_pagamento: fFormaPag || "À VISTA",
+            validade_inicio: fValidadeIni || undefined,
+            validade: fValidadeFim || undefined,
+            observacoes: fObs,
+            desconto: 0,
+            valor_total: valorTotal,
+            created_by: user?.id,
+            unidade_id: unidadeAtual.id,
+          } as any)
+          .select()
+          .single();
+        if (error) throw error;
+        orc = data;
+      }
 
       const itensToInsert = fItens
         .filter((i) => i.descricao.trim())
@@ -230,7 +256,6 @@ export default function Orcamentos() {
         if (ie) throw ie;
       }
 
-      // Imprime imediatamente
       await imprimirFundepar({
         numero: orc.numero,
         municipio: fMunicipio,
@@ -248,7 +273,7 @@ export default function Orcamentos() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orcamentos"] });
-      toast.success("Orçamento Fundepar criado!");
+      toast.success(editingFundeparId ? "Orçamento Fundepar atualizado!" : "Orçamento Fundepar criado!");
       resetFundepar();
       setFundeparOpen(false);
     },
@@ -296,6 +321,28 @@ export default function Orcamentos() {
     setFValidadeFim("");
     setFObs("");
     setFItens([{ descricao: "", quantidade: 1, preco_unitario: 0, subtotal: 0 }]);
+    setEditingFundeparId(null);
+  };
+
+  const editFundepar = async (orc: any) => {
+    setEditingFundeparId(orc.id);
+    setFMunicipio(orc.municipio || "");
+    setFNre(orc.nre || "");
+    setFEstabelecimento(orc.estabelecimento || orc.cliente_nome || "");
+    setFFormaPag(orc.forma_pagamento || "À VISTA");
+    setFValidadeIni(orc.validade_inicio || "");
+    setFValidadeFim(orc.validade || "");
+    setFObs(orc.observacoes || "");
+    const { data: its } = await supabase.from("orcamento_itens").select("*").eq("orcamento_id", orc.id);
+    const loaded = (its || []).map((i: any) => ({
+      descricao: i.descricao,
+      quantidade: Number(i.quantidade),
+      preco_unitario: Number(i.preco_unitario),
+      subtotal: Number(i.subtotal),
+      produto_id: i.produto_id || undefined,
+    }));
+    setFItens(loaded.length ? loaded : [{ descricao: "", quantidade: 1, preco_unitario: 0, subtotal: 0 }]);
+    setFundeparOpen(true);
   };
 
   const selectCliente = (c: any) => {
@@ -595,7 +642,7 @@ export default function Orcamentos() {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <div className="rounded-lg bg-blue-600 p-1.5"><FileText className="h-4 w-4 text-white" /></div>
-                  Orçamento Fundepar — Pesquisa de Preço
+                  {editingFundeparId ? "Editar Orçamento Fundepar" : "Orçamento Fundepar — Pesquisa de Preço"}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
@@ -717,7 +764,7 @@ export default function Orcamentos() {
                     onClick={() => createFundeparMutation.mutate()}
                     disabled={!unidadeAtual || createFundeparMutation.isPending}
                   >
-                    {createFundeparMutation.isPending ? "Salvando..." : (<><CheckCircle2 className="h-4 w-4" />Salvar e Imprimir</>)}
+                    {createFundeparMutation.isPending ? "Salvando..." : (<><CheckCircle2 className="h-4 w-4" />{editingFundeparId ? "Atualizar e Imprimir" : "Salvar e Imprimir"}</>)}
                   </Button>
                 </div>
               </div>
@@ -778,9 +825,14 @@ export default function Orcamentos() {
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-0.5 opacity-70 group-hover:opacity-100 transition-opacity">
                               {isFundepar && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8" title="Imprimir Fundepar" onClick={() => reimprimirFundepar(orc)}>
-                                  <Printer className="h-4 w-4" />
-                                </Button>
+                                <>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar Fundepar" onClick={() => editFundepar(orc)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Imprimir Fundepar" onClick={() => reimprimirFundepar(orc)}>
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                </>
                               )}
                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedOrcamento(orc); setViewDialogOpen(true); }}>
                                 <Eye className="h-4 w-4" />
