@@ -28,6 +28,9 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { imprimirFundepar, type CarimboTamanho } from "@/services/orcamentoFundeparPdfService";
+import { Switch } from "@/components/ui/switch";
+import { useAssinaturaDigital } from "@/hooks/useAssinaturaDigital";
+import { ShieldCheck, ShieldAlert } from "lucide-react";
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   pendente: { label: "Pendente", color: "bg-amber-500/15 text-amber-600 border-amber-500/30 dark:text-amber-400", icon: <Clock className="h-3 w-3" /> },
@@ -95,6 +98,7 @@ export default function Orcamentos() {
   };
   const [estabOpen, setEstabOpen] = useState(false);
   const [estabSearch, setEstabSearch] = useState("");
+  const assinatura = useAssinaturaDigital();
 
   // Busca de estabelecimento no cadastro de clientes (nome ou CNPJ)
   const { data: estabResultados = [] } = useQuery({
