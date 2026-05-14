@@ -15,11 +15,22 @@ function b64ToBytes(b64: string): Uint8Array {
   return out;
 }
 
+export interface AssinaturaVisivel {
+  /** Página 1-based; default = última */
+  pagina?: number;
+  /** Coordenadas em pontos PDF (origem inferior-esquerda) */
+  x: number;
+  y: number;
+  largura: number;
+  altura: number;
+}
+
 export interface AssinarOpts {
   unidadeId: string;
   motivo?: string;
   local?: string;
   contato?: string;
+  visivel?: AssinaturaVisivel;
 }
 
 export interface AssinarResultado {
