@@ -764,7 +764,7 @@ export default function Orcamentos() {
                     onClick={() => createFundeparMutation.mutate()}
                     disabled={!unidadeAtual || createFundeparMutation.isPending}
                   >
-                    {createFundeparMutation.isPending ? "Salvando..." : (<><CheckCircle2 className="h-4 w-4" />Salvar e Imprimir</>)}
+                    {createFundeparMutation.isPending ? "Salvando..." : (<><CheckCircle2 className="h-4 w-4" />{editingFundeparId ? "Atualizar e Imprimir" : "Salvar e Imprimir"}</>)}
                   </Button>
                 </div>
               </div>
