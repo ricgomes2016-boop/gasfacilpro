@@ -763,7 +763,7 @@ export default function Orcamentos() {
                     className="flex-1 gap-2"
                     onClick={() =>
                       imprimirFundepar({
-                        municipio: fMunicipio, nre: fNre, estabelecimento: fEstabelecimento,
+                        municipio: fMunicipio, nre: fNre, estabelecimento: fEstabelecimento, cnpj_escola: fCnpjEscola,
                         forma_pagamento: fFormaPag, validade_inicio: fValidadeIni, validade: fValidadeFim,
                         itens: fItens, observacoes: fObs,
                         empresa_id: empresa?.id, unidade_id: unidadeAtual?.id,
