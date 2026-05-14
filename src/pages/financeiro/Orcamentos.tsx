@@ -672,9 +672,15 @@ export default function Orcamentos() {
                     <Input value={fFormaPag} onChange={(e) => setFFormaPag(e.target.value)} />
                   </div>
                 </div>
-                <div>
-                  <Label>Estabelecimento</Label>
-                  <Input value={fEstabelecimento} onChange={(e) => setFEstabelecimento(e.target.value)} placeholder="Ex.: ZULMIRA MARCHESI DA SILVA, C E -EF M" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Estabelecimento</Label>
+                    <Input value={fEstabelecimento} onChange={(e) => setFEstabelecimento(e.target.value)} placeholder="Ex.: ZULMIRA MARCHESI DA SILVA, C E -EF M" />
+                  </div>
+                  <div>
+                    <Label>CNPJ da Escola</Label>
+                    <Input value={fCnpjEscola} onChange={(e) => setFCnpjEscola(e.target.value)} placeholder="00.000.000/0000-00" />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
