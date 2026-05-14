@@ -363,10 +363,15 @@ Deno.serve(async (req) => {
     }
 
     let pdfParaAssinar: Uint8Array;
+    let visivel: VisivelOpts | undefined = body?.visivel;
     if (acao === "amostra") {
       pdfParaAssinar = await gerarPdfAmostra(info);
+      visivel = visivel || { x: 50, y: 60, largura: 495, altura: 60 };
     } else {
       pdfParaAssinar = b64ToBytes(body.pdfBase64);
+      if (!visivel || typeof visivel.x !== "number" || typeof visivel.y !== "number") {
+        visivel = undefined;
+      }
     }
 
     const signedBytes = await assinarBytes(pdfParaAssinar, pfxBytes, pfxSenha, {
@@ -375,6 +380,7 @@ Deno.serve(async (req) => {
       motivo: acao === "amostra" ? "Teste de assinatura digital" : motivo,
       local,
       contato,
+      visivel,
     });
 
     return json({
