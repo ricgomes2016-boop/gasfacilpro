@@ -470,6 +470,7 @@ export default function Orcamentos() {
       observacoes: orc.observacoes,
       empresa_id: empresa?.id,
       unidade_id: orc.unidade_id || unidadeAtual?.id,
+      carimbo_tamanho: carimboTamanho,
     });
   };
 
