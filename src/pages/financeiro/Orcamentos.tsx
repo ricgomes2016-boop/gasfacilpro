@@ -23,7 +23,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Plus, Search, FileText, Trash2, Eye, Copy, ChevronsUpDown, Check,
-  DollarSign, Clock, CheckCircle2, TrendingUp, ReceiptText, Printer, ChevronDown
+  DollarSign, Clock, CheckCircle2, TrendingUp, ReceiptText, Printer, ChevronDown, Pencil
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
