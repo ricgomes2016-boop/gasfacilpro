@@ -360,7 +360,7 @@ export default function Orcamentos() {
     closeFn: () => void,
   ) => {
     const updated = [...list];
-    const preco = Number(produto.preco_venda) || 0;
+    const preco = Number(produto.preco ?? produto.preco_venda) || 0;
     updated[index] = {
       ...updated[index],
       descricao: produto.nome,
