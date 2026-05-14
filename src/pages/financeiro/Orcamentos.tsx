@@ -83,6 +83,7 @@ export default function Orcamentos() {
     { descricao: "", quantidade: 1, preco_unitario: 0, subtotal: 0 },
   ]);
   const [fProdutoOpenIdx, setFProdutoOpenIdx] = useState<number | null>(null);
+  const [editingFundeparId, setEditingFundeparId] = useState<string | null>(null);
 
   // Clientes — RPC server-side com debounce
   const { data: clientes = [] } = useQuery({
