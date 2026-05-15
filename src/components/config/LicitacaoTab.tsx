@@ -296,12 +296,17 @@ export function LicitacaoTab() {
           {/* Cabeçalho */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex items-center justify-between gap-2 flex-wrap">
                 <span>Pregão {selecionada.numero}</span>
-                <Button onClick={gerarPastaCompleta} disabled={generating} className="gap-2">
-                  {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
-                  Gerar Pasta Completa (ZIP)
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setEditorOpen("ident")} className="gap-2">
+                    <Pencil className="h-4 w-4" /> Editar Cabeçalho
+                  </Button>
+                  <Button onClick={gerarPastaCompleta} disabled={generating} className="gap-2">
+                    {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
+                    Gerar Pasta Completa (ZIP)
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
@@ -309,6 +314,7 @@ export function LicitacaoTab() {
               <div><span className="text-muted-foreground">Modalidade:</span> {selecionada.modalidade}</div>
               <div><span className="text-muted-foreground">Data:</span> {selecionada.data_publicacao || "—"}</div>
               <div><span className="text-muted-foreground">Empresa:</span> {empresa?.razao_social}</div>
+              {selecionada.objeto && <div className="col-span-full"><span className="text-muted-foreground">Objeto:</span> {selecionada.objeto}</div>}
             </CardContent>
           </Card>
 
