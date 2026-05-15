@@ -35,7 +35,34 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUnidade } from "@/contexts/UnidadeContext";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, LineChart, Line } from "recharts";
+import { Package, CreditCard, CalendarDays, Trophy } from "lucide-react";
+
+const formaPagamentoLabels: Record<string, string> = {
+  dinheiro: "Dinheiro",
+  pix: "PIX",
+  pix_maquininha: "PIX Maquininha",
+  cartao_credito: "Cartão Crédito",
+  cartao_debito: "Cartão Débito",
+  cheque: "Cheque",
+  vale_gas: "Vale Gás",
+  fiado: "Fiado",
+  outros: "Outros",
+};
+
+function normalizarFormaPagamento(raw: string | null | undefined): string {
+  if (!raw) return "outros";
+  const s = String(raw).toLowerCase().trim().replace(/\s+/g, "_").replace(/[áàâã]/g, "a").replace(/[éê]/g, "e").replace(/[í]/g, "i").replace(/[óôõ]/g, "o").replace(/[ú]/g, "u").replace(/[ç]/g, "c");
+  if (s.includes("dinheiro") || s === "cash" || s.includes("especie")) return "dinheiro";
+  if (s.includes("pix_maq") || s.includes("pix-maq")) return "pix_maquininha";
+  if (s === "pix" || s.includes("pix")) return "pix";
+  if (s.includes("credit")) return "cartao_credito";
+  if (s.includes("debit")) return "cartao_debito";
+  if (s.includes("cheque")) return "cheque";
+  if (s.includes("vale") || s.includes("gas_gratis")) return "vale_gas";
+  if (s.includes("fiado") || s.includes("prazo")) return "fiado";
+  return "outros";
+}
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pendente: { label: "Pendente", variant: "secondary" },
