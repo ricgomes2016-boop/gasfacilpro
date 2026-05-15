@@ -284,6 +284,8 @@ export default function RelatorioVendas() {
     });
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
   }, [pedidosFiltrados]);
+
+  const exportarExcel = () => {
     if (pedidosFiltrados.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
       return;
