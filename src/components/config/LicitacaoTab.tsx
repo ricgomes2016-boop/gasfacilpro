@@ -591,18 +591,40 @@ function ItensEditor({ open, onClose, itens, validadeDias, onSave }: any) {
           <Input type="number" className="w-24" value={validade} onChange={(e) => setValidade(Number(e.target.value) || 60)} />
           <Button size="sm" variant="outline" onClick={add} className="ml-auto"><Plus className="h-4 w-4 mr-1" />Item</Button>
         </div>
-        <div className="max-h-[60vh] overflow-y-auto space-y-2">
-          {list.map((it, idx) => (
-            <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-              <div className="col-span-1 text-center text-sm font-medium">{it.item}</div>
-              <Input className="col-span-5" value={it.especificacao} onChange={(e) => update(idx, "especificacao", e.target.value)} placeholder="Especificação" />
-              <Input className="col-span-1" type="number" value={it.quantidade} onChange={(e) => update(idx, "quantidade", e.target.value)} placeholder="Qtd" />
-              <Input className="col-span-1" value={it.unidade} onChange={(e) => update(idx, "unidade", e.target.value)} placeholder="Un" />
-              <Input className="col-span-2" type="number" step="0.01" value={it.valor_unit} onChange={(e) => update(idx, "valor_unit", e.target.value)} placeholder="V. Unit" />
-              <div className="col-span-1 text-xs text-muted-foreground text-right">{(it.quantidade * it.valor_unit).toFixed(2)}</div>
-              <Button size="icon" variant="ghost" className="col-span-1 h-8 w-8" onClick={() => remove(idx)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+        <div className="max-h-[60vh] overflow-y-auto rounded-md border">
+          <div className="grid grid-cols-12 gap-2 items-center px-3 py-2 bg-muted/60 border-b text-[11px] font-semibold uppercase text-muted-foreground sticky top-0 z-10">
+            <div className="col-span-1 text-center">#</div>
+            <div className="col-span-5">Especificação</div>
+            <div className="col-span-1 text-center">Qtd</div>
+            <div className="col-span-1 text-center">Un</div>
+            <div className="col-span-2 text-center">V. Unitário</div>
+            <div className="col-span-1 text-right">Total</div>
+            <div className="col-span-1"></div>
+          </div>
+          <div className="divide-y">
+            {list.map((it, idx) => (
+              <div key={idx} className="grid grid-cols-12 gap-2 items-center px-3 py-2.5 hover:bg-muted/30">
+                <div className="col-span-1 text-center text-sm font-semibold text-muted-foreground">{it.item}</div>
+                <Input className="col-span-5 h-9" value={it.especificacao} onChange={(e) => update(idx, "especificacao", e.target.value)} placeholder="Especificação do item" />
+                <Input className="col-span-1 h-9 text-center" type="number" value={it.quantidade} onChange={(e) => update(idx, "quantidade", e.target.value)} />
+                <Input className="col-span-1 h-9 text-center" value={it.unidade} onChange={(e) => update(idx, "unidade", e.target.value)} />
+                <Input className="col-span-2 h-9 text-right" type="number" step="0.01" value={it.valor_unit} onChange={(e) => update(idx, "valor_unit", e.target.value)} />
+                <div className="col-span-1 text-xs font-medium text-right tabular-nums">
+                  {(it.quantidade * it.valor_unit).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </div>
+                <Button size="icon" variant="ghost" className="col-span-1 h-8 w-8 justify-self-end" onClick={() => remove(idx)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-12 gap-2 items-center px-3 py-2 bg-muted/60 border-t text-sm font-semibold sticky bottom-0">
+            <div className="col-span-10 text-right text-muted-foreground">Total Geral:</div>
+            <div className="col-span-1 text-right tabular-nums">
+              {list.reduce((s, it) => s + it.quantidade * it.valor_unit, 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
             </div>
-          ))}
+            <div className="col-span-1"></div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
