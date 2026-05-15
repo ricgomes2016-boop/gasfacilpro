@@ -948,7 +948,7 @@ export default function AcertoEntregador() {
                       <p className="text-sm font-semibold">💰 O entregador deve devolver:</p>
                       <div className="space-y-1.5">
                         {Object.entries(metricas.porForma).map(([forma, valor]) => {
-                          const isDinheiro = forma === "dinheiro" || forma === "Dinheiro";
+                          const isDinheiro = forma === "dinheiro";
                           return (
                             <div key={forma} className="flex justify-between text-sm">
                               <span className={isDinheiro ? "font-medium" : "text-muted-foreground"}>
@@ -969,13 +969,43 @@ export default function AcertoEntregador() {
                     <div className="flex flex-col items-center justify-center rounded-lg bg-background p-4 border">
                       <p className="text-xs text-muted-foreground mb-1">Dinheiro em espécie a receber</p>
                       <p className="text-2xl font-bold text-primary">
-                        {formatCurrency(
-                          (metricas.porForma["dinheiro"] || metricas.porForma["Dinheiro"] || 0) - metricas.totalDespesas
-                        )}
+                        {formatCurrency((metricas.porForma["dinheiro"] || 0) - metricas.totalDespesas)}
                       </p>
                       <p className="text-[10px] text-muted-foreground mt-1">(Dinheiro − Despesas)</p>
                     </div>
                   </div>
+
+                  {metricas.entregasInvalidas.length > 0 && (
+                    <div className="mt-4 rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-2">
+                      <p className="text-sm font-semibold text-destructive flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        {metricas.entregasInvalidas.length} entrega(s) com forma de pagamento inválida
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Formas como <b>"outros"</b> ou <b>"cartão"</b> sem indicar crédito/débito não são aceitas.
+                        Edite cada pedido e selecione <b>Cartão Crédito</b> ou <b>Cartão Débito</b> antes de confirmar o acerto.
+                      </p>
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                        {metricas.entregasInvalidas.map((inv) => {
+                          const entrega = entregas.find((e) => e.id === inv.id);
+                          return (
+                            <div key={inv.id} className="flex items-center justify-between gap-2 rounded-md bg-background border px-2 py-1.5 text-xs">
+                              <div className="min-w-0 flex-1">
+                                <span className="font-medium">{entrega?.clientes?.nome || "Cliente"}</span>
+                                <span className="text-muted-foreground"> · {inv.forma_original} · </span>
+                                <span className="font-semibold">{formatCurrency(inv.valor)}</span>
+                              </div>
+                              {entrega && (
+                                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => abrirEdicao(entrega)}>
+                                  Editar
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -987,12 +1017,15 @@ export default function AcertoEntregador() {
                   <div>
                     <p className="font-semibold text-sm">✅ Confirmar Acerto Financeiro</p>
                     <p className="text-xs text-muted-foreground">
-                      Ao confirmar, cada pagamento será roteado automaticamente: Dinheiro → Caixa da Loja, PIX → Banco, Cartão → Contas a Receber, etc.
+                      {metricas.entregasInvalidas.length > 0
+                        ? `Corrija as ${metricas.entregasInvalidas.length} entrega(s) com forma de pagamento inválida acima antes de confirmar.`
+                        : "Ao confirmar, cada pagamento será roteado automaticamente: Dinheiro → Caixa da Loja, PIX → Banco, Cartão → Contas a Receber, etc."}
                     </p>
                   </div>
                   <Button
                     onClick={confirmarAcerto}
-                    disabled={isConfirmingAcerto}
+                    disabled={isConfirmingAcerto || metricas.entregasInvalidas.length > 0}
+                    title={metricas.entregasInvalidas.length > 0 ? "Há entregas com forma de pagamento inválida" : undefined}
                     className="gap-2 whitespace-nowrap"
                     size="lg"
                   >
