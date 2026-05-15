@@ -19,7 +19,10 @@ import {
   ResponsiveDialogFooter as DialogFooter,
   ResponsiveDialogDescription as DialogDescription,
 } from "@/components/ui/responsive-dialog";
-import { Plus, Download, FileText, Pencil, Trash2, Package, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Download, FileText, Pencil, Trash2, Package, Loader2, AlertCircle, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { useAssinaturaDigital } from "@/hooks/useAssinaturaDigital";
+import { assinarPdfRemoto } from "@/services/digitalSignature/signPdfClient";
 import {
   renderAnexo05, renderAnexo06, renderAnexo11,
   renderCartaProposta, renderPropostaPreco, renderEtiquetaEnvelope,
