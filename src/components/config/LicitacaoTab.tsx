@@ -438,6 +438,14 @@ export function LicitacaoTab() {
         onSave={(rep, banco) => updateMut.mutate({ representante: rep, banco })}
       />
 
+      {/* Editor identificação */}
+      <IdentEditor
+        open={editorOpen === "ident"}
+        onClose={() => setEditorOpen(null)}
+        licitacao={selecionada}
+        onSave={(p) => editIdentMut.mutate(p)}
+      />
+
       {/* Editor itens */}
       <ItensEditor
         open={editorOpen === "itens"}
