@@ -47,7 +47,7 @@ const TIPOS: Array<{
   automatica: boolean;
   validade_dias: number;
 }> = [
-  { tipo: "anp", nome: "ANP - Revenda GLP", descricao: "Consulta automática no portal da ANP", icon: ScrollText, automatica: true, validade_dias: 365 },
+  { tipo: "anp", nome: "ANP - Revenda GLP", descricao: "Autorização da ANP — abrir portal e fazer upload", icon: ScrollText, automatica: false, validade_dias: 365 },
   { tipo: "cnd_federal", nome: "CND Federal", descricao: "Receita Federal / PGFN — emitir e fazer upload", icon: Landmark, automatica: false, validade_dias: 180 },
   { tipo: "cnd_estadual", nome: "CND Estadual", descricao: "SEFAZ do estado da unidade", icon: Building, automatica: false, validade_dias: 90 },
   { tipo: "cnd_municipal", nome: "CND Municipal", descricao: "Prefeitura do município da unidade", icon: Building2, automatica: false, validade_dias: 90 },
