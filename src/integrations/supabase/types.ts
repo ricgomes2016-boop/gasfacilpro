@@ -5417,6 +5417,7 @@ export type Database = {
         Row: {
           cnpj_orgao: string | null
           created_at: string
+          dados_anexos: Json
           data_abertura: string | null
           data_publicacao: string | null
           data_resultado: string | null
@@ -5444,6 +5445,7 @@ export type Database = {
         Insert: {
           cnpj_orgao?: string | null
           created_at?: string
+          dados_anexos?: Json
           data_abertura?: string | null
           data_publicacao?: string | null
           data_resultado?: string | null
@@ -5471,6 +5473,7 @@ export type Database = {
         Update: {
           cnpj_orgao?: string | null
           created_at?: string
+          dados_anexos?: Json
           data_abertura?: string | null
           data_publicacao?: string | null
           data_resultado?: string | null
