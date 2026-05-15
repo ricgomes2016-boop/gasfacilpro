@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ResponsiveDialog as Dialog, ResponsiveDialogContent as DialogContent, ResponsiveDialogHeader as DialogHeader, ResponsiveDialogTitle as DialogTitle, ResponsiveDialogFooter as DialogFooter, ResponsiveDialogDescription as DialogDescription } from "@/components/ui/responsive-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { FileUp, Download, Trash2, Search, FileText, File, Image, FileSpreadsheet, Loader2 } from "lucide-react";
+import { FileUp, Download, Trash2, Search, FileText, File, Image, FileSpreadsheet, Loader2, ScrollText, Settings2, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CertidoesEmpresaTab } from "@/components/config/CertidoesEmpresaTab";
+import { statusBadge, diasAteVencimento, TIPO_CERTIDAO_LABEL } from "@/lib/certidoes/status";
 
 const CATEGORIAS = [
   { value: "geral", label: "Geral" },
@@ -27,6 +28,7 @@ const CATEGORIAS = [
   { value: "societario", label: "Societário" },
   { value: "seguro", label: "Seguros" },
   { value: "certificado", label: "Certificados" },
+  { value: "certidao", label: "Certidões" },
   { value: "outro", label: "Outros" },
 ];
 
@@ -51,6 +53,7 @@ export default function DocumentosEmpresa() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [tab, setTab] = useState("documentos");
   const [search, setSearch] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("todas");
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -74,9 +77,22 @@ export default function DocumentosEmpresa() {
     },
   });
 
+  const { data: certidoes = [] } = useQuery({
+    queryKey: ["certidoes_empresa", unidadeAtual?.id],
+    queryFn: async () => {
+      if (!unidadeAtual?.id) return [];
+      const { data, error } = await supabase
+        .from("certidoes_empresa")
+        .select("*")
+        .eq("unidade_id", unidadeAtual.id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!unidadeAtual?.id,
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (doc: any) => {
-      // Extract storage path from URL
       const urlParts = doc.arquivo_url.split("/documentos-empresa/");
       const storagePath = urlParts[1] ? decodeURIComponent(urlParts[1]) : null;
 
@@ -139,6 +155,19 @@ export default function DocumentosEmpresa() {
   };
 
   const handleDownload = async (doc: any) => {
+    if (doc.__origem === "certidao") {
+      if (!doc.arquivo_url) { toast.error("Sem arquivo anexado"); return; }
+      const { data, error } = await supabase.storage
+        .from("certidoes-empresa")
+        .createSignedUrl(doc.arquivo_url, 60);
+      if (error || !data?.signedUrl) { toast.error("Erro ao gerar link"); return; }
+      const a = document.createElement("a");
+      a.href = data.signedUrl;
+      a.download = doc.arquivo_nome || `${doc.tipo}.pdf`;
+      a.click();
+      return;
+    }
+
     const urlParts = doc.arquivo_url.split("/documentos-empresa/");
     const storagePath = urlParts[1] ? decodeURIComponent(urlParts[1]) : null;
     if (!storagePath) { toast.error("Arquivo não encontrado"); return; }
@@ -163,17 +192,48 @@ export default function DocumentosEmpresa() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const filtered = documentos.filter((d: any) => {
+  // Normalize certidões to the same shape so they show in the unified list
+  const certidoesAsDocs = useMemo(() => {
+    return (certidoes as any[])
+      .filter((c) => c.arquivo_url) // only those with PDF uploaded
+      .map((c) => ({
+        id: `cert-${c.id}`,
+        nome: TIPO_CERTIDAO_LABEL[c.tipo] || c.tipo,
+        descricao: c.numero ? `Nº ${c.numero}` : null,
+        categoria: "certidao",
+        arquivo_url: c.arquivo_url,
+        arquivo_nome: c.arquivo_nome || `${c.tipo}.pdf`,
+        arquivo_tamanho: null,
+        created_at: c.ultima_consulta_at || c.updated_at || c.created_at,
+        __origem: "certidao",
+        data_vencimento: c.data_vencimento,
+        status: c.status,
+        tipo: c.tipo,
+      }));
+  }, [certidoes]);
+
+  const merged = useMemo(() => {
+    return [...certidoesAsDocs, ...(documentos as any[])].sort((a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }, [certidoesAsDocs, documentos]);
+
+  const filtered = merged.filter((d: any) => {
     const matchSearch = !search || d.nome.toLowerCase().includes(search.toLowerCase()) || d.arquivo_nome.toLowerCase().includes(search.toLowerCase());
     const matchCategoria = categoriaFiltro === "todas" || d.categoria === categoriaFiltro;
     return matchSearch && matchCategoria;
   });
 
+  const certidoesVencendo = (certidoes as any[]).filter((c) => {
+    const d = diasAteVencimento(c.data_vencimento);
+    return d !== null && d <= 30;
+  }).length;
+
   return (
     <MainLayout>
       <Header title="Documentos da Empresa" subtitle="Importe e gerencie as documentações da empresa" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        <Tabs defaultValue="documentos" className="w-full">
+        <Tabs value={tab} onValueChange={setTab} className="w-full">
           <TabsList>
             <TabsTrigger value="documentos">Documentos</TabsTrigger>
             <TabsTrigger value="certidoes">Certidões e Vencimentos</TabsTrigger>
@@ -219,11 +279,24 @@ export default function DocumentosEmpresa() {
               <CardTitle className="text-sm font-medium">Total</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{documentos.length}</div>
+              <div className="text-2xl font-bold">{merged.length}</div>
             </CardContent>
           </Card>
-          {["contrato", "alvara", "fiscal"].map((cat) => {
-            const count = documentos.filter((d: any) => d.categoria === cat).length;
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-1">
+                <ScrollText className="h-3.5 w-3.5" /> Certidões
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{certidoesAsDocs.length}</div>
+              {certidoesVencendo > 0 && (
+                <p className="text-xs text-orange-500 mt-1">{certidoesVencendo} vencendo em 30d</p>
+              )}
+            </CardContent>
+          </Card>
+          {["contrato", "alvara"].map((cat) => {
+            const count = (documentos as any[]).filter((d: any) => d.categoria === cat).length;
             const label = CATEGORIAS.find((c) => c.value === cat)?.label || cat;
             return (
               <Card key={cat}>
@@ -247,28 +320,48 @@ export default function DocumentosEmpresa() {
           <div className="space-y-2">
             {filtered.map((doc: any) => (
               <Card key={doc.id} className="flex items-center p-4 gap-4">
-                <div className="shrink-0">{getFileIcon(doc.arquivo_nome)}</div>
+                <div className="shrink-0">
+                  {doc.__origem === "certidao" ? (
+                    <ScrollText className="h-5 w-5 text-primary" />
+                  ) : (
+                    getFileIcon(doc.arquivo_nome)
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{doc.nome}</p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{doc.arquivo_nome}</span>
-                    <span>•</span>
-                    <span>{formatBytes(doc.arquivo_tamanho)}</span>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                    <span className="truncate">{doc.arquivo_nome}</span>
+                    {doc.arquivo_tamanho && (<><span>•</span><span>{formatBytes(doc.arquivo_tamanho)}</span></>)}
                     <span>•</span>
                     <span>{new Date(doc.created_at).toLocaleDateString("pt-BR")}</span>
                   </div>
                   {doc.descricao && <p className="text-xs text-muted-foreground mt-1 truncate">{doc.descricao}</p>}
                 </div>
-                <Badge variant="secondary" className="shrink-0">
-                  {CATEGORIAS.find((c) => c.value === doc.categoria)?.label || doc.categoria}
-                </Badge>
+                <div className="flex items-center gap-2 shrink-0">
+                  {doc.__origem === "certidao" ? (
+                    <>
+                      <Badge variant="secondary">Certidão</Badge>
+                      {statusBadge(doc)}
+                    </>
+                  ) : (
+                    <Badge variant="secondary">
+                      {CATEGORIAS.find((c) => c.value === doc.categoria)?.label || doc.categoria}
+                    </Badge>
+                  )}
+                </div>
                 <div className="flex gap-1 shrink-0">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownload(doc)} title="Baixar">
                     <Download className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteMutation.mutate(doc)} title="Excluir">
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {doc.__origem === "certidao" ? (
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setTab("certidoes")} title="Gerenciar na aba Certidões">
+                      <Settings2 className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteMutation.mutate(doc)} title="Excluir">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
                 </div>
               </Card>
             ))}
@@ -301,6 +394,22 @@ export default function DocumentosEmpresa() {
                 </SelectContent>
               </Select>
             </div>
+            {formCategoria === "certidao" && (
+              <div className="flex items-start gap-2 p-3 rounded-md bg-orange-500/10 border border-orange-500/30 text-sm">
+                <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p>Para certidões com controle de vencimento (ANP, CNDs, Sintegra), use a aba <strong>Certidões e Vencimentos</strong>.</p>
+                  <Button
+                    size="sm"
+                    variant="link"
+                    className="px-0 h-auto mt-1"
+                    onClick={() => { setUploadOpen(false); resetForm(); setTab("certidoes"); }}
+                  >
+                    Ir para Certidões →
+                  </Button>
+                </div>
+              </div>
+            )}
             <div>
               <Label>Descrição</Label>
               <Textarea value={formDescricao} onChange={(e) => setFormDescricao(e.target.value)} placeholder="Observações opcionais..." rows={2} />
@@ -317,7 +426,7 @@ export default function DocumentosEmpresa() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setUploadOpen(false); resetForm(); }}>Cancelar</Button>
-            <Button onClick={handleUpload} disabled={uploading || !selectedFile || !formNome.trim()}>
+            <Button onClick={handleUpload} disabled={uploading || !selectedFile || !formNome.trim() || formCategoria === "certidao"}>
               {uploading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Enviando...</> : "Salvar Documento"}
             </Button>
           </DialogFooter>
