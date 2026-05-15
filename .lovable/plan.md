@@ -1,39 +1,42 @@
-## Redesenho do modal "Itens da Proposta"
+## Problema
 
-O modal atual usa uma grade de 12 colunas muito apertada. No viewport do usuário (~1070px com modal centralizado em `max-w-4xl` mas comprimido pela barra lateral) os inputs ficam tão estreitos que viram pílulas, o cabeçalho `sticky` se sobrepõe à primeira linha e aparece scroll horizontal. Vou reconstruir só o `ItensEditor` (linhas 569–636 de `src/components/config/LicitacaoTab.tsx`) — sem mexer em lógica, persistência ou geração de PDF.
+No `src/pages/caixa/AcertoEntregador.tsx`, o "Resumo Automático do Acerto" agrupa as entregas por `forma_pagamento` exatamente como está salvo no pedido. Como os pedidos têm valores inconsistentes ("Dinheiro" vs "dinheiro", "Vale Gás" vs "vale_gas", "cartao" sem crédito/débito, "outros"), o resumo mostra a mesma forma duas vezes e ainda exibe formas que não existem oficialmente.
 
-### Mudanças
+## Objetivo
 
-1. **Container**
-   - Trocar `Dialog`/`DialogContent max-w-4xl` por `ResponsiveDialog` + `ResponsiveDialogContent` com `sm:max-w-5xl w-[95vw] p-0` para aproveitar a largura disponível e ganhar versão mobile (drawer).
-   - Header e footer com `px-6 py-4` fixos; corpo com `px-6 py-4` e `max-h-[65vh] overflow-y-auto`.
+1. Unificar variações da mesma forma (case/acento/snake_case) em uma única linha.
+2. Sinalizar e bloquear o acerto quando houver forma inválida:
+   - `outros`, vazio, ou qualquer string fora da lista oficial.
+   - `cartao` / `cartão` genérico (sem crédito ou débito definido).
+3. Mostrar Cartão sempre como **Cartão Crédito** ou **Cartão Débito** (nunca "Cartão" puro).
 
-2. **Barra superior (validade + adicionar)**
-   - Card claro com `bg-muted/40 rounded-lg px-4 py-3 flex items-center justify-between`.
-   - Label "Validade da proposta" + Input `w-20` + sufixo "dias".
-   - Botão "Adicionar item" alinhado à direita, com ícone.
+## Mudanças (apenas frontend)
 
-3. **Lista de itens — cartões em vez de grade**
-   - Abandonar grid de 12 colunas. Cada item vira um cartão (`rounded-md border p-3 space-y-2`) com:
-     - Linha 1: badge numérica `#N` + Input "Especificação" largo (`flex-1`) + botão remover (ícone) à direita.
-     - Linha 2: 4 campos rotulados em `grid grid-cols-2 sm:grid-cols-4 gap-3`:
-       - Quantidade (number)
-       - Unidade (text, `w-full`)
-       - Valor unitário (number, prefixo "R$")
-       - Total calculado (somente leitura, destaque `font-semibold tabular-nums`)
-   - Cada campo com `<Label className="text-xs text-muted-foreground">` em cima do input — elimina a confusão de cabeçalhos sticky e funciona em qualquer largura.
+### `src/pages/caixa/AcertoEntregador.tsx`
 
-4. **Rodapé do total**
-   - Faixa fixa abaixo da lista: `border-t bg-muted/40 px-4 py-3 flex justify-between items-center` com "Total Geral" à esquerda e valor formatado em `text-lg font-bold tabular-nums` à direita.
+**a) Nova função `canonicalForma(raw)`** (perto de `normalizarFormaPagamento`, linha ~465):
+- Mapeia variações para chaves canônicas: `dinheiro`, `pix`, `pix_maquininha`, `cartao_credito`, `cartao_debito`, `cheque`, `vale_gas`, `fiado`.
+- Retorna `"__invalido__"` para: vazio, `outros`, `cartao`/`cartão` puro, ou qualquer valor não reconhecido.
+- Trata também strings de pagamento múltiplo (`"Múltiplos: Dinheiro R$10, Cartão Débito R$5"`) somando por canônico.
 
-5. **Detalhes visuais**
-   - Inputs com `h-9 text-sm`.
-   - Hover sutil no cartão (`hover:border-primary/40 transition-colors`).
-   - Botão remover só aparece em hover no desktop (`opacity-0 group-hover:opacity-100`) e sempre visível em mobile.
+**b) Refatorar `metricas` (linha 429)**:
+- Em vez de `porForma[e.forma_pagamento]`, percorrer cada entrega, dividir múltiplos pagamentos quando aplicável, classificar via `canonicalForma` e somar em `porFormaCanonica`.
+- Coletar lista `entregasInvalidas: { id, forma_original, valor }[]` para itens que caíram em `__invalido__`.
 
-6. **Lógica preservada**
-   - Mesmas funções `update`, `add`, `remove`, mesmo estado `list`/`validade`, mesmo `onSave(list, validade)`. Nenhuma mudança em template/PDF/persistência.
+**c) Resumo Automático (linha ~858)**:
+- Renderizar `porFormaCanonica` (já sem duplicatas) usando `paymentLabels`.
+- Abaixo, se `entregasInvalidas.length > 0`, mostrar bloco vermelho:
+  > ⚠️ N entrega(s) com forma de pagamento inválida ("outros", "cartao", etc.). Edite cada pedido e selecione Cartão Crédito ou Cartão Débito antes de confirmar.
+  - Listar cada uma com botão "Editar" que abre o `editingEntrega` existente.
 
-### Arquivo afetado
+**d) Bloquear confirmação (linha ~895 e função `confirmarAcerto` linha 480)**:
+- Desabilitar botão "Confirmar Acerto" quando `entregasInvalidas.length > 0` (com tooltip explicativo).
+- Em `confirmarAcerto`, validar antes do loop e dar `toast.error` se houver inválidas.
 
-- `src/components/config/LicitacaoTab.tsx` — substituir apenas o componente `ItensEditor` (linhas 569–636).
+**e) Card "Dinheiro em espécie a receber" (linha 880)**:
+- Passar a usar `porFormaCanonica["dinheiro"]` (chave única), eliminando o fallback `|| porForma["Dinheiro"]`.
+
+## Não muda
+
+- Schema do banco, RLS, roteamento de pagamentos (`rotearPagamentosVenda`), modal de edição, tabelas de detalhes — tudo permanece igual.
+- A edição já existente do pedido (`editingEntrega`) é o caminho para o usuário corrigir as formas inválidas.

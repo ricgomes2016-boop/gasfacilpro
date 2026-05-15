@@ -20,7 +20,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   User, Package, Wallet, Download, CreditCard, Banknote, Receipt, Minus, Pencil, Loader2, Save,
-  QrCode, Keyboard, CheckCircle, AlertCircle, Plus, Trash2, FileText, Clock, History, Filter, Search,
+  QrCode, Keyboard, CheckCircle, AlertCircle, AlertTriangle, Plus, Trash2, FileText, Clock, History, Filter, Search,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDateString } from "@/lib/utils";
@@ -61,6 +61,53 @@ const paymentLabels: Record<string, string> = {
 const formasPagamento = [
   "Dinheiro", "PIX", "PIX Maquininha", "Cartão Crédito", "Cartão Débito", "Cheque", "Vale Gás", "Fiado",
 ];
+
+// Normaliza qualquer variação de forma de pagamento para uma chave canônica.
+// Retorna "__invalido__" para valores ambíguos (cartao puro), desconhecidos (outros) ou vazios.
+const FORMAS_CANONICAS = new Set([
+  "dinheiro", "pix", "pix_maquininha", "cartao_credito", "cartao_debito", "cheque", "vale_gas", "fiado",
+]);
+
+function canonicalForma(raw: string): string {
+  if (!raw) return "__invalido__";
+  const s = raw
+    .toString()
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove acentos
+    .replace(/\s+/g, "_");
+  if (!s) return "__invalido__";
+
+  // Mapeamentos diretos
+  const direct: Record<string, string> = {
+    dinheiro: "dinheiro",
+    cash: "dinheiro",
+    especie: "dinheiro",
+    money: "dinheiro",
+    pix: "pix",
+    pix_maquininha: "pix_maquininha",
+    pixmaquininha: "pix_maquininha",
+    cartao_credito: "cartao_credito",
+    credito: "cartao_credito",
+    cartao_de_credito: "cartao_credito",
+    cartaocredito: "cartao_credito",
+    cartao_debito: "cartao_debito",
+    debito: "cartao_debito",
+    cartao_de_debito: "cartao_debito",
+    cartaodebito: "cartao_debito",
+    cheque: "cheque",
+    vale_gas: "vale_gas",
+    valegas: "vale_gas",
+    vale: "vale_gas",
+    fiado: "fiado",
+    a_prazo: "fiado",
+    aprazo: "fiado",
+  };
+  if (direct[s]) return direct[s];
+  if (FORMAS_CANONICAS.has(s)) return s;
+  return "__invalido__";
+}
 
 const CANAIS_VIRTUAIS = [
   { id: "__portaria__", nome: "🏪 Portaria", canal: "Portaria" },
@@ -429,13 +476,55 @@ export default function AcertoEntregador() {
   const metricas = useMemo(() => {
     const totalVendas = entregas.reduce((a, e) => a + Number(e.valor_total || 0), 0);
     const porForma: Record<string, number> = {};
+    const entregasInvalidas: { id: string; forma_original: string; valor: number }[] = [];
+
+    const parseMultiplos = (fp: string, total: number): { forma: string; valor: number }[] => {
+      const clean = fp.replace(/^Múltiplos:\s*/i, "");
+      const parts = clean.split(/\s*\+\s*|,\s*/).filter(Boolean);
+      const out: { forma: string; valor: number }[] = [];
+      let restante = total;
+      let semValor: string[] = [];
+      parts.forEach((part) => {
+        const m = part.trim().match(/^(.+?)\s+R\$\s*([\d\.,]+)$/);
+        if (m) {
+          const v = parseFloat(m[2].replace(/\./g, "").replace(",", "."));
+          out.push({ forma: m[1].trim(), valor: isFinite(v) ? v : 0 });
+          restante -= isFinite(v) ? v : 0;
+        } else {
+          semValor.push(part.trim());
+        }
+      });
+      if (semValor.length > 0) {
+        const dividido = semValor.length > 0 ? restante / semValor.length : 0;
+        semValor.forEach((forma) => out.push({ forma, valor: dividido }));
+      }
+      return out;
+    };
+
     entregas.forEach((e) => {
-      const forma = e.forma_pagamento || "outros";
-      porForma[forma] = (porForma[forma] || 0) + Number(e.valor_total || 0);
+      const fp = (e.forma_pagamento || "").trim();
+      const total = Number(e.valor_total || 0);
+      const items = (fp.includes(",") || /\+/.test(fp) || /^Múltiplos:/i.test(fp))
+        ? parseMultiplos(fp, total)
+        : [{ forma: fp, valor: total }];
+
+      let temInvalido = false;
+      items.forEach(({ forma, valor }) => {
+        const canon = canonicalForma(forma);
+        if (canon === "__invalido__") {
+          temInvalido = true;
+        } else {
+          porForma[canon] = (porForma[canon] || 0) + valor;
+        }
+      });
+      if (temInvalido) {
+        entregasInvalidas.push({ id: e.id, forma_original: fp || "(vazio)", valor: total });
+      }
     });
+
     const totalDespesas = despesas.reduce((a, d) => a + Number(d.valor || 0), 0);
     const saldoLiquido = totalVendas - totalDespesas;
-    return { totalVendas, porForma, totalDespesas, saldoLiquido };
+    return { totalVendas, porForma, totalDespesas, saldoLiquido, entregasInvalidas };
   }, [entregas, despesas]);
 
   // Separar pendentes e acertados para contadores
@@ -481,6 +570,10 @@ export default function AcertoEntregador() {
     const pendentes = entregas.filter(e => e.status === "entregue" || e.status === "pago");
     if (pendentes.length === 0) {
       toast.error("Nenhuma entrega pendente para confirmar");
+      return;
+    }
+    if (metricas.entregasInvalidas.length > 0) {
+      toast.error(`Existem ${metricas.entregasInvalidas.length} entrega(s) com forma de pagamento inválida. Edite cada pedido e selecione Cartão Crédito ou Cartão Débito antes de confirmar.`);
       return;
     }
     setIsConfirmingAcerto(true);
@@ -859,7 +952,7 @@ export default function AcertoEntregador() {
                       <p className="text-sm font-semibold">💰 O entregador deve devolver:</p>
                       <div className="space-y-1.5">
                         {Object.entries(metricas.porForma).map(([forma, valor]) => {
-                          const isDinheiro = forma === "dinheiro" || forma === "Dinheiro";
+                          const isDinheiro = forma === "dinheiro";
                           return (
                             <div key={forma} className="flex justify-between text-sm">
                               <span className={isDinheiro ? "font-medium" : "text-muted-foreground"}>
@@ -880,13 +973,43 @@ export default function AcertoEntregador() {
                     <div className="flex flex-col items-center justify-center rounded-lg bg-background p-4 border">
                       <p className="text-xs text-muted-foreground mb-1">Dinheiro em espécie a receber</p>
                       <p className="text-2xl font-bold text-primary">
-                        {formatCurrency(
-                          (metricas.porForma["dinheiro"] || metricas.porForma["Dinheiro"] || 0) - metricas.totalDespesas
-                        )}
+                        {formatCurrency((metricas.porForma["dinheiro"] || 0) - metricas.totalDespesas)}
                       </p>
                       <p className="text-[10px] text-muted-foreground mt-1">(Dinheiro − Despesas)</p>
                     </div>
                   </div>
+
+                  {metricas.entregasInvalidas.length > 0 && (
+                    <div className="mt-4 rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-2">
+                      <p className="text-sm font-semibold text-destructive flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        {metricas.entregasInvalidas.length} entrega(s) com forma de pagamento inválida
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Formas como <b>"outros"</b> ou <b>"cartão"</b> sem indicar crédito/débito não são aceitas.
+                        Edite cada pedido e selecione <b>Cartão Crédito</b> ou <b>Cartão Débito</b> antes de confirmar o acerto.
+                      </p>
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                        {metricas.entregasInvalidas.map((inv) => {
+                          const entrega = entregas.find((e) => e.id === inv.id);
+                          return (
+                            <div key={inv.id} className="flex items-center justify-between gap-2 rounded-md bg-background border px-2 py-1.5 text-xs">
+                              <div className="min-w-0 flex-1">
+                                <span className="font-medium">{entrega?.clientes?.nome || "Cliente"}</span>
+                                <span className="text-muted-foreground"> · {inv.forma_original} · </span>
+                                <span className="font-semibold">{formatCurrency(inv.valor)}</span>
+                              </div>
+                              {entrega && (
+                                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => abrirEdicao(entrega)}>
+                                  Editar
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -898,12 +1021,15 @@ export default function AcertoEntregador() {
                   <div>
                     <p className="font-semibold text-sm">✅ Confirmar Acerto Financeiro</p>
                     <p className="text-xs text-muted-foreground">
-                      Ao confirmar, cada pagamento será roteado automaticamente: Dinheiro → Caixa da Loja, PIX → Banco, Cartão → Contas a Receber, etc.
+                      {metricas.entregasInvalidas.length > 0
+                        ? `Corrija as ${metricas.entregasInvalidas.length} entrega(s) com forma de pagamento inválida acima antes de confirmar.`
+                        : "Ao confirmar, cada pagamento será roteado automaticamente: Dinheiro → Caixa da Loja, PIX → Banco, Cartão → Contas a Receber, etc."}
                     </p>
                   </div>
                   <Button
                     onClick={confirmarAcerto}
-                    disabled={isConfirmingAcerto}
+                    disabled={isConfirmingAcerto || metricas.entregasInvalidas.length > 0}
+                    title={metricas.entregasInvalidas.length > 0 ? "Há entregas com forma de pagamento inválida" : undefined}
                     className="gap-2 whitespace-nowrap"
                     size="lg"
                   >
