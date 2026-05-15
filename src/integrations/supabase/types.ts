@@ -1172,6 +1172,77 @@ export type Database = {
           },
         ]
       }
+      certidoes_empresa: {
+        Row: {
+          arquivo_nome: string | null
+          arquivo_url: string | null
+          created_at: string
+          created_by: string | null
+          dados_json: Json | null
+          data_emissao: string | null
+          data_vencimento: string | null
+          empresa_id: string
+          id: string
+          numero: string | null
+          origem: string
+          proxima_consulta_at: string | null
+          status: string
+          tipo: string
+          ultima_consulta_at: string | null
+          ultimo_erro: string | null
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          arquivo_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          dados_json?: Json | null
+          data_emissao?: string | null
+          data_vencimento?: string | null
+          empresa_id: string
+          id?: string
+          numero?: string | null
+          origem?: string
+          proxima_consulta_at?: string | null
+          status?: string
+          tipo: string
+          ultima_consulta_at?: string | null
+          ultimo_erro?: string | null
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          arquivo_nome?: string | null
+          arquivo_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          dados_json?: Json | null
+          data_emissao?: string | null
+          data_vencimento?: string | null
+          empresa_id?: string
+          id?: string
+          numero?: string | null
+          origem?: string
+          proxima_consulta_at?: string | null
+          status?: string
+          tipo?: string
+          ultima_consulta_at?: string | null
+          ultimo_erro?: string | null
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certidoes_empresa_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chamadas_recebidas: {
         Row: {
           atendente_id: string | null
