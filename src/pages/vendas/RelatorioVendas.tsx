@@ -338,6 +338,38 @@ export default function RelatorioVendas() {
     })));
     XLSX.utils.book_append_sheet(wb, wsCanal, "Por Canal");
 
+    // Aba por Produto
+    const wsProduto = XLSX.utils.json_to_sheet(dadosPorProduto.map(p => ({
+      Produto: p.nome, "Qtd Vendida": p.qtd, Pedidos: p.pedidosCount,
+      "Faturamento": `R$ ${p.faturamento.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+    })));
+    XLSX.utils.book_append_sheet(wb, wsProduto, "Por Produto");
+
+    // Aba por Forma de Pagamento
+    const wsPgto = XLSX.utils.json_to_sheet(dadosPorFormaPagamento.map(f => ({
+      Forma: f.label, Pedidos: f.qtd,
+      "Faturamento": `R$ ${f.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      "Ticket Médio": `R$ ${(f.qtd > 0 ? f.total / f.qtd : 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+    })));
+    XLSX.utils.book_append_sheet(wb, wsPgto, "Por Pagamento");
+
+    // Aba por Dia
+    const wsDia = XLSX.utils.json_to_sheet(dadosPorDia.map(d => ({
+      Data: d.label, Pedidos: d.qtd,
+      "Faturamento": `R$ ${d.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+    })));
+    XLSX.utils.book_append_sheet(wb, wsDia, "Por Dia");
+
+    // Aba Top Clientes
+    const wsClientes = XLSX.utils.json_to_sheet(dadosTopClientes.map(c => ({
+      Cliente: c.nome, Pedidos: c.qtd,
+      "Faturamento": `R$ ${c.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      "Ticket Médio": `R$ ${(c.qtd > 0 ? c.total / c.qtd : 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      "Última Compra": c.ultima || "-",
+    })));
+    XLSX.utils.book_append_sheet(wb, wsClientes, "Top Clientes");
+
+
     const nomeArquivo = `relatorio-vendas-${format(parseISO(dataInicio), "ddMMyyyy")}-${format(parseISO(dataFim), "ddMMyyyy")}.xlsx`;
     XLSX.writeFile(wb, nomeArquivo);
     toast({ title: "Relatório exportado!", description: `Arquivo ${nomeArquivo} gerado.` });
