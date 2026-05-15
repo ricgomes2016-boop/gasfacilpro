@@ -435,6 +435,21 @@ export default function RelatorioVendas() {
       headStyles: { fillColor: [51, 65, 85] },
     });
 
+    // Por Produto
+    const y3 = (doc as any).lastAutoTable?.finalY || 200;
+    doc.setFontSize(12);
+    doc.text("Vendas por Produto", 14, y3 + 10);
+    autoTable(doc, {
+      head: [["Produto", "Qtd", "Pedidos", "Faturamento"]],
+      body: dadosPorProduto.map(p => [
+        p.nome, String(p.qtd), String(p.pedidosCount),
+        `R$ ${p.faturamento.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      ]),
+      startY: y3 + 14,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [51, 65, 85] },
+    });
+
     doc.save(`relatorio-vendas-${format(parseISO(dataInicio), "ddMMyyyy")}-${format(parseISO(dataFim), "ddMMyyyy")}.pdf`);
     toast({ title: "PDF exportado!" });
   };
