@@ -15,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { CertidoesEmpresaTab } from "@/components/config/CertidoesEmpresaTab";
 
 const CATEGORIAS = [
   { value: "geral", label: "Geral" },
@@ -171,6 +173,15 @@ export default function DocumentosEmpresa() {
     <MainLayout>
       <Header title="Documentos da Empresa" subtitle="Importe e gerencie as documentações da empresa" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+        <Tabs defaultValue="documentos" className="w-full">
+          <TabsList>
+            <TabsTrigger value="documentos">Documentos</TabsTrigger>
+            <TabsTrigger value="certidoes">Certidões e Vencimentos</TabsTrigger>
+          </TabsList>
+          <TabsContent value="certidoes" className="mt-4">
+            <CertidoesEmpresaTab />
+          </TabsContent>
+          <TabsContent value="documentos" className="mt-4 space-y-4 md:space-y-6">
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3 justify-between">
           <div className="flex gap-2 flex-1">
@@ -263,6 +274,8 @@ export default function DocumentosEmpresa() {
             ))}
           </div>
         )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Upload Dialog */}
