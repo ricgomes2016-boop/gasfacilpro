@@ -15,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { CertidoesEmpresaTab } from "@/components/config/CertidoesEmpresaTab";
 
 const CATEGORIAS = [
   { value: "geral", label: "Geral" },
