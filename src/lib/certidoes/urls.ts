@@ -19,7 +19,7 @@ export const SINTEGRA_URLS: Record<string, { nome: string; url: string }> = {
   PB: { nome: "Paraíba", url: "https://www3.receita.pb.gov.br/Sintegra/" },
   PE: { nome: "Pernambuco", url: "https://efisco.sefaz.pe.gov.br/sfi_com_sca/PRMontarConsultaContribuinteSintegra" },
   PI: { nome: "Piauí", url: "https://webas.sefaz.pi.gov.br/sintegra/" },
-  PR: { nome: "Paraná", url: "https://www.sintegra.fazenda.pr.gov.br/sintegra/" },
+  PR: { nome: "Paraná", url: "https://www.fazenda.pr.gov.br/Servicos/Consultar-cadastro-ICMS" },
   RJ: { nome: "Rio de Janeiro", url: "http://www4.fazenda.rj.gov.br/sintegra/" },
   RN: { nome: "Rio Grande do Norte", url: "https://uvt2.set.rn.gov.br/#/services/cabecalho-sintegra" },
   RO: { nome: "Rondônia", url: "https://www.sintegra.sefin.ro.gov.br/" },
@@ -35,17 +35,17 @@ export const SINTEGRA_URLS: Record<string, { nome: string; url: string }> = {
 export const CND_URLS = {
   anp: {
     nome: "ANP - Revenda GLP",
-    url: "https://app.anp.gov.br/anp-cpl-web/public/simp/consultaPostosRevendedoresGLP/consultaPostosGLPCBR.xhtml",
+    url: "https://cdp.anp.gov.br/ords/r/cdp_apex/consulta-dados-publicos-cdp/consulta-de-revenda-glp-lista",
     validade_dias: 365,
   },
   cnd_federal: {
     nome: "CND Federal (Receita / PGFN)",
-    url: "https://solucoes.receita.fazenda.gov.br/Servicos/certidaointernet/PJ/Emitir",
+    url: "https://servicos.receitafederal.gov.br/servico/certidoes/#/home/cnpj",
     validade_dias: 180,
   },
   cnd_municipal: {
     nome: "CND Municipal",
-    url: null, // varia por município, mostraremos campo livre
+    url: "https://e-gov.betha.com.br/cdweb/03114-558/contribuinte/rel_cndcontribuinte.faces",
     validade_dias: 90,
   },
   cndt: {
@@ -74,7 +74,7 @@ export const CND_ESTADUAL_URLS: Record<string, string> = {
   PB: "https://www3.receita.pb.gov.br/atf/seg/SEGf_AcessarFuncao.jsp?cdFuncao=FIS_1097",
   PE: "https://efisco.sefaz.pe.gov.br/sfi_com_sca/PRMontarSolicitacaoCertidaoContribuinte",
   PI: "https://webas.sefaz.pi.gov.br/certidao/",
-  PR: "https://www.arinternet.pr.gov.br/CertidaoNegativaWeb/",
+  PR: "https://cdp.anp.gov.br/ords/r/cdp_apex/consulta-dados-publicos-cdp/consulta-de-revenda-glp-lista",
   RJ: "https://www.fazenda.rj.gov.br/sefaz/faces/menu_structure/servicos/certidao",
   RN: "https://uvt2.set.rn.gov.br/#/services/emissao-certidao-negativa",
   RO: "https://agenciavirtual.sefin.ro.gov.br/publico/CertidaoNegativa/Solicitar.aspx",
