@@ -339,6 +339,33 @@ export function LicitacaoTab() {
               <div><span className="text-muted-foreground">Data:</span> {selecionada.data_publicacao || "—"}</div>
               <div><span className="text-muted-foreground">Empresa:</span> {empresa?.razao_social}</div>
               {selecionada.objeto && <div className="col-span-full"><span className="text-muted-foreground">Objeto:</span> {selecionada.objeto}</div>}
+              <div className="col-span-full flex items-center gap-2 border-t pt-3 mt-1">
+                {assinatura.disponivel ? (
+                  <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <ShieldAlert className="h-4 w-4 text-amber-600 shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <Label className="text-xs">Assinar digitalmente (e-CNPJ)</Label>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {assinatura.carregando
+                      ? "Verificando certificado..."
+                      : assinatura.disponivel
+                        ? `${assinatura.titular || "Certificado A1 cadastrado"}${assinatura.validade ? ` · até ${new Date(assinatura.validade).toLocaleDateString("pt-BR")}` : ""}`
+                        : assinatura.vencido
+                          ? "Certificado vencido — atualize em Configurações › Unidades"
+                          : "Sem certificado A1 cadastrado nesta unidade"}
+                  </p>
+                </div>
+                <a href="/config/assinatura-digital" target="_blank" rel="noreferrer" className="text-[11px] text-primary hover:underline whitespace-nowrap">
+                  Testar →
+                </a>
+                <Switch
+                  checked={assinatura.ativo}
+                  onCheckedChange={assinatura.setAtivo}
+                  disabled={!assinatura.disponivel}
+                />
+              </div>
             </CardContent>
           </Card>
 
