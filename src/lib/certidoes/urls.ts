@@ -19,7 +19,7 @@ export const SINTEGRA_URLS: Record<string, { nome: string; url: string }> = {
   PB: { nome: "Paraíba", url: "https://www3.receita.pb.gov.br/Sintegra/" },
   PE: { nome: "Pernambuco", url: "https://efisco.sefaz.pe.gov.br/sfi_com_sca/PRMontarConsultaContribuinteSintegra" },
   PI: { nome: "Piauí", url: "https://webas.sefaz.pi.gov.br/sintegra/" },
-  PR: { nome: "Paraná", url: "https://www.sintegra.fazenda.pr.gov.br/sintegra/" },
+  PR: { nome: "Paraná", url: "https://www.fazenda.pr.gov.br/Servicos/Consultar-cadastro-ICMS" },
   RJ: { nome: "Rio de Janeiro", url: "http://www4.fazenda.rj.gov.br/sintegra/" },
   RN: { nome: "Rio Grande do Norte", url: "https://uvt2.set.rn.gov.br/#/services/cabecalho-sintegra" },
   RO: { nome: "Rondônia", url: "https://www.sintegra.sefin.ro.gov.br/" },
