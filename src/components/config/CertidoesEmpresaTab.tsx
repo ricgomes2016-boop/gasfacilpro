@@ -47,7 +47,7 @@ const TIPOS: Array<{
   automatica: boolean;
   validade_dias: number;
 }> = [
-  { tipo: "anp", nome: "ANP - Revenda GLP", descricao: "Consulta automática no portal da ANP", icon: ScrollText, automatica: true, validade_dias: 365 },
+  { tipo: "anp", nome: "ANP - Revenda GLP", descricao: "Autorização da ANP — abrir portal e fazer upload", icon: ScrollText, automatica: false, validade_dias: 365 },
   { tipo: "cnd_federal", nome: "CND Federal", descricao: "Receita Federal / PGFN — emitir e fazer upload", icon: Landmark, automatica: false, validade_dias: 180 },
   { tipo: "cnd_estadual", nome: "CND Estadual", descricao: "SEFAZ do estado da unidade", icon: Building, automatica: false, validade_dias: 90 },
   { tipo: "cnd_municipal", nome: "CND Municipal", descricao: "Prefeitura do município da unidade", icon: Building2, automatica: false, validade_dias: 90 },
@@ -145,7 +145,8 @@ export function CertidoesEmpresaTab() {
   const abrirPortalOficial = (tipo: TipoCertidao) => {
     const cnpj = unidadeFull?.cnpj?.replace(/\D/g, "");
     let url: string | null = null;
-    if (tipo === "cnd_federal") url = CND_URLS.cnd_federal.url;
+    if (tipo === "anp") url = CND_URLS.anp.url;
+    else if (tipo === "cnd_federal") url = CND_URLS.cnd_federal.url;
     else if (tipo === "cndt") url = CND_URLS.cndt.url;
     else if (tipo === "cnd_estadual") url = unidadeFull?.estado ? CND_ESTADUAL_URLS[unidadeFull.estado] : null;
     else if (tipo === "sintegra") url = unidadeFull?.estado ? SINTEGRA_URLS[unidadeFull.estado]?.url : null;
@@ -255,9 +256,9 @@ export function CertidoesEmpresaTab() {
       <div className="flex items-start gap-2 p-3 rounded-md bg-muted/50 text-sm">
         <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
         <div>
-          <strong>Como funciona:</strong> A consulta ANP é automática. As demais certidões abrem o portal
-          oficial pré-pesquisado e você faz upload do PDF. O sistema controla os vencimentos e avisa
-          30 dias antes.
+          <strong>Como funciona:</strong> Cada certidão tem um botão "Abrir portal" que leva ao site oficial
+          (ANP, Receita, SEFAZ, TST, Sintegra). Após emitir o PDF, faça upload aqui — o sistema controla
+          os vencimentos e avisa 30 dias antes.
         </div>
       </div>
 
