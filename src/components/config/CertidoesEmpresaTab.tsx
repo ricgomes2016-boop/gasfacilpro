@@ -145,7 +145,8 @@ export function CertidoesEmpresaTab() {
   const abrirPortalOficial = (tipo: TipoCertidao) => {
     const cnpj = unidadeFull?.cnpj?.replace(/\D/g, "");
     let url: string | null = null;
-    if (tipo === "cnd_federal") url = CND_URLS.cnd_federal.url;
+    if (tipo === "anp") url = CND_URLS.anp.url;
+    else if (tipo === "cnd_federal") url = CND_URLS.cnd_federal.url;
     else if (tipo === "cndt") url = CND_URLS.cndt.url;
     else if (tipo === "cnd_estadual") url = unidadeFull?.estado ? CND_ESTADUAL_URLS[unidadeFull.estado] : null;
     else if (tipo === "sintegra") url = unidadeFull?.estado ? SINTEGRA_URLS[unidadeFull.estado]?.url : null;
