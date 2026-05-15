@@ -35,17 +35,17 @@ export const SINTEGRA_URLS: Record<string, { nome: string; url: string }> = {
 export const CND_URLS = {
   anp: {
     nome: "ANP - Revenda GLP",
-    url: "https://app.anp.gov.br/anp-cpl-web/public/simp/consultaPostosRevendedoresGLP/consultaPostosGLPCBR.xhtml",
+    url: "https://cdp.anp.gov.br/ords/r/cdp_apex/consulta-dados-publicos-cdp/consulta-de-revenda-glp-lista",
     validade_dias: 365,
   },
   cnd_federal: {
     nome: "CND Federal (Receita / PGFN)",
-    url: "https://solucoes.receita.fazenda.gov.br/Servicos/certidaointernet/PJ/Emitir",
+    url: "https://servicos.receitafederal.gov.br/servico/certidoes/#/home/cnpj",
     validade_dias: 180,
   },
   cnd_municipal: {
     nome: "CND Municipal",
-    url: null, // varia por município, mostraremos campo livre
+    url: "https://e-gov.betha.com.br/cdweb/03114-558/contribuinte/rel_cndcontribuinte.faces",
     validade_dias: 90,
   },
   cndt: {
