@@ -36,6 +36,7 @@ import {
   FileText,
 } from "lucide-react";
 import { SINTEGRA_URLS, CND_URLS, CND_ESTADUAL_URLS } from "@/lib/certidoes/urls";
+import { statusBadge, diasAteVencimento } from "@/lib/certidoes/status";
 
 type TipoCertidao = "anp" | "cnd_federal" | "cnd_estadual" | "cnd_municipal" | "cndt" | "sintegra";
 
