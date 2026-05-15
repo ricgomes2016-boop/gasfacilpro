@@ -842,6 +842,227 @@ export default function RelatorioVendas() {
               </Card>
             </div>
           </TabsContent>
+
+          {/* Tab Produtos */}
+          <TabsContent value="produtos">
+            <div className="grid gap-3 grid-cols-2 md:grid-cols-3 mb-4">
+              <Card><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-primary"><Package /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Unidades vendidas</p><p className="text-lg font-bold">{dadosPorProduto.reduce((s, p) => s + p.qtd, 0)}</p></div></CardContent></Card>
+              <Card><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-info"><FileSpreadsheet /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Mix de produtos</p><p className="text-lg font-bold">{dadosPorProduto.length}</p></div></CardContent></Card>
+              <Card className="col-span-2 md:col-span-1"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-success"><DollarSign /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Faturamento</p><p className="text-lg font-bold truncate">{formatCurrency(dadosPorProduto.reduce((s, p) => s + p.faturamento, 0))}</p></div></CardContent></Card>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card>
+                <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Package className="h-5 w-5" />Top 10 — Quantidade</CardTitle></CardHeader>
+                <CardContent>
+                  {dadosPorProduto.length === 0 ? (
+                    <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={320}>
+                      <BarChart data={dadosPorProduto.slice(0, 10)} layout="vertical" margin={{ left: 10, right: 20, top: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis type="number" className="text-xs" />
+                        <YAxis type="category" dataKey="nome" width={110} className="text-xs" tick={{ fontSize: 11 }} />
+                        <Tooltip formatter={(v: number, n) => n === "qtd" ? [`${v} un.`, "Quantidade"] : formatCurrency(v)} />
+                        <Bar dataKey="qtd" name="Quantidade" radius={[0, 4, 4, 0]}>
+                          {dadosPorProduto.slice(0, 10).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3"><CardTitle className="text-base">Detalhamento por Produto</CardTitle></CardHeader>
+                <CardContent className="p-0 sm:p-6 sm:pt-0">
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-[360px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Produto</TableHead>
+                          <TableHead className="text-right w-16">Qtd</TableHead>
+                          <TableHead className="text-right hidden sm:table-cell">Pedidos</TableHead>
+                          <TableHead className="text-right">Faturamento</TableHead>
+                          <TableHead className="text-right hidden sm:table-cell">%</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {dadosPorProduto.map((p, i) => {
+                          const totalFat = dadosPorProduto.reduce((s, x) => s + x.faturamento, 0);
+                          return (
+                            <TableRow key={i}>
+                              <TableCell className="font-medium text-sm">{p.nome}</TableCell>
+                              <TableCell className="text-right font-semibold">{p.qtd}</TableCell>
+                              <TableCell className="text-right hidden sm:table-cell">{p.pedidosCount}</TableCell>
+                              <TableCell className="text-right whitespace-nowrap">{formatCurrency(p.faturamento)}</TableCell>
+                              <TableCell className="text-right hidden sm:table-cell">{totalFat > 0 ? ((p.faturamento / totalFat) * 100).toFixed(1) : 0}%</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                        {dadosPorProduto.length > 0 && (
+                          <TableRow className="bg-muted/50 font-bold">
+                            <TableCell>Total</TableCell>
+                            <TableCell className="text-right">{dadosPorProduto.reduce((s, p) => s + p.qtd, 0)}</TableCell>
+                            <TableCell className="hidden sm:table-cell text-right">—</TableCell>
+                            <TableCell className="text-right whitespace-nowrap">{formatCurrency(dadosPorProduto.reduce((s, p) => s + p.faturamento, 0))}</TableCell>
+                            <TableCell className="hidden sm:table-cell text-right">100%</TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Tab Forma de Pagamento */}
+          <TabsContent value="pagamento">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card>
+                <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><CreditCard className="h-5 w-5" />Distribuição por Forma de Pagamento</CardTitle></CardHeader>
+                <CardContent>
+                  {dadosPorFormaPagamento.length === 0 ? (
+                    <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={280}>
+                      <PieChart>
+                        <Pie data={dadosPorFormaPagamento} dataKey="total" nameKey="label" cx="50%" cy="50%" outerRadius={90} label={({ label, percent }) => `${label} ${(percent * 100).toFixed(0)}%`}>
+                          {dadosPorFormaPagamento.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3"><CardTitle className="text-base">Detalhamento por Forma</CardTitle></CardHeader>
+                <CardContent className="p-0 sm:p-6 sm:pt-0">
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-[320px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Forma</TableHead>
+                          <TableHead className="text-right w-14">Qtd</TableHead>
+                          <TableHead className="text-right">Faturamento</TableHead>
+                          <TableHead className="text-right hidden sm:table-cell">Ticket</TableHead>
+                          <TableHead className="text-right hidden sm:table-cell">%</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {dadosPorFormaPagamento.map((f, i) => {
+                          const totalGeral = dadosPorFormaPagamento.reduce((s, x) => s + x.total, 0);
+                          return (
+                            <TableRow key={i}>
+                              <TableCell className="font-medium text-sm">{f.label}</TableCell>
+                              <TableCell className="text-right">{f.qtd}</TableCell>
+                              <TableCell className="text-right font-semibold whitespace-nowrap">{formatCurrency(f.total)}</TableCell>
+                              <TableCell className="text-right hidden sm:table-cell whitespace-nowrap">{formatCurrency(f.qtd > 0 ? f.total / f.qtd : 0)}</TableCell>
+                              <TableCell className="text-right hidden sm:table-cell">{totalGeral > 0 ? ((f.total / totalGeral) * 100).toFixed(1) : 0}%</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                        {dadosPorFormaPagamento.length > 0 && (
+                          <TableRow className="bg-muted/50 font-bold">
+                            <TableCell>Total</TableCell>
+                            <TableCell className="text-right">{dadosPorFormaPagamento.reduce((s, c) => s + c.qtd, 0)}</TableCell>
+                            <TableCell className="text-right whitespace-nowrap">{formatCurrency(dadosPorFormaPagamento.reduce((s, c) => s + c.total, 0))}</TableCell>
+                            <TableCell className="hidden sm:table-cell text-right">—</TableCell>
+                            <TableCell className="hidden sm:table-cell text-right">100%</TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Tab Evolução Diária */}
+          <TabsContent value="dia">
+            {(() => {
+              const totalDias = dadosPorDia.length;
+              const totalFat = dadosPorDia.reduce((s, d) => s + d.total, 0);
+              const media = totalDias > 0 ? totalFat / totalDias : 0;
+              const melhor = [...dadosPorDia].sort((a, b) => b.total - a.total)[0];
+              const pior = [...dadosPorDia].filter(d => d.total > 0).sort((a, b) => a.total - b.total)[0];
+              return (
+                <>
+                  <div className="grid gap-3 grid-cols-2 md:grid-cols-3 mb-4">
+                    <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Média diária</p><p className="text-lg font-bold truncate">{formatCurrency(media)}</p></CardContent></Card>
+                    <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Melhor dia</p><p className="text-lg font-bold text-success truncate">{melhor ? `${melhor.label} — ${formatCurrency(melhor.total)}` : "—"}</p></CardContent></Card>
+                    <Card className="col-span-2 md:col-span-1"><CardContent className="p-3"><p className="text-xs text-muted-foreground">Pior dia</p><p className="text-lg font-bold text-destructive truncate">{pior ? `${pior.label} — ${formatCurrency(pior.total)}` : "—"}</p></CardContent></Card>
+                  </div>
+                  <Card>
+                    <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><CalendarDays className="h-5 w-5" />Evolução de Vendas no Período</CardTitle></CardHeader>
+                    <CardContent>
+                      {dadosPorDia.length === 0 ? (
+                        <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
+                      ) : (
+                        <ResponsiveContainer width="100%" height={320}>
+                          <LineChart data={dadosPorDia}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <XAxis dataKey="label" className="text-xs" />
+                            <YAxis className="text-xs" tickFormatter={(v) => `R$${(v / 1000).toFixed(1)}k`} />
+                            <Tooltip formatter={(v: number, n) => n === "total" ? formatCurrency(v) : [`${v} pedidos`, "Pedidos"]} />
+                            <Legend />
+                            <Line type="monotone" dataKey="total" name="Faturamento" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
+                            <Line type="monotone" dataKey="qtd" name="Pedidos" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ r: 3 }} yAxisId="right" />
+                            <YAxis yAxisId="right" orientation="right" className="text-xs" />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      )}
+                    </CardContent>
+                  </Card>
+                </>
+              );
+            })()}
+          </TabsContent>
+
+          {/* Tab Top Clientes */}
+          <TabsContent value="clientes">
+            <Card>
+              <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Trophy className="h-5 w-5" />Top Clientes do Período</CardTitle></CardHeader>
+              <CardContent className="p-0 sm:p-6 sm:pt-0">
+                {dadosTopClientes.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-[400px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12">#</TableHead>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead className="text-right w-16">Pedidos</TableHead>
+                          <TableHead className="text-right">Faturamento</TableHead>
+                          <TableHead className="text-right hidden sm:table-cell">Ticket Médio</TableHead>
+                          <TableHead className="hidden md:table-cell">Última compra</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {dadosTopClientes.slice(0, 20).map((c, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="text-muted-foreground text-xs">{i + 1}</TableCell>
+                            <TableCell className="font-medium text-sm">{c.nome}</TableCell>
+                            <TableCell className="text-right">{c.qtd}</TableCell>
+                            <TableCell className="text-right font-semibold whitespace-nowrap">{formatCurrency(c.total)}</TableCell>
+                            <TableCell className="text-right hidden sm:table-cell whitespace-nowrap">{formatCurrency(c.qtd > 0 ? c.total / c.qtd : 0)}</TableCell>
+                            <TableCell className="hidden md:table-cell text-xs">{c.ultima ? format(parseISO(`${c.ultima}T12:00:00`), "dd/MM/yyyy", { locale: ptBR }) : "—"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {dadosTopClientes.length > 20 && (
+                      <p className="text-center text-sm text-muted-foreground mt-4 pb-4">Mostrando 20 de {dadosTopClientes.length}. Exporte para ver todos.</p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
         {/* Import Review Dialog */}
