@@ -274,6 +274,8 @@ export default function DocumentosEmpresa() {
             ))}
           </div>
         )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Upload Dialog */}
