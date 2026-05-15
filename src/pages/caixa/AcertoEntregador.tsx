@@ -476,13 +476,55 @@ export default function AcertoEntregador() {
   const metricas = useMemo(() => {
     const totalVendas = entregas.reduce((a, e) => a + Number(e.valor_total || 0), 0);
     const porForma: Record<string, number> = {};
+    const entregasInvalidas: { id: string; forma_original: string; valor: number }[] = [];
+
+    const parseMultiplos = (fp: string, total: number): { forma: string; valor: number }[] => {
+      const clean = fp.replace(/^Múltiplos:\s*/i, "");
+      const parts = clean.split(/\s*\+\s*|,\s*/).filter(Boolean);
+      const out: { forma: string; valor: number }[] = [];
+      let restante = total;
+      let semValor: string[] = [];
+      parts.forEach((part) => {
+        const m = part.trim().match(/^(.+?)\s+R\$\s*([\d\.,]+)$/);
+        if (m) {
+          const v = parseFloat(m[2].replace(/\./g, "").replace(",", "."));
+          out.push({ forma: m[1].trim(), valor: isFinite(v) ? v : 0 });
+          restante -= isFinite(v) ? v : 0;
+        } else {
+          semValor.push(part.trim());
+        }
+      });
+      if (semValor.length > 0) {
+        const dividido = semValor.length > 0 ? restante / semValor.length : 0;
+        semValor.forEach((forma) => out.push({ forma, valor: dividido }));
+      }
+      return out;
+    };
+
     entregas.forEach((e) => {
-      const forma = e.forma_pagamento || "outros";
-      porForma[forma] = (porForma[forma] || 0) + Number(e.valor_total || 0);
+      const fp = (e.forma_pagamento || "").trim();
+      const total = Number(e.valor_total || 0);
+      const items = (fp.includes(",") || /\+/.test(fp) || /^Múltiplos:/i.test(fp))
+        ? parseMultiplos(fp, total)
+        : [{ forma: fp, valor: total }];
+
+      let temInvalido = false;
+      items.forEach(({ forma, valor }) => {
+        const canon = canonicalForma(forma);
+        if (canon === "__invalido__") {
+          temInvalido = true;
+        } else {
+          porForma[canon] = (porForma[canon] || 0) + valor;
+        }
+      });
+      if (temInvalido) {
+        entregasInvalidas.push({ id: e.id, forma_original: fp || "(vazio)", valor: total });
+      }
     });
+
     const totalDespesas = despesas.reduce((a, d) => a + Number(d.valor || 0), 0);
     const saldoLiquido = totalVendas - totalDespesas;
-    return { totalVendas, porForma, totalDespesas, saldoLiquido };
+    return { totalVendas, porForma, totalDespesas, saldoLiquido, entregasInvalidas };
   }, [entregas, despesas]);
 
   // Separar pendentes e acertados para contadores
