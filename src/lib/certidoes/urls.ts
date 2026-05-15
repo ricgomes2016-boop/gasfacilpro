@@ -74,7 +74,7 @@ export const CND_ESTADUAL_URLS: Record<string, string> = {
   PB: "https://www3.receita.pb.gov.br/atf/seg/SEGf_AcessarFuncao.jsp?cdFuncao=FIS_1097",
   PE: "https://efisco.sefaz.pe.gov.br/sfi_com_sca/PRMontarSolicitacaoCertidaoContribuinte",
   PI: "https://webas.sefaz.pi.gov.br/certidao/",
-  PR: "https://www.arinternet.pr.gov.br/CertidaoNegativaWeb/",
+  PR: "https://cdp.anp.gov.br/ords/r/cdp_apex/consulta-dados-publicos-cdp/consulta-de-revenda-glp-lista",
   RJ: "https://www.fazenda.rj.gov.br/sefaz/faces/menu_structure/servicos/certidao",
   RN: "https://uvt2.set.rn.gov.br/#/services/emissao-certidao-negativa",
   RO: "https://agenciavirtual.sefin.ro.gov.br/publico/CertidaoNegativa/Solicitar.aspx",
