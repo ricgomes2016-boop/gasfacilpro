@@ -1,66 +1,72 @@
-## Objetivo
 
-Adicionar um diagnóstico do certificado A1 (e-CNPJ) e uma forma rápida de validar se a assinatura PAdES gerada está correta — sem precisar emitir um orçamento real.
+# Automação de Certidões e Documentos da Empresa
 
----
+## Resposta direta sobre viabilidade
 
-## 1. Edge Function: novo modo "diagnóstico" no `assinar-pdf`
+Antes do plano, é importante alinhar o que é realmente possível hoje no Brasil. Cada órgão tem um nível de automação diferente:
 
-Adicionar `acao: "diagnostico" | "assinar" | "amostra"` no body (default `assinar`, mantém compatibilidade).
+| # | Documento | Órgão | Automação possível? | Como |
+|---|-----------|-------|---------------------|------|
+| 1 | Consulta Revenda GLP | ANP | ✅ Sim, totalmente | Scraping do portal público da ANP (sem captcha forte) |
+| 2 | CND Federal (Receita/PGFN) | Receita Federal | ⚠️ Parcial | Site tem **reCAPTCHA v2/v3**. Solução: API paga (Infosimples, SerproConsultas, Direct Data) OU resolver captcha (2Captcha) |
+| 3 | CND Estadual | SEFAZ de cada estado | ⚠️ Parcial | Cada UF tem site próprio + captcha. Viável apenas via API agregadora paga |
+| 4 | CND Municipal | Prefeitura de cada município | ❌ Difícil | Cada prefeitura tem site próprio, muitos sem emissão online. Só viável via API paga ou manual |
+| 5 | CNDT Trabalhista | TST | ⚠️ Parcial | Tem captcha. Viável via API agregadora |
+| 6 | Sintegra | Sintegra (UF) | ✅ Sim, na maioria | Vários estados sem captcha, scraping direto funciona |
 
-- **`diagnostico`** (não assina nada):
-  - Baixa o `.pfx` do bucket `certificados-fiscais`
-  - Abre com `node-forge` usando a senha cadastrada
-  - Retorna: `titular`, `cnpj`, `emissor` (CN do issuer), `validade_inicio`, `validade_fim`, `serial`, `algoritmo`, `dias_para_vencer`, `cadeia_icp_brasil` (true/false a partir do issuer "AC ... ICP-Brasil"), `tamanho_chave`
-  - Erros granulares: `pfx_nao_encontrado`, `senha_invalida`, `pfx_corrompido`, `vencido`
+**Conclusão honesta:** Para fazer isso 100% automático e confiável, o caminho prático é contratar uma **API agregadora** (Infosimples é a mais usada no Brasil — cobre todas as 6 certidões com uma única integração, custo por consulta entre R$ 0,30 e R$ 2,00). Sem ela, conseguimos cobrir bem ANP e Sintegra, e os demais ficariam manuais ou instáveis.
 
-- **`amostra`** (gera + assina um PDF de teste de 1 página):
-  - Cria um PDF mínimo com `pdf-lib` ("Documento de teste — Assinatura Digital — <data>")
-  - Aplica o mesmo fluxo de `assinar` (placeholder + P12Signer + SignPdf)
-  - Retorna `pdfBase64Assinado` para download
+## Decisão necessária antes de implementar
 
-## 2. Cliente: helper de diagnóstico
+Preciso saber qual caminho você quer seguir:
 
-Em `src/services/digitalSignature/signPdfClient.ts`, adicionar:
-- `diagnosticarCertificado(unidadeId)` → retorna o objeto de diagnóstico
-- `gerarPdfAmostraAssinado(unidadeId)` → baixa um PDF assinado de teste
+**Opção A — Híbrido (recomendado, sem custo extra inicial)**
+- Automatiza ANP e Sintegra via scraping direto (grátis, estável)
+- Para CND Federal/Estadual/Municipal/Trabalhista: cria UI para upload manual + lembretes de vencimento + botão "abrir site oficial" pré-preenchido com CNPJ
 
-## 3. UI: nova página "Diagnóstico de Assinatura Digital"
+**Opção B — Tudo automático via Infosimples (ou similar)**
+- Você contrata conta na Infosimples (ou SerproConsultas) e me passa o token
+- Automatizo as 6 certidões, agendamento mensal, alertas
+- Custo: ~R$ 0,30 a R$ 2,00 por certidão emitida
 
-Rota: `/configuracoes/assinatura-digital/diagnostico` (ou um card dentro da página atual de Unidades, no bloco "Certificado A1").
+**Opção C — Só ANP + Sintegra automáticos por agora**
+- Implementa o que dá grátis, deixa o resto pra depois
 
-Conteúdo:
-- **Bloco 1 — Status do certificado** (badge verde/vermelho)
-  - Titular, CNPJ, Emissor, Validade (com countdown), Serial, ICP-Brasil ✓/✗
-- **Bloco 2 — Teste de assinatura**
-  - Botão **"Gerar PDF de teste assinado"** → faz download de `teste-assinatura.pdf`
-  - Instruções curtas: abrir no **Adobe Acrobat Reader** → painel "Assinaturas" deve mostrar:
-    - Assinado por: <titular>
-    - "A assinatura é VÁLIDA" (após confirmar a Raiz ICP-Brasil como confiável; Adobe tem opção "Adicionar à lista de identidades confiáveis")
-    - Data, motivo e local
-- **Bloco 3 — Logs**
-  - Última resposta da edge function em formato cru (collapsible) para debug
+## Plano técnico (independente da opção)
 
-## 4. Acesso rápido a partir de Orçamentos › Fundepar
+### Banco de dados
+Nova tabela `certidoes_empresa`:
+- `unidade_id`, `empresa_id`, `tipo` (anp/cnd_federal/cnd_estadual/cnd_municipal/cndt/sintegra)
+- `numero`, `data_emissao`, `data_vencimento`, `status` (regular/irregular/pendente/vencida)
+- `arquivo_url` (PDF salvo em storage), `dados_json` (resposta crua)
+- `ultima_consulta_at`, `ultimo_erro`
 
-No diálogo onde já existe o switch "Assinar digitalmente", adicionar link:
-> "Não tem certeza se o certificado funciona? Testar agora →"
-que abre a página de diagnóstico em nova aba.
+### Edge Functions
+- `consultar-anp` — scraping do portal ANP por CNPJ
+- `consultar-sintegra` — roteador por UF
+- `consultar-certidoes` (se Opção B) — wrapper Infosimples para as 4 CNDs
 
----
+### UI em Configurações › Documentos da Empresa
+- Nova aba "Certidões" ao lado da lista atual
+- Seletor de unidade (já existe `useUnidade`) usado como filtro
+- Cards por certidão mostrando: status, vencimento, dias restantes, botão "Atualizar agora", botão "Baixar PDF"
+- Badge vermelho/amarelo/verde por proximidade do vencimento
 
-## Detalhes técnicos
+### Agendamento automático
+- Cron diário (`pg_cron`) que chama `verificar-certidoes-vencendo`
+- Reconsulta automática 30 dias antes do vencimento
+- Notificação via sistema de notificações existente (`useNotificacoes`)
 
-- **Validação ICP-Brasil**: checar se `cert.issuer.getField("CN").value` contém `"ICP-Brasil"` ou `"AC "`. A validação completa de cadeia exige as ACs raízes do ITI; isso fica fora do escopo (Adobe Reader já faz essa validação ao abrir o PDF).
-- **PAdES vs CMS detached**: o `@signpdf/signpdf` aplica CMS PKCS#7 em `/Contents` com `/SubFilter /adbe.pkcs7.detached` — Adobe Reader reconhece como **PAdES-B-B**. Sem timestamp (TSA) — adicionar TSA ICP-Brasil é opcional e fica fora do escopo desta etapa.
-- **Tamanho do placeholder**: 16384 bytes já está adequado para certificados A1 ICP-Brasil.
-- **Sem mudanças de DB**: usa o `.pfx` já cadastrado em `unidades.certificado_a1_path/senha/validade/titular`.
-- **Sem novas dependências**: tudo já está no `assinar-pdf`.
+### Multi-tenant
+- Respeita `empresa_id` + `unidade_id` em todos os payloads (regra do projeto)
+- RLS por unidade
 
-## Como você vai validar
+## Ações para você
 
-1. Abre **Configurações › Assinatura Digital › Diagnóstico**
-2. Confirma os dados do certificado (titular = razão social, CNPJ correto, validade futura, ICP-Brasil ✓)
-3. Clica **"Gerar PDF de teste assinado"** → abre no Adobe Reader
-4. Painel "Assinaturas" mostra a assinatura com seu nome/CNPJ. Se aparecer "validade desconhecida" basta marcar a Raiz ICP-Brasil como confiável uma vez.
-5. Volta em Orçamentos › Fundepar, ativa o switch e gera um PDF real — o carimbo continua igual e a assinatura digital é embutida no arquivo.
+Responda 3 coisas:
+
+1. **Qual opção (A, B ou C)?**
+2. Se B: qual provedor — **Infosimples**, **SerproConsultas**, **Direct Data** ou outro?
+3. Para Sintegra automático: precisa cobrir **todas as UFs** ou só onde a Forte Gás opera (PR)?
+
+Com isso eu fecho o escopo e parto pra implementação.
