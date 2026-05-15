@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CertidoesEmpresaTab } from "@/components/config/CertidoesEmpresaTab";
+import { LicitacaoTab } from "@/components/config/LicitacaoTab";
 import { statusBadge, diasAteVencimento, TIPO_CERTIDAO_LABEL } from "@/lib/certidoes/status";
 
 const CATEGORIAS = [
@@ -237,9 +238,13 @@ export default function DocumentosEmpresa() {
           <TabsList>
             <TabsTrigger value="documentos">Documentos</TabsTrigger>
             <TabsTrigger value="certidoes">Certidões e Vencimentos</TabsTrigger>
+            <TabsTrigger value="licitacao">Documentos Licitação</TabsTrigger>
           </TabsList>
           <TabsContent value="certidoes" className="mt-4">
             <CertidoesEmpresaTab />
+          </TabsContent>
+          <TabsContent value="licitacao" className="mt-4">
+            <LicitacaoTab />
           </TabsContent>
           <TabsContent value="documentos" className="mt-4 space-y-4 md:space-y-6">
         {/* Actions */}

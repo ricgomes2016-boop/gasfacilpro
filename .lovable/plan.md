@@ -1,59 +1,75 @@
-## Objetivo
+## Nova aba: Documentos Licitação
 
-Eliminar a duplicação entre as abas **Documentos** e **Certidões e Vencimentos** em `Configurações > Documentos da Empresa`. Hoje, ao subir uma certidão (ANP, CNDs, Sintegra) na aba de Certidões, o arquivo fica isolado em `certidoes_empresa` e não aparece na listagem geral de Documentos — o usuário precisa subir o mesmo PDF duas vezes.
+Adicionar terceira aba em **Configurações → Documentos da Empresa**, ao lado de "Documentos" e "Certidões e Vencimentos", para montar a pasta de uma licitação (pregão) a partir de modelos editáveis.
 
-A solução **não duplica dados nem cria nova tabela**: a aba **Documentos** passa a ler também de `certidoes_empresa` e exibir cada certidão como um item da lista (somente leitura por essa aba). A aba **Certidões** continua sendo o único lugar para emitir/atualizar/remover certidões e controlar vencimento.
+### Estrutura visual
 
-## Mudanças (somente frontend, em `src/pages/config/DocumentosEmpresa.tsx`)
+```text
+[ Documentos ] [ Certidões ] [ Documentos Licitação ]
+```
 
-### 1. Lista unificada na aba "Documentos"
-- Adicionar uma segunda query a `certidoes_empresa` (filtrada pela unidade atual) ao lado da query existente de `documentos_empresa`.
-- Normalizar cada certidão para o mesmo shape do documento, com:
-  - `nome`: "ANP — Revenda GLP", "CND Federal", etc. (mapeado pelo `tipo`)
-  - `categoria`: `"certidao"` (nova entrada em `CATEGORIAS`)
-  - `arquivo_nome` / `arquivo_url`: derivados do `arquivo_url` em storage (`certidoes-empresa`)
-  - Campos extras: `data_vencimento`, `status`, `origem` (para badge)
-  - Flag `__origem: "certidao"` para o renderizador saber que é read-only por aqui
-- Concatenar `documentos + certidoes` no `filtered`, mantendo busca e filtro por categoria.
+Dentro da aba:
+1. **Cabeçalho da Licitação** (cartão único no topo)
+   - Nº do Pregão (ex: 046/2021)
+   - Modalidade (Presencial / Eletrônico)
+   - Órgão / Município (ex: Município de Cornélio Procópio - PR)
+   - Data do pregão (gera "Cornélio Procópio, em 20 de abril de 2021")
+   - Objeto resumido
+   - Botão **"Gerar pasta completa (ZIP de PDFs)"**
 
-### 2. Nova categoria "Certidões"
-- Adicionar `{ value: "certidao", label: "Certidões" }` em `CATEGORIAS`.
-- Trocar um dos cards de stats (ex: "Documentos Fiscais") por **"Certidões"** mostrando a contagem de `certidoes_empresa`, com sub-texto "X vencendo em 30d" quando aplicável.
+2. **Três grupos de cards** (acordeões):
+   - **Fora do Envelope** → ANEXO 05, ANEXO 06, ANEXO 11
+   - **Envelope 1 — Proposta de Preço** → Carta-Proposta (ANEXO 10), Proposta de Preço (tabela de itens)
+   - **Envelope 2 — Documentos de Habilitação** → reaproveita as certidões já cadastradas (CND Federal, Estadual, Municipal, Trabalhista, FGTS, ANP, Sintegra) + slots para anexos 07–09 quando o usuário enviar
 
-### 3. Render diferenciado para certidões na lista
-- Para itens com `__origem === "certidao"`:
-  - Badge da categoria mostra **"Certidão"** + um segundo badge colorido com o status de vencimento (reaproveitando a lógica de `statusBadge` que já existe em `CertidoesEmpresaTab.tsx` — extrair para `src/lib/certidoes/status.tsx` para reuso).
-  - Botão **Download** funciona normalmente (signed URL no bucket `certidoes-empresa`).
-  - Botão **Excluir** é substituído por um botão **"Gerenciar"** que muda a aba ativa para `certidoes` (controlled `Tabs` com `value`/`onValueChange`).
-  - Não exibir na busca duplicado: cada certidão aparece **uma única vez**, vinda de `certidoes_empresa`.
+   Cada card mostra: título do anexo, status (Pronto / Falta dados), botões **Editar**, **Pré-visualizar**, **Baixar PDF**.
 
-### 4. Bloquear upload manual de certidões pela aba Documentos
-- No diálogo "Enviar Documento", se o usuário escolher categoria **"Certidões"**, mostrar um aviso inline:
-  > "Para certidões com controle de vencimento (ANP, CNDs, Sintegra), use a aba **Certidões e Vencimentos**."
-  com um botão "Ir para Certidões" que troca a aba.
-- Desabilitar o botão "Salvar Documento" enquanto a categoria for `certidao`.
+### Edição dos modelos
 
-### 5. Aba "Certidões e Vencimentos" — sem mudança funcional
-- Continua exatamente como está (única origem da verdade para certidões).
-- Apenas adicionamos um pequeno texto no topo:
-  > "Os PDFs enviados aqui aparecem automaticamente na aba **Documentos**."
+Cada modelo é um template com placeholders. Os dados da empresa vêm de `unidades` (razão social, CNPJ, IE, endereço, telefone, email, banco) — preenchidos automaticamente. Os dados específicos da licitação vêm do cabeçalho. Campos editáveis por modelo:
 
-## Detalhes técnicos
+- **ANEXO 05 — Cumprimento dos requisitos**: somente cabeçalho (auto).
+- **ANEXO 06 — ME/EPP**: tipo (ME / EPP) + cabeçalho.
+- **ANEXO 11 — Informações contratuais**: representante (nome, CPF, RG, endereço, telefone), conta bancária (banco, agência, conta).
+- **ANEXO 10 — Carta-Proposta**: cabeçalho + lista de itens (vem da Proposta de Preço) + validade da proposta (dias).
+- **Proposta de Preço**: tabela editável de itens (item, especificação, quantidade, unidade, valor unit., valor total calculado) + data.
 
-- Sem migration. Tabelas e buckets já existem (`documentos_empresa`, `certidoes_empresa`, `documentos-empresa`, `certidoes-empresa`).
-- A query de certidões usa o `useQuery` com a mesma `queryKey: ["certidoes_empresa", unidadeAtual?.id]` já usada no `CertidoesEmpresaTab`, então uploads invalidam ambas as visualizações automaticamente.
-- Download de certidão usa `supabase.storage.from("certidoes-empresa").createSignedUrl(arquivo_url, 60)` (o `arquivo_url` salvo é o path interno, não a URL pública).
-- Tabs vira controlado: `const [tab, setTab] = useState("documentos")`.
-- Extrair `statusBadge` e `diasAteVencimento` para `src/lib/certidoes/status.tsx` para evitar duplicação entre `CertidoesEmpresaTab` e `DocumentosEmpresa`.
+Editor inline em modal (`ResponsiveDialog`), com auto-save no banco.
 
-## Arquivos afetados
+### Saída em PDF
 
-- `src/pages/config/DocumentosEmpresa.tsx` — lista unificada, controle de tabs, bloqueio de upload de certidão
-- `src/components/config/CertidoesEmpresaTab.tsx` — importar `statusBadge` do novo lib + adicionar nota informativa
-- `src/lib/certidoes/status.tsx` *(novo)* — `statusBadge` e `diasAteVencimento` reutilizáveis
+Geração 100% client-side com `jspdf` + `jspdf-autotable` (já compatível com o stack). Cada modelo tem sua função de render. Logo da empresa puxado de `unidades.logo_url`. Botão "Gerar pasta completa" empacota todos em ZIP via `jszip`, nomeando como:
+```
+Pregao_046-2021/
+  Fora do Envelope/ANEXO_05.pdf, ANEXO_06.pdf, ANEXO_11.pdf
+  Envelope 1 - Proposta/Carta_Proposta.pdf, Proposta_de_Preco.pdf
+  Envelope 2 - Habilitacao/CND_Federal.pdf, ... (reaproveita PDFs já em certidoes_empresa)
+```
 
-## Resultado para o usuário
+### Persistência
 
-- Sobe a CND Federal na aba **Certidões** → ela aparece imediatamente também em **Documentos** com badge de vencimento, sem upload duplicado.
-- Tentar subir uma "Certidão" pelo botão genérico de Documentos → o sistema redireciona para a aba correta, evitando criar registros paralelos.
-- Uma única fonte da verdade para cada certidão; documentos avulsos (contratos, alvarás, seguros, etc.) continuam no fluxo normal.
+Nova tabela `licitacoes`:
+- `numero_pregao`, `modalidade`, `orgao`, `data_pregao`, `objeto`
+- `dados_json` (jsonb) com config dos anexos e itens da proposta
+- `unidade_id`, `empresa_id`, `created_by`, timestamps
+- RLS por unidade (mesmo padrão de `documentos_empresa`)
+
+Lista de licitações criadas aparece acima dos grupos; usuário seleciona uma para editar/gerar, ou clica em **"Nova Licitação"**.
+
+### Arquivos a criar/editar
+
+- `src/pages/config/DocumentosEmpresa.tsx` — adicionar `<TabsTrigger value="licitacao">` e `<TabsContent>`
+- `src/components/config/licitacao/LicitacaoTab.tsx` — container da aba
+- `src/components/config/licitacao/LicitacaoHeader.tsx` — cabeçalho do pregão
+- `src/components/config/licitacao/AnexoCard.tsx` — card com ações
+- `src/components/config/licitacao/editors/` — modais de edição por anexo
+- `src/lib/licitacao/templates/` — funções `renderAnexo05Pdf`, `renderAnexo06Pdf`, `renderAnexo11Pdf`, `renderCartaPropostaPdf`, `renderPropostaPrecoPdf`
+- `src/lib/licitacao/zip.ts` — empacotador
+- Migração: tabela `licitacoes` + RLS
+
+### Perguntas antes de implementar
+
+1. **Itens da proposta**: devo puxar do catálogo de produtos do ERP (tabela `produtos`) deixando o usuário só ajustar quantidade/preço, ou começar com lista vazia para ele digitar? Os modelos enviados têm itens fixos (P-13, P-45, água, mangueiras, registros) — viraria template padrão?
+2. **Assinatura**: usar a assinatura digital já cadastrada (vi `useAssinaturaDigital`) para inserir como imagem no PDF, ou manter linha em branco para assinar à mão depois de imprimir?
+3. **Anexos 07, 08, 09**: você vai enviar os modelos depois? Por ora deixo placeholders "Em breve" nesses cards?
+4. **Múltiplas licitações**: é comum participar de várias ao mesmo tempo (lista histórica) ou só uma por vez (sobrescreve)?
