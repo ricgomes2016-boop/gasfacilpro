@@ -1,42 +1,46 @@
-## Problema
+# Novos relatórios em Vendas → Relatório
 
-No `src/pages/caixa/AcertoEntregador.tsx`, o "Resumo Automático do Acerto" agrupa as entregas por `forma_pagamento` exatamente como está salvo no pedido. Como os pedidos têm valores inconsistentes ("Dinheiro" vs "dinheiro", "Vale Gás" vs "vale_gas", "cartao" sem crédito/débito, "outros"), o resumo mostra a mesma forma duas vezes e ainda exibe formas que não existem oficialmente.
+Adicionar novas abas ao lado das existentes (Ped. / Por Entregador / Entregador x Canal / Por Canal) em `src/pages/vendas/RelatorioVendas.tsx`, reaproveitando os mesmos filtros (período, status, canal) e os dados já carregados em `pedidos` (com `pedido_itens` + `produtos`).
 
-## Objetivo
+## Nova aba principal: Produtos Vendidos
 
-1. Unificar variações da mesma forma (case/acento/snake_case) em uma única linha.
-2. Sinalizar e bloquear o acerto quando houver forma inválida:
-   - `outros`, vazio, ou qualquer string fora da lista oficial.
-   - `cartao` / `cartão` genérico (sem crédito ou débito definido).
-3. Mostrar Cartão sempre como **Cartão Crédito** ou **Cartão Débito** (nunca "Cartão" puro).
+Agrupar todos os `pedido_itens` dos pedidos filtrados (excluindo cancelados) por nome do produto.
 
-## Mudanças (apenas frontend)
+Para cada produto, mostrar:
+- Quantidade total vendida (ex.: "Gás P13: 80", "Gás P20: 4", "Água 20L: 50")
+- Nº de pedidos que continham o produto
+- Faturamento (Σ quantidade × preço_unitario)
+- Ticket médio por unidade
+- % de participação no faturamento total
 
-### `src/pages/caixa/AcertoEntregador.tsx`
+Layout:
+- Gráfico de barras horizontal (top 10 por quantidade) à esquerda
+- Tabela completa ordenável à direita, com linha de Total no rodapé
+- Card resumo no topo: "Total de unidades vendidas" e "Mix de produtos" (qtd distinta)
 
-**a) Nova função `canonicalForma(raw)`** (perto de `normalizarFormaPagamento`, linha ~465):
-- Mapeia variações para chaves canônicas: `dinheiro`, `pix`, `pix_maquininha`, `cartao_credito`, `cartao_debito`, `cheque`, `vale_gas`, `fiado`.
-- Retorna `"__invalido__"` para: vazio, `outros`, `cartao`/`cartão` puro, ou qualquer valor não reconhecido.
-- Trata também strings de pagamento múltiplo (`"Múltiplos: Dinheiro R$10, Cartão Débito R$5"`) somando por canônico.
+Incluir esses dados também na exportação **Excel** (nova aba "Por Produto") e no **PDF** (nova seção "Vendas por Produto").
 
-**b) Refatorar `metricas` (linha 429)**:
-- Em vez de `porForma[e.forma_pagamento]`, percorrer cada entrega, dividir múltiplos pagamentos quando aplicável, classificar via `canonicalForma` e somar em `porFormaCanonica`.
-- Coletar lista `entregasInvalidas: { id, forma_original, valor }[]` para itens que caíram em `__invalido__`.
+## Relatórios adicionais sugeridos (3 abas extras)
 
-**c) Resumo Automático (linha ~858)**:
-- Renderizar `porFormaCanonica` (já sem duplicatas) usando `paymentLabels`.
-- Abaixo, se `entregasInvalidas.length > 0`, mostrar bloco vermelho:
-  > ⚠️ N entrega(s) com forma de pagamento inválida ("outros", "cartao", etc.). Edite cada pedido e selecione Cartão Crédito ou Cartão Débito antes de confirmar.
-  - Listar cada uma com botão "Editar" que abre o `editingEntrega` existente.
+1. **Por Forma de Pagamento** — agrupa pedidos por `forma_pagamento` normalizado (Dinheiro, PIX, Crédito, Débito, Fiado, Vale Gás). Mostra qtd de pedidos, faturamento, ticket médio e gráfico de pizza com % de cada forma. Ajuda a conferir mix de recebimentos.
 
-**d) Bloquear confirmação (linha ~895 e função `confirmarAcerto` linha 480)**:
-- Desabilitar botão "Confirmar Acerto" quando `entregasInvalidas.length > 0` (com tooltip explicativo).
-- Em `confirmarAcerto`, validar antes do loop e dar `toast.error` se houver inválidas.
+2. **Evolução Diária** — série temporal dia a dia dentro do período: linha/barra com faturamento por dia + qtd de pedidos por dia. Inclui melhor dia, pior dia e média diária no cabeçalho. Útil para identificar sazonalidade da semana.
 
-**e) Card "Dinheiro em espécie a receber" (linha 880)**:
-- Passar a usar `porFormaCanonica["dinheiro"]` (chave única), eliminando o fallback `|| porForma["Dinheiro"]`.
+3. **Top Clientes** — ranking por cliente (`clientes.nome`) com qtd de pedidos, faturamento, ticket médio e data da última compra no período. Limitado aos top 20 na tela, completo na exportação. Reaproveita lógica do CRM mas restrito ao período/filtros.
 
-## Não muda
+## Detalhes técnicos
 
-- Schema do banco, RLS, roteamento de pagamentos (`rotearPagamentosVenda`), modal de edição, tabelas de detalhes — tudo permanece igual.
-- A edição já existente do pedido (`editingEntrega`) é o caminho para o usuário corrigir as formas inválidas.
+- Adicionar 4 novos `useMemo` (`dadosPorProduto`, `dadosPorFormaPagamento`, `dadosPorDia`, `dadosTopClientes`) usando `pedidosFiltrados` — sem nova query ao Supabase.
+- `dadosPorProduto`: itera `pedido_itens`, agrega por `produtos.nome` (fallback "Sem nome"); soma `quantidade` e `quantidade * preco_unitario`.
+- `dadosPorFormaPagamento`: reutiliza a normalização `canonicalForma` já criada em AcertoEntregador (extrair para `src/lib/payment-utils.ts` para evitar duplicação) — sem alterar AcertoEntregador além do import.
+- `dadosPorDia`: agrupa por `data_entrega || created_at` formatado em `yyyy-MM-dd`, preenche dias sem venda com 0.
+- `dadosTopClientes`: agrupa por `clientes?.nome || "Não identificado"`.
+- Atualizar `TabsList` para 7 abas usando `grid grid-cols-4 sm:grid-cols-7` ou scroll horizontal para caber no mobile (viewport 1069px do usuário já comporta tudo); manter labels curtos em telas pequenas (ex.: "Prod.", "Pgto.", "Dia", "Clientes").
+- Reutilizar `BarChart`, `PieChart` e `LineChart` do Recharts já importados (`LineChart` precisa ser adicionado ao import).
+- Atualizar `exportarExcel` e `exportarPDF` para incluir as novas seções.
+
+## Fora do escopo
+
+- Não mexer no schema, RLS, edge functions, nem alterar como pedidos/itens são persistidos.
+- Não criar página/rota nova — tudo dentro de `RelatorioVendas.tsx`.
+- Não tocar em AcertoEntregador além de (opcionalmente) importar `canonicalForma` do novo util compartilhado.
