@@ -19,7 +19,10 @@ import {
   ResponsiveDialogFooter as DialogFooter,
   ResponsiveDialogDescription as DialogDescription,
 } from "@/components/ui/responsive-dialog";
-import { Plus, Download, FileText, Pencil, Trash2, Package, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Download, FileText, Pencil, Trash2, Package, Loader2, AlertCircle, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { useAssinaturaDigital } from "@/hooks/useAssinaturaDigital";
+import { assinarPdfRemoto } from "@/services/digitalSignature/signPdfClient";
 import {
   renderAnexo05, renderAnexo06, renderAnexo11,
   renderCartaProposta, renderPropostaPreco, renderEtiquetaEnvelope,
@@ -46,6 +49,7 @@ export function LicitacaoTab() {
   const { unidadeAtual } = useUnidade();
   const { user } = useAuth();
   const qc = useQueryClient();
+  const assinatura = useAssinaturaDigital();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [novaOpen, setNovaOpen] = useState(false);
@@ -196,14 +200,27 @@ export function LicitacaoTab() {
     },
   });
 
-  function baixarPdf(name: string, gen: () => any) {
+  async function baixarPdf(name: string, gen: () => any) {
     if (!empresa || !lic || !dados.representante) {
       toast.error("Preencha cabeçalho, identificação e representante primeiro");
       return;
     }
     try {
       const doc = gen();
-      doc.save(`${name}_Pregao_${lic.numero_pregao.replace(/\//g, "-")}.pdf`);
+      const filename = `${name}_Pregao_${lic.numero_pregao.replace(/\//g, "-")}.pdf`;
+      if (assinatura.ativo && assinatura.unidadeId) {
+        const raw = new Uint8Array(doc.output("arraybuffer"));
+        const r = await assinarPdfRemoto(raw, { unidadeId: assinatura.unidadeId, motivo: `Licitação ${lic.numero_pregao}` });
+        const blob = new Blob([r.pdf as BlobPart], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = filename; a.click();
+        URL.revokeObjectURL(url);
+        if (!r.ok) toast.warning("PDF baixado SEM assinatura: " + (r.mensagem || r.motivo));
+        else toast.success("PDF assinado digitalmente");
+      } else {
+        doc.save(filename);
+      }
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -231,13 +248,20 @@ export function LicitacaoTab() {
       const certs = (certidoes as any[]).filter((c) => c.arquivo_url).map((c) => ({
         tipo: c.tipo, arquivo_url: c.arquivo_url, arquivo_nome: c.arquivo_nome,
       }));
+      const signFn = assinatura.ativo && assinatura.unidadeId
+        ? async (bytes: Uint8Array, name: string) => {
+            const r = await assinarPdfRemoto(bytes, { unidadeId: assinatura.unidadeId!, motivo: `Licitação ${lic.numero_pregao} — ${name}` });
+            return r.pdf;
+          }
+        : undefined;
       const blob = await montarZipLicitacao(
         lic.numero_pregao,
         fora,
         env1,
         renderEtiquetaEnvelope(empresa, lic, 2, "Documentos de Habilitação"),
         renderEtiquetaEnvelope(empresa, lic, 1, "Proposta de Preço"),
-        certs
+        certs,
+        signFn
       );
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -315,6 +339,33 @@ export function LicitacaoTab() {
               <div><span className="text-muted-foreground">Data:</span> {selecionada.data_publicacao || "—"}</div>
               <div><span className="text-muted-foreground">Empresa:</span> {empresa?.razao_social}</div>
               {selecionada.objeto && <div className="col-span-full"><span className="text-muted-foreground">Objeto:</span> {selecionada.objeto}</div>}
+              <div className="col-span-full flex items-center gap-2 border-t pt-3 mt-1">
+                {assinatura.disponivel ? (
+                  <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <ShieldAlert className="h-4 w-4 text-amber-600 shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <Label className="text-xs">Assinar digitalmente (e-CNPJ)</Label>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {assinatura.carregando
+                      ? "Verificando certificado..."
+                      : assinatura.disponivel
+                        ? `${assinatura.titular || "Certificado A1 cadastrado"}${assinatura.validade ? ` · até ${new Date(assinatura.validade).toLocaleDateString("pt-BR")}` : ""}`
+                        : assinatura.vencido
+                          ? "Certificado vencido — atualize em Configurações › Unidades"
+                          : "Sem certificado A1 cadastrado nesta unidade"}
+                  </p>
+                </div>
+                <a href="/config/assinatura-digital" target="_blank" rel="noreferrer" className="text-[11px] text-primary hover:underline whitespace-nowrap">
+                  Testar →
+                </a>
+                <Switch
+                  checked={assinatura.ativo}
+                  onCheckedChange={assinatura.setAtivo}
+                  disabled={!assinatura.disponivel}
+                />
+              </div>
             </CardContent>
           </Card>
 
