@@ -575,11 +575,15 @@ export default function RelatorioVendas() {
 
         {/* Tabs: Pedidos / Entregador / Canal */}
         <Tabs defaultValue="pedidos" className="space-y-4">
-          <TabsList className="w-full sm:w-auto flex">
-            <TabsTrigger value="pedidos" className="flex-1 sm:flex-none gap-1 sm:gap-2 text-xs sm:text-sm"><ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden xs:inline">Pedidos</span><span className="xs:hidden">Ped.</span></TabsTrigger>
-            <TabsTrigger value="entregador" className="flex-1 sm:flex-none gap-1 sm:gap-2 text-xs sm:text-sm"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Por Entregador</span><span className="sm:hidden">Entreg.</span></TabsTrigger>
-            <TabsTrigger value="entregador-canal" className="flex-1 sm:flex-none gap-1 sm:gap-2 text-xs sm:text-sm"><FileSpreadsheet className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Entregador x Canal</span><span className="sm:hidden">E×C</span></TabsTrigger>
-            <TabsTrigger value="canal" className="flex-1 sm:flex-none gap-1 sm:gap-2 text-xs sm:text-sm"><Megaphone className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Por Canal</span><span className="sm:hidden">Canal</span></TabsTrigger>
+          <TabsList className="w-full flex flex-wrap h-auto gap-1">
+            <TabsTrigger value="pedidos" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm"><ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden xs:inline">Pedidos</span><span className="xs:hidden">Ped.</span></TabsTrigger>
+            <TabsTrigger value="produtos" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm"><Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Produtos</span><span className="sm:hidden">Prod.</span></TabsTrigger>
+            <TabsTrigger value="entregador" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Por Entregador</span><span className="sm:hidden">Entreg.</span></TabsTrigger>
+            <TabsTrigger value="entregador-canal" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm"><FileSpreadsheet className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Entregador x Canal</span><span className="sm:hidden">E×C</span></TabsTrigger>
+            <TabsTrigger value="canal" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm"><Megaphone className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Por Canal</span><span className="sm:hidden">Canal</span></TabsTrigger>
+            <TabsTrigger value="pagamento" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm"><CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Pagamento</span><span className="sm:hidden">Pgto.</span></TabsTrigger>
+            <TabsTrigger value="dia" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm"><CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Evolução</span><span className="sm:hidden">Dia</span></TabsTrigger>
+            <TabsTrigger value="clientes" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm"><Trophy className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Top Clientes</span><span className="sm:hidden">Clien.</span></TabsTrigger>
           </TabsList>
 
           {/* Tab Pedidos */}
