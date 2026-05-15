@@ -62,6 +62,53 @@ const formasPagamento = [
   "Dinheiro", "PIX", "PIX Maquininha", "Cartão Crédito", "Cartão Débito", "Cheque", "Vale Gás", "Fiado",
 ];
 
+// Normaliza qualquer variação de forma de pagamento para uma chave canônica.
+// Retorna "__invalido__" para valores ambíguos (cartao puro), desconhecidos (outros) ou vazios.
+const FORMAS_CANONICAS = new Set([
+  "dinheiro", "pix", "pix_maquininha", "cartao_credito", "cartao_debito", "cheque", "vale_gas", "fiado",
+]);
+
+function canonicalForma(raw: string): string {
+  if (!raw) return "__invalido__";
+  const s = raw
+    .toString()
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove acentos
+    .replace(/\s+/g, "_");
+  if (!s) return "__invalido__";
+
+  // Mapeamentos diretos
+  const direct: Record<string, string> = {
+    dinheiro: "dinheiro",
+    cash: "dinheiro",
+    especie: "dinheiro",
+    money: "dinheiro",
+    pix: "pix",
+    pix_maquininha: "pix_maquininha",
+    pixmaquininha: "pix_maquininha",
+    cartao_credito: "cartao_credito",
+    credito: "cartao_credito",
+    cartao_de_credito: "cartao_credito",
+    cartaocredito: "cartao_credito",
+    cartao_debito: "cartao_debito",
+    debito: "cartao_debito",
+    cartao_de_debito: "cartao_debito",
+    cartaodebito: "cartao_debito",
+    cheque: "cheque",
+    vale_gas: "vale_gas",
+    valegas: "vale_gas",
+    vale: "vale_gas",
+    fiado: "fiado",
+    a_prazo: "fiado",
+    aprazo: "fiado",
+  };
+  if (direct[s]) return direct[s];
+  if (FORMAS_CANONICAS.has(s)) return s;
+  return "__invalido__";
+}
+
 const CANAIS_VIRTUAIS = [
   { id: "__portaria__", nome: "🏪 Portaria", canal: "Portaria" },
   { id: "__pdv__", nome: "🖥️ PDV", canal: "PDV" },
