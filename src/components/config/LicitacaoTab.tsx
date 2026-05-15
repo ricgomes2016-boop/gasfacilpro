@@ -200,14 +200,27 @@ export function LicitacaoTab() {
     },
   });
 
-  function baixarPdf(name: string, gen: () => any) {
+  async function baixarPdf(name: string, gen: () => any) {
     if (!empresa || !lic || !dados.representante) {
       toast.error("Preencha cabeçalho, identificação e representante primeiro");
       return;
     }
     try {
       const doc = gen();
-      doc.save(`${name}_Pregao_${lic.numero_pregao.replace(/\//g, "-")}.pdf`);
+      const filename = `${name}_Pregao_${lic.numero_pregao.replace(/\//g, "-")}.pdf`;
+      if (assinatura.ativo && assinatura.unidadeId) {
+        const raw = new Uint8Array(doc.output("arraybuffer"));
+        const r = await assinarPdfRemoto(raw, { unidadeId: assinatura.unidadeId, motivo: `Licitação ${lic.numero_pregao}` });
+        const blob = new Blob([r.pdf], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = filename; a.click();
+        URL.revokeObjectURL(url);
+        if (!r.ok) toast.warning("PDF baixado SEM assinatura: " + (r.mensagem || r.motivo));
+        else toast.success("PDF assinado digitalmente");
+      } else {
+        doc.save(filename);
+      }
     } catch (e: any) {
       toast.error(e.message);
     }
