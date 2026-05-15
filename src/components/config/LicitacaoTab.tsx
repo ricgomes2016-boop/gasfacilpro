@@ -248,13 +248,20 @@ export function LicitacaoTab() {
       const certs = (certidoes as any[]).filter((c) => c.arquivo_url).map((c) => ({
         tipo: c.tipo, arquivo_url: c.arquivo_url, arquivo_nome: c.arquivo_nome,
       }));
+      const signFn = assinatura.ativo && assinatura.unidadeId
+        ? async (bytes: Uint8Array, name: string) => {
+            const r = await assinarPdfRemoto(bytes, { unidadeId: assinatura.unidadeId!, motivo: `Licitação ${lic.numero_pregao} — ${name}` });
+            return r.pdf;
+          }
+        : undefined;
       const blob = await montarZipLicitacao(
         lic.numero_pregao,
         fora,
         env1,
         renderEtiquetaEnvelope(empresa, lic, 2, "Documentos de Habilitação"),
         renderEtiquetaEnvelope(empresa, lic, 1, "Proposta de Preço"),
-        certs
+        certs,
+        signFn
       );
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
