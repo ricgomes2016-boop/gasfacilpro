@@ -561,3 +561,48 @@ function ItensEditor({ open, onClose, itens, validadeDias, onSave }: any) {
     </Dialog>
   );
 }
+
+function IdentEditor({ open, onClose, licitacao, onSave }: any) {
+  const [form, setForm] = useState({ numero: "", modalidade: "presencial", orgao: "", data: "", objeto: "" });
+  useMemo(() => {
+    if (open && licitacao) {
+      setForm({
+        numero: licitacao.numero || "",
+        modalidade: licitacao.modalidade?.includes("eletronico") ? "eletronico" : "presencial",
+        orgao: licitacao.orgao || "",
+        data: licitacao.data_publicacao || "",
+        objeto: licitacao.objeto || "",
+      });
+    }
+  }, [open, licitacao]);
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar Cabeçalho da Licitação</DialogTitle>
+          <DialogDescription>Atualize número do pregão, modalidade, órgão, data e objeto.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div><Label>Nº do Pregão *</Label><Input value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} placeholder="046/2021" /></div>
+          <div>
+            <Label>Modalidade</Label>
+            <Select value={form.modalidade} onValueChange={(v) => setForm({ ...form, modalidade: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="presencial">Pregão Presencial</SelectItem>
+                <SelectItem value="eletronico">Pregão Eletrônico</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div><Label>Órgão *</Label><Input value={form.orgao} onChange={(e) => setForm({ ...form, orgao: e.target.value })} placeholder="Município de Cornélio Procópio - PR" /></div>
+          <div><Label>Data do pregão</Label><Input type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} /></div>
+          <div><Label>Objeto</Label><Textarea rows={3} value={form.objeto} onChange={(e) => setForm({ ...form, objeto: e.target.value })} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => onSave(form)} disabled={!form.numero || !form.orgao}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
