@@ -164,6 +164,26 @@ export function LicitacaoTab() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const editIdentMut = useMutation({
+    mutationFn: async (patch: { numero: string; modalidade: string; orgao: string; data: string; objeto: string }) => {
+      if (!selecionada) return;
+      const { error } = await supabase.from("licitacoes").update({
+        numero: patch.numero,
+        modalidade: patch.modalidade === "eletronico" ? "pregao_eletronico" : "pregao_presencial",
+        orgao: patch.orgao,
+        data_publicacao: patch.data || null,
+        objeto: patch.objeto,
+      }).eq("id", selecionada.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["licitacoes"] });
+      setEditorOpen(null);
+      toast.success("Cabeçalho atualizado");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const deleteMut = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("licitacoes").delete().eq("id", id);
