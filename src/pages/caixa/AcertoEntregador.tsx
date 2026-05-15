@@ -20,7 +20,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   User, Package, Wallet, Download, CreditCard, Banknote, Receipt, Minus, Pencil, Loader2, Save,
-  QrCode, Keyboard, CheckCircle, AlertCircle, Plus, Trash2, FileText, Clock, History, Filter, Search,
+  QrCode, Keyboard, CheckCircle, AlertCircle, AlertTriangle, Plus, Trash2, FileText, Clock, History, Filter, Search,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDateString } from "@/lib/utils";
