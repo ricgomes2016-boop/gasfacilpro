@@ -33,6 +33,11 @@ export const SINTEGRA_URLS: Record<string, { nome: string; url: string }> = {
 
 // URLs oficiais para emissão das CNDs
 export const CND_URLS = {
+  anp: {
+    nome: "ANP - Revenda GLP",
+    url: "https://app.anp.gov.br/anp-cpl-web/public/simp/consultaPostosRevendedoresGLP/consultaPostosGLPCBR.xhtml",
+    validade_dias: 365,
+  },
   cnd_federal: {
     nome: "CND Federal (Receita / PGFN)",
     url: "https://solucoes.receita.fazenda.gov.br/Servicos/certidaointernet/PJ/Emitir",
