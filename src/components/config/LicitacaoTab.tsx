@@ -211,7 +211,7 @@ export function LicitacaoTab() {
       if (assinatura.ativo && assinatura.unidadeId) {
         const raw = new Uint8Array(doc.output("arraybuffer"));
         const r = await assinarPdfRemoto(raw, { unidadeId: assinatura.unidadeId, motivo: `Licitação ${lic.numero_pregao}` });
-        const blob = new Blob([r.pdf], { type: "application/pdf" });
+        const blob = new Blob([r.pdf as BlobPart], { type: "application/pdf" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url; a.download = filename; a.click();
