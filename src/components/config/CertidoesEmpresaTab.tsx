@@ -36,6 +36,7 @@ import {
   FileText,
 } from "lucide-react";
 import { SINTEGRA_URLS, CND_URLS, CND_ESTADUAL_URLS } from "@/lib/certidoes/urls";
+import { statusBadge, diasAteVencimento } from "@/lib/certidoes/status";
 
 type TipoCertidao = "anp" | "cnd_federal" | "cnd_estadual" | "cnd_municipal" | "cndt" | "sintegra";
 
@@ -55,22 +56,6 @@ const TIPOS: Array<{
   { tipo: "sintegra", nome: "Sintegra", descricao: "Cadastro de Contribuintes do ICMS", icon: FileCheck2, automatica: false, validade_dias: 90 },
 ];
 
-function diasAteVencimento(data: string | null) {
-  if (!data) return null;
-  const diff = (new Date(data).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
-  return Math.floor(diff);
-}
-
-function statusBadge(cert: any) {
-  if (!cert) return <Badge variant="outline">Pendente</Badge>;
-  const dias = diasAteVencimento(cert.data_vencimento);
-  if (cert.status === "erro") return <Badge variant="destructive">Erro</Badge>;
-  if (dias === null) return <Badge variant="secondary">Sem vencimento</Badge>;
-  if (dias < 0) return <Badge variant="destructive">Vencida há {Math.abs(dias)}d</Badge>;
-  if (dias <= 15) return <Badge className="bg-orange-500 hover:bg-orange-600 text-white">Vence em {dias}d</Badge>;
-  if (dias <= 30) return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Vence em {dias}d</Badge>;
-  return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white">Regular ({dias}d)</Badge>;
-}
 
 export function CertidoesEmpresaTab() {
   const { unidadeAtual } = useUnidade();
@@ -258,7 +243,7 @@ export function CertidoesEmpresaTab() {
         <div>
           <strong>Como funciona:</strong> Cada certidão tem um botão "Abrir portal" que leva ao site oficial
           (ANP, Receita, SEFAZ, TST, Sintegra). Após emitir o PDF, faça upload aqui — o sistema controla
-          os vencimentos e avisa 30 dias antes.
+          os vencimentos e avisa 30 dias antes. Os PDFs enviados aqui aparecem automaticamente na aba <strong>Documentos</strong>.
         </div>
       </div>
 
