@@ -164,6 +164,26 @@ export function LicitacaoTab() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const editIdentMut = useMutation({
+    mutationFn: async (patch: { numero: string; modalidade: string; orgao: string; data: string; objeto: string }) => {
+      if (!selecionada) return;
+      const { error } = await supabase.from("licitacoes").update({
+        numero: patch.numero,
+        modalidade: patch.modalidade === "eletronico" ? "pregao_eletronico" : "pregao_presencial",
+        orgao: patch.orgao,
+        data_publicacao: patch.data || null,
+        objeto: patch.objeto,
+      }).eq("id", selecionada.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["licitacoes"] });
+      setEditorOpen(null);
+      toast.success("Cabeçalho atualizado");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const deleteMut = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("licitacoes").delete().eq("id", id);
@@ -276,12 +296,17 @@ export function LicitacaoTab() {
           {/* Cabeçalho */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex items-center justify-between gap-2 flex-wrap">
                 <span>Pregão {selecionada.numero}</span>
-                <Button onClick={gerarPastaCompleta} disabled={generating} className="gap-2">
-                  {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
-                  Gerar Pasta Completa (ZIP)
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setEditorOpen("ident")} className="gap-2">
+                    <Pencil className="h-4 w-4" /> Editar Cabeçalho
+                  </Button>
+                  <Button onClick={gerarPastaCompleta} disabled={generating} className="gap-2">
+                    {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Package className="h-4 w-4" />}
+                    Gerar Pasta Completa (ZIP)
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
@@ -289,6 +314,7 @@ export function LicitacaoTab() {
               <div><span className="text-muted-foreground">Modalidade:</span> {selecionada.modalidade}</div>
               <div><span className="text-muted-foreground">Data:</span> {selecionada.data_publicacao || "—"}</div>
               <div><span className="text-muted-foreground">Empresa:</span> {empresa?.razao_social}</div>
+              {selecionada.objeto && <div className="col-span-full"><span className="text-muted-foreground">Objeto:</span> {selecionada.objeto}</div>}
             </CardContent>
           </Card>
 
@@ -412,6 +438,14 @@ export function LicitacaoTab() {
         onSave={(rep, banco) => updateMut.mutate({ representante: rep, banco })}
       />
 
+      {/* Editor identificação */}
+      <IdentEditor
+        open={editorOpen === "ident"}
+        onClose={() => setEditorOpen(null)}
+        licitacao={selecionada}
+        onSave={(p) => editIdentMut.mutate(p)}
+      />
+
       {/* Editor itens */}
       <ItensEditor
         open={editorOpen === "itens"}
@@ -522,6 +556,51 @@ function ItensEditor({ open, onClose, itens, validadeDias, onSave }: any) {
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={() => onSave(list, validade)}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function IdentEditor({ open, onClose, licitacao, onSave }: any) {
+  const [form, setForm] = useState({ numero: "", modalidade: "presencial", orgao: "", data: "", objeto: "" });
+  useMemo(() => {
+    if (open && licitacao) {
+      setForm({
+        numero: licitacao.numero || "",
+        modalidade: licitacao.modalidade?.includes("eletronico") ? "eletronico" : "presencial",
+        orgao: licitacao.orgao || "",
+        data: licitacao.data_publicacao || "",
+        objeto: licitacao.objeto || "",
+      });
+    }
+  }, [open, licitacao]);
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar Cabeçalho da Licitação</DialogTitle>
+          <DialogDescription>Atualize número do pregão, modalidade, órgão, data e objeto.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div><Label>Nº do Pregão *</Label><Input value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} placeholder="046/2021" /></div>
+          <div>
+            <Label>Modalidade</Label>
+            <Select value={form.modalidade} onValueChange={(v) => setForm({ ...form, modalidade: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="presencial">Pregão Presencial</SelectItem>
+                <SelectItem value="eletronico">Pregão Eletrônico</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div><Label>Órgão *</Label><Input value={form.orgao} onChange={(e) => setForm({ ...form, orgao: e.target.value })} placeholder="Município de Cornélio Procópio - PR" /></div>
+          <div><Label>Data do pregão</Label><Input type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} /></div>
+          <div><Label>Objeto</Label><Textarea rows={3} value={form.objeto} onChange={(e) => setForm({ ...form, objeto: e.target.value })} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={() => onSave(form)} disabled={!form.numero || !form.orgao}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
