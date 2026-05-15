@@ -584,49 +584,115 @@ function ItensEditor({ open, onClose, itens, validadeDias, onSave }: any) {
   }
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-4xl">
-        <DialogHeader><DialogTitle>Itens da Proposta</DialogTitle></DialogHeader>
-        <div className="flex items-center gap-3 mb-2">
-          <Label className="shrink-0">Validade (dias):</Label>
-          <Input type="number" className="w-24" value={validade} onChange={(e) => setValidade(Number(e.target.value) || 60)} />
-          <Button size="sm" variant="outline" onClick={add} className="ml-auto"><Plus className="h-4 w-4 mr-1" />Item</Button>
-        </div>
-        <div className="max-h-[60vh] overflow-y-auto rounded-md border">
-          <div className="grid grid-cols-12 gap-2 items-center px-3 py-2 bg-muted/60 border-b text-[11px] font-semibold uppercase text-muted-foreground sticky top-0 z-10">
-            <div className="col-span-1 text-center">#</div>
-            <div className="col-span-5">Especificação</div>
-            <div className="col-span-1 text-center">Qtd</div>
-            <div className="col-span-1 text-center">Un</div>
-            <div className="col-span-2 text-center">V. Unitário</div>
-            <div className="col-span-1 text-right">Total</div>
-            <div className="col-span-1"></div>
-          </div>
-          <div className="divide-y">
-            {list.map((it, idx) => (
-              <div key={idx} className="grid grid-cols-12 gap-2 items-center px-3 py-2.5 hover:bg-muted/30">
-                <div className="col-span-1 text-center text-sm font-semibold text-muted-foreground">{it.item}</div>
-                <Input className="col-span-5 h-9" value={it.especificacao} onChange={(e) => update(idx, "especificacao", e.target.value)} placeholder="Especificação do item" />
-                <Input className="col-span-1 h-9 text-center" type="number" value={it.quantidade} onChange={(e) => update(idx, "quantidade", e.target.value)} />
-                <Input className="col-span-1 h-9 text-center" value={it.unidade} onChange={(e) => update(idx, "unidade", e.target.value)} />
-                <Input className="col-span-2 h-9 text-right" type="number" step="0.01" value={it.valor_unit} onChange={(e) => update(idx, "valor_unit", e.target.value)} />
-                <div className="col-span-1 text-xs font-medium text-right tabular-nums">
-                  {(it.quantidade * it.valor_unit).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                </div>
-                <Button size="icon" variant="ghost" className="col-span-1 h-8 w-8 justify-self-end" onClick={() => remove(idx)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+      <DialogContent className="sm:max-w-5xl w-[95vw] p-0 gap-0">
+        <DialogHeader className="px-6 py-4 border-b">
+          <DialogTitle>Itens da Proposta</DialogTitle>
+        </DialogHeader>
+
+        <div className="px-6 py-4 space-y-4 max-h-[65vh] overflow-y-auto">
+          <div className="flex flex-wrap items-end justify-between gap-3 bg-muted/40 rounded-lg px-4 py-3">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Validade da proposta</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  className="w-24 h-9"
+                  value={validade}
+                  onChange={(e) => setValidade(Number(e.target.value) || 60)}
+                />
+                <span className="text-sm text-muted-foreground">dias</span>
               </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-12 gap-2 items-center px-3 py-2 bg-muted/60 border-t text-sm font-semibold sticky bottom-0">
-            <div className="col-span-10 text-right text-muted-foreground">Total Geral:</div>
-            <div className="col-span-1 text-right tabular-nums">
-              {list.reduce((s, it) => s + it.quantidade * it.valor_unit, 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
             </div>
-            <div className="col-span-1"></div>
+            <Button size="sm" onClick={add}>
+              <Plus className="h-4 w-4 mr-1" /> Adicionar item
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            {list.map((it, idx) => {
+              const total = (it.quantidade || 0) * (it.valor_unit || 0);
+              return (
+                <div
+                  key={idx}
+                  className="group rounded-lg border bg-card p-3 space-y-3 hover:border-primary/40 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Badge variant="secondary" className="shrink-0 h-7 px-2.5 text-xs font-semibold">
+                      #{it.item}
+                    </Badge>
+                    <Input
+                      className="flex-1 h-9"
+                      value={it.especificacao}
+                      onChange={(e) => update(idx, "especificacao", e.target.value)}
+                      placeholder="Especificação do item"
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                      onClick={() => remove(idx)}
+                      title="Remover item"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Quantidade</Label>
+                      <Input
+                        type="number"
+                        className="h-9"
+                        value={it.quantidade}
+                        onChange={(e) => update(idx, "quantidade", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Unidade</Label>
+                      <Input
+                        className="h-9"
+                        value={it.unidade}
+                        onChange={(e) => update(idx, "unidade", e.target.value)}
+                        placeholder="UN"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Valor unitário</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="h-9"
+                        value={it.valor_unit}
+                        onChange={(e) => update(idx, "valor_unit", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Total</Label>
+                      <div className="h-9 px-3 rounded-md border bg-muted/40 flex items-center justify-end text-sm font-semibold tabular-nums">
+                        {total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {list.length === 0 && (
+              <div className="text-center text-sm text-muted-foreground py-8 border border-dashed rounded-lg">
+                Nenhum item. Clique em "Adicionar item" para começar.
+              </div>
+            )}
           </div>
         </div>
-        <DialogFooter>
+
+        <div className="flex items-center justify-between border-t bg-muted/40 px-6 py-3">
+          <span className="text-sm font-medium text-muted-foreground">Total Geral</span>
+          <span className="text-lg font-bold tabular-nums">
+            {list.reduce((s, it) => s + (it.quantidade || 0) * (it.valor_unit || 0), 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          </span>
+        </div>
+
+        <DialogFooter className="px-6 py-4 border-t">
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={() => onSave(list, validade)}>Salvar</Button>
         </DialogFooter>
