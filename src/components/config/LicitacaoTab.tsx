@@ -49,6 +49,7 @@ export function LicitacaoTab() {
   const { unidadeAtual } = useUnidade();
   const { user } = useAuth();
   const qc = useQueryClient();
+  const assinatura = useAssinaturaDigital();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [novaOpen, setNovaOpen] = useState(false);
