@@ -241,7 +241,7 @@ export function LicitacaoTab() {
     <div className="space-y-4">
       {/* Lista + nova */}
       <div className="flex flex-col sm:flex-row gap-3 justify-between">
-        <Select value={selectedId || ""} onValueChange={setSelectedId}>
+        <Select value={selectedId || undefined} onValueChange={setSelectedId}>
           <SelectTrigger className="max-w-md">
             <SelectValue placeholder="Selecione uma licitação..." />
           </SelectTrigger>
