@@ -225,7 +225,65 @@ export default function RelatorioVendas() {
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
   }, [pedidosFiltrados]);
 
-  const exportarExcel = () => {
+  // Agrupamento por Produto
+  const dadosPorProduto = useMemo(() => {
+    const map = new Map<string, { nome: string; qtd: number; faturamento: number; pedidos: Set<string> }>();
+    pedidosFiltrados.filter(p => p.status !== "cancelado").forEach(p => {
+      (p.pedido_itens || []).forEach(it => {
+        const nome = it.produtos?.nome || "Sem nome";
+        const cur = map.get(nome) || { nome, qtd: 0, faturamento: 0, pedidos: new Set() };
+        cur.qtd += Number(it.quantidade) || 0;
+        cur.faturamento += (Number(it.quantidade) || 0) * (Number(it.preco_unitario) || 0);
+        cur.pedidos.add(p.id);
+        map.set(nome, cur);
+      });
+    });
+    const arr = Array.from(map.values()).map(p => ({ nome: p.nome, qtd: p.qtd, faturamento: p.faturamento, pedidosCount: p.pedidos.size }));
+    return arr.sort((a, b) => b.qtd - a.qtd);
+  }, [pedidosFiltrados]);
+
+  // Agrupamento por Forma de Pagamento (normalizado)
+  const dadosPorFormaPagamento = useMemo(() => {
+    const map = new Map<string, { forma: string; label: string; qtd: number; total: number }>();
+    pedidosFiltrados.filter(p => p.status !== "cancelado").forEach(p => {
+      const forma = normalizarFormaPagamento(p.forma_pagamento);
+      const label = formaPagamentoLabels[forma] || forma;
+      const cur = map.get(forma) || { forma, label, qtd: 0, total: 0 };
+      cur.qtd += 1;
+      cur.total += p.valor_total || 0;
+      map.set(forma, cur);
+    });
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [pedidosFiltrados]);
+
+  // Evolução Diária
+  const dadosPorDia = useMemo(() => {
+    const map = new Map<string, { dia: string; total: number; qtd: number }>();
+    pedidosFiltrados.filter(p => p.status !== "cancelado").forEach(p => {
+      const dia = p.data_entrega || (p.created_at ? p.created_at.slice(0, 10) : "—");
+      const cur = map.get(dia) || { dia, total: 0, qtd: 0 };
+      cur.total += p.valor_total || 0;
+      cur.qtd += 1;
+      map.set(dia, cur);
+    });
+    const arr = Array.from(map.values()).sort((a, b) => a.dia.localeCompare(b.dia));
+    return arr.map(d => ({ ...d, label: format(parseISO(`${d.dia}T12:00:00`), "dd/MM", { locale: ptBR }) }));
+  }, [pedidosFiltrados]);
+
+  // Top Clientes
+  const dadosTopClientes = useMemo(() => {
+    const map = new Map<string, { nome: string; qtd: number; total: number; ultima: string }>();
+    pedidosFiltrados.filter(p => p.status !== "cancelado").forEach(p => {
+      const nome = p.clientes?.nome || "Não identificado";
+      const data = p.data_entrega || p.created_at?.slice(0, 10) || "";
+      const cur = map.get(nome) || { nome, qtd: 0, total: 0, ultima: data };
+      cur.qtd += 1;
+      cur.total += p.valor_total || 0;
+      if (data > cur.ultima) cur.ultima = data;
+      map.set(nome, cur);
+    });
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [pedidosFiltrados]);
     if (pedidosFiltrados.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
       return;
