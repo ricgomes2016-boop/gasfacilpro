@@ -572,6 +572,10 @@ export default function AcertoEntregador() {
       toast.error("Nenhuma entrega pendente para confirmar");
       return;
     }
+    if (metricas.entregasInvalidas.length > 0) {
+      toast.error(`Existem ${metricas.entregasInvalidas.length} entrega(s) com forma de pagamento inválida. Edite cada pedido e selecione Cartão Crédito ou Cartão Débito antes de confirmar.`);
+      return;
+    }
     setIsConfirmingAcerto(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
