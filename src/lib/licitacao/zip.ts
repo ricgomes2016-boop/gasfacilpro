@@ -18,30 +18,43 @@ const TIPO_LABEL: Record<string, string> = {
   sintegra: "Sintegra",
 };
 
+export type SignPdfFn = (bytes: Uint8Array, name: string) => Promise<Uint8Array>;
+
+async function pdfBytes(doc: jsPDF, name: string, sign?: SignPdfFn): Promise<Uint8Array | Blob> {
+  if (!sign) return doc.output("blob");
+  const raw = new Uint8Array(doc.output("arraybuffer"));
+  try {
+    return await sign(raw, name);
+  } catch {
+    return raw;
+  }
+}
+
 export async function montarZipLicitacao(
   numeroPregao: string,
   foraEnvelope: { name: string; doc: jsPDF }[],
   envelope1: { name: string; doc: jsPDF }[],
   envelope2Etiqueta: jsPDF,
   envelope1Etiqueta: jsPDF,
-  certidoes: CertidaoArquivo[]
+  certidoes: CertidaoArquivo[],
+  signPdf?: SignPdfFn
 ): Promise<Blob> {
   const zip = new JSZip();
   const folder = zip.folder(`Pregao_${numeroPregao.replace(/\//g, "-")}`)!;
 
   const fora = folder.folder("Fora do Envelope")!;
   for (const { name, doc } of foraEnvelope) {
-    fora.file(`${name}.pdf`, doc.output("blob"));
+    fora.file(`${name}.pdf`, await pdfBytes(doc, name, signPdf));
   }
 
   const env1 = folder.folder("Envelope 1 - Proposta")!;
-  env1.file("ETIQUETA_Envelope_1.pdf", envelope1Etiqueta.output("blob"));
+  env1.file("ETIQUETA_Envelope_1.pdf", await pdfBytes(envelope1Etiqueta, "ETIQUETA_Envelope_1", signPdf));
   for (const { name, doc } of envelope1) {
-    env1.file(`${name}.pdf`, doc.output("blob"));
+    env1.file(`${name}.pdf`, await pdfBytes(doc, name, signPdf));
   }
 
   const env2 = folder.folder("Envelope 2 - Habilitacao")!;
-  env2.file("ETIQUETA_Envelope_2.pdf", envelope2Etiqueta.output("blob"));
+  env2.file("ETIQUETA_Envelope_2.pdf", await pdfBytes(envelope2Etiqueta, "ETIQUETA_Envelope_2", signPdf));
   for (const c of certidoes) {
     try {
       const { data } = await supabase.storage
