@@ -243,7 +243,7 @@ export function CertidoesEmpresaTab() {
         <div>
           <strong>Como funciona:</strong> Cada certidão tem um botão "Abrir portal" que leva ao site oficial
           (ANP, Receita, SEFAZ, TST, Sintegra). Após emitir o PDF, faça upload aqui — o sistema controla
-          os vencimentos e avisa 30 dias antes.
+          os vencimentos e avisa 30 dias antes. Os PDFs enviados aqui aparecem automaticamente na aba <strong>Documentos</strong>.
         </div>
       </div>
 
