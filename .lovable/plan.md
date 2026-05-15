@@ -1,72 +1,59 @@
+## Objetivo
 
-# Automação de Certidões e Documentos da Empresa
+Eliminar a duplicação entre as abas **Documentos** e **Certidões e Vencimentos** em `Configurações > Documentos da Empresa`. Hoje, ao subir uma certidão (ANP, CNDs, Sintegra) na aba de Certidões, o arquivo fica isolado em `certidoes_empresa` e não aparece na listagem geral de Documentos — o usuário precisa subir o mesmo PDF duas vezes.
 
-## Resposta direta sobre viabilidade
+A solução **não duplica dados nem cria nova tabela**: a aba **Documentos** passa a ler também de `certidoes_empresa` e exibir cada certidão como um item da lista (somente leitura por essa aba). A aba **Certidões** continua sendo o único lugar para emitir/atualizar/remover certidões e controlar vencimento.
 
-Antes do plano, é importante alinhar o que é realmente possível hoje no Brasil. Cada órgão tem um nível de automação diferente:
+## Mudanças (somente frontend, em `src/pages/config/DocumentosEmpresa.tsx`)
 
-| # | Documento | Órgão | Automação possível? | Como |
-|---|-----------|-------|---------------------|------|
-| 1 | Consulta Revenda GLP | ANP | ✅ Sim, totalmente | Scraping do portal público da ANP (sem captcha forte) |
-| 2 | CND Federal (Receita/PGFN) | Receita Federal | ⚠️ Parcial | Site tem **reCAPTCHA v2/v3**. Solução: API paga (Infosimples, SerproConsultas, Direct Data) OU resolver captcha (2Captcha) |
-| 3 | CND Estadual | SEFAZ de cada estado | ⚠️ Parcial | Cada UF tem site próprio + captcha. Viável apenas via API agregadora paga |
-| 4 | CND Municipal | Prefeitura de cada município | ❌ Difícil | Cada prefeitura tem site próprio, muitos sem emissão online. Só viável via API paga ou manual |
-| 5 | CNDT Trabalhista | TST | ⚠️ Parcial | Tem captcha. Viável via API agregadora |
-| 6 | Sintegra | Sintegra (UF) | ✅ Sim, na maioria | Vários estados sem captcha, scraping direto funciona |
+### 1. Lista unificada na aba "Documentos"
+- Adicionar uma segunda query a `certidoes_empresa` (filtrada pela unidade atual) ao lado da query existente de `documentos_empresa`.
+- Normalizar cada certidão para o mesmo shape do documento, com:
+  - `nome`: "ANP — Revenda GLP", "CND Federal", etc. (mapeado pelo `tipo`)
+  - `categoria`: `"certidao"` (nova entrada em `CATEGORIAS`)
+  - `arquivo_nome` / `arquivo_url`: derivados do `arquivo_url` em storage (`certidoes-empresa`)
+  - Campos extras: `data_vencimento`, `status`, `origem` (para badge)
+  - Flag `__origem: "certidao"` para o renderizador saber que é read-only por aqui
+- Concatenar `documentos + certidoes` no `filtered`, mantendo busca e filtro por categoria.
 
-**Conclusão honesta:** Para fazer isso 100% automático e confiável, o caminho prático é contratar uma **API agregadora** (Infosimples é a mais usada no Brasil — cobre todas as 6 certidões com uma única integração, custo por consulta entre R$ 0,30 e R$ 2,00). Sem ela, conseguimos cobrir bem ANP e Sintegra, e os demais ficariam manuais ou instáveis.
+### 2. Nova categoria "Certidões"
+- Adicionar `{ value: "certidao", label: "Certidões" }` em `CATEGORIAS`.
+- Trocar um dos cards de stats (ex: "Documentos Fiscais") por **"Certidões"** mostrando a contagem de `certidoes_empresa`, com sub-texto "X vencendo em 30d" quando aplicável.
 
-## Decisão necessária antes de implementar
+### 3. Render diferenciado para certidões na lista
+- Para itens com `__origem === "certidao"`:
+  - Badge da categoria mostra **"Certidão"** + um segundo badge colorido com o status de vencimento (reaproveitando a lógica de `statusBadge` que já existe em `CertidoesEmpresaTab.tsx` — extrair para `src/lib/certidoes/status.tsx` para reuso).
+  - Botão **Download** funciona normalmente (signed URL no bucket `certidoes-empresa`).
+  - Botão **Excluir** é substituído por um botão **"Gerenciar"** que muda a aba ativa para `certidoes` (controlled `Tabs` com `value`/`onValueChange`).
+  - Não exibir na busca duplicado: cada certidão aparece **uma única vez**, vinda de `certidoes_empresa`.
 
-Preciso saber qual caminho você quer seguir:
+### 4. Bloquear upload manual de certidões pela aba Documentos
+- No diálogo "Enviar Documento", se o usuário escolher categoria **"Certidões"**, mostrar um aviso inline:
+  > "Para certidões com controle de vencimento (ANP, CNDs, Sintegra), use a aba **Certidões e Vencimentos**."
+  com um botão "Ir para Certidões" que troca a aba.
+- Desabilitar o botão "Salvar Documento" enquanto a categoria for `certidao`.
 
-**Opção A — Híbrido (recomendado, sem custo extra inicial)**
-- Automatiza ANP e Sintegra via scraping direto (grátis, estável)
-- Para CND Federal/Estadual/Municipal/Trabalhista: cria UI para upload manual + lembretes de vencimento + botão "abrir site oficial" pré-preenchido com CNPJ
+### 5. Aba "Certidões e Vencimentos" — sem mudança funcional
+- Continua exatamente como está (única origem da verdade para certidões).
+- Apenas adicionamos um pequeno texto no topo:
+  > "Os PDFs enviados aqui aparecem automaticamente na aba **Documentos**."
 
-**Opção B — Tudo automático via Infosimples (ou similar)**
-- Você contrata conta na Infosimples (ou SerproConsultas) e me passa o token
-- Automatizo as 6 certidões, agendamento mensal, alertas
-- Custo: ~R$ 0,30 a R$ 2,00 por certidão emitida
+## Detalhes técnicos
 
-**Opção C — Só ANP + Sintegra automáticos por agora**
-- Implementa o que dá grátis, deixa o resto pra depois
+- Sem migration. Tabelas e buckets já existem (`documentos_empresa`, `certidoes_empresa`, `documentos-empresa`, `certidoes-empresa`).
+- A query de certidões usa o `useQuery` com a mesma `queryKey: ["certidoes_empresa", unidadeAtual?.id]` já usada no `CertidoesEmpresaTab`, então uploads invalidam ambas as visualizações automaticamente.
+- Download de certidão usa `supabase.storage.from("certidoes-empresa").createSignedUrl(arquivo_url, 60)` (o `arquivo_url` salvo é o path interno, não a URL pública).
+- Tabs vira controlado: `const [tab, setTab] = useState("documentos")`.
+- Extrair `statusBadge` e `diasAteVencimento` para `src/lib/certidoes/status.tsx` para evitar duplicação entre `CertidoesEmpresaTab` e `DocumentosEmpresa`.
 
-## Plano técnico (independente da opção)
+## Arquivos afetados
 
-### Banco de dados
-Nova tabela `certidoes_empresa`:
-- `unidade_id`, `empresa_id`, `tipo` (anp/cnd_federal/cnd_estadual/cnd_municipal/cndt/sintegra)
-- `numero`, `data_emissao`, `data_vencimento`, `status` (regular/irregular/pendente/vencida)
-- `arquivo_url` (PDF salvo em storage), `dados_json` (resposta crua)
-- `ultima_consulta_at`, `ultimo_erro`
+- `src/pages/config/DocumentosEmpresa.tsx` — lista unificada, controle de tabs, bloqueio de upload de certidão
+- `src/components/config/CertidoesEmpresaTab.tsx` — importar `statusBadge` do novo lib + adicionar nota informativa
+- `src/lib/certidoes/status.tsx` *(novo)* — `statusBadge` e `diasAteVencimento` reutilizáveis
 
-### Edge Functions
-- `consultar-anp` — scraping do portal ANP por CNPJ
-- `consultar-sintegra` — roteador por UF
-- `consultar-certidoes` (se Opção B) — wrapper Infosimples para as 4 CNDs
+## Resultado para o usuário
 
-### UI em Configurações › Documentos da Empresa
-- Nova aba "Certidões" ao lado da lista atual
-- Seletor de unidade (já existe `useUnidade`) usado como filtro
-- Cards por certidão mostrando: status, vencimento, dias restantes, botão "Atualizar agora", botão "Baixar PDF"
-- Badge vermelho/amarelo/verde por proximidade do vencimento
-
-### Agendamento automático
-- Cron diário (`pg_cron`) que chama `verificar-certidoes-vencendo`
-- Reconsulta automática 30 dias antes do vencimento
-- Notificação via sistema de notificações existente (`useNotificacoes`)
-
-### Multi-tenant
-- Respeita `empresa_id` + `unidade_id` em todos os payloads (regra do projeto)
-- RLS por unidade
-
-## Ações para você
-
-Responda 3 coisas:
-
-1. **Qual opção (A, B ou C)?**
-2. Se B: qual provedor — **Infosimples**, **SerproConsultas**, **Direct Data** ou outro?
-3. Para Sintegra automático: precisa cobrir **todas as UFs** ou só onde a Forte Gás opera (PR)?
-
-Com isso eu fecho o escopo e parto pra implementação.
+- Sobe a CND Federal na aba **Certidões** → ela aparece imediatamente também em **Documentos** com badge de vencimento, sem upload duplicado.
+- Tentar subir uma "Certidão" pelo botão genérico de Documentos → o sistema redireciona para a aba correta, evitando criar registros paralelos.
+- Uma única fonte da verdade para cada certidão; documentos avulsos (contratos, alvarás, seguros, etc.) continuam no fluxo normal.
