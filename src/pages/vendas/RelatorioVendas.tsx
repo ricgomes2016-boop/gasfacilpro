@@ -160,7 +160,7 @@ export default function RelatorioVendas() {
   };
 
   const { data: pedidos = [], isLoading, refetch } = useQuery({
-    queryKey: ["relatorio-vendas", dataInicio, dataFim, unidadeAtual?.id],
+    queryKey: ["relatorio-vendas", dataInicio, dataFim, scopeKey],
     queryFn: async () => {
       let query = supabase
         .from("pedidos")
@@ -174,7 +174,8 @@ export default function RelatorioVendas() {
         .order("data_entrega", { ascending: false })
         .order("created_at", { ascending: false });
 
-      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
+      if (consolidado && unidadeIds.length > 0) query = query.in("unidade_id", unidadeIds);
+      else if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as PedidoRelatorio[];
