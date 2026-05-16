@@ -363,26 +363,26 @@ export default function RelatorioVendas() {
   }, [pedidosAno, produtosLista, vendasManuais, periodosSelecionados, metricaComparativo]);
 
   // Salvar lançamento manual de venda histórica
-  const salvarVendaManual = async (produto_id: string, mes: number, novoValor: number) => {
+  const salvarVendaManual = async (produto_id: string, periodoIdx: number, novoValor: number) => {
     if (!unidadeAtual?.id || !empresa?.id) {
       toast({ title: "Erro", description: "Selecione uma unidade.", variant: "destructive" });
       return;
     }
-    // Calcular ajuste manual: novoValor (visível) = sistema + manual_novo
-    // Buscamos sistema atual a partir do memo
+    const periodo = periodosSelecionados[periodoIdx];
+    if (!periodo) return;
     const linha = dadosComparativoMensal.linhas.find(l => l.produto_id === produto_id);
     if (!linha) return;
-    const sistema = (linha.valores[mes] || 0) - (linha.manual[mes] || 0);
+    const sistema = (linha.valores[periodoIdx] || 0) - (linha.manual[periodoIdx] || 0);
     const manualDesejado = Math.max(0, novoValor - sistema);
 
     // Buscar registro existente para preservar a outra métrica
-    const existente = vendasManuais.find(v => v.produto_id === produto_id && v.mes === mes + 1);
+    const existente = vendasManuais.find(v => v.produto_id === produto_id && v.ano === periodo.ano && v.mes === periodo.mes + 1);
     const payload: any = {
       empresa_id: empresa.id,
       unidade_id: unidadeAtual.id,
       produto_id,
-      ano: anoComparativo,
-      mes: mes + 1,
+      ano: periodo.ano,
+      mes: periodo.mes + 1,
       quantidade: existente?.quantidade ?? 0,
       faturamento: existente?.faturamento ?? 0,
     };
