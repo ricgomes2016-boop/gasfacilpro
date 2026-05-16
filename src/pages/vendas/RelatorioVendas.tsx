@@ -34,6 +34,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, LineChart, Line } from "recharts";
 import { Package, CreditCard, CalendarDays, Trophy } from "lucide-react";
 
