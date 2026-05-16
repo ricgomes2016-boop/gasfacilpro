@@ -179,7 +179,7 @@ export default function RelatorioVendas() {
       const fim = `${anoComparativo}-12-31`;
       let query = supabase
         .from("pedidos")
-        .select(`id, created_at, data_entrega, status, pedido_itens (quantidade, preco_unitario, produtos (nome))`)
+        .select(`id, created_at, data_entrega, status, pedido_itens (quantidade, preco_unitario, produto_id, produtos (nome))`)
         .gte("data_entrega", inicio)
         .lte("data_entrega", fim);
       if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
