@@ -217,17 +217,21 @@ export default function RelatorioVendas() {
     },
   });
 
-  // Comparativo Mensal: produto x mês
+  // Comparativo Mensal: produto x mês (agrupado por NOME normalizado)
   const dadosComparativoMensal = useMemo(() => {
-    // produto_id -> { nome, sistema:number[12], manual:number[12] }
-    const map = new Map<string, { nome: string; sistema: number[]; manual: number[] }>();
-    const ensure = (id: string, nome: string) => {
-      if (!map.has(id)) map.set(id, { nome, sistema: Array(12).fill(0), manual: Array(12).fill(0) });
-      return map.get(id)!;
+    const norm = (s: string) => (s || "Sem nome").trim().toLowerCase();
+    // key (nome normalizado) -> { nome, canonicalId, sistema:number[12], manual:number[12] }
+    const map = new Map<string, { nome: string; canonicalId: string | null; sistema: number[]; manual: number[] }>();
+    const ensure = (nome: string, id: string | null) => {
+      const k = norm(nome);
+      if (!map.has(k)) map.set(k, { nome: nome || "Sem nome", canonicalId: id, sistema: Array(12).fill(0), manual: Array(12).fill(0) });
+      const row = map.get(k)!;
+      if (!row.canonicalId && id) row.canonicalId = id;
+      return row;
     };
 
     // Sempre incluir todos os produtos da unidade (linha aparece mesmo sem dados)
-    produtosLista.forEach(p => ensure(p.id, p.nome));
+    produtosLista.forEach(p => ensure(p.nome, p.id));
 
     // Agregar vendas reais do sistema
     pedidosAno.filter(p => p.status !== "cancelado").forEach(p => {
@@ -235,29 +239,27 @@ export default function RelatorioVendas() {
       if (!dataStr) return;
       const mes = new Date(dataStr).getMonth();
       (p.pedido_itens || []).forEach(it => {
-        const key = it.produto_id || `nome:${it.produtos?.nome || "Sem nome"}`;
         const nome = it.produtos?.nome || "Sem nome";
-        const row = ensure(key, nome);
+        const row = ensure(nome, it.produto_id || null);
         const qtd = Number(it.quantidade) || 0;
         const preco = Number(it.preco_unitario) || 0;
         row.sistema[mes] += metricaComparativo === "qtd" ? qtd : qtd * preco;
       });
     });
 
-    // Adicionar lançamentos manuais
+    // Adicionar lançamentos manuais (agrupados por nome do produto canônico)
     vendasManuais.forEach(vm => {
       const prod = produtosLista.find(p => p.id === vm.produto_id);
-      const row = ensure(vm.produto_id, prod?.nome || "Produto");
+      const row = ensure(prod?.nome || "Produto", vm.produto_id);
       const valor = metricaComparativo === "qtd" ? Number(vm.quantidade) : Number(vm.faturamento);
       row.manual[(vm.mes || 1) - 1] += valor;
     });
 
-    const linhas = Array.from(map.entries()).map(([produto_id, row]) => {
+    const linhas = Array.from(map.values()).map(row => {
       const valores = row.sistema.map((v, i) => v + row.manual[i]);
       const totalSelecionado = mesesSelecionados.reduce((s, m) => s + valores[m], 0);
       const media = mesesSelecionados.length > 0 ? totalSelecionado / mesesSelecionados.length : 0;
-      const isProdutoReal = !produto_id.startsWith("nome:");
-      return { produto_id: isProdutoReal ? produto_id : null, nome: row.nome, valores, manual: row.manual, media, totalSelecionado };
+      return { produto_id: row.canonicalId, nome: row.nome, valores, manual: row.manual, media, totalSelecionado };
     });
     // Filtrar produtos que não têm dado nenhum em meses selecionados? Mantemos todos para permitir lançamento.
     linhas.sort((a, b) => b.totalSelecionado - a.totalSelecionado);
