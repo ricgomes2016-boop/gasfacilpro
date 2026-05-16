@@ -126,14 +126,40 @@ export default function RelatorioVendas() {
   const unidadeIds = useMemo(() => unidades.map(u => u.id), [unidades]);
   const scopeKey = consolidado ? `all:${empresa?.id || ""}` : (unidadeAtual?.id || "none");
 
-  // Comparativo mensal (aba Produtos)
+  // Comparativo mensal (aba Produtos) — intervalo livre que pode cruzar anos
   const anoAtual = hoje.getFullYear();
   const mesAtual = hoje.getMonth();
-  const [anoComparativo, setAnoComparativo] = useState<number>(anoAtual);
-  const [mesesSelecionados, setMesesSelecionados] = useState<number[]>(
-    Array.from({ length: mesAtual + 1 }, (_, i) => i)
-  );
+  type PeriodoMes = { ano: number; mes: number }; // mes: 0-11
+  const [rangeIni, setRangeIni] = useState<PeriodoMes>({ ano: anoAtual, mes: 0 });
+  const [rangeFim, setRangeFim] = useState<PeriodoMes>({ ano: anoAtual, mes: mesAtual });
   const [metricaComparativo, setMetricaComparativo] = useState<"qtd" | "faturamento">("qtd");
+
+  // Helpers de período
+  const periodoKey = (p: PeriodoMes) => `${p.ano}-${String(p.mes + 1).padStart(2, "0")}`;
+  const periodoIndex = (p: PeriodoMes) => p.ano * 12 + p.mes;
+  const cmpPeriodo = (a: PeriodoMes, b: PeriodoMes) => periodoIndex(a) - periodoIndex(b);
+
+  const periodosSelecionados = useMemo<PeriodoMes[]>(() => {
+    const ini = cmpPeriodo(rangeIni, rangeFim) <= 0 ? rangeIni : rangeFim;
+    const fim = cmpPeriodo(rangeIni, rangeFim) <= 0 ? rangeFim : rangeIni;
+    const out: PeriodoMes[] = [];
+    let ano = ini.ano, mes = ini.mes;
+    while (ano < fim.ano || (ano === fim.ano && mes <= fim.mes)) {
+      out.push({ ano, mes });
+      mes++;
+      if (mes > 11) { mes = 0; ano++; }
+      if (out.length > 60) break; // safety
+    }
+    return out;
+  }, [rangeIni, rangeFim]);
+
+  const anosEnvolvidos = useMemo(
+    () => Array.from(new Set(periodosSelecionados.map(p => p.ano))),
+    [periodosSelecionados]
+  );
+
+  const NOMES_MES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  const formatPeriodoCurto = (p: PeriodoMes) => `${NOMES_MES[p.mes]}/${String(p.ano).slice(-2)}`;
 
   // Buscar canais de venda cadastrados
   const { data: canaisVenda = [] } = useQuery({
