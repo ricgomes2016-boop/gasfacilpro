@@ -1,68 +1,64 @@
-## Nova sub-aba: Produtos × Mês (comparativo mensal)
+## Lançamento manual de vendas históricas (Comparativo Mensal)
 
-Adicionar uma visualização extra dentro da aba **Produtos** em `src/pages/vendas/RelatorioVendas.tsx`, sem remover o conteúdo atual (Top 10 + tabela de totais do período já filtrado).
+Permitir editar diretamente as células da tabela comparativa produto × mês para registrar vendas de meses anteriores (importadas do sistema antigo), sem perder o histórico.
 
-### Layout
+### Comportamento
 
-Dentro da aba "Produtos", separar em duas seções via sub-tabs internas (ou cards empilhados):
+- Cada célula de mês na tabela comparativa vira **clicável**.
+- Ao clicar, abre um input inline para digitar a quantidade (ou faturamento, conforme métrica ativa).
+- Ao salvar (Enter / blur), o valor é gravado no banco como ajuste manual daquele produto naquele mês/ano da unidade atual.
+- A célula passa a mostrar **valor real do sistema + ajuste manual**, com um pequeno indicador (ex.: ponto/badge) sinalizando que há lançamento manual.
+- Tooltip na célula mostra o detalhamento: "Sistema: X · Manual: Y · Total: Z".
+- Linha de Total e coluna Média recalculam automaticamente incluindo os ajustes.
 
-1. **Resumo do período** (já existente: barra Top 10 + tabela total)
-2. **Comparativo Mensal por Produto** (novo)
-
-### Tabela comparativa
-
-Colunas dinâmicas:
+### Nova tabela: `vendas_historicas_manuais`
 
 ```text
-| Produto       | Jan | Fev | Mar | Abr | ... | Média |
-|---------------|-----|-----|-----|-----|-----|-------|
-| Gás P13       |  50 |  60 |  55 |  48 |     |  53,2 |
-| Gás P20       |   4 |   3 |   6 |   5 |     |   4,5 |
-| Água 20L      |  50 |  45 |  60 |  55 |     |  52,5 |
-| **Total**     | 104 | 108 | 121 | 108 |     | 110,2 |
+id                uuid pk
+empresa_id        uuid not null
+unidade_id        uuid not null
+produto_id        uuid not null  (FK produtos)
+ano               int  not null
+mes               int  not null  (1..12)
+quantidade        numeric default 0
+faturamento       numeric default 0
+observacao        text
+created_by        uuid
+created_at, updated_at
+UNIQUE (unidade_id, produto_id, ano, mes)
 ```
 
-Regras:
-- **Linhas**: um produto por linha (ordenadas por total desc).
-- **Colunas de mês**: uma para cada mês selecionado pelo usuário.
-- **Última coluna "Média"**: soma das quantidades dos meses selecionados ÷ quantidade de meses selecionados (ex.: Jan a Abr = total ÷ 4). Não conta meses excluídos da seleção.
-- **Linha de Total no rodapé**: soma por mês + média geral.
-- Valores em **quantidade** (unidades vendidas). Adicionar toggle Quantidade / Faturamento (R$) para alternar a métrica exibida sem mudar a estrutura.
+- RLS por `unidade_id` / `empresa_id` seguindo o padrão do projeto (payloads sempre incluem ambos).
+- Política: somente usuários com acesso à unidade podem ler/inserir/atualizar/excluir.
 
-### Seletor de meses
+### UI em `RelatorioVendas.tsx` (aba Produtos → Comparativo Mensal)
 
-Acima da tabela, um seletor multi-mês:
+1. Carregar `vendas_historicas_manuais` filtradas por `unidade_id` e `ano = anoComparativo` em paralelo com `pedidosAno`.
+2. No `useMemo` `dadosComparativoMensal`, somar o valor manual em cima do valor agregado dos pedidos por (produto, mês).
+3. Cada `<TableCell>` de mês recebe:
+   - Modo leitura: número + ícone discreto (ex.: `Pencil` no hover) + dot se há manual.
+   - Modo edição: `Input` numérico com botão salvar/cancelar.
+4. Salvar via upsert na nova tabela (`onConflict: unidade_id,produto_id,ano,mes`).
+5. Após salvar: invalidar a query e mostrar `toast` de sucesso.
 
-- Padrão: **Janeiro do ano atual até o mês atual** (ex.: hoje é maio/2026 → Jan, Fev, Mar, Abr, Mai/2026 marcados).
-- Componente: lista de checkboxes com todos os meses do ano atual (Jan…Dez), mais a opção de **trocar o ano** (Select com os últimos 3 anos).
-- Botões rápidos: "Ano todo", "Até hoje" (padrão), "Últimos 3 meses", "Limpar".
-- Ao mudar a seleção, a tabela e a média recalculam.
+### Botão extra: "Importar histórico em lote"
 
-Importante: este seletor é **independente** dos filtros globais de período da página (que continuam controlando as outras abas). A comparação mensal precisa de visão anual, não do range filtrado.
-
-### Fonte de dados
-
-- Reaproveitar `pedidos` já carregados se cobrirem o ano selecionado; senão, fazer uma query adicional ao Supabase para `pedidos` + `pedido_itens` + `produtos` no intervalo Jan/{ano} – Dez/{ano}, filtrando `status != 'cancelado'` e respeitando `unidade_id` / `empresa_id` (vide regra de RLS do projeto).
-- Agrupar em memória: `Map<produtoNome, { [mesIndex: 0..11]: { qtd, faturamento } }>`.
-- Mês de cada pedido = `data_entrega || created_at` → `getMonth()`.
+Pequeno botão acima da tabela abre um modal com um grid simples (produto × 12 meses) para preencher rapidamente um ano inteiro de uma vez, com salvar único. Útil para migração inicial. Opcional na primeira entrega — pode ficar como fase 2.
 
 ### Exportações
 
-- **Excel**: nova aba "Comparativo Mensal" com a mesma matriz produto × mês + média.
-- **PDF**: nova seção após "Vendas por Produto" com a tabela comparativa (modo retrato pode estourar; usar landscape ou tabela compacta com até 12 colunas + média).
-
-### Detalhes técnicos
-
-- Novo `useMemo` `dadosComparativoMensal` recebendo `pedidosAno` (novo state) e `mesesSelecionados: number[]`.
-- Novo state `anoComparativo: number` (default = ano atual) e `mesesSelecionados: number[]` (default = `[0..mesAtual]`).
-- Novo `useEffect` que busca pedidos do ano selecionado quando `anoComparativo` mudar (cache simples por ano em ref para evitar re-fetch).
-- Toggle métrica (qtd/faturamento) via `useState<'qtd' | 'faturamento'>`.
-- Componente da tabela inline em `RelatorioVendas.tsx` (sem novo arquivo) usando `Table` do shadcn já em uso, mantendo o padrão visual.
-- Tokens semânticos do tema (primary/muted) — sem cores hard-coded.
+- Excel/PDF da aba Comparativo Mensal já passam a refletir os totais ajustados (sem mudança extra além do dado consolidado).
 
 ### Fora do escopo
 
-- Não mexer em schema, RLS, edge functions.
-- Não alterar as outras abas (Pgto., Evolução, Top Clientes, etc.).
-- Não criar página/rota nova.
-- Não duplicar o seletor de meses fora da aba Produtos.
+- Não altera `pedidos`, não cria pedidos fake.
+- Não mexe nas outras abas do relatório.
+- Não impacta DRE/financeiro/estoque — é apenas histórico de quantidade/faturamento para o comparativo.
+- Sem importação por CSV nesta fase (pode vir depois).
+
+### Técnico
+
+- Migration: criar tabela + índices + RLS + trigger `updated_at`.
+- Hook novo `useVendasHistoricasManuais(ano)` com `useQuery` + `useMutation` (upsert e delete quando valor = 0).
+- Componente `CelulaMesEditavel` inline em `RelatorioVendas.tsx`.
+- Tokens semânticos do tema (sem cores hard-coded). Inputs respeitam padrão mobile (16px) já em uso.
