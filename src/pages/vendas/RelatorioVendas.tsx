@@ -1178,24 +1178,36 @@ export default function RelatorioVendas() {
                   ) : mesesSelecionados.length === 0 ? (
                     <p className="text-center py-8 text-muted-foreground">Selecione ao menos um mês.</p>
                   ) : (
-                    <Table className="min-w-[640px] tabular-nums">
+                    <Table className="min-w-[640px] tabular-nums [&_th]:text-center [&_td]:text-center border-collapse">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="min-w-[180px] max-w-[220px]">Produto</TableHead>
-                          {mesesSelecionados.map(m => (
-                            <TableHead key={m} className="text-right whitespace-nowrap w-[92px]">
+                          <TableHead className="min-w-[160px] max-w-[220px] text-center bg-muted/50 font-semibold">Produto</TableHead>
+                          {mesesSelecionados.map((m, idx) => (
+                            <TableHead
+                              key={m}
+                              className={cn(
+                                "whitespace-nowrap w-[92px] font-semibold",
+                                idx % 2 === 0 ? "bg-primary/10 text-primary" : "bg-muted/40"
+                              )}
+                            >
                               {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][m]}
                             </TableHead>
                           ))}
-                          <TableHead className="text-right whitespace-nowrap w-[110px] border-l border-border/60">Média</TableHead>
+                          <TableHead className="whitespace-nowrap w-[110px] border-l border-border/60 bg-accent/30 font-semibold">Média</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {dadosComparativoMensal.linhas.map((l, i) => (
                           <TableRow key={l.produto_id || `n-${i}`}>
-                            <TableCell className="font-medium text-sm truncate max-w-[220px]">{l.nome}</TableCell>
-                            {mesesSelecionados.map(m => (
-                              <TableCell key={m} className="text-right whitespace-nowrap w-[92px] px-2 py-2">
+                            <TableCell className="font-medium text-sm truncate max-w-[220px] text-center bg-muted/20">{l.nome}</TableCell>
+                            {mesesSelecionados.map((m, idx) => (
+                              <TableCell
+                                key={m}
+                                className={cn(
+                                  "whitespace-nowrap w-[92px] px-2 py-2",
+                                  idx % 2 === 0 ? "bg-primary/5" : ""
+                                )}
+                              >
                                 <CelulaMesEditavel
                                   valor={l.valores[m]}
                                   manual={l.manual[m]}
@@ -1205,7 +1217,7 @@ export default function RelatorioVendas() {
                                 />
                               </TableCell>
                             ))}
-                            <TableCell className="text-right font-semibold text-primary whitespace-nowrap w-[110px] border-l border-border/60">
+                            <TableCell className="font-semibold text-primary whitespace-nowrap w-[110px] border-l border-border/60 bg-accent/20">
                               {metricaComparativo === "qtd"
                                 ? l.media.toLocaleString("pt-BR", { maximumFractionDigits: 1 })
                                 : formatCurrency(l.media)}
@@ -1213,15 +1225,21 @@ export default function RelatorioVendas() {
                           </TableRow>
                         ))}
                         <TableRow className="font-bold">
-                          <TableCell className="bg-muted/60 font-bold">Total</TableCell>
-                          {mesesSelecionados.map(m => (
-                            <TableCell key={m} className="text-right whitespace-nowrap w-[92px] bg-muted/60">
+                          <TableCell className="bg-muted/70 font-bold text-center">Total</TableCell>
+                          {mesesSelecionados.map((m, idx) => (
+                            <TableCell
+                              key={m}
+                              className={cn(
+                                "whitespace-nowrap w-[92px] font-bold",
+                                idx % 2 === 0 ? "bg-primary/15" : "bg-muted/60"
+                              )}
+                            >
                               {metricaComparativo === "qtd"
                                 ? Math.round(dadosComparativoMensal.totaisPorMes[m]).toLocaleString("pt-BR")
                                 : formatCurrency(dadosComparativoMensal.totaisPorMes[m])}
                             </TableCell>
                           ))}
-                          <TableCell className="text-right text-primary whitespace-nowrap w-[110px] border-l border-border/60 bg-muted/60">
+                          <TableCell className="text-primary whitespace-nowrap w-[110px] border-l border-border/60 bg-accent/40 font-bold">
                             {metricaComparativo === "qtd"
                               ? dadosComparativoMensal.mediaTotal.toLocaleString("pt-BR", { maximumFractionDigits: 1 })
                               : formatCurrency(dadosComparativoMensal.mediaTotal)}
