@@ -1,46 +1,68 @@
-# Novos relatórios em Vendas → Relatório
+## Nova sub-aba: Produtos × Mês (comparativo mensal)
 
-Adicionar novas abas ao lado das existentes (Ped. / Por Entregador / Entregador x Canal / Por Canal) em `src/pages/vendas/RelatorioVendas.tsx`, reaproveitando os mesmos filtros (período, status, canal) e os dados já carregados em `pedidos` (com `pedido_itens` + `produtos`).
+Adicionar uma visualização extra dentro da aba **Produtos** em `src/pages/vendas/RelatorioVendas.tsx`, sem remover o conteúdo atual (Top 10 + tabela de totais do período já filtrado).
 
-## Nova aba principal: Produtos Vendidos
+### Layout
 
-Agrupar todos os `pedido_itens` dos pedidos filtrados (excluindo cancelados) por nome do produto.
+Dentro da aba "Produtos", separar em duas seções via sub-tabs internas (ou cards empilhados):
 
-Para cada produto, mostrar:
-- Quantidade total vendida (ex.: "Gás P13: 80", "Gás P20: 4", "Água 20L: 50")
-- Nº de pedidos que continham o produto
-- Faturamento (Σ quantidade × preço_unitario)
-- Ticket médio por unidade
-- % de participação no faturamento total
+1. **Resumo do período** (já existente: barra Top 10 + tabela total)
+2. **Comparativo Mensal por Produto** (novo)
 
-Layout:
-- Gráfico de barras horizontal (top 10 por quantidade) à esquerda
-- Tabela completa ordenável à direita, com linha de Total no rodapé
-- Card resumo no topo: "Total de unidades vendidas" e "Mix de produtos" (qtd distinta)
+### Tabela comparativa
 
-Incluir esses dados também na exportação **Excel** (nova aba "Por Produto") e no **PDF** (nova seção "Vendas por Produto").
+Colunas dinâmicas:
 
-## Relatórios adicionais sugeridos (3 abas extras)
+```text
+| Produto       | Jan | Fev | Mar | Abr | ... | Média |
+|---------------|-----|-----|-----|-----|-----|-------|
+| Gás P13       |  50 |  60 |  55 |  48 |     |  53,2 |
+| Gás P20       |   4 |   3 |   6 |   5 |     |   4,5 |
+| Água 20L      |  50 |  45 |  60 |  55 |     |  52,5 |
+| **Total**     | 104 | 108 | 121 | 108 |     | 110,2 |
+```
 
-1. **Por Forma de Pagamento** — agrupa pedidos por `forma_pagamento` normalizado (Dinheiro, PIX, Crédito, Débito, Fiado, Vale Gás). Mostra qtd de pedidos, faturamento, ticket médio e gráfico de pizza com % de cada forma. Ajuda a conferir mix de recebimentos.
+Regras:
+- **Linhas**: um produto por linha (ordenadas por total desc).
+- **Colunas de mês**: uma para cada mês selecionado pelo usuário.
+- **Última coluna "Média"**: soma das quantidades dos meses selecionados ÷ quantidade de meses selecionados (ex.: Jan a Abr = total ÷ 4). Não conta meses excluídos da seleção.
+- **Linha de Total no rodapé**: soma por mês + média geral.
+- Valores em **quantidade** (unidades vendidas). Adicionar toggle Quantidade / Faturamento (R$) para alternar a métrica exibida sem mudar a estrutura.
 
-2. **Evolução Diária** — série temporal dia a dia dentro do período: linha/barra com faturamento por dia + qtd de pedidos por dia. Inclui melhor dia, pior dia e média diária no cabeçalho. Útil para identificar sazonalidade da semana.
+### Seletor de meses
 
-3. **Top Clientes** — ranking por cliente (`clientes.nome`) com qtd de pedidos, faturamento, ticket médio e data da última compra no período. Limitado aos top 20 na tela, completo na exportação. Reaproveita lógica do CRM mas restrito ao período/filtros.
+Acima da tabela, um seletor multi-mês:
 
-## Detalhes técnicos
+- Padrão: **Janeiro do ano atual até o mês atual** (ex.: hoje é maio/2026 → Jan, Fev, Mar, Abr, Mai/2026 marcados).
+- Componente: lista de checkboxes com todos os meses do ano atual (Jan…Dez), mais a opção de **trocar o ano** (Select com os últimos 3 anos).
+- Botões rápidos: "Ano todo", "Até hoje" (padrão), "Últimos 3 meses", "Limpar".
+- Ao mudar a seleção, a tabela e a média recalculam.
 
-- Adicionar 4 novos `useMemo` (`dadosPorProduto`, `dadosPorFormaPagamento`, `dadosPorDia`, `dadosTopClientes`) usando `pedidosFiltrados` — sem nova query ao Supabase.
-- `dadosPorProduto`: itera `pedido_itens`, agrega por `produtos.nome` (fallback "Sem nome"); soma `quantidade` e `quantidade * preco_unitario`.
-- `dadosPorFormaPagamento`: reutiliza a normalização `canonicalForma` já criada em AcertoEntregador (extrair para `src/lib/payment-utils.ts` para evitar duplicação) — sem alterar AcertoEntregador além do import.
-- `dadosPorDia`: agrupa por `data_entrega || created_at` formatado em `yyyy-MM-dd`, preenche dias sem venda com 0.
-- `dadosTopClientes`: agrupa por `clientes?.nome || "Não identificado"`.
-- Atualizar `TabsList` para 7 abas usando `grid grid-cols-4 sm:grid-cols-7` ou scroll horizontal para caber no mobile (viewport 1069px do usuário já comporta tudo); manter labels curtos em telas pequenas (ex.: "Prod.", "Pgto.", "Dia", "Clientes").
-- Reutilizar `BarChart`, `PieChart` e `LineChart` do Recharts já importados (`LineChart` precisa ser adicionado ao import).
-- Atualizar `exportarExcel` e `exportarPDF` para incluir as novas seções.
+Importante: este seletor é **independente** dos filtros globais de período da página (que continuam controlando as outras abas). A comparação mensal precisa de visão anual, não do range filtrado.
 
-## Fora do escopo
+### Fonte de dados
 
-- Não mexer no schema, RLS, edge functions, nem alterar como pedidos/itens são persistidos.
-- Não criar página/rota nova — tudo dentro de `RelatorioVendas.tsx`.
-- Não tocar em AcertoEntregador além de (opcionalmente) importar `canonicalForma` do novo util compartilhado.
+- Reaproveitar `pedidos` já carregados se cobrirem o ano selecionado; senão, fazer uma query adicional ao Supabase para `pedidos` + `pedido_itens` + `produtos` no intervalo Jan/{ano} – Dez/{ano}, filtrando `status != 'cancelado'` e respeitando `unidade_id` / `empresa_id` (vide regra de RLS do projeto).
+- Agrupar em memória: `Map<produtoNome, { [mesIndex: 0..11]: { qtd, faturamento } }>`.
+- Mês de cada pedido = `data_entrega || created_at` → `getMonth()`.
+
+### Exportações
+
+- **Excel**: nova aba "Comparativo Mensal" com a mesma matriz produto × mês + média.
+- **PDF**: nova seção após "Vendas por Produto" com a tabela comparativa (modo retrato pode estourar; usar landscape ou tabela compacta com até 12 colunas + média).
+
+### Detalhes técnicos
+
+- Novo `useMemo` `dadosComparativoMensal` recebendo `pedidosAno` (novo state) e `mesesSelecionados: number[]`.
+- Novo state `anoComparativo: number` (default = ano atual) e `mesesSelecionados: number[]` (default = `[0..mesAtual]`).
+- Novo `useEffect` que busca pedidos do ano selecionado quando `anoComparativo` mudar (cache simples por ano em ref para evitar re-fetch).
+- Toggle métrica (qtd/faturamento) via `useState<'qtd' | 'faturamento'>`.
+- Componente da tabela inline em `RelatorioVendas.tsx` (sem novo arquivo) usando `Table` do shadcn já em uso, mantendo o padrão visual.
+- Tokens semânticos do tema (primary/muted) — sem cores hard-coded.
+
+### Fora do escopo
+
+- Não mexer em schema, RLS, edge functions.
+- Não alterar as outras abas (Pgto., Evolução, Top Clientes, etc.).
+- Não criar página/rota nova.
+- Não duplicar o seletor de meses fora da aba Produtos.
