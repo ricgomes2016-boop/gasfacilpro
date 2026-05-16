@@ -54,7 +54,7 @@ const formatQtd = (v: number) =>
 const formatPct = (v: number) =>
   `${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 
-export function ProdutosVendidosTab({ pedidos, unidadeId, dataInicio, dataFim }: Props) {
+export function ProdutosVendidosTab({ pedidos, unidadeId, unidadeIds, consolidado, dataInicio, dataFim }: Props) {
   const [clienteFiltro, setClienteFiltro] = useState("todos");
   const [entregadorFiltro, setEntregadorFiltro] = useState("todos");
   const [produtoFiltro, setProdutoFiltro] = useState("todos");
@@ -63,11 +63,13 @@ export function ProdutosVendidosTab({ pedidos, unidadeId, dataInicio, dataFim }:
   const [totalizarProdutos, setTotalizarProdutos] = useState(true);
 
   // Custos por produto
+  const scopeKey = consolidado ? `all:${(unidadeIds || []).join(",")}` : (unidadeId || "none");
   const { data: produtosCusto = [] } = useQuery({
-    queryKey: ["produtos-custo", unidadeId],
+    queryKey: ["produtos-custo", scopeKey],
     queryFn: async () => {
       let q = supabase.from("produtos").select("id, nome, preco_custo");
-      if (unidadeId) q = q.eq("unidade_id", unidadeId);
+      if (consolidado && unidadeIds && unidadeIds.length > 0) q = q.in("unidade_id", unidadeIds);
+      else if (unidadeId) q = q.eq("unidade_id", unidadeId);
       const { data, error } = await q;
       if (error) throw error;
       return (data || []) as { id: string; nome: string; preco_custo: number | null }[];
