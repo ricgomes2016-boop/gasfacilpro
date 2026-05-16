@@ -1257,44 +1257,33 @@ export default function RelatorioVendas() {
                     <div className="flex items-center gap-1.5">
                       <Label className="text-xs text-white/90 whitespace-nowrap">De</Label>
                       <Input
-                        type="date"
-                        value={`${anoComparativo}-${String((mesesSelecionados[0] ?? 0) + 1).padStart(2, "0")}-01`}
+                        type="month"
+                        value={`${rangeIni.ano}-${String(rangeIni.mes + 1).padStart(2, "0")}`}
                         onChange={(e) => {
-                          const [y, m] = e.target.value.split("-").map(Number);
+                          const parts = e.target.value.split("-").map(Number);
+                          const y = parts[0], m = parts[1];
                           if (!y || !m) return;
-                          const novoAno = y;
-                          const novoMesIni = m - 1;
-                          const mesFimAtual = mesesSelecionados[mesesSelecionados.length - 1] ?? 11;
-                          const mesFim = novoAno !== anoComparativo ? 11 : Math.max(novoMesIni, mesFimAtual);
-                          setAnoComparativo(novoAno);
-                          setMesesSelecionados(Array.from({ length: mesFim - novoMesIni + 1 }, (_, i) => novoMesIni + i));
+                          const novo = { ano: y, mes: m - 1 };
+                          setRangeIni(novo);
+                          if (cmpPeriodo(novo, rangeFim) > 0) setRangeFim(novo);
                         }}
-                        className="h-9 w-[140px] bg-background"
+                        className="h-9 w-[150px] bg-background"
                       />
                       <Label className="text-xs text-white/90 whitespace-nowrap">Até</Label>
                       <Input
-                        type="date"
-                        value={`${anoComparativo}-${String((mesesSelecionados[mesesSelecionados.length - 1] ?? 11) + 1).padStart(2, "0")}-28`}
+                        type="month"
+                        value={`${rangeFim.ano}-${String(rangeFim.mes + 1).padStart(2, "0")}`}
                         onChange={(e) => {
-                          const [y, m] = e.target.value.split("-").map(Number);
+                          const parts = e.target.value.split("-").map(Number);
+                          const y = parts[0], m = parts[1];
                           if (!y || !m) return;
-                          if (y !== anoComparativo) setAnoComparativo(y);
-                          const mesIniAtual = mesesSelecionados[0] ?? 0;
-                          const novoMesFim = m - 1;
-                          const mesIni = y !== anoComparativo ? 0 : Math.min(mesIniAtual, novoMesFim);
-                          setMesesSelecionados(Array.from({ length: novoMesFim - mesIni + 1 }, (_, i) => mesIni + i));
+                          const novo = { ano: y, mes: m - 1 };
+                          setRangeFim(novo);
+                          if (cmpPeriodo(rangeIni, novo) > 0) setRangeIni(novo);
                         }}
-                        className="h-9 w-[140px] bg-background"
+                        className="h-9 w-[150px] bg-background"
                       />
                     </div>
-                    <Select value={String(anoComparativo)} onValueChange={(v) => setAnoComparativo(Number(v))}>
-                      <SelectTrigger className="h-9 w-[100px] bg-background"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {[anoAtual, anoAtual - 1, anoAtual - 2].map(a => (
-                          <SelectItem key={a} value={String(a)}>{a}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <Select value={metricaComparativo} onValueChange={(v: "qtd" | "faturamento") => setMetricaComparativo(v)}>
                       <SelectTrigger className="h-9 w-[150px] bg-background"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -1312,71 +1301,77 @@ export default function RelatorioVendas() {
               </div>
 
               <CardContent className="space-y-4">
-                {/* Seletor de meses */}
+                {/* Atalhos de período */}
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setMesesSelecionados(Array.from({ length: 12 }, (_, i) => i))}>Ano todo</Button>
-                    <Button size="sm" variant="outline" onClick={() => setMesesSelecionados(Array.from({ length: (anoComparativo === anoAtual ? mesAtual : 11) + 1 }, (_, i) => i))}>Até hoje</Button>
                     <Button size="sm" variant="outline" onClick={() => {
-                      const ref = anoComparativo === anoAtual ? mesAtual : 11;
-                      setMesesSelecionados([Math.max(0, ref - 2), Math.max(0, ref - 1), ref].filter((v, i, a) => a.indexOf(v) === i));
+                      setRangeIni({ ano: anoAtual, mes: 0 });
+                      setRangeFim({ ano: anoAtual, mes: 11 });
+                    }}>Ano todo</Button>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      setRangeIni({ ano: anoAtual, mes: 0 });
+                      setRangeFim({ ano: anoAtual, mes: mesAtual });
+                    }}>Até hoje</Button>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      const fim = { ano: anoAtual, mes: mesAtual };
+                      const totalMeses = anoAtual * 12 + mesAtual - 2;
+                      setRangeIni({ ano: Math.floor(totalMeses / 12), mes: ((totalMeses % 12) + 12) % 12 });
+                      setRangeFim(fim);
                     }}>Últimos 3 meses</Button>
-                    <Button size="sm" variant="outline" onClick={() => setMesesSelecionados([])}>Limpar</Button>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      const fim = { ano: anoAtual, mes: mesAtual };
+                      const totalMeses = anoAtual * 12 + mesAtual - 5;
+                      setRangeIni({ ano: Math.floor(totalMeses / 12), mes: ((totalMeses % 12) + 12) % 12 });
+                      setRangeFim(fim);
+                    }}>Últimos 6 meses</Button>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      const fim = { ano: anoAtual, mes: mesAtual };
+                      const totalMeses = anoAtual * 12 + mesAtual - 11;
+                      setRangeIni({ ano: Math.floor(totalMeses / 12), mes: ((totalMeses % 12) + 12) % 12 });
+                      setRangeFim(fim);
+                    }}>Últimos 12 meses</Button>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      setRangeIni({ ano: anoAtual - 1, mes: 0 });
+                      setRangeFim({ ano: anoAtual - 1, mes: 11 });
+                    }}>Ano anterior</Button>
                   </div>
-                  <div className="flex flex-wrap gap-2 rounded-xl border bg-muted/30 p-3">
-                    {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"].map((nome, idx) => {
-                      const ativo = mesesSelecionados.includes(idx);
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setMesesSelecionados(prev => ativo
-                            ? prev.filter(m => m !== idx)
-                            : [...prev, idx].sort((a, b) => a - b))}
-                          className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all",
-                            ativo
-                              ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                              : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-                          )}
+                  {periodosSelecionados.length > 0 && (
+                    <div className="flex flex-wrap gap-2 rounded-xl border bg-muted/30 p-3">
+                      {periodosSelecionados.map((p) => (
+                        <span
+                          key={periodoKey(p)}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-primary bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium shadow-sm"
                         >
-                          <span
-                            className={cn(
-                              "flex items-center justify-center size-4 rounded-full border-2 transition-colors",
-                              ativo
-                                ? "bg-primary-foreground border-primary-foreground text-primary"
-                                : "border-muted-foreground/40"
-                            )}
-                          >
-                            {ativo && <Check className="size-3" strokeWidth={3} />}
+                          <span className="flex items-center justify-center size-4 rounded-full bg-primary-foreground text-primary">
+                            <Check className="size-3" strokeWidth={3} />
                           </span>
-                          {nome}
-                        </button>
-                      );
-                    })}
-                  </div>
+                          {formatPeriodoCurto(p)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Tabela comparativa */}
                 <div className="overflow-x-auto">
                   {dadosComparativoMensal.linhas.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">Sem dados no ano selecionado.</p>
-                  ) : mesesSelecionados.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">Selecione ao menos um mês.</p>
+                    <p className="text-center py-8 text-muted-foreground">Sem dados no período selecionado.</p>
+                  ) : periodosSelecionados.length === 0 ? (
+                    <p className="text-center py-8 text-muted-foreground">Selecione um período válido.</p>
                   ) : (
                     <Table className="min-w-[640px] tabular-nums [&_th]:text-center [&_td]:text-center border-collapse">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="min-w-[160px] max-w-[220px] text-center bg-muted/50 font-semibold">Produto</TableHead>
-                          {mesesSelecionados.map((m, idx) => (
+                          {periodosSelecionados.map((p, idx) => (
                             <TableHead
-                              key={m}
+                              key={periodoKey(p)}
                               className={cn(
                                 "whitespace-nowrap w-[92px] font-semibold",
                                 idx % 2 === 0 ? "bg-primary/10 text-primary" : "bg-muted/40"
                               )}
                             >
-                              {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][m]}
+                              {formatPeriodoCurto(p)}
                             </TableHead>
                           ))}
                           <TableHead className="whitespace-nowrap w-[110px] border-l border-border/60 bg-accent/30 font-semibold">Média</TableHead>
@@ -1386,20 +1381,20 @@ export default function RelatorioVendas() {
                         {dadosComparativoMensal.linhas.map((l, i) => (
                           <TableRow key={l.produto_id || `n-${i}`}>
                             <TableCell className="font-medium text-sm truncate max-w-[220px] text-center bg-muted/20">{l.nome}</TableCell>
-                            {mesesSelecionados.map((m, idx) => (
+                            {periodosSelecionados.map((p, idx) => (
                               <TableCell
-                                key={m}
+                                key={periodoKey(p)}
                                 className={cn(
                                   "whitespace-nowrap w-[92px] px-2 py-2",
                                   idx % 2 === 0 ? "bg-primary/5" : ""
                                 )}
                               >
                                 <CelulaMesEditavel
-                                  valor={l.valores[m]}
-                                  manual={l.manual[m]}
+                                  valor={l.valores[idx]}
+                                  manual={l.manual[idx]}
                                   metrica={metricaComparativo}
                                   editavel={!!l.produto_id && !consolidado}
-                                  onSalvar={(novo) => l.produto_id && salvarVendaManual(l.produto_id, m, novo)}
+                                  onSalvar={(novo) => l.produto_id && salvarVendaManual(l.produto_id, idx, novo)}
                                 />
                               </TableCell>
                             ))}
@@ -1412,17 +1407,17 @@ export default function RelatorioVendas() {
                         ))}
                         <TableRow className="font-bold">
                           <TableCell className="bg-muted/70 font-bold text-center">Total</TableCell>
-                          {mesesSelecionados.map((m, idx) => (
+                          {periodosSelecionados.map((p, idx) => (
                             <TableCell
-                              key={m}
+                              key={periodoKey(p)}
                               className={cn(
                                 "whitespace-nowrap w-[92px] font-bold",
                                 idx % 2 === 0 ? "bg-primary/15" : "bg-muted/60"
                               )}
                             >
                               {metricaComparativo === "qtd"
-                                ? Math.round(dadosComparativoMensal.totaisPorMes[m]).toLocaleString("pt-BR")
-                                : formatCurrency(dadosComparativoMensal.totaisPorMes[m])}
+                                ? Math.round(dadosComparativoMensal.totaisPorPeriodo[idx]).toLocaleString("pt-BR")
+                                : formatCurrency(dadosComparativoMensal.totaisPorPeriodo[idx])}
                             </TableCell>
                           ))}
                           <TableCell className="text-primary whitespace-nowrap w-[110px] border-l border-border/60 bg-accent/40 font-bold">
