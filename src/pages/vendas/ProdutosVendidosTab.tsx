@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -257,6 +258,26 @@ export function ProdutosVendidosTab({ pedidos, unidadeId, unidadeIds, consolidad
       <Card className="venda-card">
         <VendaSectionHeader tone="muted" icon={<Filter className="h-5 w-5" />} title="Filtros" />
         <CardContent className="pt-4">
+          {onPeriodoChange && (
+            <div className="grid gap-3 sm:grid-cols-2 mb-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Data início</Label>
+                <Input
+                  type="date"
+                  value={dataInicio}
+                  onChange={(e) => onPeriodoChange(e.target.value, dataFim)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Data fim</Label>
+                <Input
+                  type="date"
+                  value={dataFim}
+                  onChange={(e) => onPeriodoChange(dataInicio, e.target.value)}
+                />
+              </div>
+            </div>
+          )}
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1">
               <Label className="text-xs">Cliente</Label>
