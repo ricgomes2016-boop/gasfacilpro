@@ -201,6 +201,7 @@ serve(async (req) => {
       unidade_id: unidadeId ?? "",
       cliente_id: clienteId ?? "",
       cliente_nome: clienteNome ?? "",
+      ...tabelaPrecosVars,
     },
   };
 
