@@ -168,6 +168,54 @@ export default function RelatorioVendas() {
     },
   });
 
+  // Buscar pedidos do ano inteiro para comparativo mensal
+  const { data: pedidosAno = [] } = useQuery({
+    queryKey: ["relatorio-vendas-ano", anoComparativo, unidadeAtual?.id],
+    queryFn: async () => {
+      const inicio = `${anoComparativo}-01-01`;
+      const fim = `${anoComparativo}-12-31`;
+      let query = supabase
+        .from("pedidos")
+        .select(`id, created_at, data_entrega, status, pedido_itens (quantidade, preco_unitario, produtos (nome))`)
+        .gte("data_entrega", inicio)
+        .lte("data_entrega", fim);
+      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as PedidoRelatorio[];
+    },
+  });
+
+  // Comparativo Mensal: produto x mês
+  const dadosComparativoMensal = useMemo(() => {
+    const map = new Map<string, number[]>();
+    pedidosAno.filter(p => p.status !== "cancelado").forEach(p => {
+      const dataStr = p.data_entrega || p.created_at;
+      if (!dataStr) return;
+      const mes = new Date(dataStr).getMonth();
+      (p.pedido_itens || []).forEach(it => {
+        const nome = it.produtos?.nome || "Sem nome";
+        if (!map.has(nome)) map.set(nome, Array(12).fill(0));
+        const arr = map.get(nome)!;
+        const qtd = Number(it.quantidade) || 0;
+        const preco = Number(it.preco_unitario) || 0;
+        arr[mes] += metricaComparativo === "qtd" ? qtd : qtd * preco;
+      });
+    });
+    const linhas = Array.from(map.entries()).map(([nome, valores]) => {
+      const totalSelecionado = mesesSelecionados.reduce((s, m) => s + valores[m], 0);
+      const media = mesesSelecionados.length > 0 ? totalSelecionado / mesesSelecionados.length : 0;
+      return { nome, valores, media, totalSelecionado };
+    });
+    linhas.sort((a, b) => b.totalSelecionado - a.totalSelecionado);
+    const totaisPorMes = Array(12).fill(0);
+    linhas.forEach(l => l.valores.forEach((v, i) => { totaisPorMes[i] += v; }));
+    const mediaTotal = mesesSelecionados.length > 0
+      ? mesesSelecionados.reduce((s, m) => s + totaisPorMes[m], 0) / mesesSelecionados.length
+      : 0;
+    return { linhas, totaisPorMes, mediaTotal };
+  }, [pedidosAno, mesesSelecionados, metricaComparativo]);
+
   const pedidosFiltrados = useMemo(() => {
     return pedidos.filter((p) => {
       if (statusFiltro !== "todos" && p.status !== statusFiltro) return false;
