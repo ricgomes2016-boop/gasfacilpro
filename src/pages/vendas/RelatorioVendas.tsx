@@ -94,6 +94,7 @@ interface PedidoRelatorio {
   pedido_itens: Array<{
     quantidade: number;
     preco_unitario: number;
+    produto_id: string | null;
     produtos: { nome: string } | null;
   }>;
 }
