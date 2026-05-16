@@ -23,8 +23,6 @@ import {
 } from "lucide-react";
 import { SmartImportButtons } from "@/components/import/SmartImportButtons";
 import { ImportReviewDialog } from "@/components/import/ImportReviewDialog";
-import { DailySalesGoal } from "@/components/dashboard/DailySalesGoal";
-import { RecompraAlerts } from "@/components/vendas/RecompraAlerts";
 import { toast as sonnerToast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
@@ -605,11 +603,7 @@ export default function RelatorioVendas() {
           </CardContent>
         </Card>
 
-        {/* Meta Diária + Alertas Recompra */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <DailySalesGoal />
-          <RecompraAlerts />
-        </div>
+
 
         {/* Métricas */}
         <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-5">
