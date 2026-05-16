@@ -39,7 +39,7 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { CelulaMesEditavel } from "./CelulaMesEditavel";
 import { VendaSectionHeader } from "@/components/vendas/VendaSectionHeader";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, LineChart, Line } from "recharts";
-import { Package, CreditCard, CalendarDays, Trophy, PackageSearch } from "lucide-react";
+import { Package, CreditCard, CalendarDays, Trophy, PackageSearch, Check } from "lucide-react";
 import { ProdutosVendidosTab } from "./ProdutosVendidosTab";
 
 const formaPagamentoLabels: Record<string, string> = {
