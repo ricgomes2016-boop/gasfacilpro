@@ -704,12 +704,13 @@ export default function RelatorioVendas() {
         </div>
 
         {/* Filtros */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Filter className="h-4 w-4" />Filtros
-            </CardTitle>
-          </CardHeader>
+        <Card className="venda-card">
+          <VendaSectionHeader
+            tone="muted"
+            icon={<Filter className="h-5 w-5" />}
+            title="Filtros"
+          />
+
           <CardContent>
             <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
               <div className="space-y-2">
