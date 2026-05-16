@@ -1430,6 +1430,7 @@ export default function RelatorioVendas() {
               consolidado={consolidado}
               dataInicio={dataInicio}
               dataFim={dataFim}
+              onPeriodoChange={(ini, fim) => { setDataInicio(ini); setDataFim(fim); }}
             />
           </TabsContent>
         </Tabs>
