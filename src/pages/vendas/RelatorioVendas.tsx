@@ -1182,13 +1182,17 @@ export default function RelatorioVendas() {
                       </TableHeader>
                       <TableBody>
                         {dadosComparativoMensal.linhas.map((l, i) => (
-                          <TableRow key={i}>
+                          <TableRow key={l.produto_id || `n-${i}`}>
                             <TableCell className="font-medium text-sm">{l.nome}</TableCell>
                             {mesesSelecionados.map(m => (
-                              <TableCell key={m} className="text-right whitespace-nowrap">
-                                {metricaComparativo === "qtd"
-                                  ? Math.round(l.valores[m]).toLocaleString("pt-BR")
-                                  : formatCurrency(l.valores[m])}
+                              <TableCell key={m} className="text-right whitespace-nowrap p-1">
+                                <CelulaMesEditavel
+                                  valor={l.valores[m]}
+                                  manual={l.manual[m]}
+                                  metrica={metricaComparativo}
+                                  editavel={!!l.produto_id}
+                                  onSalvar={(novo) => l.produto_id && salvarVendaManual(l.produto_id, m, novo)}
+                                />
                               </TableCell>
                             ))}
                             <TableCell className="text-right font-semibold text-primary whitespace-nowrap">
