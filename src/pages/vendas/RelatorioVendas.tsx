@@ -36,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { CelulaMesEditavel } from "./CelulaMesEditavel";
+import { VendaSectionHeader } from "@/components/vendas/VendaSectionHeader";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, LineChart, Line } from "recharts";
 import { Package, CreditCard, CalendarDays, Trophy } from "lucide-react";
 
@@ -703,12 +704,13 @@ export default function RelatorioVendas() {
         </div>
 
         {/* Filtros */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Filter className="h-4 w-4" />Filtros
-            </CardTitle>
-          </CardHeader>
+        <Card className="venda-card">
+          <VendaSectionHeader
+            tone="muted"
+            icon={<Filter className="h-5 w-5" />}
+            title="Filtros"
+          />
+
           <CardContent>
             <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
               <div className="space-y-2">
@@ -1044,8 +1046,8 @@ export default function RelatorioVendas() {
               <Card className="col-span-2 md:col-span-1"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-success"><DollarSign /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Faturamento</p><p className="text-lg font-bold truncate">{formatCurrency(dadosPorProduto.reduce((s, p) => s + p.faturamento, 0))}</p></div></CardContent></Card>
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
-              <Card>
-                <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Package className="h-5 w-5" />Top 10 — Quantidade</CardTitle></CardHeader>
+              <Card className="venda-card">
+                <VendaSectionHeader tone="info" icon={<Package className="h-5 w-5" />} title="Top 10 — Quantidade" />
                 <CardContent>
                   {dadosPorProduto.length === 0 ? (
                     <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
@@ -1065,8 +1067,8 @@ export default function RelatorioVendas() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="pb-3"><CardTitle className="text-base">Detalhamento por Produto</CardTitle></CardHeader>
+              <Card className="venda-card">
+                <VendaSectionHeader tone="primary" icon={<FileSpreadsheet className="h-5 w-5" />} title="Detalhamento por Produto" />
                 <CardContent className="p-0 sm:p-6 sm:pt-0">
                   <div className="overflow-x-auto">
                     <Table className="min-w-[360px]">
@@ -1109,21 +1111,15 @@ export default function RelatorioVendas() {
             </div>
 
             {/* Comparativo Mensal */}
-            <Card className="mt-4">
-              <CardHeader className="pb-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <CalendarDays className="h-5 w-5" />
-                      Comparativo Mensal por Produto
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Clique em qualquer célula de mês para lançar vendas históricas (sistema antigo). O total mostra <span className="text-primary font-medium">sistema + manual</span>.
-                    </p>
-                  </div>
+            <Card className="venda-card mt-4">
+              <VendaSectionHeader
+                tone="success"
+                icon={<CalendarDays className="h-5 w-5" />}
+                title="Comparativo Mensal por Produto"
+                action={
                   <div className="flex flex-wrap items-center gap-2">
                     <Select value={String(anoComparativo)} onValueChange={(v) => setAnoComparativo(Number(v))}>
-                      <SelectTrigger className="h-9 w-[110px]"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9 w-[110px] bg-background"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {[anoAtual, anoAtual - 1, anoAtual - 2].map(a => (
                           <SelectItem key={a} value={String(a)}>{a}</SelectItem>
@@ -1131,15 +1127,21 @@ export default function RelatorioVendas() {
                       </SelectContent>
                     </Select>
                     <Select value={metricaComparativo} onValueChange={(v: "qtd" | "faturamento") => setMetricaComparativo(v)}>
-                      <SelectTrigger className="h-9 w-[150px]"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9 w-[150px] bg-background"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="qtd">Quantidade</SelectItem>
                         <SelectItem value="faturamento">Faturamento</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-              </CardHeader>
+                }
+              />
+              <div className="px-4 pt-3 sm:px-5">
+                <p className="text-xs text-muted-foreground">
+                  Clique em qualquer célula de mês para lançar vendas históricas (sistema antigo). O total mostra <span className="text-primary font-medium">sistema + manual</span>.
+                </p>
+              </div>
+
               <CardContent className="space-y-4">
                 {/* Seletor de meses */}
                 <div className="space-y-2">
@@ -1176,24 +1178,24 @@ export default function RelatorioVendas() {
                   ) : mesesSelecionados.length === 0 ? (
                     <p className="text-center py-8 text-muted-foreground">Selecione ao menos um mês.</p>
                   ) : (
-                    <Table className="min-w-[640px]">
+                    <Table className="min-w-[640px] tabular-nums">
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Produto</TableHead>
+                          <TableHead className="min-w-[180px] max-w-[220px]">Produto</TableHead>
                           {mesesSelecionados.map(m => (
-                            <TableHead key={m} className="text-right whitespace-nowrap">
+                            <TableHead key={m} className="text-right whitespace-nowrap w-[92px]">
                               {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][m]}
                             </TableHead>
                           ))}
-                          <TableHead className="text-right whitespace-nowrap">Média</TableHead>
+                          <TableHead className="text-right whitespace-nowrap w-[110px] border-l border-border/60">Média</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {dadosComparativoMensal.linhas.map((l, i) => (
                           <TableRow key={l.produto_id || `n-${i}`}>
-                            <TableCell className="font-medium text-sm">{l.nome}</TableCell>
+                            <TableCell className="font-medium text-sm truncate max-w-[220px]">{l.nome}</TableCell>
                             {mesesSelecionados.map(m => (
-                              <TableCell key={m} className="text-right whitespace-nowrap p-1">
+                              <TableCell key={m} className="text-right whitespace-nowrap w-[92px] px-2 py-2">
                                 <CelulaMesEditavel
                                   valor={l.valores[m]}
                                   manual={l.manual[m]}
@@ -1203,23 +1205,23 @@ export default function RelatorioVendas() {
                                 />
                               </TableCell>
                             ))}
-                            <TableCell className="text-right font-semibold text-primary whitespace-nowrap">
+                            <TableCell className="text-right font-semibold text-primary whitespace-nowrap w-[110px] border-l border-border/60">
                               {metricaComparativo === "qtd"
                                 ? l.media.toLocaleString("pt-BR", { maximumFractionDigits: 1 })
                                 : formatCurrency(l.media)}
                             </TableCell>
                           </TableRow>
                         ))}
-                        <TableRow className="bg-muted/50 font-bold">
-                          <TableCell>Total</TableCell>
+                        <TableRow className="font-bold">
+                          <TableCell className="bg-muted/60 font-bold">Total</TableCell>
                           {mesesSelecionados.map(m => (
-                            <TableCell key={m} className="text-right whitespace-nowrap">
+                            <TableCell key={m} className="text-right whitespace-nowrap w-[92px] bg-muted/60">
                               {metricaComparativo === "qtd"
                                 ? Math.round(dadosComparativoMensal.totaisPorMes[m]).toLocaleString("pt-BR")
                                 : formatCurrency(dadosComparativoMensal.totaisPorMes[m])}
                             </TableCell>
                           ))}
-                          <TableCell className="text-right text-primary whitespace-nowrap">
+                          <TableCell className="text-right text-primary whitespace-nowrap w-[110px] border-l border-border/60 bg-muted/60">
                             {metricaComparativo === "qtd"
                               ? dadosComparativoMensal.mediaTotal.toLocaleString("pt-BR", { maximumFractionDigits: 1 })
                               : formatCurrency(dadosComparativoMensal.mediaTotal)}

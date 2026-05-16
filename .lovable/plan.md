@@ -1,64 +1,54 @@
-## Lançamento manual de vendas históricas (Comparativo Mensal)
+## Modernizar cards do Relatório de Vendas (aba Produtos)
 
-Permitir editar diretamente as células da tabela comparativa produto × mês para registrar vendas de meses anteriores (importadas do sistema antigo), sem perder o histórico.
+Aplicar o padrão visual já existente no projeto (`VendaSectionHeader` + tons coloridos por tema) e alinhar a tabela do Comparativo Mensal.
 
-### Comportamento
+### 1. Headers coloridos (padrão do tema)
 
-- Cada célula de mês na tabela comparativa vira **clicável**.
-- Ao clicar, abre um input inline para digitar a quantidade (ou faturamento, conforme métrica ativa).
-- Ao salvar (Enter / blur), o valor é gravado no banco como ajuste manual daquele produto naquele mês/ano da unidade atual.
-- A célula passa a mostrar **valor real do sistema + ajuste manual**, com um pequeno indicador (ex.: ponto/badge) sinalizando que há lançamento manual.
-- Tooltip na célula mostra o detalhamento: "Sistema: X · Manual: Y · Total: Z".
-- Linha de Total e coluna Média recalculam automaticamente incluindo os ajustes.
+Substituir `CardHeader` + `CardTitle` "soltos" pelo componente `VendaSectionHeader`, que já aplica o fundo colorido em sintonia com o tema (gasfacil, saas, pastel-dashboard, executivo etc.).
 
-### Nova tabela: `vendas_historicas_manuais`
+Cards a atualizar em `src/pages/vendas/RelatorioVendas.tsx`:
 
-```text
-id                uuid pk
-empresa_id        uuid not null
-unidade_id        uuid not null
-produto_id        uuid not null  (FK produtos)
-ano               int  not null
-mes               int  not null  (1..12)
-quantidade        numeric default 0
-faturamento       numeric default 0
-observacao        text
-created_by        uuid
-created_at, updated_at
-UNIQUE (unidade_id, produto_id, ano, mes)
+| Card | Tone | Ícone |
+|---|---|---|
+| Filtros (topo) | `muted` | `Filter` |
+| Top 10 — Quantidade | `info` | `Package` |
+| Detalhamento por Produto | `primary` | `FileSpreadsheet` |
+| Comparativo Mensal por Produto | `success` | `CalendarDays` |
+
+Cada um vira:
+```tsx
+<Card className="venda-card">
+  <VendaSectionHeader tone="info" icon={<Package className="h-5 w-5" />} title="Top 10 — Quantidade" action={...} />
+  <CardContent>...</CardContent>
+</Card>
 ```
 
-- RLS por `unidade_id` / `empresa_id` seguindo o padrão do projeto (payloads sempre incluem ambos).
-- Política: somente usuários com acesso à unidade podem ler/inserir/atualizar/excluir.
+O `action` recebe os seletores (Ano / Métrica) no card do Comparativo e os selects de Status/Canal no card de Filtros, mantendo a lógica intacta.
 
-### UI em `RelatorioVendas.tsx` (aba Produtos → Comparativo Mensal)
+### 2. Alinhamento da tabela Comparativo Mensal
 
-1. Carregar `vendas_historicas_manuais` filtradas por `unidade_id` e `ano = anoComparativo` em paralelo com `pedidosAno`.
-2. No `useMemo` `dadosComparativoMensal`, somar o valor manual em cima do valor agregado dos pedidos por (produto, mês).
-3. Cada `<TableCell>` de mês recebe:
-   - Modo leitura: número + ícone discreto (ex.: `Pencil` no hover) + dot se há manual.
-   - Modo edição: `Input` numérico com botão salvar/cancelar.
-4. Salvar via upsert na nova tabela (`onConflict: unidade_id,produto_id,ano,mes`).
-5. Após salvar: invalidar a query e mostrar `toast` de sucesso.
+Problemas atuais: cabeçalho `text-right` mas as células do corpo usam um botão flex que não alinha com a borda direita; coluna "Produto" sem largura mínima; números com fontes proporcionais ficam tortos.
 
-### Botão extra: "Importar histórico em lote"
+Ajustes:
 
-Pequeno botão acima da tabela abre um modal com um grid simples (produto × 12 meses) para preencher rapidamente um ano inteiro de uma vez, com salvar único. Útil para migração inicial. Opcional na primeira entrega — pode ficar como fase 2.
+- `Table` com `min-w-[640px] tabular-nums`.
+- Primeira coluna (Produto): `sticky left-0 bg-card z-10 min-w-[180px] max-w-[220px] truncate`, para não comprimir nos meses.
+- Cabeçalhos de mês: `text-right tabular-nums w-[88px]`.
+- Células do corpo: `text-right p-2 tabular-nums` e o componente `CelulaMesEditavel` já produz conteúdo `justify-end` — garantir que o botão interno tenha `w-full justify-end` (ajustar largura mínima do botão para `min-w-[72px]` para não "dançar" entre números curtos/longos).
+- Linha Total: mesma largura/`tabular-nums`, fundo levemente mais escuro (`bg-muted/60`), `font-bold`, primeira coluna também `sticky`.
+- Coluna Média: separador visual (`border-l border-border/60`) para destacar do bloco de meses, `font-semibold text-primary`.
 
-### Exportações
+### 3. Pequenos polimentos
 
-- Excel/PDF da aba Comparativo Mensal já passam a refletir os totais ajustados (sem mudança extra além do dado consolidado).
+- Cards do topo (Unidades vendidas, Mix, Faturamento) ganham `venda-card` para herdar a borda colorida sutil já existente.
+- Espaçamento: `space-y-4` entre as três seções (KPIs → grid 2 colunas → Comparativo) — já existe `mt-4` no comparativo, manter.
+- Não mexer em: lógica de filtros, queries, `dadosComparativoMensal`, `salvarVendaManual`, `CelulaMesEditavel` (apenas ajuste de largura mínima do botão se necessário).
 
-### Fora do escopo
+### Arquivos
 
-- Não altera `pedidos`, não cria pedidos fake.
-- Não mexe nas outras abas do relatório.
-- Não impacta DRE/financeiro/estoque — é apenas histórico de quantidade/faturamento para o comparativo.
-- Sem importação por CSV nesta fase (pode vir depois).
+- `src/pages/vendas/RelatorioVendas.tsx` — refatorar 4 cards e a tabela.
+- `src/pages/vendas/CelulaMesEditavel.tsx` — ajuste leve (`w-full justify-end min-w-[72px]`) para o alinhamento à direita ficar firme.
 
-### Técnico
+### Fora de escopo
 
-- Migration: criar tabela + índices + RLS + trigger `updated_at`.
-- Hook novo `useVendasHistoricasManuais(ano)` com `useQuery` + `useMutation` (upsert e delete quando valor = 0).
-- Componente `CelulaMesEditavel` inline em `RelatorioVendas.tsx`.
-- Tokens semânticos do tema (sem cores hard-coded). Inputs respeitam padrão mobile (16px) já em uso.
+- Não alterar as abas Entregadores / Canais / Pagamento nesta rodada (o pedido foi específico para Filtros, Top 10, Detalhamento Produtos e Comparativo Mensal). Se quiser, aplico o mesmo padrão depois.

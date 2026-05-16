@@ -40,7 +40,7 @@ export function CelulaMesEditavel({ valor, manual, metrica, editavel, onSalvar }
   };
 
   if (!editavel) {
-    return <span className="text-muted-foreground">{display}</span>;
+    return <span className="inline-block w-full text-right tabular-nums text-muted-foreground">{display}</span>;
   }
 
   if (editando) {
@@ -67,7 +67,7 @@ export function CelulaMesEditavel({ valor, manual, metrica, editavel, onSalvar }
       onClick={() => setEditando(true)}
       title={temManual ? `Inclui lançamento manual de ${manual.toLocaleString("pt-BR")}` : "Clique para lançar venda histórica"}
       className={cn(
-        "group inline-flex items-center justify-end gap-1 rounded px-2 py-1 hover:bg-muted/50 w-full",
+        "group inline-flex w-full min-w-[72px] items-center justify-end gap-1 rounded px-2 py-1 tabular-nums hover:bg-muted/50",
         temManual && "text-primary font-semibold"
       )}
     >
