@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { getBrasiliaDateString } from "@/lib/utils";
+import { getBrasiliaDateString, cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
