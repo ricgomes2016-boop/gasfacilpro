@@ -27,7 +27,7 @@ import { SmartImportButtons } from "@/components/import/SmartImportButtons";
 import { ImportReviewDialog } from "@/components/import/ImportReviewDialog";
 import { toast as sonnerToast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
@@ -798,6 +798,34 @@ export default function RelatorioVendas() {
                   <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />Atualizar
                 </Button>
               </div>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Label className="text-xs text-muted-foreground mr-1">Período rápido:</Label>
+              {[
+                { label: "Mês atual", get: () => { const h = new Date(); return [startOfMonth(h), endOfMonth(h)] as const; } },
+                { label: "Últimos 3 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 2)), endOfMonth(h)] as const; } },
+                { label: "Últimos 6 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 5)), endOfMonth(h)] as const; } },
+                { label: "Últimos 12 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 11)), endOfMonth(h)] as const; } },
+                { label: "Ano atual", get: () => { const h = new Date(); return [startOfYear(h), endOfYear(h)] as const; } },
+                { label: "Ano anterior", get: () => { const h = new Date(); const ant = new Date(h.getFullYear() - 1, 0, 1); return [startOfYear(ant), endOfYear(ant)] as const; } },
+              ].map((p) => {
+                const [ini, fim] = p.get();
+                const iniStr = format(ini, "yyyy-MM-dd");
+                const fimStr = format(fim, "yyyy-MM-dd");
+                const ativo = dataInicio === iniStr && dataFim === fimStr;
+                return (
+                  <Button
+                    key={p.label}
+                    type="button"
+                    variant={ativo ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => { setDataInicio(iniStr); setDataFim(fimStr); }}
+                  >
+                    {p.label}
+                  </Button>
+                );
+              })}
             </div>
             {isMatriz && (
               <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
