@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { Switch } from "@/components/ui/switch";
 import { getBrasiliaDateString, cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
