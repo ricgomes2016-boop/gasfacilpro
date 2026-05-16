@@ -203,10 +203,11 @@ export default function RelatorioVendas() {
 
   // Produtos da unidade (para incluir produtos sem pedidos no comparativo)
   const { data: produtosLista = [] } = useQuery({
-    queryKey: ["relatorio-vendas-produtos", unidadeAtual?.id],
+    queryKey: ["relatorio-vendas-produtos", scopeKey],
     queryFn: async () => {
       let query = supabase.from("produtos").select("id, nome").eq("ativo", true);
-      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
+      if (consolidado && unidadeIds.length > 0) query = query.in("unidade_id", unidadeIds);
+      else if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as { id: string; nome: string }[];
