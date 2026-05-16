@@ -35,7 +35,34 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUnidade } from "@/contexts/UnidadeContext";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, LineChart, Line } from "recharts";
+import { Package, CreditCard, CalendarDays, Trophy } from "lucide-react";
+
+const formaPagamentoLabels: Record<string, string> = {
+  dinheiro: "Dinheiro",
+  pix: "PIX",
+  pix_maquininha: "PIX Maquininha",
+  cartao_credito: "Cartão Crédito",
+  cartao_debito: "Cartão Débito",
+  cheque: "Cheque",
+  vale_gas: "Vale Gás",
+  fiado: "Fiado",
+  outros: "Outros",
+};
+
+function normalizarFormaPagamento(raw: string | null | undefined): string {
+  if (!raw) return "outros";
+  const s = String(raw).toLowerCase().trim().replace(/\s+/g, "_").replace(/[áàâã]/g, "a").replace(/[éê]/g, "e").replace(/[í]/g, "i").replace(/[óôõ]/g, "o").replace(/[ú]/g, "u").replace(/[ç]/g, "c");
+  if (s.includes("dinheiro") || s === "cash" || s.includes("especie")) return "dinheiro";
+  if (s.includes("pix_maq") || s.includes("pix-maq")) return "pix_maquininha";
+  if (s === "pix" || s.includes("pix")) return "pix";
+  if (s.includes("credit")) return "cartao_credito";
+  if (s.includes("debit")) return "cartao_debito";
+  if (s.includes("cheque")) return "cheque";
+  if (s.includes("vale") || s.includes("gas_gratis")) return "vale_gas";
+  if (s.includes("fiado") || s.includes("prazo")) return "fiado";
+  return "outros";
+}
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   pendente: { label: "Pendente", variant: "secondary" },
@@ -198,6 +225,66 @@ export default function RelatorioVendas() {
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
   }, [pedidosFiltrados]);
 
+  // Agrupamento por Produto
+  const dadosPorProduto = useMemo(() => {
+    const map = new Map<string, { nome: string; qtd: number; faturamento: number; pedidos: Set<string> }>();
+    pedidosFiltrados.filter(p => p.status !== "cancelado").forEach(p => {
+      (p.pedido_itens || []).forEach(it => {
+        const nome = it.produtos?.nome || "Sem nome";
+        const cur = map.get(nome) || { nome, qtd: 0, faturamento: 0, pedidos: new Set() };
+        cur.qtd += Number(it.quantidade) || 0;
+        cur.faturamento += (Number(it.quantidade) || 0) * (Number(it.preco_unitario) || 0);
+        cur.pedidos.add(p.id);
+        map.set(nome, cur);
+      });
+    });
+    const arr = Array.from(map.values()).map(p => ({ nome: p.nome, qtd: p.qtd, faturamento: p.faturamento, pedidosCount: p.pedidos.size }));
+    return arr.sort((a, b) => b.qtd - a.qtd);
+  }, [pedidosFiltrados]);
+
+  // Agrupamento por Forma de Pagamento (normalizado)
+  const dadosPorFormaPagamento = useMemo(() => {
+    const map = new Map<string, { forma: string; label: string; qtd: number; total: number }>();
+    pedidosFiltrados.filter(p => p.status !== "cancelado").forEach(p => {
+      const forma = normalizarFormaPagamento(p.forma_pagamento);
+      const label = formaPagamentoLabels[forma] || forma;
+      const cur = map.get(forma) || { forma, label, qtd: 0, total: 0 };
+      cur.qtd += 1;
+      cur.total += p.valor_total || 0;
+      map.set(forma, cur);
+    });
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [pedidosFiltrados]);
+
+  // Evolução Diária
+  const dadosPorDia = useMemo(() => {
+    const map = new Map<string, { dia: string; total: number; qtd: number }>();
+    pedidosFiltrados.filter(p => p.status !== "cancelado").forEach(p => {
+      const dia = p.data_entrega || (p.created_at ? p.created_at.slice(0, 10) : "—");
+      const cur = map.get(dia) || { dia, total: 0, qtd: 0 };
+      cur.total += p.valor_total || 0;
+      cur.qtd += 1;
+      map.set(dia, cur);
+    });
+    const arr = Array.from(map.values()).sort((a, b) => a.dia.localeCompare(b.dia));
+    return arr.map(d => ({ ...d, label: format(parseISO(`${d.dia}T12:00:00`), "dd/MM", { locale: ptBR }) }));
+  }, [pedidosFiltrados]);
+
+  // Top Clientes
+  const dadosTopClientes = useMemo(() => {
+    const map = new Map<string, { nome: string; qtd: number; total: number; ultima: string }>();
+    pedidosFiltrados.filter(p => p.status !== "cancelado").forEach(p => {
+      const nome = p.clientes?.nome || "Não identificado";
+      const data = p.data_entrega || p.created_at?.slice(0, 10) || "";
+      const cur = map.get(nome) || { nome, qtd: 0, total: 0, ultima: data };
+      cur.qtd += 1;
+      cur.total += p.valor_total || 0;
+      if (data > cur.ultima) cur.ultima = data;
+      map.set(nome, cur);
+    });
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [pedidosFiltrados]);
+
   const exportarExcel = () => {
     if (pedidosFiltrados.length === 0) {
       toast({ title: "Nenhum dado para exportar", variant: "destructive" });
@@ -250,6 +337,38 @@ export default function RelatorioVendas() {
       "Ticket Médio": `R$ ${(c.qtd > 0 ? c.total / c.qtd : 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
     })));
     XLSX.utils.book_append_sheet(wb, wsCanal, "Por Canal");
+
+    // Aba por Produto
+    const wsProduto = XLSX.utils.json_to_sheet(dadosPorProduto.map(p => ({
+      Produto: p.nome, "Qtd Vendida": p.qtd, Pedidos: p.pedidosCount,
+      "Faturamento": `R$ ${p.faturamento.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+    })));
+    XLSX.utils.book_append_sheet(wb, wsProduto, "Por Produto");
+
+    // Aba por Forma de Pagamento
+    const wsPgto = XLSX.utils.json_to_sheet(dadosPorFormaPagamento.map(f => ({
+      Forma: f.label, Pedidos: f.qtd,
+      "Faturamento": `R$ ${f.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      "Ticket Médio": `R$ ${(f.qtd > 0 ? f.total / f.qtd : 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+    })));
+    XLSX.utils.book_append_sheet(wb, wsPgto, "Por Pagamento");
+
+    // Aba por Dia
+    const wsDia = XLSX.utils.json_to_sheet(dadosPorDia.map(d => ({
+      Data: d.label, Pedidos: d.qtd,
+      "Faturamento": `R$ ${d.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+    })));
+    XLSX.utils.book_append_sheet(wb, wsDia, "Por Dia");
+
+    // Aba Top Clientes
+    const wsClientes = XLSX.utils.json_to_sheet(dadosTopClientes.map(c => ({
+      Cliente: c.nome, Pedidos: c.qtd,
+      "Faturamento": `R$ ${c.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      "Ticket Médio": `R$ ${(c.qtd > 0 ? c.total / c.qtd : 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      "Última Compra": c.ultima || "-",
+    })));
+    XLSX.utils.book_append_sheet(wb, wsClientes, "Top Clientes");
+
 
     const nomeArquivo = `relatorio-vendas-${format(parseISO(dataInicio), "ddMMyyyy")}-${format(parseISO(dataFim), "ddMMyyyy")}.xlsx`;
     XLSX.writeFile(wb, nomeArquivo);
@@ -312,6 +431,21 @@ export default function RelatorioVendas() {
         `R$ ${(c.qtd > 0 ? c.total / c.qtd : 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       ]),
       startY: y2 + 14,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [51, 65, 85] },
+    });
+
+    // Por Produto
+    const y3 = (doc as any).lastAutoTable?.finalY || 200;
+    doc.setFontSize(12);
+    doc.text("Vendas por Produto", 14, y3 + 10);
+    autoTable(doc, {
+      head: [["Produto", "Qtd", "Pedidos", "Faturamento"]],
+      body: dadosPorProduto.map(p => [
+        p.nome, String(p.qtd), String(p.pedidosCount),
+        `R$ ${p.faturamento.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      ]),
+      startY: y3 + 14,
       styles: { fontSize: 9 },
       headStyles: { fillColor: [51, 65, 85] },
     });
@@ -488,11 +622,15 @@ export default function RelatorioVendas() {
 
         {/* Tabs: Pedidos / Entregador / Canal */}
         <Tabs defaultValue="pedidos" className="space-y-4">
-          <TabsList className="w-full sm:w-auto flex">
-            <TabsTrigger value="pedidos" className="flex-1 sm:flex-none gap-1 sm:gap-2 text-xs sm:text-sm"><ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden xs:inline">Pedidos</span><span className="xs:hidden">Ped.</span></TabsTrigger>
-            <TabsTrigger value="entregador" className="flex-1 sm:flex-none gap-1 sm:gap-2 text-xs sm:text-sm"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Por Entregador</span><span className="sm:hidden">Entreg.</span></TabsTrigger>
-            <TabsTrigger value="entregador-canal" className="flex-1 sm:flex-none gap-1 sm:gap-2 text-xs sm:text-sm"><FileSpreadsheet className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Entregador x Canal</span><span className="sm:hidden">E×C</span></TabsTrigger>
-            <TabsTrigger value="canal" className="flex-1 sm:flex-none gap-1 sm:gap-2 text-xs sm:text-sm"><Megaphone className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Por Canal</span><span className="sm:hidden">Canal</span></TabsTrigger>
+          <TabsList className="w-full flex flex-wrap h-auto gap-1">
+            <TabsTrigger value="pedidos" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm"><ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden xs:inline">Pedidos</span><span className="xs:hidden">Ped.</span></TabsTrigger>
+            <TabsTrigger value="produtos" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm"><Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Produtos</span><span className="sm:hidden">Prod.</span></TabsTrigger>
+            <TabsTrigger value="entregador" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Por Entregador</span><span className="sm:hidden">Entreg.</span></TabsTrigger>
+            <TabsTrigger value="entregador-canal" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm"><FileSpreadsheet className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Entregador x Canal</span><span className="sm:hidden">E×C</span></TabsTrigger>
+            <TabsTrigger value="canal" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm"><Megaphone className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Por Canal</span><span className="sm:hidden">Canal</span></TabsTrigger>
+            <TabsTrigger value="pagamento" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm"><CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Pagamento</span><span className="sm:hidden">Pgto.</span></TabsTrigger>
+            <TabsTrigger value="dia" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm"><CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Evolução</span><span className="sm:hidden">Dia</span></TabsTrigger>
+            <TabsTrigger value="clientes" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm"><Trophy className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Top Clientes</span><span className="sm:hidden">Clien.</span></TabsTrigger>
           </TabsList>
 
           {/* Tab Pedidos */}
@@ -750,6 +888,227 @@ export default function RelatorioVendas() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Tab Produtos */}
+          <TabsContent value="produtos">
+            <div className="grid gap-3 grid-cols-2 md:grid-cols-3 mb-4">
+              <Card><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-primary"><Package /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Unidades vendidas</p><p className="text-lg font-bold">{dadosPorProduto.reduce((s, p) => s + p.qtd, 0)}</p></div></CardContent></Card>
+              <Card><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-info"><FileSpreadsheet /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Mix de produtos</p><p className="text-lg font-bold">{dadosPorProduto.length}</p></div></CardContent></Card>
+              <Card className="col-span-2 md:col-span-1"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-success"><DollarSign /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Faturamento</p><p className="text-lg font-bold truncate">{formatCurrency(dadosPorProduto.reduce((s, p) => s + p.faturamento, 0))}</p></div></CardContent></Card>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card>
+                <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Package className="h-5 w-5" />Top 10 — Quantidade</CardTitle></CardHeader>
+                <CardContent>
+                  {dadosPorProduto.length === 0 ? (
+                    <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={320}>
+                      <BarChart data={dadosPorProduto.slice(0, 10)} layout="vertical" margin={{ left: 10, right: 20, top: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis type="number" className="text-xs" />
+                        <YAxis type="category" dataKey="nome" width={110} className="text-xs" tick={{ fontSize: 11 }} />
+                        <Tooltip formatter={(v: number, n) => n === "qtd" ? [`${v} un.`, "Quantidade"] : formatCurrency(v)} />
+                        <Bar dataKey="qtd" name="Quantidade" radius={[0, 4, 4, 0]}>
+                          {dadosPorProduto.slice(0, 10).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3"><CardTitle className="text-base">Detalhamento por Produto</CardTitle></CardHeader>
+                <CardContent className="p-0 sm:p-6 sm:pt-0">
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-[360px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Produto</TableHead>
+                          <TableHead className="text-right w-16">Qtd</TableHead>
+                          <TableHead className="text-right hidden sm:table-cell">Pedidos</TableHead>
+                          <TableHead className="text-right">Faturamento</TableHead>
+                          <TableHead className="text-right hidden sm:table-cell">%</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {dadosPorProduto.map((p, i) => {
+                          const totalFat = dadosPorProduto.reduce((s, x) => s + x.faturamento, 0);
+                          return (
+                            <TableRow key={i}>
+                              <TableCell className="font-medium text-sm">{p.nome}</TableCell>
+                              <TableCell className="text-right font-semibold">{p.qtd}</TableCell>
+                              <TableCell className="text-right hidden sm:table-cell">{p.pedidosCount}</TableCell>
+                              <TableCell className="text-right whitespace-nowrap">{formatCurrency(p.faturamento)}</TableCell>
+                              <TableCell className="text-right hidden sm:table-cell">{totalFat > 0 ? ((p.faturamento / totalFat) * 100).toFixed(1) : 0}%</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                        {dadosPorProduto.length > 0 && (
+                          <TableRow className="bg-muted/50 font-bold">
+                            <TableCell>Total</TableCell>
+                            <TableCell className="text-right">{dadosPorProduto.reduce((s, p) => s + p.qtd, 0)}</TableCell>
+                            <TableCell className="hidden sm:table-cell text-right">—</TableCell>
+                            <TableCell className="text-right whitespace-nowrap">{formatCurrency(dadosPorProduto.reduce((s, p) => s + p.faturamento, 0))}</TableCell>
+                            <TableCell className="hidden sm:table-cell text-right">100%</TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Tab Forma de Pagamento */}
+          <TabsContent value="pagamento">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card>
+                <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><CreditCard className="h-5 w-5" />Distribuição por Forma de Pagamento</CardTitle></CardHeader>
+                <CardContent>
+                  {dadosPorFormaPagamento.length === 0 ? (
+                    <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={280}>
+                      <PieChart>
+                        <Pie data={dadosPorFormaPagamento} dataKey="total" nameKey="label" cx="50%" cy="50%" outerRadius={90} label={({ label, percent }) => `${label} ${(percent * 100).toFixed(0)}%`}>
+                          {dadosPorFormaPagamento.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3"><CardTitle className="text-base">Detalhamento por Forma</CardTitle></CardHeader>
+                <CardContent className="p-0 sm:p-6 sm:pt-0">
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-[320px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Forma</TableHead>
+                          <TableHead className="text-right w-14">Qtd</TableHead>
+                          <TableHead className="text-right">Faturamento</TableHead>
+                          <TableHead className="text-right hidden sm:table-cell">Ticket</TableHead>
+                          <TableHead className="text-right hidden sm:table-cell">%</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {dadosPorFormaPagamento.map((f, i) => {
+                          const totalGeral = dadosPorFormaPagamento.reduce((s, x) => s + x.total, 0);
+                          return (
+                            <TableRow key={i}>
+                              <TableCell className="font-medium text-sm">{f.label}</TableCell>
+                              <TableCell className="text-right">{f.qtd}</TableCell>
+                              <TableCell className="text-right font-semibold whitespace-nowrap">{formatCurrency(f.total)}</TableCell>
+                              <TableCell className="text-right hidden sm:table-cell whitespace-nowrap">{formatCurrency(f.qtd > 0 ? f.total / f.qtd : 0)}</TableCell>
+                              <TableCell className="text-right hidden sm:table-cell">{totalGeral > 0 ? ((f.total / totalGeral) * 100).toFixed(1) : 0}%</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                        {dadosPorFormaPagamento.length > 0 && (
+                          <TableRow className="bg-muted/50 font-bold">
+                            <TableCell>Total</TableCell>
+                            <TableCell className="text-right">{dadosPorFormaPagamento.reduce((s, c) => s + c.qtd, 0)}</TableCell>
+                            <TableCell className="text-right whitespace-nowrap">{formatCurrency(dadosPorFormaPagamento.reduce((s, c) => s + c.total, 0))}</TableCell>
+                            <TableCell className="hidden sm:table-cell text-right">—</TableCell>
+                            <TableCell className="hidden sm:table-cell text-right">100%</TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Tab Evolução Diária */}
+          <TabsContent value="dia">
+            {(() => {
+              const totalDias = dadosPorDia.length;
+              const totalFat = dadosPorDia.reduce((s, d) => s + d.total, 0);
+              const media = totalDias > 0 ? totalFat / totalDias : 0;
+              const melhor = [...dadosPorDia].sort((a, b) => b.total - a.total)[0];
+              const pior = [...dadosPorDia].filter(d => d.total > 0).sort((a, b) => a.total - b.total)[0];
+              return (
+                <>
+                  <div className="grid gap-3 grid-cols-2 md:grid-cols-3 mb-4">
+                    <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Média diária</p><p className="text-lg font-bold truncate">{formatCurrency(media)}</p></CardContent></Card>
+                    <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Melhor dia</p><p className="text-lg font-bold text-success truncate">{melhor ? `${melhor.label} — ${formatCurrency(melhor.total)}` : "—"}</p></CardContent></Card>
+                    <Card className="col-span-2 md:col-span-1"><CardContent className="p-3"><p className="text-xs text-muted-foreground">Pior dia</p><p className="text-lg font-bold text-destructive truncate">{pior ? `${pior.label} — ${formatCurrency(pior.total)}` : "—"}</p></CardContent></Card>
+                  </div>
+                  <Card>
+                    <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><CalendarDays className="h-5 w-5" />Evolução de Vendas no Período</CardTitle></CardHeader>
+                    <CardContent>
+                      {dadosPorDia.length === 0 ? (
+                        <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
+                      ) : (
+                        <ResponsiveContainer width="100%" height={320}>
+                          <LineChart data={dadosPorDia}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                            <XAxis dataKey="label" className="text-xs" />
+                            <YAxis className="text-xs" tickFormatter={(v) => `R$${(v / 1000).toFixed(1)}k`} />
+                            <Tooltip formatter={(v: number, n) => n === "total" ? formatCurrency(v) : [`${v} pedidos`, "Pedidos"]} />
+                            <Legend />
+                            <Line type="monotone" dataKey="total" name="Faturamento" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
+                            <Line type="monotone" dataKey="qtd" name="Pedidos" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ r: 3 }} yAxisId="right" />
+                            <YAxis yAxisId="right" orientation="right" className="text-xs" />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      )}
+                    </CardContent>
+                  </Card>
+                </>
+              );
+            })()}
+          </TabsContent>
+
+          {/* Tab Top Clientes */}
+          <TabsContent value="clientes">
+            <Card>
+              <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Trophy className="h-5 w-5" />Top Clientes do Período</CardTitle></CardHeader>
+              <CardContent className="p-0 sm:p-6 sm:pt-0">
+                {dadosTopClientes.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-[400px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12">#</TableHead>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead className="text-right w-16">Pedidos</TableHead>
+                          <TableHead className="text-right">Faturamento</TableHead>
+                          <TableHead className="text-right hidden sm:table-cell">Ticket Médio</TableHead>
+                          <TableHead className="hidden md:table-cell">Última compra</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {dadosTopClientes.slice(0, 20).map((c, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="text-muted-foreground text-xs">{i + 1}</TableCell>
+                            <TableCell className="font-medium text-sm">{c.nome}</TableCell>
+                            <TableCell className="text-right">{c.qtd}</TableCell>
+                            <TableCell className="text-right font-semibold whitespace-nowrap">{formatCurrency(c.total)}</TableCell>
+                            <TableCell className="text-right hidden sm:table-cell whitespace-nowrap">{formatCurrency(c.qtd > 0 ? c.total / c.qtd : 0)}</TableCell>
+                            <TableCell className="hidden md:table-cell text-xs">{c.ultima ? format(parseISO(`${c.ultima}T12:00:00`), "dd/MM/yyyy", { locale: ptBR }) : "—"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {dadosTopClientes.length > 20 && (
+                      <p className="text-center text-sm text-muted-foreground mt-4 pb-4">Mostrando 20 de {dadosTopClientes.length}. Exporte para ver todos.</p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 
