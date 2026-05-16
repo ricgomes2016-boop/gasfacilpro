@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -112,6 +113,15 @@ export default function RelatorioVendas() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [savingImport, setSavingImport] = useState(false);
 
+  // Comparativo mensal (aba Produtos)
+  const anoAtual = hoje.getFullYear();
+  const mesAtual = hoje.getMonth();
+  const [anoComparativo, setAnoComparativo] = useState<number>(anoAtual);
+  const [mesesSelecionados, setMesesSelecionados] = useState<number[]>(
+    Array.from({ length: mesAtual + 1 }, (_, i) => i)
+  );
+  const [metricaComparativo, setMetricaComparativo] = useState<"qtd" | "faturamento">("qtd");
+
   // Buscar canais de venda cadastrados
   const { data: canaisVenda = [] } = useQuery({
     queryKey: ["canais-venda", unidadeAtual?.id],
@@ -157,6 +167,54 @@ export default function RelatorioVendas() {
       return (data || []) as PedidoRelatorio[];
     },
   });
+
+  // Buscar pedidos do ano inteiro para comparativo mensal
+  const { data: pedidosAno = [] } = useQuery({
+    queryKey: ["relatorio-vendas-ano", anoComparativo, unidadeAtual?.id],
+    queryFn: async () => {
+      const inicio = `${anoComparativo}-01-01`;
+      const fim = `${anoComparativo}-12-31`;
+      let query = supabase
+        .from("pedidos")
+        .select(`id, created_at, data_entrega, status, pedido_itens (quantidade, preco_unitario, produtos (nome))`)
+        .gte("data_entrega", inicio)
+        .lte("data_entrega", fim);
+      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as PedidoRelatorio[];
+    },
+  });
+
+  // Comparativo Mensal: produto x mês
+  const dadosComparativoMensal = useMemo(() => {
+    const map = new Map<string, number[]>();
+    pedidosAno.filter(p => p.status !== "cancelado").forEach(p => {
+      const dataStr = p.data_entrega || p.created_at;
+      if (!dataStr) return;
+      const mes = new Date(dataStr).getMonth();
+      (p.pedido_itens || []).forEach(it => {
+        const nome = it.produtos?.nome || "Sem nome";
+        if (!map.has(nome)) map.set(nome, Array(12).fill(0));
+        const arr = map.get(nome)!;
+        const qtd = Number(it.quantidade) || 0;
+        const preco = Number(it.preco_unitario) || 0;
+        arr[mes] += metricaComparativo === "qtd" ? qtd : qtd * preco;
+      });
+    });
+    const linhas = Array.from(map.entries()).map(([nome, valores]) => {
+      const totalSelecionado = mesesSelecionados.reduce((s, m) => s + valores[m], 0);
+      const media = mesesSelecionados.length > 0 ? totalSelecionado / mesesSelecionados.length : 0;
+      return { nome, valores, media, totalSelecionado };
+    });
+    linhas.sort((a, b) => b.totalSelecionado - a.totalSelecionado);
+    const totaisPorMes = Array(12).fill(0);
+    linhas.forEach(l => l.valores.forEach((v, i) => { totaisPorMes[i] += v; }));
+    const mediaTotal = mesesSelecionados.length > 0
+      ? mesesSelecionados.reduce((s, m) => s + totaisPorMes[m], 0) / mesesSelecionados.length
+      : 0;
+    return { linhas, totaisPorMes, mediaTotal };
+  }, [pedidosAno, mesesSelecionados, metricaComparativo]);
 
   const pedidosFiltrados = useMemo(() => {
     return pedidos.filter((p) => {
@@ -955,9 +1013,123 @@ export default function RelatorioVendas() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Comparativo Mensal */}
+            <Card className="mt-4">
+              <CardHeader className="pb-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <CalendarDays className="h-5 w-5" />
+                    Comparativo Mensal por Produto
+                  </CardTitle>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Select value={String(anoComparativo)} onValueChange={(v) => setAnoComparativo(Number(v))}>
+                      <SelectTrigger className="h-9 w-[110px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {[anoAtual, anoAtual - 1, anoAtual - 2].map(a => (
+                          <SelectItem key={a} value={String(a)}>{a}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={metricaComparativo} onValueChange={(v: "qtd" | "faturamento") => setMetricaComparativo(v)}>
+                      <SelectTrigger className="h-9 w-[150px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="qtd">Quantidade</SelectItem>
+                        <SelectItem value="faturamento">Faturamento</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Seletor de meses */}
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setMesesSelecionados(Array.from({ length: 12 }, (_, i) => i))}>Ano todo</Button>
+                    <Button size="sm" variant="outline" onClick={() => setMesesSelecionados(Array.from({ length: (anoComparativo === anoAtual ? mesAtual : 11) + 1 }, (_, i) => i))}>Até hoje</Button>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      const ref = anoComparativo === anoAtual ? mesAtual : 11;
+                      setMesesSelecionados([Math.max(0, ref - 2), Math.max(0, ref - 1), ref].filter((v, i, a) => a.indexOf(v) === i));
+                    }}>Últimos 3 meses</Button>
+                    <Button size="sm" variant="outline" onClick={() => setMesesSelecionados([])}>Limpar</Button>
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 rounded-md border bg-muted/30 p-3">
+                    {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"].map((nome, idx) => (
+                      <label key={idx} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={mesesSelecionados.includes(idx)}
+                          onCheckedChange={(c) => {
+                            setMesesSelecionados(prev => c
+                              ? [...prev, idx].sort((a, b) => a - b)
+                              : prev.filter(m => m !== idx));
+                          }}
+                        />
+                        <span>{nome}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tabela comparativa */}
+                <div className="overflow-x-auto">
+                  {dadosComparativoMensal.linhas.length === 0 ? (
+                    <p className="text-center py-8 text-muted-foreground">Sem dados no ano selecionado.</p>
+                  ) : mesesSelecionados.length === 0 ? (
+                    <p className="text-center py-8 text-muted-foreground">Selecione ao menos um mês.</p>
+                  ) : (
+                    <Table className="min-w-[640px]">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Produto</TableHead>
+                          {mesesSelecionados.map(m => (
+                            <TableHead key={m} className="text-right whitespace-nowrap">
+                              {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][m]}
+                            </TableHead>
+                          ))}
+                          <TableHead className="text-right whitespace-nowrap">Média</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {dadosComparativoMensal.linhas.map((l, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="font-medium text-sm">{l.nome}</TableCell>
+                            {mesesSelecionados.map(m => (
+                              <TableCell key={m} className="text-right whitespace-nowrap">
+                                {metricaComparativo === "qtd"
+                                  ? Math.round(l.valores[m]).toLocaleString("pt-BR")
+                                  : formatCurrency(l.valores[m])}
+                              </TableCell>
+                            ))}
+                            <TableCell className="text-right font-semibold text-primary whitespace-nowrap">
+                              {metricaComparativo === "qtd"
+                                ? l.media.toLocaleString("pt-BR", { maximumFractionDigits: 1 })
+                                : formatCurrency(l.media)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow className="bg-muted/50 font-bold">
+                          <TableCell>Total</TableCell>
+                          {mesesSelecionados.map(m => (
+                            <TableCell key={m} className="text-right whitespace-nowrap">
+                              {metricaComparativo === "qtd"
+                                ? Math.round(dadosComparativoMensal.totaisPorMes[m]).toLocaleString("pt-BR")
+                                : formatCurrency(dadosComparativoMensal.totaisPorMes[m])}
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-right text-primary whitespace-nowrap">
+                            {metricaComparativo === "qtd"
+                              ? dadosComparativoMensal.mediaTotal.toLocaleString("pt-BR", { maximumFractionDigits: 1 })
+                              : formatCurrency(dadosComparativoMensal.mediaTotal)}
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
-          {/* Tab Forma de Pagamento */}
           <TabsContent value="pagamento">
             <div className="grid gap-4 lg:grid-cols-2">
               <Card>
