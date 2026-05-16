@@ -67,7 +67,7 @@ export function CelulaMesEditavel({ valor, manual, metrica, editavel, onSalvar }
       onClick={() => setEditando(true)}
       title={temManual ? `Inclui lançamento manual de ${manual.toLocaleString("pt-BR")}` : "Clique para lançar venda histórica"}
       className={cn(
-        "group inline-flex w-full min-w-[72px] items-center justify-end gap-1 rounded px-2 py-1 tabular-nums hover:bg-muted/50",
+        "group inline-flex w-full min-w-[72px] items-center justify-center gap-1 rounded px-2 py-1 tabular-nums hover:bg-muted/50",
         temManual && "text-primary font-semibold"
       )}
     >
