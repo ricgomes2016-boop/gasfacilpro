@@ -39,7 +39,7 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { CelulaMesEditavel } from "./CelulaMesEditavel";
 import { VendaSectionHeader } from "@/components/vendas/VendaSectionHeader";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, LineChart, Line } from "recharts";
-import { Package, CreditCard, CalendarDays, Trophy, PackageSearch } from "lucide-react";
+import { Package, CreditCard, CalendarDays, Trophy, PackageSearch, Check } from "lucide-react";
 import { ProdutosVendidosTab } from "./ProdutosVendidosTab";
 
 const formaPagamentoLabels: Record<string, string> = {
@@ -1217,20 +1217,37 @@ export default function RelatorioVendas() {
                     }}>Últimos 3 meses</Button>
                     <Button size="sm" variant="outline" onClick={() => setMesesSelecionados([])}>Limpar</Button>
                   </div>
-                  <div className="flex flex-wrap gap-x-4 gap-y-2 rounded-md border bg-muted/30 p-3">
-                    {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"].map((nome, idx) => (
-                      <label key={idx} className="flex items-center gap-2 text-sm cursor-pointer">
-                        <Checkbox
-                          checked={mesesSelecionados.includes(idx)}
-                          onCheckedChange={(c) => {
-                            setMesesSelecionados(prev => c
-                              ? [...prev, idx].sort((a, b) => a - b)
-                              : prev.filter(m => m !== idx));
-                          }}
-                        />
-                        <span>{nome}</span>
-                      </label>
-                    ))}
+                  <div className="flex flex-wrap gap-2 rounded-xl border bg-muted/30 p-3">
+                    {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"].map((nome, idx) => {
+                      const ativo = mesesSelecionados.includes(idx);
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setMesesSelecionados(prev => ativo
+                            ? prev.filter(m => m !== idx)
+                            : [...prev, idx].sort((a, b) => a - b))}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all",
+                            ativo
+                              ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                              : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "flex items-center justify-center size-4 rounded-full border-2 transition-colors",
+                              ativo
+                                ? "bg-primary-foreground border-primary-foreground text-primary"
+                                : "border-muted-foreground/40"
+                            )}
+                          >
+                            {ativo && <Check className="size-3" strokeWidth={3} />}
+                          </span>
+                          {nome}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
