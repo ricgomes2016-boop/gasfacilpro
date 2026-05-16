@@ -1178,24 +1178,24 @@ export default function RelatorioVendas() {
                   ) : mesesSelecionados.length === 0 ? (
                     <p className="text-center py-8 text-muted-foreground">Selecione ao menos um mês.</p>
                   ) : (
-                    <Table className="min-w-[640px]">
+                    <Table className="min-w-[640px] tabular-nums">
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Produto</TableHead>
+                          <TableHead className="min-w-[180px] max-w-[220px]">Produto</TableHead>
                           {mesesSelecionados.map(m => (
-                            <TableHead key={m} className="text-right whitespace-nowrap">
+                            <TableHead key={m} className="text-right whitespace-nowrap w-[92px]">
                               {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][m]}
                             </TableHead>
                           ))}
-                          <TableHead className="text-right whitespace-nowrap">Média</TableHead>
+                          <TableHead className="text-right whitespace-nowrap w-[110px] border-l border-border/60">Média</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {dadosComparativoMensal.linhas.map((l, i) => (
                           <TableRow key={l.produto_id || `n-${i}`}>
-                            <TableCell className="font-medium text-sm">{l.nome}</TableCell>
+                            <TableCell className="font-medium text-sm truncate max-w-[220px]">{l.nome}</TableCell>
                             {mesesSelecionados.map(m => (
-                              <TableCell key={m} className="text-right whitespace-nowrap p-1">
+                              <TableCell key={m} className="text-right whitespace-nowrap w-[92px] px-2 py-2">
                                 <CelulaMesEditavel
                                   valor={l.valores[m]}
                                   manual={l.manual[m]}
@@ -1205,23 +1205,23 @@ export default function RelatorioVendas() {
                                 />
                               </TableCell>
                             ))}
-                            <TableCell className="text-right font-semibold text-primary whitespace-nowrap">
+                            <TableCell className="text-right font-semibold text-primary whitespace-nowrap w-[110px] border-l border-border/60">
                               {metricaComparativo === "qtd"
                                 ? l.media.toLocaleString("pt-BR", { maximumFractionDigits: 1 })
                                 : formatCurrency(l.media)}
                             </TableCell>
                           </TableRow>
                         ))}
-                        <TableRow className="bg-muted/50 font-bold">
-                          <TableCell>Total</TableCell>
+                        <TableRow className="font-bold">
+                          <TableCell className="bg-muted/60 font-bold">Total</TableCell>
                           {mesesSelecionados.map(m => (
-                            <TableCell key={m} className="text-right whitespace-nowrap">
+                            <TableCell key={m} className="text-right whitespace-nowrap w-[92px] bg-muted/60">
                               {metricaComparativo === "qtd"
                                 ? Math.round(dadosComparativoMensal.totaisPorMes[m]).toLocaleString("pt-BR")
                                 : formatCurrency(dadosComparativoMensal.totaisPorMes[m])}
                             </TableCell>
                           ))}
-                          <TableCell className="text-right text-primary whitespace-nowrap">
+                          <TableCell className="text-right text-primary whitespace-nowrap w-[110px] border-l border-border/60 bg-muted/60">
                             {metricaComparativo === "qtd"
                               ? dadosComparativoMensal.mediaTotal.toLocaleString("pt-BR", { maximumFractionDigits: 1 })
                               : formatCurrency(dadosComparativoMensal.mediaTotal)}
