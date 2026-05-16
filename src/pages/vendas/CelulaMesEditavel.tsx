@@ -40,7 +40,7 @@ export function CelulaMesEditavel({ valor, manual, metrica, editavel, onSalvar }
   };
 
   if (!editavel) {
-    return <span className="inline-block w-full text-right tabular-nums text-muted-foreground">{display}</span>;
+    return <span className="inline-block w-full text-center tabular-nums text-muted-foreground">{display}</span>;
   }
 
   if (editando) {
@@ -56,7 +56,7 @@ export function CelulaMesEditavel({ valor, manual, metrica, editavel, onSalvar }
           if (e.key === "Enter") { e.currentTarget.blur(); }
           if (e.key === "Escape") { setEditando(false); }
         }}
-        className="h-8 w-24 text-right text-sm px-2 ml-auto"
+        className="h-8 w-24 text-center text-sm px-2 mx-auto"
       />
     );
   }
@@ -67,7 +67,7 @@ export function CelulaMesEditavel({ valor, manual, metrica, editavel, onSalvar }
       onClick={() => setEditando(true)}
       title={temManual ? `Inclui lançamento manual de ${manual.toLocaleString("pt-BR")}` : "Clique para lançar venda histórica"}
       className={cn(
-        "group inline-flex w-full min-w-[72px] items-center justify-end gap-1 rounded px-2 py-1 tabular-nums hover:bg-muted/50",
+        "group inline-flex w-full min-w-[72px] items-center justify-center gap-1 rounded px-2 py-1 tabular-nums hover:bg-muted/50",
         temManual && "text-primary font-semibold"
       )}
     >
