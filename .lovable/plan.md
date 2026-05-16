@@ -1,54 +1,59 @@
-## Modernizar cards do Relatório de Vendas (aba Produtos)
+## Objetivo
 
-Aplicar o padrão visual já existente no projeto (`VendaSectionHeader` + tons coloridos por tema) e alinhar a tabela do Comparativo Mensal.
+Substituir a aba **Top Clientes** (em `/vendas/relatorio`) por uma nova aba **Produtos Vendidos**, replicando o relatório clássico do ERP legado (imagens enviadas): filtros avançados + tabela detalhada com custo, venda, lucro e % lucratividade, com agrupamento por Mês ou Dia.
 
-### 1. Headers coloridos (padrão do tema)
+> Top Clientes continua existindo em outra rota, então a remoção da aba não causa perda funcional.
 
-Substituir `CardHeader` + `CardTitle` "soltos" pelo componente `VendaSectionHeader`, que já aplica o fundo colorido em sintonia com o tema (gasfacil, saas, pastel-dashboard, executivo etc.).
+## Layout da Tela
 
-Cards a atualizar em `src/pages/vendas/RelatorioVendas.tsx`:
-
-| Card | Tone | Ícone |
-|---|---|---|
-| Filtros (topo) | `muted` | `Filter` |
-| Top 10 — Quantidade | `info` | `Package` |
-| Detalhamento por Produto | `primary` | `FileSpreadsheet` |
-| Comparativo Mensal por Produto | `success` | `CalendarDays` |
-
-Cada um vira:
-```tsx
-<Card className="venda-card">
-  <VendaSectionHeader tone="info" icon={<Package className="h-5 w-5" />} title="Top 10 — Quantidade" action={...} />
-  <CardContent>...</CardContent>
-</Card>
+```
+┌─ Card "Produtos Vendidos" ─────────────────────────────┐
+│ [Filtros expansíveis]                                  │
+│  Período: [de] [até]   Hora: [de] [até]               │
+│  Cliente▼  Fornecedor▼  Vendedor▼  Entregador▼        │
+│  UF▼  Cidade▼  Bairro▼                                 │
+│  Marca▼  Grupo▼  SubGrupo▼  Depósito▼                  │
+│  Produto▼  Tabela de Preço▼  Convênio▼                 │
+│  Agrupar por: ( )Mês ( )Dia ( )Nenhum                  │
+│  [✓] Totalizar produtos  [✓] Deduzir devoluções        │
+│  [ ] Separar por Mês/Ano [ ] Separar por Dia           │
+│  [Exibir]  [Exibir Produtos]  [Exportar XLSX] [PDF]    │
+├────────────────────────────────────────────────────────┤
+│ Resumo: Qtde total | Custo | Venda | Lucro | %         │
+├────────────────────────────────────────────────────────┤
+│ Tabela agrupada:                                       │
+│  ▸ 01/2026                                             │
+│      Produto | Qtde | P.Custo | T.Custo | V.Unit |    │
+│              T.Venda | % Lucr. | T.Lucro              │
+│      ...                                               │
+│      Total Mês: ...........................            │
+│  ▸ 02/2026 ...                                         │
+│  Total Geral: .........................                │
+└────────────────────────────────────────────────────────┘
 ```
 
-O `action` recebe os seletores (Ano / Métrica) no card do Comparativo e os selects de Status/Canal no card de Filtros, mantendo a lógica intacta.
+Visual moderno seguindo padrão atual (`venda-card` + `VendaSectionHeader` tom `info`), colunas centralizadas com zebra (igual ao Comparativo Mensal), totais com fundo destacado.
 
-### 2. Alinhamento da tabela Comparativo Mensal
+## Escopo Técnico
 
-Problemas atuais: cabeçalho `text-right` mas as células do corpo usam um botão flex que não alinha com a borda direita; coluna "Produto" sem largura mínima; números com fontes proporcionais ficam tortos.
+**Arquivo novo:** `src/pages/vendas/ProdutosVendidosTab.tsx`
+- Componente isolado que recebe `pedidos`/`itens` já carregados pelo `RelatorioVendas` ou faz própria query a `pedidos_itens` + joins (produto, cliente, entregador, vendedor) com filtro por `unidade_id`/período.
+- Reaproveita `produtos.preco_custo` p/ P.Custo (fallback 0 quando ausente).
+- Agrupamento por mês via `format(data, "MM/yyyy")` ou por dia.
+- Cálculos: `T.Custo = qtd * p_custo`, `T.Venda = qtd * v_unit`, `%Lucr = (venda-custo)/venda*100`, `T.Lucro = venda - custo`.
+- Filtros como dropdowns populados a partir dos dados (cliente, entregador, marca, grupo etc. — só os que já existem em produto/pedido; campos sem dado ficam desabilitados com tooltip).
+- Toggle "Deduzir devoluções" subtrai itens de `devolucoes` no período.
+- Exportação XLSX com mesma estrutura visual (cabeçalho do grupo + total mês + total geral).
 
-Ajustes:
+**Arquivo alterado:** `src/pages/vendas/RelatorioVendas.tsx`
+- Trocar `TabsTrigger value="clientes"` (linha 802) por `value="produtos-vendidos"` com ícone `PackageSearch` e label "Produtos Vendidos" / "Vendidos".
+- Trocar `TabsContent value="clientes"` (linhas 1382-1422) por `<TabsContent value="produtos-vendidos"><ProdutosVendidosTab .../></TabsContent>`.
+- Remover bloco da aba Top Clientes da exportação XLSX consolidada (linhas 535-542).
 
-- `Table` com `min-w-[640px] tabular-nums`.
-- Primeira coluna (Produto): `sticky left-0 bg-card z-10 min-w-[180px] max-w-[220px] truncate`, para não comprimir nos meses.
-- Cabeçalhos de mês: `text-right tabular-nums w-[88px]`.
-- Células do corpo: `text-right p-2 tabular-nums` e o componente `CelulaMesEditavel` já produz conteúdo `justify-end` — garantir que o botão interno tenha `w-full justify-end` (ajustar largura mínima do botão para `min-w-[72px]` para não "dançar" entre números curtos/longos).
-- Linha Total: mesma largura/`tabular-nums`, fundo levemente mais escuro (`bg-muted/60`), `font-bold`, primeira coluna também `sticky`.
-- Coluna Média: separador visual (`border-l border-border/60`) para destacar do bloco de meses, `font-semibold text-primary`.
+**Sem alterações em backend** (RLS e tabelas existentes já cobrem). Sem migrations.
 
-### 3. Pequenos polimentos
+## O que NÃO será feito
 
-- Cards do topo (Unidades vendidas, Mix, Faturamento) ganham `venda-card` para herdar a borda colorida sutil já existente.
-- Espaçamento: `space-y-4` entre as três seções (KPIs → grid 2 colunas → Comparativo) — já existe `mt-4` no comparativo, manter.
-- Não mexer em: lógica de filtros, queries, `dadosComparativoMensal`, `salvarVendaManual`, `CelulaMesEditavel` (apenas ajuste de largura mínima do botão se necessário).
-
-### Arquivos
-
-- `src/pages/vendas/RelatorioVendas.tsx` — refatorar 4 cards e a tabela.
-- `src/pages/vendas/CelulaMesEditavel.tsx` — ajuste leve (`w-full justify-end min-w-[72px]`) para o alinhamento à direita ficar firme.
-
-### Fora de escopo
-
-- Não alterar as abas Entregadores / Canais / Pagamento nesta rodada (o pedido foi específico para Filtros, Top 10, Detalhamento Produtos e Comparativo Mensal). Se quiser, aplico o mesmo padrão depois.
+- Não mexer em `App.tsx`, rotas, providers.
+- Não criar nova rota (fica dentro da tela `/vendas/relatorio`).
+- Não alterar lógica das demais abas.

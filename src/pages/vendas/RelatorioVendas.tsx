@@ -38,7 +38,8 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { CelulaMesEditavel } from "./CelulaMesEditavel";
 import { VendaSectionHeader } from "@/components/vendas/VendaSectionHeader";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, LineChart, Line } from "recharts";
-import { Package, CreditCard, CalendarDays, Trophy } from "lucide-react";
+import { Package, CreditCard, CalendarDays, Trophy, PackageSearch } from "lucide-react";
+import { ProdutosVendidosTab } from "./ProdutosVendidosTab";
 
 const formaPagamentoLabels: Record<string, string> = {
   dinheiro: "Dinheiro",
@@ -799,7 +800,7 @@ export default function RelatorioVendas() {
             <TabsTrigger value="canal" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><Megaphone className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Por Canal</span><span className="sm:hidden">Canal</span></TabsTrigger>
             <TabsTrigger value="pagamento" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Pagamento</span><span className="sm:hidden">Pgto.</span></TabsTrigger>
             <TabsTrigger value="dia" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Evolução</span><span className="sm:hidden">Dia</span></TabsTrigger>
-            <TabsTrigger value="clientes" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><Trophy className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Top Clientes</span><span className="sm:hidden">Clien.</span></TabsTrigger>
+            <TabsTrigger value="produtos-vendidos" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><PackageSearch className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Produtos Vendidos</span><span className="sm:hidden">Vendidos</span></TabsTrigger>
           </TabsList>
 
           {/* Tab Pedidos */}
@@ -1379,46 +1380,14 @@ export default function RelatorioVendas() {
             })()}
           </TabsContent>
 
-          {/* Tab Top Clientes */}
-          <TabsContent value="clientes">
-            <Card>
-              <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Trophy className="h-5 w-5" />Top Clientes do Período</CardTitle></CardHeader>
-              <CardContent className="p-0 sm:p-6 sm:pt-0">
-                {dadosTopClientes.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table className="min-w-[400px]">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-12">#</TableHead>
-                          <TableHead>Cliente</TableHead>
-                          <TableHead className="text-right w-16">Pedidos</TableHead>
-                          <TableHead className="text-right">Faturamento</TableHead>
-                          <TableHead className="text-right hidden sm:table-cell">Ticket Médio</TableHead>
-                          <TableHead className="hidden md:table-cell">Última compra</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {dadosTopClientes.slice(0, 20).map((c, i) => (
-                          <TableRow key={i}>
-                            <TableCell className="text-muted-foreground text-xs">{i + 1}</TableCell>
-                            <TableCell className="font-medium text-sm">{c.nome}</TableCell>
-                            <TableCell className="text-right">{c.qtd}</TableCell>
-                            <TableCell className="text-right font-semibold whitespace-nowrap">{formatCurrency(c.total)}</TableCell>
-                            <TableCell className="text-right hidden sm:table-cell whitespace-nowrap">{formatCurrency(c.qtd > 0 ? c.total / c.qtd : 0)}</TableCell>
-                            <TableCell className="hidden md:table-cell text-xs">{c.ultima ? format(parseISO(`${c.ultima}T12:00:00`), "dd/MM/yyyy", { locale: ptBR }) : "—"}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                    {dadosTopClientes.length > 20 && (
-                      <p className="text-center text-sm text-muted-foreground mt-4 pb-4">Mostrando 20 de {dadosTopClientes.length}. Exporte para ver todos.</p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          {/* Tab Produtos Vendidos */}
+          <TabsContent value="produtos-vendidos">
+            <ProdutosVendidosTab
+              pedidos={pedidos}
+              unidadeId={unidadeAtual?.id}
+              dataInicio={dataInicio}
+              dataFim={dataFim}
+            />
           </TabsContent>
         </Tabs>
 
