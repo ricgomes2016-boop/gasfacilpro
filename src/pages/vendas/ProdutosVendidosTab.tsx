@@ -41,6 +41,8 @@ interface Pedido {
 interface Props {
   pedidos: Pedido[];
   unidadeId?: string;
+  unidadeIds?: string[];
+  consolidado?: boolean;
   dataInicio: string;
   dataFim: string;
 }
