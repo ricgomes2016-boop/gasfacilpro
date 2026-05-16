@@ -1275,7 +1275,7 @@ export default function RelatorioVendas() {
                                   valor={l.valores[m]}
                                   manual={l.manual[m]}
                                   metrica={metricaComparativo}
-                                  editavel={!!l.produto_id}
+                                  editavel={!!l.produto_id && !consolidado}
                                   onSalvar={(novo) => l.produto_id && salvarVendaManual(l.produto_id, m, novo)}
                                 />
                               </TableCell>
