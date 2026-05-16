@@ -106,7 +106,7 @@ interface PedidoRelatorio {
 
 export default function RelatorioVendas() {
   const { toast } = useToast();
-  const { unidadeAtual } = useUnidade();
+  const { unidadeAtual, unidades } = useUnidade();
   const { empresa } = useEmpresa();
   const queryClient = useQueryClient();
   const hoje = new Date();
@@ -119,6 +119,12 @@ export default function RelatorioVendas() {
   const [importItems, setImportItems] = useState<any[]>([]);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [savingImport, setSavingImport] = useState(false);
+
+  const isMatriz = unidadeAtual?.tipo === "matriz";
+  const [consolidado, setConsolidado] = useState(false);
+  useEffect(() => { if (!isMatriz && consolidado) setConsolidado(false); }, [isMatriz, consolidado]);
+  const unidadeIds = useMemo(() => unidades.map(u => u.id), [unidades]);
+  const scopeKey = consolidado ? `all:${empresa?.id || ""}` : (unidadeAtual?.id || "none");
 
   // Comparativo mensal (aba Produtos)
   const anoAtual = hoje.getFullYear();
