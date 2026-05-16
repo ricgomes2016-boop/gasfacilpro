@@ -128,6 +128,46 @@ serve(async (req) => {
         }
       }
 
+      // 2.5) Busca tabela de preços oficial da empresa (Regras da Bia)
+      // Injetamos os preços direto no contexto do agente para evitar
+      // que o LLM (gemini lite) alucine valores quando não chama o tool.
+      // Variáveis ficam vazias se faltar dado — Bia cai no consultar_precos.
+      let tabelaPrecosVars: Record<string, string> = {
+        preco_gas_p13: "",
+        preco_gas_p13_desconto: "",
+        preco_gas_p20: "",
+        preco_gas_p20_desconto: "",
+        preco_gas_p45: "",
+        preco_gas_p45_desconto: "",
+        preco_agua_20l: "",
+      };
+      if (empresaId) {
+        try {
+          const { data: cfg } = await supabase
+            .from("configuracoes_empresa")
+            .select("regras_bia")
+            .eq("empresa_id", empresaId)
+            .maybeSingle();
+          const tp = (cfg?.regras_bia as any)?.tabela_precos || {};
+          const fmt = (n: any) => {
+            const v = Number(n);
+            if (!v || v <= 0) return "";
+            return v.toFixed(2).replace(".", ",");
+          };
+          tabelaPrecosVars = {
+            preco_gas_p13: fmt(tp.gas_p13?.preco),
+            preco_gas_p13_desconto: fmt(tp.gas_p13?.preco_desconto),
+            preco_gas_p20: fmt(tp.gas_p20?.preco),
+            preco_gas_p20_desconto: fmt(tp.gas_p20?.preco_desconto),
+            preco_gas_p45: fmt(tp.gas_p45?.preco),
+            preco_gas_p45_desconto: fmt(tp.gas_p45?.preco_desconto),
+            preco_agua_20l: fmt(tp.agua_20l?.preco),
+          };
+        } catch (e) {
+          console.error("[EL-INIT] tabela_precos load:", e);
+        }
+      }
+
       // 3) Registra a chamada (popup Bina via realtime)
       const { error: insErr } = await supabase.from("chamadas_recebidas").insert({
         telefone: callerConfiavel ? callerId : null,
