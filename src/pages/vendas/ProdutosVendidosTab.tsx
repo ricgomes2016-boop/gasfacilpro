@@ -16,7 +16,7 @@ import { VendaSectionHeader } from "@/components/vendas/VendaSectionHeader";
 import {
   PackageSearch, Download, Filter, TrendingUp, DollarSign, Percent,
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from "xlsx";
 import { cn } from "@/lib/utils";
@@ -45,6 +45,7 @@ interface Props {
   consolidado?: boolean;
   dataInicio: string;
   dataFim: string;
+  onPeriodoChange?: (inicio: string, fim: string) => void;
 }
 
 const formatCurrency = (v: number) =>
@@ -54,7 +55,9 @@ const formatQtd = (v: number) =>
 const formatPct = (v: number) =>
   `${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 
-export function ProdutosVendidosTab({ pedidos, unidadeId, unidadeIds, consolidado, dataInicio, dataFim }: Props) {
+const ymd = (d: Date) => format(d, "yyyy-MM-dd");
+
+export function ProdutosVendidosTab({ pedidos, unidadeId, unidadeIds, consolidado, dataInicio, dataFim, onPeriodoChange }: Props) {
   const [clienteFiltro, setClienteFiltro] = useState("todos");
   const [entregadorFiltro, setEntregadorFiltro] = useState("todos");
   const [produtoFiltro, setProdutoFiltro] = useState("todos");
@@ -297,6 +300,35 @@ export function ProdutosVendidosTab({ pedidos, unidadeId, unidadeIds, consolidad
               </Select>
             </div>
           </div>
+
+          {onPeriodoChange && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Label className="text-xs text-muted-foreground mr-1">Período rápido:</Label>
+              {[
+                { label: "Mês atual", get: () => { const h = new Date(); return [startOfMonth(h), endOfMonth(h)] as const; } },
+                { label: "Últimos 3 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 2)), endOfMonth(h)] as const; } },
+                { label: "Últimos 6 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 5)), endOfMonth(h)] as const; } },
+                { label: "Últimos 12 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 11)), endOfMonth(h)] as const; } },
+                { label: "Ano atual", get: () => { const h = new Date(); return [startOfYear(h), endOfYear(h)] as const; } },
+                { label: "Ano anterior", get: () => { const h = new Date(); const ant = new Date(h.getFullYear() - 1, 0, 1); return [startOfYear(ant), endOfYear(ant)] as const; } },
+              ].map((p) => {
+                const [ini, fim] = p.get();
+                const ativo = dataInicio === ymd(ini) && dataFim === ymd(fim);
+                return (
+                  <Button
+                    key={p.label}
+                    type="button"
+                    variant={ativo ? "default" : "outline"}
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => onPeriodoChange(ymd(ini), ymd(fim))}
+                  >
+                    {p.label}
+                  </Button>
+                );
+              })}
+            </div>
+          )}
 
           <div className="mt-4 flex flex-wrap items-center gap-4">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
