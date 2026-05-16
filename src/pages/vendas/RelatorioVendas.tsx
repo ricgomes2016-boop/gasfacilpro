@@ -27,7 +27,7 @@ import { SmartImportButtons } from "@/components/import/SmartImportButtons";
 import { ImportReviewDialog } from "@/components/import/ImportReviewDialog";
 import { toast as sonnerToast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
