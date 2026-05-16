@@ -249,13 +249,13 @@ export default function RelatorioVendas() {
 
   // Vendas históricas manuais (lançamentos do sistema antigo)
   const { data: vendasManuais = [], refetch: refetchManuais } = useQuery({
-    queryKey: ["vendas-historicas-manuais", anoComparativo, scopeKey],
-    enabled: !!unidadeAtual?.id,
+    queryKey: ["vendas-historicas-manuais", anosEnvolvidos.join(","), scopeKey],
+    enabled: !!unidadeAtual?.id && anosEnvolvidos.length > 0,
     queryFn: async () => {
       let query = supabase
         .from("vendas_historicas_manuais")
         .select("id, produto_id, ano, mes, quantidade, faturamento")
-        .eq("ano", anoComparativo);
+        .in("ano", anosEnvolvidos);
       if (consolidado && unidadeIds.length > 0) query = query.in("unidade_id", unidadeIds);
       else query = query.eq("unidade_id", unidadeAtual!.id);
       const { data, error } = await query;
