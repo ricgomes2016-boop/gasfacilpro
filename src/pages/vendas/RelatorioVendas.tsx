@@ -275,53 +275,64 @@ export default function RelatorioVendas() {
     },
   });
 
-  // Comparativo Mensal: produto x mês (agrupado por NOME normalizado)
+  // Comparativo Mensal: produto x período (agrupado por NOME normalizado)
   const dadosComparativoMensal = useMemo(() => {
     const norm = (s: string) => (s || "Sem nome").trim().toLowerCase();
-    // key (nome normalizado) -> { nome, canonicalId, sistema:number[12], manual:number[12] }
-    const map = new Map<string, { nome: string; canonicalId: string | null; sistema: number[]; manual: number[] }>();
-    const ensure = (nome: string, id: string | null) => {
+    // Para cada produto guardamos sistema/manual em mapa "YYYY-MM" -> number
+    type Row = { nome: string; canonicalId: string | null; sistema: Map<string, number>; manual: Map<string, number> };
+    const map = new Map<string, Row>();
+    const ensure = (nome: string, id: string | null): Row => {
       const k = norm(nome);
-      if (!map.has(k)) map.set(k, { nome: nome || "Sem nome", canonicalId: id, sistema: Array(12).fill(0), manual: Array(12).fill(0) });
+      if (!map.has(k)) map.set(k, { nome: nome || "Sem nome", canonicalId: id, sistema: new Map(), manual: new Map() });
       const row = map.get(k)!;
       if (!row.canonicalId && id) row.canonicalId = id;
       return row;
     };
+    const periodosKeys = periodosSelecionados.map(periodoKey);
+    const periodosKeysSet = new Set(periodosKeys);
 
     // Sempre incluir todos os produtos da unidade (linha aparece mesmo sem dados)
     produtosLista.forEach(p => ensure(p.nome, p.id));
 
-    // Agregar vendas reais do sistema
+    // Agregar vendas reais do sistema — parse explícito YYYY-MM-DD para evitar issues de timezone
     pedidosAno.filter(p => p.status !== "cancelado").forEach(p => {
       const dataStr = p.data_entrega || p.created_at;
       if (!dataStr) return;
-      const mes = new Date(dataStr).getMonth();
+      const m = String(dataStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (!m) return;
+      const ano = Number(m[1]);
+      const mes = Number(m[2]) - 1;
+      const key = `${ano}-${String(mes + 1).padStart(2, "0")}`;
+      if (!periodosKeysSet.has(key)) return;
       (p.pedido_itens || []).forEach(it => {
         const nome = it.produtos?.nome || "Sem nome";
         const row = ensure(nome, it.produto_id || null);
         const qtd = Number(it.quantidade) || 0;
         const preco = Number(it.preco_unitario) || 0;
-        row.sistema[mes] += metricaComparativo === "qtd" ? qtd : qtd * preco;
+        const v = metricaComparativo === "qtd" ? qtd : qtd * preco;
+        row.sistema.set(key, (row.sistema.get(key) || 0) + v);
       });
     });
 
     // Adicionar lançamentos manuais (agrupados por nome do produto canônico)
     vendasManuais.forEach(vm => {
+      const key = `${vm.ano}-${String(vm.mes).padStart(2, "0")}`;
+      if (!periodosKeysSet.has(key)) return;
       const prod = produtosLista.find(p => p.id === vm.produto_id);
       const row = ensure(prod?.nome || "Produto", vm.produto_id);
       const valor = metricaComparativo === "qtd" ? Number(vm.quantidade) : Number(vm.faturamento);
-      row.manual[(vm.mes || 1) - 1] += valor;
+      row.manual.set(key, (row.manual.get(key) || 0) + valor);
     });
 
     const linhas = Array.from(map.values()).map(row => {
-      const valores = row.sistema.map((v, i) => v + row.manual[i]);
-      const totalSelecionado = mesesSelecionados.reduce((s, m) => s + valores[m], 0);
-      const media = mesesSelecionados.length > 0 ? totalSelecionado / mesesSelecionados.length : 0;
-      return { produto_id: row.canonicalId, nome: row.nome, valores, manual: row.manual, media, totalSelecionado };
+      const valores = periodosKeys.map(k => (row.sistema.get(k) || 0) + (row.manual.get(k) || 0));
+      const manual = periodosKeys.map(k => row.manual.get(k) || 0);
+      const totalSelecionado = valores.reduce((s, v) => s + v, 0);
+      const media = periodosKeys.length > 0 ? totalSelecionado / periodosKeys.length : 0;
+      return { produto_id: row.canonicalId, nome: row.nome, valores, manual, media, totalSelecionado };
     });
     // Ordenação: vazios sempre por último; ordem fixa quando poucos produtos, alfabética quando muitos
     const isVazio = (nome: string) => /vazio|vasilhame/i.test(nome);
-    const ordemFixa = ["agua 20", "água 20", "p13", "p 13", "p20", "p 20", "p45", "p 45"];
     const pesoFixo = (nome: string) => {
       const n = nome.toLowerCase();
       if (/[áa]gua.*20|20.*l/i.test(n)) return 0;
@@ -342,13 +353,14 @@ export default function RelatorioVendas() {
       }
       return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
     });
-    const totaisPorMes = Array(12).fill(0);
-    linhas.forEach(l => l.valores.forEach((v, i) => { totaisPorMes[i] += v; }));
-    const mediaTotal = mesesSelecionados.length > 0
-      ? mesesSelecionados.reduce((s, m) => s + totaisPorMes[m], 0) / mesesSelecionados.length
+    const totaisPorPeriodo = periodosKeys.map((_, i) =>
+      linhas.reduce((s, l) => s + l.valores[i], 0)
+    );
+    const mediaTotal = periodosKeys.length > 0
+      ? totaisPorPeriodo.reduce((s, v) => s + v, 0) / periodosKeys.length
       : 0;
-    return { linhas, totaisPorMes, mediaTotal };
-  }, [pedidosAno, produtosLista, vendasManuais, mesesSelecionados, metricaComparativo]);
+    return { linhas, totaisPorPeriodo, mediaTotal };
+  }, [pedidosAno, produtosLista, vendasManuais, periodosSelecionados, metricaComparativo]);
 
   // Salvar lançamento manual de venda histórica
   const salvarVendaManual = async (produto_id: string, mes: number, novoValor: number) => {
