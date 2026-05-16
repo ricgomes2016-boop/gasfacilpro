@@ -1,46 +1,52 @@
-## Objetivo
+## Problema
 
-Adicionar um toggle **"Consolidar todas as unidades"** no `/vendas/relatorio` que, quando o usuário está com a **Matriz** selecionada no seletor de unidade, traz os dados somados de todas as unidades da empresa (ex.: "quantos P13 todas as lojas venderam juntas").
+O filtro do "Comparativo Mensal por Produto" não permite intervalo entre anos (ex.: 01/12/2025 → 30/04/2026). Hoje o estado é:
 
-## Comportamento
+- `anoComparativo: number` (um único ano)
+- `mesesSelecionados: number[]` (índices 0–11 dentro **desse mesmo ano**)
 
-- O toggle só **aparece** quando `unidadeAtual?.tipo === "matriz"`. Em qualquer filial fica oculto.
-- Estado padrão: **desligado** (mantém comportamento atual = só dados da matriz).
-- Quando ligado:
-  - Queries de pedidos passam a filtrar por `empresa_id` em vez de `unidade_id`.
-  - Aplica-se a **todas** as queries da página: `relatorio-vendas`, `relatorio-vendas-ano` (comparativo mensal), `vendas-historicas-manuais`, `produtos-custo` (nova aba Produtos Vendidos) e `produtos-lista`.
-  - Um badge "Consolidado · N unidades" aparece ao lado do título para deixar claro o modo.
-- A edição inline (canal, células mensais) continua funcionando — mas como envolve `unidade_id` em algumas inserções, **bloqueamos** a edição enquanto consolidado=ON, mostrando tooltip "Edição disponível por unidade".
+Os handlers dos inputs De/Até forçam tudo a um único ano: ao mudar o "Até" para 04/2026, o código detecta que `y !== anoComparativo` e reseta `anoComparativo` para 2026, descartando dezembro/2025. Por isso o filtro "volta para 2025/2026" e nunca aceita o intervalo cruzando o ano.
 
-## Escopo Técnico
+## Solução
 
-**Arquivo alterado:** `src/pages/vendas/RelatorioVendas.tsx`
+Refatorar o estado e a lógica do comparativo mensal para trabalhar com uma **lista ordenada de períodos `{ano, mes}`** em vez de um único ano + meses. Mantém todo o resto da página intacto (Vendas, Pagamento, etc.) — mexe só na seção "Comparativo Mensal por Produto" dentro de `src/pages/vendas/RelatorioVendas.tsx`.
 
-1. Novo state: `const [consolidado, setConsolidado] = useState(false);`
-2. Derivar `isMatriz = unidadeAtual?.tipo === "matriz"`. Forçar `consolidado=false` quando trocar para filial (useEffect).
-3. Helper `applyScope(query)`:
-   - Se `consolidado && empresa?.id` → `query.eq("empresa_id", empresa.id)`
-   - Senão se `unidadeAtual?.id` → `query.eq("unidade_id", unidadeAtual.id)`
-4. Substituir as 4 ocorrências de `if (unidadeAtual?.id) query = query.eq("unidade_id", ...)` por `query = applyScope(query)`. Incluir `consolidado` e `empresa?.id` nas `queryKey` correspondentes.
-5. Para `vendas-historicas-manuais` (não há `empresa_id` na tabela hoje): manter restrito à unidade quando consolidado (apenas matriz tem lançamentos) **OU** buscar `IN` em todas unidades da empresa via `unidades.id` já disponível no `UnidadeContext` (`unidades` exporta a lista). Usar `.in("unidade_id", unidades.map(u=>u.id))` quando consolidado.
-6. UI: na barra de filtros (próximo ao período), adicionar:
-   ```tsx
-   {isMatriz && (
-     <label className="flex items-center gap-2 text-sm">
-       <Switch checked={consolidado} onCheckedChange={setConsolidado} />
-       Consolidar todas as unidades
-     </label>
-   )}
-   ```
-   Adicionar badge "Consolidado" no header quando ativo.
-7. Passar `consolidado` para `<ProdutosVendidosTab consolidado />` para que o `useQuery` de `produtos-custo` use a mesma lógica (filtrar por `empresa_id` ou pelas unidades).
-8. Em `ProdutosVendidosTab.tsx`: aceitar props `consolidado?: boolean` e `unidadeIds?: string[]`, ajustar a query de custo para `.in("unidade_id", unidadeIds)` quando consolidado. Lista de filtros (cliente/entregador) já vem dos pedidos, então segue funcionando.
-9. Desabilitar `alterarCanalVenda` e `CelulaMesEditavel` (props `editavel={false}`) quando consolidado=ON, com `title="Selecione uma unidade específica para editar"`.
+### Passos
 
-**Sem migrations**, sem mudanças em RLS (RLS já permite admin/gestor ver unidades da empresa via `user_unidades`/policies existentes).
+1. **Novo estado** em RelatorioVendas.tsx:
+   - Remover `anoComparativo` e `mesesSelecionados`.
+   - Adicionar `rangeIni: {ano, mes}` e `rangeFim: {ano, mes}` (default: jan do ano atual → mês atual).
+   - Derivar `periodosSelecionados: {ano:number, mes:number}[]` via `useMemo`, iterando mês a mês de `rangeIni` até `rangeFim` (inclusive, cruzando ano).
+   - Derivar `anosEnvolvidos = unique(periodos.map(p => p.ano))`.
 
-## Fora do escopo
+2. **Inputs De/Até** (linhas ~1211–1244): cada `Input type="date"` lê/escreve direto de `rangeIni`/`rangeFim` (parse explícito de `YYYY-MM` para evitar bug de timezone do `new Date(str)` mencionado na orientação interna). Se "Até" < "De", normalizar igualando os dois. Remover o `Select` de ano isolado (linhas 1245–1252) — passa a ser redundante.
 
-- Não criar nova rota nem aba.
-- Não alterar `App.tsx`, providers, rotas.
-- Não somar dados de outras empresas.
+3. **Botões rápidos** (linhas ~1272–1280): "Ano todo", "Até hoje", "Últimos 3 meses", "Limpar" passam a definir `rangeIni`/`rangeFim` em vez de `mesesSelecionados`. Adicionar também "Últimos 6 meses" e "Últimos 12 meses" para consistência com a aba Produtos.
+
+4. **Grade visual de meses** (linhas ~1281–1312): substituir os 12 chips Jan–Dez por chips dinâmicos baseados em `periodosSelecionados`, rotulados como "Dez/25", "Jan/26", … Clicar num chip ajusta `rangeIni`/`rangeFim` (clipa a ponta mais próxima). Mantém o visual atual (pílulas com check).
+
+5. **Queries**:
+   - `pedidosAno` (linha 186): renomear para `pedidosPeriodo`. Buscar `gte` = 1º dia do `rangeIni`, `lte` = último dia do `rangeFim`. `queryKey` passa a depender de `rangeIni`/`rangeFim`.
+   - `vendasManuais` (linha 218): trocar `.eq("ano", anoComparativo)` por `.in("ano", anosEnvolvidos)`.
+
+6. **Agregação `dadosComparativoMensal`** (linhas 246–318):
+   - Trocar `sistema: number[12]` / `manual: number[12]` por `Map<string /* "YYYY-MM" */, number>`.
+   - Iterar `periodosSelecionados` para montar `valores`, `totais`, `media` na ordem correta. Parser de data dos pedidos: usar split manual de `YYYY-MM-DD` (evitar `new Date(str).getMonth()` que pode escorregar de mês por timezone).
+
+7. **Tabela** (linhas 1322–1390):
+   - Cabeçalho: iterar `periodosSelecionados`, render `Mmm/aa` (ex.: "Dez/25"). Continua alternando cores ímpar/par.
+   - Linhas e linha "Total": idem, usando a chave `"YYYY-MM"` para puxar o valor.
+
+8. **`salvarVendaManual`** (linhas 321–355): a função passa a receber `{ano, mes}` em vez de só `mes`. O `ano` do payload vem do próprio período da célula (não mais de `anoComparativo`). Atualizar a `CelulaMesEditavel` callback para passar o período.
+
+9. **Mensagens de estado vazio** (linha 1319): "Selecione ao menos um mês" → "Selecione um período válido".
+
+### Observações técnicas
+
+- Nenhuma mudança de schema do banco. `vendas_historicas_manuais` já tem coluna `ano`, só passamos a buscar/gravar conforme o período da célula.
+- Nenhuma mudança em RLS, edge functions, autenticação ou outras abas (Vendas, Pagamento, Produtos Vendidos).
+- Aviso: parsing de datas vai usar split manual `"YYYY-MM-DD".split("-")` para evitar o problema documentado de `new Date(str)` interpretar errado em alguns engines.
+
+### Arquivos afetados
+
+- `src/pages/vendas/RelatorioVendas.tsx` (única alteração)
