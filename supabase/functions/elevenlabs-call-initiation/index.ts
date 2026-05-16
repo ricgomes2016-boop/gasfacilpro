@@ -77,6 +77,15 @@ serve(async (req) => {
   let unidadeId: string | null = null;
   let clienteId: string | null = null;
   let clienteNome: string | null = null;
+  let tabelaPrecosVars: Record<string, string> = {
+    preco_gas_p13: "",
+    preco_gas_p13_desconto: "",
+    preco_gas_p20: "",
+    preco_gas_p20_desconto: "",
+    preco_gas_p45: "",
+    preco_gas_p45_desconto: "",
+    preco_agua_20l: "",
+  };
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
