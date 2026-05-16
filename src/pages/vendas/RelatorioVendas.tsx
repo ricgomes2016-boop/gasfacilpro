@@ -113,6 +113,15 @@ export default function RelatorioVendas() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [savingImport, setSavingImport] = useState(false);
 
+  // Comparativo mensal (aba Produtos)
+  const anoAtual = hoje.getFullYear();
+  const mesAtual = hoje.getMonth();
+  const [anoComparativo, setAnoComparativo] = useState<number>(anoAtual);
+  const [mesesSelecionados, setMesesSelecionados] = useState<number[]>(
+    Array.from({ length: mesAtual + 1 }, (_, i) => i)
+  );
+  const [metricaComparativo, setMetricaComparativo] = useState<"qtd" | "faturamento">("qtd");
+
   // Buscar canais de venda cadastrados
   const { data: canaisVenda = [] } = useQuery({
     queryKey: ["canais-venda", unidadeAtual?.id],
