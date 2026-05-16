@@ -1046,8 +1046,8 @@ export default function RelatorioVendas() {
               <Card className="col-span-2 md:col-span-1"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-success"><DollarSign /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Faturamento</p><p className="text-lg font-bold truncate">{formatCurrency(dadosPorProduto.reduce((s, p) => s + p.faturamento, 0))}</p></div></CardContent></Card>
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
-              <Card>
-                <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Package className="h-5 w-5" />Top 10 — Quantidade</CardTitle></CardHeader>
+              <Card className="venda-card">
+                <VendaSectionHeader tone="info" icon={<Package className="h-5 w-5" />} title="Top 10 — Quantidade" />
                 <CardContent>
                   {dadosPorProduto.length === 0 ? (
                     <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
