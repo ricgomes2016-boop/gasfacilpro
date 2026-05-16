@@ -184,7 +184,7 @@ export default function RelatorioVendas() {
 
   // Buscar pedidos do ano inteiro para comparativo mensal
   const { data: pedidosAno = [] } = useQuery({
-    queryKey: ["relatorio-vendas-ano", anoComparativo, unidadeAtual?.id],
+    queryKey: ["relatorio-vendas-ano", anoComparativo, scopeKey],
     queryFn: async () => {
       const inicio = `${anoComparativo}-01-01`;
       const fim = `${anoComparativo}-12-31`;
@@ -193,7 +193,8 @@ export default function RelatorioVendas() {
         .select(`id, created_at, data_entrega, status, pedido_itens (quantidade, preco_unitario, produto_id, produtos (nome))`)
         .gte("data_entrega", inicio)
         .lte("data_entrega", fim);
-      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
+      if (consolidado && unidadeIds.length > 0) query = query.in("unidade_id", unidadeIds);
+      else if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as PedidoRelatorio[];
