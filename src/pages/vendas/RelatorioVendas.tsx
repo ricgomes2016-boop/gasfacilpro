@@ -878,11 +878,15 @@ export default function RelatorioVendas() {
                             </TableCell>
                             <TableCell className="hidden sm:table-cell text-xs">{pedido.entregadores?.nome || "-"}</TableCell>
                             <TableCell className="hidden md:table-cell text-xs">
-                              <Popover open={editandoCanalId === pedido.id} onOpenChange={(open) => setEditandoCanalId(open ? pedido.id : null)}>
+                              <Popover open={!consolidado && editandoCanalId === pedido.id} onOpenChange={(open) => !consolidado && setEditandoCanalId(open ? pedido.id : null)}>
                                 <PopoverTrigger asChild>
-                                  <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity">
+                                  <button
+                                    disabled={consolidado}
+                                    title={consolidado ? "Selecione uma unidade específica para editar" : undefined}
+                                    className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+                                  >
                                     <Badge variant="outline" className="text-xs">{canalLabels[pedido.canal_venda || ""] || pedido.canal_venda || "-"}</Badge>
-                                    <Pencil className="h-3 w-3 text-muted-foreground" />
+                                    {!consolidado && <Pencil className="h-3 w-3 text-muted-foreground" />}
                                   </button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-48 p-2 bg-popover border border-border shadow-lg z-50" align="start">
