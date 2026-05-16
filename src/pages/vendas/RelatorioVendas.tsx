@@ -208,12 +208,19 @@ export default function RelatorioVendas() {
     },
   });
 
-  // Buscar pedidos do ano inteiro para comparativo mensal
+  // Buscar pedidos do período (pode cruzar anos) para comparativo mensal
+  const periodoIniKey = periodosSelecionados[0] ? periodoKey(periodosSelecionados[0]) : "";
+  const periodoFimKey = periodosSelecionados.length > 0 ? periodoKey(periodosSelecionados[periodosSelecionados.length - 1]) : "";
   const { data: pedidosAno = [] } = useQuery({
-    queryKey: ["relatorio-vendas-ano", anoComparativo, scopeKey],
+    queryKey: ["relatorio-vendas-periodo", periodoIniKey, periodoFimKey, scopeKey],
+    enabled: periodosSelecionados.length > 0,
     queryFn: async () => {
-      const inicio = `${anoComparativo}-01-01`;
-      const fim = `${anoComparativo}-12-31`;
+      const pIni = periodosSelecionados[0];
+      const pFim = periodosSelecionados[periodosSelecionados.length - 1];
+      const inicio = `${pIni.ano}-${String(pIni.mes + 1).padStart(2, "0")}-01`;
+      // último dia do mês final
+      const ultimoDia = new Date(pFim.ano, pFim.mes + 1, 0).getDate();
+      const fim = `${pFim.ano}-${String(pFim.mes + 1).padStart(2, "0")}-${String(ultimoDia).padStart(2, "0")}`;
       let query = supabase
         .from("pedidos")
         .select(`id, created_at, data_entrega, status, pedido_itens (quantidade, preco_unitario, produto_id, produtos (nome))`)
