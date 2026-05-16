@@ -56,7 +56,7 @@ export function CelulaMesEditavel({ valor, manual, metrica, editavel, onSalvar }
           if (e.key === "Enter") { e.currentTarget.blur(); }
           if (e.key === "Escape") { setEditando(false); }
         }}
-        className="h-8 w-24 text-right text-sm px-2 ml-auto"
+        className="h-8 w-24 text-center text-sm px-2 mx-auto"
       />
     );
   }
