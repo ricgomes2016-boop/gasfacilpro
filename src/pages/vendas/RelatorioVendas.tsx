@@ -103,6 +103,7 @@ interface PedidoRelatorio {
 export default function RelatorioVendas() {
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
   const queryClient = useQueryClient();
   const hoje = new Date();
 
