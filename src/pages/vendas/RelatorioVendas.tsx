@@ -1209,8 +1209,41 @@ export default function RelatorioVendas() {
                 title="Comparativo Mensal por Produto"
                 action={
                   <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <Label className="text-xs text-white/90 whitespace-nowrap">De</Label>
+                      <Input
+                        type="date"
+                        value={`${anoComparativo}-${String((mesesSelecionados[0] ?? 0) + 1).padStart(2, "0")}-01`}
+                        onChange={(e) => {
+                          const [y, m] = e.target.value.split("-").map(Number);
+                          if (!y || !m) return;
+                          const novoAno = y;
+                          const novoMesIni = m - 1;
+                          const mesFimAtual = mesesSelecionados[mesesSelecionados.length - 1] ?? 11;
+                          const mesFim = novoAno !== anoComparativo ? 11 : Math.max(novoMesIni, mesFimAtual);
+                          setAnoComparativo(novoAno);
+                          setMesesSelecionados(Array.from({ length: mesFim - novoMesIni + 1 }, (_, i) => novoMesIni + i));
+                        }}
+                        className="h-9 w-[140px] bg-background"
+                      />
+                      <Label className="text-xs text-white/90 whitespace-nowrap">Até</Label>
+                      <Input
+                        type="date"
+                        value={`${anoComparativo}-${String((mesesSelecionados[mesesSelecionados.length - 1] ?? 11) + 1).padStart(2, "0")}-28`}
+                        onChange={(e) => {
+                          const [y, m] = e.target.value.split("-").map(Number);
+                          if (!y || !m) return;
+                          if (y !== anoComparativo) setAnoComparativo(y);
+                          const mesIniAtual = mesesSelecionados[0] ?? 0;
+                          const novoMesFim = m - 1;
+                          const mesIni = y !== anoComparativo ? 0 : Math.min(mesIniAtual, novoMesFim);
+                          setMesesSelecionados(Array.from({ length: novoMesFim - mesIni + 1 }, (_, i) => mesIni + i));
+                        }}
+                        className="h-9 w-[140px] bg-background"
+                      />
+                    </div>
                     <Select value={String(anoComparativo)} onValueChange={(v) => setAnoComparativo(Number(v))}>
-                      <SelectTrigger className="h-9 w-[110px] bg-background"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9 w-[100px] bg-background"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {[anoAtual, anoAtual - 1, anoAtual - 2].map(a => (
                           <SelectItem key={a} value={String(a)}>{a}</SelectItem>
