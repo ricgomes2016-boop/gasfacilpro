@@ -216,15 +216,28 @@ export default function RelatorioVendas() {
 
   // Vendas históricas manuais (lançamentos do sistema antigo)
   const { data: vendasManuais = [], refetch: refetchManuais } = useQuery({
-    queryKey: ["vendas-historicas-manuais", anoComparativo, unidadeAtual?.id],
+    queryKey: ["vendas-historicas-manuais", anoComparativo, scopeKey],
     enabled: !!unidadeAtual?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("vendas_historicas_manuais")
         .select("id, produto_id, ano, mes, quantidade, faturamento")
-        .eq("unidade_id", unidadeAtual!.id)
         .eq("ano", anoComparativo);
+      if (consolidado && unidadeIds.length > 0) query = query.in("unidade_id", unidadeIds);
+      else query = query.eq("unidade_id", unidadeAtual!.id);
+      const { data, error } = await query;
       if (error) throw error;
+      // Quando consolidado, somar por produto/mes
+      if (consolidado) {
+        const acc = new Map<string, { id: string; produto_id: string; ano: number; mes: number; quantidade: number; faturamento: number }>();
+        (data || []).forEach((v: any) => {
+          const k = `${v.produto_id}-${v.mes}`;
+          const cur = acc.get(k);
+          if (cur) { cur.quantidade += Number(v.quantidade) || 0; cur.faturamento += Number(v.faturamento) || 0; }
+          else acc.set(k, { ...v, quantidade: Number(v.quantidade) || 0, faturamento: Number(v.faturamento) || 0 });
+        });
+        return Array.from(acc.values());
+      }
       return data || [];
     },
   });
