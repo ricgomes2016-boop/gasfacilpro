@@ -1426,6 +1426,8 @@ export default function RelatorioVendas() {
             <ProdutosVendidosTab
               pedidos={pedidos}
               unidadeId={unidadeAtual?.id}
+              unidadeIds={unidadeIds}
+              consolidado={consolidado}
               dataInicio={dataInicio}
               dataFim={dataFim}
             />
