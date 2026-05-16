@@ -262,8 +262,29 @@ export default function RelatorioVendas() {
       const media = mesesSelecionados.length > 0 ? totalSelecionado / mesesSelecionados.length : 0;
       return { produto_id: row.canonicalId, nome: row.nome, valores, manual: row.manual, media, totalSelecionado };
     });
-    // Filtrar produtos que não têm dado nenhum em meses selecionados? Mantemos todos para permitir lançamento.
-    linhas.sort((a, b) => b.totalSelecionado - a.totalSelecionado);
+    // Ordenação: vazios sempre por último; ordem fixa quando poucos produtos, alfabética quando muitos
+    const isVazio = (nome: string) => /vazio|vasilhame/i.test(nome);
+    const ordemFixa = ["agua 20", "água 20", "p13", "p 13", "p20", "p 20", "p45", "p 45"];
+    const pesoFixo = (nome: string) => {
+      const n = nome.toLowerCase();
+      if (/[áa]gua.*20|20.*l/i.test(n)) return 0;
+      if (/p\s*13/i.test(n)) return 1;
+      if (/p\s*20/i.test(n)) return 2;
+      if (/p\s*45/i.test(n)) return 3;
+      return 99;
+    };
+    const usarOrdemFixa = linhas.length <= 6;
+    linhas.sort((a, b) => {
+      const va = isVazio(a.nome) ? 1 : 0;
+      const vb = isVazio(b.nome) ? 1 : 0;
+      if (va !== vb) return va - vb;
+      if (usarOrdemFixa) {
+        const pa = pesoFixo(a.nome);
+        const pb = pesoFixo(b.nome);
+        if (pa !== pb) return pa - pb;
+      }
+      return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
+    });
     const totaisPorMes = Array(12).fill(0);
     linhas.forEach(l => l.valores.forEach((v, i) => { totaisPorMes[i] += v; }));
     const mediaTotal = mesesSelecionados.length > 0
