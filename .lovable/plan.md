@@ -1,52 +1,66 @@
-## Problema
+## Diagnóstico
 
-O filtro do "Comparativo Mensal por Produto" não permite intervalo entre anos (ex.: 01/12/2025 → 30/04/2026). Hoje o estado é:
+A tabela oficial em `configuracoes_empresa.regras_bia.tabela_precos` (Central Gás) está correta:
 
-- `anoComparativo: number` (um único ano)
-- `mesesSelecionados: number[]` (índices 0–11 dentro **desse mesmo ano**)
+- **Gás P13: R$ 125,00**
+- **Gás P20: R$ 210,00**
+- **Gás P45: R$ 410,00**
+- **Água Mineral 20L: R$ 20,00**
 
-Os handlers dos inputs De/Até forçam tudo a um único ano: ao mudar o "Até" para 04/2026, o código detecta que `y !== anoComparativo` e reseta `anoComparativo` para 2026, descartando dezembro/2025. Por isso o filtro "volta para 2025/2026" e nunca aceita o intervalo cruzando o ano.
+O tool `consultar_precos` (`elevenlabs-bia-tools`) também retorna esses valores corretamente — testado agora e respondeu R$ 125 / R$ 20.
 
-## Solução
+O prompt do agente Bia (ElevenLabs) já tem a instrução "SEMPRE chame `consultar_precos`. NUNCA invente preços." Mesmo assim, na ligação a Bia falou **R$ 75 (gás)** e **R$ 19 (água)** — valores que **não vêm do banco nem do tool**.
 
-Refatorar o estado e a lógica do comparativo mensal para trabalhar com uma **lista ordenada de períodos `{ano, mes}`** em vez de um único ano + meses. Mantém todo o resto da página intacto (Vendas, Pagamento, etc.) — mexe só na seção "Comparativo Mensal por Produto" dentro de `src/pages/vendas/RelatorioVendas.tsx`.
+**Causa raiz:** o LLM configurado é `gemini-2.5-flash-lite` (tier mais barato e mais propenso a alucinar). Ele está ignorando a instrução do prompt e respondendo do "conhecimento" interno em vez de chamar o tool. Resultado: preços fictícios.
 
-### Passos
+## Solução (em duas camadas)
 
-1. **Novo estado** em RelatorioVendas.tsx:
-   - Remover `anoComparativo` e `mesesSelecionados`.
-   - Adicionar `rangeIni: {ano, mes}` e `rangeFim: {ano, mes}` (default: jan do ano atual → mês atual).
-   - Derivar `periodosSelecionados: {ano:number, mes:number}[]` via `useMemo`, iterando mês a mês de `rangeIni` até `rangeFim` (inclusive, cruzando ano).
-   - Derivar `anosEnvolvidos = unique(periodos.map(p => p.ano))`.
+### 1) Injetar os preços direto no contexto do agente via `dynamic_variables`
 
-2. **Inputs De/Até** (linhas ~1211–1244): cada `Input type="date"` lê/escreve direto de `rangeIni`/`rangeFim` (parse explícito de `YYYY-MM` para evitar bug de timezone do `new Date(str)` mencionado na orientação interna). Se "Até" < "De", normalizar igualando os dois. Remover o `Select` de ano isolado (linhas 1245–1252) — passa a ser redundante.
+Hoje `elevenlabs-call-initiation` envia variáveis dinâmicas (caller, cliente, empresa) mas **não envia os preços**. Vamos:
 
-3. **Botões rápidos** (linhas ~1272–1280): "Ano todo", "Até hoje", "Últimos 3 meses", "Limpar" passam a definir `rangeIni`/`rangeFim` em vez de `mesesSelecionados`. Adicionar também "Últimos 6 meses" e "Últimos 12 meses" para consistência com a aba Produtos.
+- Em `supabase/functions/elevenlabs-call-initiation/index.ts`, depois de resolver a empresa, ler `configuracoes_empresa.regras_bia.tabela_precos` da empresa atendida e adicionar ao response:
+  ```
+  dynamic_variables: {
+    ...,
+    preco_gas_p13: "125,00",
+    preco_gas_p13_desconto: "120,00",
+    preco_gas_p20: "210,00",
+    preco_gas_p20_desconto: "200,00",
+    preco_gas_p45: "410,00",
+    preco_gas_p45_desconto: "400,00",
+    preco_agua_20l: "20,00",
+  }
+  ```
+- Tratamento defensivo: se `tabela_precos` faltar ou preço = 0, manda string vazia e a Bia segue caindo no tool.
 
-4. **Grade visual de meses** (linhas ~1281–1312): substituir os 12 chips Jan–Dez por chips dinâmicos baseados em `periodosSelecionados`, rotulados como "Dez/25", "Jan/26", … Clicar num chip ajusta `rangeIni`/`rangeFim` (clipa a ponta mais próxima). Mantém o visual atual (pílulas com check).
+### 2) Reforçar o prompt para citar essas variáveis
 
-5. **Queries**:
-   - `pedidosAno` (linha 186): renomear para `pedidosPeriodo`. Buscar `gte` = 1º dia do `rangeIni`, `lte` = último dia do `rangeFim`. `queryKey` passa a depender de `rangeIni`/`rangeFim`.
-   - `vendasManuais` (linha 218): trocar `.eq("ano", anoComparativo)` por `.in("ano", anosEnvolvidos)`.
+Atualizar o prompt do agente (via `elevenlabs-update-bia-voice` POST) acrescentando, dentro da seção "REGRA DE PREÇO":
 
-6. **Agregação `dadosComparativoMensal`** (linhas 246–318):
-   - Trocar `sistema: number[12]` / `manual: number[12]` por `Map<string /* "YYYY-MM" */, number>`.
-   - Iterar `periodosSelecionados` para montar `valores`, `totais`, `media` na ordem correta. Parser de data dos pedidos: usar split manual de `YYYY-MM-DD` (evitar `new Date(str).getMonth()` que pode escorregar de mês por timezone).
+```
+PREÇOS DESTA LIGAÇÃO (use literalmente, NUNCA invente):
+- Gás P13: R$ {{preco_gas_p13}} (desconto: R$ {{preco_gas_p13_desconto}})
+- Gás P20: R$ {{preco_gas_p20}} (desconto: R$ {{preco_gas_p20_desconto}})
+- Gás P45: R$ {{preco_gas_p45}} (desconto: R$ {{preco_gas_p45_desconto}})
+- Água Mineral 20L: R$ {{preco_agua_20l}}
+Se a variável vier vazia, então chame `consultar_precos`.
+```
 
-7. **Tabela** (linhas 1322–1390):
-   - Cabeçalho: iterar `periodosSelecionados`, render `Mmm/aa` (ex.: "Dez/25"). Continua alternando cores ímpar/par.
-   - Linhas e linha "Total": idem, usando a chave `"YYYY-MM"` para puxar o valor.
+Com os valores literalmente no system prompt da chamada, o LLM não precisa "decidir" chamar o tool — ele lê o número e fala. Isso resolve a alucinação mesmo no `gemini-2.5-flash-lite`.
 
-8. **`salvarVendaManual`** (linhas 321–355): a função passa a receber `{ano, mes}` em vez de só `mes`. O `ano` do payload vem do próprio período da célula (não mais de `anoComparativo`). Atualizar a `CelulaMesEditavel` callback para passar o período.
+### 3) (Opcional, recomendado) Trocar o LLM
 
-9. **Mensagens de estado vazio** (linha 1319): "Selecione ao menos um mês" → "Selecione um período válido".
+Subir de `gemini-2.5-flash-lite` para `gemini-2.5-flash` na configuração do agente. O custo sobe pouco e a aderência a instruções melhora bastante. Faço isso via mesma rota `elevenlabs-update-bia-voice` (POST `{"llm":"gemini-2.5-flash"}`). Confirme se quer trocar agora ou prefere manter o lite.
 
-### Observações técnicas
+## Arquivos afetados
 
-- Nenhuma mudança de schema do banco. `vendas_historicas_manuais` já tem coluna `ano`, só passamos a buscar/gravar conforme o período da célula.
-- Nenhuma mudança em RLS, edge functions, autenticação ou outras abas (Vendas, Pagamento, Produtos Vendidos).
-- Aviso: parsing de datas vai usar split manual `"YYYY-MM-DD".split("-")` para evitar o problema documentado de `new Date(str)` interpretar errado em alguns engines.
+- `supabase/functions/elevenlabs-call-initiation/index.ts` — buscar tabela de preços e devolver em `dynamic_variables`.
+- Prompt do agente Bia (via API ElevenLabs, sem mudar código no repo) — acrescentar bloco de preços literais.
+- Nenhum schema novo; nenhuma migração; nenhuma alteração em RLS.
 
-### Arquivos afetados
+## Observações
 
-- `src/pages/vendas/RelatorioVendas.tsx` (única alteração)
+- A tabela de preços continua sendo editada em **Admin → Bia Voz / Regras da Bia** (já está em `configuracoes_empresa.regras_bia.tabela_precos`).
+- Cada ligação puxa o snapshot do momento — atualização no banco vale na próxima chamada, sem deploy.
+- `consultar_precos` permanece registrado como fallback, caso a variável venha vazia.
