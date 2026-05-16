@@ -1111,21 +1111,15 @@ export default function RelatorioVendas() {
             </div>
 
             {/* Comparativo Mensal */}
-            <Card className="mt-4">
-              <CardHeader className="pb-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <CalendarDays className="h-5 w-5" />
-                      Comparativo Mensal por Produto
-                    </CardTitle>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Clique em qualquer célula de mês para lançar vendas históricas (sistema antigo). O total mostra <span className="text-primary font-medium">sistema + manual</span>.
-                    </p>
-                  </div>
+            <Card className="venda-card mt-4">
+              <VendaSectionHeader
+                tone="success"
+                icon={<CalendarDays className="h-5 w-5" />}
+                title="Comparativo Mensal por Produto"
+                action={
                   <div className="flex flex-wrap items-center gap-2">
                     <Select value={String(anoComparativo)} onValueChange={(v) => setAnoComparativo(Number(v))}>
-                      <SelectTrigger className="h-9 w-[110px]"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9 w-[110px] bg-background"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {[anoAtual, anoAtual - 1, anoAtual - 2].map(a => (
                           <SelectItem key={a} value={String(a)}>{a}</SelectItem>
@@ -1133,15 +1127,21 @@ export default function RelatorioVendas() {
                       </SelectContent>
                     </Select>
                     <Select value={metricaComparativo} onValueChange={(v: "qtd" | "faturamento") => setMetricaComparativo(v)}>
-                      <SelectTrigger className="h-9 w-[150px]"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-9 w-[150px] bg-background"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="qtd">Quantidade</SelectItem>
                         <SelectItem value="faturamento">Faturamento</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-              </CardHeader>
+                }
+              />
+              <div className="px-4 pt-3 sm:px-5">
+                <p className="text-xs text-muted-foreground">
+                  Clique em qualquer célula de mês para lançar vendas históricas (sistema antigo). O total mostra <span className="text-primary font-medium">sistema + manual</span>.
+                </p>
+              </div>
+
               <CardContent className="space-y-4">
                 {/* Seletor de meses */}
                 <div className="space-y-2">
