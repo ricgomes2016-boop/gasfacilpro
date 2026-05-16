@@ -799,6 +799,20 @@ export default function RelatorioVendas() {
                 </Button>
               </div>
             </div>
+            {isMatriz && (
+              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                <Switch id="consolidado" checked={consolidado} onCheckedChange={setConsolidado} />
+                <Label htmlFor="consolidado" className="text-sm font-medium cursor-pointer">
+                  Consolidar todas as unidades
+                </Label>
+                <span className="text-xs text-muted-foreground">
+                  Soma vendas de {unidadeIds.length} {unidadeIds.length === 1 ? "unidade" : "unidades"} da empresa.
+                </span>
+                {consolidado && (
+                  <Badge variant="default" className="ml-auto">Consolidado · {unidadeIds.length} unidades</Badge>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
