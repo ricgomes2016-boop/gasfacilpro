@@ -34,6 +34,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
+import { CelulaMesEditavel } from "./CelulaMesEditavel";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, LineChart, Line } from "recharts";
 import { Package, CreditCard, CalendarDays, Trophy } from "lucide-react";
 
@@ -94,6 +96,7 @@ interface PedidoRelatorio {
   pedido_itens: Array<{
     quantidade: number;
     preco_unitario: number;
+    produto_id: string | null;
     produtos: { nome: string } | null;
   }>;
 }
@@ -101,6 +104,7 @@ interface PedidoRelatorio {
 export default function RelatorioVendas() {
   const { toast } = useToast();
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
   const queryClient = useQueryClient();
   const hoje = new Date();
 
@@ -154,7 +158,7 @@ export default function RelatorioVendas() {
         .select(`
           id, created_at, data_entrega, valor_total, status, forma_pagamento, canal_venda,
           clientes (nome), entregadores (nome),
-          pedido_itens (quantidade, preco_unitario, produtos (nome))
+          pedido_itens (quantidade, preco_unitario, produto_id, produtos (nome))
         `)
         .gte("data_entrega", dataInicio)
         .lte("data_entrega", dataFim)
@@ -176,7 +180,7 @@ export default function RelatorioVendas() {
       const fim = `${anoComparativo}-12-31`;
       let query = supabase
         .from("pedidos")
-        .select(`id, created_at, data_entrega, status, pedido_itens (quantidade, preco_unitario, produtos (nome))`)
+        .select(`id, created_at, data_entrega, status, pedido_itens (quantidade, preco_unitario, produto_id, produtos (nome))`)
         .gte("data_entrega", inicio)
         .lte("data_entrega", fim);
       if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
@@ -186,27 +190,76 @@ export default function RelatorioVendas() {
     },
   });
 
+  // Produtos da unidade (para incluir produtos sem pedidos no comparativo)
+  const { data: produtosLista = [] } = useQuery({
+    queryKey: ["relatorio-vendas-produtos", unidadeAtual?.id],
+    queryFn: async () => {
+      let query = supabase.from("produtos").select("id, nome").eq("ativo", true);
+      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as { id: string; nome: string }[];
+    },
+  });
+
+  // Vendas históricas manuais (lançamentos do sistema antigo)
+  const { data: vendasManuais = [], refetch: refetchManuais } = useQuery({
+    queryKey: ["vendas-historicas-manuais", anoComparativo, unidadeAtual?.id],
+    enabled: !!unidadeAtual?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vendas_historicas_manuais")
+        .select("id, produto_id, ano, mes, quantidade, faturamento")
+        .eq("unidade_id", unidadeAtual!.id)
+        .eq("ano", anoComparativo);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   // Comparativo Mensal: produto x mês
   const dadosComparativoMensal = useMemo(() => {
-    const map = new Map<string, number[]>();
+    // produto_id -> { nome, sistema:number[12], manual:number[12] }
+    const map = new Map<string, { nome: string; sistema: number[]; manual: number[] }>();
+    const ensure = (id: string, nome: string) => {
+      if (!map.has(id)) map.set(id, { nome, sistema: Array(12).fill(0), manual: Array(12).fill(0) });
+      return map.get(id)!;
+    };
+
+    // Sempre incluir todos os produtos da unidade (linha aparece mesmo sem dados)
+    produtosLista.forEach(p => ensure(p.id, p.nome));
+
+    // Agregar vendas reais do sistema
     pedidosAno.filter(p => p.status !== "cancelado").forEach(p => {
       const dataStr = p.data_entrega || p.created_at;
       if (!dataStr) return;
       const mes = new Date(dataStr).getMonth();
       (p.pedido_itens || []).forEach(it => {
+        const key = it.produto_id || `nome:${it.produtos?.nome || "Sem nome"}`;
         const nome = it.produtos?.nome || "Sem nome";
-        if (!map.has(nome)) map.set(nome, Array(12).fill(0));
-        const arr = map.get(nome)!;
+        const row = ensure(key, nome);
         const qtd = Number(it.quantidade) || 0;
         const preco = Number(it.preco_unitario) || 0;
-        arr[mes] += metricaComparativo === "qtd" ? qtd : qtd * preco;
+        row.sistema[mes] += metricaComparativo === "qtd" ? qtd : qtd * preco;
       });
     });
-    const linhas = Array.from(map.entries()).map(([nome, valores]) => {
+
+    // Adicionar lançamentos manuais
+    vendasManuais.forEach(vm => {
+      const prod = produtosLista.find(p => p.id === vm.produto_id);
+      const row = ensure(vm.produto_id, prod?.nome || "Produto");
+      const valor = metricaComparativo === "qtd" ? Number(vm.quantidade) : Number(vm.faturamento);
+      row.manual[(vm.mes || 1) - 1] += valor;
+    });
+
+    const linhas = Array.from(map.entries()).map(([produto_id, row]) => {
+      const valores = row.sistema.map((v, i) => v + row.manual[i]);
       const totalSelecionado = mesesSelecionados.reduce((s, m) => s + valores[m], 0);
       const media = mesesSelecionados.length > 0 ? totalSelecionado / mesesSelecionados.length : 0;
-      return { nome, valores, media, totalSelecionado };
+      const isProdutoReal = !produto_id.startsWith("nome:");
+      return { produto_id: isProdutoReal ? produto_id : null, nome: row.nome, valores, manual: row.manual, media, totalSelecionado };
     });
+    // Filtrar produtos que não têm dado nenhum em meses selecionados? Mantemos todos para permitir lançamento.
     linhas.sort((a, b) => b.totalSelecionado - a.totalSelecionado);
     const totaisPorMes = Array(12).fill(0);
     linhas.forEach(l => l.valores.forEach((v, i) => { totaisPorMes[i] += v; }));
@@ -214,7 +267,46 @@ export default function RelatorioVendas() {
       ? mesesSelecionados.reduce((s, m) => s + totaisPorMes[m], 0) / mesesSelecionados.length
       : 0;
     return { linhas, totaisPorMes, mediaTotal };
-  }, [pedidosAno, mesesSelecionados, metricaComparativo]);
+  }, [pedidosAno, produtosLista, vendasManuais, mesesSelecionados, metricaComparativo]);
+
+  // Salvar lançamento manual de venda histórica
+  const salvarVendaManual = async (produto_id: string, mes: number, novoValor: number) => {
+    if (!unidadeAtual?.id || !empresa?.id) {
+      toast({ title: "Erro", description: "Selecione uma unidade.", variant: "destructive" });
+      return;
+    }
+    // Calcular ajuste manual: novoValor (visível) = sistema + manual_novo
+    // Buscamos sistema atual a partir do memo
+    const linha = dadosComparativoMensal.linhas.find(l => l.produto_id === produto_id);
+    if (!linha) return;
+    const sistema = (linha.valores[mes] || 0) - (linha.manual[mes] || 0);
+    const manualDesejado = Math.max(0, novoValor - sistema);
+
+    // Buscar registro existente para preservar a outra métrica
+    const existente = vendasManuais.find(v => v.produto_id === produto_id && v.mes === mes + 1);
+    const payload: any = {
+      empresa_id: empresa.id,
+      unidade_id: unidadeAtual.id,
+      produto_id,
+      ano: anoComparativo,
+      mes: mes + 1,
+      quantidade: existente?.quantidade ?? 0,
+      faturamento: existente?.faturamento ?? 0,
+    };
+    if (metricaComparativo === "qtd") payload.quantidade = manualDesejado;
+    else payload.faturamento = manualDesejado;
+
+    const { error } = await supabase
+      .from("vendas_historicas_manuais")
+      .upsert(payload, { onConflict: "unidade_id,produto_id,ano,mes" });
+
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } else {
+      sonnerToast.success("Venda histórica salva");
+      refetchManuais();
+    }
+  };
 
   const pedidosFiltrados = useMemo(() => {
     return pedidos.filter((p) => {
@@ -1018,10 +1110,15 @@ export default function RelatorioVendas() {
             <Card className="mt-4">
               <CardHeader className="pb-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <CalendarDays className="h-5 w-5" />
-                    Comparativo Mensal por Produto
-                  </CardTitle>
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <CalendarDays className="h-5 w-5" />
+                      Comparativo Mensal por Produto
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Clique em qualquer célula de mês para lançar vendas históricas (sistema antigo). O total mostra <span className="text-primary font-medium">sistema + manual</span>.
+                    </p>
+                  </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Select value={String(anoComparativo)} onValueChange={(v) => setAnoComparativo(Number(v))}>
                       <SelectTrigger className="h-9 w-[110px]"><SelectValue /></SelectTrigger>
@@ -1091,13 +1188,17 @@ export default function RelatorioVendas() {
                       </TableHeader>
                       <TableBody>
                         {dadosComparativoMensal.linhas.map((l, i) => (
-                          <TableRow key={i}>
+                          <TableRow key={l.produto_id || `n-${i}`}>
                             <TableCell className="font-medium text-sm">{l.nome}</TableCell>
                             {mesesSelecionados.map(m => (
-                              <TableCell key={m} className="text-right whitespace-nowrap">
-                                {metricaComparativo === "qtd"
-                                  ? Math.round(l.valores[m]).toLocaleString("pt-BR")
-                                  : formatCurrency(l.valores[m])}
+                              <TableCell key={m} className="text-right whitespace-nowrap p-1">
+                                <CelulaMesEditavel
+                                  valor={l.valores[m]}
+                                  manual={l.manual[m]}
+                                  metrica={metricaComparativo}
+                                  editavel={!!l.produto_id}
+                                  onSalvar={(novo) => l.produto_id && salvarVendaManual(l.produto_id, m, novo)}
+                                />
                               </TableCell>
                             ))}
                             <TableCell className="text-right font-semibold text-primary whitespace-nowrap">

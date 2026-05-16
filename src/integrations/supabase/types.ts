@@ -10547,6 +10547,59 @@ export type Database = {
           },
         ]
       }
+      vendas_historicas_manuais: {
+        Row: {
+          ano: number
+          created_at: string
+          created_by: string | null
+          empresa_id: string
+          faturamento: number
+          id: string
+          mes: number
+          observacao: string | null
+          produto_id: string
+          quantidade: number
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          created_by?: string | null
+          empresa_id: string
+          faturamento?: number
+          id?: string
+          mes: number
+          observacao?: string | null
+          produto_id: string
+          quantidade?: number
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          created_by?: string | null
+          empresa_id?: string
+          faturamento?: number
+          id?: string
+          mes?: number
+          observacao?: string | null
+          produto_id?: string
+          quantidade?: number
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendas_historicas_manuais_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_gateway_instances: {
         Row: {
           api_key: string | null
