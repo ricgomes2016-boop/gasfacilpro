@@ -40,7 +40,7 @@ export function CelulaMesEditavel({ valor, manual, metrica, editavel, onSalvar }
   };
 
   if (!editavel) {
-    return <span className="text-muted-foreground">{display}</span>;
+    return <span className="inline-block w-full text-right tabular-nums text-muted-foreground">{display}</span>;
   }
 
   if (editando) {
