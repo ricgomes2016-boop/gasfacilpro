@@ -23,8 +23,6 @@ import {
 } from "lucide-react";
 import { SmartImportButtons } from "@/components/import/SmartImportButtons";
 import { ImportReviewDialog } from "@/components/import/ImportReviewDialog";
-import { DailySalesGoal } from "@/components/dashboard/DailySalesGoal";
-import { RecompraAlerts } from "@/components/vendas/RecompraAlerts";
 import { toast as sonnerToast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
