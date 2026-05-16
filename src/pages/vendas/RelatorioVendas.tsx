@@ -126,14 +126,40 @@ export default function RelatorioVendas() {
   const unidadeIds = useMemo(() => unidades.map(u => u.id), [unidades]);
   const scopeKey = consolidado ? `all:${empresa?.id || ""}` : (unidadeAtual?.id || "none");
 
-  // Comparativo mensal (aba Produtos)
+  // Comparativo mensal (aba Produtos) — intervalo livre que pode cruzar anos
   const anoAtual = hoje.getFullYear();
   const mesAtual = hoje.getMonth();
-  const [anoComparativo, setAnoComparativo] = useState<number>(anoAtual);
-  const [mesesSelecionados, setMesesSelecionados] = useState<number[]>(
-    Array.from({ length: mesAtual + 1 }, (_, i) => i)
-  );
+  type PeriodoMes = { ano: number; mes: number }; // mes: 0-11
+  const [rangeIni, setRangeIni] = useState<PeriodoMes>({ ano: anoAtual, mes: 0 });
+  const [rangeFim, setRangeFim] = useState<PeriodoMes>({ ano: anoAtual, mes: mesAtual });
   const [metricaComparativo, setMetricaComparativo] = useState<"qtd" | "faturamento">("qtd");
+
+  // Helpers de período
+  const periodoKey = (p: PeriodoMes) => `${p.ano}-${String(p.mes + 1).padStart(2, "0")}`;
+  const periodoIndex = (p: PeriodoMes) => p.ano * 12 + p.mes;
+  const cmpPeriodo = (a: PeriodoMes, b: PeriodoMes) => periodoIndex(a) - periodoIndex(b);
+
+  const periodosSelecionados = useMemo<PeriodoMes[]>(() => {
+    const ini = cmpPeriodo(rangeIni, rangeFim) <= 0 ? rangeIni : rangeFim;
+    const fim = cmpPeriodo(rangeIni, rangeFim) <= 0 ? rangeFim : rangeIni;
+    const out: PeriodoMes[] = [];
+    let ano = ini.ano, mes = ini.mes;
+    while (ano < fim.ano || (ano === fim.ano && mes <= fim.mes)) {
+      out.push({ ano, mes });
+      mes++;
+      if (mes > 11) { mes = 0; ano++; }
+      if (out.length > 60) break; // safety
+    }
+    return out;
+  }, [rangeIni, rangeFim]);
+
+  const anosEnvolvidos = useMemo(
+    () => Array.from(new Set(periodosSelecionados.map(p => p.ano))),
+    [periodosSelecionados]
+  );
+
+  const NOMES_MES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  const formatPeriodoCurto = (p: PeriodoMes) => `${NOMES_MES[p.mes]}/${String(p.ano).slice(-2)}`;
 
   // Buscar canais de venda cadastrados
   const { data: canaisVenda = [] } = useQuery({
@@ -182,12 +208,19 @@ export default function RelatorioVendas() {
     },
   });
 
-  // Buscar pedidos do ano inteiro para comparativo mensal
+  // Buscar pedidos do período (pode cruzar anos) para comparativo mensal
+  const periodoIniKey = periodosSelecionados[0] ? periodoKey(periodosSelecionados[0]) : "";
+  const periodoFimKey = periodosSelecionados.length > 0 ? periodoKey(periodosSelecionados[periodosSelecionados.length - 1]) : "";
   const { data: pedidosAno = [] } = useQuery({
-    queryKey: ["relatorio-vendas-ano", anoComparativo, scopeKey],
+    queryKey: ["relatorio-vendas-periodo", periodoIniKey, periodoFimKey, scopeKey],
+    enabled: periodosSelecionados.length > 0,
     queryFn: async () => {
-      const inicio = `${anoComparativo}-01-01`;
-      const fim = `${anoComparativo}-12-31`;
+      const pIni = periodosSelecionados[0];
+      const pFim = periodosSelecionados[periodosSelecionados.length - 1];
+      const inicio = `${pIni.ano}-${String(pIni.mes + 1).padStart(2, "0")}-01`;
+      // último dia do mês final
+      const ultimoDia = new Date(pFim.ano, pFim.mes + 1, 0).getDate();
+      const fim = `${pFim.ano}-${String(pFim.mes + 1).padStart(2, "0")}-${String(ultimoDia).padStart(2, "0")}`;
       let query = supabase
         .from("pedidos")
         .select(`id, created_at, data_entrega, status, pedido_itens (quantidade, preco_unitario, produto_id, produtos (nome))`)
@@ -216,13 +249,13 @@ export default function RelatorioVendas() {
 
   // Vendas históricas manuais (lançamentos do sistema antigo)
   const { data: vendasManuais = [], refetch: refetchManuais } = useQuery({
-    queryKey: ["vendas-historicas-manuais", anoComparativo, scopeKey],
-    enabled: !!unidadeAtual?.id,
+    queryKey: ["vendas-historicas-manuais", anosEnvolvidos.join(","), scopeKey],
+    enabled: !!unidadeAtual?.id && anosEnvolvidos.length > 0,
     queryFn: async () => {
       let query = supabase
         .from("vendas_historicas_manuais")
         .select("id, produto_id, ano, mes, quantidade, faturamento")
-        .eq("ano", anoComparativo);
+        .in("ano", anosEnvolvidos);
       if (consolidado && unidadeIds.length > 0) query = query.in("unidade_id", unidadeIds);
       else query = query.eq("unidade_id", unidadeAtual!.id);
       const { data, error } = await query;
@@ -242,53 +275,64 @@ export default function RelatorioVendas() {
     },
   });
 
-  // Comparativo Mensal: produto x mês (agrupado por NOME normalizado)
+  // Comparativo Mensal: produto x período (agrupado por NOME normalizado)
   const dadosComparativoMensal = useMemo(() => {
     const norm = (s: string) => (s || "Sem nome").trim().toLowerCase();
-    // key (nome normalizado) -> { nome, canonicalId, sistema:number[12], manual:number[12] }
-    const map = new Map<string, { nome: string; canonicalId: string | null; sistema: number[]; manual: number[] }>();
-    const ensure = (nome: string, id: string | null) => {
+    // Para cada produto guardamos sistema/manual em mapa "YYYY-MM" -> number
+    type Row = { nome: string; canonicalId: string | null; sistema: Map<string, number>; manual: Map<string, number> };
+    const map = new Map<string, Row>();
+    const ensure = (nome: string, id: string | null): Row => {
       const k = norm(nome);
-      if (!map.has(k)) map.set(k, { nome: nome || "Sem nome", canonicalId: id, sistema: Array(12).fill(0), manual: Array(12).fill(0) });
+      if (!map.has(k)) map.set(k, { nome: nome || "Sem nome", canonicalId: id, sistema: new Map(), manual: new Map() });
       const row = map.get(k)!;
       if (!row.canonicalId && id) row.canonicalId = id;
       return row;
     };
+    const periodosKeys = periodosSelecionados.map(periodoKey);
+    const periodosKeysSet = new Set(periodosKeys);
 
     // Sempre incluir todos os produtos da unidade (linha aparece mesmo sem dados)
     produtosLista.forEach(p => ensure(p.nome, p.id));
 
-    // Agregar vendas reais do sistema
+    // Agregar vendas reais do sistema — parse explícito YYYY-MM-DD para evitar issues de timezone
     pedidosAno.filter(p => p.status !== "cancelado").forEach(p => {
       const dataStr = p.data_entrega || p.created_at;
       if (!dataStr) return;
-      const mes = new Date(dataStr).getMonth();
+      const m = String(dataStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (!m) return;
+      const ano = Number(m[1]);
+      const mes = Number(m[2]) - 1;
+      const key = `${ano}-${String(mes + 1).padStart(2, "0")}`;
+      if (!periodosKeysSet.has(key)) return;
       (p.pedido_itens || []).forEach(it => {
         const nome = it.produtos?.nome || "Sem nome";
         const row = ensure(nome, it.produto_id || null);
         const qtd = Number(it.quantidade) || 0;
         const preco = Number(it.preco_unitario) || 0;
-        row.sistema[mes] += metricaComparativo === "qtd" ? qtd : qtd * preco;
+        const v = metricaComparativo === "qtd" ? qtd : qtd * preco;
+        row.sistema.set(key, (row.sistema.get(key) || 0) + v);
       });
     });
 
     // Adicionar lançamentos manuais (agrupados por nome do produto canônico)
     vendasManuais.forEach(vm => {
+      const key = `${vm.ano}-${String(vm.mes).padStart(2, "0")}`;
+      if (!periodosKeysSet.has(key)) return;
       const prod = produtosLista.find(p => p.id === vm.produto_id);
       const row = ensure(prod?.nome || "Produto", vm.produto_id);
       const valor = metricaComparativo === "qtd" ? Number(vm.quantidade) : Number(vm.faturamento);
-      row.manual[(vm.mes || 1) - 1] += valor;
+      row.manual.set(key, (row.manual.get(key) || 0) + valor);
     });
 
     const linhas = Array.from(map.values()).map(row => {
-      const valores = row.sistema.map((v, i) => v + row.manual[i]);
-      const totalSelecionado = mesesSelecionados.reduce((s, m) => s + valores[m], 0);
-      const media = mesesSelecionados.length > 0 ? totalSelecionado / mesesSelecionados.length : 0;
-      return { produto_id: row.canonicalId, nome: row.nome, valores, manual: row.manual, media, totalSelecionado };
+      const valores = periodosKeys.map(k => (row.sistema.get(k) || 0) + (row.manual.get(k) || 0));
+      const manual = periodosKeys.map(k => row.manual.get(k) || 0);
+      const totalSelecionado = valores.reduce((s, v) => s + v, 0);
+      const media = periodosKeys.length > 0 ? totalSelecionado / periodosKeys.length : 0;
+      return { produto_id: row.canonicalId, nome: row.nome, valores, manual, media, totalSelecionado };
     });
     // Ordenação: vazios sempre por último; ordem fixa quando poucos produtos, alfabética quando muitos
     const isVazio = (nome: string) => /vazio|vasilhame/i.test(nome);
-    const ordemFixa = ["agua 20", "água 20", "p13", "p 13", "p20", "p 20", "p45", "p 45"];
     const pesoFixo = (nome: string) => {
       const n = nome.toLowerCase();
       if (/[áa]gua.*20|20.*l/i.test(n)) return 0;
@@ -309,35 +353,36 @@ export default function RelatorioVendas() {
       }
       return a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
     });
-    const totaisPorMes = Array(12).fill(0);
-    linhas.forEach(l => l.valores.forEach((v, i) => { totaisPorMes[i] += v; }));
-    const mediaTotal = mesesSelecionados.length > 0
-      ? mesesSelecionados.reduce((s, m) => s + totaisPorMes[m], 0) / mesesSelecionados.length
+    const totaisPorPeriodo = periodosKeys.map((_, i) =>
+      linhas.reduce((s, l) => s + l.valores[i], 0)
+    );
+    const mediaTotal = periodosKeys.length > 0
+      ? totaisPorPeriodo.reduce((s, v) => s + v, 0) / periodosKeys.length
       : 0;
-    return { linhas, totaisPorMes, mediaTotal };
-  }, [pedidosAno, produtosLista, vendasManuais, mesesSelecionados, metricaComparativo]);
+    return { linhas, totaisPorPeriodo, mediaTotal };
+  }, [pedidosAno, produtosLista, vendasManuais, periodosSelecionados, metricaComparativo]);
 
   // Salvar lançamento manual de venda histórica
-  const salvarVendaManual = async (produto_id: string, mes: number, novoValor: number) => {
+  const salvarVendaManual = async (produto_id: string, periodoIdx: number, novoValor: number) => {
     if (!unidadeAtual?.id || !empresa?.id) {
       toast({ title: "Erro", description: "Selecione uma unidade.", variant: "destructive" });
       return;
     }
-    // Calcular ajuste manual: novoValor (visível) = sistema + manual_novo
-    // Buscamos sistema atual a partir do memo
+    const periodo = periodosSelecionados[periodoIdx];
+    if (!periodo) return;
     const linha = dadosComparativoMensal.linhas.find(l => l.produto_id === produto_id);
     if (!linha) return;
-    const sistema = (linha.valores[mes] || 0) - (linha.manual[mes] || 0);
+    const sistema = (linha.valores[periodoIdx] || 0) - (linha.manual[periodoIdx] || 0);
     const manualDesejado = Math.max(0, novoValor - sistema);
 
     // Buscar registro existente para preservar a outra métrica
-    const existente = vendasManuais.find(v => v.produto_id === produto_id && v.mes === mes + 1);
+    const existente = vendasManuais.find(v => v.produto_id === produto_id && v.ano === periodo.ano && v.mes === periodo.mes + 1);
     const payload: any = {
       empresa_id: empresa.id,
       unidade_id: unidadeAtual.id,
       produto_id,
-      ano: anoComparativo,
-      mes: mes + 1,
+      ano: periodo.ano,
+      mes: periodo.mes + 1,
       quantidade: existente?.quantidade ?? 0,
       faturamento: existente?.faturamento ?? 0,
     };
@@ -1212,44 +1257,33 @@ export default function RelatorioVendas() {
                     <div className="flex items-center gap-1.5">
                       <Label className="text-xs text-white/90 whitespace-nowrap">De</Label>
                       <Input
-                        type="date"
-                        value={`${anoComparativo}-${String((mesesSelecionados[0] ?? 0) + 1).padStart(2, "0")}-01`}
+                        type="month"
+                        value={`${rangeIni.ano}-${String(rangeIni.mes + 1).padStart(2, "0")}`}
                         onChange={(e) => {
-                          const [y, m] = e.target.value.split("-").map(Number);
+                          const parts = e.target.value.split("-").map(Number);
+                          const y = parts[0], m = parts[1];
                           if (!y || !m) return;
-                          const novoAno = y;
-                          const novoMesIni = m - 1;
-                          const mesFimAtual = mesesSelecionados[mesesSelecionados.length - 1] ?? 11;
-                          const mesFim = novoAno !== anoComparativo ? 11 : Math.max(novoMesIni, mesFimAtual);
-                          setAnoComparativo(novoAno);
-                          setMesesSelecionados(Array.from({ length: mesFim - novoMesIni + 1 }, (_, i) => novoMesIni + i));
+                          const novo = { ano: y, mes: m - 1 };
+                          setRangeIni(novo);
+                          if (cmpPeriodo(novo, rangeFim) > 0) setRangeFim(novo);
                         }}
-                        className="h-9 w-[140px] bg-background"
+                        className="h-9 w-[150px] bg-background"
                       />
                       <Label className="text-xs text-white/90 whitespace-nowrap">Até</Label>
                       <Input
-                        type="date"
-                        value={`${anoComparativo}-${String((mesesSelecionados[mesesSelecionados.length - 1] ?? 11) + 1).padStart(2, "0")}-28`}
+                        type="month"
+                        value={`${rangeFim.ano}-${String(rangeFim.mes + 1).padStart(2, "0")}`}
                         onChange={(e) => {
-                          const [y, m] = e.target.value.split("-").map(Number);
+                          const parts = e.target.value.split("-").map(Number);
+                          const y = parts[0], m = parts[1];
                           if (!y || !m) return;
-                          if (y !== anoComparativo) setAnoComparativo(y);
-                          const mesIniAtual = mesesSelecionados[0] ?? 0;
-                          const novoMesFim = m - 1;
-                          const mesIni = y !== anoComparativo ? 0 : Math.min(mesIniAtual, novoMesFim);
-                          setMesesSelecionados(Array.from({ length: novoMesFim - mesIni + 1 }, (_, i) => mesIni + i));
+                          const novo = { ano: y, mes: m - 1 };
+                          setRangeFim(novo);
+                          if (cmpPeriodo(rangeIni, novo) > 0) setRangeIni(novo);
                         }}
-                        className="h-9 w-[140px] bg-background"
+                        className="h-9 w-[150px] bg-background"
                       />
                     </div>
-                    <Select value={String(anoComparativo)} onValueChange={(v) => setAnoComparativo(Number(v))}>
-                      <SelectTrigger className="h-9 w-[100px] bg-background"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {[anoAtual, anoAtual - 1, anoAtual - 2].map(a => (
-                          <SelectItem key={a} value={String(a)}>{a}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <Select value={metricaComparativo} onValueChange={(v: "qtd" | "faturamento") => setMetricaComparativo(v)}>
                       <SelectTrigger className="h-9 w-[150px] bg-background"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -1267,71 +1301,77 @@ export default function RelatorioVendas() {
               </div>
 
               <CardContent className="space-y-4">
-                {/* Seletor de meses */}
+                {/* Atalhos de período */}
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setMesesSelecionados(Array.from({ length: 12 }, (_, i) => i))}>Ano todo</Button>
-                    <Button size="sm" variant="outline" onClick={() => setMesesSelecionados(Array.from({ length: (anoComparativo === anoAtual ? mesAtual : 11) + 1 }, (_, i) => i))}>Até hoje</Button>
                     <Button size="sm" variant="outline" onClick={() => {
-                      const ref = anoComparativo === anoAtual ? mesAtual : 11;
-                      setMesesSelecionados([Math.max(0, ref - 2), Math.max(0, ref - 1), ref].filter((v, i, a) => a.indexOf(v) === i));
+                      setRangeIni({ ano: anoAtual, mes: 0 });
+                      setRangeFim({ ano: anoAtual, mes: 11 });
+                    }}>Ano todo</Button>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      setRangeIni({ ano: anoAtual, mes: 0 });
+                      setRangeFim({ ano: anoAtual, mes: mesAtual });
+                    }}>Até hoje</Button>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      const fim = { ano: anoAtual, mes: mesAtual };
+                      const totalMeses = anoAtual * 12 + mesAtual - 2;
+                      setRangeIni({ ano: Math.floor(totalMeses / 12), mes: ((totalMeses % 12) + 12) % 12 });
+                      setRangeFim(fim);
                     }}>Últimos 3 meses</Button>
-                    <Button size="sm" variant="outline" onClick={() => setMesesSelecionados([])}>Limpar</Button>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      const fim = { ano: anoAtual, mes: mesAtual };
+                      const totalMeses = anoAtual * 12 + mesAtual - 5;
+                      setRangeIni({ ano: Math.floor(totalMeses / 12), mes: ((totalMeses % 12) + 12) % 12 });
+                      setRangeFim(fim);
+                    }}>Últimos 6 meses</Button>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      const fim = { ano: anoAtual, mes: mesAtual };
+                      const totalMeses = anoAtual * 12 + mesAtual - 11;
+                      setRangeIni({ ano: Math.floor(totalMeses / 12), mes: ((totalMeses % 12) + 12) % 12 });
+                      setRangeFim(fim);
+                    }}>Últimos 12 meses</Button>
+                    <Button size="sm" variant="outline" onClick={() => {
+                      setRangeIni({ ano: anoAtual - 1, mes: 0 });
+                      setRangeFim({ ano: anoAtual - 1, mes: 11 });
+                    }}>Ano anterior</Button>
                   </div>
-                  <div className="flex flex-wrap gap-2 rounded-xl border bg-muted/30 p-3">
-                    {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"].map((nome, idx) => {
-                      const ativo = mesesSelecionados.includes(idx);
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setMesesSelecionados(prev => ativo
-                            ? prev.filter(m => m !== idx)
-                            : [...prev, idx].sort((a, b) => a - b))}
-                          className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all",
-                            ativo
-                              ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                              : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-                          )}
+                  {periodosSelecionados.length > 0 && (
+                    <div className="flex flex-wrap gap-2 rounded-xl border bg-muted/30 p-3">
+                      {periodosSelecionados.map((p) => (
+                        <span
+                          key={periodoKey(p)}
+                          className="inline-flex items-center gap-1.5 rounded-full border border-primary bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium shadow-sm"
                         >
-                          <span
-                            className={cn(
-                              "flex items-center justify-center size-4 rounded-full border-2 transition-colors",
-                              ativo
-                                ? "bg-primary-foreground border-primary-foreground text-primary"
-                                : "border-muted-foreground/40"
-                            )}
-                          >
-                            {ativo && <Check className="size-3" strokeWidth={3} />}
+                          <span className="flex items-center justify-center size-4 rounded-full bg-primary-foreground text-primary">
+                            <Check className="size-3" strokeWidth={3} />
                           </span>
-                          {nome}
-                        </button>
-                      );
-                    })}
-                  </div>
+                          {formatPeriodoCurto(p)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Tabela comparativa */}
                 <div className="overflow-x-auto">
                   {dadosComparativoMensal.linhas.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">Sem dados no ano selecionado.</p>
-                  ) : mesesSelecionados.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">Selecione ao menos um mês.</p>
+                    <p className="text-center py-8 text-muted-foreground">Sem dados no período selecionado.</p>
+                  ) : periodosSelecionados.length === 0 ? (
+                    <p className="text-center py-8 text-muted-foreground">Selecione um período válido.</p>
                   ) : (
                     <Table className="min-w-[640px] tabular-nums [&_th]:text-center [&_td]:text-center border-collapse">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="min-w-[160px] max-w-[220px] text-center bg-muted/50 font-semibold">Produto</TableHead>
-                          {mesesSelecionados.map((m, idx) => (
+                          {periodosSelecionados.map((p, idx) => (
                             <TableHead
-                              key={m}
+                              key={periodoKey(p)}
                               className={cn(
                                 "whitespace-nowrap w-[92px] font-semibold",
                                 idx % 2 === 0 ? "bg-primary/10 text-primary" : "bg-muted/40"
                               )}
                             >
-                              {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][m]}
+                              {formatPeriodoCurto(p)}
                             </TableHead>
                           ))}
                           <TableHead className="whitespace-nowrap w-[110px] border-l border-border/60 bg-accent/30 font-semibold">Média</TableHead>
@@ -1341,20 +1381,20 @@ export default function RelatorioVendas() {
                         {dadosComparativoMensal.linhas.map((l, i) => (
                           <TableRow key={l.produto_id || `n-${i}`}>
                             <TableCell className="font-medium text-sm truncate max-w-[220px] text-center bg-muted/20">{l.nome}</TableCell>
-                            {mesesSelecionados.map((m, idx) => (
+                            {periodosSelecionados.map((p, idx) => (
                               <TableCell
-                                key={m}
+                                key={periodoKey(p)}
                                 className={cn(
                                   "whitespace-nowrap w-[92px] px-2 py-2",
                                   idx % 2 === 0 ? "bg-primary/5" : ""
                                 )}
                               >
                                 <CelulaMesEditavel
-                                  valor={l.valores[m]}
-                                  manual={l.manual[m]}
+                                  valor={l.valores[idx]}
+                                  manual={l.manual[idx]}
                                   metrica={metricaComparativo}
                                   editavel={!!l.produto_id && !consolidado}
-                                  onSalvar={(novo) => l.produto_id && salvarVendaManual(l.produto_id, m, novo)}
+                                  onSalvar={(novo) => l.produto_id && salvarVendaManual(l.produto_id, idx, novo)}
                                 />
                               </TableCell>
                             ))}
@@ -1367,17 +1407,17 @@ export default function RelatorioVendas() {
                         ))}
                         <TableRow className="font-bold">
                           <TableCell className="bg-muted/70 font-bold text-center">Total</TableCell>
-                          {mesesSelecionados.map((m, idx) => (
+                          {periodosSelecionados.map((p, idx) => (
                             <TableCell
-                              key={m}
+                              key={periodoKey(p)}
                               className={cn(
                                 "whitespace-nowrap w-[92px] font-bold",
                                 idx % 2 === 0 ? "bg-primary/15" : "bg-muted/60"
                               )}
                             >
                               {metricaComparativo === "qtd"
-                                ? Math.round(dadosComparativoMensal.totaisPorMes[m]).toLocaleString("pt-BR")
-                                : formatCurrency(dadosComparativoMensal.totaisPorMes[m])}
+                                ? Math.round(dadosComparativoMensal.totaisPorPeriodo[idx]).toLocaleString("pt-BR")
+                                : formatCurrency(dadosComparativoMensal.totaisPorPeriodo[idx])}
                             </TableCell>
                           ))}
                           <TableCell className="text-primary whitespace-nowrap w-[110px] border-l border-border/60 bg-accent/40 font-bold">
