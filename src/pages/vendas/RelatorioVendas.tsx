@@ -1110,10 +1110,15 @@ export default function RelatorioVendas() {
             <Card className="mt-4">
               <CardHeader className="pb-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <CalendarDays className="h-5 w-5" />
-                    Comparativo Mensal por Produto
-                  </CardTitle>
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <CalendarDays className="h-5 w-5" />
+                      Comparativo Mensal por Produto
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Clique em qualquer célula de mês para lançar vendas históricas (sistema antigo). O total mostra <span className="text-primary font-medium">sistema + manual</span>.
+                    </p>
+                  </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Select value={String(anoComparativo)} onValueChange={(v) => setAnoComparativo(Number(v))}>
                       <SelectTrigger className="h-9 w-[110px]"><SelectValue /></SelectTrigger>
