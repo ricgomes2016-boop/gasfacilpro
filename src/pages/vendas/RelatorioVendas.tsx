@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { Switch } from "@/components/ui/switch";
 import { getBrasiliaDateString, cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -105,7 +106,7 @@ interface PedidoRelatorio {
 
 export default function RelatorioVendas() {
   const { toast } = useToast();
-  const { unidadeAtual } = useUnidade();
+  const { unidadeAtual, unidades } = useUnidade();
   const { empresa } = useEmpresa();
   const queryClient = useQueryClient();
   const hoje = new Date();
@@ -118,6 +119,12 @@ export default function RelatorioVendas() {
   const [importItems, setImportItems] = useState<any[]>([]);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [savingImport, setSavingImport] = useState(false);
+
+  const isMatriz = unidadeAtual?.tipo === "matriz";
+  const [consolidado, setConsolidado] = useState(false);
+  useEffect(() => { if (!isMatriz && consolidado) setConsolidado(false); }, [isMatriz, consolidado]);
+  const unidadeIds = useMemo(() => unidades.map(u => u.id), [unidades]);
+  const scopeKey = consolidado ? `all:${empresa?.id || ""}` : (unidadeAtual?.id || "none");
 
   // Comparativo mensal (aba Produtos)
   const anoAtual = hoje.getFullYear();
@@ -153,7 +160,7 @@ export default function RelatorioVendas() {
   };
 
   const { data: pedidos = [], isLoading, refetch } = useQuery({
-    queryKey: ["relatorio-vendas", dataInicio, dataFim, unidadeAtual?.id],
+    queryKey: ["relatorio-vendas", dataInicio, dataFim, scopeKey],
     queryFn: async () => {
       let query = supabase
         .from("pedidos")
@@ -167,7 +174,8 @@ export default function RelatorioVendas() {
         .order("data_entrega", { ascending: false })
         .order("created_at", { ascending: false });
 
-      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
+      if (consolidado && unidadeIds.length > 0) query = query.in("unidade_id", unidadeIds);
+      else if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as PedidoRelatorio[];
@@ -176,7 +184,7 @@ export default function RelatorioVendas() {
 
   // Buscar pedidos do ano inteiro para comparativo mensal
   const { data: pedidosAno = [] } = useQuery({
-    queryKey: ["relatorio-vendas-ano", anoComparativo, unidadeAtual?.id],
+    queryKey: ["relatorio-vendas-ano", anoComparativo, scopeKey],
     queryFn: async () => {
       const inicio = `${anoComparativo}-01-01`;
       const fim = `${anoComparativo}-12-31`;
@@ -185,7 +193,8 @@ export default function RelatorioVendas() {
         .select(`id, created_at, data_entrega, status, pedido_itens (quantidade, preco_unitario, produto_id, produtos (nome))`)
         .gte("data_entrega", inicio)
         .lte("data_entrega", fim);
-      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
+      if (consolidado && unidadeIds.length > 0) query = query.in("unidade_id", unidadeIds);
+      else if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as PedidoRelatorio[];
@@ -194,10 +203,11 @@ export default function RelatorioVendas() {
 
   // Produtos da unidade (para incluir produtos sem pedidos no comparativo)
   const { data: produtosLista = [] } = useQuery({
-    queryKey: ["relatorio-vendas-produtos", unidadeAtual?.id],
+    queryKey: ["relatorio-vendas-produtos", scopeKey],
     queryFn: async () => {
       let query = supabase.from("produtos").select("id, nome").eq("ativo", true);
-      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
+      if (consolidado && unidadeIds.length > 0) query = query.in("unidade_id", unidadeIds);
+      else if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as { id: string; nome: string }[];
@@ -206,15 +216,28 @@ export default function RelatorioVendas() {
 
   // Vendas históricas manuais (lançamentos do sistema antigo)
   const { data: vendasManuais = [], refetch: refetchManuais } = useQuery({
-    queryKey: ["vendas-historicas-manuais", anoComparativo, unidadeAtual?.id],
+    queryKey: ["vendas-historicas-manuais", anoComparativo, scopeKey],
     enabled: !!unidadeAtual?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("vendas_historicas_manuais")
         .select("id, produto_id, ano, mes, quantidade, faturamento")
-        .eq("unidade_id", unidadeAtual!.id)
         .eq("ano", anoComparativo);
+      if (consolidado && unidadeIds.length > 0) query = query.in("unidade_id", unidadeIds);
+      else query = query.eq("unidade_id", unidadeAtual!.id);
+      const { data, error } = await query;
       if (error) throw error;
+      // Quando consolidado, somar por produto/mes
+      if (consolidado) {
+        const acc = new Map<string, { id: string; produto_id: string; ano: number; mes: number; quantidade: number; faturamento: number }>();
+        (data || []).forEach((v: any) => {
+          const k = `${v.produto_id}-${v.mes}`;
+          const cur = acc.get(k);
+          if (cur) { cur.quantidade += Number(v.quantidade) || 0; cur.faturamento += Number(v.faturamento) || 0; }
+          else acc.set(k, { ...v, quantidade: Number(v.quantidade) || 0, faturamento: Number(v.faturamento) || 0 });
+        });
+        return Array.from(acc.values());
+      }
       return data || [];
     },
   });
@@ -776,6 +799,20 @@ export default function RelatorioVendas() {
                 </Button>
               </div>
             </div>
+            {isMatriz && (
+              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                <Switch id="consolidado" checked={consolidado} onCheckedChange={setConsolidado} />
+                <Label htmlFor="consolidado" className="text-sm font-medium cursor-pointer">
+                  Consolidar todas as unidades
+                </Label>
+                <span className="text-xs text-muted-foreground">
+                  Soma vendas de {unidadeIds.length} {unidadeIds.length === 1 ? "unidade" : "unidades"} da empresa.
+                </span>
+                {consolidado && (
+                  <Badge variant="default" className="ml-auto">Consolidado · {unidadeIds.length} unidades</Badge>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -841,11 +878,15 @@ export default function RelatorioVendas() {
                             </TableCell>
                             <TableCell className="hidden sm:table-cell text-xs">{pedido.entregadores?.nome || "-"}</TableCell>
                             <TableCell className="hidden md:table-cell text-xs">
-                              <Popover open={editandoCanalId === pedido.id} onOpenChange={(open) => setEditandoCanalId(open ? pedido.id : null)}>
+                              <Popover open={!consolidado && editandoCanalId === pedido.id} onOpenChange={(open) => !consolidado && setEditandoCanalId(open ? pedido.id : null)}>
                                 <PopoverTrigger asChild>
-                                  <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity">
+                                  <button
+                                    disabled={consolidado}
+                                    title={consolidado ? "Selecione uma unidade específica para editar" : undefined}
+                                    className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+                                  >
                                     <Badge variant="outline" className="text-xs">{canalLabels[pedido.canal_venda || ""] || pedido.canal_venda || "-"}</Badge>
-                                    <Pencil className="h-3 w-3 text-muted-foreground" />
+                                    {!consolidado && <Pencil className="h-3 w-3 text-muted-foreground" />}
                                   </button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-48 p-2 bg-popover border border-border shadow-lg z-50" align="start">
@@ -1234,7 +1275,7 @@ export default function RelatorioVendas() {
                                   valor={l.valores[m]}
                                   manual={l.manual[m]}
                                   metrica={metricaComparativo}
-                                  editavel={!!l.produto_id}
+                                  editavel={!!l.produto_id && !consolidado}
                                   onSalvar={(novo) => l.produto_id && salvarVendaManual(l.produto_id, m, novo)}
                                 />
                               </TableCell>
@@ -1385,6 +1426,8 @@ export default function RelatorioVendas() {
             <ProdutosVendidosTab
               pedidos={pedidos}
               unidadeId={unidadeAtual?.id}
+              unidadeIds={unidadeIds}
+              consolidado={consolidado}
               dataInicio={dataInicio}
               dataFim={dataFim}
             />
