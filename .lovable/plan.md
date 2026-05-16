@@ -1,59 +1,46 @@
 ## Objetivo
 
-Substituir a aba **Top Clientes** (em `/vendas/relatorio`) por uma nova aba **Produtos Vendidos**, replicando o relatório clássico do ERP legado (imagens enviadas): filtros avançados + tabela detalhada com custo, venda, lucro e % lucratividade, com agrupamento por Mês ou Dia.
+Adicionar um toggle **"Consolidar todas as unidades"** no `/vendas/relatorio` que, quando o usuário está com a **Matriz** selecionada no seletor de unidade, traz os dados somados de todas as unidades da empresa (ex.: "quantos P13 todas as lojas venderam juntas").
 
-> Top Clientes continua existindo em outra rota, então a remoção da aba não causa perda funcional.
+## Comportamento
 
-## Layout da Tela
-
-```
-┌─ Card "Produtos Vendidos" ─────────────────────────────┐
-│ [Filtros expansíveis]                                  │
-│  Período: [de] [até]   Hora: [de] [até]               │
-│  Cliente▼  Fornecedor▼  Vendedor▼  Entregador▼        │
-│  UF▼  Cidade▼  Bairro▼                                 │
-│  Marca▼  Grupo▼  SubGrupo▼  Depósito▼                  │
-│  Produto▼  Tabela de Preço▼  Convênio▼                 │
-│  Agrupar por: ( )Mês ( )Dia ( )Nenhum                  │
-│  [✓] Totalizar produtos  [✓] Deduzir devoluções        │
-│  [ ] Separar por Mês/Ano [ ] Separar por Dia           │
-│  [Exibir]  [Exibir Produtos]  [Exportar XLSX] [PDF]    │
-├────────────────────────────────────────────────────────┤
-│ Resumo: Qtde total | Custo | Venda | Lucro | %         │
-├────────────────────────────────────────────────────────┤
-│ Tabela agrupada:                                       │
-│  ▸ 01/2026                                             │
-│      Produto | Qtde | P.Custo | T.Custo | V.Unit |    │
-│              T.Venda | % Lucr. | T.Lucro              │
-│      ...                                               │
-│      Total Mês: ...........................            │
-│  ▸ 02/2026 ...                                         │
-│  Total Geral: .........................                │
-└────────────────────────────────────────────────────────┘
-```
-
-Visual moderno seguindo padrão atual (`venda-card` + `VendaSectionHeader` tom `info`), colunas centralizadas com zebra (igual ao Comparativo Mensal), totais com fundo destacado.
+- O toggle só **aparece** quando `unidadeAtual?.tipo === "matriz"`. Em qualquer filial fica oculto.
+- Estado padrão: **desligado** (mantém comportamento atual = só dados da matriz).
+- Quando ligado:
+  - Queries de pedidos passam a filtrar por `empresa_id` em vez de `unidade_id`.
+  - Aplica-se a **todas** as queries da página: `relatorio-vendas`, `relatorio-vendas-ano` (comparativo mensal), `vendas-historicas-manuais`, `produtos-custo` (nova aba Produtos Vendidos) e `produtos-lista`.
+  - Um badge "Consolidado · N unidades" aparece ao lado do título para deixar claro o modo.
+- A edição inline (canal, células mensais) continua funcionando — mas como envolve `unidade_id` em algumas inserções, **bloqueamos** a edição enquanto consolidado=ON, mostrando tooltip "Edição disponível por unidade".
 
 ## Escopo Técnico
 
-**Arquivo novo:** `src/pages/vendas/ProdutosVendidosTab.tsx`
-- Componente isolado que recebe `pedidos`/`itens` já carregados pelo `RelatorioVendas` ou faz própria query a `pedidos_itens` + joins (produto, cliente, entregador, vendedor) com filtro por `unidade_id`/período.
-- Reaproveita `produtos.preco_custo` p/ P.Custo (fallback 0 quando ausente).
-- Agrupamento por mês via `format(data, "MM/yyyy")` ou por dia.
-- Cálculos: `T.Custo = qtd * p_custo`, `T.Venda = qtd * v_unit`, `%Lucr = (venda-custo)/venda*100`, `T.Lucro = venda - custo`.
-- Filtros como dropdowns populados a partir dos dados (cliente, entregador, marca, grupo etc. — só os que já existem em produto/pedido; campos sem dado ficam desabilitados com tooltip).
-- Toggle "Deduzir devoluções" subtrai itens de `devolucoes` no período.
-- Exportação XLSX com mesma estrutura visual (cabeçalho do grupo + total mês + total geral).
-
 **Arquivo alterado:** `src/pages/vendas/RelatorioVendas.tsx`
-- Trocar `TabsTrigger value="clientes"` (linha 802) por `value="produtos-vendidos"` com ícone `PackageSearch` e label "Produtos Vendidos" / "Vendidos".
-- Trocar `TabsContent value="clientes"` (linhas 1382-1422) por `<TabsContent value="produtos-vendidos"><ProdutosVendidosTab .../></TabsContent>`.
-- Remover bloco da aba Top Clientes da exportação XLSX consolidada (linhas 535-542).
 
-**Sem alterações em backend** (RLS e tabelas existentes já cobrem). Sem migrations.
+1. Novo state: `const [consolidado, setConsolidado] = useState(false);`
+2. Derivar `isMatriz = unidadeAtual?.tipo === "matriz"`. Forçar `consolidado=false` quando trocar para filial (useEffect).
+3. Helper `applyScope(query)`:
+   - Se `consolidado && empresa?.id` → `query.eq("empresa_id", empresa.id)`
+   - Senão se `unidadeAtual?.id` → `query.eq("unidade_id", unidadeAtual.id)`
+4. Substituir as 4 ocorrências de `if (unidadeAtual?.id) query = query.eq("unidade_id", ...)` por `query = applyScope(query)`. Incluir `consolidado` e `empresa?.id` nas `queryKey` correspondentes.
+5. Para `vendas-historicas-manuais` (não há `empresa_id` na tabela hoje): manter restrito à unidade quando consolidado (apenas matriz tem lançamentos) **OU** buscar `IN` em todas unidades da empresa via `unidades.id` já disponível no `UnidadeContext` (`unidades` exporta a lista). Usar `.in("unidade_id", unidades.map(u=>u.id))` quando consolidado.
+6. UI: na barra de filtros (próximo ao período), adicionar:
+   ```tsx
+   {isMatriz && (
+     <label className="flex items-center gap-2 text-sm">
+       <Switch checked={consolidado} onCheckedChange={setConsolidado} />
+       Consolidar todas as unidades
+     </label>
+   )}
+   ```
+   Adicionar badge "Consolidado" no header quando ativo.
+7. Passar `consolidado` para `<ProdutosVendidosTab consolidado />` para que o `useQuery` de `produtos-custo` use a mesma lógica (filtrar por `empresa_id` ou pelas unidades).
+8. Em `ProdutosVendidosTab.tsx`: aceitar props `consolidado?: boolean` e `unidadeIds?: string[]`, ajustar a query de custo para `.in("unidade_id", unidadeIds)` quando consolidado. Lista de filtros (cliente/entregador) já vem dos pedidos, então segue funcionando.
+9. Desabilitar `alterarCanalVenda` e `CelulaMesEditavel` (props `editavel={false}`) quando consolidado=ON, com `title="Selecione uma unidade específica para editar"`.
 
-## O que NÃO será feito
+**Sem migrations**, sem mudanças em RLS (RLS já permite admin/gestor ver unidades da empresa via `user_unidades`/policies existentes).
 
-- Não mexer em `App.tsx`, rotas, providers.
-- Não criar nova rota (fica dentro da tela `/vendas/relatorio`).
-- Não alterar lógica das demais abas.
+## Fora do escopo
+
+- Não criar nova rota nem aba.
+- Não alterar `App.tsx`, providers, rotas.
+- Não somar dados de outras empresas.
