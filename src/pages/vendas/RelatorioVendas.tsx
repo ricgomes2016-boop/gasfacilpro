@@ -1067,8 +1067,8 @@ export default function RelatorioVendas() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader className="pb-3"><CardTitle className="text-base">Detalhamento por Produto</CardTitle></CardHeader>
+              <Card className="venda-card">
+                <VendaSectionHeader tone="primary" icon={<FileSpreadsheet className="h-5 w-5" />} title="Detalhamento por Produto" />
                 <CardContent className="p-0 sm:p-6 sm:pt-0">
                   <div className="overflow-x-auto">
                     <Table className="min-w-[360px]">
