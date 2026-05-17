@@ -576,21 +576,27 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
         )}
       >
         {/* Sidebar Header */}
-        <div className="h-[60px] bg-[#f0f2f5] flex items-center px-4 gap-3">
-          <ChatAvatar url={storeAvatar} name={unidadeAtual?.nome || "Loja"} size="sm" />
-          <div className="flex-1" />
-          <button
-            onClick={() => setNovaOpen(true)}
-            title="Nova conversa"
-            className="p-2 rounded-full hover:bg-[#e9edef] transition-colors"
-          >
-            <SquarePen className="h-5 w-5 text-[#54656f]" />
-          </button>
-          <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors">
-            <svg viewBox="0 0 24 24" width="20" height="20" className="text-[#54656f]">
-              <path fill="currentColor" d="M12 7a2 2 0 1 0-.001-4.001A2 2 0 0 0 12 7zm0 2a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 9zm0 6a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 15z"/>
-            </svg>
-          </button>
+        <div className="bg-[#f0f2f5] px-4 pt-2 pb-2 flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <ChatAvatar url={storeAvatar} name={unidadeAtual?.nome || "Loja"} size="sm" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-[#111b21] truncate">
+                {unidadeAtual?.nome || "Selecione uma unidade"}
+              </p>
+              <p className="text-[11px] text-[#667781] truncate">
+                {unitIntegration?.numero
+                  ? <>WhatsApp {unitIntegration.numero}{unitIntegration.provedor ? ` · ${unitIntegration.provedor === 'meta' ? 'Meta Oficial' : unitIntegration.provedor === 'zapi' ? 'Z-API' : unitIntegration.provedor.toUpperCase()}` : ''}</>
+                  : <span className="text-destructive">WhatsApp não conectado para esta unidade.</span>}
+              </p>
+            </div>
+            <button
+              onClick={() => setNovaOpen(true)}
+              title="Nova conversa"
+              className="p-2 rounded-full hover:bg-[#e9edef] transition-colors"
+            >
+              <SquarePen className="h-5 w-5 text-[#54656f]" />
+            </button>
+          </div>
         </div>
 
         {/* Search Bar */}
