@@ -124,18 +124,28 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
 
   // Carrega foto da loja (e dispara refresh em background)
   useEffect(() => {
-    if (!unidadeAtual?.id) { setStoreAvatar(null); return; }
+    if (!unidadeAtual?.id) { setStoreAvatar(null); setUnitIntegration(null); return; }
     let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("integracoes_whatsapp")
-        .select("loja_foto_url")
+        .select("loja_foto_url, numero_telefone, provedor, provedor_tipo, ativo, status_conexao")
         .eq("unidade_id", unidadeAtual.id)
         .eq("ativo", true)
         .order("loja_foto_atualizada_em", { ascending: false, nullsFirst: false })
         .limit(1)
         .maybeSingle();
-      if (!cancelled) setStoreAvatar(data?.loja_foto_url || null);
+      if (cancelled) return;
+      setStoreAvatar(data?.loja_foto_url || null);
+      setUnitIntegration(
+        data
+          ? {
+              numero: data.numero_telefone || null,
+              provedor: data.provedor || data.provedor_tipo || null,
+              ativo: data.ativo ?? false,
+            }
+          : null
+      );
 
       // Atualiza em background (não bloqueia UI)
       supabase.functions.invoke("whatsapp-refresh-profile", {
