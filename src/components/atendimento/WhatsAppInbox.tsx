@@ -92,6 +92,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const [sending, setSending] = useState(false);
   const [novaOpen, setNovaOpen] = useState(false);
   const [storeAvatar, setStoreAvatar] = useState<string | null>(null);
+  const [unitIntegration, setUnitIntegration] = useState<{ numero: string | null; provedor: string | null; ativo: boolean } | null>(null);
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -123,18 +124,28 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
 
   // Carrega foto da loja (e dispara refresh em background)
   useEffect(() => {
-    if (!unidadeAtual?.id) { setStoreAvatar(null); return; }
+    if (!unidadeAtual?.id) { setStoreAvatar(null); setUnitIntegration(null); return; }
     let cancelled = false;
     (async () => {
       const { data } = await supabase
         .from("integracoes_whatsapp")
-        .select("loja_foto_url")
+        .select("loja_foto_url, numero_telefone, provedor, provedor_tipo, ativo, status_conexao")
         .eq("unidade_id", unidadeAtual.id)
         .eq("ativo", true)
         .order("loja_foto_atualizada_em", { ascending: false, nullsFirst: false })
         .limit(1)
         .maybeSingle();
-      if (!cancelled) setStoreAvatar(data?.loja_foto_url || null);
+      if (cancelled) return;
+      setStoreAvatar(data?.loja_foto_url || null);
+      setUnitIntegration(
+        data
+          ? {
+              numero: data.numero_telefone || null,
+              provedor: data.provedor || data.provedor_tipo || null,
+              ativo: data.ativo ?? false,
+            }
+          : null
+      );
 
       // Atualiza em background (não bloqueia UI)
       supabase.functions.invoke("whatsapp-refresh-profile", {
@@ -148,12 +159,18 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
 
   useEffect(() => {
     const fetchConversas = async () => {
-      const { data } = await supabase
+      let query = supabase
         .from("ai_conversas")
         .select("id, titulo, updated_at, telefone, foto_url, unidade_id")
         .not("telefone", "is", null)
         .order("updated_at", { ascending: false })
         .limit(200);
+
+      if (unidadeAtual?.id) {
+        query = query.eq("unidade_id", unidadeAtual.id);
+      }
+
+      const { data } = await query;
 
       const convs = (data || []) as Conversa[];
 
@@ -181,6 +198,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       setConversas(convs);
       setLoading(false);
     };
+    setLoading(true);
     fetchConversas();
 
     const channel = supabase
@@ -194,7 +212,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [unidadeAtual?.id]);
 
   // Background fetch profile photos for conversations missing foto_url (queued, throttled)
   useEffect(() => {
@@ -558,21 +576,27 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
         )}
       >
         {/* Sidebar Header */}
-        <div className="h-[60px] bg-[#f0f2f5] flex items-center px-4 gap-3">
-          <ChatAvatar url={storeAvatar} name={unidadeAtual?.nome || "Loja"} size="sm" />
-          <div className="flex-1" />
-          <button
-            onClick={() => setNovaOpen(true)}
-            title="Nova conversa"
-            className="p-2 rounded-full hover:bg-[#e9edef] transition-colors"
-          >
-            <SquarePen className="h-5 w-5 text-[#54656f]" />
-          </button>
-          <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors">
-            <svg viewBox="0 0 24 24" width="20" height="20" className="text-[#54656f]">
-              <path fill="currentColor" d="M12 7a2 2 0 1 0-.001-4.001A2 2 0 0 0 12 7zm0 2a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 9zm0 6a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 15z"/>
-            </svg>
-          </button>
+        <div className="bg-[#f0f2f5] px-4 pt-2 pb-2 flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <ChatAvatar url={storeAvatar} name={unidadeAtual?.nome || "Loja"} size="sm" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-[#111b21] truncate">
+                {unidadeAtual?.nome || "Selecione uma unidade"}
+              </p>
+              <p className="text-[11px] text-[#667781] truncate">
+                {unitIntegration?.numero
+                  ? <>WhatsApp {unitIntegration.numero}{unitIntegration.provedor ? ` · ${unitIntegration.provedor === 'meta' ? 'Meta Oficial' : unitIntegration.provedor === 'zapi' ? 'Z-API' : unitIntegration.provedor.toUpperCase()}` : ''}</>
+                  : <span className="text-destructive">WhatsApp não conectado para esta unidade.</span>}
+              </p>
+            </div>
+            <button
+              onClick={() => setNovaOpen(true)}
+              title="Nova conversa"
+              className="p-2 rounded-full hover:bg-[#e9edef] transition-colors"
+            >
+              <SquarePen className="h-5 w-5 text-[#54656f]" />
+            </button>
+          </div>
         </div>
 
         {/* Search Bar */}
