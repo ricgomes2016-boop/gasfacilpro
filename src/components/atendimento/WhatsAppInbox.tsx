@@ -159,12 +159,18 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
 
   useEffect(() => {
     const fetchConversas = async () => {
-      const { data } = await supabase
+      let query = supabase
         .from("ai_conversas")
         .select("id, titulo, updated_at, telefone, foto_url, unidade_id")
         .not("telefone", "is", null)
         .order("updated_at", { ascending: false })
         .limit(200);
+
+      if (unidadeAtual?.id) {
+        query = query.eq("unidade_id", unidadeAtual.id);
+      }
+
+      const { data } = await query;
 
       const convs = (data || []) as Conversa[];
 
@@ -192,6 +198,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       setConversas(convs);
       setLoading(false);
     };
+    setLoading(true);
     fetchConversas();
 
     const channel = supabase
@@ -205,7 +212,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [unidadeAtual?.id]);
 
   // Background fetch profile photos for conversations missing foto_url (queued, throttled)
   useEffect(() => {
