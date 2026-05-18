@@ -303,16 +303,17 @@ export default function ContasReceber() {
 
     if (isParcial) {
       const restante = valorConta - totalRecebido;
-      const obs = `${receberConta.observacoes || ""}\nRecebido parcial R$ ${totalRecebido.toFixed(2)} em ${format(new Date(), "dd/MM/yyyy")} (${formasStr})`.trim();
+      const obs = `${receberConta.observacoes || ""}\nRecebido parcial R$ ${totalRecebido.toFixed(2)} em ${dataRecFmt} (${formasStr})`.trim();
       const { error } = await supabase.from("contas_receber").update({ valor: restante, observacoes: obs }).eq("id", receberConta.id);
       if (error) { toast.error("Erro ao processar"); return; }
       toast.success(`Recebido R$ ${totalRecebido.toFixed(2)} — Restante: R$ ${restante.toFixed(2)}`);
     } else {
       const { error } = await supabase.from("contas_receber").update({
         status: "recebida", forma_pagamento: formasStr || receberConta.forma_pagamento,
+        data_recebimento: dataRec,
       }).eq("id", receberConta.id);
       if (error) { toast.error("Erro ao confirmar"); return; }
-      toast.success("Conta recebida! Valores roteados para caixa/banco.");
+      toast.success(`Conta recebida em ${dataRecFmt}!`);
     }
     setReceberDialogOpen(false);
     fetchContas();
