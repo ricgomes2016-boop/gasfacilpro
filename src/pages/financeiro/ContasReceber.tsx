@@ -642,11 +642,15 @@ export default function ContasReceber() {
                         {conta.vale_numero && <p className="text-xs text-muted-foreground">Vale nº {conta.vale_numero} · {conta.vale_codigo}</p>}
                       </TableCell>
                       <TableCell className="text-sm">{conta.descricao}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
+                        {conta.data_venda ? format(new Date(conta.data_venda), "dd/MM/yyyy") : "—"}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">{conta.forma_pagamento || "—"}</Badge>
                       </TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
-                        {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}
+                        <div>{format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</div>
+                        {(() => { const a = agingLabel(conta); return a ? <div className={`text-[10px] ${a.cls}`}>{a.text}</div> : null; })()}
                       </TableCell>
                       <TableCell className="font-medium text-sm whitespace-nowrap">
                         R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
