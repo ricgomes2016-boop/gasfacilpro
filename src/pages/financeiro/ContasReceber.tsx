@@ -351,6 +351,19 @@ export default function ContasReceber() {
       toast.error("Selecione a forma de pagamento"); return;
     }
     const dataRec = bulkDataRecebimento || getBrasiliaDateString();
+    const hojeStr = getBrasiliaDateString();
+    if (dataRec > hojeStr) {
+      toast.error("A data do recebimento não pode ser posterior a hoje.");
+      return;
+    }
+    const maiorDataVenda = selectedContas.reduce<string>((acc, c) => {
+      const d = (c.data_venda || c.created_at || "").slice(0, 10);
+      return d > acc ? d : acc;
+    }, "");
+    if (maiorDataVenda && dataRec < maiorDataVenda) {
+      toast.error(`A data do recebimento não pode ser anterior à data da venda mais recente (${format(new Date(maiorDataVenda + "T12:00:00"), "dd/MM/yyyy")}).`);
+      return;
+    }
     setBulkProcessing(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
