@@ -21,11 +21,16 @@ export default function AsaasConfig() {
   const { empresa } = useEmpresa();
   const [apiKey, setApiKey] = useState("");
   const [sandbox, setSandbox] = useState(true);
+  const [webhookToken, setWebhookToken] = useState("");
   const [showKey, setShowKey] = useState(false);
+  const [showToken, setShowToken] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [connected, setConnected] = useState(false);
   const [balance, setBalance] = useState<{ balance: number; } | null>(null);
+
+  const webhookUrl = `https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/asaas-webhook`;
+
 
   useEffect(() => {
     if (empresa?.id) loadConfig();
