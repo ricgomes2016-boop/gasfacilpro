@@ -987,9 +987,14 @@ export default function ContasReceber() {
                   <Input
                     type="date"
                     className="mt-1"
+                    min={(receberConta.data_venda || receberConta.created_at || "").slice(0, 10) || undefined}
+                    max={getBrasiliaDateString()}
                     value={receberForm.dataRecebimento}
                     onChange={e => setReceberForm(prev => ({ ...prev, dataRecebimento: e.target.value }))}
                   />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Entre a data da venda e hoje.
+                  </p>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
