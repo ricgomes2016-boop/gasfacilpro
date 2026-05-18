@@ -974,6 +974,15 @@ export default function ContasReceber() {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label>Data do Recebimento *</Label>
+                <Input
+                  type="date"
+                  className="mt-1"
+                  value={bulkDataRecebimento}
+                  onChange={e => setBulkDataRecebimento(e.target.value)}
+                />
+              </div>
               <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
                 Todas as contas serão marcadas como recebidas e o valor será creditado automaticamente no destino correto (Dinheiro → Caixa, outros → Conta Bancária).
               </p>
