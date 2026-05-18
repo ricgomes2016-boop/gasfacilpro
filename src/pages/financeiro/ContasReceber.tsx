@@ -679,6 +679,12 @@ export default function ContasReceber() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50">
                         {conta.status !== "recebida" && <DropdownMenuItem onClick={() => openReceberDialog(conta)}><DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber</DropdownMenuItem>}
+                        {conta.status !== "recebida" && (
+                          <DropdownMenuItem onClick={() => { setAsaasConta(conta); setAsaasDialogOpen(true); }}>
+                            <Banknote className="h-4 w-4 mr-2" />
+                            {conta.asaas_charge_id ? "Ver boleto / PIX (Asaas)" : "Emitir boleto / PIX (Asaas)"}
+                          </DropdownMenuItem>
+                        )}
                         {conta.status === "recebida" && podeEditarDataRecebimento && (
                           <DropdownMenuItem onClick={() => openEditDataRecDialog(conta)}>
                             <Pencil className="h-4 w-4 mr-2" />Editar data de recebimento
