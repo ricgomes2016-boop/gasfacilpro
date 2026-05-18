@@ -158,7 +158,7 @@ export default function ContasReceber() {
     setLoading(true);
     let query = supabase
       .from("contas_receber")
-      .select("*, pedidos(cliente_id, endereco_entrega, clientes(nome, endereco, bairro)), vale_gas(numero, codigo), vale_gas_parceiros:vale_gas_parceiro_id(nome)")
+      .select("*, pedidos(cliente_id, created_at, endereco_entrega, clientes(nome, endereco, bairro)), vale_gas(numero, codigo), vale_gas_parceiros:vale_gas_parceiro_id(nome)")
       .order("vencimento", { ascending: true });
     if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
     const { data, error } = await query;
