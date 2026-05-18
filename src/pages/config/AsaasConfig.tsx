@@ -69,7 +69,9 @@ export default function AsaasConfig() {
           empresa_id: empresa.id,
           asaas_api_key: apiKey.trim(),
           asaas_sandbox: sandbox,
+          asaas_webhook_token: webhookToken.trim() || null,
         } as any, { onConflict: "empresa_id" });
+
 
       if (error) throw error;
       setConnected(true);
