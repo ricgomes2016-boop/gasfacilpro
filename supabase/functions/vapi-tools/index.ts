@@ -169,7 +169,7 @@ async function criarPedido(args: any, ctx: any) {
     ok: true,
     pedido_numero: pedido.numero_sequencial,
     valor_total: valorTotal,
-    mensagem: `Pedido número ${pedido.numero_sequencial} criado. Total R$ ${valorTotal.toFixed(2)}. Tempo estimado de entrega: 30 a 40 minutos.`,
+    mensagem: `Pedido número ${pedido.numero_sequencial} criado. Total R$ ${valorTotal.toFixed(2)}. Tempo estimado de entrega: 20 a 40 minutos.`,
   };
 }
 
