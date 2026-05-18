@@ -1472,13 +1472,12 @@ export async function checkRateLimit(supabase: any, conversationId: string, maxM
 }
 
 // ========== SEND MESSAGE ==========
-export async function sendMessage(config: BiaConfig, phone: string, message: string) {
+export async function sendMessage(config: BiaConfig, phone: string, message: string): Promise<{ waMessageId?: string; ok: boolean; error?: string }> {
   try {
     if (config.provedor === "evolution") {
-      // Evolution API v2 - send text message
       const baseUrl = config.evolutionBaseUrl;
       const instance = config.evolutionInstanceName;
-      if (!baseUrl || !instance) { console.error("Evolution: missing baseUrl or instance"); return; }
+      if (!baseUrl || !instance) { console.error("Evolution: missing baseUrl or instance"); return { ok: false, error: "missing_instance" }; }
       const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
       const url = `${baseUrl}/message/sendText/${instance}`;
       console.log("Evolution sendMessage:", JSON.stringify({ url, phone: cleanPhone, textLen: message.length }));
@@ -1489,16 +1488,17 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       });
       const respText = await resp.text();
       console.log("Evolution sendMessage response:", resp.status, respText.substring(0, 300));
-      // Auto-deactivate instance on Connection Closed
       if ((resp.status === 400 || resp.status === 403) && (respText.includes("Connection Closed") || respText.includes("not connected"))) {
         console.error(`⚠️ Evolution instance ${instance} disconnected — auto-deactivating`);
         try {
           const sb = createSupabase();
           await sb.from("integracoes_whatsapp").update({ ativo: false }).eq("instance_id", instance).eq("provedor", "evolution");
         } catch (dbErr) { console.error("Failed to auto-deactivate:", dbErr); }
+        return { ok: false, error: "evolution_disconnected" };
       }
+      if (!resp.ok) return { ok: false, error: `evolution_${resp.status}` };
+      try { const j = JSON.parse(respText); return { ok: true, waMessageId: j?.key?.id || j?.messageId }; } catch { return { ok: true }; }
     } else if (config.provedor === "gateway") {
-      // Send via WhatsApp Gateway API
       const url = `${config.gatewayBaseUrl}/instances/${config.gatewayInstanceName}/send-text`;
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
       const resp = await fetch(url, {
@@ -1508,17 +1508,15 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       });
       const respText = await resp.text();
       console.log("Gateway sendMessage response:", resp.status, respText.substring(0, 300));
+      if (!resp.ok) return { ok: false, error: `gateway_${resp.status}` };
+      try { const j = JSON.parse(respText); return { ok: true, waMessageId: j?.messageId || j?.id }; } catch { return { ok: true }; }
     } else if (config.provedor === "meta") {
-      // Meta WhatsApp Cloud API
       const phoneNumberId = config.metaPhoneNumberId || config.instanceId;
       const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
       const url = `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`;
       const resp = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${config.token}`,
-        },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${config.token}` },
         body: JSON.stringify({
           messaging_product: "whatsapp",
           recipient_type: "individual",
@@ -1529,11 +1527,18 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       });
       const respText = await resp.text();
       console.log("Meta sendMessage response:", resp.status, respText.substring(0, 300));
+      if (!resp.ok) {
+        try { const j = JSON.parse(respText); return { ok: false, error: j?.error?.message || `meta_${resp.status}` }; } catch { return { ok: false, error: `meta_${resp.status}` }; }
+      }
+      try { const j = JSON.parse(respText); return { ok: true, waMessageId: j?.messages?.[0]?.id }; } catch { return { ok: true }; }
     } else if (config.provedor === "zapi") {
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-text`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
-      await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, message }) });
+      const resp = await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, message }) });
+      const respText = await resp.text();
+      if (!resp.ok) return { ok: false, error: `zapi_${resp.status}` };
+      try { const j = JSON.parse(respText); return { ok: true, waMessageId: j?.zaapId || j?.messageId || j?.id }; } catch { return { ok: true }; }
     } else {
       const uazUrl = `https://free.uazapi.com/send/text`;
       const uazBody = { number: phone.replace(/\D/g, ""), text: message };
@@ -1545,8 +1550,10 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       });
       const respText = await resp.text();
       console.log("UaZapi sendMessage response:", resp.status, respText.substring(0, 300));
+      if (!resp.ok) return { ok: false, error: `uazapi_${resp.status}` };
+      try { const j = JSON.parse(respText); return { ok: true, waMessageId: j?.id || j?.messageId }; } catch { return { ok: true }; }
     }
-  } catch (e) { console.error("Send message error:", e); }
+  } catch (e) { console.error("Send message error:", e); return { ok: false, error: (e as Error).message }; }
 }
 
 // ========== SEND LOCATION (WHATSAPP) ==========
