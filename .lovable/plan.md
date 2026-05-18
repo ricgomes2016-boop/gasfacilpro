@@ -1,46 +1,38 @@
-## Por que a foto não aparece
+## Problema
 
-A unidade da **Central Gás** que você está usando está conectada via **Meta Cloud API** (`provedor = meta`). A API oficial da Meta **não expõe foto de perfil/status de clientes finais** — só devolve a foto do próprio número da loja. Por isso `ai_conversas.foto_url` fica `NULL` e o painel mostra só as iniciais.
+Telefones com código do país (55) estão sendo salvos com um "5" sobrando na frente. Ex.: o número `(43) 9974-0993` chega como `554399740993` (12 dígitos) e o sistema corta só os 11 últimos → `54399740993`.
 
-O WhatsApp Web mostra a foto porque ele usa o protocolo Baileys (multi-device), o mesmo que a **Evolution API** usa. Hoje só `fetchContactProfilePicture` na Evolution e na Z‑API consegue buscar a foto do contato.
+A causa está em duas funções que normalizam telefone com `slice(-11)` puro, sem remover o prefixo "55" do Brasil:
 
-Além disso, mesmo quando a foto é buscada, a URL retornada (`pps.whatsapp.net/...`) é **temporária (expira em ~24 h)** e tem CORS/hot‑link bloqueado em muitos casos — então salvar a URL crua no banco também quebra.
+- `supabase/functions/_shared/bia-core.ts` linha **1175** — `createOrder` insere o cliente novo após pedido: `telefone: phone.replace(/\\D/g,"").slice(-11)`
+- `supabase/functions/_shared/bia-core.ts` linha **358** — `normalizePhone()` (usada em `findCliente` e em vários webhooks)
 
-## O que vou fazer
+Quando o número vem com 13 dígitos (`55 + DDD + 9 dígitos`), o `slice(-11)` funciona por sorte. Quando vem com 12 (`55 + DDD + 8 dígitos`, ou alguns formatos), sobra o "5".
 
-### 1. Fallback de provedor em `whatsapp-refresh-profile`
+## Correção
 
-Atualizar `supabase/functions/whatsapp-refresh-profile/index.ts`:
+Substituir `slice(-11)` por uma normalização BR-aware:
 
-- Quando o provedor da unidade do pedido é **Meta** (ou retorna `null`), tentar automaticamente, **na mesma empresa**, qualquer instância **Evolution ativa** (`status_conexao in ('conectado','open')`) como "buscador de fotos". A foto da loja continua vindo do provedor primário.
-- Ordem de tentativa para foto do contato: `evolution (mesma empresa) → zapi (mesma empresa) → provedor primário`.
-- Em `_shared/bia-core.ts` adicionar helper `resolveAnyEvolutionForEmpresa(supabase, empresa_id)` que devolve um `BiaConfig` Evolution ativo da empresa para reuso.
+```ts
+function normalizePhone(raw: string): string {
+  let d = (raw || "").replace(/\D/g, "");
+  // Remove DDI 55 do Brasil quando presente (12 ou 13 dígitos)
+  if (d.length > 11 && d.startsWith("55")) d = d.slice(2);
+  return d.slice(-11);
+}
+```
 
-### 2. Cache da imagem em Supabase Storage (resolve expiração + CORS)
+### Arquivos a alterar
 
-- Bucket público novo `whatsapp-avatars` (criar via migration).
-- Em `whatsapp-refresh-profile`, depois de obter a URL temporária do WhatsApp, baixar o blob no edge function e fazer `storage.upload('whatsapp-avatars', '{conversa_id}.jpg', ...)` com `upsert: true`.
-- Salvar em `ai_conversas.foto_url` a **URL pública do Storage** (estável), não a do `pps.whatsapp.net`.
-- Mesmo tratamento para a foto da loja: salvar em `integracoes_whatsapp.loja_foto_url` a URL do Storage.
+1. `supabase/functions/_shared/bia-core.ts`
+   - Reescrever `normalizePhone` (linha 358) com a lógica acima.
+   - Linha 1175 dentro de `createOrder`: trocar o inline `phone.replace(/\D/g,"").slice(-11)` por uma chamada a `normalizePhone(phone)`.
 
-### 3. Re-sync automático quando estiver velho
+Nenhuma outra mudança. Webhooks (zapi/meta/uazapi/gateway/evolution) já chamam `normalizePhone`, então herdam o fix automaticamente.
 
-- O efeito que já existe em `WhatsAppInbox.tsx` (linha 220) que faz background fetch para conversas sem `foto_url` passa a também re-enfileirar quando `foto_atualizada_em < now() - 7 dias` (renovação preventiva, já que a Evolution caching local segue válido por mais tempo que a URL da Meta).
+## Validação
 
-### 4. Trigger manual no painel
-
-- O botão "Atualizar foto do perfil" no `ContactDetailsPanel` já chama `whatsapp-refresh-profile`. Como agora ele tem fallback + cache, vai começar a funcionar para os contatos da unidade Meta.
-- Exibir mensagem específica quando nenhum provedor da empresa consegue buscar (ex.: empresa só tem Meta sem Evolution complementar): "Foto indisponível — conecte uma instância Evolution na empresa para habilitar fotos de contatos".
-
-## Arquivos tocados
-
-- `supabase/functions/whatsapp-refresh-profile/index.ts` — fallback de provedor + upload no Storage.
-- `supabase/functions/_shared/bia-core.ts` — helper `resolveAnyEvolutionForEmpresa`.
-- Nova migration: criar bucket público `whatsapp-avatars` + policy de leitura pública.
-- `src/components/atendimento/WhatsAppInbox.tsx` — adicionar re-sync para fotos > 7 dias e mensagem de "indisponível" quando edge function retornar `reason: "no_provider_for_contact_picture"`.
-
-## Fora de escopo
-
-- Não vou trocar o provedor principal da unidade; Meta continua sendo o canal de mensagens.
-- Não vou implementar fetch via Baileys próprio — reuso da Evolution já configurada.
-- Sem mudanças visuais no `ContactDetailsPanel` além da mensagem de status.
+- Caso "55" + 11 dígitos (13 total) → continua devolvendo 11 corretos.
+- Caso "55" + 10 dígitos (12 total) → agora devolve 10 (sem o "5" sobrando) em vez de 11 errados.
+- Caso já vier com 11 dígitos → inalterado.
+- Caso vier com 10 dígitos (sem 9 móvel) → inalterado.

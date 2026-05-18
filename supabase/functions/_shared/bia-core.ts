@@ -356,7 +356,10 @@ export async function identifyContact(supabase: any, phone: string): Promise<Con
 
 // ========== NORMALIZE PHONE ==========
 export function normalizePhone(raw: string): string {
-  return raw.replace(/\D/g, "").slice(-11);
+  let d = (raw || "").replace(/\D/g, "");
+  // Remove DDI 55 do Brasil quando presente (12 ou 13 dígitos)
+  if (d.length > 11 && d.startsWith("55")) d = d.slice(2);
+  return d.slice(-11);
 }
 
 // ========== FIND CLIENT ==========
