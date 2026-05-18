@@ -93,6 +93,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const [novaOpen, setNovaOpen] = useState(false);
   const [storeAvatar, setStoreAvatar] = useState<string | null>(null);
   const [unitIntegration, setUnitIntegration] = useState<{ numero: string | null; provedor: string | null; ativo: boolean } | null>(null);
+  const [profileSyncStatus, setProfileSyncStatus] = useState<"idle" | "syncing" | "offline">("idle");
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -258,15 +259,23 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     const conv = conversas.find((c) => c.id === selectedId);
     const uid = conv?.unidade_id || unidadeAtual?.id;
     if (uid) {
+      setProfileSyncStatus("syncing");
       supabase.functions.invoke("whatsapp-refresh-profile", {
         body: { unidade_id: uid, conversa_id: selectedId },
-      }).then(({ data: r }: any) => {
+      }).then(({ data: r, error }: any) => {
+        if (error || r?.ok === false) {
+          setProfileSyncStatus("offline");
+          return;
+        }
+        setProfileSyncStatus("idle");
         if (r?.contato_foto_url) {
           setConversas((prev) => prev.map((x) =>
             x.id === selectedId ? { ...x, foto_url: r.contato_foto_url } : x
           ));
         }
-      }).catch(() => {});
+      }).catch(() => setProfileSyncStatus("offline"));
+    } else {
+      setProfileSyncStatus("idle");
     }
 
     const channel = supabase
@@ -746,8 +755,13 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                 <p className="text-[#111b21] text-base font-normal truncate">
                   {selectedConversa?.titulo}
                 </p>
-                <p className="text-[#667781] text-xs">
-                  online
+                <p className={cn(
+                  "text-xs",
+                  profileSyncStatus === "offline" ? "text-[#b54708]" : "text-[#667781]"
+                )}>
+                  {profileSyncStatus === "syncing" && "atualizando foto…"}
+                  {profileSyncStatus === "offline" && "sem conexão com WhatsApp — usando avatar padrão"}
+                  {profileSyncStatus === "idle" && "online"}
                 </p>
               </div>
 
