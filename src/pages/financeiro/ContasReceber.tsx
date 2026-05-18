@@ -64,6 +64,8 @@ interface ContaReceber {
   parceiro_nome?: string | null;
   endereco_cliente?: string | null;
   bairro_cliente?: string | null;
+  data_venda?: string | null;
+  data_recebimento?: string | null;
 }
 
 const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque", "Vale Gás"];
