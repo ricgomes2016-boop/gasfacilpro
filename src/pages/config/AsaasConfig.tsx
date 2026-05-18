@@ -250,8 +250,85 @@ export default function AsaasConfig() {
           </CardContent>
         </Card>
 
+        {/* Webhook (baixa automática) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Webhook — Baixa Automática
+            </CardTitle>
+            <CardDescription>
+              Configure no Asaas para que as contas a receber sejam marcadas como recebidas automaticamente quando o cliente pagar.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>URL do Webhook</Label>
+              <div className="flex gap-2">
+                <Input value={webhookUrl} readOnly className="font-mono text-xs" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(webhookUrl);
+                    toast.success("URL copiada!");
+                  }}
+                >
+                  Copiar
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Token de Autenticação (opcional, mas recomendado)</Label>
+              <div className="relative">
+                <Input
+                  type={showToken ? "text" : "password"}
+                  value={webhookToken}
+                  onChange={(e) => setWebhookToken(e.target.value)}
+                  placeholder="ex: meu-token-secreto-123"
+                  className="pr-10 font-mono"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full"
+                  onClick={() => setShowToken(!showToken)}
+                >
+                  {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Crie um token forte e cole o mesmo valor no campo "Token de autenticação" do Asaas. Eventos sem o token correto serão ignorados.
+              </p>
+            </div>
+
+            <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-1.5">
+              <p className="font-medium text-foreground">📍 Como configurar no Asaas:</p>
+              <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                <li>Acesse <a href="https://www.asaas.com/customerWebhookConfig/list" target="_blank" rel="noopener noreferrer" className="text-primary underline">Asaas → Integrações → Webhooks</a></li>
+                <li>Clique em <strong>Adicionar webhook</strong></li>
+                <li>Cole a URL acima no campo <strong>URL</strong></li>
+                <li>Em <strong>Evento</strong>, selecione: <em>Cobranças (Pagamentos)</em></li>
+                <li>(Opcional) Cole o token acima no campo <strong>Token de autenticação</strong></li>
+                <li>Versão da API: <strong>v3</strong> · Email para notificações de erro: o seu</li>
+                <li>Salve. Pronto! Pagamentos recebidos darão baixa automática aqui no sistema.</li>
+              </ol>
+            </div>
+
+            <div className="flex">
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                Salvar Token
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Features */}
         <Card>
+
           <CardHeader>
             <CardTitle className="text-base">Funcionalidades Disponíveis</CardTitle>
           </CardHeader>
