@@ -165,7 +165,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     const fetchConversas = async () => {
       let query = supabase
         .from("ai_conversas")
-        .select("id, titulo, updated_at, telefone, foto_url, unidade_id")
+        .select("id, titulo, updated_at, telefone, foto_url, foto_atualizada_em, unidade_id")
         .not("telefone", "is", null)
         .order("updated_at", { ascending: false })
         .limit(200);
