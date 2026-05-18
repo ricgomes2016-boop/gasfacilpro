@@ -44,6 +44,7 @@ import autoTable from "jspdf-autotable";
 import { SmartImportButtons } from "@/components/import/SmartImportButtons";
 import { ImportReviewDialog } from "@/components/import/ImportReviewDialog";
 import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ContaReceber {
   id: string;
