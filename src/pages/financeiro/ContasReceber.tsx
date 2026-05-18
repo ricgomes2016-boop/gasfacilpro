@@ -1203,6 +1203,14 @@ export default function ContasReceber() {
           { key: "forma_pagamento", label: "Forma Pgto" },
         ]}
       />
+      {asaasConta && (
+        <EmitirBoletoAsaasDialog
+          open={asaasDialogOpen}
+          onOpenChange={setAsaasDialogOpen}
+          conta={asaasConta as any}
+          onSuccess={fetchContas}
+        />
+      )}
     </MainLayout>
   );
 }
