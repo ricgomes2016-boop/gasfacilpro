@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ClienteFormDialog } from "@/components/clientes/ClienteFormDialog";
 import type { ClienteForm } from "@/hooks/useClientes";
+import { ContactDetailsPanel } from "./ContactDetailsPanel";
 
 interface Conversa {
   id: string;
