@@ -759,6 +759,11 @@ export default function ContasReceber() {
                                 <DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber
                               </DropdownMenuItem>
                             )}
+                            {conta.status === "recebida" && podeEditarDataRecebimento && (
+                              <DropdownMenuItem onClick={() => openEditDataRecDialog(conta)}>
+                                <Pencil className="h-4 w-4 mr-2" />Editar data de recebimento
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem onClick={() => handleEdit(conta)}>
                               <Pencil className="h-4 w-4 mr-2" />Editar
                             </DropdownMenuItem>
