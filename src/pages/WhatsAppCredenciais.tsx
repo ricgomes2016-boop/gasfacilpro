@@ -326,6 +326,26 @@ export default function WhatsAppCredenciais() {
           </p>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Webhook className="h-4 w-4" /> Webhook Z-API (por unidade)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-[11px] font-mono bg-muted px-3 py-2 rounded-lg break-all">{zapiWebhookUrl}</code>
+            <Button variant="outline" size="sm" className="gap-1" onClick={copyZapiWebhook} disabled={!unidadeId}>
+              {zapiCopied ? <CheckCheck className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+              {zapiCopied ? "Copiado" : "Copiar"}
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Selecione a unidade acima e cole esta URL no painel Z-API em <strong>Webhooks → Ao receber</strong> (e demais eventos relevantes). O parâmetro <code>?unidade_id=</code> garante que as mensagens caiam isoladas na loja correta — permitindo que Forte (Z-API) e Central Gás (Meta) coexistam no mesmo sistema.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
