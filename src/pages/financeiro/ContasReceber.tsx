@@ -1102,6 +1102,46 @@ export default function ContasReceber() {
           </DialogContent>
         </Dialog>
 
+        {/* Editar data de recebimento (admin/gestor) */}
+        <Dialog open={editDataRecDialogOpen} onOpenChange={setEditDataRecDialogOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader><DialogTitle>Editar data de recebimento</DialogTitle></DialogHeader>
+            {editDataRecConta && (
+              <div className="space-y-4 pt-2">
+                <div className="p-3 rounded-lg bg-muted/50 space-y-1">
+                  <p className="text-sm font-medium">{editDataRecConta.cliente}</p>
+                  <p className="text-xs text-muted-foreground">{editDataRecConta.descricao}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Data atual: {editDataRecConta.data_recebimento
+                      ? format(new Date(editDataRecConta.data_recebimento + "T12:00:00"), "dd/MM/yyyy")
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm">Nova data *</Label>
+                  <Input
+                    type="date"
+                    className="mt-1"
+                    min={(editDataRecConta.data_venda || editDataRecConta.created_at || "").slice(0, 10) || undefined}
+                    max={getBrasiliaDateString()}
+                    value={editDataRecValue}
+                    onChange={e => setEditDataRecValue(e.target.value)}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    A alteração será registrada nas observações da conta.
+                  </p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setEditDataRecDialogOpen(false)}>Cancelar</Button>
+                  <Button onClick={handleSalvarEditDataRec} disabled={editDataRecSaving}>
+                    {editDataRecSaving ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
         {/* Confirm Delete */}
         <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
           <AlertDialogContent>
