@@ -107,6 +107,14 @@ export default function ContasReceber() {
   const [bulkDataRecebimento, setBulkDataRecebimento] = useState("");
   const [bulkProcessing, setBulkProcessing] = useState(false);
 
+  // Edit data_recebimento (admin/gestor only)
+  const { hasAnyRole, profile, user } = useAuth();
+  const podeEditarDataRecebimento = hasAnyRole(["admin", "gestor"]);
+  const [editDataRecDialogOpen, setEditDataRecDialogOpen] = useState(false);
+  const [editDataRecConta, setEditDataRecConta] = useState<ContaReceber | null>(null);
+  const [editDataRecValue, setEditDataRecValue] = useState("");
+  const [editDataRecSaving, setEditDataRecSaving] = useState(false);
+
   // Import states
   const [importItems, setImportItems] = useState<Array<{
     cliente: string; descricao: string; valor: number; vencimento: string; forma_pagamento: string; observacoes: string;
