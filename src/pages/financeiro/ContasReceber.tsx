@@ -118,6 +118,8 @@ export default function ContasReceber() {
   const podeEditarDataRecebimento = hasAnyRole(["admin", "gestor"]);
   const [editDataRecDialogOpen, setEditDataRecDialogOpen] = useState(false);
   const [editDataRecConta, setEditDataRecConta] = useState<ContaReceber | null>(null);
+  const [asaasDialogOpen, setAsaasDialogOpen] = useState(false);
+  const [asaasConta, setAsaasConta] = useState<ContaReceber | null>(null);
   const [editDataRecValue, setEditDataRecValue] = useState("");
   const [editDataRecSaving, setEditDataRecSaving] = useState(false);
 
