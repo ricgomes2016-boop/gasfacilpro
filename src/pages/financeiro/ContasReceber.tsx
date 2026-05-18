@@ -190,6 +190,11 @@ export default function ContasReceber() {
         bairro_cliente: c.pedidos?.clientes?.bairro || null,
         data_venda: c.pedidos?.created_at || c.created_at || null,
         data_recebimento: c.data_recebimento || null,
+        asaas_charge_id: c.asaas_charge_id || null,
+        linha_digitavel: c.linha_digitavel || null,
+        boleto_url: c.boleto_url || null,
+        pix_qrcode: c.pix_qrcode || null,
+        pix_copia_cola: c.pix_copia_cola || null,
       })));
     }
     setLoading(false);
