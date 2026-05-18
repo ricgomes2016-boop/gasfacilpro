@@ -666,6 +666,11 @@ export default function ContasReceber() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50">
                         {conta.status !== "recebida" && <DropdownMenuItem onClick={() => openReceberDialog(conta)}><DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber</DropdownMenuItem>}
+                        {conta.status === "recebida" && podeEditarDataRecebimento && (
+                          <DropdownMenuItem onClick={() => openEditDataRecDialog(conta)}>
+                            <Pencil className="h-4 w-4 mr-2" />Editar data de recebimento
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => handleEdit(conta)}><Pencil className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(conta.id)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>
                       </DropdownMenuContent>
