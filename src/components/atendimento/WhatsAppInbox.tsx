@@ -57,6 +57,8 @@ interface Mensagem {
   created_at: string;
   conversa_id: string;
   metadata?: MensagemMetadata | null;
+  status?: "pending" | "sent" | "delivered" | "read" | "failed" | null;
+  error_message?: string | null;
 }
 
 interface WhatsAppInboxProps {
