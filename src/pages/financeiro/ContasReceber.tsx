@@ -421,6 +421,57 @@ export default function ContasReceber() {
     }
   };
 
+  const openEditDataRecDialog = (conta: ContaReceber) => {
+    setEditDataRecConta(conta);
+    setEditDataRecValue((conta.data_recebimento || getBrasiliaDateString()).slice(0, 10));
+    setEditDataRecDialogOpen(true);
+  };
+
+  const handleSalvarEditDataRec = async () => {
+    if (!editDataRecConta) return;
+    const nova = editDataRecValue;
+    if (!nova) { toast.error("Informe a data"); return; }
+    const dataVenda = (editDataRecConta.data_venda || editDataRecConta.created_at || "").slice(0, 10);
+    const hojeStr = getBrasiliaDateString();
+    if (dataVenda && nova < dataVenda) {
+      toast.error(`A data não pode ser anterior à data da venda (${format(new Date(dataVenda + "T12:00:00"), "dd/MM/yyyy")}).`);
+      return;
+    }
+    if (nova > hojeStr) {
+      toast.error("A data não pode ser posterior a hoje.");
+      return;
+    }
+    const antiga = editDataRecConta.data_recebimento
+      ? format(new Date(editDataRecConta.data_recebimento + "T12:00:00"), "dd/MM/yyyy")
+      : "—";
+    const novaFmt = format(new Date(nova + "T12:00:00"), "dd/MM/yyyy");
+    if (antiga === novaFmt) {
+      toast.info("A data informada é a mesma já registrada.");
+      return;
+    }
+    setEditDataRecSaving(true);
+    try {
+      const autor = profile?.full_name || profile?.email || user?.email || "usuário";
+      const agora = format(new Date(), "dd/MM/yyyy HH:mm");
+      const linha = `[Data de recebimento alterada de ${antiga} para ${novaFmt} por ${autor} em ${agora}]`;
+      const obs = `${editDataRecConta.observacoes || ""}\n${linha}`.trim();
+      const { error } = await supabase
+        .from("contas_receber")
+        .update({ data_recebimento: nova, observacoes: obs })
+        .eq("id", editDataRecConta.id);
+      if (error) throw error;
+      toast.success("Data de recebimento atualizada!");
+      setEditDataRecDialogOpen(false);
+      setEditDataRecConta(null);
+      fetchContas();
+    } catch (err: any) {
+      toast.error("Erro ao salvar: " + (err.message || "erro"));
+    } finally {
+      setEditDataRecSaving(false);
+    }
+  };
+
+
   const addFormaPagamento = () => {
     setReceberForm(prev => ({
       ...prev, formasPagamento: [...prev.formasPagamento, { forma: "", valor: "" }],
