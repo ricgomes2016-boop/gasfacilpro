@@ -36,6 +36,7 @@ interface Conversa {
   updated_at: string;
   telefone: string | null;
   foto_url?: string | null;
+  foto_atualizada_em?: string | null;
   unidade_id?: string | null;
   last_message?: string | null;
   last_role?: string | null;
