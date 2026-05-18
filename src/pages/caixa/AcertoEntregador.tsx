@@ -626,6 +626,7 @@ export default function AcertoEntregador() {
 
         await rotearPagamentosVenda({
           pedidoId: entrega.id,
+          pedidoNumero: (entrega as any).numero_sequencial ?? null,
           clienteId: entrega.cliente_id || null,
           clienteNome: entrega.clientes?.nome || "Cliente",
           pagamentos,
