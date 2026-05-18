@@ -93,6 +93,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const [novaOpen, setNovaOpen] = useState(false);
   const [storeAvatar, setStoreAvatar] = useState<string | null>(null);
   const [unitIntegration, setUnitIntegration] = useState<{ numero: string | null; provedor: string | null; ativo: boolean } | null>(null);
+  const [profileSyncStatus, setProfileSyncStatus] = useState<"idle" | "syncing" | "offline">("idle");
   const [recording, setRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
