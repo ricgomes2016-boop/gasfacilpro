@@ -1175,7 +1175,7 @@ export async function createOrder(
     // Auto-register client
     if (!clienteId && (orderData.nome || senderName)) {
       const nome = orderData.nome || senderName;
-      const norm = phone.replace(/\D/g, "").slice(-11);
+      const norm = normalizePhone(phone);
       let empresaId: string | null = null;
       if (unidadeId) {
         const { data: u } = await supabase.from("unidades").select("empresa_id").eq("id", unidadeId).maybeSingle();
