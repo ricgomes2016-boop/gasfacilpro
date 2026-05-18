@@ -5,8 +5,11 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { CreditCard, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
 
 import { integracoes } from "./integracoes/data";
 import type { Integracao } from "./integracoes/types";
