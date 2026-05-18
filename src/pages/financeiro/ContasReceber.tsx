@@ -240,6 +240,9 @@ export default function ContasReceber() {
     const valorConta = Number(receberConta.valor);
     if (totalRecebido <= 0) { toast.error("Informe o valor recebido"); return; }
     if (totalRecebido > valorConta + 0.01) { toast.error("Valor excede o da conta"); return; }
+    const dataRec = receberForm.dataRecebimento || getBrasiliaDateString();
+    if (!dataRec) { toast.error("Informe a data do recebimento"); return; }
+    const dataRecFmt = format(new Date(dataRec + "T12:00:00"), "dd/MM/yyyy");
 
     const isParcial = totalRecebido < valorConta - 0.01;
     const formasStr = receberForm.formasPagamento
