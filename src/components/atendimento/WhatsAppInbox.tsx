@@ -755,8 +755,13 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                 <p className="text-[#111b21] text-base font-normal truncate">
                   {selectedConversa?.titulo}
                 </p>
-                <p className="text-[#667781] text-xs">
-                  online
+                <p className={cn(
+                  "text-xs",
+                  profileSyncStatus === "offline" ? "text-[#b54708]" : "text-[#667781]"
+                )}>
+                  {profileSyncStatus === "syncing" && "atualizando foto…"}
+                  {profileSyncStatus === "offline" && "sem conexão com WhatsApp — usando avatar padrão"}
+                  {profileSyncStatus === "idle" && "online"}
                 </p>
               </div>
 
