@@ -48,9 +48,11 @@ export default function AsaasConfig() {
     if (row?.asaas_api_key) {
       setApiKey(row.asaas_api_key);
       setSandbox(row.asaas_sandbox ?? true);
+      setWebhookToken(row.asaas_webhook_token ?? "");
       setConnected(true);
     }
   };
+
 
   const handleSave = async () => {
     if (!empresa?.id) return;
