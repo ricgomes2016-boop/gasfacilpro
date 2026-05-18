@@ -227,6 +227,7 @@ export default function ContasReceber() {
     setReceberConta(conta);
     setReceberForm({
       formasPagamento: [{ forma: conta.forma_pagamento || "", valor: String(conta.valor) }],
+      dataRecebimento: getBrasiliaDateString(),
     });
     setReceberDialogOpen(true);
   };
