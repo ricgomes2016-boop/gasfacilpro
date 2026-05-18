@@ -331,6 +331,7 @@ export default function ContasReceber() {
     if (!bulkFormaPagamento || selectedContas.length === 0) {
       toast.error("Selecione a forma de pagamento"); return;
     }
+    const dataRec = bulkDataRecebimento || getBrasiliaDateString();
     setBulkProcessing(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
