@@ -524,6 +524,7 @@ export default function ContasReceber() {
                   openReceberDialog(selectedContas[0]);
                 } else {
                   setBulkFormaPagamento("");
+                  setBulkDataRecebimento(getBrasiliaDateString());
                   setBulkDialogOpen(true);
                 }
               }}>
