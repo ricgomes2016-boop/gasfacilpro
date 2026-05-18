@@ -620,6 +620,7 @@ export default function ContasReceber() {
                   </TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Descrição</TableHead>
+                  <TableHead>Data Venda</TableHead>
                   <TableHead>Forma</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead>Valor</TableHead>
