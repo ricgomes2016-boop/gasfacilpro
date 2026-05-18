@@ -69,17 +69,19 @@ export async function resolveConfig(
   const metaProvedores = ["meta", "meta_coex"];
 
   const strategies = [];
+  const provedorList = metaProvedores.includes(provedor) ? metaProvedores : [provedor];
 
+  // Tenant isolation: when queryUnidadeId is provided, ONLY match that unidade.
+  // Never fall back to a different unidade's config (cross-tenant leak).
   if (queryUnidadeId) {
     strategies.push(
       supabase.from("integracoes_whatsapp").select("*")
         .eq("unidade_id", queryUnidadeId)
-        .in("provedor", metaProvedores.includes(provedor) ? metaProvedores : [provedor])
+        .in("provedor", provedorList)
         .eq("ativo", true).maybeSingle()
     );
-  }
-  if (payloadInstanceId) {
-    // For Meta (and meta_coex), search by meta_phone_number_id
+  } else if (payloadInstanceId) {
+    // Resolve strictly by instance/phone identifier when no unidade was given.
     if (metaProvedores.includes(provedor)) {
       strategies.push(
         supabase.from("integracoes_whatsapp").select("*")
@@ -87,7 +89,6 @@ export async function resolveConfig(
           .in("provedor", metaProvedores)
           .eq("ativo", true).maybeSingle()
       );
-      // Fallback: search by instance_id as well
       strategies.push(
         supabase.from("integracoes_whatsapp").select("*")
           .eq("instance_id", payloadInstanceId)
@@ -97,16 +98,19 @@ export async function resolveConfig(
     } else {
       strategies.push(
         supabase.from("integracoes_whatsapp").select("*")
-          .eq("instance_id", payloadInstanceId).eq("ativo", true).maybeSingle()
+          .eq("instance_id", payloadInstanceId)
+          .in("provedor", provedorList)
+          .eq("ativo", true).maybeSingle()
       );
     }
+  } else {
+    // No tenant hint at all → only safe if a SINGLE active config exists for this provedor.
+    strategies.push(
+      supabase.from("integracoes_whatsapp").select("*")
+        .in("provedor", provedorList)
+        .eq("ativo", true).limit(2)
+    );
   }
-  // Final fallback: any active config for this provedor group
-  strategies.push(
-    supabase.from("integracoes_whatsapp").select("*")
-      .in("provedor", metaProvedores.includes(provedor) ? metaProvedores : [provedor])
-      .eq("ativo", true).limit(2)
-  );
 
   for (const strategy of strategies) {
     const { data } = await strategy;
@@ -140,22 +144,17 @@ async function resolveEvolutionConfig(
 ): Promise<BiaConfig | null> {
   let config: any = null;
 
-  // Strategy 1: Find by instance name/id in integracoes_whatsapp
-  if (instanceNameOrId) {
-    const { data: byInstance } = await supabase.from("integracoes_whatsapp").select("*")
-      .eq("instance_id", instanceNameOrId).eq("provedor", "evolution").eq("ativo", true).maybeSingle();
-    config = byInstance;
-  }
-
-  // Strategy 2: Find by unidade_id
-  if (!config && queryUnidadeId) {
+  // Tenant isolation: if unidade explicit, ONLY match that unidade.
+  if (queryUnidadeId) {
     const { data } = await supabase.from("integracoes_whatsapp").select("*")
       .eq("unidade_id", queryUnidadeId).eq("provedor", "evolution").eq("ativo", true).maybeSingle();
     config = data;
-  }
-
-  // Strategy 3: Find any active evolution config (single instance fallback)
-  if (!config) {
+  } else if (instanceNameOrId) {
+    const { data: byInstance } = await supabase.from("integracoes_whatsapp").select("*")
+      .eq("instance_id", instanceNameOrId).eq("provedor", "evolution").eq("ativo", true).maybeSingle();
+    config = byInstance;
+  } else {
+    // No tenant hint → only safe if a single active evolution config exists
     const { data } = await supabase.from("integracoes_whatsapp").select("*")
       .eq("provedor", "evolution").eq("ativo", true).limit(2);
     if (data?.length === 1) config = data[0];
