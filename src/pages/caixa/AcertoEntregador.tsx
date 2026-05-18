@@ -213,7 +213,7 @@ export default function AcertoEntregador() {
       let query = supabase
         .from("pedidos")
         .select(`
-          id, created_at, data_entrega, valor_total, forma_pagamento, status, canal_venda, cliente_id,
+          id, numero_sequencial, created_at, data_entrega, valor_total, forma_pagamento, status, canal_venda, cliente_id,
           clientes (nome),
           pedido_itens (id, quantidade, preco_unitario, produtos (nome))
         `)
