@@ -59,6 +59,19 @@ export default function WhatsAppCredenciais() {
     () => `https://${projectId}.supabase.co/functions/v1/meta-webhook`,
     [projectId],
   );
+  const zapiWebhookUrl = useMemo(
+    () => unidadeId
+      ? `https://${projectId}.supabase.co/functions/v1/zapi-webhook?unidade_id=${unidadeId}`
+      : `https://${projectId}.supabase.co/functions/v1/zapi-webhook?unidade_id=<selecione_unidade>`,
+    [projectId, unidadeId],
+  );
+  const [zapiCopied, setZapiCopied] = useState(false);
+  const copyZapiWebhook = async () => {
+    if (!unidadeId) { toast.error("Selecione a unidade primeiro"); return; }
+    await navigator.clipboard.writeText(zapiWebhookUrl);
+    setZapiCopied(true);
+    setTimeout(() => setZapiCopied(false), 1500);
+  };
 
   useEffect(() => {
     (async () => {
