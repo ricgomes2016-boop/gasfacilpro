@@ -939,7 +939,13 @@ export async function loadHistory(supabase: any, conversationId: string) {
 }
 
 export async function saveMessage(supabase: any, conversationId: string, role: string, content: string, metadata?: any) {
-  await supabase.from("ai_mensagens").insert({ conversa_id: conversationId, role, content, metadata });
+  const wa_message_id = metadata?.message_id || metadata?.wa_message_id || null;
+  const row: any = { conversa_id: conversationId, role, content, metadata };
+  if (wa_message_id) row.wa_message_id = wa_message_id;
+  // Status default: inbound = 'sent' (já chegou); assistant/system = 'sent' (BIA enviou via sendMessage do webhook); human = pending (operador)
+  if (role === "user") row.status = "sent";
+  else if (role === "assistant" || role === "system") row.status = "sent";
+  await supabase.from("ai_mensagens").insert(row);
 }
 
 export async function upsertConversation(supabase: any, conversationId: string, title: string, telefone?: string, unidadeId?: string | null) {
@@ -1472,13 +1478,12 @@ export async function checkRateLimit(supabase: any, conversationId: string, maxM
 }
 
 // ========== SEND MESSAGE ==========
-export async function sendMessage(config: BiaConfig, phone: string, message: string) {
+export async function sendMessage(config: BiaConfig, phone: string, message: string): Promise<{ waMessageId?: string; ok: boolean; error?: string }> {
   try {
     if (config.provedor === "evolution") {
-      // Evolution API v2 - send text message
       const baseUrl = config.evolutionBaseUrl;
       const instance = config.evolutionInstanceName;
-      if (!baseUrl || !instance) { console.error("Evolution: missing baseUrl or instance"); return; }
+      if (!baseUrl || !instance) { console.error("Evolution: missing baseUrl or instance"); return { ok: false, error: "missing_instance" }; }
       const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
       const url = `${baseUrl}/message/sendText/${instance}`;
       console.log("Evolution sendMessage:", JSON.stringify({ url, phone: cleanPhone, textLen: message.length }));
@@ -1489,16 +1494,17 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       });
       const respText = await resp.text();
       console.log("Evolution sendMessage response:", resp.status, respText.substring(0, 300));
-      // Auto-deactivate instance on Connection Closed
       if ((resp.status === 400 || resp.status === 403) && (respText.includes("Connection Closed") || respText.includes("not connected"))) {
         console.error(`⚠️ Evolution instance ${instance} disconnected — auto-deactivating`);
         try {
           const sb = createSupabase();
           await sb.from("integracoes_whatsapp").update({ ativo: false }).eq("instance_id", instance).eq("provedor", "evolution");
         } catch (dbErr) { console.error("Failed to auto-deactivate:", dbErr); }
+        return { ok: false, error: "evolution_disconnected" };
       }
+      if (!resp.ok) return { ok: false, error: `evolution_${resp.status}` };
+      try { const j = JSON.parse(respText); return { ok: true, waMessageId: j?.key?.id || j?.messageId }; } catch { return { ok: true }; }
     } else if (config.provedor === "gateway") {
-      // Send via WhatsApp Gateway API
       const url = `${config.gatewayBaseUrl}/instances/${config.gatewayInstanceName}/send-text`;
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
       const resp = await fetch(url, {
@@ -1508,17 +1514,15 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       });
       const respText = await resp.text();
       console.log("Gateway sendMessage response:", resp.status, respText.substring(0, 300));
+      if (!resp.ok) return { ok: false, error: `gateway_${resp.status}` };
+      try { const j = JSON.parse(respText); return { ok: true, waMessageId: j?.messageId || j?.id }; } catch { return { ok: true }; }
     } else if (config.provedor === "meta") {
-      // Meta WhatsApp Cloud API
       const phoneNumberId = config.metaPhoneNumberId || config.instanceId;
       const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
       const url = `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`;
       const resp = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${config.token}`,
-        },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${config.token}` },
         body: JSON.stringify({
           messaging_product: "whatsapp",
           recipient_type: "individual",
@@ -1529,11 +1533,18 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       });
       const respText = await resp.text();
       console.log("Meta sendMessage response:", resp.status, respText.substring(0, 300));
+      if (!resp.ok) {
+        try { const j = JSON.parse(respText); return { ok: false, error: j?.error?.message || `meta_${resp.status}` }; } catch { return { ok: false, error: `meta_${resp.status}` }; }
+      }
+      try { const j = JSON.parse(respText); return { ok: true, waMessageId: j?.messages?.[0]?.id }; } catch { return { ok: true }; }
     } else if (config.provedor === "zapi") {
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/send-text`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
-      await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, message }) });
+      const resp = await fetch(url, { method: "POST", headers, body: JSON.stringify({ phone, message }) });
+      const respText = await resp.text();
+      if (!resp.ok) return { ok: false, error: `zapi_${resp.status}` };
+      try { const j = JSON.parse(respText); return { ok: true, waMessageId: j?.zaapId || j?.messageId || j?.id }; } catch { return { ok: true }; }
     } else {
       const uazUrl = `https://free.uazapi.com/send/text`;
       const uazBody = { number: phone.replace(/\D/g, ""), text: message };
@@ -1545,8 +1556,10 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
       });
       const respText = await resp.text();
       console.log("UaZapi sendMessage response:", resp.status, respText.substring(0, 300));
+      if (!resp.ok) return { ok: false, error: `uazapi_${resp.status}` };
+      try { const j = JSON.parse(respText); return { ok: true, waMessageId: j?.id || j?.messageId }; } catch { return { ok: true }; }
     }
-  } catch (e) { console.error("Send message error:", e); }
+  } catch (e) { console.error("Send message error:", e); return { ok: false, error: (e as Error).message }; }
 }
 
 // ========== SEND LOCATION (WHATSAPP) ==========
@@ -1618,7 +1631,7 @@ export interface SendMediaInput {
   mimeType?: string;
 }
 
-export async function sendMedia(config: BiaConfig, phone: string, input: SendMediaInput) {
+export async function sendMedia(config: BiaConfig, phone: string, input: SendMediaInput): Promise<{ waMessageId?: string; ok: boolean; error?: string }> {
   const { mediaUrl, mediaType, caption, filename, mimeType } = input;
   try {
     const cleanPhone = phone.replace(/\D/g, "").replace(/@.*/, "");
@@ -1626,35 +1639,22 @@ export async function sendMedia(config: BiaConfig, phone: string, input: SendMed
     if (config.provedor === "evolution") {
       const baseUrl = config.evolutionBaseUrl;
       const instance = config.evolutionInstanceName;
-      if (!baseUrl || !instance) { console.error("Evolution: missing baseUrl or instance"); return; }
-
+      if (!baseUrl || !instance) { console.error("Evolution: missing baseUrl or instance"); return { ok: false, error: "missing_instance" }; }
       let url: string;
       let body: any;
-
       if (mediaType === "audio") {
         url = `${baseUrl}/message/sendWhatsAppAudio/${instance}`;
         body = { number: `${cleanPhone}@s.whatsapp.net`, audio: mediaUrl };
       } else {
         url = `${baseUrl}/message/sendMedia/${instance}`;
-        body = {
-          number: `${cleanPhone}@s.whatsapp.net`,
-          mediatype: mediaType,
-          mimetype: mimeType,
-          media: mediaUrl,
-          caption: caption || "",
-          fileName: filename || "arquivo",
-        };
+        body = { number: `${cleanPhone}@s.whatsapp.net`, mediatype: mediaType, mimetype: mimeType, media: mediaUrl, caption: caption || "", fileName: filename || "arquivo" };
       }
-
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "apikey": config.token },
-        body: JSON.stringify(body),
-      });
-      console.log("Evolution sendMedia response:", resp.status, (await resp.text()).substring(0, 300));
-
+      const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "apikey": config.token }, body: JSON.stringify(body) });
+      const respText = await resp.text();
+      console.log("Evolution sendMedia response:", resp.status, respText.substring(0, 300));
+      if (!resp.ok) return { ok: false, error: `evolution_${resp.status}` };
+      try { const j = JSON.parse(respText); return { ok: true, waMessageId: j?.key?.id || j?.messageId }; } catch { return { ok: true }; }
     } else if (config.provedor === "meta") {
-      // Meta requires sending media by URL (image/video/document/audio)
       const phoneNumberId = config.metaPhoneNumberId || config.instanceId;
       const url = `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`;
       const mediaPayload: any = { link: mediaUrl };
@@ -1667,20 +1667,16 @@ export async function sendMedia(config: BiaConfig, phone: string, input: SendMed
       const resp = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${config.token}` },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: cleanPhone,
-          type: mediaType,
-          [mediaType]: mediaPayload,
-        }),
+        body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", to: cleanPhone, type: mediaType, [mediaType]: mediaPayload }),
       });
-      console.log("Meta sendMedia response:", resp.status, (await resp.text()).substring(0, 300));
-
+      const respText = await resp.text();
+      console.log("Meta sendMedia response:", resp.status, respText.substring(0, 300));
+      if (!resp.ok) {
+        try { const j = JSON.parse(respText); return { ok: false, error: j?.error?.message || `meta_${resp.status}` }; } catch { return { ok: false, error: `meta_${resp.status}` }; }
+      }
+      try { const j = JSON.parse(respText); return { ok: true, waMessageId: j?.messages?.[0]?.id }; } catch { return { ok: true }; }
     } else if (config.provedor === "zapi") {
-      const endpointMap: Record<string, string> = {
-        image: "send-image", audio: "send-audio", video: "send-video", document: "send-document",
-      };
+      const endpointMap: Record<string, string> = { image: "send-image", audio: "send-audio", video: "send-video", document: "send-document" };
       const url = `https://api.z-api.io/instances/${config.instanceId}/token/${config.token}/${endpointMap[mediaType]}`;
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (config.securityToken) headers["Client-Token"] = config.securityToken;
@@ -1690,8 +1686,10 @@ export async function sendMedia(config: BiaConfig, phone: string, input: SendMed
       else if (mediaType === "video") { body.video = mediaUrl; if (caption) body.caption = caption; }
       else if (mediaType === "document") { body.document = mediaUrl; body.fileName = filename || "arquivo"; }
       const resp = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
-      console.log("Z-API sendMedia response:", resp.status, (await resp.text()).substring(0, 300));
-
+      const respText = await resp.text();
+      console.log("Z-API sendMedia response:", resp.status, respText.substring(0, 300));
+      if (!resp.ok) return { ok: false, error: `zapi_${resp.status}` };
+      try { const j = JSON.parse(respText); return { ok: true, waMessageId: j?.zaapId || j?.messageId || j?.id }; } catch { return { ok: true }; }
     } else if (config.provedor === "gateway") {
       const url = `${config.gatewayBaseUrl}/instances/${config.gatewayInstanceName}/send-media`;
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -1700,28 +1698,24 @@ export async function sendMedia(config: BiaConfig, phone: string, input: SendMed
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${serviceKey}` },
         body: JSON.stringify({ phone: cleanPhone, mediaUrl, mediaType, caption, filename, mimeType }),
       });
-      console.log("Gateway sendMedia response:", resp.status, (await resp.text()).substring(0, 300));
-
+      const respText = await resp.text();
+      console.log("Gateway sendMedia response:", resp.status, respText.substring(0, 300));
+      if (!resp.ok) return { ok: false, error: `gateway_${resp.status}` };
+      try { const j = JSON.parse(respText); return { ok: true, waMessageId: j?.messageId || j?.id }; } catch { return { ok: true }; }
     } else {
-      // uazapi
-      const endpointMap: Record<string, string> = {
-        image: "send/media", audio: "send/media", video: "send/media", document: "send/media",
-      };
+      const endpointMap: Record<string, string> = { image: "send/media", audio: "send/media", video: "send/media", document: "send/media" };
       const url = `https://free.uazapi.com/${endpointMap[mediaType]}`;
       const resp = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json", "token": config.token },
-        body: JSON.stringify({
-          number: cleanPhone,
-          type: mediaType,
-          file: mediaUrl,
-          caption: caption || "",
-          docName: filename,
-        }),
+        body: JSON.stringify({ number: cleanPhone, type: mediaType, file: mediaUrl, caption: caption || "", docName: filename }),
       });
-      console.log("UaZapi sendMedia response:", resp.status, (await resp.text()).substring(0, 300));
+      const respText = await resp.text();
+      console.log("UaZapi sendMedia response:", resp.status, respText.substring(0, 300));
+      if (!resp.ok) return { ok: false, error: `uazapi_${resp.status}` };
+      try { const j = JSON.parse(respText); return { ok: true, waMessageId: j?.id || j?.messageId }; } catch { return { ok: true }; }
     }
-  } catch (e) { console.error("sendMedia error:", e); }
+  } catch (e) { console.error("sendMedia error:", e); return { ok: false, error: (e as Error).message }; }
 }
 
 // ========== FETCH PROFILE PICTURE ==========

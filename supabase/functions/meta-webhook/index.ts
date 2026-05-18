@@ -65,12 +65,47 @@ serve(async (req) => {
         if (change.field !== "messages") continue;
         const value = change.value;
 
-        // ===== Status updates (delivery / read receipts) for test sends =====
+        // ===== Status updates (sent / delivered / read / failed) =====
         if (Array.isArray(value?.statuses) && value.statuses.length) {
           for (const st of value.statuses) {
             const wamid = st?.id;
             const newStatus = st?.status; // sent, delivered, read, failed
             if (!wamid || !newStatus) continue;
+
+            // a) Atualizar ai_mensagens pelo wa_message_id
+            try {
+              const update: any = { status: newStatus };
+              const nowIso = new Date().toISOString();
+              if (newStatus === "sent") update.sent_at = nowIso;
+              else if (newStatus === "delivered") update.delivered_at = nowIso;
+              else if (newStatus === "read") update.read_at = nowIso;
+              else if (newStatus === "failed") update.error_message = st?.errors?.[0]?.message || "failed";
+
+              const { data: updated } = await supabase
+                .from("ai_mensagens")
+                .update(update)
+                .eq("wa_message_id", wamid)
+                .select("id, conversa_id")
+                .maybeSingle();
+
+              if (updated) {
+                const { data: conv } = await supabase
+                  .from("ai_conversas").select("empresa_id, unidade_id").eq("id", updated.conversa_id).maybeSingle();
+                await supabase.from("whatsapp_eventos").insert({
+                  empresa_id: conv?.empresa_id || null,
+                  unidade_id: conv?.unidade_id || null,
+                  conversa_id: updated.conversa_id,
+                  mensagem_id: updated.id,
+                  wa_message_id: wamid,
+                  event_type: `status_${newStatus}`,
+                  event_data: { provider: "meta", errors: st?.errors || null, timestamp: st?.timestamp || null },
+                });
+              }
+            } catch (e) {
+              console.error("status update (ai_mensagens) failed for", wamid, e);
+            }
+
+            // b) Mantém compatibilidade com whatsapp_test_envios
             try {
               const { data: existing } = await supabase
                 .from("whatsapp_test_envios")
@@ -79,24 +114,14 @@ serve(async (req) => {
                 .maybeSingle();
               if (existing) {
                 const history = Array.isArray(existing.status_history) ? existing.status_history : [];
-                history.push({
-                  status: newStatus,
-                  at: new Date().toISOString(),
-                  timestamp: st?.timestamp || null,
-                  errors: st?.errors || null,
-                });
+                history.push({ status: newStatus, at: new Date().toISOString(), timestamp: st?.timestamp || null, errors: st?.errors || null });
                 await supabase
                   .from("whatsapp_test_envios")
-                  .update({
-                    status: newStatus,
-                    status_history: history,
-                    webhook_received_at: new Date().toISOString(),
-                    error: st?.errors?.[0]?.message || null,
-                  })
+                  .update({ status: newStatus, status_history: history, webhook_received_at: new Date().toISOString(), error: st?.errors?.[0]?.message || null })
                   .eq("id", existing.id);
               }
             } catch (e) {
-              console.error("status update failed for", wamid, e);
+              console.error("status update (whatsapp_test_envios) failed for", wamid, e);
             }
           }
         }
