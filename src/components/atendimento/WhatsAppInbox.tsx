@@ -259,7 +259,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     const fetchMensagens = async () => {
       const { data } = await supabase
         .from("ai_mensagens")
-        .select("id, role, content, created_at, conversa_id, metadata")
+        .select("id, role, content, created_at, conversa_id, metadata, status, error_message")
         .eq("conversa_id", selectedId)
         .order("created_at", { ascending: true });
       setMensagens((data || []) as Mensagem[]);
