@@ -174,6 +174,8 @@ export default function ContasReceber() {
         parceiro_nome: c.vale_gas_parceiros?.nome || null,
         endereco_cliente: c.pedidos?.endereco_entrega || c.pedidos?.clientes?.endereco || null,
         bairro_cliente: c.pedidos?.clientes?.bairro || null,
+        data_venda: c.pedidos?.created_at || c.created_at || null,
+        data_recebimento: c.data_recebimento || null,
       })));
     }
     setLoading(false);
