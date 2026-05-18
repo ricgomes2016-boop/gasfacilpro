@@ -224,7 +224,7 @@ serve(async (req) => {
             continue;
           }
           if (postOrderResult === true) {
-            const reply = "Perfeito! Seu pedido já está confirmado ✅\nA entrega segue em andamento (prazo de 30 a 60 minutos).";
+            const reply = "Perfeito! Seu pedido já está confirmado ✅\nA entrega segue em andamento (prazo de 20 a 40 minutos).";
             await saveMessage(supabase, conversationId, "assistant", reply, { source: "meta-webhook", post_order_followup: true });
             await sendMessage(config, phone, reply);
             continue;
