@@ -1,54 +1,46 @@
-## Painel "Dados do contato" no Chat WhatsApp
+## Por que a foto não aparece
 
-Adicionar um painel lateral direito (drawer) que abre ao clicar no nome/avatar do cliente no header do chat, replicando a experiência do WhatsApp Web.
+A unidade da **Central Gás** que você está usando está conectada via **Meta Cloud API** (`provedor = meta`). A API oficial da Meta **não expõe foto de perfil/status de clientes finais** — só devolve a foto do próprio número da loja. Por isso `ai_conversas.foto_url` fica `NULL` e o painel mostra só as iniciais.
 
-### Onde
+O WhatsApp Web mostra a foto porque ele usa o protocolo Baileys (multi-device), o mesmo que a **Evolution API** usa. Hoje só `fetchContactProfilePicture` na Evolution e na Z‑API consegue buscar a foto do contato.
 
-Arquivo: `src/components/atendimento/WhatsAppInbox.tsx`
+Além disso, mesmo quando a foto é buscada, a URL retornada (`pps.whatsapp.net/...`) é **temporária (expira em ~24 h)** e tem CORS/hot‑link bloqueado em muitos casos — então salvar a URL crua no banco também quebra.
 
-### Comportamento
+## O que vou fazer
 
-- Clicar no avatar **ou** no nome no header do chat abre o painel lateral à direita (largura ~380px desktop, full-screen no mobile).
-- Botão X no topo do painel para fechar.
-- Painel desliza sobre a coluna de mensagens (não empurra layout em telas pequenas).
+### 1. Fallback de provedor em `whatsapp-refresh-profile`
 
-### Conteúdo do painel
+Atualizar `supabase/functions/whatsapp-refresh-profile/index.ts`:
 
-1. **Cabeçalho visual**: avatar grande (foto de `ai_conversas.foto_url` com fallback de iniciais), nome (`titulo`), telefone formatado (`+55 43 ...`).
-2. **Ações rápidas** (3 botões em linha, estilo WhatsApp):
-   - "Buscar" (placeholder por ora — abre search interno da conversa).
-   - "Silenciar" (toggle local, salvo em `localStorage` por conversa).
-   - "Editar" (abre `ClienteFormDialog` se já vinculado; senão abre diálogo de vincular cadastro — reaproveita `openEditCliente` / `handleOpenLinkDialog`).
-3. **Bloco "Cadastro"**:
-   - Se vinculado: nome, endereço principal e link "Ver no cadastro de clientes" (`/clientes?focus={id}`).
-   - Se não vinculado: botão "Vincular ao cadastro".
-4. **Bloco "Pedidos recentes"**: últimos 5 pedidos do cliente vinculado (consulta `pedidos` por `cliente_id` da unidade atual; mostra data, valor, status). Linha clicável vai para `/pedidos?id={id}`.
-5. **Bloco "Mídia, links e docs"**: contagem de mensagens com `media_url` na conversa + miniaturas das 4 últimas imagens (consulta `ai_mensagens` filtrando `media_url` não nulo).
-6. **Bloco "Ações"**:
-   - "Atualizar foto do perfil" (chama `whatsapp-refresh-profile` manualmente).
-   - "Apagar conversa" (vermelho, reusa `setConfirmDeleteId`).
+- Quando o provedor da unidade do pedido é **Meta** (ou retorna `null`), tentar automaticamente, **na mesma empresa**, qualquer instância **Evolution ativa** (`status_conexao in ('conectado','open')`) como "buscador de fotos". A foto da loja continua vindo do provedor primário.
+- Ordem de tentativa para foto do contato: `evolution (mesma empresa) → zapi (mesma empresa) → provedor primário`.
+- Em `_shared/bia-core.ts` adicionar helper `resolveAnyEvolutionForEmpresa(supabase, empresa_id)` que devolve um `BiaConfig` Evolution ativo da empresa para reuso.
 
-### Estado e dados
+### 2. Cache da imagem em Supabase Storage (resolve expiração + CORS)
 
-- Novo state `contactPanelOpen: boolean`.
-- Hook local `useContactPanelData(conversaId, clienteId)` que carrega pedidos recentes + mídias quando o painel abre (lazy, com `useEffect`).
-- Reaproveita `clienteByConv`, `selectedConversa`, `profileSyncStatus` já existentes.
+- Bucket público novo `whatsapp-avatars` (criar via migration).
+- Em `whatsapp-refresh-profile`, depois de obter a URL temporária do WhatsApp, baixar o blob no edge function e fazer `storage.upload('whatsapp-avatars', '{conversa_id}.jpg', ...)` com `upsert: true`.
+- Salvar em `ai_conversas.foto_url` a **URL pública do Storage** (estável), não a do `pps.whatsapp.net`.
+- Mesmo tratamento para a foto da loja: salvar em `integracoes_whatsapp.loja_foto_url` a URL do Storage.
 
-### UI / estilo
+### 3. Re-sync automático quando estiver velho
 
-- Cores WhatsApp Web já usadas no arquivo (`#f0f2f5`, `#667781`, `#111b21`, `#00a884`).
-- Sem novas dependências; usa `Dialog`/`Sheet` do shadcn — preferir `Sheet` (side="right") por ser drawer lateral nativo.
-- Animação slide-in já vem do `Sheet`.
+- O efeito que já existe em `WhatsAppInbox.tsx` (linha 220) que faz background fetch para conversas sem `foto_url` passa a também re-enfileirar quando `foto_atualizada_em < now() - 7 dias` (renovação preventiva, já que a Evolution caching local segue válido por mais tempo que a URL da Meta).
 
-### Não inclui (fora de escopo)
+### 4. Trigger manual no painel
 
-- Funções "Voz" e "Vídeo" do WhatsApp Web (não temos VoIP no contexto deste chat).
-- Mensagens favoritas / mensagens temporárias / privacidade avançada.
-- Edição de notas livres ("Recado") — pode ser proposto depois se necessário.
+- O botão "Atualizar foto do perfil" no `ContactDetailsPanel` já chama `whatsapp-refresh-profile`. Como agora ele tem fallback + cache, vai começar a funcionar para os contatos da unidade Meta.
+- Exibir mensagem específica quando nenhum provedor da empresa consegue buscar (ex.: empresa só tem Meta sem Evolution complementar): "Foto indisponível — conecte uma instância Evolution na empresa para habilitar fotos de contatos".
 
-### Arquivos tocados
+## Arquivos tocados
 
-- `src/components/atendimento/WhatsAppInbox.tsx` (header clicável + render do `Sheet` + carregamento dos blocos).
-- Possível extração para `src/components/atendimento/ContactDetailsPanel.tsx` se ultrapassar ~150 linhas, para manter `WhatsAppInbox` legível.
+- `supabase/functions/whatsapp-refresh-profile/index.ts` — fallback de provedor + upload no Storage.
+- `supabase/functions/_shared/bia-core.ts` — helper `resolveAnyEvolutionForEmpresa`.
+- Nova migration: criar bucket público `whatsapp-avatars` + policy de leitura pública.
+- `src/components/atendimento/WhatsAppInbox.tsx` — adicionar re-sync para fotos > 7 dias e mensagem de "indisponível" quando edge function retornar `reason: "no_provider_for_contact_picture"`.
 
-Sem migrações de banco e sem mudanças de RLS.
+## Fora de escopo
+
+- Não vou trocar o provedor principal da unidade; Meta continua sendo o canal de mensagens.
+- Não vou implementar fetch via Baileys próprio — reuso da Evolution já configurada.
+- Sem mudanças visuais no `ContactDetailsPanel` além da mensagem de status.

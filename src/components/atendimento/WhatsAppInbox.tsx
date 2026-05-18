@@ -36,6 +36,7 @@ interface Conversa {
   updated_at: string;
   telefone: string | null;
   foto_url?: string | null;
+  foto_atualizada_em?: string | null;
   unidade_id?: string | null;
   last_message?: string | null;
   last_role?: string | null;
@@ -164,7 +165,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     const fetchConversas = async () => {
       let query = supabase
         .from("ai_conversas")
-        .select("id, titulo, updated_at, telefone, foto_url, unidade_id")
+        .select("id, titulo, updated_at, telefone, foto_url, foto_atualizada_em, unidade_id")
         .not("telefone", "is", null)
         .order("updated_at", { ascending: false })
         .limit(200);
@@ -220,7 +221,13 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   // Background fetch profile photos for conversations missing foto_url (queued, throttled)
   useEffect(() => {
     if (!conversas.length) return;
-    const pending = conversas.filter((c) => !c.foto_url).slice(0, 60);
+    const STALE_MS = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const pending = conversas.filter((c) => {
+      if (!c.foto_url) return true;
+      if (!c.foto_atualizada_em) return false;
+      return now - new Date(c.foto_atualizada_em).getTime() > STALE_MS;
+    }).slice(0, 60);
     if (!pending.length) return;
     let cancelled = false;
     (async () => {
