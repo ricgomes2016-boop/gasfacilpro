@@ -889,6 +889,15 @@ export default function ContasReceber() {
                   <p className="text-xs text-muted-foreground">{receberConta.descricao}</p>
                   <p className="text-lg font-bold">R$ {Number(receberConta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
                 </div>
+                <div>
+                  <Label className="text-sm">Data do Recebimento *</Label>
+                  <Input
+                    type="date"
+                    className="mt-1"
+                    value={receberForm.dataRecebimento}
+                    onChange={e => setReceberForm(prev => ({ ...prev, dataRecebimento: e.target.value }))}
+                  />
+                </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label className="font-medium">Formas de Pagamento</Label>
