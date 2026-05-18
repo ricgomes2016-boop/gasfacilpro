@@ -45,6 +45,7 @@ import { SmartImportButtons } from "@/components/import/SmartImportButtons";
 import { ImportReviewDialog } from "@/components/import/ImportReviewDialog";
 import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
 import { useAuth } from "@/contexts/AuthContext";
+import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
 
 interface ContaReceber {
   id: string;
