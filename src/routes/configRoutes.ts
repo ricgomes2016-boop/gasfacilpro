@@ -28,4 +28,5 @@ export const configRoutes: RouteConfig[] = [
   { path: "/config/regras-bia", component: RegrasBia, roles: ["admin", "gestor"] },
   { path: "/config/site-institucional", component: SiteInstitucional, roles: ["admin", "gestor"] },
   { path: "/config/assinatura-digital", component: AssinaturaDigitalDiagnostico, roles: ["admin", "gestor", "financeiro"] },
+  { path: "/config/asaas", component: AsaasConfig, roles: ["admin", "gestor", "financeiro"] },
 ];
