@@ -67,6 +67,11 @@ interface ContaReceber {
   bairro_cliente?: string | null;
   data_venda?: string | null;
   data_recebimento?: string | null;
+  asaas_charge_id?: string | null;
+  linha_digitavel?: string | null;
+  boleto_url?: string | null;
+  pix_qrcode?: string | null;
+  pix_copia_cola?: string | null;
 }
 
 const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque", "Vale Gás"];
