@@ -5,8 +5,11 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { CreditCard, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
 
 import { integracoes } from "./integracoes/data";
 import type { Integracao } from "./integracoes/types";
@@ -612,6 +615,31 @@ export default function Integracoes() {
     <MainLayout>
       <Header title="Integrações" subtitle="Conecte serviços externos por unidade e amplie o poder do seu sistema" />
       <div className="p-4 md:p-6 space-y-6">
+        {/* Atalho destacado para configuração do Asaas */}
+        <button
+          type="button"
+          onClick={() => navigate("/config/asaas")}
+          className="w-full text-left rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4 hover:border-primary/60 hover:shadow-md transition-all group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 rounded-lg bg-primary/15 text-primary">
+              <CreditCard className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="font-semibold text-sm md:text-base">Configurar Asaas (Boleto + PIX)</p>
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/15 text-primary">
+                  Atalho
+                </span>
+              </div>
+              <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
+                API Key, modo sandbox/produção e webhook de baixa automática
+              </p>
+            </div>
+            <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
+          </div>
+        </button>
+
         <IntegracoesKpis
           conectadas={conectadas}
           disponiveis={disponiveis}
@@ -620,6 +648,7 @@ export default function Integracoes() {
         />
 
         <Tabs value={tabAtiva} onValueChange={setTabAtiva}>
+
           <TabsList>
             <TabsTrigger value="todas">Todas ({integracoes.length})</TabsTrigger>
             <TabsTrigger value="ativas">Ativas ({conectadas})</TabsTrigger>
