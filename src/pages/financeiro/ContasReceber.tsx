@@ -1077,9 +1077,17 @@ export default function ContasReceber() {
                 <Input
                   type="date"
                   className="mt-1"
+                  min={selectedContas.reduce<string>((acc, c) => {
+                    const d = (c.data_venda || c.created_at || "").slice(0, 10);
+                    return d > acc ? d : acc;
+                  }, "") || undefined}
+                  max={getBrasiliaDateString()}
                   value={bulkDataRecebimento}
                   onChange={e => setBulkDataRecebimento(e.target.value)}
                 />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Entre a data da venda mais recente do lote e hoje.
+                </p>
               </div>
               <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
                 Todas as contas serão marcadas como recebidas e o valor será creditado automaticamente no destino correto (Dinheiro → Caixa, outros → Conta Bancária).
