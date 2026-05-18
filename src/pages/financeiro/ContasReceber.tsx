@@ -103,6 +103,7 @@ export default function ContasReceber() {
   // Bulk liquidation states
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [bulkFormaPagamento, setBulkFormaPagamento] = useState("");
+  const [bulkDataRecebimento, setBulkDataRecebimento] = useState("");
   const [bulkProcessing, setBulkProcessing] = useState(false);
 
   // Import states
