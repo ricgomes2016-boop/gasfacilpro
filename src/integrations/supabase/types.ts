@@ -2835,6 +2835,7 @@ export type Database = {
         Row: {
           asaas_api_key: string | null
           asaas_sandbox: boolean | null
+          asaas_webhook_token: string | null
           cnpj: string | null
           created_at: string
           empresa_id: string | null
@@ -2850,6 +2851,7 @@ export type Database = {
         Insert: {
           asaas_api_key?: string | null
           asaas_sandbox?: boolean | null
+          asaas_webhook_token?: string | null
           cnpj?: string | null
           created_at?: string
           empresa_id?: string | null
@@ -2865,6 +2867,7 @@ export type Database = {
         Update: {
           asaas_api_key?: string | null
           asaas_sandbox?: boolean | null
+          asaas_webhook_token?: string | null
           cnpj?: string | null
           created_at?: string
           empresa_id?: string | null
