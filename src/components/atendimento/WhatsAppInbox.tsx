@@ -1106,6 +1106,38 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
           onSave={saveClienteInline}
         />
       )}
+
+      {/* Painel "Dados do contato" */}
+      <ContactDetailsPanel
+        open={contactPanelOpen}
+        onOpenChange={setContactPanelOpen}
+        conversaId={selectedId}
+        unidadeId={selectedConversa?.unidade_id || unidadeAtual?.id || null}
+        contactName={selectedConversa?.titulo || ""}
+        phone={selectedConversa?.telefone || null}
+        photoUrl={selectedConversa?.foto_url || null}
+        profileSyncStatus={profileSyncStatus}
+        cliente={selectedId ? clienteByConv[selectedId] || null : null}
+        onEditCliente={openEditCliente}
+        onLinkCliente={handleOpenLinkDialog}
+        onDeleteConversa={() => selectedId && setConfirmDeleteId(selectedId)}
+        onRefreshPhoto={() => {
+          const uid = selectedConversa?.unidade_id || unidadeAtual?.id;
+          if (!uid || !selectedId) return;
+          setProfileSyncStatus("syncing");
+          supabase.functions.invoke("whatsapp-refresh-profile", {
+            body: { unidade_id: uid, conversa_id: selectedId },
+          }).then(({ data: r, error }: any) => {
+            if (error || r?.ok === false) { setProfileSyncStatus("offline"); return; }
+            setProfileSyncStatus("idle");
+            if (r?.contato_foto_url) {
+              setConversas((prev) => prev.map((x) =>
+                x.id === selectedId ? { ...x, foto_url: r.contato_foto_url } : x
+              ));
+            }
+          }).catch(() => setProfileSyncStatus("offline"));
+        }}
+      />
     </div>
   );
 }
