@@ -149,6 +149,7 @@ export default function ContasReceber() {
 
   const [receberForm, setReceberForm] = useState({
     formasPagamento: [{ forma: "", valor: "" }] as { forma: string; valor: string }[],
+    dataRecebimento: "",
   });
 
   const resetForm = () => setForm({ cliente: "", descricao: "", valor: "", vencimento: "", forma_pagamento: "", observacoes: "" });
