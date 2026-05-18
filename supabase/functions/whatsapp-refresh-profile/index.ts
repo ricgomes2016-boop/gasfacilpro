@@ -1,4 +1,8 @@
-// whatsapp-refresh-profile — Atualiza foto de perfil da loja (e opcionalmente de contatos)
+// whatsapp-refresh-profile — Atualiza foto de perfil da loja e do contato.
+// Fallback: quando provedor primário da unidade é Meta (não expõe foto de contato),
+// tenta usar QUALQUER instância Evolution/Z-API ATIVA da MESMA empresa só para
+// buscar a foto. Faz cache da imagem em Storage (whatsapp-avatars) para evitar
+// URLs temporárias do WhatsApp (que expiram + têm CORS/hot-link).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolveConfig, fetchStoreProfilePicture, fetchContactProfilePicture } from "../_shared/bia-core.ts";
@@ -7,6 +11,58 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const PROVIDERS_PRIMARY = ["meta", "evolution", "zapi", "uazapi", "gateway"] as const;
+// Ordem para buscar foto de contato (Baileys primeiro)
+const CONTACT_PIC_ORDER = ["evolution", "zapi"] as const;
+
+async function cacheImageToStorage(
+  supabase: any,
+  remoteUrl: string,
+  pathInBucket: string,
+): Promise<string | null> {
+  try {
+    const resp = await fetch(remoteUrl, {
+      headers: { "User-Agent": "Mozilla/5.0 GasFacilPro" },
+    });
+    if (!resp.ok) return null;
+    const ct = resp.headers.get("content-type") || "image/jpeg";
+    if (!ct.startsWith("image/")) return null;
+    const buf = new Uint8Array(await resp.arrayBuffer());
+    if (buf.byteLength < 200) return null; // imagem inválida/placeholder
+    const { error: upErr } = await supabase.storage
+      .from("whatsapp-avatars")
+      .upload(pathInBucket, buf, { contentType: ct, upsert: true });
+    if (upErr) {
+      console.error("upload error:", upErr);
+      return null;
+    }
+    const { data } = supabase.storage.from("whatsapp-avatars").getPublicUrl(pathInBucket);
+    // cache-buster pra forçar refresh quando atualizamos
+    return data?.publicUrl ? `${data.publicUrl}?v=${Date.now()}` : null;
+  } catch (e) {
+    console.error("cacheImageToStorage error:", e);
+    return null;
+  }
+}
+
+async function resolveAnyEvolutionForEmpresa(supabase: any, empresaId: string | null) {
+  if (!empresaId) return null;
+  for (const prov of CONTACT_PIC_ORDER) {
+    const { data: rows } = await supabase
+      .from("integracoes_whatsapp")
+      .select("unidade_id, unidades!inner(empresa_id)")
+      .eq("provedor", prov)
+      .eq("ativo", true)
+      .eq("unidades.empresa_id", empresaId)
+      .limit(5);
+    for (const r of rows || []) {
+      const cfg = await resolveConfig(supabase, prov as any, r.unidade_id, null);
+      if (cfg) return cfg;
+    }
+  }
+  return null;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -26,44 +82,88 @@ serve(async (req) => {
       });
     }
 
-    // Resolve qualquer provider ativo para a unidade
-    const provedores = ["meta", "evolution", "zapi", "uazapi", "gateway"] as const;
-    let config: any = null;
-    for (const p of provedores) {
-      config = await resolveConfig(supabase, p, unidade_id, null);
-      if (config) break;
+    // Resolve provedor primário da unidade
+    let primary: any = null;
+    for (const p of PROVIDERS_PRIMARY) {
+      primary = await resolveConfig(supabase, p, unidade_id, null);
+      if (primary) break;
     }
-    if (!config) {
+    if (!primary) {
       return new Response(JSON.stringify({ ok: false, reason: "no_active_integration" }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // 1. Atualiza foto da loja
-    const lojaUrl = await fetchStoreProfilePicture(config);
-    if (lojaUrl) {
+    // 1) Foto da loja — sempre tenta provedor primário
+    let lojaPublicUrl: string | null = null;
+    const lojaRemote = await fetchStoreProfilePicture(primary);
+    if (lojaRemote) {
+      lojaPublicUrl = await cacheImageToStorage(supabase, lojaRemote, `loja/${unidade_id}.jpg`);
       await supabase.from("integracoes_whatsapp")
-        .update({ loja_foto_url: lojaUrl, loja_foto_atualizada_em: new Date().toISOString() })
+        .update({ loja_foto_url: lojaPublicUrl || lojaRemote, loja_foto_atualizada_em: new Date().toISOString() })
         .eq("unidade_id", unidade_id)
-        .eq("provedor", config.provedor);
+        .eq("provedor", primary.provedor);
     }
 
-    // 2. Atualiza foto de uma conversa específica (opcional)
-    let contatoUrl: string | null = null;
+    // 2) Foto do contato — cadeia de fallback
+    let contatoPublicUrl: string | null = null;
+    let contatoSource: string | null = null;
+    let noProviderForContact = false;
+
     if (conversa_id) {
       const { data: conv } = await supabase
-        .from("ai_conversas").select("telefone").eq("id", conversa_id).maybeSingle();
+        .from("ai_conversas").select("telefone, unidade_id, empresa_id").eq("id", conversa_id).maybeSingle();
+
       if (conv?.telefone) {
-        contatoUrl = await fetchContactProfilePicture(config, conv.telefone);
-        if (contatoUrl) {
+        // Descobre empresa_id (pode estar null na conversa)
+        let empresaId: string | null = conv.empresa_id || null;
+        if (!empresaId && conv.unidade_id) {
+          const { data: u } = await supabase.from("unidades").select("empresa_id").eq("id", conv.unidade_id).maybeSingle();
+          empresaId = u?.empresa_id || null;
+        }
+        if (!empresaId) {
+          const { data: u2 } = await supabase.from("unidades").select("empresa_id").eq("id", unidade_id).maybeSingle();
+          empresaId = u2?.empresa_id || null;
+        }
+
+        // Ordem de tentativa: 1) primário se for evolution/zapi, 2) fallback evolution/zapi mesma empresa
+        const tryConfigs: any[] = [];
+        if (primary.provedor === "evolution" || primary.provedor === "zapi") {
+          tryConfigs.push(primary);
+        }
+        const fallback = await resolveAnyEvolutionForEmpresa(supabase, empresaId);
+        if (fallback && fallback !== primary) tryConfigs.push(fallback);
+
+        if (tryConfigs.length === 0) {
+          noProviderForContact = true;
+        }
+
+        let contatoRemote: string | null = null;
+        for (const cfg of tryConfigs) {
+          contatoRemote = await fetchContactProfilePicture(cfg, conv.telefone);
+          if (contatoRemote) { contatoSource = cfg.provedor; break; }
+        }
+
+        if (contatoRemote) {
+          contatoPublicUrl = await cacheImageToStorage(supabase, contatoRemote, `contato/${conversa_id}.jpg`);
           await supabase.from("ai_conversas")
-            .update({ foto_url: contatoUrl, foto_atualizada_em: new Date().toISOString() })
+            .update({
+              foto_url: contatoPublicUrl || contatoRemote,
+              foto_atualizada_em: new Date().toISOString(),
+            })
             .eq("id", conversa_id);
         }
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, loja_foto_url: lojaUrl, contato_foto_url: contatoUrl, provedor: config.provedor }), {
+    return new Response(JSON.stringify({
+      ok: true,
+      loja_foto_url: lojaPublicUrl,
+      contato_foto_url: contatoPublicUrl,
+      provedor: primary.provedor,
+      contato_provedor: contatoSource,
+      reason: noProviderForContact ? "no_provider_for_contact_picture" : null,
+    }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
