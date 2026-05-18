@@ -7395,6 +7395,8 @@ export type Database = {
           data_vencimento_fiado: string | null
           endereco_entrega: string | null
           entregador_id: string | null
+          escalado_em: string | null
+          escalado_para: string | null
           forma_pagamento: string | null
           id: string
           latitude: number | null
@@ -7432,6 +7434,8 @@ export type Database = {
           data_vencimento_fiado?: string | null
           endereco_entrega?: string | null
           entregador_id?: string | null
+          escalado_em?: string | null
+          escalado_para?: string | null
           forma_pagamento?: string | null
           id?: string
           latitude?: number | null
@@ -7469,6 +7473,8 @@ export type Database = {
           data_vencimento_fiado?: string | null
           endereco_entrega?: string | null
           entregador_id?: string | null
+          escalado_em?: string | null
+          escalado_para?: string | null
           forma_pagamento?: string | null
           id?: string
           latitude?: number | null
