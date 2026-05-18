@@ -217,15 +217,17 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   // Background fetch profile photos for conversations missing foto_url (queued, throttled)
   useEffect(() => {
     if (!conversas.length) return;
-    const pending = conversas.filter((c) => !c.foto_url && c.unidade_id).slice(0, 30);
+    const pending = conversas.filter((c) => !c.foto_url).slice(0, 60);
     if (!pending.length) return;
     let cancelled = false;
     (async () => {
       for (const c of pending) {
         if (cancelled) return;
+        const uid = c.unidade_id || unidadeAtual?.id;
+        if (!uid) continue;
         try {
           const { data: r }: any = await supabase.functions.invoke("whatsapp-refresh-profile", {
-            body: { unidade_id: c.unidade_id, conversa_id: c.id },
+            body: { unidade_id: uid, conversa_id: c.id },
           });
           if (!cancelled && r?.contato_foto_url) {
             setConversas((prev) => prev.map((x) => x.id === c.id ? { ...x, foto_url: r.contato_foto_url } : x));
@@ -237,7 +239,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     return () => { cancelled = true; };
     // Only react to changes in the set of conversation ids — não reexecutar quando outras props mudam
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversas.map((c) => c.id).join(",")]);
+  }, [conversas.map((c) => c.id).join(","), unidadeAtual?.id]);
 
   useEffect(() => {
     if (!selectedId) { setMensagens([]); return; }

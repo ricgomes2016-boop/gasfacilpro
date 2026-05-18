@@ -1,66 +1,56 @@
-## Diagnóstico
+## Objetivo
 
-A tabela oficial em `configuracoes_empresa.regras_bia.tabela_precos` (Central Gás) está correta:
+Garantir que a foto do contato seja exibida no `WhatsAppInbox` usando `ai_conversas.foto_url` e, quando vazia, chamar `whatsapp-refresh-profile` em background e atualizar o avatar assim que a foto retornar — tanto na lista de conversas quanto no header do chat aberto.
 
-- **Gás P13: R$ 125,00**
-- **Gás P20: R$ 210,00**
-- **Gás P45: R$ 410,00**
-- **Água Mineral 20L: R$ 20,00**
+## Estado atual
 
-O tool `consultar_precos` (`elevenlabs-bia-tools`) também retorna esses valores corretamente — testado agora e respondeu R$ 125 / R$ 20.
+O arquivo `src/components/atendimento/WhatsAppInbox.tsx` já tem boa parte da lógica:
 
-O prompt do agente Bia (ElevenLabs) já tem a instrução "SEMPRE chame `consultar_precos`. NUNCA invente preços." Mesmo assim, na ligação a Bia falou **R$ 75 (gás)** e **R$ 19 (água)** — valores que **não vêm do banco nem do tool**.
+- Tipo `Conversa` inclui `foto_url`.
+- `fetchConversas` já seleciona `foto_url` de `ai_conversas`.
+- Existe um `useEffect` (linhas 218–240) que percorre conversas sem `foto_url` e chama `whatsapp-refresh-profile` em fila throttled (350ms), atualizando o estado quando retorna `contato_foto_url`.
+- Ao abrir uma conversa (linha 255–261), já dispara `whatsapp-refresh-profile` em background.
+- `ChatAvatar` faz fallback para iniciais quando a URL falha.
 
-**Causa raiz:** o LLM configurado é `gemini-2.5-flash-lite` (tier mais barato e mais propenso a alucinar). Ele está ignorando a instrução do prompt e respondendo do "conhecimento" interno em vez de chamar o tool. Resultado: preços fictícios.
+## Gaps a corrigir
 
-## Solução (em duas camadas)
+1. **Header do chat aberto não atualiza com a foto retornada**: o invoke nas linhas 255–261 não usa a resposta. Precisa atualizar `conversas` quando vier `contato_foto_url`.
+2. **Realtime de `ai_conversas` UPDATE**: hoje qualquer evento em `ai_conversas` chama `fetchConversas()` inteiro. OK, mas em paralelo o webhook que grava `foto_url` deveria refletir no estado. Manter o refetch é suficiente — verificar que o subscribe cobre `UPDATE` (já cobre com `event: "*"`).
+3. **Conversas sem `unidade_id`**: o filtro `c.unidade_id` exclui essas do refresh. Como o inbox já filtra por `unidadeAtual.id`, podemos usar `unidadeAtual.id` como fallback para o invoke.
+4. **Limite de 30 conversas**: aumentar a fila para cobrir mais resultados visíveis (ex.: 60) e priorizar as do topo da lista (que já estão ordenadas por `updated_at desc`).
+5. **Evitar refetch infinito**: o efeito de background depende de `conversas.map(c=>c.id).join(",")`. Quando uma foto é atualizada via setState, o set de IDs não muda → seguro. Manter.
 
-### 1) Injetar os preços direto no contexto do agente via `dynamic_variables`
+## Mudanças
 
-Hoje `elevenlabs-call-initiation` envia variáveis dinâmicas (caller, cliente, empresa) mas **não envia os preços**. Vamos:
+### `src/components/atendimento/WhatsAppInbox.tsx`
 
-- Em `supabase/functions/elevenlabs-call-initiation/index.ts`, depois de resolver a empresa, ler `configuracoes_empresa.regras_bia.tabela_precos` da empresa atendida e adicionar ao response:
+- Atualizar o invoke do header (efeito do `selectedId`) para consumir `contato_foto_url` e fazer `setConversas` preservando o restante:
+  ```ts
+  supabase.functions.invoke("whatsapp-refresh-profile", {
+    body: { unidade_id: conv.unidade_id || unidadeAtual?.id, conversa_id: selectedId },
+  }).then(({ data: r }: any) => {
+    if (r?.contato_foto_url) {
+      setConversas((prev) => prev.map((x) =>
+        x.id === selectedId ? { ...x, foto_url: r.contato_foto_url } : x
+      ));
+    }
+  }).catch(() => {});
   ```
-  dynamic_variables: {
-    ...,
-    preco_gas_p13: "125,00",
-    preco_gas_p13_desconto: "120,00",
-    preco_gas_p20: "210,00",
-    preco_gas_p20_desconto: "200,00",
-    preco_gas_p45: "410,00",
-    preco_gas_p45_desconto: "400,00",
-    preco_agua_20l: "20,00",
-  }
-  ```
-- Tratamento defensivo: se `tabela_precos` faltar ou preço = 0, manda string vazia e a Bia segue caindo no tool.
+- No efeito de background fetch (linhas 218–240):
+  - `const pending = conversas.filter((c) => !c.foto_url).slice(0, 60);`
+  - usar `unidade_id: c.unidade_id || unidadeAtual?.id` no body.
+- Garantir que `ChatAvatar` no header do chat aberto receba `conv.foto_url` atualizado (já recebe via `conversas.find`, mas confirmar que o JSX do header consome do estado mais recente).
 
-### 2) Reforçar o prompt para citar essas variáveis
+### Sem mudanças em
 
-Atualizar o prompt do agente (via `elevenlabs-update-bia-voice` POST) acrescentando, dentro da seção "REGRA DE PREÇO":
+- `supabase/functions/whatsapp-refresh-profile/index.ts` — já grava `foto_url` em `ai_conversas` e retorna `contato_foto_url`.
+- Webhook / `bia-core.ts` — não tocar.
+- `App.tsx`, rotas, providers — não tocar.
 
-```
-PREÇOS DESTA LIGAÇÃO (use literalmente, NUNCA invente):
-- Gás P13: R$ {{preco_gas_p13}} (desconto: R$ {{preco_gas_p13_desconto}})
-- Gás P20: R$ {{preco_gas_p20}} (desconto: R$ {{preco_gas_p20_desconto}})
-- Gás P45: R$ {{preco_gas_p45}} (desconto: R$ {{preco_gas_p45_desconto}})
-- Água Mineral 20L: R$ {{preco_agua_20l}}
-Se a variável vier vazia, então chame `consultar_precos`.
-```
+## Validação
 
-Com os valores literalmente no system prompt da chamada, o LLM não precisa "decidir" chamar o tool — ele lê o número e fala. Isso resolve a alucinação mesmo no `gemini-2.5-flash-lite`.
-
-### 3) (Opcional, recomendado) Trocar o LLM
-
-Subir de `gemini-2.5-flash-lite` para `gemini-2.5-flash` na configuração do agente. O custo sobe pouco e a aderência a instruções melhora bastante. Faço isso via mesma rota `elevenlabs-update-bia-voice` (POST `{"llm":"gemini-2.5-flash"}`). Confirme se quer trocar agora ou prefere manter o lite.
-
-## Arquivos afetados
-
-- `supabase/functions/elevenlabs-call-initiation/index.ts` — buscar tabela de preços e devolver em `dynamic_variables`.
-- Prompt do agente Bia (via API ElevenLabs, sem mudar código no repo) — acrescentar bloco de preços literais.
-- Nenhum schema novo; nenhuma migração; nenhuma alteração em RLS.
-
-## Observações
-
-- A tabela de preços continua sendo editada em **Admin → Bia Voz / Regras da Bia** (já está em `configuracoes_empresa.regras_bia.tabela_precos`).
-- Cada ligação puxa o snapshot do momento — atualização no banco vale na próxima chamada, sem deploy.
-- `consultar_precos` permanece registrado como fallback, caso a variável venha vazia.
+1. Abrir Chat com unidade Central Gás Matriz selecionada.
+2. Conversas com `foto_url` preenchida devem exibir foto imediatamente.
+3. Conversas sem foto devem renderizar iniciais e, em poucos segundos, trocar para a foto real conforme o background concluir.
+4. Ao abrir uma conversa específica, header passa de iniciais → foto sem precisar recarregar a página.
+5. Conferir no console que não há loop de invokes (cada conversa é chamada no máximo 1x por sessão até ganhar `foto_url`).
