@@ -1,34 +1,24 @@
-# Fix: número do pedido divergente em Contas a Receber
+# Backfill: corrigir descrições antigas em `contas_receber`
 
-## Causa raiz
+Atualizar títulos já criados antes do fix, substituindo a referência por UUID (`#A1B2C3D4`) pelo `numero_sequencial` do pedido.
 
-`paymentRoutingService.rotearPagamentosVenda` usa `params.pedidoNumero` para montar a descrição (`Pedido #123`, `Venda #123 - PIX`, etc.). Quando esse campo não é informado, ele cai num fallback que pega os 8 primeiros caracteres do UUID do pedido (`pedidoId.slice(0,8).toUpperCase()`).
+## SQL (via tool `insert` — UPDATE, sem mudança de schema)
 
-- `src/pages/vendas/NovaVenda.tsx` ✅ já passa `pedidoNumero: numero_sequencial`
-- `src/pages/vendas/PDV.tsx` ✅ já passa `pedidoNumero: numero_sequencial`
-- `src/pages/caixa/AcertoEntregador.tsx` ❌ **não passa**, e o `select` da query de entregas **nem busca** `numero_sequencial`
+```sql
+UPDATE public.contas_receber cr
+SET descricao = regexp_replace(
+  cr.descricao,
+  '#[0-9A-F]{8}',
+  '#' || p.numero_sequencial::text
+)
+FROM public.pedidos p
+WHERE cr.pedido_id = p.id
+  AND p.numero_sequencial IS NOT NULL
+  AND cr.descricao ~ '#[0-9A-F]{8}';
+```
 
-Resultado: pedidos criados/lançados pelo entregador e finalizados via Acerto geram títulos em `contas_receber` com descrição tipo `Venda #A1B2C3D4`, enquanto na tela `/vendas/pedidos` o mesmo pedido aparece como `#123`.
+## Escopo
 
-## Correção (mínima, só onde tem bug)
-
-`src/pages/caixa/AcertoEntregador.tsx`:
-
-1. Incluir `numero_sequencial` no `select` da query de entregas (linha ~215):
-   ```
-   id, numero_sequencial, created_at, data_entrega, valor_total, ...
-   ```
-2. Repassar para o roteamento (linha ~627):
-   ```ts
-   await rotearPagamentosVenda({
-     pedidoId: entrega.id,
-     pedidoNumero: entrega.numero_sequencial ?? null,
-     ...
-   });
-   ```
-
-## Fora do escopo
-
-- Não mexer em `paymentRoutingService` (já está correto).
-- Não mexer em `NovaVenda` / `PDV` (já passam o número).
-- Não alterar `contas_receber` antigos — apenas os novos passarão a sair com o `numero_sequencial` correto. Se o usuário quiser, em seguida posso fazer um backfill por SQL (`UPDATE contas_receber SET descricao = ...` a partir de `pedidos.numero_sequencial` via `pedido_id`).
+- Atualiza apenas linhas com `pedido_id` vinculado e descrição contendo o padrão `#XXXXXXXX` (8 hex maiúsculos do fallback).
+- Não toca em títulos de Vale Gás, despesas, ou descrições já com número sequencial.
+- Operação idempotente — rodar de novo não altera nada.
