@@ -1,56 +1,54 @@
-## Objetivo
+## Painel "Dados do contato" no Chat WhatsApp
 
-Garantir que a foto do contato seja exibida no `WhatsAppInbox` usando `ai_conversas.foto_url` e, quando vazia, chamar `whatsapp-refresh-profile` em background e atualizar o avatar assim que a foto retornar — tanto na lista de conversas quanto no header do chat aberto.
+Adicionar um painel lateral direito (drawer) que abre ao clicar no nome/avatar do cliente no header do chat, replicando a experiência do WhatsApp Web.
 
-## Estado atual
+### Onde
 
-O arquivo `src/components/atendimento/WhatsAppInbox.tsx` já tem boa parte da lógica:
+Arquivo: `src/components/atendimento/WhatsAppInbox.tsx`
 
-- Tipo `Conversa` inclui `foto_url`.
-- `fetchConversas` já seleciona `foto_url` de `ai_conversas`.
-- Existe um `useEffect` (linhas 218–240) que percorre conversas sem `foto_url` e chama `whatsapp-refresh-profile` em fila throttled (350ms), atualizando o estado quando retorna `contato_foto_url`.
-- Ao abrir uma conversa (linha 255–261), já dispara `whatsapp-refresh-profile` em background.
-- `ChatAvatar` faz fallback para iniciais quando a URL falha.
+### Comportamento
 
-## Gaps a corrigir
+- Clicar no avatar **ou** no nome no header do chat abre o painel lateral à direita (largura ~380px desktop, full-screen no mobile).
+- Botão X no topo do painel para fechar.
+- Painel desliza sobre a coluna de mensagens (não empurra layout em telas pequenas).
 
-1. **Header do chat aberto não atualiza com a foto retornada**: o invoke nas linhas 255–261 não usa a resposta. Precisa atualizar `conversas` quando vier `contato_foto_url`.
-2. **Realtime de `ai_conversas` UPDATE**: hoje qualquer evento em `ai_conversas` chama `fetchConversas()` inteiro. OK, mas em paralelo o webhook que grava `foto_url` deveria refletir no estado. Manter o refetch é suficiente — verificar que o subscribe cobre `UPDATE` (já cobre com `event: "*"`).
-3. **Conversas sem `unidade_id`**: o filtro `c.unidade_id` exclui essas do refresh. Como o inbox já filtra por `unidadeAtual.id`, podemos usar `unidadeAtual.id` como fallback para o invoke.
-4. **Limite de 30 conversas**: aumentar a fila para cobrir mais resultados visíveis (ex.: 60) e priorizar as do topo da lista (que já estão ordenadas por `updated_at desc`).
-5. **Evitar refetch infinito**: o efeito de background depende de `conversas.map(c=>c.id).join(",")`. Quando uma foto é atualizada via setState, o set de IDs não muda → seguro. Manter.
+### Conteúdo do painel
 
-## Mudanças
+1. **Cabeçalho visual**: avatar grande (foto de `ai_conversas.foto_url` com fallback de iniciais), nome (`titulo`), telefone formatado (`+55 43 ...`).
+2. **Ações rápidas** (3 botões em linha, estilo WhatsApp):
+   - "Buscar" (placeholder por ora — abre search interno da conversa).
+   - "Silenciar" (toggle local, salvo em `localStorage` por conversa).
+   - "Editar" (abre `ClienteFormDialog` se já vinculado; senão abre diálogo de vincular cadastro — reaproveita `openEditCliente` / `handleOpenLinkDialog`).
+3. **Bloco "Cadastro"**:
+   - Se vinculado: nome, endereço principal e link "Ver no cadastro de clientes" (`/clientes?focus={id}`).
+   - Se não vinculado: botão "Vincular ao cadastro".
+4. **Bloco "Pedidos recentes"**: últimos 5 pedidos do cliente vinculado (consulta `pedidos` por `cliente_id` da unidade atual; mostra data, valor, status). Linha clicável vai para `/pedidos?id={id}`.
+5. **Bloco "Mídia, links e docs"**: contagem de mensagens com `media_url` na conversa + miniaturas das 4 últimas imagens (consulta `ai_mensagens` filtrando `media_url` não nulo).
+6. **Bloco "Ações"**:
+   - "Atualizar foto do perfil" (chama `whatsapp-refresh-profile` manualmente).
+   - "Apagar conversa" (vermelho, reusa `setConfirmDeleteId`).
 
-### `src/components/atendimento/WhatsAppInbox.tsx`
+### Estado e dados
 
-- Atualizar o invoke do header (efeito do `selectedId`) para consumir `contato_foto_url` e fazer `setConversas` preservando o restante:
-  ```ts
-  supabase.functions.invoke("whatsapp-refresh-profile", {
-    body: { unidade_id: conv.unidade_id || unidadeAtual?.id, conversa_id: selectedId },
-  }).then(({ data: r }: any) => {
-    if (r?.contato_foto_url) {
-      setConversas((prev) => prev.map((x) =>
-        x.id === selectedId ? { ...x, foto_url: r.contato_foto_url } : x
-      ));
-    }
-  }).catch(() => {});
-  ```
-- No efeito de background fetch (linhas 218–240):
-  - `const pending = conversas.filter((c) => !c.foto_url).slice(0, 60);`
-  - usar `unidade_id: c.unidade_id || unidadeAtual?.id` no body.
-- Garantir que `ChatAvatar` no header do chat aberto receba `conv.foto_url` atualizado (já recebe via `conversas.find`, mas confirmar que o JSX do header consome do estado mais recente).
+- Novo state `contactPanelOpen: boolean`.
+- Hook local `useContactPanelData(conversaId, clienteId)` que carrega pedidos recentes + mídias quando o painel abre (lazy, com `useEffect`).
+- Reaproveita `clienteByConv`, `selectedConversa`, `profileSyncStatus` já existentes.
 
-### Sem mudanças em
+### UI / estilo
 
-- `supabase/functions/whatsapp-refresh-profile/index.ts` — já grava `foto_url` em `ai_conversas` e retorna `contato_foto_url`.
-- Webhook / `bia-core.ts` — não tocar.
-- `App.tsx`, rotas, providers — não tocar.
+- Cores WhatsApp Web já usadas no arquivo (`#f0f2f5`, `#667781`, `#111b21`, `#00a884`).
+- Sem novas dependências; usa `Dialog`/`Sheet` do shadcn — preferir `Sheet` (side="right") por ser drawer lateral nativo.
+- Animação slide-in já vem do `Sheet`.
 
-## Validação
+### Não inclui (fora de escopo)
 
-1. Abrir Chat com unidade Central Gás Matriz selecionada.
-2. Conversas com `foto_url` preenchida devem exibir foto imediatamente.
-3. Conversas sem foto devem renderizar iniciais e, em poucos segundos, trocar para a foto real conforme o background concluir.
-4. Ao abrir uma conversa específica, header passa de iniciais → foto sem precisar recarregar a página.
-5. Conferir no console que não há loop de invokes (cada conversa é chamada no máximo 1x por sessão até ganhar `foto_url`).
+- Funções "Voz" e "Vídeo" do WhatsApp Web (não temos VoIP no contexto deste chat).
+- Mensagens favoritas / mensagens temporárias / privacidade avançada.
+- Edição de notas livres ("Recado") — pode ser proposto depois se necessário.
+
+### Arquivos tocados
+
+- `src/components/atendimento/WhatsAppInbox.tsx` (header clicável + render do `Sheet` + carregamento dos blocos).
+- Possível extração para `src/components/atendimento/ContactDetailsPanel.tsx` se ultrapassar ~150 linhas, para manter `WhatsAppInbox` legível.
+
+Sem migrações de banco e sem mudanças de RLS.

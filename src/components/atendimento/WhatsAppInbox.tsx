@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ClienteFormDialog } from "@/components/clientes/ClienteFormDialog";
 import type { ClienteForm } from "@/hooks/useClientes";
+import { ContactDetailsPanel } from "./ContactDetailsPanel";
 
 interface Conversa {
   id: string;
@@ -114,6 +115,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const [editClienteOpen, setEditClienteOpen] = useState(false);
   const [editClienteData, setEditClienteData] = useState<{ id: string; form: ClienteForm } | null>(null);
   const [clienteByConv, setClienteByConv] = useState<Record<string, { id: string; nome: string } | null>>({});
+  const [contactPanelOpen, setContactPanelOpen] = useState(false);
 
   // Sync selection with global context
   useEffect(() => {
@@ -747,23 +749,26 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                 <ArrowLeft className="h-5 w-5 text-[#54656f]" />
               </button>
 
-              {/* Contact Avatar */}
-              <ChatAvatar url={selectedConversa?.foto_url} name={selectedConversa?.titulo || "??"} size="sm" />
-
-              {/* Contact Info */}
-              <div className="flex-1 min-w-0">
-                <p className="text-[#111b21] text-base font-normal truncate">
-                  {selectedConversa?.titulo}
-                </p>
-                <p className={cn(
-                  "text-xs",
-                  profileSyncStatus === "offline" ? "text-[#b54708]" : "text-[#667781]"
-                )}>
-                  {profileSyncStatus === "syncing" && "atualizando foto…"}
-                  {profileSyncStatus === "offline" && "sem conexão com WhatsApp — usando avatar padrão"}
-                  {profileSyncStatus === "idle" && "online"}
-                </p>
-              </div>
+              {/* Contact Avatar + Info — clicável abre painel */}
+              <button
+                onClick={() => setContactPanelOpen(true)}
+                className="flex items-center gap-3 flex-1 min-w-0 text-left hover:bg-[#e9edef] -mx-1 px-1 py-1 rounded transition-colors"
+              >
+                <ChatAvatar url={selectedConversa?.foto_url} name={selectedConversa?.titulo || "??"} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[#111b21] text-base font-normal truncate">
+                    {selectedConversa?.titulo}
+                  </p>
+                  <p className={cn(
+                    "text-xs",
+                    profileSyncStatus === "offline" ? "text-[#b54708]" : "text-[#667781]"
+                  )}>
+                    {profileSyncStatus === "syncing" && "atualizando foto…"}
+                    {profileSyncStatus === "offline" && "sem conexão com WhatsApp — usando avatar padrão"}
+                    {profileSyncStatus === "idle" && "online"}
+                  </p>
+                </div>
+              </button>
 
               {/* Header Actions */}
               <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors">
@@ -1101,6 +1106,38 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
           onSave={saveClienteInline}
         />
       )}
+
+      {/* Painel "Dados do contato" */}
+      <ContactDetailsPanel
+        open={contactPanelOpen}
+        onOpenChange={setContactPanelOpen}
+        conversaId={selectedId}
+        unidadeId={selectedConversa?.unidade_id || unidadeAtual?.id || null}
+        contactName={selectedConversa?.titulo || ""}
+        phone={selectedConversa?.telefone || null}
+        photoUrl={selectedConversa?.foto_url || null}
+        profileSyncStatus={profileSyncStatus}
+        cliente={selectedId ? clienteByConv[selectedId] || null : null}
+        onEditCliente={openEditCliente}
+        onLinkCliente={handleOpenLinkDialog}
+        onDeleteConversa={() => selectedId && setConfirmDeleteId(selectedId)}
+        onRefreshPhoto={() => {
+          const uid = selectedConversa?.unidade_id || unidadeAtual?.id;
+          if (!uid || !selectedId) return;
+          setProfileSyncStatus("syncing");
+          supabase.functions.invoke("whatsapp-refresh-profile", {
+            body: { unidade_id: uid, conversa_id: selectedId },
+          }).then(({ data: r, error }: any) => {
+            if (error || r?.ok === false) { setProfileSyncStatus("offline"); return; }
+            setProfileSyncStatus("idle");
+            if (r?.contato_foto_url) {
+              setConversas((prev) => prev.map((x) =>
+                x.id === selectedId ? { ...x, foto_url: r.contato_foto_url } : x
+              ));
+            }
+          }).catch(() => setProfileSyncStatus("offline"));
+        }}
+      />
     </div>
   );
 }
