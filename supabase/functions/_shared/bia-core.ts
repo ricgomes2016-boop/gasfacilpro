@@ -939,7 +939,13 @@ export async function loadHistory(supabase: any, conversationId: string) {
 }
 
 export async function saveMessage(supabase: any, conversationId: string, role: string, content: string, metadata?: any) {
-  await supabase.from("ai_mensagens").insert({ conversa_id: conversationId, role, content, metadata });
+  const wa_message_id = metadata?.message_id || metadata?.wa_message_id || null;
+  const row: any = { conversa_id: conversationId, role, content, metadata };
+  if (wa_message_id) row.wa_message_id = wa_message_id;
+  // Status default: inbound = 'sent' (já chegou); assistant/system = 'sent' (BIA enviou via sendMessage do webhook); human = pending (operador)
+  if (role === "user") row.status = "sent";
+  else if (role === "assistant" || role === "system") row.status = "sent";
+  await supabase.from("ai_mensagens").insert(row);
 }
 
 export async function upsertConversation(supabase: any, conversationId: string, title: string, telefone?: string, unidadeId?: string | null) {
