@@ -256,9 +256,16 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
 
     // Atualiza foto do contato em background
     const conv = conversas.find((c) => c.id === selectedId);
-    if (conv?.unidade_id) {
+    const uid = conv?.unidade_id || unidadeAtual?.id;
+    if (uid) {
       supabase.functions.invoke("whatsapp-refresh-profile", {
-        body: { unidade_id: conv.unidade_id, conversa_id: selectedId },
+        body: { unidade_id: uid, conversa_id: selectedId },
+      }).then(({ data: r }: any) => {
+        if (r?.contato_foto_url) {
+          setConversas((prev) => prev.map((x) =>
+            x.id === selectedId ? { ...x, foto_url: r.contato_foto_url } : x
+          ));
+        }
       }).catch(() => {});
     }
 
