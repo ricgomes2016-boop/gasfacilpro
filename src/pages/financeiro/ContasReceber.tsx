@@ -64,6 +64,8 @@ interface ContaReceber {
   parceiro_nome?: string | null;
   endereco_cliente?: string | null;
   bairro_cliente?: string | null;
+  data_venda?: string | null;
+  data_recebimento?: string | null;
 }
 
 const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque", "Vale Gás"];
@@ -101,6 +103,7 @@ export default function ContasReceber() {
   // Bulk liquidation states
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [bulkFormaPagamento, setBulkFormaPagamento] = useState("");
+  const [bulkDataRecebimento, setBulkDataRecebimento] = useState("");
   const [bulkProcessing, setBulkProcessing] = useState(false);
 
   // Import states
@@ -146,6 +149,7 @@ export default function ContasReceber() {
 
   const [receberForm, setReceberForm] = useState({
     formasPagamento: [{ forma: "", valor: "" }] as { forma: string; valor: string }[],
+    dataRecebimento: "",
   });
 
   const resetForm = () => setForm({ cliente: "", descricao: "", valor: "", vencimento: "", forma_pagamento: "", observacoes: "" });
@@ -154,7 +158,7 @@ export default function ContasReceber() {
     setLoading(true);
     let query = supabase
       .from("contas_receber")
-      .select("*, pedidos(cliente_id, endereco_entrega, clientes(nome, endereco, bairro)), vale_gas(numero, codigo), vale_gas_parceiros:vale_gas_parceiro_id(nome)")
+      .select("*, pedidos(cliente_id, created_at, endereco_entrega, clientes(nome, endereco, bairro)), vale_gas(numero, codigo), vale_gas_parceiros:vale_gas_parceiro_id(nome)")
       .order("vencimento", { ascending: true });
     if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
     const { data, error } = await query;
@@ -170,6 +174,8 @@ export default function ContasReceber() {
         parceiro_nome: c.vale_gas_parceiros?.nome || null,
         endereco_cliente: c.pedidos?.endereco_entrega || c.pedidos?.clientes?.endereco || null,
         bairro_cliente: c.pedidos?.clientes?.bairro || null,
+        data_venda: c.pedidos?.created_at || c.created_at || null,
+        data_recebimento: c.data_recebimento || null,
       })));
     }
     setLoading(false);
@@ -221,6 +227,7 @@ export default function ContasReceber() {
     setReceberConta(conta);
     setReceberForm({
       formasPagamento: [{ forma: conta.forma_pagamento || "", valor: String(conta.valor) }],
+      dataRecebimento: getBrasiliaDateString(),
     });
     setReceberDialogOpen(true);
   };
@@ -233,6 +240,9 @@ export default function ContasReceber() {
     const valorConta = Number(receberConta.valor);
     if (totalRecebido <= 0) { toast.error("Informe o valor recebido"); return; }
     if (totalRecebido > valorConta + 0.01) { toast.error("Valor excede o da conta"); return; }
+    const dataRec = receberForm.dataRecebimento || getBrasiliaDateString();
+    if (!dataRec) { toast.error("Informe a data do recebimento"); return; }
+    const dataRecFmt = format(new Date(dataRec + "T12:00:00"), "dd/MM/yyyy");
 
     const isParcial = totalRecebido < valorConta - 0.01;
     const formasStr = receberForm.formasPagamento
@@ -293,16 +303,17 @@ export default function ContasReceber() {
 
     if (isParcial) {
       const restante = valorConta - totalRecebido;
-      const obs = `${receberConta.observacoes || ""}\nRecebido parcial R$ ${totalRecebido.toFixed(2)} em ${format(new Date(), "dd/MM/yyyy")} (${formasStr})`.trim();
+      const obs = `${receberConta.observacoes || ""}\nRecebido parcial R$ ${totalRecebido.toFixed(2)} em ${dataRecFmt} (${formasStr})`.trim();
       const { error } = await supabase.from("contas_receber").update({ valor: restante, observacoes: obs }).eq("id", receberConta.id);
       if (error) { toast.error("Erro ao processar"); return; }
       toast.success(`Recebido R$ ${totalRecebido.toFixed(2)} — Restante: R$ ${restante.toFixed(2)}`);
     } else {
       const { error } = await supabase.from("contas_receber").update({
         status: "recebida", forma_pagamento: formasStr || receberConta.forma_pagamento,
+        data_recebimento: dataRec,
       }).eq("id", receberConta.id);
       if (error) { toast.error("Erro ao confirmar"); return; }
-      toast.success("Conta recebida! Valores roteados para caixa/banco.");
+      toast.success(`Conta recebida em ${dataRecFmt}!`);
     }
     setReceberDialogOpen(false);
     fetchContas();
@@ -320,6 +331,7 @@ export default function ContasReceber() {
     if (!bulkFormaPagamento || selectedContas.length === 0) {
       toast.error("Selecione a forma de pagamento"); return;
     }
+    const dataRec = bulkDataRecebimento || getBrasiliaDateString();
     setBulkProcessing(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -359,6 +371,7 @@ export default function ContasReceber() {
         const { error } = await supabase.from("contas_receber").update({
           status: "recebida",
           forma_pagamento: bulkFormaPagamento,
+          data_recebimento: dataRec,
         }).eq("id", conta.id);
 
         if (!error) successCount++;
@@ -393,6 +406,24 @@ export default function ContasReceber() {
   };
 
   const hoje = getBrasiliaDateString();
+
+  const diasEntre = (a: string, b: string) => {
+    const d1 = new Date(a + "T12:00:00").getTime();
+    const d2 = new Date(b + "T12:00:00").getTime();
+    return Math.round((d1 - d2) / 86400000);
+  };
+  const agingLabel = (conta: ContaReceber) => {
+    if (conta.status === "recebida") {
+      return conta.data_recebimento
+        ? { text: `recebido em ${format(new Date(conta.data_recebimento + "T12:00:00"), "dd/MM/yyyy")}`, cls: "text-muted-foreground" }
+        : null;
+    }
+    const dias = diasEntre(hoje, conta.vencimento);
+    if (dias > 0) return { text: `${dias} dia${dias > 1 ? "s" : ""} em aberto`, cls: "text-destructive font-medium" };
+    if (dias === 0) return { text: "vence hoje", cls: "text-warning" };
+    return { text: `vence em ${-dias} dia${-dias > 1 ? "s" : ""}`, cls: "text-muted-foreground" };
+  };
+
 
   // Filtragem base (nome, data, status) — por padrão mostra apenas pendentes/vencidas
   const baseFiltered = contas.filter(c => {
@@ -511,6 +542,7 @@ export default function ContasReceber() {
                   openReceberDialog(selectedContas[0]);
                 } else {
                   setBulkFormaPagamento("");
+                  setBulkDataRecebimento(getBrasiliaDateString());
                   setBulkDialogOpen(true);
                 }
               }}>
@@ -563,7 +595,13 @@ export default function ContasReceber() {
                     </div>
                     <span className="font-bold text-sm">R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">Venc: {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</p>
+                  <div className="flex items-center justify-between mt-1 gap-2">
+                    <p className="text-[10px] text-muted-foreground">
+                      {conta.data_venda && <>Venda: {format(new Date(conta.data_venda), "dd/MM/yyyy")} · </>}
+                      Venc: {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}
+                    </p>
+                    {(() => { const a = agingLabel(conta); return a ? <span className={`text-[10px] ${a.cls}`}>{a.text}</span> : null; })()}
+                  </div>
                 </div>
               );
             })}
@@ -582,6 +620,7 @@ export default function ContasReceber() {
                   </TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Descrição</TableHead>
+                  <TableHead>Data Venda</TableHead>
                   <TableHead>Forma</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead>Valor</TableHead>
@@ -603,11 +642,15 @@ export default function ContasReceber() {
                         {conta.vale_numero && <p className="text-xs text-muted-foreground">Vale nº {conta.vale_numero} · {conta.vale_codigo}</p>}
                       </TableCell>
                       <TableCell className="text-sm">{conta.descricao}</TableCell>
+                      <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
+                        {conta.data_venda ? format(new Date(conta.data_venda), "dd/MM/yyyy") : "—"}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">{conta.forma_pagamento || "—"}</Badge>
                       </TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
-                        {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}
+                        <div>{format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</div>
+                        {(() => { const a = agingLabel(conta); return a ? <div className={`text-[10px] ${a.cls}`}>{a.text}</div> : null; })()}
                       </TableCell>
                       <TableCell className="font-medium text-sm whitespace-nowrap">
                         R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
@@ -846,6 +889,15 @@ export default function ContasReceber() {
                   <p className="text-xs text-muted-foreground">{receberConta.descricao}</p>
                   <p className="text-lg font-bold">R$ {Number(receberConta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
                 </div>
+                <div>
+                  <Label className="text-sm">Data do Recebimento *</Label>
+                  <Input
+                    type="date"
+                    className="mt-1"
+                    value={receberForm.dataRecebimento}
+                    onChange={e => setReceberForm(prev => ({ ...prev, dataRecebimento: e.target.value }))}
+                  />
+                </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label className="font-medium">Formas de Pagamento</Label>
@@ -921,6 +973,15 @@ export default function ContasReceber() {
                     {FORMAS_PAGAMENTO.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label>Data do Recebimento *</Label>
+                <Input
+                  type="date"
+                  className="mt-1"
+                  value={bulkDataRecebimento}
+                  onChange={e => setBulkDataRecebimento(e.target.value)}
+                />
               </div>
               <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
                 Todas as contas serão marcadas como recebidas e o valor será creditado automaticamente no destino correto (Dinheiro → Caixa, outros → Conta Bancária).
