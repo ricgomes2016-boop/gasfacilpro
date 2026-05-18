@@ -251,6 +251,16 @@ export default function ContasReceber() {
     if (totalRecebido > valorConta + 0.01) { toast.error("Valor excede o da conta"); return; }
     const dataRec = receberForm.dataRecebimento || getBrasiliaDateString();
     if (!dataRec) { toast.error("Informe a data do recebimento"); return; }
+    const dataVenda = (receberConta.data_venda || receberConta.created_at || "").slice(0, 10);
+    const hojeStr = getBrasiliaDateString();
+    if (dataVenda && dataRec < dataVenda) {
+      toast.error(`A data do recebimento não pode ser anterior à data da venda (${format(new Date(dataVenda + "T12:00:00"), "dd/MM/yyyy")}).`);
+      return;
+    }
+    if (dataRec > hojeStr) {
+      toast.error("A data do recebimento não pode ser posterior a hoje.");
+      return;
+    }
     const dataRecFmt = format(new Date(dataRec + "T12:00:00"), "dd/MM/yyyy");
 
     const isParcial = totalRecebido < valorConta - 0.01;
