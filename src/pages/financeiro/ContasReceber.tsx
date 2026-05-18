@@ -371,6 +371,7 @@ export default function ContasReceber() {
         const { error } = await supabase.from("contas_receber").update({
           status: "recebida",
           forma_pagamento: bulkFormaPagamento,
+          data_recebimento: dataRec,
         }).eq("id", conta.id);
 
         if (!error) successCount++;
