@@ -49,14 +49,19 @@ async function cacheImageToStorage(
 async function resolveAnyEvolutionForEmpresa(supabase: any, empresaId: string | null) {
   if (!empresaId) return null;
   for (const prov of CONTACT_PIC_ORDER) {
+    // Prefere instâncias conectadas; ordena conectado > aguardando > resto
     const { data: rows } = await supabase
       .from("integracoes_whatsapp")
-      .select("unidade_id, unidades!inner(empresa_id)")
+      .select("unidade_id, status_conexao, unidades!inner(empresa_id)")
       .eq("provedor", prov)
       .eq("ativo", true)
       .eq("unidades.empresa_id", empresaId)
-      .limit(5);
-    for (const r of rows || []) {
+      .limit(10);
+    const sorted = (rows || []).sort((a: any, b: any) => {
+      const score = (s: string) => (s === "conectado" || s === "open" ? 0 : s === "aguardando" ? 1 : 2);
+      return score(a.status_conexao) - score(b.status_conexao);
+    });
+    for (const r of sorted) {
       const cfg = await resolveConfig(supabase, prov as any, r.unidade_id, null);
       if (cfg) return cfg;
     }
