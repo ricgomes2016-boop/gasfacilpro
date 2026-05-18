@@ -749,23 +749,26 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                 <ArrowLeft className="h-5 w-5 text-[#54656f]" />
               </button>
 
-              {/* Contact Avatar */}
-              <ChatAvatar url={selectedConversa?.foto_url} name={selectedConversa?.titulo || "??"} size="sm" />
-
-              {/* Contact Info */}
-              <div className="flex-1 min-w-0">
-                <p className="text-[#111b21] text-base font-normal truncate">
-                  {selectedConversa?.titulo}
-                </p>
-                <p className={cn(
-                  "text-xs",
-                  profileSyncStatus === "offline" ? "text-[#b54708]" : "text-[#667781]"
-                )}>
-                  {profileSyncStatus === "syncing" && "atualizando foto…"}
-                  {profileSyncStatus === "offline" && "sem conexão com WhatsApp — usando avatar padrão"}
-                  {profileSyncStatus === "idle" && "online"}
-                </p>
-              </div>
+              {/* Contact Avatar + Info — clicável abre painel */}
+              <button
+                onClick={() => setContactPanelOpen(true)}
+                className="flex items-center gap-3 flex-1 min-w-0 text-left hover:bg-[#e9edef] -mx-1 px-1 py-1 rounded transition-colors"
+              >
+                <ChatAvatar url={selectedConversa?.foto_url} name={selectedConversa?.titulo || "??"} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[#111b21] text-base font-normal truncate">
+                    {selectedConversa?.titulo}
+                  </p>
+                  <p className={cn(
+                    "text-xs",
+                    profileSyncStatus === "offline" ? "text-[#b54708]" : "text-[#667781]"
+                  )}>
+                    {profileSyncStatus === "syncing" && "atualizando foto…"}
+                    {profileSyncStatus === "offline" && "sem conexão com WhatsApp — usando avatar padrão"}
+                    {profileSyncStatus === "idle" && "online"}
+                  </p>
+                </div>
+              </button>
 
               {/* Header Actions */}
               <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors">
