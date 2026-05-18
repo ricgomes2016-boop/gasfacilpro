@@ -595,7 +595,13 @@ export default function ContasReceber() {
                     </div>
                     <span className="font-bold text-sm">R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">Venc: {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</p>
+                  <div className="flex items-center justify-between mt-1 gap-2">
+                    <p className="text-[10px] text-muted-foreground">
+                      {conta.data_venda && <>Venda: {format(new Date(conta.data_venda), "dd/MM/yyyy")} · </>}
+                      Venc: {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}
+                    </p>
+                    {(() => { const a = agingLabel(conta); return a ? <span className={`text-[10px] ${a.cls}`}>{a.text}</span> : null; })()}
+                  </div>
                 </div>
               );
             })}
