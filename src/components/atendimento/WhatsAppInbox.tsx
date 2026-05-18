@@ -115,6 +115,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const [editClienteOpen, setEditClienteOpen] = useState(false);
   const [editClienteData, setEditClienteData] = useState<{ id: string; form: ClienteForm } | null>(null);
   const [clienteByConv, setClienteByConv] = useState<Record<string, { id: string; nome: string } | null>>({});
+  const [contactPanelOpen, setContactPanelOpen] = useState(false);
 
   // Sync selection with global context
   useEffect(() => {
