@@ -44,6 +44,7 @@ import autoTable from "jspdf-autotable";
 import { SmartImportButtons } from "@/components/import/SmartImportButtons";
 import { ImportReviewDialog } from "@/components/import/ImportReviewDialog";
 import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ContaReceber {
   id: string;
@@ -105,6 +106,14 @@ export default function ContasReceber() {
   const [bulkFormaPagamento, setBulkFormaPagamento] = useState("");
   const [bulkDataRecebimento, setBulkDataRecebimento] = useState("");
   const [bulkProcessing, setBulkProcessing] = useState(false);
+
+  // Edit data_recebimento (admin/gestor only)
+  const { hasAnyRole, profile, user } = useAuth();
+  const podeEditarDataRecebimento = hasAnyRole(["admin", "gestor"]);
+  const [editDataRecDialogOpen, setEditDataRecDialogOpen] = useState(false);
+  const [editDataRecConta, setEditDataRecConta] = useState<ContaReceber | null>(null);
+  const [editDataRecValue, setEditDataRecValue] = useState("");
+  const [editDataRecSaving, setEditDataRecSaving] = useState(false);
 
   // Import states
   const [importItems, setImportItems] = useState<Array<{
@@ -242,6 +251,16 @@ export default function ContasReceber() {
     if (totalRecebido > valorConta + 0.01) { toast.error("Valor excede o da conta"); return; }
     const dataRec = receberForm.dataRecebimento || getBrasiliaDateString();
     if (!dataRec) { toast.error("Informe a data do recebimento"); return; }
+    const dataVenda = (receberConta.data_venda || receberConta.created_at || "").slice(0, 10);
+    const hojeStr = getBrasiliaDateString();
+    if (dataVenda && dataRec < dataVenda) {
+      toast.error(`A data do recebimento não pode ser anterior à data da venda (${format(new Date(dataVenda + "T12:00:00"), "dd/MM/yyyy")}).`);
+      return;
+    }
+    if (dataRec > hojeStr) {
+      toast.error("A data do recebimento não pode ser posterior a hoje.");
+      return;
+    }
     const dataRecFmt = format(new Date(dataRec + "T12:00:00"), "dd/MM/yyyy");
 
     const isParcial = totalRecebido < valorConta - 0.01;
@@ -332,6 +351,19 @@ export default function ContasReceber() {
       toast.error("Selecione a forma de pagamento"); return;
     }
     const dataRec = bulkDataRecebimento || getBrasiliaDateString();
+    const hojeStr = getBrasiliaDateString();
+    if (dataRec > hojeStr) {
+      toast.error("A data do recebimento não pode ser posterior a hoje.");
+      return;
+    }
+    const maiorDataVenda = selectedContas.reduce<string>((acc, c) => {
+      const d = (c.data_venda || c.created_at || "").slice(0, 10);
+      return d > acc ? d : acc;
+    }, "");
+    if (maiorDataVenda && dataRec < maiorDataVenda) {
+      toast.error(`A data do recebimento não pode ser anterior à data da venda mais recente (${format(new Date(maiorDataVenda + "T12:00:00"), "dd/MM/yyyy")}).`);
+      return;
+    }
     setBulkProcessing(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -388,6 +420,57 @@ export default function ContasReceber() {
       setBulkProcessing(false);
     }
   };
+
+  const openEditDataRecDialog = (conta: ContaReceber) => {
+    setEditDataRecConta(conta);
+    setEditDataRecValue((conta.data_recebimento || getBrasiliaDateString()).slice(0, 10));
+    setEditDataRecDialogOpen(true);
+  };
+
+  const handleSalvarEditDataRec = async () => {
+    if (!editDataRecConta) return;
+    const nova = editDataRecValue;
+    if (!nova) { toast.error("Informe a data"); return; }
+    const dataVenda = (editDataRecConta.data_venda || editDataRecConta.created_at || "").slice(0, 10);
+    const hojeStr = getBrasiliaDateString();
+    if (dataVenda && nova < dataVenda) {
+      toast.error(`A data não pode ser anterior à data da venda (${format(new Date(dataVenda + "T12:00:00"), "dd/MM/yyyy")}).`);
+      return;
+    }
+    if (nova > hojeStr) {
+      toast.error("A data não pode ser posterior a hoje.");
+      return;
+    }
+    const antiga = editDataRecConta.data_recebimento
+      ? format(new Date(editDataRecConta.data_recebimento + "T12:00:00"), "dd/MM/yyyy")
+      : "—";
+    const novaFmt = format(new Date(nova + "T12:00:00"), "dd/MM/yyyy");
+    if (antiga === novaFmt) {
+      toast.info("A data informada é a mesma já registrada.");
+      return;
+    }
+    setEditDataRecSaving(true);
+    try {
+      const autor = profile?.full_name || profile?.email || user?.email || "usuário";
+      const agora = format(new Date(), "dd/MM/yyyy HH:mm");
+      const linha = `[Data de recebimento alterada de ${antiga} para ${novaFmt} por ${autor} em ${agora}]`;
+      const obs = `${editDataRecConta.observacoes || ""}\n${linha}`.trim();
+      const { error } = await supabase
+        .from("contas_receber")
+        .update({ data_recebimento: nova, observacoes: obs })
+        .eq("id", editDataRecConta.id);
+      if (error) throw error;
+      toast.success("Data de recebimento atualizada!");
+      setEditDataRecDialogOpen(false);
+      setEditDataRecConta(null);
+      fetchContas();
+    } catch (err: any) {
+      toast.error("Erro ao salvar: " + (err.message || "erro"));
+    } finally {
+      setEditDataRecSaving(false);
+    }
+  };
+
 
   const addFormaPagamento = () => {
     setReceberForm(prev => ({
@@ -583,6 +666,11 @@ export default function ContasReceber() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50">
                         {conta.status !== "recebida" && <DropdownMenuItem onClick={() => openReceberDialog(conta)}><DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber</DropdownMenuItem>}
+                        {conta.status === "recebida" && podeEditarDataRecebimento && (
+                          <DropdownMenuItem onClick={() => openEditDataRecDialog(conta)}>
+                            <Pencil className="h-4 w-4 mr-2" />Editar data de recebimento
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => handleEdit(conta)}><Pencil className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(conta.id)}><Trash2 className="h-4 w-4 mr-2" />Excluir</DropdownMenuItem>
                       </DropdownMenuContent>
@@ -669,6 +757,11 @@ export default function ContasReceber() {
                             {conta.status !== "recebida" && (
                               <DropdownMenuItem onClick={() => openReceberDialog(conta)}>
                                 <DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber
+                              </DropdownMenuItem>
+                            )}
+                            {conta.status === "recebida" && podeEditarDataRecebimento && (
+                              <DropdownMenuItem onClick={() => openEditDataRecDialog(conta)}>
+                                <Pencil className="h-4 w-4 mr-2" />Editar data de recebimento
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem onClick={() => handleEdit(conta)}>
@@ -894,9 +987,14 @@ export default function ContasReceber() {
                   <Input
                     type="date"
                     className="mt-1"
+                    min={(receberConta.data_venda || receberConta.created_at || "").slice(0, 10) || undefined}
+                    max={getBrasiliaDateString()}
                     value={receberForm.dataRecebimento}
                     onChange={e => setReceberForm(prev => ({ ...prev, dataRecebimento: e.target.value }))}
                   />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Entre a data da venda e hoje.
+                  </p>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -979,9 +1077,17 @@ export default function ContasReceber() {
                 <Input
                   type="date"
                   className="mt-1"
+                  min={selectedContas.reduce<string>((acc, c) => {
+                    const d = (c.data_venda || c.created_at || "").slice(0, 10);
+                    return d > acc ? d : acc;
+                  }, "") || undefined}
+                  max={getBrasiliaDateString()}
                   value={bulkDataRecebimento}
                   onChange={e => setBulkDataRecebimento(e.target.value)}
                 />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Entre a data da venda mais recente do lote e hoje.
+                </p>
               </div>
               <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
                 Todas as contas serão marcadas como recebidas e o valor será creditado automaticamente no destino correto (Dinheiro → Caixa, outros → Conta Bancária).
@@ -993,6 +1099,46 @@ export default function ContasReceber() {
                 </Button>
               </div>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Editar data de recebimento (admin/gestor) */}
+        <Dialog open={editDataRecDialogOpen} onOpenChange={setEditDataRecDialogOpen}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader><DialogTitle>Editar data de recebimento</DialogTitle></DialogHeader>
+            {editDataRecConta && (
+              <div className="space-y-4 pt-2">
+                <div className="p-3 rounded-lg bg-muted/50 space-y-1">
+                  <p className="text-sm font-medium">{editDataRecConta.cliente}</p>
+                  <p className="text-xs text-muted-foreground">{editDataRecConta.descricao}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Data atual: {editDataRecConta.data_recebimento
+                      ? format(new Date(editDataRecConta.data_recebimento + "T12:00:00"), "dd/MM/yyyy")
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm">Nova data *</Label>
+                  <Input
+                    type="date"
+                    className="mt-1"
+                    min={(editDataRecConta.data_venda || editDataRecConta.created_at || "").slice(0, 10) || undefined}
+                    max={getBrasiliaDateString()}
+                    value={editDataRecValue}
+                    onChange={e => setEditDataRecValue(e.target.value)}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    A alteração será registrada nas observações da conta.
+                  </p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setEditDataRecDialogOpen(false)}>Cancelar</Button>
+                  <Button onClick={handleSalvarEditDataRec} disabled={editDataRecSaving}>
+                    {editDataRecSaving ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 
