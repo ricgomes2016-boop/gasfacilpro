@@ -112,37 +112,61 @@ export type Database = {
       }
       ai_conversas: {
         Row: {
+          archived_at: string | null
+          assigned_to_user_id: string | null
+          closed_at: string | null
           created_at: string
           empresa_id: string | null
           foto_atualizada_em: string | null
           foto_url: string | null
           id: string
+          pedido_id: string | null
+          status: string
+          subject: string | null
           telefone: string | null
           titulo: string
+          transferred_at: string | null
+          transferred_to_user_id: string | null
           unidade_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
+          assigned_to_user_id?: string | null
+          closed_at?: string | null
           created_at?: string
           empresa_id?: string | null
           foto_atualizada_em?: string | null
           foto_url?: string | null
           id?: string
+          pedido_id?: string | null
+          status?: string
+          subject?: string | null
           telefone?: string | null
           titulo?: string
+          transferred_at?: string | null
+          transferred_to_user_id?: string | null
           unidade_id?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          archived_at?: string | null
+          assigned_to_user_id?: string | null
+          closed_at?: string | null
           created_at?: string
           empresa_id?: string | null
           foto_atualizada_em?: string | null
           foto_url?: string | null
           id?: string
+          pedido_id?: string | null
+          status?: string
+          subject?: string | null
           telefone?: string | null
           titulo?: string
+          transferred_at?: string | null
+          transferred_to_user_id?: string | null
           unidade_id?: string | null
           updated_at?: string
           user_id?: string
@@ -154,25 +178,46 @@ export type Database = {
           content: string
           conversa_id: string
           created_at: string
+          delivered_at: string | null
+          direction: string | null
+          error_message: string | null
           id: string
           metadata: Json | null
+          read_at: string | null
           role: string
+          sent_at: string | null
+          status: string | null
+          wa_message_id: string | null
         }
         Insert: {
           content: string
           conversa_id: string
           created_at?: string
+          delivered_at?: string | null
+          direction?: string | null
+          error_message?: string | null
           id?: string
           metadata?: Json | null
+          read_at?: string | null
           role: string
+          sent_at?: string | null
+          status?: string | null
+          wa_message_id?: string | null
         }
         Update: {
           content?: string
           conversa_id?: string
           created_at?: string
+          delivered_at?: string | null
+          direction?: string | null
+          error_message?: string | null
           id?: string
           metadata?: Json | null
+          read_at?: string | null
           role?: string
+          sent_at?: string | null
+          status?: string | null
+          wa_message_id?: string | null
         }
         Relationships: [
           {
@@ -10602,6 +10647,60 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_eventos: {
+        Row: {
+          contato_wa_id: string | null
+          conversa_id: string | null
+          created_at: string
+          empresa_id: string | null
+          event_data: Json
+          event_type: string
+          id: string
+          mensagem_id: string | null
+          unidade_id: string | null
+          wa_message_id: string | null
+        }
+        Insert: {
+          contato_wa_id?: string | null
+          conversa_id?: string | null
+          created_at?: string
+          empresa_id?: string | null
+          event_data?: Json
+          event_type: string
+          id?: string
+          mensagem_id?: string | null
+          unidade_id?: string | null
+          wa_message_id?: string | null
+        }
+        Update: {
+          contato_wa_id?: string | null
+          conversa_id?: string | null
+          created_at?: string
+          empresa_id?: string | null
+          event_data?: Json
+          event_type?: string
+          id?: string
+          mensagem_id?: string | null
+          unidade_id?: string | null
+          wa_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_eventos_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_eventos_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "ai_mensagens"
             referencedColumns: ["id"]
           },
         ]
