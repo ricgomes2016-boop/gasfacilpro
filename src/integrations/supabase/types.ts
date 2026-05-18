@@ -3179,6 +3179,9 @@ export type Database = {
       }
       contas_receber: {
         Row: {
+          asaas_charge_id: string | null
+          asaas_customer_id: string | null
+          boleto_url: string | null
           cliente: string
           cliente_id: string | null
           created_at: string
@@ -3186,11 +3189,15 @@ export type Database = {
           descricao: string
           forma_pagamento: string | null
           id: string
+          linha_digitavel: string | null
+          nosso_numero: string | null
           observacoes: string | null
           operadora_id: string | null
           origem: string | null
           parcela_atual: number | null
           pedido_id: string | null
+          pix_copia_cola: string | null
+          pix_qrcode: string | null
           plano_contas_id: string | null
           status: string
           taxa_percentual: number | null
@@ -3205,6 +3212,9 @@ export type Database = {
           vencimento: string
         }
         Insert: {
+          asaas_charge_id?: string | null
+          asaas_customer_id?: string | null
+          boleto_url?: string | null
           cliente: string
           cliente_id?: string | null
           created_at?: string
@@ -3212,11 +3222,15 @@ export type Database = {
           descricao: string
           forma_pagamento?: string | null
           id?: string
+          linha_digitavel?: string | null
+          nosso_numero?: string | null
           observacoes?: string | null
           operadora_id?: string | null
           origem?: string | null
           parcela_atual?: number | null
           pedido_id?: string | null
+          pix_copia_cola?: string | null
+          pix_qrcode?: string | null
           plano_contas_id?: string | null
           status?: string
           taxa_percentual?: number | null
@@ -3231,6 +3245,9 @@ export type Database = {
           vencimento: string
         }
         Update: {
+          asaas_charge_id?: string | null
+          asaas_customer_id?: string | null
+          boleto_url?: string | null
           cliente?: string
           cliente_id?: string | null
           created_at?: string
@@ -3238,11 +3255,15 @@ export type Database = {
           descricao?: string
           forma_pagamento?: string | null
           id?: string
+          linha_digitavel?: string | null
+          nosso_numero?: string | null
           observacoes?: string | null
           operadora_id?: string | null
           origem?: string | null
           parcela_atual?: number | null
           pedido_id?: string | null
+          pix_copia_cola?: string | null
+          pix_qrcode?: string | null
           plano_contas_id?: string | null
           status?: string
           taxa_percentual?: number | null
