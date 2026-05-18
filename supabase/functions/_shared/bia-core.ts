@@ -356,7 +356,10 @@ export async function identifyContact(supabase: any, phone: string): Promise<Con
 
 // ========== NORMALIZE PHONE ==========
 export function normalizePhone(raw: string): string {
-  return raw.replace(/\D/g, "").slice(-11);
+  let d = (raw || "").replace(/\D/g, "");
+  // Remove DDI 55 do Brasil quando presente (12 ou 13 dígitos)
+  if (d.length > 11 && d.startsWith("55")) d = d.slice(2);
+  return d.slice(-11);
 }
 
 // ========== FIND CLIENT ==========
@@ -1172,7 +1175,7 @@ export async function createOrder(
     // Auto-register client
     if (!clienteId && (orderData.nome || senderName)) {
       const nome = orderData.nome || senderName;
-      const norm = phone.replace(/\D/g, "").slice(-11);
+      const norm = normalizePhone(phone);
       let empresaId: string | null = null;
       if (unidadeId) {
         const { data: u } = await supabase.from("unidades").select("empresa_id").eq("id", unidadeId).maybeSingle();
