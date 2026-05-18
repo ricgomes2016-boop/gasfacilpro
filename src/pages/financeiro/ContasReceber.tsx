@@ -407,6 +407,24 @@ export default function ContasReceber() {
 
   const hoje = getBrasiliaDateString();
 
+  const diasEntre = (a: string, b: string) => {
+    const d1 = new Date(a + "T12:00:00").getTime();
+    const d2 = new Date(b + "T12:00:00").getTime();
+    return Math.round((d1 - d2) / 86400000);
+  };
+  const agingLabel = (conta: ContaReceber) => {
+    if (conta.status === "recebida") {
+      return conta.data_recebimento
+        ? { text: `recebido em ${format(new Date(conta.data_recebimento + "T12:00:00"), "dd/MM/yyyy")}`, cls: "text-muted-foreground" }
+        : null;
+    }
+    const dias = diasEntre(hoje, conta.vencimento);
+    if (dias > 0) return { text: `${dias} dia${dias > 1 ? "s" : ""} em aberto`, cls: "text-destructive font-medium" };
+    if (dias === 0) return { text: "vence hoje", cls: "text-warning" };
+    return { text: `vence em ${-dias} dia${-dias > 1 ? "s" : ""}`, cls: "text-muted-foreground" };
+  };
+
+
   // Filtragem base (nome, data, status) — por padrão mostra apenas pendentes/vencidas
   const baseFiltered = contas.filter(c => {
     const termo = filtroNome.toLowerCase();
