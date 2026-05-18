@@ -1,6 +1,6 @@
 import {
   ScanBarcode, CreditCard, FileText, Globe, Phone, Mail, Truck, BarChart3,
-  MessageSquare, Webhook, Zap,
+  MessageSquare, Webhook, Zap, Banknote,
 } from "lucide-react";
 import type { Integracao } from "./types";
 
