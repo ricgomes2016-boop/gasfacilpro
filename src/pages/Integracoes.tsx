@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -500,9 +500,15 @@ export default function Integracoes() {
     setTimeout(() => clearInterval(interval), 120000);
   };
 
+  const navigate = useNavigate();
+
   const handleOpenConfig = (integracao: Integracao) => {
     if (integracao.id === "whatsapp_meta") {
       setMetaDialogOpen(true);
+      return;
+    }
+    if (integracao.id === "asaas") {
+      navigate("/config/asaas");
       return;
     }
     if (integracao.isWhatsapp) {

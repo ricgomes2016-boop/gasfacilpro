@@ -1,6 +1,6 @@
 import {
   ScanBarcode, CreditCard, FileText, Globe, Phone, Mail, Truck, BarChart3,
-  MessageSquare, Webhook, Zap,
+  MessageSquare, Webhook, Zap, Banknote,
 } from "lucide-react";
 import type { Integracao } from "./types";
 
@@ -38,6 +38,24 @@ export const integracoes: Integracao[] = [
       "Conciliação automática de recebimentos",
       "Múltiplas chaves por unidade",
     ],
+  },
+  {
+    id: "asaas",
+    nome: "Asaas (Boleto + PIX Registrado)",
+    descricao: "Emita boletos bancários registrados e cobranças PIX direto do Contas a Receber via Asaas",
+    icon: Banknote,
+    status: "disponivel",
+    categoria: "pagamento",
+    configFields: [
+      { key: "asaas_api_key", label: "API Key Asaas", type: "password", placeholder: "$aact_xxxxxxxxxxxxxxxx..." },
+    ],
+    beneficios: [
+      "Boleto registrado com linha digitável e PDF",
+      "Cobrança PIX com QR Code dinâmico",
+      "Conta por empresa (sandbox ou produção)",
+      "Vínculo automático ao lançamento de Contas a Receber",
+    ],
+    helpUrl: "https://www.asaas.com/config/index#tab_api",
   },
   {
     id: "pagbank",

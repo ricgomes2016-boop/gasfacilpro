@@ -45,6 +45,7 @@ import { SmartImportButtons } from "@/components/import/SmartImportButtons";
 import { ImportReviewDialog } from "@/components/import/ImportReviewDialog";
 import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
 import { useAuth } from "@/contexts/AuthContext";
+import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
 
 interface ContaReceber {
   id: string;
@@ -67,6 +68,11 @@ interface ContaReceber {
   bairro_cliente?: string | null;
   data_venda?: string | null;
   data_recebimento?: string | null;
+  asaas_charge_id?: string | null;
+  linha_digitavel?: string | null;
+  boleto_url?: string | null;
+  pix_qrcode?: string | null;
+  pix_copia_cola?: string | null;
 }
 
 const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque", "Vale Gás"];
@@ -112,6 +118,8 @@ export default function ContasReceber() {
   const podeEditarDataRecebimento = hasAnyRole(["admin", "gestor"]);
   const [editDataRecDialogOpen, setEditDataRecDialogOpen] = useState(false);
   const [editDataRecConta, setEditDataRecConta] = useState<ContaReceber | null>(null);
+  const [asaasDialogOpen, setAsaasDialogOpen] = useState(false);
+  const [asaasConta, setAsaasConta] = useState<ContaReceber | null>(null);
   const [editDataRecValue, setEditDataRecValue] = useState("");
   const [editDataRecSaving, setEditDataRecSaving] = useState(false);
 
@@ -185,6 +193,11 @@ export default function ContasReceber() {
         bairro_cliente: c.pedidos?.clientes?.bairro || null,
         data_venda: c.pedidos?.created_at || c.created_at || null,
         data_recebimento: c.data_recebimento || null,
+        asaas_charge_id: c.asaas_charge_id || null,
+        linha_digitavel: c.linha_digitavel || null,
+        boleto_url: c.boleto_url || null,
+        pix_qrcode: c.pix_qrcode || null,
+        pix_copia_cola: c.pix_copia_cola || null,
       })));
     }
     setLoading(false);
@@ -666,6 +679,12 @@ export default function ContasReceber() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50">
                         {conta.status !== "recebida" && <DropdownMenuItem onClick={() => openReceberDialog(conta)}><DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber</DropdownMenuItem>}
+                        {conta.status !== "recebida" && (
+                          <DropdownMenuItem onClick={() => { setAsaasConta(conta); setAsaasDialogOpen(true); }}>
+                            <Banknote className="h-4 w-4 mr-2" />
+                            {conta.asaas_charge_id ? "Ver boleto / PIX (Asaas)" : "Emitir boleto / PIX (Asaas)"}
+                          </DropdownMenuItem>
+                        )}
                         {conta.status === "recebida" && podeEditarDataRecebimento && (
                           <DropdownMenuItem onClick={() => openEditDataRecDialog(conta)}>
                             <Pencil className="h-4 w-4 mr-2" />Editar data de recebimento
@@ -757,6 +776,12 @@ export default function ContasReceber() {
                             {conta.status !== "recebida" && (
                               <DropdownMenuItem onClick={() => openReceberDialog(conta)}>
                                 <DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber
+                              </DropdownMenuItem>
+                            )}
+                            {conta.status !== "recebida" && (
+                              <DropdownMenuItem onClick={() => { setAsaasConta(conta); setAsaasDialogOpen(true); }}>
+                                <Banknote className="h-4 w-4 mr-2" />
+                                {conta.asaas_charge_id ? "Ver boleto / PIX (Asaas)" : "Emitir boleto / PIX (Asaas)"}
                               </DropdownMenuItem>
                             )}
                             {conta.status === "recebida" && podeEditarDataRecebimento && (
@@ -1178,6 +1203,14 @@ export default function ContasReceber() {
           { key: "forma_pagamento", label: "Forma Pgto" },
         ]}
       />
+      {asaasConta && (
+        <EmitirBoletoAsaasDialog
+          open={asaasDialogOpen}
+          onOpenChange={setAsaasDialogOpen}
+          conta={asaasConta as any}
+          onSuccess={fetchContas}
+        />
+      )}
     </MainLayout>
   );
 }
