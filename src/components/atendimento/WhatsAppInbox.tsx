@@ -221,7 +221,13 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   // Background fetch profile photos for conversations missing foto_url (queued, throttled)
   useEffect(() => {
     if (!conversas.length) return;
-    const pending = conversas.filter((c) => !c.foto_url).slice(0, 60);
+    const STALE_MS = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const pending = conversas.filter((c) => {
+      if (!c.foto_url) return true;
+      if (!c.foto_atualizada_em) return false;
+      return now - new Date(c.foto_atualizada_em).getTime() > STALE_MS;
+    }).slice(0, 60);
     if (!pending.length) return;
     let cancelled = false;
     (async () => {
