@@ -74,6 +74,7 @@ interface Cliente {
   inscricao_estadual?: string | null;
   razao_social?: string | null;
   nome_fantasia?: string | null;
+  codigo_municipio?: string | null;
 }
 
 interface FormData {
@@ -92,6 +93,7 @@ interface FormData {
   inscricao_estadual: string;
   razao_social: string;
   nome_fantasia: string;
+  codigo_municipio: string;
 }
 
 const initialFormData: FormData = {
@@ -110,6 +112,7 @@ const initialFormData: FormData = {
   inscricao_estadual: "",
   razao_social: "",
   nome_fantasia: "",
+  codigo_municipio: "",
 };
 
 export default function CadastroClientesCad() {
@@ -346,6 +349,7 @@ export default function CadastroClientesCad() {
           bairro: data.bairro || prev.bairro,
           cidade: data.localidade || prev.cidade,
           estado: data.uf || prev.estado,
+          codigo_municipio: data.ibge || prev.codigo_municipio,
         }));
       }
     } catch (error) {
@@ -378,6 +382,7 @@ export default function CadastroClientesCad() {
         bairro: prev.bairro || data.bairro || "",
         cidade: prev.cidade || data.municipio || "",
         estado: prev.estado || data.uf || "",
+        codigo_municipio: prev.codigo_municipio || String(data.codigo_municipio_ibge || data.codigo_municipio || "") || "",
         cep: prev.cep || data.cep?.replace(/(\d{5})(\d{3})/, "$1-$2") || "",
         email: prev.email || data.email || "",
         telefone: prev.telefone || data.ddd_telefone_1?.replace(/^(\d{2})(\d+)/, "($1) $2") || "",
@@ -468,7 +473,7 @@ export default function CadastroClientesCad() {
     setEditingCliente(null);
     // Auto-fill city from selected unit
     const cidadeUnidade = unidadeAtual?.cidade || "";
-    setFormData({ ...initialFormData, cidade: cidadeUnidade });
+    setFormData({ ...initialFormData, cidade: cidadeUnidade, codigo_municipio: (unidadeAtual as any)?.codigo_municipio || "" });
     setClienteLatLng(null);
     setShowSuggestions(false);
     setIsModalOpen(true);
@@ -481,7 +486,7 @@ export default function CadastroClientesCad() {
     try {
       const { data } = await supabase
         .from("clientes")
-        .select("inscricao_estadual, razao_social, nome_fantasia, estado")
+        .select("inscricao_estadual, razao_social, nome_fantasia, estado, codigo_municipio")
         .eq("id", cliente.id)
         .maybeSingle();
       if (data) extras = data as any;
@@ -516,6 +521,7 @@ export default function CadastroClientesCad() {
       inscricao_estadual: (extras.inscricao_estadual ?? cliente.inscricao_estadual) || "",
       razao_social: (extras.razao_social ?? cliente.razao_social) || "",
       nome_fantasia: (extras.nome_fantasia ?? cliente.nome_fantasia) || "",
+      codigo_municipio: (extras.codigo_municipio ?? cliente.codigo_municipio) || "",
     });
     // Load existing lat/lng
     if (cliente.latitude && cliente.longitude) {
@@ -676,6 +682,7 @@ export default function CadastroClientesCad() {
         inscricao_estadual: formData.inscricao_estadual.trim() || null,
         razao_social: formData.razao_social.trim() || null,
         nome_fantasia: formData.nome_fantasia.trim() || null,
+        codigo_municipio: formData.codigo_municipio.trim() || null,
       };
 
       if (editingCliente) {
@@ -1672,7 +1679,7 @@ export default function CadastroClientesCad() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-6 sm:gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-8 sm:gap-4">
               <div className="min-w-0 sm:col-span-3">
                 <Label className="text-xs sm:text-sm">Cidade</Label>
                 <Input
@@ -1690,6 +1697,17 @@ export default function CadastroClientesCad() {
                   placeholder="UF"
                   maxLength={2}
                   className="h-9 text-base md:text-sm uppercase"
+                />
+              </div>
+              <div className="min-w-0 sm:col-span-2">
+                <Label className="text-xs sm:text-sm">Código IBGE Município</Label>
+                <Input
+                  value={formData.codigo_municipio}
+                  onChange={(e) => handleChange("codigo_municipio", e.target.value.replace(/\D/g, "").slice(0, 7))}
+                  placeholder="Auto pelo CEP"
+                  maxLength={7}
+                  className="h-9 text-base md:text-sm"
+                  title="Código IBGE do município (necessário para NF-e). Preenchido automaticamente ao buscar o CEP."
                 />
               </div>
               <div className="min-w-0 sm:col-span-2">
