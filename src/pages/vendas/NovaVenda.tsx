@@ -1230,6 +1230,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         if (!open) {
           setPrintDialogOpen(false);
           setPendingReceiptData(null);
+          if (boletoAsaasConta) return; // não navega ainda — Asaas dialog ainda vai abrir
           if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
         }
       }}>
@@ -1238,27 +1239,46 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             <DialogTitle>Imprimir comprovante?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">Deseja imprimir o comprovante desta venda?</p>
+          {boletoAsaasConta && (
+            <p className="text-xs text-primary">Em seguida abriremos a emissão do boleto Asaas.</p>
+          )}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => {
               setPrintDialogOpen(false);
               setPendingReceiptData(null);
-              if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
+              if (!boletoAsaasConta) {
+                if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
+              }
             }}>
               Não
             </Button>
             <Button onClick={() => {
-              if (pendingReceiptData) {
-                generateReceiptPdf(pendingReceiptData);
-              }
+              if (pendingReceiptData) generateReceiptPdf(pendingReceiptData);
               setPrintDialogOpen(false);
               setPendingReceiptData(null);
-              if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
+              if (!boletoAsaasConta) {
+                if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
+              }
             }}>
               Sim, Imprimir
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Emissão de boleto Asaas após a venda */}
+      {boletoAsaasConta && !printDialogOpen && (
+        <EmitirBoletoAsaasDialog
+          open={!!boletoAsaasConta}
+          onOpenChange={(o) => {
+            if (!o) {
+              setBoletoAsaasConta(null);
+              if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
+            }
+          }}
+          conta={boletoAsaasConta}
+        />
+      )}
     </>
   );
 
