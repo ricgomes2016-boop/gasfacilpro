@@ -773,7 +773,15 @@ export default function ContasReceber() {
                         {conta.data_venda ? format(new Date(conta.data_venda), "dd/MM/yyyy") : "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-xs">{conta.forma_pagamento || "—"}</Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="outline" className="text-xs w-fit">{conta.forma_pagamento || "—"}</Badge>
+                          {(() => {
+                            const be = getBoletoEmissaoStatus(conta);
+                            if (be === "pendente_emissao") return <Badge variant="warning" className="text-[10px] w-fit"><Clock className="h-2.5 w-2.5" />Pendente de emissão</Badge>;
+                            if (be === "emitido") return <Badge variant="info" className="text-[10px] w-fit"><CheckCircle2 className="h-2.5 w-2.5" />Emitido</Badge>;
+                            return null;
+                          })()}
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
                         <div>{format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</div>
