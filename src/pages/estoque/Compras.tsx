@@ -31,6 +31,7 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { toast } from "sonner";
 import { formatCurrency, parseCurrency, formatCNPJ } from "@/hooks/useInputMasks";
 import { atualizarEstoqueCompra } from "@/services/estoqueService";
+import { OutlookImportButton } from "@/components/estoque/OutlookImportButton";
 
 interface Compra {
   id: string;
