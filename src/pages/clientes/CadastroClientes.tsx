@@ -656,10 +656,14 @@ export default function CadastroClientesCad() {
         numero: enderecoNumero,
         bairro: formData.bairro || null,
         cidade: formData.cidade || null,
+        estado: formData.estado || null,
         cep: formData.cep || null,
         tipo: formData.tipo,
         latitude: lat,
         longitude: lng,
+        inscricao_estadual: formData.inscricao_estadual.trim() || null,
+        razao_social: formData.razao_social.trim() || null,
+        nome_fantasia: formData.nome_fantasia.trim() || null,
       };
 
       if (editingCliente) {
