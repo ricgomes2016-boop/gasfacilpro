@@ -35,6 +35,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { SugestaoEntregador } from "@/components/sugestao/SugestaoEntregador";
 import { useToast } from "@/hooks/use-toast";
+import { gerarComprovanteEntregaPdf } from "@/lib/comprovanteEntregaPdf";
 import { PedidoViewDialog } from "@/components/pedidos/PedidoViewDialog";
 import { StatusDropdown } from "@/components/pedidos/StatusDropdown";
 import { usePedidos } from "@/hooks/usePedidos";
@@ -844,6 +845,15 @@ export default function Pedidos() {
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => imprimirPedido(pedido)}><Printer className="h-4 w-4 mr-2" />Imprimir</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => enviarWhatsApp(pedido)}><MessageCircle className="h-4 w-4 mr-2" />WhatsApp</DropdownMenuItem>
+                          {pedido.status === "entregue" && (
+                            <DropdownMenuItem onClick={async () => {
+                              try {
+                                await gerarComprovanteEntregaPdf({ pedidoId: pedido.id });
+                              } catch (e: any) {
+                                toast({ title: "Erro ao gerar PDF", description: e.message, variant: "destructive" });
+                              }
+                            }}><Download className="h-4 w-4 mr-2" />Comprovante de Entrega (PDF)</DropdownMenuItem>
+                          )}
                           {pedido.status !== "cancelado" && pedido.status !== "entregue" && <>
                             <DropdownMenuSeparator />
                             {pedido.status !== "em_rota" && <DropdownMenuItem onClick={() => alterarStatusPedido(pedido.id, "em_rota")}><Truck className="h-4 w-4 mr-2" />Marcar Em Rota</DropdownMenuItem>}
