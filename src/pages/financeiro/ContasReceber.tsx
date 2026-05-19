@@ -736,6 +736,12 @@ export default function ContasReceber() {
                             <Download className="h-4 w-4 mr-2" />Baixar 2ª via do boleto
                           </DropdownMenuItem>
                         )}
+                        {conta.asaas_charge_id && conta.status !== "recebida" && (
+                          <DropdownMenuItem disabled={syncingId === conta.id} onClick={() => sincronizarAsaas(conta)}>
+                            <RefreshCw className={`h-4 w-4 mr-2 ${syncingId === conta.id ? "animate-spin" : ""}`} />
+                            Sincronizar com Asaas
+                          </DropdownMenuItem>
+                        )}
                         {conta.status === "recebida" && podeEditarDataRecebimento && (
                           <DropdownMenuItem onClick={() => openEditDataRecDialog(conta)}>
                             <Pencil className="h-4 w-4 mr-2" />Editar data de recebimento
