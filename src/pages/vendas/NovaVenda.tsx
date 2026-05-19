@@ -887,6 +887,21 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         });
       }
 
+      // #5.1 - Se houver boleto, buscar a conta_receber criada para abrir o Asaas
+      const temBoleto = pagamentos.some((p) => p.forma === "boleto");
+      let contaBoletoAsaas: any = null;
+      if (temBoleto && !entregador.id) {
+        const { data: cr } = await supabase
+          .from("contas_receber")
+          .select("id, cliente, descricao, valor, vencimento, pedido_id, asaas_charge_id, linha_digitavel, boleto_url, pix_copia_cola")
+          .eq("pedido_id", pedido.id)
+          .eq("forma_pagamento", "boleto")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (cr) contaBoletoAsaas = cr;
+      }
+
       // #6 - Clear draft after successful sale
       clearDraft();
 
@@ -895,8 +910,9 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         description: `Pedido #${(pedido as any).numero_sequencial ?? pedido.id.slice(0, 8).toUpperCase()} criado com sucesso.`,
       });
 
-      // Show print confirmation dialog
+      // Show print confirmation dialog (Asaas dialog abre depois, se houver boleto)
       setPendingReceiptData(receiptData);
+      setBoletoAsaasConta(contaBoletoAsaas);
       setPrintDialogOpen(true);
     } catch (error: any) {
       console.error("Erro ao salvar venda:", error);
