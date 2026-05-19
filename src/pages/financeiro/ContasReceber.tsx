@@ -90,6 +90,15 @@ function getTabFromForma(forma: string | null): string {
   return "outros";
 }
 
+function isBoletoForma(f: string | null | undefined): boolean {
+  return !!f && f.toLowerCase().includes("boleto");
+}
+function getBoletoEmissaoStatus(c: { forma_pagamento: string | null; asaas_charge_id?: string | null; status: string }): "pendente_emissao" | "emitido" | null {
+  if (!isBoletoForma(c.forma_pagamento)) return null;
+  if (c.status === "recebida") return null;
+  return c.asaas_charge_id ? "emitido" : "pendente_emissao";
+}
+
 export default function ContasReceber() {
   const [contas, setContas] = useState<ContaReceber[]>([]);
   const [loading, setLoading] = useState(true);
