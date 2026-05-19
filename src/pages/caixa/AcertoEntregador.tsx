@@ -36,6 +36,11 @@ import { useToast } from "@/hooks/use-toast";
 import { validarValeGasNoBanco } from "@/hooks/useValeGasValidation";
 import { useValeGas } from "@/contexts/ValeGasContext";
 import { rotearPagamentosVenda, PagamentoRoteamento } from "@/services/paymentRoutingService";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
 
 const formatCurrency = (v: number) =>
   `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
@@ -168,6 +173,9 @@ export default function AcertoEntregador() {
   const [valeGasValidado, setValeGasValidado] = useState<{ parceiro: string; parceiroId?: string; numero?: number; codigo: string; valor: number; valido: boolean; valeId?: string } | null>(null);
   const [isConfirmingAcerto, setIsConfirmingAcerto] = useState(false);
   const [acertoConfirmado, setAcertoConfirmado] = useState(false);
+  const [boletoPromptOpen, setBoletoPromptOpen] = useState(false);
+  const [boletoConta, setBoletoConta] = useState<any>(null);
+  const [boletoDialogOpen, setBoletoDialogOpen] = useState(false);
 
   const podeEditar = hasAnyRole(["admin", "gestor"]);
 
@@ -465,6 +473,30 @@ export default function AcertoEntregador() {
       }
 
       toast.success("Entrega atualizada com sucesso!");
+
+      // Se há pagamento em Boleto, pergunta se deseja emitir agora via Asaas
+      const temBoleto = pagamentos.some((p) => {
+        const f = (p.forma || "").toString().trim().toLowerCase();
+        return f === "boleto";
+      });
+
+      if (temBoleto) {
+        const { data: cr } = await supabase
+          .from("contas_receber")
+          .select("id, cliente, descricao, valor, vencimento, pedido_id, asaas_charge_id, linha_digitavel, boleto_url, pix_qrcode, pix_copia_cola")
+          .eq("pedido_id", editingEntrega.id)
+          .eq("forma_pagamento", "boleto")
+          .is("asaas_charge_id", null)
+          .maybeSingle();
+
+        if (cr) {
+          setBoletoConta(cr);
+          setBoletoPromptOpen(true);
+        } else {
+          toast.info("Boleto será disponível para emissão após Confirmar Acerto. Emita depois em Financeiro › Contas a Receber.");
+        }
+      }
+
       setEditingEntrega(null);
       queryClient.invalidateQueries({ queryKey: ["acerto-entregas"] });
     } catch (err: any) {
@@ -1526,6 +1558,38 @@ export default function AcertoEntregador() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Confirmação de emissão de boleto após editar entrega */}
+      <AlertDialog open={boletoPromptOpen} onOpenChange={setBoletoPromptOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Emitir boleto agora?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A entrega foi salva com forma de pagamento Boleto. Deseja gerar o boleto no Asaas agora?
+              Se preferir, você pode emitir mais tarde em Financeiro › Contas a Receber.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Não, apenas registrar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => setBoletoDialogOpen(true)}>
+              Sim, emitir agora
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {boletoConta && (
+        <EmitirBoletoAsaasDialog
+          open={boletoDialogOpen}
+          onOpenChange={(o) => {
+            setBoletoDialogOpen(o);
+            if (!o) setBoletoConta(null);
+          }}
+          conta={boletoConta}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ["acerto-entregas"] })}
+        />
+      )}
     </MainLayout>
+
   );
 }

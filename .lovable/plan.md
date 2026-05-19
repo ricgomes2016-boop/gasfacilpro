@@ -1,20 +1,31 @@
-# Adicionar "Boleto" no Editar Entrega (Caixa › Acerto Financeiro)
+# Emissão opcional de boleto no Editar Entrega
 
-## Problema
-No modal "Editar Entrega" do menu Caixa › Acerto Financeiro, o dropdown de "Forma" de pagamento não lista **Boleto**, embora o roteamento financeiro (`paymentRoutingService.ts`) já trate `boleto` corretamente (gera conta a receber).
+## Objetivo
+Ao salvar uma "Editar Entrega" no Acerto Financeiro com forma de pagamento **Boleto**, exibir um diálogo perguntando:
+> "Deseja emitir o boleto agora?"
 
-## Alteração (1 arquivo)
+- **Sim** → cria o `contas_receber` (fluxo atual) **e** dispara automaticamente a emissão no Asaas (mesmo fluxo do `EmitirBoletoAsaasDialog`).
+- **Não** → mantém o comportamento atual: cria apenas o `contas_receber`, sem emitir no Asaas (usuário poderá emitir depois em Contas a Receber).
 
-**`src/pages/caixa/AcertoEntregador.tsx`**
+## Escopo
+Apenas o fluxo de Editar Entrega em `src/pages/caixa/AcertoEntregador.tsx`. Nada muda em Nova Venda nem em Contas a Receber.
 
-1. Incluir `"Boleto"` no array `formasPagamento` (linha 61–63), entre "Fiado" e o fim — para aparecer no `<Select>` do modal.
-2. Adicionar mapeamentos de label nos dois dicionários (linhas 44–59):
-   - `boleto: "Boleto"` (chave minúscula)
-   - `Boleto: "Boleto"` (chave já capitalizada)
-3. Adicionar no mapa de normalização (linhas 556–563):
-   - `"Boleto": "boleto"`
+## Alterações
+
+### 1. `src/pages/caixa/AcertoEntregador.tsx`
+- Após o usuário clicar em "Salvar" no modal de Editar Entrega, se `formaPagamento === "Boleto"`:
+  - Abrir um `AlertDialog` (shadcn) com título "Emitir boleto?" e os botões **Não, apenas registrar** e **Sim, emitir agora**.
+- Persistir a edição (fluxo atual via `paymentRoutingService`) em ambos os casos.
+- Se o usuário escolher **Sim**:
+  - Após a criação do `contas_receber`, recuperar o `id` do registro recém-criado.
+  - Chamar a edge function `asaas-api` com `action: 'create_charge'` e `billingType: 'BOLETO'` (mesmos parâmetros usados em `EmitirBoletoAsaasDialog`: cliente, valor, vencimento, descrição, `conta_receber_id`).
+  - Atualizar `asaas_payment_id`, `asaas_invoice_url` e `asaas_bank_slip_url` no `contas_receber`.
+  - Toast de sucesso/erro. Em caso de erro na emissão, **não** reverter o `contas_receber` — apenas avisar que o boleto pode ser emitido manualmente depois.
+
+### 2. Reuso de lógica
+- Extrair a chamada do Asaas em uma função utilitária (ex.: `emitirBoletoAsaas(contaReceberId)`) reutilizando o que já existe em `EmitirBoletoAsaasDialog`, para não duplicar código. Se preferir manter simples, replicar inline.
 
 ## Fora de escopo
-- Emissão automática do boleto Asaas ao salvar a edição (o fluxo de Nova Venda já faz isso; aqui só estamos permitindo selecionar a forma). A geração do boleto continua sendo feita via botão "Emitir cobrança (Asaas)" na tela de Contas a Receber.
-- Mudanças no `paymentRoutingService` — já suporta `boleto`.
-- Mudanças no PDV ou em outras telas.
+- Nenhuma mudança em `paymentRoutingService.ts`.
+- Nenhuma mudança em Nova Venda, Contas a Receber ou no `EmitirBoletoAsaasDialog`.
+- Sem alterações de schema/RLS.
