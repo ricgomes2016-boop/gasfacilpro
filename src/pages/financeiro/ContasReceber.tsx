@@ -90,6 +90,15 @@ function getTabFromForma(forma: string | null): string {
   return "outros";
 }
 
+function isBoletoForma(f: string | null | undefined): boolean {
+  return !!f && f.toLowerCase().includes("boleto");
+}
+function getBoletoEmissaoStatus(c: { forma_pagamento: string | null; asaas_charge_id?: string | null; status: string }): "pendente_emissao" | "emitido" | null {
+  if (!isBoletoForma(c.forma_pagamento)) return null;
+  if (c.status === "recebida") return null;
+  return c.asaas_charge_id ? "emitido" : "pendente_emissao";
+}
+
 export default function ContasReceber() {
   const [contas, setContas] = useState<ContaReceber[]>([]);
   const [loading, setLoading] = useState(true);
@@ -685,6 +694,11 @@ export default function ContasReceber() {
                             {conta.asaas_charge_id ? "Ver boleto / PIX (Asaas)" : "Emitir boleto / PIX (Asaas)"}
                           </DropdownMenuItem>
                         )}
+                        {conta.asaas_charge_id && conta.boleto_url && (
+                          <DropdownMenuItem onClick={() => window.open(conta.boleto_url!, "_blank", "noopener,noreferrer")}>
+                            <Download className="h-4 w-4 mr-2" />Baixar 2ª via do boleto
+                          </DropdownMenuItem>
+                        )}
                         {conta.status === "recebida" && podeEditarDataRecebimento && (
                           <DropdownMenuItem onClick={() => openEditDataRecDialog(conta)}>
                             <Pencil className="h-4 w-4 mr-2" />Editar data de recebimento
@@ -696,9 +710,15 @@ export default function ContasReceber() {
                     </DropdownMenu>
                   </div>
                   <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant={displayStatus === "Recebida" ? "default" : displayStatus === "Vencida" ? "destructive" : "secondary"} className="text-[10px]">{displayStatus}</Badge>
                       {conta.forma_pagamento && <Badge variant="outline" className="text-[10px]">{conta.forma_pagamento}</Badge>}
+                      {(() => {
+                        const be = getBoletoEmissaoStatus(conta);
+                        if (be === "pendente_emissao") return <Badge variant="warning" className="text-[10px]"><Clock className="h-2.5 w-2.5" />Pendente de emissão</Badge>;
+                        if (be === "emitido") return <Badge variant="info" className="text-[10px]"><CheckCircle2 className="h-2.5 w-2.5" />Boleto emitido</Badge>;
+                        return null;
+                      })()}
                     </div>
                     <span className="font-bold text-sm">R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                   </div>
@@ -753,7 +773,15 @@ export default function ContasReceber() {
                         {conta.data_venda ? format(new Date(conta.data_venda), "dd/MM/yyyy") : "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-xs">{conta.forma_pagamento || "—"}</Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge variant="outline" className="text-xs w-fit">{conta.forma_pagamento || "—"}</Badge>
+                          {(() => {
+                            const be = getBoletoEmissaoStatus(conta);
+                            if (be === "pendente_emissao") return <Badge variant="warning" className="text-[10px] w-fit"><Clock className="h-2.5 w-2.5" />Pendente de emissão</Badge>;
+                            if (be === "emitido") return <Badge variant="info" className="text-[10px] w-fit"><CheckCircle2 className="h-2.5 w-2.5" />Emitido</Badge>;
+                            return null;
+                          })()}
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
                         <div>{format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</div>
@@ -782,6 +810,11 @@ export default function ContasReceber() {
                               <DropdownMenuItem onClick={() => { setAsaasConta(conta); setAsaasDialogOpen(true); }}>
                                 <Banknote className="h-4 w-4 mr-2" />
                                 {conta.asaas_charge_id ? "Ver boleto / PIX (Asaas)" : "Emitir boleto / PIX (Asaas)"}
+                              </DropdownMenuItem>
+                            )}
+                            {conta.asaas_charge_id && conta.boleto_url && (
+                              <DropdownMenuItem onClick={() => window.open(conta.boleto_url!, "_blank", "noopener,noreferrer")}>
+                                <Download className="h-4 w-4 mr-2" />Baixar 2ª via do boleto
                               </DropdownMenuItem>
                             )}
                             {conta.status === "recebida" && podeEditarDataRecebimento && (
