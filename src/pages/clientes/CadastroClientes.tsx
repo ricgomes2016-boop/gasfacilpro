@@ -1679,7 +1679,7 @@ export default function CadastroClientesCad() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-6 sm:gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-8 sm:gap-4">
               <div className="min-w-0 sm:col-span-3">
                 <Label className="text-xs sm:text-sm">Cidade</Label>
                 <Input
