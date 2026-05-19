@@ -147,7 +147,7 @@ export default function Compras() {
   const fetchCompras = async () => {
     let query = supabase
       .from("compras")
-      .select("*, fornecedores(razao_social)")
+      .select("*, fornecedores(razao_social), compra_itens(quantidade, produtos(nome))")
       .order("created_at", { ascending: false });
 
     if (unidadeAtual?.id) {
@@ -156,7 +156,7 @@ export default function Compras() {
 
     const { data, error } = await query;
     if (error) { console.error(error); return; }
-    setCompras(data || []);
+    setCompras((data || []) as any);
     setLoading(false);
   };
 
