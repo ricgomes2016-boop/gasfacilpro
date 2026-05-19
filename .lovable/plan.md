@@ -1,53 +1,73 @@
-## Situação atual
+# Boleto Asaas integrado à Nova Venda + Envio + Canhoto Assinado
 
-Boa notícia: a base do Asaas já está pronta no projeto, só não está exposta nem ligada na emissão de boletos. O que existe hoje:
+## 1. Gerar boleto Asaas automaticamente ao confirmar a venda
 
-- **Edge Function `asaas-api`** — já implementa criar cliente, criar cobrança (BOLETO/PIX), listar, consultar, pegar linha digitável, QR Code PIX, saldo. Lê a API key salva em `configuracoes_empresa.asaas_api_key` por empresa, com toggle sandbox/produção.
-- **Página `src/pages/config/AsaasConfig.tsx`** — formulário completo para colar a API key, alternar sandbox/produção, testar conexão e ver saldo. **Hoje essa página não tem rota** (não está em nenhum arquivo de `src/routes/`) e não há link no menu.
-- **Integrações** — o card "Asaas" não aparece em `src/pages/integracoes/data.ts`.
-- **Cobranças / Emissão de Boleto** — `src/pages/financeiro/Cobrancas.tsx` e `EmissaoBoleto.tsx` ainda não chamam o `asaas-api`. Hoje a emissão de boleto é manual/local, sem boleto registrado de verdade.
+**Onde:** `src/pages/vendas/NovaVenda.tsx` (fluxo de finalizar pedido) + `src/components/vendas/PaymentSection.tsx`.
 
-## O que vou entregar
+- Quando a forma de pagamento for **Boleto** (ou **PIX Asaas**), após gravar o pedido:
+  1. Garantir/criar `customer` no Asaas (busca por CPF/CNPJ; cria se não existir) — reusando `supabase/functions/asaas-api`.
+  2. Criar `payment` (boleto ou pix) com `dueDate` = data de entrega + N dias (configurável, default 3) e `externalReference` = id do pedido.
+  3. Inserir registro em `contas_receber` já com `asaas_id`, `boleto_url`, `linha_digitavel`, `pix_copia_cola`.
+- Toast com link "Ver boleto" + opção "Enviar agora".
+- Se falhar (sem CPF, Asaas off, etc.), grava a venda normal e mostra alerta amarelo "Boleto não emitido — gere manualmente em Contas a Receber".
 
-### 1. Tornar a configuração acessível
-- Registrar a rota `/configuracoes/asaas` (componente `AsaasConfig`) em `src/routes/configRoutes.ts`, restrita a `admin`/`gestor`/`financeiro`.
-- Adicionar o card **Asaas (Boleto + PIX registrado)** em `src/pages/integracoes/data.ts` com status "disponível", categoria "pagamento", e botão que abre `/configuracoes/asaas`.
-- Texto orientando: criar conta em asaas.com (Forte Gás), gerar API Key em Configurações → Integrações → API, colar aqui, testar.
+## 2. Envio por WhatsApp
 
-### 2. Emissão real de boleto no fluxo do financeiro
-- Em **Contas a Receber** e em **Cobranças**, no item/lançamento aberto, adicionar ação **"Emitir boleto (Asaas)"**:
-  1. Verifica/cria cliente no Asaas (busca por CPF/CNPJ; se não existir, cria).
-  2. Cria cobrança `billingType: BOLETO` com `value`, `dueDate` (= data de vencimento do lançamento), `description` e `externalReference` = id do `contas_receber`.
-  3. Salva no lançamento: `asaas_charge_id`, `linha_digitavel`, `boleto_url`, `nosso_numero` (campos novos em `contas_receber`).
-  4. Mostra modal com linha digitável (copiar), PDF do boleto (link Asaas) e botão "Enviar por e-mail / WhatsApp".
-- Mesma ideia para **PIX** (mesma cobrança, action `get_pix_qrcode`) — opcional, posso entregar junto já que a função suporta.
+**Novo botão** no `EmitirBoletoAsaasDialog` e no toast pós-venda:
 
-### 3. Migração de banco (pequena)
-Adicionar em `contas_receber`:
-- `asaas_charge_id text`
-- `linha_digitavel text`
-- `boleto_url text`
-- `nosso_numero text`
+- Usa o provider WhatsApp já configurado na unidade (Z-API/Meta/Evolution — `whatsappRealtimeService`).
+- Mensagem template:
+  ```
+  Olá {nome}! Segue seu boleto da {empresa}:
+  💰 R$ {valor} — vencimento {data}
+  🔗 {boleto_url}
+  📋 PIX copia-e-cola: {pix_payload}
+  ```
+- Telefone vem do cliente do pedido; se faltar, abre input.
 
-### 4. Validação de credenciais Forte Gás
-Como sua conta é da **Forte Gás**, a API key é específica daquela empresa no Asaas. A página já é por empresa (`empresa_id`), então basta:
-- Estar logado/contexto na empresa Forte Gás.
-- Colar a API key gerada no painel Asaas da Forte Gás.
-- Manter o ambiente em **Produção** (sandbox só serve para testes, não emite boleto bancário real).
+## 3. Envio por e-mail
 
-## Fora do escopo (perguntar antes se quiser incluir)
-- Webhook Asaas para marcar `contas_receber` como `recebida` automaticamente quando o boleto for pago. Recomendo fazer numa segunda etapa — eu te oriento depois sobre o URL do webhook para colar no painel Asaas.
-- Cobrança via cartão de crédito.
-- Geração de carnê (várias parcelas de uma vez).
+- Botão "Enviar e-mail" chama endpoint `/payments/{id}/email` do Asaas via `asaas-api` (Asaas dispara o e-mail oficial com PDF anexo).
+- Se cliente sem e-mail, pede no diálogo antes.
+
+## 4. Assinatura simples no app do entregador (canhoto digital)
+
+**Substitui a discussão de A1 no boleto** — A1 ICP-Brasil não faz sentido em boleto. Em vez disso, comprovante de entrega assinado pelo cliente no celular do entregador:
+
+- Nova tela `src/pages/entregador/AssinarEntrega.tsx`:
+  - Mostra resumo do pedido (cliente, itens, valor, forma pgto).
+  - Canvas de assinatura (`react-signature-canvas`) + campo "Nome de quem recebeu" + foto opcional do local.
+  - Captura geolocalização + timestamp.
+- Ao salvar:
+  - Upload da imagem PNG da assinatura para Storage bucket `comprovantes-entrega/{pedido_id}.png`.
+  - Cria registro em nova tabela `comprovantes_entrega` (pedido_id, assinatura_url, nome_recebedor, lat, lng, assinado_em, foto_url).
+  - Marca pedido como `entregue` + dispara webhook de status (já existe).
+- No ERP (detalhes do pedido / contas a receber), botão "Ver canhoto assinado" mostra a imagem + dados.
+- PDF do canhoto pode ser gerado on-demand (pdf-lib) e enviado por WhatsApp/e-mail ao cliente.
+
+> Observação: assinatura no canvas é **assinatura eletrônica simples** (MP 2.200-2 art. 10 §2º) — válida juridicamente entre as partes desde que haja vínculo de autoria (telefone/CPF + geolocalização + timestamp), o que cobriremos.
 
 ## Detalhes técnicos
-- Sem mudança no `asaas-api` (já cobre tudo que precisamos).
-- Novos campos via `supabase--migration`.
-- Novos componentes: `EmitirBoletoAsaasDialog.tsx` (reusado em Contas a Receber e Cobranças).
-- Toda chamada via `supabase.functions.invoke("asaas-api", { body: { action, ... } })`.
 
-## O que preciso de você antes de implementar
-1. Confirmar que vai usar **Produção** (boletos reais) — neste caso, você precisa ter a conta Asaas da Forte Gás já aprovada com dados bancários completos.
-2. Você já tem a **API Key de Produção** da Forte Gás em mãos? (Se ainda não, te explico o passo a passo no painel Asaas antes de pedir o secret.)
-3. Quer que eu já inclua a **cobrança PIX** no mesmo fluxo, ou só Boleto agora?
-4. Quer o **webhook de baixa automática** agora ou em uma segunda etapa?
+- **Edge Function `asaas-api`** ganha 2 novas ações: `criarCobrancaCompleta` (customer+payment numa chamada) e `enviarEmail`.
+- **Migração** (`supabase--migration`):
+  - `contas_receber`: adicionar `pix_copia_cola text`, `linha_digitavel text` (se não existirem).
+  - Nova tabela `comprovantes_entrega` com RLS por `empresa_id`/`unidade_id`.
+  - Bucket Storage `comprovantes-entrega` (privado, com policies por unidade).
+- **Dependência nova:** `react-signature-canvas` (~30kb).
+- **Rota nova entregador:** `/entregador/entrega/:pedidoId/assinar` em `entregadorRoutes.ts`.
+- Reutiliza `whatsappRealtimeService` — zero secret novo.
+
+## Ordem de implementação
+
+1. Migration (tabela canhoto + colunas em contas_receber + bucket).
+2. Estender `asaas-api` (createCustomer/createPayment/sendEmail).
+3. Hook `useEmitirBoletoVenda` chamado no submit da Nova Venda.
+4. Botões WhatsApp/E-mail no `EmitirBoletoAsaasDialog` + toast pós-venda.
+5. Tela `AssinarEntrega` no app entregador + visualização no ERP.
+6. Geração de PDF do canhoto + envio opcional.
+
+## Fora do escopo
+
+- Assinatura A1 ICP-Brasil no PDF do boleto (sem valor legal adicional).
+- Conciliação automática de baixa via webhook Asaas (já existe parcialmente em `Asaas Payments`).
