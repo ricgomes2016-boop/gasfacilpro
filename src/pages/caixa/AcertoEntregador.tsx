@@ -473,6 +473,30 @@ export default function AcertoEntregador() {
       }
 
       toast.success("Entrega atualizada com sucesso!");
+
+      // Se há pagamento em Boleto, pergunta se deseja emitir agora via Asaas
+      const temBoleto = pagamentos.some((p) => {
+        const f = (p.forma || "").toString().trim().toLowerCase();
+        return f === "boleto";
+      });
+
+      if (temBoleto) {
+        const { data: cr } = await supabase
+          .from("contas_receber")
+          .select("id, cliente, descricao, valor, vencimento, pedido_id, asaas_charge_id, linha_digitavel, boleto_url, pix_qrcode, pix_copia_cola")
+          .eq("pedido_id", editingEntrega.id)
+          .eq("forma_pagamento", "boleto")
+          .is("asaas_charge_id", null)
+          .maybeSingle();
+
+        if (cr) {
+          setBoletoConta(cr);
+          setBoletoPromptOpen(true);
+        } else {
+          toast.info("Boleto será disponível para emissão após Confirmar Acerto. Emita depois em Financeiro › Contas a Receber.");
+        }
+      }
+
       setEditingEntrega(null);
       queryClient.invalidateQueries({ queryKey: ["acerto-entregas"] });
     } catch (err: any) {
