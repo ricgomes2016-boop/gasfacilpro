@@ -572,6 +572,23 @@ export default function Configuracoes() {
             </CardContent>
           </Card>
 
+          {/* Asaas - Boleto + PIX */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-primary" />
+                <CardTitle>Asaas (Boleto + PIX)</CardTitle>
+              </div>
+              <CardDescription>Configure a API Key, sandbox e webhook de baixa automática</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" className="w-full" onClick={() => window.location.href = "/config/asaas"}>
+                <CreditCard className="mr-2 h-4 w-4" />
+                Configurar Asaas
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* Segurança */}
           <Card>
             <CardHeader>
