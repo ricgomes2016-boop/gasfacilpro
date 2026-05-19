@@ -887,7 +887,10 @@ export default function Compras() {
     <MainLayout>
       <Header title="Compras" subtitle="Gestão de compras e pedidos" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <OutlookImportButton
+            onImported={() => { fetchCompras(); fetchProdutos(); fetchFornecedores(); }}
+          />
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4 mr-2" />Nova Compra</Button>
