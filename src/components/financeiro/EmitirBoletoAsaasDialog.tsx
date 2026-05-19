@@ -28,6 +28,7 @@ interface Props {
 }
 
 type Tipo = "BOLETO" | "PIX";
+const ASAAS_VALOR_MINIMO = 5;
 
 export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }: Props) {
   const [tipo, setTipo] = useState<Tipo>("BOLETO");
@@ -83,6 +84,12 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
   };
 
   const handleEmitir = async () => {
+    const valor = Number(conta.valor || 0);
+    if (valor < ASAAS_VALOR_MINIMO) {
+      toast.error("O Asaas exige valor mínimo de R$ 5,00 para emitir cobrança. Ajuste o valor da conta e tente novamente.");
+      return;
+    }
+
     const cpfLimpo = cpfCnpj.replace(/\D/g, "");
     if (cpfLimpo.length !== 11 && cpfLimpo.length !== 14) {
       toast.error("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido");
@@ -203,6 +210,12 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
 
         {!result ? (
           <div className="space-y-4">
+            {Number(conta.valor || 0) < ASAAS_VALOR_MINIMO && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                O Asaas exige valor mínimo de R$ 5,00 para boleto ou PIX. Esta conta está em R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}.
+              </div>
+            )}
+
             <Tabs value={tipo} onValueChange={(v) => setTipo(v as Tipo)}>
               <TabsList className="grid grid-cols-2 w-full">
                 <TabsTrigger value="BOLETO"><Banknote className="h-4 w-4 mr-1" />Boleto</TabsTrigger>
@@ -279,7 +292,7 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
           {!result ? (
             <>
               <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading}>Cancelar</Button>
-              <Button onClick={handleEmitir} disabled={loading}>
+              <Button onClick={handleEmitir} disabled={loading || Number(conta.valor || 0) < ASAAS_VALOR_MINIMO}>
                 {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Emitir
               </Button>
