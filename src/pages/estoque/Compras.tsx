@@ -22,7 +22,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
   ShoppingCart, Plus, DollarSign, Truck, FileText, Upload, Trash2,
-  Camera, Loader2, TrendingUp, TrendingDown, BarChart3, CalendarDays,
+  Camera, Loader2, TrendingUp, TrendingDown, BarChart3, CalendarDays, Mail,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDate, getBrasiliaDateString } from "@/lib/utils";
@@ -31,6 +31,7 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { toast } from "sonner";
 import { formatCurrency, parseCurrency, formatCNPJ } from "@/hooks/useInputMasks";
 import { atualizarEstoqueCompra } from "@/services/estoqueService";
+import { OutlookImportButton } from "@/components/estoque/OutlookImportButton";
 
 interface Compra {
   id: string;
@@ -887,7 +888,10 @@ export default function Compras() {
     <MainLayout>
       <Header title="Compras" subtitle="Gestão de compras e pedidos" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <OutlookImportButton
+            onImported={() => { fetchCompras(); fetchProdutos(); fetchFornecedores(); }}
+          />
           <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4 mr-2" />Nova Compra</Button>
