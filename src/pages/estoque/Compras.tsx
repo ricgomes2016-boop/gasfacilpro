@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { formatCurrency, parseCurrency, formatCNPJ } from "@/hooks/useInputMasks";
 import { atualizarEstoqueCompra } from "@/services/estoqueService";
 import { OutlookImportButton } from "@/components/estoque/OutlookImportButton";
+import { ComprasListaTableEstoque } from "@/components/estoque/ComprasListaTableEstoque";
 
 interface Compra {
   id: string;
