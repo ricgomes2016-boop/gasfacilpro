@@ -2043,6 +2043,7 @@ export type Database = {
           codigo_cliente: number | null
           codigo_indicacao: string | null
           codigo_indicacao_usado: string | null
+          codigo_municipio: string | null
           cpf: string | null
           created_at: string
           data_ultimo_pagamento: string | null
@@ -2077,6 +2078,7 @@ export type Database = {
           codigo_cliente?: number | null
           codigo_indicacao?: string | null
           codigo_indicacao_usado?: string | null
+          codigo_municipio?: string | null
           cpf?: string | null
           created_at?: string
           data_ultimo_pagamento?: string | null
@@ -2111,6 +2113,7 @@ export type Database = {
           codigo_cliente?: number | null
           codigo_indicacao?: string | null
           codigo_indicacao_usado?: string | null
+          codigo_municipio?: string | null
           cpf?: string | null
           created_at?: string
           data_ultimo_pagamento?: string | null
