@@ -112,6 +112,7 @@ export default function FinalizarEntrega() {
   const [comprovanteUrl, setComprovanteUrl] = useState<string | null>(null);
   const [isUploadingComprovante, setIsUploadingComprovante] = useState(false);
   const [codigoVoucherGasPovo, setCodigoVoucherGasPovo] = useState("");
+  const [assinatura, setAssinatura] = useState<AssinaturaPayload | null>(null);
 
   // Fetch real pedido data
   useEffect(() => {
