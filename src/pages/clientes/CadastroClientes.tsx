@@ -371,10 +371,13 @@ export default function CadastroClientesCad() {
       setFormData((prev) => ({
         ...prev,
         nome: prev.nome || data.razao_social || data.nome_fantasia || "",
+        razao_social: prev.razao_social || data.razao_social || "",
+        nome_fantasia: prev.nome_fantasia || data.nome_fantasia || "",
         endereco: prev.endereco || data.logradouro || "",
         numero: prev.numero || data.numero || "",
         bairro: prev.bairro || data.bairro || "",
         cidade: prev.cidade || data.municipio || "",
+        estado: prev.estado || data.uf || "",
         cep: prev.cep || data.cep?.replace(/(\d{5})(\d{3})/, "$1-$2") || "",
         email: prev.email || data.email || "",
         telefone: prev.telefone || data.ddd_telefone_1?.replace(/^(\d{2})(\d+)/, "($1) $2") || "",
