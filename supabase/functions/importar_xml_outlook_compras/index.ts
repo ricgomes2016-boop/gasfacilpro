@@ -370,7 +370,7 @@ Deno.serve(async (req) => {
             } else if (unidade_id) {
               const isMonofasico = (item.cst_pis === "04" || item.cst_cofins === "04" || (item.cProdANP || "").startsWith("21"));
               const isGas = /g[áa]s|glp|p[\s-]?13|p[\s-]?20|p[\s-]?45/i.test(item.xProd);
-              const { data: novoProd, error: pErr } = await supabase.from("produtos").insert({
+              const fullPayload: any = {
                 nome: item.xProd,
                 preco: item.vUnCom,
                 ativo: true,
@@ -388,8 +388,18 @@ Deno.serve(async (req) => {
                 aliquota_cofins: item.aliquota_cofins || null,
                 unidade_tributavel: item.uCom || null,
                 monofasico: isMonofasico,
-              }).select("id").single();
-              if (pErr) { console.warn("Erro criando produto:", pErr.message); continue; }
+              };
+              let novoProd: any = null;
+              let pErr: any = null;
+              ({ data: novoProd, error: pErr } = await supabase.from("produtos").insert(fullPayload).select("id").single());
+              if (pErr) {
+                // fallback: tenta criar apenas com campos básicos para não perder o item
+                console.warn("Erro criando produto com fiscal, tentando minimal:", pErr.message);
+                const minimal = { nome: item.xProd, preco: item.vUnCom, ativo: true, unidade_id, categoria: isGas ? "gas" : null };
+                const r = await supabase.from("produtos").insert(minimal).select("id").single();
+                if (r.error) { console.warn("Erro criando produto minimal:", r.error.message); continue; }
+                novoProd = r.data;
+              }
               produto_id = novoProd.id;
             }
             if (!produto_id) continue;

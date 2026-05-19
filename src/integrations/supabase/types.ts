@@ -7931,16 +7931,29 @@ export type Database = {
       }
       produtos: {
         Row: {
+          aliquota_cofins: number | null
+          aliquota_icms: number | null
+          aliquota_pis: number | null
           ativo: boolean | null
           botijao_par_id: string | null
           categoria: string | null
+          cest: string | null
+          cfop_entrada_padrao: string | null
+          cfop_saida_padrao: string | null
+          codigo_anp: string | null
           codigo_barras: string | null
           created_at: string
+          csosn_icms: string | null
+          cst_cofins: string | null
+          cst_icms: string | null
+          cst_pis: string | null
           descricao: string | null
           estoque: number | null
           estoque_unico: boolean
           id: string
           image_url: string | null
+          monofasico: boolean | null
+          ncm: string | null
           nome: string
           preco: number
           preco_custo: number | null
@@ -7948,19 +7961,33 @@ export type Database = {
           preco_telefone: number | null
           tipo_botijao: string | null
           unidade_id: string | null
+          unidade_tributavel: string | null
           updated_at: string
         }
         Insert: {
+          aliquota_cofins?: number | null
+          aliquota_icms?: number | null
+          aliquota_pis?: number | null
           ativo?: boolean | null
           botijao_par_id?: string | null
           categoria?: string | null
+          cest?: string | null
+          cfop_entrada_padrao?: string | null
+          cfop_saida_padrao?: string | null
+          codigo_anp?: string | null
           codigo_barras?: string | null
           created_at?: string
+          csosn_icms?: string | null
+          cst_cofins?: string | null
+          cst_icms?: string | null
+          cst_pis?: string | null
           descricao?: string | null
           estoque?: number | null
           estoque_unico?: boolean
           id?: string
           image_url?: string | null
+          monofasico?: boolean | null
+          ncm?: string | null
           nome: string
           preco: number
           preco_custo?: number | null
@@ -7968,19 +7995,33 @@ export type Database = {
           preco_telefone?: number | null
           tipo_botijao?: string | null
           unidade_id?: string | null
+          unidade_tributavel?: string | null
           updated_at?: string
         }
         Update: {
+          aliquota_cofins?: number | null
+          aliquota_icms?: number | null
+          aliquota_pis?: number | null
           ativo?: boolean | null
           botijao_par_id?: string | null
           categoria?: string | null
+          cest?: string | null
+          cfop_entrada_padrao?: string | null
+          cfop_saida_padrao?: string | null
+          codigo_anp?: string | null
           codigo_barras?: string | null
           created_at?: string
+          csosn_icms?: string | null
+          cst_cofins?: string | null
+          cst_icms?: string | null
+          cst_pis?: string | null
           descricao?: string | null
           estoque?: number | null
           estoque_unico?: boolean
           id?: string
           image_url?: string | null
+          monofasico?: boolean | null
+          ncm?: string | null
           nome?: string
           preco?: number
           preco_custo?: number | null
@@ -7988,6 +8029,7 @@ export type Database = {
           preco_telefone?: number | null
           tipo_botijao?: string | null
           unidade_id?: string | null
+          unidade_tributavel?: string | null
           updated_at?: string
         }
         Relationships: [

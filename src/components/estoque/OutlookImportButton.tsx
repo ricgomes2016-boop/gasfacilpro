@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Loader2 } from "lucide-react";
+import { Mail, Loader2, RotateCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -39,6 +39,24 @@ export function OutlookImportButton({ onImported }: Props) {
       toast.success("Importação concluída", {
         description: `${data?.total_importados ?? 0} importadas · ${data?.ja_existentes ?? 0} já existentes · ${data?.erros ?? 0} erros`,
       });
+      onImported?.();
+    } catch (err: any) {
+      toast.error("Erro", { description: err.message });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function reprocessar() {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("reprocessar_itens_compras_outlook", { body: {} });
+      if (error) throw error;
+      if (data?.ok === false) { toast.error("Erro", { description: data.error }); return; }
+      toast.success("Reprocessamento concluído", {
+        description: `${data?.processadas ?? 0}/${data?.total ?? 0} compras · ${data?.itens_criados ?? 0} itens · ${data?.produtos_criados ?? 0} produtos criados · ${data?.erros ?? 0} erros`,
+      });
+      setResultado({ ...data, _reprocess: true });
       onImported?.();
     } catch (err: any) {
       toast.error("Erro", { description: err.message });
@@ -97,10 +115,13 @@ export function OutlookImportButton({ onImported }: Props) {
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-2 flex-wrap">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>Fechar</Button>
+          <Button variant="secondary" onClick={reprocessar} disabled={loading} className="gap-2">
+            <RotateCw className="h-4 w-4" /> Reprocessar itens
+          </Button>
           <Button onClick={importar} disabled={loading}>
-            {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Importando…</> : "Importar agora"}
+            {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando…</> : "Importar agora"}
           </Button>
         </DialogFooter>
       </DialogContent>

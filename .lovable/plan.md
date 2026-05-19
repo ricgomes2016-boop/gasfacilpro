@@ -1,48 +1,62 @@
-## Objetivo
+## Diagnóstico do que foi importado
 
-Adicionar em **Gestão de Estoque → Compras** o mesmo botão "Importar XML do Outlook" que já existe em `transporte.gasfacilpro.com.br/compras`, gravando na tabela operacional `compras` + `compra_itens` (não em `transp_compras`) e preenchendo toda a parte fiscal exigida (NCM, CEST, CFOP, CST, alíquotas, ANP, transportadora, duplicatas etc.) — exatamente como já acontece quando se importa o XML manualmente do PC.
+Verifiquei as 25+ NF-e importadas do Outlook em `compras` + `compra_itens` e os logs da edge function.
 
-A importação manual por arquivo (`handleImportXML`) já cadastra tudo isso e não será mexida.
+### Cabeçalho (`compras`) — OK na maior parte
+Preenchidos: `chave_nfe`, `numero_nota_fiscal`, `serie`, `modelo`, `natureza_operacao`, `cfop_predominante`, `valor_total`, `valor_produtos`, `transportadora_nome`, `transportadora_cnpj`, `modalidade_frete`, `xml_content`, `fornecedor_id`, `unidade_id`, `data_compra`, `data_pagamento` (quando há dVenc).
 
-## O que será feito
+Vieram zerados: `valor_icms`, `valor_icms_st`, `valor_ipi`, `valor_pis`, `valor_cofins`, `base_icms`, `base_icms_st`, `valor_frete`, `valor_seguro`, `valor_desconto`, `valor_outros`, `placa_veiculo`. **Isso é coerente** com as NF-e que vieram (RETORNO DE VASILHAME e VENDA DE GÁS PARA REVENDEDOR são tipicamente monofásicas com tributos zerados na origem), mas vale revalidar com 1-2 XMLs reais.
 
-### 1. Nova Edge Function `importar_xml_outlook_compras`
-Espelha a função `importar_xml_outlook` da transportadora, mas:
+### Itens (`compra_itens`) — **FALHA: zero itens inseridos**
+Nenhuma das compras importadas tem itens. Causa nos logs da edge function:
 
-- Lê e-mails do Outlook (via gateway `microsoft_outlook`) com anexos `.xml` dos últimos N dias, opcionalmente filtrando por remetente.
-- Extrai o XML da NF-e e faz parse **completo** (mesmos campos que o `handleImportXML` do front):
-  - Cabeçalho: chave, número, série, modelo, natOp, dhEmi, dVenc (1ª duplicata).
-  - Emitente: CNPJ, razão, fantasia, endereço, cidade, UF, telefone.
-  - Totais: vNF, vProd, vFrete, vSeg, vDesc, vOutro, vICMS, vST, vIPI, vPIS, vCOFINS, vBC, vBCST.
-  - Transporte: modFrete, transportadora, CNPJ, placa.
-  - Itens: xProd, cProd, NCM, CEST, CFOP, uCom, qCom, vUnCom, vDesc, cProdANP, CST/CSOSN ICMS, alíq/valor ICMS, CST/alíq/valor PIS e COFINS.
-- Antiduplicidade: ignora se já existe `compras.chave_nfe`.
-- Resolve `unidade_id` pelo CNPJ do destinatário ⇒ tabela `unidades` da empresa do usuário.
-- Resolve / cria `fornecedor` em `fornecedores` (busca por CNPJ; cria com razão, fantasia, endereço, cidade, UF, telefone, `tipo='fornecedor'`).
-- Para cada item: localiza produto por nome (match exato → contém) na `produtos` da unidade; se não existir, cria com NCM/CEST/CFOP entrada/ANP/CST/CSOSN/CST PIS/COFINS/alíq PIS-COFINS/unidade tributável e flag `monofasico` (quando CST PIS/COFINS = 04 ou ANP começa com 21), `categoria='gas'` se o nome indicar GLP.
-- Insere em `compras` todos os campos fiscais (serie, modelo, natureza_operacao, cfop_predominante, vProd/vDesc/vSeg/vOutro/vICMS/vST/vIPI/vPIS/vCOFINS/vBC/vBCST, transportadora, placa, modalidade_frete, xml_content).
-- Insere em `compra_itens` os campos fiscais por item (descricao_xml, codigo_produto_fornecedor, unidade_xml, ncm, cest, cfop, codigo_anp, cst/csosn, cst pis/cofins, alíq, valores e desconto).
-- Atualiza estoque dos itens via mesma lógica do front (chamada à RPC equivalente a `atualizarEstoqueCompra` ou repetindo o SQL).
-- Se houver `dVenc`, cria `contas_pagar` correspondente.
-- Retorna: `total_emails`, `total_xmls`, `total_importados`, `ja_existentes`, `erros`, `detalhes[]`.
+```
+WARNING Erro criando produto: Could not find the 'aliquota_cofins' column
+of 'produtos' in the schema cache
+```
 
-Config: adicionar bloco `[functions.importar_xml_outlook_compras] verify_jwt = false` em `supabase/config.toml` (mesmo padrão da função existente).
+A tabela `produtos` **não tem** as colunas fiscais que a função tenta gravar: `ncm`, `cest`, `cfop_entrada_padrao`, `codigo_anp`, `cst_icms`, `csosn_icms`, `cst_pis`, `cst_cofins`, `aliquota_pis`, `aliquota_cofins`, `unidade_tributavel`, `monofasico`. Só existe `categoria`.
 
-### 2. UI em `src/pages/estoque/Compras.tsx`
-No header do card de Compras, ao lado dos botões existentes (Importar XML / Nova Compra), adicionar:
+Resultado: o insert do produto falha → `produto_id` fica null → o item é descartado silenciosamente (warning, não erro) → `compra_itens` fica vazio para todas as 25 compras.
 
-- Botão **"Importar XML do Outlook"** que abre um pequeno popover/diálogo com:
-  - Input opcional **Remetente** (e-mail) — persistido em `localStorage` (`estoque_xml_remetente`).
-  - Select **Período de busca** (7, 15, 30, 60, 90 dias) — persistido (`estoque_xml_dias`, default 30).
-  - Botão **Importar agora** chamando `supabase.functions.invoke("importar_xml_outlook_compras", { body: {...} })`.
-  - Exibição de "Última importação" e resumo do último resultado (importados / já existentes / erros).
-- Após o sucesso: `fetchCompras()` + `fetchProdutos()` + `fetchFornecedores()` + toast.
+## Correções
 
-### 3. Pré-requisito de conexão
-A função reusa o connector **Microsoft Outlook** já configurado para a transportadora (mesma chave `MICROSOFT_OUTLOOK_API_KEY`). Se a conexão não estiver linkada ao projeto, a função retorna mensagem clara e a UI orienta o usuário a conectar em Conectores → Outlook.
+### 1. Migration — adicionar colunas fiscais em `produtos`
+```sql
+ALTER TABLE public.produtos
+  ADD COLUMN IF NOT EXISTS ncm text,
+  ADD COLUMN IF NOT EXISTS cest text,
+  ADD COLUMN IF NOT EXISTS cfop_entrada_padrao text,
+  ADD COLUMN IF NOT EXISTS cfop_saida_padrao text,
+  ADD COLUMN IF NOT EXISTS codigo_anp text,
+  ADD COLUMN IF NOT EXISTS cst_icms text,
+  ADD COLUMN IF NOT EXISTS csosn_icms text,
+  ADD COLUMN IF NOT EXISTS cst_pis text,
+  ADD COLUMN IF NOT EXISTS cst_cofins text,
+  ADD COLUMN IF NOT EXISTS aliquota_icms numeric,
+  ADD COLUMN IF NOT EXISTS aliquota_pis numeric,
+  ADD COLUMN IF NOT EXISTS aliquota_cofins numeric,
+  ADD COLUMN IF NOT EXISTS unidade_tributavel text,
+  ADD COLUMN IF NOT EXISTS monofasico boolean DEFAULT false;
+```
+Esses campos são exigidos para emitir NF-e depois.
+
+### 2. Edge function `importar_xml_outlook_compras` — robustez
+- Se o insert do produto falhar mesmo com as colunas certas, **fallback** criando o produto só com os campos básicos (nome, preço, unidade_id, categoria) — o item não pode ser perdido por causa do produto.
+- Contar e retornar `produtos_criados` e `itens_inseridos` no resumo final.
+- Log do `cErr`/`pErr` deve elevar `erros` (hoje só faz `console.warn`).
+
+### 3. Nova edge function `reprocessar_itens_compras_outlook`
+Reprocessa as compras já importadas que estão sem itens:
+- Filtra `compras` com `observacoes LIKE 'Importado do Outlook%'` e sem registros em `compra_itens`.
+- Relê `xml_content` (já está salvo no cabeçalho), roda o mesmo parser e cria produtos + itens + movimentações de estoque.
+- UI: adicionar botão **"Reprocessar itens das importações"** ao lado do botão de importar XML do Outlook em `Compras.tsx`, mostrando quantas compras precisam de reprocessamento e o resultado.
+
+### 4. Validação pós-correção
+- Conferir em 2-3 NF-e reais (uma de revenda e uma de retorno) se os totais fiscais zerados são mesmo do XML ou se há campos que estamos lendo errado (ex: `vICMS` dentro de `ICMSTot` em layouts diferentes).
+- Conferir 1 produto criado com NCM, CFOP, ANP, CST etc.
 
 ## Fora do escopo
-
-- Não altera `transp_compras` nem a tela da transportadora.
-- Não altera `handleImportXML` (importação por arquivo do PC já cadastra a parte fiscal).
-- Não cria nova tabela; usa `compras`, `compra_itens`, `fornecedores`, `produtos`, `contas_pagar` existentes.
+- Não mexer em `transp_compras`/transportadora.
+- Não alterar `handleImportXML` (importação por arquivo do PC).
+- Sem mudanças visuais em outras telas.
