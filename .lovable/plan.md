@@ -1,56 +1,31 @@
-## Objetivo
-Adicionar o campo de **Inscrição Estadual / RG** no formulário de cadastro de cliente e aplicar melhorias práticas na tela de Cadastro de Clientes.
+## Problema
+No card de "Produtos Rápidos" do PDV, os produtos de gás (Gás P13, P20, P45) não exibem o nome — apenas o ícone de chama, o preço e o estoque. O nome existe no banco; o que acontece é que o card tem altura fixa `h-20` e, quando o ícone de chama entra na pilha (`flex-col`), ultrapassa o espaço disponível e o nome acaba comprimido/oculto. O card de Água (sem ícone) cabe e mostra o nome.
 
-## Contexto
-- Arquivo: `src/pages/clientes/CadastroClientes.tsx` (modal de Novo/Editar Cliente).
-- A tabela `clientes` já possui as colunas `inscricao_estadual`, `razao_social`, `nome_fantasia`, `cnpj` e `estado` — porém **nenhuma delas está exposta no formulário**. Não é necessária migration.
-- Hoje, ao buscar CNPJ na Receita, os campos retornados (razão social, nome fantasia, IE) são descartados.
+Também não há foto do produto sendo usada, embora a tabela `produtos` já tenha a coluna `image_url`.
 
-## Mudanças no formulário (modal Novo/Editar Cliente)
+## Mudanças propostas em `src/components/pdv/PDVQuickProducts.tsx`
 
-1. **Novo campo: Inscrição Estadual / RG**
-   - Label dinâmica: quando CPF → "RG"; quando CNPJ → "Inscrição Estadual" (com opção "ISENTO").
-   - Persistido em `clientes.inscricao_estadual`.
-   - Posicionado logo abaixo da linha CPF/CNPJ + Telefone.
+1. **Buscar a imagem do produto**
+   - Acrescentar `image_url` no `select` da consulta a `produtos`.
+   - Estender a interface `Produto` com `image_url: string | null`.
 
-2. **Campos PJ exibidos quando CPF/CNPJ for CNPJ** (já existem no banco):
-   - Razão Social (`razao_social`)
-   - Nome Fantasia (`nome_fantasia`)
-   - Preenchidos automaticamente pelo botão "Buscar Receita" (já existente).
+2. **Novo layout do card (uniforme p/ todos os produtos)**
+   - Aumentar a altura para `h-28` (ou `h-32`) para caber: imagem/ícone + nome (2 linhas) + preço + estoque.
+   - Topo do card: miniatura quadrada `h-10 w-10 rounded-md object-cover`.
+     - Se `image_url` existir → `<img>` com a foto.
+     - Senão, se `categoria === 'gas'` → ícone `Flame` num quadrado com `bg-primary/10`.
+     - Senão, fallback genérico (ícone `Package` ou `Droplets` p/ água) no mesmo quadrado.
+   - Nome do produto sempre visível: `text-xs font-medium line-clamp-2 text-center`, com `min-h-[2.25rem]` para reservar 2 linhas (evita "saltar" o layout).
+   - Preço logo abaixo (`text-sm font-bold text-primary`).
+   - Estoque em `text-[10px] text-muted-foreground`.
 
-3. **Campo Estado (UF)** ao lado de Cidade — usa coluna `estado` e é preenchido pelo ViaCEP/Receita.
-
-## Outras melhorias propostas para a tela
-
-4. **Validação clara antes de salvar**
-   - Mostrar mensagem inline quando Nome ou Telefone faltarem (hoje só dá toast genérico).
-   - Validar IE quando tipo = revendedor/comercial/industrial (avisar, não bloquear).
-
-5. **Botão "Buscar Receita" mais visível**
-   - Trocar o ícone discreto por botão "Buscar na Receita" com texto, exibido só quando o CPF/CNPJ digitado tiver 14 dígitos.
-   - Auto-disparar a busca ao colar/digitar CNPJ completo (opcional, com debounce).
-
-6. **Auto-foco e ordem de tabulação**
-   - Foco automático no campo Nome ao abrir o modal.
-   - Enter no último campo dispara "Salvar".
-
-7. **Limpeza de UX**
-   - Remover a dica permanente "Clique em 🔍 para buscar dados na Receita" (passa a ser tooltip do botão).
-   - Agrupar visualmente blocos: **Identificação**, **Contato**, **Endereço**, **Classificação**.
-   - Em mobile, manter campos full-width e inputs com `text-base` (já está ok).
-
-8. **Listagem**
-   - Mostrar IE/RG no perfil do cliente (drawer/dialog de detalhes), não na tabela.
-   - Filtro adicional: "Somente PJ" / "Somente PF" baseado no comprimento do CPF/CNPJ.
-
-## Detalhes técnicos
-- Estender `FormData` e `initialFormData` com: `inscricao_estadual`, `razao_social`, `nome_fantasia`, `estado`.
-- Estender `Cliente` interface com os mesmos campos.
-- Atualizar `handleSave` para incluir os novos campos no `insert`/`update` em `clientes`.
-- Atualizar `buscarCpfCnpj` para preencher `razao_social`, `nome_fantasia`, `inscricao_estadual` quando retornados.
-- Atualizar `buscarCEP` para preencher `estado` (campo `uf` do ViaCEP).
-- Sem alterações no `useClientes.ts` (este componente acessa `supabase` diretamente).
+3. **Pequenos ajustes visuais**
+   - Manter destaque sutil para gás (`bg-primary/5 hover:bg-primary/10`) e borda de alerta quando estoque ≤ 5.
+   - Garantir que o `<img>` tenha `alt={produto.nome}` e `loading="lazy"`.
 
 ## Fora de escopo
-- Mudanças em `ClienteFormDialog.tsx` (modal alternativo usado em outras telas) — pode ser feito em seguida se desejar.
-- Mudanças no schema do banco (não necessárias).
+- Não alterar a tela de cadastro de produtos nem o upload de imagens — isso já existe e usa `image_url`. Produtos sem foto continuarão usando o ícone padrão até que o usuário cadastre uma imagem.
+- Não mexer em outras telas que listam produtos (apenas o card do PDV).
+
+## Resultado esperado
+Os três cards de gás passam a exibir "Gás P13 — R$ 125,00 — Est: 298", etc., com a foto cadastrada (ou ícone de chama como fallback), igual ao card de Água Mineral.
