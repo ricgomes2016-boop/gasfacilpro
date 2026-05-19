@@ -812,6 +812,11 @@ export default function ContasReceber() {
                                 {conta.asaas_charge_id ? "Ver boleto / PIX (Asaas)" : "Emitir boleto / PIX (Asaas)"}
                               </DropdownMenuItem>
                             )}
+                            {conta.asaas_charge_id && conta.boleto_url && (
+                              <DropdownMenuItem onClick={() => window.open(conta.boleto_url!, "_blank", "noopener,noreferrer")}>
+                                <Download className="h-4 w-4 mr-2" />Baixar 2ª via do boleto
+                              </DropdownMenuItem>
+                            )}
                             {conta.status === "recebida" && podeEditarDataRecebimento && (
                               <DropdownMenuItem onClick={() => openEditDataRecDialog(conta)}>
                                 <Pencil className="h-4 w-4 mr-2" />Editar data de recebimento
