@@ -476,6 +476,18 @@ export default function CadastroClientesCad() {
 
   const openEditModal = async (cliente: Cliente) => {
     setEditingCliente(cliente);
+    // Buscar campos extras (IE, razão social, etc.) diretamente do banco
+    let extras: Partial<Cliente> = {};
+    try {
+      const { data } = await supabase
+        .from("clientes")
+        .select("inscricao_estadual, razao_social, nome_fantasia, estado")
+        .eq("id", cliente.id)
+        .maybeSingle();
+      if (data) extras = data as any;
+    } catch (e) {
+      console.error("Erro ao carregar campos extras do cliente:", e);
+    }
     // O campo numero é salvo separado no banco. Se não tiver, tentar extrair do endereço legado.
     let rua = cliente.endereco || "";
     let num = cliente.numero || "";
