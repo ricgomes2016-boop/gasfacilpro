@@ -285,6 +285,17 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
                 </div>
               </div>
             )}
+
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+              <Button variant="outline" onClick={enviarWhatsApp} disabled={!telefone || sending}>
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Enviar WhatsApp
+              </Button>
+              <Button variant="outline" onClick={enviarEmail} disabled={sending}>
+                {sending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                Enviar e-mail
+              </Button>
+            </div>
           </div>
         )}
 
