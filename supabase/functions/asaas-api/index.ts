@@ -34,7 +34,7 @@ interface AsaasCharge {
 function getAsaasBaseUrl(sandbox: boolean): string {
   return sandbox
     ? 'https://sandbox.asaas.com/api/v3'
-    : 'https://api.asaas.com/v3';
+    : 'https://www.asaas.com/api/v3';
 }
 
 async function asaasFetch(path: string, apiKey: string, sandbox: boolean, options: RequestInit = {}) {
