@@ -380,6 +380,40 @@ export default function FinalizarEntrega() {
         .eq("id", id);
       if (error) throw error;
 
+      // Salvar comprovante de entrega (assinatura)
+      if (assinatura) {
+        try {
+          let assinaturaUrl: string | null = null;
+          if (assinatura.assinatura_data_url) {
+            const blob = await (await fetch(assinatura.assinatura_data_url)).blob();
+            const path = `${id}/${Date.now()}.png`;
+            const { error: upErr } = await supabase.storage
+              .from("comprovantes-entrega")
+              .upload(path, blob, { contentType: "image/png", upsert: true });
+            if (upErr) throw upErr;
+            const { data: pub } = supabase.storage.from("comprovantes-entrega").getPublicUrl(path);
+            assinaturaUrl = pub.publicUrl;
+          }
+
+          await (supabase as any).from("comprovantes_entrega").insert({
+            pedido_id: id,
+            unidade_id: unidadeId,
+            entregador_id: entregadorIdLocal,
+            cliente_id: (pedido as any)?.cliente_id || null,
+            assinatura_url: assinaturaUrl,
+            nome_recebedor: assinatura.nome_recebedor,
+            documento_recebedor: assinatura.documento_recebedor || null,
+            observacao: assinatura.observacao || null,
+            latitude: assinatura.latitude,
+            longitude: assinatura.longitude,
+            user_agent: navigator.userAgent,
+            assinado_em: assinatura.assinado_em,
+          });
+        } catch (sigErr: any) {
+          sonnerToast.warning("Pedido entregue, mas falhou ao salvar a assinatura: " + sigErr.message);
+        }
+      }
+
       // Vincular vales gás utilizados ao cliente e pedido
       const valeGasPagamentos = pagamentos.filter(p => p.forma === "Vale Gás" && p.valeGasInfo?.valeId);
       if (valeGasPagamentos.length > 0) {
