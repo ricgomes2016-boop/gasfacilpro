@@ -36,6 +36,11 @@ import { useToast } from "@/hooks/use-toast";
 import { validarValeGasNoBanco } from "@/hooks/useValeGasValidation";
 import { useValeGas } from "@/contexts/ValeGasContext";
 import { rotearPagamentosVenda, PagamentoRoteamento } from "@/services/paymentRoutingService";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
 
 const formatCurrency = (v: number) =>
   `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
