@@ -177,6 +177,7 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
         customerId = createData?.customer?.id;
       }
       if (!customerId) throw new Error("Não foi possível obter o cliente no Asaas");
+      setCustomerIdState(customerId);
 
       // 2) Criar cobrança
       const { data: chargeData, error: chargeErr } = await supabase.functions.invoke("asaas-api", {
