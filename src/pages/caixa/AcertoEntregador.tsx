@@ -1558,6 +1558,38 @@ export default function AcertoEntregador() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Confirmação de emissão de boleto após editar entrega */}
+      <AlertDialog open={boletoPromptOpen} onOpenChange={setBoletoPromptOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Emitir boleto agora?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A entrega foi salva com forma de pagamento Boleto. Deseja gerar o boleto no Asaas agora?
+              Se preferir, você pode emitir mais tarde em Financeiro › Contas a Receber.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Não, apenas registrar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => setBoletoDialogOpen(true)}>
+              Sim, emitir agora
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {boletoConta && (
+        <EmitirBoletoAsaasDialog
+          open={boletoDialogOpen}
+          onOpenChange={(o) => {
+            setBoletoDialogOpen(o);
+            if (!o) setBoletoConta(null);
+          }}
+          conta={boletoConta}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ["acerto-entregas"] })}
+        />
+      )}
     </MainLayout>
+
   );
 }
