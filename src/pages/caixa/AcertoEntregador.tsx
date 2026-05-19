@@ -49,6 +49,7 @@ const paymentLabels: Record<string, string> = {
   fiado: "Fiado",
   vale_gas: "Vale Gás",
   cheque: "Cheque",
+  boleto: "Boleto",
   Dinheiro: "Dinheiro",
   PIX: "PIX",
   "PIX Maquininha": "PIX Maquininha",
@@ -56,16 +57,17 @@ const paymentLabels: Record<string, string> = {
   "Cartão Débito": "Cartão Débito",
   "Vale Gás": "Vale Gás",
   Cheque: "Cheque",
+  Boleto: "Boleto",
 };
 
 const formasPagamento = [
-  "Dinheiro", "PIX", "PIX Maquininha", "Cartão Crédito", "Cartão Débito", "Cheque", "Vale Gás", "Fiado",
+  "Dinheiro", "PIX", "PIX Maquininha", "Cartão Crédito", "Cartão Débito", "Cheque", "Vale Gás", "Fiado", "Boleto",
 ];
 
 // Normaliza qualquer variação de forma de pagamento para uma chave canônica.
 // Retorna "__invalido__" para valores ambíguos (cartao puro), desconhecidos (outros) ou vazios.
 const FORMAS_CANONICAS = new Set([
-  "dinheiro", "pix", "pix_maquininha", "cartao_credito", "cartao_debito", "cheque", "vale_gas", "fiado",
+  "dinheiro", "pix", "pix_maquininha", "cartao_credito", "cartao_debito", "cheque", "vale_gas", "fiado", "boleto",
 ]);
 
 function canonicalForma(raw: string): string {
@@ -561,6 +563,7 @@ export default function AcertoEntregador() {
       "Cheque": "cheque",
       "Vale Gás": "vale_gas",
       "Fiado": "fiado",
+      "Boleto": "boleto",
     };
     return map[forma] || forma.toLowerCase().replace(/\s+/g, "_");
   };
