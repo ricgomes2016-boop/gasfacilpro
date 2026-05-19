@@ -781,6 +781,19 @@ export default function Compras() {
         fornecedor_novo: fornecedorNovo || prev.fornecedor_novo,
       }));
 
+      // Bloqueia NF de vasilhame (retorno/remessa) — não geram compra
+      const vasilhameCfops = new Set(["1913","1914","2913","2914","5913","5914","6913","6914","5920","5921","6920","6921","1920","1921","2920","2921"]);
+      const cfopsNorm = cfops.map(c => (c || "").replace(/\D/g, ""));
+      const natLow = (natOp || "").toLowerCase();
+      const isVasilhame = cfopsNorm.some(cf => vasilhameCfops.has(cf))
+        || /vasilhame|botij[ãa]o vazio|comodato/i.test(natLow)
+        || (/retorno|remessa/i.test(natLow) && !/venda|compra/i.test(natLow));
+      if (isVasilhame) {
+        toast.error("NF de vasilhame (retorno/remessa) ignorada — não é uma compra de mercadoria.");
+        if (xmlInputRef.current) xmlInputRef.current.value = "";
+        return;
+      }
+
       if (itensXml.length > 0) {
         setItens(itensXml);
       }
