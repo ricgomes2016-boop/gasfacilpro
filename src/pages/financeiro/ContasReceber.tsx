@@ -233,7 +233,6 @@ export default function ContasReceber() {
         const update: Record<string, any> = {
           status: "recebida",
           data_recebimento: charge.paymentDate || charge.clientPaymentDate || getBrasiliaDateString(),
-          valor_recebido: charge.value ?? conta.valor,
         };
         const { error: upErr } = await supabase.from("contas_receber").update(update).eq("id", conta.id);
         if (upErr) throw upErr;
