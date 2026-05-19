@@ -510,12 +510,12 @@ export default function CadastroClientesCad() {
       complemento: comp,
       bairro: cliente.bairro || "",
       cidade: cliente.cidade || "",
-      estado: cliente.estado || "",
+      estado: (extras.estado ?? cliente.estado) || "",
       cep: cliente.cep || "",
       tipo: cliente.tipo || "residencial",
-      inscricao_estadual: cliente.inscricao_estadual || "",
-      razao_social: cliente.razao_social || "",
-      nome_fantasia: cliente.nome_fantasia || "",
+      inscricao_estadual: (extras.inscricao_estadual ?? cliente.inscricao_estadual) || "",
+      razao_social: (extras.razao_social ?? cliente.razao_social) || "",
+      nome_fantasia: (extras.nome_fantasia ?? cliente.nome_fantasia) || "",
     });
     // Load existing lat/lng
     if (cliente.latitude && cliente.longitude) {
