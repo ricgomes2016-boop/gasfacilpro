@@ -44,14 +44,30 @@ async function asaasFetch(path: string, apiKey: string, sandbox: boolean, option
     headers: {
       'Content-Type': 'application/json',
       'access_token': apiKey,
+      'User-Agent': 'GasFacilPro/1.0',
       ...(options.headers || {}),
     },
   });
 
-  const data = await res.json();
+  const raw = await res.text();
+  let data: any = {};
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    data = { _raw: raw };
+  }
+
   if (!res.ok) {
-    console.error('Asaas API error:', JSON.stringify(data));
-    throw new Error(data.errors?.[0]?.description || data.message || 'Erro na API Asaas');
+    console.error(`Asaas API error [${res.status}] ${path}:`, raw?.slice(0, 500));
+    const apiMsg = data?.errors?.[0]?.description || data?.message;
+    let friendly = apiMsg;
+    if (!friendly) {
+      if (res.status === 401) friendly = `API Key do Asaas inválida ou inativa para o ambiente ${sandbox ? 'sandbox' : 'PRODUÇÃO'}. Verifique se a chave foi copiada por inteiro e se a conta está liberada para uso da API.`;
+      else if (res.status === 403) friendly = 'Acesso negado pelo Asaas. Conta pode estar pendente de validação/documentos.';
+      else if (res.status === 404) friendly = `Endpoint não encontrado no Asaas: ${path}`;
+      else friendly = `Erro HTTP ${res.status} do Asaas${raw ? `: ${raw.slice(0, 200)}` : ' (resposta vazia)'}`;
+    }
+    throw new Error(friendly);
   }
   return data;
 }
