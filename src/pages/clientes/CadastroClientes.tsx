@@ -1508,9 +1508,6 @@ export default function CadastroClientesCad() {
                     {isLookingUpCpfCnpj ? <Loader2 className="h-4 w-4 animate-spin" /> : <SearchCheck className="h-4 w-4" />}
                   </Button>
                 </div>
-                {formData.cpf.replace(/\D/g, "").length === 14 && (
-                  <p className="text-[10px] text-muted-foreground mt-1">Clique em 🔍 para buscar dados na Receita</p>
-                )}
               </div>
               <div className="min-w-0">
                 <Label className="text-xs sm:text-sm">Telefone *</Label>
