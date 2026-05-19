@@ -1675,8 +1675,8 @@ export default function CadastroClientesCad() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-              <div className="min-w-0">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-6 sm:gap-4">
+              <div className="min-w-0 sm:col-span-3">
                 <Label className="text-xs sm:text-sm">Cidade</Label>
                 <Input
                   value={formData.cidade}
@@ -1685,7 +1685,17 @@ export default function CadastroClientesCad() {
                   className="h-9 text-base md:text-sm"
                 />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 sm:col-span-1">
+                <Label className="text-xs sm:text-sm">UF</Label>
+                <Input
+                  value={formData.estado}
+                  onChange={(e) => handleChange("estado", e.target.value.toUpperCase().slice(0, 2))}
+                  placeholder="UF"
+                  maxLength={2}
+                  className="h-9 text-base md:text-sm uppercase"
+                />
+              </div>
+              <div className="min-w-0 sm:col-span-2">
                 <Label className="text-xs sm:text-sm">Tipo</Label>
                 <Select value={formData.tipo} onValueChange={(value) => handleChange("tipo", value)}>
                   <SelectTrigger className="h-9 text-base md:text-sm">
