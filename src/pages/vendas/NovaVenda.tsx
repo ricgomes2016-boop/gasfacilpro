@@ -33,6 +33,7 @@ import { CaixaBloqueadoBanner } from "@/components/caixa/CaixaBloqueadoBanner";
 import { CustomerSearch } from "@/components/vendas/CustomerSearch";
 import { ProductSearch, ItemVenda } from "@/components/vendas/ProductSearch";
 import { PaymentSection, Pagamento } from "@/components/vendas/PaymentSection";
+import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
 import { OrderSummary } from "@/components/vendas/OrderSummary";
 import { CustomerHistory } from "@/components/vendas/CustomerHistory";
 import { DeliveryPersonSelect } from "@/components/vendas/DeliveryPersonSelect";
@@ -213,6 +214,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const [horaAgendamento, setHoraAgendamento] = useState("08:00");
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [pendingReceiptData, setPendingReceiptData] = useState<any>(null);
+  const [boletoAsaasConta, setBoletoAsaasConta] = useState<any>(null);
   const [useNewView, setUseNewView] = useState(() => {
     const saved = getSavedViewMode();
     return saved ? saved === "new" : isGasmais;
