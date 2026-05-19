@@ -63,6 +63,7 @@ interface Cliente {
   numero: string | null;
   bairro: string | null;
   cidade: string | null;
+  estado?: string | null;
   cep: string | null;
   tipo: string | null;
   latitude: number | null;
@@ -70,6 +71,9 @@ interface Cliente {
   ativo: boolean | null;
   created_at: string;
   cadastro_app?: boolean;
+  inscricao_estadual?: string | null;
+  razao_social?: string | null;
+  nome_fantasia?: string | null;
 }
 
 interface FormData {
@@ -82,8 +86,12 @@ interface FormData {
   complemento: string;
   bairro: string;
   cidade: string;
+  estado: string;
   cep: string;
   tipo: string;
+  inscricao_estadual: string;
+  razao_social: string;
+  nome_fantasia: string;
 }
 
 const initialFormData: FormData = {
@@ -96,8 +104,12 @@ const initialFormData: FormData = {
   complemento: "",
   bairro: "",
   cidade: "",
+  estado: "",
   cep: "",
   tipo: "residencial",
+  inscricao_estadual: "",
+  razao_social: "",
+  nome_fantasia: "",
 };
 
 export default function CadastroClientesCad() {
@@ -333,6 +345,7 @@ export default function CadastroClientesCad() {
           endereco: data.logradouro || prev.endereco,
           bairro: data.bairro || prev.bairro,
           cidade: data.localidade || prev.cidade,
+          estado: data.uf || prev.estado,
         }));
       }
     } catch (error) {
@@ -358,10 +371,13 @@ export default function CadastroClientesCad() {
       setFormData((prev) => ({
         ...prev,
         nome: prev.nome || data.razao_social || data.nome_fantasia || "",
+        razao_social: prev.razao_social || data.razao_social || "",
+        nome_fantasia: prev.nome_fantasia || data.nome_fantasia || "",
         endereco: prev.endereco || data.logradouro || "",
         numero: prev.numero || data.numero || "",
         bairro: prev.bairro || data.bairro || "",
         cidade: prev.cidade || data.municipio || "",
+        estado: prev.estado || data.uf || "",
         cep: prev.cep || data.cep?.replace(/(\d{5})(\d{3})/, "$1-$2") || "",
         email: prev.email || data.email || "",
         telefone: prev.telefone || data.ddd_telefone_1?.replace(/^(\d{2})(\d+)/, "($1) $2") || "",
@@ -460,6 +476,18 @@ export default function CadastroClientesCad() {
 
   const openEditModal = async (cliente: Cliente) => {
     setEditingCliente(cliente);
+    // Buscar campos extras (IE, razão social, etc.) diretamente do banco
+    let extras: Partial<Cliente> = {};
+    try {
+      const { data } = await supabase
+        .from("clientes")
+        .select("inscricao_estadual, razao_social, nome_fantasia, estado")
+        .eq("id", cliente.id)
+        .maybeSingle();
+      if (data) extras = data as any;
+    } catch (e) {
+      console.error("Erro ao carregar campos extras do cliente:", e);
+    }
     // O campo numero é salvo separado no banco. Se não tiver, tentar extrair do endereço legado.
     let rua = cliente.endereco || "";
     let num = cliente.numero || "";
@@ -482,8 +510,12 @@ export default function CadastroClientesCad() {
       complemento: comp,
       bairro: cliente.bairro || "",
       cidade: cliente.cidade || "",
+      estado: (extras.estado ?? cliente.estado) || "",
       cep: cliente.cep || "",
       tipo: cliente.tipo || "residencial",
+      inscricao_estadual: (extras.inscricao_estadual ?? cliente.inscricao_estadual) || "",
+      razao_social: (extras.razao_social ?? cliente.razao_social) || "",
+      nome_fantasia: (extras.nome_fantasia ?? cliente.nome_fantasia) || "",
     });
     // Load existing lat/lng
     if (cliente.latitude && cliente.longitude) {
@@ -636,10 +668,14 @@ export default function CadastroClientesCad() {
         numero: enderecoNumero,
         bairro: formData.bairro || null,
         cidade: formData.cidade || null,
+        estado: formData.estado || null,
         cep: formData.cep || null,
         tipo: formData.tipo,
         latitude: lat,
         longitude: lng,
+        inscricao_estadual: formData.inscricao_estadual.trim() || null,
+        razao_social: formData.razao_social.trim() || null,
+        nome_fantasia: formData.nome_fantasia.trim() || null,
       };
 
       if (editingCliente) {
@@ -1472,9 +1508,6 @@ export default function CadastroClientesCad() {
                     {isLookingUpCpfCnpj ? <Loader2 className="h-4 w-4 animate-spin" /> : <SearchCheck className="h-4 w-4" />}
                   </Button>
                 </div>
-                {formData.cpf.replace(/\D/g, "").length === 14 && (
-                  <p className="text-[10px] text-muted-foreground mt-1">Clique em 🔍 para buscar dados na Receita</p>
-                )}
               </div>
               <div className="min-w-0">
                 <Label className="text-xs sm:text-sm">Telefone *</Label>
@@ -1487,16 +1520,70 @@ export default function CadastroClientesCad() {
               </div>
             </div>
 
-            <div className="min-w-0">
-              <Label className="text-xs sm:text-sm">Email</Label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                placeholder="email@example.com"
-                className="h-9 text-base md:text-sm"
-              />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+              <div className="min-w-0">
+                <Label className="text-xs sm:text-sm">
+                  {formData.cpf.replace(/\D/g, "").length === 14 ? "Inscrição Estadual" : "RG / Inscrição Estadual"}
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.inscricao_estadual}
+                    onChange={(e) => handleChange("inscricao_estadual", e.target.value)}
+                    placeholder={formData.cpf.replace(/\D/g, "").length === 14 ? "IE ou ISENTO" : "RG"}
+                    className="h-9 flex-1 text-base md:text-sm"
+                  />
+                  {formData.cpf.replace(/\D/g, "").length === 14 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 shrink-0 text-xs"
+                      onClick={() => handleChange("inscricao_estadual", "ISENTO")}
+                    >
+                      Isento
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="min-w-0">
+                <Label className="text-xs sm:text-sm">Email</Label>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleChange("email", e.target.value)}
+                  placeholder="email@example.com"
+                  className="h-9 text-base md:text-sm"
+                />
+              </div>
             </div>
+
+            {formData.cpf.replace(/\D/g, "").length === 14 && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 p-3 rounded-lg border bg-muted/30">
+                <div className="min-w-0 sm:col-span-2">
+                  <Label className="text-xs sm:text-sm flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5" /> Dados da Empresa (PJ)
+                  </Label>
+                </div>
+                <div className="min-w-0">
+                  <Label className="text-xs">Razão Social</Label>
+                  <Input
+                    value={formData.razao_social}
+                    onChange={(e) => handleChange("razao_social", e.target.value)}
+                    placeholder="Razão Social"
+                    className="h-9 text-base md:text-sm"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <Label className="text-xs">Nome Fantasia</Label>
+                  <Input
+                    value={formData.nome_fantasia}
+                    onChange={(e) => handleChange("nome_fantasia", e.target.value)}
+                    placeholder="Nome Fantasia"
+                    className="h-9 text-base md:text-sm"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="min-w-0">
               <Label className="text-xs sm:text-sm">CEP</Label>
@@ -1585,8 +1672,8 @@ export default function CadastroClientesCad() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-              <div className="min-w-0">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-6 sm:gap-4">
+              <div className="min-w-0 sm:col-span-3">
                 <Label className="text-xs sm:text-sm">Cidade</Label>
                 <Input
                   value={formData.cidade}
@@ -1595,7 +1682,17 @@ export default function CadastroClientesCad() {
                   className="h-9 text-base md:text-sm"
                 />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 sm:col-span-1">
+                <Label className="text-xs sm:text-sm">UF</Label>
+                <Input
+                  value={formData.estado}
+                  onChange={(e) => handleChange("estado", e.target.value.toUpperCase().slice(0, 2))}
+                  placeholder="UF"
+                  maxLength={2}
+                  className="h-9 text-base md:text-sm uppercase"
+                />
+              </div>
+              <div className="min-w-0 sm:col-span-2">
                 <Label className="text-xs sm:text-sm">Tipo</Label>
                 <Select value={formData.tipo} onValueChange={(value) => handleChange("tipo", value)}>
                   <SelectTrigger className="h-9 text-base md:text-sm">
