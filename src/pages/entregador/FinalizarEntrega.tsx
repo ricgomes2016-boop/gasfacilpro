@@ -27,6 +27,7 @@ import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSe
 import { format, addDays } from "date-fns";
 import { toast as sonnerToast } from "sonner";
 import { CardPaymentModal } from "@/components/entregador/CardPaymentModal";
+import { AssinaturaCanhotoCard, type AssinaturaPayload } from "@/components/entregador/AssinaturaCanhotoCard";
 
 const formasPagamento = [
   "Dinheiro", "PIX", "Cartão Crédito", "Cartão Débito", "Vale Gás", "Cheque", "Fiado",
@@ -111,6 +112,7 @@ export default function FinalizarEntrega() {
   const [comprovanteUrl, setComprovanteUrl] = useState<string | null>(null);
   const [isUploadingComprovante, setIsUploadingComprovante] = useState(false);
   const [codigoVoucherGasPovo, setCodigoVoucherGasPovo] = useState("");
+  const [assinatura, setAssinatura] = useState<AssinaturaPayload | null>(null);
 
   // Fetch real pedido data
   useEffect(() => {
@@ -377,6 +379,40 @@ export default function FinalizarEntrega() {
         .update(updateData)
         .eq("id", id);
       if (error) throw error;
+
+      // Salvar comprovante de entrega (assinatura)
+      if (assinatura) {
+        try {
+          let assinaturaUrl: string | null = null;
+          if (assinatura.assinatura_data_url) {
+            const blob = await (await fetch(assinatura.assinatura_data_url)).blob();
+            const path = `${id}/${Date.now()}.png`;
+            const { error: upErr } = await supabase.storage
+              .from("comprovantes-entrega")
+              .upload(path, blob, { contentType: "image/png", upsert: true });
+            if (upErr) throw upErr;
+            const { data: pub } = supabase.storage.from("comprovantes-entrega").getPublicUrl(path);
+            assinaturaUrl = pub.publicUrl;
+          }
+
+          await (supabase as any).from("comprovantes_entrega").insert({
+            pedido_id: id,
+            unidade_id: unidadeId,
+            entregador_id: entregadorIdLocal,
+            cliente_id: (pedido as any)?.cliente_id || null,
+            assinatura_url: assinaturaUrl,
+            nome_recebedor: assinatura.nome_recebedor,
+            documento_recebedor: assinatura.documento_recebedor || null,
+            observacao: assinatura.observacao || null,
+            latitude: assinatura.latitude,
+            longitude: assinatura.longitude,
+            user_agent: navigator.userAgent,
+            assinado_em: assinatura.assinado_em,
+          });
+        } catch (sigErr: any) {
+          sonnerToast.warning("Pedido entregue, mas falhou ao salvar a assinatura: " + sigErr.message);
+        }
+      }
 
       // Vincular vales gás utilizados ao cliente e pedido
       const valeGasPagamentos = pagamentos.filter(p => p.forma === "Vale Gás" && p.valeGasInfo?.valeId);
@@ -791,14 +827,18 @@ export default function FinalizarEntrega() {
           Receber no Cartão (Maquininha)
         </Button>
 
+
+        {/* Assinatura do canhoto */}
+        <AssinaturaCanhotoCard onChange={setAssinatura} />
+
         {/* Botão Finalizar */}
         <Button
           onClick={finalizarEntrega}
           className="w-full h-14 text-lg gradient-primary text-white shadow-glow"
-          disabled={diferenca !== 0 || isSaving}
+          disabled={diferenca !== 0 || isSaving || !assinatura}
         >
           {isSaving ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <CheckCircle className="h-5 w-5 mr-2" />}
-          {isSaving ? "Salvando..." : "Finalizar Entrega"}
+          {isSaving ? "Salvando..." : !assinatura ? "Assine o canhoto para finalizar" : "Finalizar Entrega"}
         </Button>
       </div>
 
