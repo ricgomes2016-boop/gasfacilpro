@@ -173,6 +173,9 @@ export default function AcertoEntregador() {
   const [valeGasValidado, setValeGasValidado] = useState<{ parceiro: string; parceiroId?: string; numero?: number; codigo: string; valor: number; valido: boolean; valeId?: string } | null>(null);
   const [isConfirmingAcerto, setIsConfirmingAcerto] = useState(false);
   const [acertoConfirmado, setAcertoConfirmado] = useState(false);
+  const [boletoPromptOpen, setBoletoPromptOpen] = useState(false);
+  const [boletoConta, setBoletoConta] = useState<any>(null);
+  const [boletoDialogOpen, setBoletoDialogOpen] = useState(false);
 
   const podeEditar = hasAnyRole(["admin", "gestor"]);
 
