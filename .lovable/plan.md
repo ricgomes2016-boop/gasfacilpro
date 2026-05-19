@@ -1,62 +1,68 @@
-## Diagnóstico do que foi importado
+## Objetivo
 
-Verifiquei as 25+ NF-e importadas do Outlook em `compras` + `compra_itens` e os logs da edge function.
+Substituir a tabela "Pedidos de Compra" em `/estoque/compras` por uma versão visualmente e funcionalmente equivalente à do transportador (`ComprasListaTable`), incluindo conferência, controle de pagamento e vencimento, filtros por tipo (Cheio/Vasilhame/Outros) e por status (Conferidas/Não conferidas), busca, alerta de NF duplicada e linha de totais.
 
-### Cabeçalho (`compras`) — OK na maior parte
-Preenchidos: `chave_nfe`, `numero_nota_fiscal`, `serie`, `modelo`, `natureza_operacao`, `cfop_predominante`, `valor_total`, `valor_produtos`, `transportadora_nome`, `transportadora_cnpj`, `modalidade_frete`, `xml_content`, `fornecedor_id`, `unidade_id`, `data_compra`, `data_pagamento` (quando há dVenc).
+## 1. Migration — novos campos na tabela `compras`
 
-Vieram zerados: `valor_icms`, `valor_icms_st`, `valor_ipi`, `valor_pis`, `valor_cofins`, `base_icms`, `base_icms_st`, `valor_frete`, `valor_seguro`, `valor_desconto`, `valor_outros`, `placa_veiculo`. **Isso é coerente** com as NF-e que vieram (RETORNO DE VASILHAME e VENDA DE GÁS PARA REVENDEDOR são tipicamente monofásicas com tributos zerados na origem), mas vale revalidar com 1-2 XMLs reais.
+Adicionar colunas para suportar os novos controles:
 
-### Itens (`compra_itens`) — **FALHA: zero itens inseridos**
-Nenhuma das compras importadas tem itens. Causa nos logs da edge function:
+- `conferida` boolean default false
+- `conferida_em` timestamptz
+- `conferida_por` uuid (referência ao usuário que conferiu)
+- `pago` boolean default false  *(sem mexer em `data_pagamento`, que já existe)*
+- `data_vencimento` date
+- `tipo_produto` text default 'outros'  *(cheio / vasilhame / outros — derivado da NF; usado para os filtros)*
+- `cfop_predominante` já existe e será exibido como CFOP
 
-```
-WARNING Erro criando produto: Could not find the 'aliquota_cofins' column
-of 'produtos' in the schema cache
-```
+Sem alteração de RLS — herda as policies já existentes da tabela `compras`.
 
-A tabela `produtos` **não tem** as colunas fiscais que a função tenta gravar: `ncm`, `cest`, `cfop_entrada_padrao`, `codigo_anp`, `cst_icms`, `csosn_icms`, `cst_pis`, `cst_cofins`, `aliquota_pis`, `aliquota_cofins`, `unidade_tributavel`, `monofasico`. Só existe `categoria`.
+## 2. Novo componente `ComprasListaTableEstoque`
 
-Resultado: o insert do produto falha → `produto_id` fica null → o item é descartado silenciosamente (warning, não erro) → `compra_itens` fica vazio para todas as 25 compras.
+Local: `src/components/estoque/ComprasListaTableEstoque.tsx`
 
-## Correções
+Espelha 1-para-1 o visual do `ComprasListaTable` do transportador, adaptado ao schema de `compras`:
 
-### 1. Migration — adicionar colunas fiscais em `produtos`
-```sql
-ALTER TABLE public.produtos
-  ADD COLUMN IF NOT EXISTS ncm text,
-  ADD COLUMN IF NOT EXISTS cest text,
-  ADD COLUMN IF NOT EXISTS cfop_entrada_padrao text,
-  ADD COLUMN IF NOT EXISTS cfop_saida_padrao text,
-  ADD COLUMN IF NOT EXISTS codigo_anp text,
-  ADD COLUMN IF NOT EXISTS cst_icms text,
-  ADD COLUMN IF NOT EXISTS csosn_icms text,
-  ADD COLUMN IF NOT EXISTS cst_pis text,
-  ADD COLUMN IF NOT EXISTS cst_cofins text,
-  ADD COLUMN IF NOT EXISTS aliquota_icms numeric,
-  ADD COLUMN IF NOT EXISTS aliquota_pis numeric,
-  ADD COLUMN IF NOT EXISTS aliquota_cofins numeric,
-  ADD COLUMN IF NOT EXISTS unidade_tributavel text,
-  ADD COLUMN IF NOT EXISTS monofasico boolean DEFAULT false;
-```
-Esses campos são exigidos para emitir NF-e depois.
+| Coluna transportador | Origem em `compras` |
+|---|---|
+| Conferida ✓ | `conferida` |
+| Data | `data_compra` (fallback `created_at`) |
+| Loja | nome via `unidade_id` (já no contexto) |
+| Fornecedor | `fornecedores.razao_social` |
+| NF | `numero_nota_fiscal` |
+| Tipo + Subtipo (P13/P20/P45/Água) | `tipo_produto` + heurística por `observacoes`/itens |
+| CFOP | `cfop_predominante` |
+| Qtd | soma de `compra_itens.quantidade` (já vem na query) ou fallback `0` |
+| Preço Unit. | `valor_produtos / qtd` |
+| Desconto | `valor_desconto` |
+| Total | `valor_total` |
+| Vencimento (editável) | `data_vencimento` |
+| Pago ✓ | `pago` (preenche `data_pagamento` quando marcado) |
 
-### 2. Edge function `importar_xml_outlook_compras` — robustez
-- Se o insert do produto falhar mesmo com as colunas certas, **fallback** criando o produto só com os campos básicos (nome, preço, unidade_id, categoria) — o item não pode ser perdido por causa do produto.
-- Contar e retornar `produtos_criados` e `itens_inseridos` no resumo final.
-- Log do `cErr`/`pErr` deve elevar `erros` (hoje só faz `console.warn`).
+Inclui:
+- Header com contagem (filtradas / total)
+- Busca por fornecedor, NF, CFOP, observações
+- Chips de tipo: Todos / Cheio / Vasilhame / Outros (com contagem)
+- Chips de status: Todas / ✓ Conferidas / Não conferidas
+- Detecção de duplicidade (mesma NF + fornecedor + valor) com banner de aviso
+- Toggle inline de Conferida e Pago via `update` na tabela `compras`
+- Edição inline de Vencimento (input `type="date"` on blur/enter)
+- Footer com totais (Qtd, Desconto, Total)
+- "Ver mais" quando > 30 itens
 
-### 3. Nova edge function `reprocessar_itens_compras_outlook`
-Reprocessa as compras já importadas que estão sem itens:
-- Filtra `compras` com `observacoes LIKE 'Importado do Outlook%'` e sem registros em `compra_itens`.
-- Relê `xml_content` (já está salvo no cabeçalho), roda o mesmo parser e cria produtos + itens + movimentações de estoque.
-- UI: adicionar botão **"Reprocessar itens das importações"** ao lado do botão de importar XML do Outlook em `Compras.tsx`, mostrando quantas compras precisam de reprocessamento e o resultado.
+## 3. Integração em `src/pages/estoque/Compras.tsx`
 
-### 4. Validação pós-correção
-- Conferir em 2-3 NF-e reais (uma de revenda e uma de retorno) se os totais fiscais zerados são mesmo do XML ou se há campos que estamos lendo errado (ex: `vICMS` dentro de `ICMSTot` em layouts diferentes).
-- Conferir 1 produto criado com NCM, CFOP, ANP, CST etc.
+- Substituir o bloco `<Card>` "Pedidos de Compra" (linhas 1216-1271) pelo novo `<ComprasListaTableEstoque compras={compras} unidadesMap={unidadesMap} onChanged={loadCompras} />`
+- Ajustar a query `loadCompras` para trazer também `conferida, conferida_em, pago, data_vencimento, tipo_produto, valor_desconto, cfop_predominante, valor_produtos, compra_itens(quantidade)`
+- Manter `handleDeleteCompra`, status (`updateStatus`) e ação de excluir disponíveis em um menu de 3 pontos na coluna "Ações" (não no transportador, mas necessário aqui — adicionado como kebab opcional para preservar funcionalidade existente)
+- Sem mudanças em `OutlookImportButton`, no fluxo de XML, ou em outras seções da tela
 
-## Fora do escopo
-- Não mexer em `transp_compras`/transportadora.
-- Não alterar `handleImportXML` (importação por arquivo do PC).
-- Sem mudanças visuais em outras telas.
+## 4. Tipos
+
+Atualizar a interface `Compra` no topo do arquivo `Compras.tsx` para incluir os novos campos.
+
+## Fora de escopo
+
+- Tabela `transp_compras` ou tela do transportador
+- Importação de XML (já feita anteriormente)
+- Tela de compras do app transportador (`/transportadora/compras`)
+- Mudanças em `Estoque.tsx`, `HistoricoMovimentacoes.tsx`

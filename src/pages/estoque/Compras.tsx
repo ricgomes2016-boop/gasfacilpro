@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { formatCurrency, parseCurrency, formatCNPJ } from "@/hooks/useInputMasks";
 import { atualizarEstoqueCompra } from "@/services/estoqueService";
 import { OutlookImportButton } from "@/components/estoque/OutlookImportButton";
+import { ComprasListaTableEstoque } from "@/components/estoque/ComprasListaTableEstoque";
 
 interface Compra {
   id: string;
@@ -147,7 +148,7 @@ export default function Compras() {
   const fetchCompras = async () => {
     let query = supabase
       .from("compras")
-      .select("*, fornecedores(razao_social)")
+      .select("*, fornecedores(razao_social), compra_itens(quantidade, produtos(nome))")
       .order("created_at", { ascending: false });
 
     if (unidadeAtual?.id) {
@@ -156,7 +157,7 @@ export default function Compras() {
 
     const { data, error } = await query;
     if (error) { console.error(error); return; }
-    setCompras(data || []);
+    setCompras((data || []) as any);
     setLoading(false);
   };
 
@@ -1213,62 +1214,17 @@ export default function Compras() {
           </Card>
         )}
 
-        {/* Purchases table */}
-        <Card>
-          <CardHeader><CardTitle>Pedidos de Compra</CardTitle></CardHeader>
-          <CardContent>
-            {loading ? <p className="text-muted-foreground">Carregando...</p> : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>NF</TableHead>
-                    <TableHead>Fornecedor</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Frete</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {compras.map(c => (
-                    <TableRow key={c.id}>
-                      <TableCell className="font-mono text-xs">
-                        {c.numero_nota_fiscal ? (
-                          <div className="flex items-center gap-1">
-                            <FileText className="h-3 w-3 text-muted-foreground" />
-                            {c.numero_nota_fiscal}
-                          </div>
-                        ) : "-"}
-                      </TableCell>
-                      <TableCell className="font-medium">{c.fornecedores?.razao_social || "-"}</TableCell>
-                      <TableCell>{c.data_compra ? new Date(c.data_compra + "T12:00:00").toLocaleDateString("pt-BR") : new Date(c.created_at).toLocaleDateString("pt-BR")}</TableCell>
-                      <TableCell>R$ {Number(c.valor_total).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</TableCell>
-                      <TableCell>{Number(c.valor_frete) > 0 ? `R$ ${Number(c.valor_frete).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "-"}</TableCell>
-                      <TableCell><Badge variant={statusVariant(c.status)}>{statusLabel(c.status)}</Badge></TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          {c.status === "pendente" && (
-                            <Button size="sm" variant="outline" onClick={() => updateStatus(c.id, "em_transito")}>Enviar</Button>
-                          )}
-                          {c.status === "em_transito" && (
-                            <Button size="sm" variant="outline" onClick={() => updateStatus(c.id, "recebido")}>Receber</Button>
-                          )}
-                          <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setDeleteId(c.id)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {compras.length === 0 && (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nenhuma compra registrada</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+        {/* Purchases table — visual igual ao Histórico do Transportador */}
+        {loading ? (
+          <Card><CardContent className="p-6"><p className="text-muted-foreground">Carregando...</p></CardContent></Card>
+        ) : (
+          <ComprasListaTableEstoque
+            compras={compras}
+            unidadesMap={unidadeAtual?.id ? new Map([[unidadeAtual.id, unidadeAtual.nome || ""]]) : undefined}
+            onChanged={fetchCompras}
+            onDelete={(id) => setDeleteId(id)}
+          />
+        )}
       </div>
 
       {/* Delete confirmation */}

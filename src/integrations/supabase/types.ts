@@ -2382,11 +2382,15 @@ export type Database = {
           base_icms_st: number | null
           cfop_predominante: string | null
           chave_nfe: string | null
+          conferida: boolean
+          conferida_em: string | null
+          conferida_por: string | null
           created_at: string
           data_compra: string | null
           data_pagamento: string | null
           data_prevista: string | null
           data_recebimento: string | null
+          data_vencimento: string | null
           fornecedor_id: string | null
           id: string
           modalidade_frete: string | null
@@ -2394,9 +2398,11 @@ export type Database = {
           natureza_operacao: string | null
           numero_nota_fiscal: string | null
           observacoes: string | null
+          pago: boolean
           placa_veiculo: string | null
           serie: string | null
           status: string | null
+          tipo_produto: string
           transportadora_cnpj: string | null
           transportadora_nome: string | null
           unidade_id: string | null
@@ -2419,11 +2425,15 @@ export type Database = {
           base_icms_st?: number | null
           cfop_predominante?: string | null
           chave_nfe?: string | null
+          conferida?: boolean
+          conferida_em?: string | null
+          conferida_por?: string | null
           created_at?: string
           data_compra?: string | null
           data_pagamento?: string | null
           data_prevista?: string | null
           data_recebimento?: string | null
+          data_vencimento?: string | null
           fornecedor_id?: string | null
           id?: string
           modalidade_frete?: string | null
@@ -2431,9 +2441,11 @@ export type Database = {
           natureza_operacao?: string | null
           numero_nota_fiscal?: string | null
           observacoes?: string | null
+          pago?: boolean
           placa_veiculo?: string | null
           serie?: string | null
           status?: string | null
+          tipo_produto?: string
           transportadora_cnpj?: string | null
           transportadora_nome?: string | null
           unidade_id?: string | null
@@ -2456,11 +2468,15 @@ export type Database = {
           base_icms_st?: number | null
           cfop_predominante?: string | null
           chave_nfe?: string | null
+          conferida?: boolean
+          conferida_em?: string | null
+          conferida_por?: string | null
           created_at?: string
           data_compra?: string | null
           data_pagamento?: string | null
           data_prevista?: string | null
           data_recebimento?: string | null
+          data_vencimento?: string | null
           fornecedor_id?: string | null
           id?: string
           modalidade_frete?: string | null
@@ -2468,9 +2484,11 @@ export type Database = {
           natureza_operacao?: string | null
           numero_nota_fiscal?: string | null
           observacoes?: string | null
+          pago?: boolean
           placa_veiculo?: string | null
           serie?: string | null
           status?: string | null
+          tipo_produto?: string
           transportadora_cnpj?: string | null
           transportadora_nome?: string | null
           unidade_id?: string | null
