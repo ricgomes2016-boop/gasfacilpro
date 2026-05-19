@@ -33,6 +33,8 @@ const ASAAS_VALOR_MINIMO = 5;
 export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }: Props) {
   const [tipo, setTipo] = useState<Tipo>("BOLETO");
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [customerIdState, setCustomerIdState] = useState<string | null>(null);
   const [cpfCnpj, setCpfCnpj] = useState("");
   const [nome, setNome] = useState(conta.cliente || "");
   const [email, setEmail] = useState("");
@@ -43,6 +45,53 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
     pix_qrcode?: string;
     pix_copia_cola?: string;
   } | null>(null);
+
+  const enviarWhatsApp = () => {
+    const tel = telefone.replace(/\D/g, "");
+    if (!tel) {
+      toast.error("Informe o telefone do cliente");
+      return;
+    }
+    const fone = tel.length === 11 || tel.length === 10 ? `55${tel}` : tel;
+    const valorFmt = Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+    const venc = conta.vencimento;
+    const linhas = [
+      `Olá ${nome.split(" ")[0] || ""}! Segue sua cobrança:`,
+      `💰 R$ ${valorFmt} — vencimento ${venc}`,
+    ];
+    if (result?.boleto_url) linhas.push(`🔗 Boleto/Fatura: ${result.boleto_url}`);
+    if (result?.linha_digitavel) linhas.push(`📄 Linha digitável: ${result.linha_digitavel}`);
+    if (result?.pix_copia_cola) linhas.push(`📋 PIX copia-e-cola:\n${result.pix_copia_cola}`);
+    const msg = encodeURIComponent(linhas.join("\n"));
+    window.open(`https://wa.me/${fone}?text=${msg}`, "_blank");
+  };
+
+  const enviarEmail = async () => {
+    if (!conta.asaas_charge_id && !customerIdState) {
+      toast.error("Cobrança ainda não foi criada no Asaas");
+      return;
+    }
+    setSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("asaas-api", {
+        body: {
+          action: "send_charge_email",
+          id: conta.asaas_charge_id,
+          customerId: customerIdState || undefined,
+          email: email.trim() || undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(data?.fallback
+        ? "E-mail será enviado pelo Asaas (verifique se o cliente tem e-mail cadastrado)"
+        : "E-mail enviado com sucesso!");
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao enviar e-mail");
+    } finally {
+      setSending(false);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
