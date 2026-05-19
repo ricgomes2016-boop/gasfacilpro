@@ -2502,6 +2502,113 @@ export type Database = {
           },
         ]
       }
+      comprovantes_entrega: {
+        Row: {
+          assinado_em: string
+          assinatura_url: string | null
+          cliente_id: string | null
+          created_at: string
+          documento_recebedor: string | null
+          empresa_id: string | null
+          entregador_id: string | null
+          foto_url: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          nome_recebedor: string | null
+          observacao: string | null
+          pedido_id: string
+          unidade_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          assinado_em?: string
+          assinatura_url?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          documento_recebedor?: string | null
+          empresa_id?: string | null
+          entregador_id?: string | null
+          foto_url?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nome_recebedor?: string | null
+          observacao?: string | null
+          pedido_id: string
+          unidade_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          assinado_em?: string
+          assinatura_url?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          documento_recebedor?: string | null
+          empresa_id?: string | null
+          entregador_id?: string | null
+          foto_url?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nome_recebedor?: string | null
+          observacao?: string | null
+          pedido_id?: string
+          unidade_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comprovantes_entrega_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovantes_entrega_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovantes_entrega_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "entregadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovantes_entrega_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_alertas_cnh"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovantes_entrega_entregador_id_fkey"
+            columns: ["entregador_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_entregador"
+            referencedColumns: ["entregador_id"]
+          },
+          {
+            foreignKeyName: "comprovantes_entrega_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovantes_entrega_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comunicados_contador: {
         Row: {
           autor_id: string
