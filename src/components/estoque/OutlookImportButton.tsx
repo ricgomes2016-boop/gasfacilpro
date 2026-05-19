@@ -115,10 +115,13 @@ export function OutlookImportButton({ onImported }: Props) {
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-2 flex-wrap">
           <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>Fechar</Button>
+          <Button variant="secondary" onClick={reprocessar} disabled={loading} className="gap-2">
+            <RotateCw className="h-4 w-4" /> Reprocessar itens
+          </Button>
           <Button onClick={importar} disabled={loading}>
-            {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Importando…</> : "Importar agora"}
+            {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando…</> : "Importar agora"}
           </Button>
         </DialogFooter>
       </DialogContent>
