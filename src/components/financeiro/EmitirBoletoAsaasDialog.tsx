@@ -95,6 +95,7 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
 
   useEffect(() => {
     if (!open) return;
+    setCustomerIdState(null);
     setNome(conta.cliente || "");
     setResult(
       conta.linha_digitavel || conta.boleto_url
