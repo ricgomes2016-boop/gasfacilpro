@@ -714,6 +714,11 @@ export default function ContasReceber() {
                       <Checkbox checked={selectedIds.has(conta.id)} onCheckedChange={() => toggleSelect(conta.id)} />
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">{conta.parceiro_nome || conta.cliente}</p>
+                        {conta.endereco_cliente && (
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            {conta.endereco_cliente}{conta.bairro_cliente ? ` — ${conta.bairro_cliente}` : ""}
+                          </p>
+                        )}
                         <p className="text-xs text-muted-foreground truncate">{conta.descricao}</p>
                         {conta.vale_numero && <p className="text-[10px] text-muted-foreground">Vale nº {conta.vale_numero}</p>}
                       </div>
