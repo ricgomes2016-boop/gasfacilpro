@@ -827,14 +827,18 @@ export default function FinalizarEntrega() {
           Receber no Cartão (Maquininha)
         </Button>
 
+
+        {/* Assinatura do canhoto */}
+        <AssinaturaCanhotoCard onChange={setAssinatura} />
+
         {/* Botão Finalizar */}
         <Button
           onClick={finalizarEntrega}
           className="w-full h-14 text-lg gradient-primary text-white shadow-glow"
-          disabled={diferenca !== 0 || isSaving}
+          disabled={diferenca !== 0 || isSaving || !assinatura}
         >
           {isSaving ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <CheckCircle className="h-5 w-5 mr-2" />}
-          {isSaving ? "Salvando..." : "Finalizar Entrega"}
+          {isSaving ? "Salvando..." : !assinatura ? "Assine o canhoto para finalizar" : "Finalizar Entrega"}
         </Button>
       </div>
 
