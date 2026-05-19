@@ -29,7 +29,7 @@ import {
 import {
   Wallet, Search, Plus, AlertCircle, CheckCircle2, Clock, MoreHorizontal,
   Pencil, Trash2, DollarSign, Download, MapPin, User, Filter, X,
-  CreditCard, Banknote, FileText, Handshake, Flame, Receipt, CheckSquare,
+  CreditCard, Banknote, FileText, Handshake, Flame, Receipt, CheckSquare, RefreshCw,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
@@ -213,6 +213,43 @@ export default function ContasReceber() {
   };
 
   useEffect(() => { fetchContas(); }, [unidadeAtual]);
+
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const sincronizarAsaas = async (conta: ContaReceber) => {
+    if (!conta.asaas_charge_id) {
+      toast.error("Esta cobrança ainda não foi emitida no Asaas.");
+      return;
+    }
+    setSyncingId(conta.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("asaas-api", {
+        body: { action: "get_charge", id: conta.asaas_charge_id },
+      });
+      if (error) throw error;
+      const charge = (data as any)?.charge;
+      if (!charge) throw new Error("Cobrança não retornada pelo Asaas.");
+      const pagas = ["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"];
+      if (pagas.includes(charge.status)) {
+        const update: Record<string, any> = {
+          status: "recebida",
+          data_recebimento: charge.paymentDate || charge.clientPaymentDate || getBrasiliaDateString(),
+          valor_recebido: charge.value ?? conta.valor,
+        };
+        const { error: upErr } = await supabase.from("contas_receber").update(update).eq("id", conta.id);
+        if (upErr) throw upErr;
+        toast.success("Pagamento confirmado e baixado!");
+        fetchContas();
+      } else if (charge.status === "OVERDUE") {
+        toast.info("Asaas informa que o boleto está vencido.");
+      } else {
+        toast.info(`Status no Asaas: ${charge.status}. Ainda não confirmado.`);
+      }
+    } catch (err: any) {
+      toast.error("Erro ao sincronizar: " + (err.message || "erro"));
+    } finally {
+      setSyncingId(null);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!form.cliente || !form.descricao || !form.valor || !form.vencimento) {
@@ -699,6 +736,12 @@ export default function ContasReceber() {
                             <Download className="h-4 w-4 mr-2" />Baixar 2ª via do boleto
                           </DropdownMenuItem>
                         )}
+                        {conta.asaas_charge_id && conta.status !== "recebida" && (
+                          <DropdownMenuItem disabled={syncingId === conta.id} onClick={() => sincronizarAsaas(conta)}>
+                            <RefreshCw className={`h-4 w-4 mr-2 ${syncingId === conta.id ? "animate-spin" : ""}`} />
+                            Sincronizar com Asaas
+                          </DropdownMenuItem>
+                        )}
                         {conta.status === "recebida" && podeEditarDataRecebimento && (
                           <DropdownMenuItem onClick={() => openEditDataRecDialog(conta)}>
                             <Pencil className="h-4 w-4 mr-2" />Editar data de recebimento
@@ -815,6 +858,12 @@ export default function ContasReceber() {
                             {conta.asaas_charge_id && conta.boleto_url && (
                               <DropdownMenuItem onClick={() => window.open(conta.boleto_url!, "_blank", "noopener,noreferrer")}>
                                 <Download className="h-4 w-4 mr-2" />Baixar 2ª via do boleto
+                              </DropdownMenuItem>
+                            )}
+                            {conta.asaas_charge_id && conta.status !== "recebida" && (
+                              <DropdownMenuItem disabled={syncingId === conta.id} onClick={() => sincronizarAsaas(conta)}>
+                                <RefreshCw className={`h-4 w-4 mr-2 ${syncingId === conta.id ? "animate-spin" : ""}`} />
+                                Sincronizar com Asaas
                               </DropdownMenuItem>
                             )}
                             {conta.status === "recebida" && podeEditarDataRecebimento && (
