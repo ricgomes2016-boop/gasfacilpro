@@ -85,7 +85,6 @@ Deno.serve(async (req) => {
             (payment.paymentDate as string) ||
             (payment.clientPaymentDate as string) ||
             hoje;
-          if (payment.value) update.valor_recebido = payment.value;
         }
         break;
 
