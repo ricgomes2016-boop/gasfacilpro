@@ -345,6 +345,7 @@ export default function CadastroClientesCad() {
           endereco: data.logradouro || prev.endereco,
           bairro: data.bairro || prev.bairro,
           cidade: data.localidade || prev.cidade,
+          estado: data.uf || prev.estado,
         }));
       }
     } catch (error) {
