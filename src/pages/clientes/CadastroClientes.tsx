@@ -1513,6 +1513,18 @@ export default function CadastroClientesCad() {
                 )}
               </div>
               <div className="min-w-0">
+                <Label className="text-xs sm:text-sm">Telefone *</Label>
+                <Input
+                  value={formData.telefone}
+                  onChange={(e) => handleChange("telefone", e.target.value)}
+                  placeholder="(11) 99999-9999"
+                  className="h-9 text-base md:text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+              <div className="min-w-0">
                 <Label className="text-xs sm:text-sm">
                   {formData.cpf.replace(/\D/g, "").length === 14 ? "Inscrição Estadual" : "RG / Inscrição Estadual"}
                 </Label>
@@ -1535,25 +1547,46 @@ export default function CadastroClientesCad() {
                     </Button>
                   )}
                 </div>
+              </div>
+              <div className="min-w-0">
+                <Label className="text-xs sm:text-sm">Email</Label>
                 <Input
-                  value={formData.telefone}
-                  onChange={(e) => handleChange("telefone", e.target.value)}
-                  placeholder="(11) 99999-9999"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleChange("email", e.target.value)}
+                  placeholder="email@example.com"
                   className="h-9 text-base md:text-sm"
                 />
               </div>
             </div>
 
-            <div className="min-w-0">
-              <Label className="text-xs sm:text-sm">Email</Label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                placeholder="email@example.com"
-                className="h-9 text-base md:text-sm"
-              />
-            </div>
+            {formData.cpf.replace(/\D/g, "").length === 14 && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 p-3 rounded-lg border bg-muted/30">
+                <div className="min-w-0 sm:col-span-2">
+                  <Label className="text-xs sm:text-sm flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5" /> Dados da Empresa (PJ)
+                  </Label>
+                </div>
+                <div className="min-w-0">
+                  <Label className="text-xs">Razão Social</Label>
+                  <Input
+                    value={formData.razao_social}
+                    onChange={(e) => handleChange("razao_social", e.target.value)}
+                    placeholder="Razão Social"
+                    className="h-9 text-base md:text-sm"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <Label className="text-xs">Nome Fantasia</Label>
+                  <Input
+                    value={formData.nome_fantasia}
+                    onChange={(e) => handleChange("nome_fantasia", e.target.value)}
+                    placeholder="Nome Fantasia"
+                    className="h-9 text-base md:text-sm"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="min-w-0">
               <Label className="text-xs sm:text-sm">CEP</Label>
