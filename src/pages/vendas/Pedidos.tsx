@@ -35,6 +35,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { SugestaoEntregador } from "@/components/sugestao/SugestaoEntregador";
 import { useToast } from "@/hooks/use-toast";
+import { gerarComprovanteEntregaPdf } from "@/lib/comprovanteEntregaPdf";
 import { PedidoViewDialog } from "@/components/pedidos/PedidoViewDialog";
 import { StatusDropdown } from "@/components/pedidos/StatusDropdown";
 import { usePedidos } from "@/hooks/usePedidos";
