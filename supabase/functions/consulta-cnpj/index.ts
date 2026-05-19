@@ -57,6 +57,7 @@ serve(async (req) => {
       cidade: data.municipio || '',
       estado: data.uf || '',
       cep: data.cep ? data.cep.replace(/(\d{5})(\d{3})/, '$1-$2') : '',
+      codigo_municipio: String(data.codigo_municipio_ibge || data.codigo_municipio || ''),
       situacao_cadastral: data.descricao_situacao_cadastral || '',
       natureza_juridica: data.natureza_juridica || '',
       porte: data.porte || '',
