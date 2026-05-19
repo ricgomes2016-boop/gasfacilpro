@@ -110,10 +110,20 @@ Deno.serve(async (req) => {
     let processadas = 0, itens_criados = 0, produtos_criados = 0, erros = 0;
     const detalhes: any[] = [];
 
+    const vasilhameCfops = new Set(["1913","1914","2913","2914","5913","5914","6913","6914","5920","5921","6920","6921","1920","1921","2920","2921"]);
+
     for (const c of candidatas) {
       try {
         const itens = parseItens(c.xml_content as string);
         if (itens.length === 0) { detalhes.push({ nf: c.numero_nota_fiscal, status: "sem itens no XML" }); continue; }
+
+        // Pula NF de vasilhame (retorno/remessa)
+        const natOp = (pick(c.xml_content as string, "natOp") || "").toLowerCase();
+        const cfopsAll = itens.map(i => (i.cfop || "").replace(/\D/g, "")).filter(Boolean);
+        const isVasilhame = cfopsAll.some(cf => vasilhameCfops.has(cf))
+          || /vasilhame|botij[ãa]o vazio|comodato/i.test(natOp)
+          || (/retorno|remessa/i.test(natOp) && !/venda|compra/i.test(natOp));
+        if (isVasilhame) { detalhes.push({ nf: c.numero_nota_fiscal, status: "ignorado (vasilhame/retorno/remessa)" }); continue; }
 
         // produtos da unidade
         const { data: produtos } = await supabase.from("produtos").select("id, nome, estoque").eq("unidade_id", c.unidade_id);

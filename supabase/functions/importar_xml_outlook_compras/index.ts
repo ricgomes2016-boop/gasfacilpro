@@ -274,6 +274,18 @@ Deno.serve(async (req) => {
           const nfe = parseNFe(xml);
           if (!nfe) { detalhes.push({ arquivo: att.name, status: "ignorado (não é NF-e)" }); continue; }
 
+          // Ignora NF de vasilhame (retorno/remessa) — não afetam estoque de gás cheio nem geram pagamento
+          const _nat = (nfe.natOp || "").toLowerCase();
+          const _cfops = [nfe.cfopPred, ...nfe.itens.map(i => i.cfop)].filter(Boolean).map(c => c.replace(/\D/g, ""));
+          const _vasilhameCfops = new Set(["1913","1914","2913","2914","5913","5914","6913","6914","5920","5921","6920","6921","1920","1921","2920","2921"]);
+          const _isVasilhame = _cfops.some(c => _vasilhameCfops.has(c))
+            || /vasilhame|botij[ãa]o vazio|comodato/i.test(_nat)
+            || (/retorno|remessa/i.test(_nat) && !/venda|compra/i.test(_nat));
+          if (_isVasilhame) {
+            detalhes.push({ arquivo: att.name, nf: nfe.nNF, status: "ignorado (vasilhame/retorno/remessa)" });
+            continue;
+          }
+
           // antiduplicidade
           if (nfe.chave) {
             const { data: dup } = await supabase.from("compras")
