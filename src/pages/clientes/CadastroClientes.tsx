@@ -63,6 +63,7 @@ interface Cliente {
   numero: string | null;
   bairro: string | null;
   cidade: string | null;
+  estado?: string | null;
   cep: string | null;
   tipo: string | null;
   latitude: number | null;
@@ -70,6 +71,9 @@ interface Cliente {
   ativo: boolean | null;
   created_at: string;
   cadastro_app?: boolean;
+  inscricao_estadual?: string | null;
+  razao_social?: string | null;
+  nome_fantasia?: string | null;
 }
 
 interface FormData {
@@ -82,8 +86,12 @@ interface FormData {
   complemento: string;
   bairro: string;
   cidade: string;
+  estado: string;
   cep: string;
   tipo: string;
+  inscricao_estadual: string;
+  razao_social: string;
+  nome_fantasia: string;
 }
 
 const initialFormData: FormData = {
@@ -96,8 +104,12 @@ const initialFormData: FormData = {
   complemento: "",
   bairro: "",
   cidade: "",
+  estado: "",
   cep: "",
   tipo: "residencial",
+  inscricao_estadual: "",
+  razao_social: "",
+  nome_fantasia: "",
 };
 
 export default function CadastroClientesCad() {
