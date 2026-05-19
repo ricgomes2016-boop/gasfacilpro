@@ -1513,7 +1513,28 @@ export default function CadastroClientesCad() {
                 )}
               </div>
               <div className="min-w-0">
-                <Label className="text-xs sm:text-sm">Telefone *</Label>
+                <Label className="text-xs sm:text-sm">
+                  {formData.cpf.replace(/\D/g, "").length === 14 ? "Inscrição Estadual" : "RG / Inscrição Estadual"}
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.inscricao_estadual}
+                    onChange={(e) => handleChange("inscricao_estadual", e.target.value)}
+                    placeholder={formData.cpf.replace(/\D/g, "").length === 14 ? "IE ou ISENTO" : "RG"}
+                    className="h-9 flex-1 text-base md:text-sm"
+                  />
+                  {formData.cpf.replace(/\D/g, "").length === 14 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 shrink-0 text-xs"
+                      onClick={() => handleChange("inscricao_estadual", "ISENTO")}
+                    >
+                      Isento
+                    </Button>
+                  )}
+                </div>
                 <Input
                   value={formData.telefone}
                   onChange={(e) => handleChange("telefone", e.target.value)}
