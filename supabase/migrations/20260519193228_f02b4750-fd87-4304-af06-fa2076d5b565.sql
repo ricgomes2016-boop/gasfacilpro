@@ -1,0 +1,15 @@
+ALTER TABLE public.produtos
+  ADD COLUMN IF NOT EXISTS ncm text,
+  ADD COLUMN IF NOT EXISTS cest text,
+  ADD COLUMN IF NOT EXISTS cfop_entrada_padrao text,
+  ADD COLUMN IF NOT EXISTS cfop_saida_padrao text,
+  ADD COLUMN IF NOT EXISTS codigo_anp text,
+  ADD COLUMN IF NOT EXISTS cst_icms text,
+  ADD COLUMN IF NOT EXISTS csosn_icms text,
+  ADD COLUMN IF NOT EXISTS cst_pis text,
+  ADD COLUMN IF NOT EXISTS cst_cofins text,
+  ADD COLUMN IF NOT EXISTS aliquota_icms numeric,
+  ADD COLUMN IF NOT EXISTS aliquota_pis numeric,
+  ADD COLUMN IF NOT EXISTS aliquota_cofins numeric,
+  ADD COLUMN IF NOT EXISTS unidade_tributavel text,
+  ADD COLUMN IF NOT EXISTS monofasico boolean DEFAULT false;
