@@ -47,6 +47,24 @@ export function OutlookImportButton({ onImported }: Props) {
     }
   }
 
+  async function reprocessar() {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("reprocessar_itens_compras_outlook", { body: {} });
+      if (error) throw error;
+      if (data?.ok === false) { toast.error("Erro", { description: data.error }); return; }
+      toast.success("Reprocessamento concluído", {
+        description: `${data?.processadas ?? 0}/${data?.total ?? 0} compras · ${data?.itens_criados ?? 0} itens · ${data?.produtos_criados ?? 0} produtos criados · ${data?.erros ?? 0} erros`,
+      });
+      setResultado({ ...data, _reprocess: true });
+      onImported?.();
+    } catch (err: any) {
+      toast.error("Erro", { description: err.message });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
