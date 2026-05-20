@@ -819,7 +819,7 @@ export default function Compras() {
         // Carrega produtos completos da unidade p/ matching forte
         const { data: produtosFull } = await supabase
           .from("produtos")
-          .select("id, nome, ncm, codigo_anp, codigo_produto_fornecedor, categoria")
+          .select("id, nome, ncm, codigo_anp, categoria")
           .eq("unidade_id", unidadeAtual.id)
           .eq("ativo", true);
 
