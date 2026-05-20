@@ -842,10 +842,7 @@ export default function Compras() {
           const xN = normNome2(xProd);
           const sub = trySubtipo(xProd);
           let found: any = null;
-          // por codigo do fornecedor
-          if (!found && f.codigo_produto_fornecedor) {
-            found = produtosFull?.find(p => (p.codigo_produto_fornecedor || "").trim() === f.codigo_produto_fornecedor!.trim());
-          }
+          // (sem coluna codigo_produto_fornecedor em produtos — pulado)
           // por código ANP
           if (!found && f.codigo_anp) {
             found = produtosFull?.find(p => (p.codigo_anp || "").trim() === f.codigo_anp!.trim());
