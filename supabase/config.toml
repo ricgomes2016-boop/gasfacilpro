@@ -100,3 +100,6 @@ verify_jwt = false
 verify_jwt = false
 
 
+
+[functions.send-push-novo-pedido]
+verify_jwt = false
