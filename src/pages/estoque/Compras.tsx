@@ -146,6 +146,13 @@ export default function Compras() {
   const [novoItem, setNovoItem] = useState({ produto_id: "", quantidade: "1", preco_unitario: "" });
   const [nfFiscal, setNfFiscal] = useState<NfFiscal | null>(null);
 
+  // Confirmação de novos produtos detectados no XML
+  const [novosProdDialogOpen, setNovosProdDialogOpen] = useState(false);
+  const [novosCandidatos, setNovosCandidatos] = useState<NovoProdutoCandidato[]>([]);
+  const pendingItensRef = useRef<ItemCompra[]>([]);
+  const pendingFiscalByKeyRef = useRef<Record<string, { fiscal: ItemFiscal; categoria: "gas" | "agua" | "outros" }>>({});
+  const pendingMetaRef = useRef<{ nNF: string; vNF: number } | null>(null);
+
   const fetchCompras = async () => {
     let query = supabase
       .from("compras")
