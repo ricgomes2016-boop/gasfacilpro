@@ -33,6 +33,7 @@ import { formatCurrency, parseCurrency, formatCNPJ } from "@/hooks/useInputMasks
 import { atualizarEstoqueCompra } from "@/services/estoqueService";
 import { OutlookImportButton } from "@/components/estoque/OutlookImportButton";
 import { ComprasListaTableEstoque } from "@/components/estoque/ComprasListaTableEstoque";
+import { ConfirmarNovosProdutosDialog, NovoProdutoCandidato, DecisaoItem } from "@/components/estoque/ConfirmarNovosProdutosDialog";
 
 interface Compra {
   id: string;
@@ -144,6 +145,13 @@ export default function Compras() {
   const [itens, setItens] = useState<ItemCompra[]>([]);
   const [novoItem, setNovoItem] = useState({ produto_id: "", quantidade: "1", preco_unitario: "" });
   const [nfFiscal, setNfFiscal] = useState<NfFiscal | null>(null);
+
+  // Confirmação de novos produtos detectados no XML
+  const [novosProdDialogOpen, setNovosProdDialogOpen] = useState(false);
+  const [novosCandidatos, setNovosCandidatos] = useState<NovoProdutoCandidato[]>([]);
+  const pendingItensRef = useRef<ItemCompra[]>([]);
+  const pendingFiscalByKeyRef = useRef<Record<string, { fiscal: ItemFiscal; categoria: "gas" | "agua" | "outros" }>>({});
+  const pendingMetaRef = useRef<{ nNF: string; vNF: number } | null>(null);
 
   const fetchCompras = async () => {
     let query = supabase
@@ -733,11 +741,11 @@ export default function Compras() {
           valor_desconto: vDescItem || undefined,
         };
 
-        const produtoEncontrado = produtos.find(p =>
-          p.nome.toLowerCase() === xProd.toLowerCase() ||
-          p.nome.toLowerCase().includes(xProd.toLowerCase()) ||
-          xProd.toLowerCase().includes(p.nome.toLowerCase())
-        );
+        // Match local mínimo (igual canônico). O matching forte + IA acontece depois.
+        const normNome = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/[\-\.]/g, " ").replace(/\s+/g, " ").trim();
+        const xProdN = normNome(xProd);
+        const produtoEncontrado = produtos.find(p => normNome(p.nome) === xProdN);
 
         itensXml.push(produtoEncontrado ? {
           produto_id: produtoEncontrado.id,
@@ -795,14 +803,146 @@ export default function Compras() {
         return;
       }
 
-      if (itensXml.length > 0) {
-        setItens(itensXml);
-      }
+      // --- Match forte + IA para itens não-mapeados ---
+      const finalizarImport = (lista: ItemCompra[]) => {
+        if (lista.length > 0) setItens(lista);
+        const novos = lista.filter(i => i.is_new).length;
+        toast.success(
+          `NF ${nNF || "S/N"} importada · ${lista.length} item(ns)${novos > 0 ? ` (${novos} novo(s))` : ""} · R$ ${vNF.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+        );
+      };
 
-      const novos = itensXml.filter(i => i.is_new).length;
-      toast.success(
-        `NF ${nNF || "S/N"} importada · ${itensXml.length} item(ns)${novos > 0 ? ` (${novos} novo(s))` : ""} · R$ ${vNF.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-      );
+      const unmatched = itensXml.filter(i => i.is_new);
+      if (unmatched.length === 0 || !unidadeAtual?.id) {
+        finalizarImport(itensXml);
+      } else {
+        // Carrega produtos completos da unidade p/ matching forte
+        const { data: produtosFull } = await supabase
+          .from("produtos")
+          .select("id, nome, ncm, codigo_anp, categoria")
+          .eq("unidade_id", unidadeAtual.id)
+          .eq("ativo", true);
+
+        const normNome2 = (s: string) => (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/[\-\.]/g, " ").replace(/\bp\s*(13|20|45)\b/g, "p$1").replace(/\s+/g, " ").trim();
+        const trySubtipo = (s: string): string | null => {
+          const n = normNome2(s);
+          if (/\bp13\b|13\s*kg|glp\s*13|botij[ao]\s*13/.test(n)) return "p13";
+          if (/\bp20\b|20\s*kg|glp\s*20/.test(n)) return "p20";
+          if (/\bp45\b|45\s*kg|glp\s*45/.test(n)) return "p45";
+          if (/agua|gal[ao]o\s*20\s*l|20\s*litros/.test(n)) return "agua";
+          return null;
+        };
+
+        // 1) Match forte local
+        const stillUnmatched: ItemCompra[] = [];
+        for (const it of unmatched) {
+          const f = it.fiscal || {};
+          const xProd = it.produto_nome || f.descricao_xml || "";
+          const xN = normNome2(xProd);
+          const sub = trySubtipo(xProd);
+          let found: any = null;
+          // (sem coluna codigo_produto_fornecedor em produtos — pulado)
+          // por código ANP
+          if (!found && f.codigo_anp) {
+            found = produtosFull?.find(p => (p.codigo_anp || "").trim() === f.codigo_anp!.trim());
+          }
+          // por nome normalizado igual
+          if (!found) {
+            found = produtosFull?.find(p => normNome2(p.nome) === xN);
+          }
+          // por subtipo (P13/P20/P45/agua) quando inequívoco
+          if (!found && sub) {
+            const candidatos = (produtosFull || []).filter(p => trySubtipo(p.nome) === sub);
+            if (candidatos.length === 1) found = candidatos[0];
+          }
+          // por NCM + similaridade alta de tokens
+          if (!found && f.ncm) {
+            const mesmoNcm = (produtosFull || []).filter(p => (p.ncm || "") === f.ncm);
+            const xTokens = new Set(xN.split(" ").filter(t => t.length > 2));
+            let best: { p: any; score: number } | null = null;
+            for (const p of mesmoNcm) {
+              const pTokens = new Set(normNome2(p.nome).split(" ").filter(t => t.length > 2));
+              const inter = [...xTokens].filter(t => pTokens.has(t)).length;
+              const score = inter / Math.max(1, Math.min(xTokens.size, pTokens.size));
+              if (score >= 0.7 && (!best || score > best.score)) best = { p, score };
+            }
+            if (best) found = best.p;
+          }
+
+          if (found) {
+            const idx = itensXml.indexOf(it);
+            itensXml[idx] = { ...it, produto_id: found.id, produto_nome: undefined, is_new: false };
+          } else {
+            stillUnmatched.push(it);
+          }
+        }
+
+        // 2) IA para os duvidosos
+        let aiMotivoByKey: Record<string, string> = {};
+        if (stillUnmatched.length > 0) {
+          try {
+            const xmlItemsPayload = stillUnmatched.map((it, idx) => ({
+              index: idx,
+              xProd: it.produto_nome || it.fiscal?.descricao_xml || "",
+              cProd: it.fiscal?.codigo_produto_fornecedor,
+              ncm: it.fiscal?.ncm,
+              cProdANP: it.fiscal?.codigo_anp,
+              uCom: it.fiscal?.unidade_xml,
+            }));
+            const produtosPayload = (produtosFull || []).slice(0, 200).map(p => ({
+              id: p.id, nome: p.nome, ncm: p.ncm, codigo_anp: p.codigo_anp,
+            }));
+            const { data: aiResp } = await supabase.functions.invoke("match-produtos-xml", {
+              body: { xml_items: xmlItemsPayload, produtos: produtosPayload },
+            });
+            const matches: Array<{ index: number; match_produto_id: string | null; confianca: number; motivo: string }> =
+              aiResp?.matches || [];
+            const aindaSemMatch: ItemCompra[] = [];
+            stillUnmatched.forEach((it, idx) => {
+              const m = matches.find(x => x.index === idx);
+              if (m && m.match_produto_id && m.confianca >= 0.85
+                  && (produtosFull || []).some(p => p.id === m.match_produto_id)) {
+                const i2 = itensXml.indexOf(it);
+                itensXml[i2] = { ...it, produto_id: m.match_produto_id, produto_nome: undefined, is_new: false };
+              } else {
+                if (m?.motivo) aiMotivoByKey[it.produto_id] = m.motivo;
+                aindaSemMatch.push(it);
+              }
+            });
+            stillUnmatched.length = 0;
+            stillUnmatched.push(...aindaSemMatch);
+          } catch (e) {
+            console.warn("match-produtos-xml falhou, seguindo sem IA:", e);
+          }
+        }
+
+        // 3) Se ainda sobrou, abre o diálogo
+        if (stillUnmatched.length === 0) {
+          finalizarImport(itensXml);
+        } else {
+          const candidatos: NovoProdutoCandidato[] = stillUnmatched.map(it => {
+            const xProd = it.produto_nome || it.fiscal?.descricao_xml || "";
+            const n = normNome2(xProd);
+            const categoria: "gas" | "agua" | "outros" =
+              /gas|glp|p13|p20|p45|botij/.test(n) ? "gas"
+              : /agua|gal[ao]o/.test(n) ? "agua" : "outros";
+            return {
+              key: it.produto_id,
+              xProd,
+              ncm: it.fiscal?.ncm,
+              unidade: it.fiscal?.unidade_xml,
+              preco_unitario: it.preco_unitario,
+              categoria_sugerida: categoria,
+              ai_motivo: aiMotivoByKey[it.produto_id],
+            };
+          });
+          pendingItensRef.current = itensXml;
+          pendingMetaRef.current = { nNF, vNF };
+          setNovosCandidatos(candidatos);
+          setNovosProdDialogOpen(true);
+        }
+      }
     } catch (err: any) {
       console.error("XML parse error:", err);
       toast.error("Erro ao processar o XML: " + (err?.message || "formato inválido"));
@@ -897,6 +1037,77 @@ export default function Compras() {
     await fetchFornecedores();
     if (data) setForm(prev => ({ ...prev, fornecedor_id: data.id }));
   };
+
+  const handleConfirmNovosProdutos = async (decisoes: Record<string, DecisaoItem>) => {
+    if (!unidadeAtual?.id) { toast.error("Selecione uma unidade"); return; }
+    const lista = [...pendingItensRef.current];
+
+    // Para cada item pendente, aplicar decisão
+    for (let i = lista.length - 1; i >= 0; i--) {
+      const it = lista[i];
+      if (!it.is_new) continue;
+      const dec = decisoes[it.produto_id];
+      if (!dec || dec.tipo === "pular") {
+        lista.splice(i, 1);
+        continue;
+      }
+      if (dec.tipo === "vincular") {
+        if (!dec.produto_id) { lista.splice(i, 1); continue; }
+        lista[i] = { ...it, produto_id: dec.produto_id, produto_nome: undefined, is_new: false };
+        continue;
+      }
+      // criar produto com dados fiscais completos do XML
+      const f = it.fiscal || {};
+      const xProd = it.produto_nome || f.descricao_xml || "Produto";
+      const n = xProd.toLowerCase();
+      const isMono = (f.cst_pis === "04" || f.cst_cofins === "04" || (f.codigo_anp || "").startsWith("21"));
+      const isGas = /g[áa]s|glp|p[\s\-]?13|p[\s\-]?20|p[\s\-]?45|botij/i.test(n);
+      const isAgua = /[aá]gua|gal[ãa]o/i.test(n);
+      const categoria = isGas ? "gas" : isAgua ? "agua" : null;
+      const payload: any = {
+        nome: xProd, preco: it.preco_unitario, ativo: true, unidade_id: unidadeAtual.id,
+        categoria,
+        ncm: f.ncm || null, cest: f.cest || null,
+        cfop_entrada_padrao: f.cfop || null, codigo_anp: f.codigo_anp || null,
+        cst_icms: f.cst_icms || null, csosn_icms: f.csosn_icms || null,
+        cst_pis: f.cst_pis || null, cst_cofins: f.cst_cofins || null,
+        aliquota_pis: f.aliquota_pis || null, aliquota_cofins: f.aliquota_cofins || null,
+        unidade_tributavel: f.unidade_xml || null,
+        monofasico: isMono,
+      };
+      let { data: novo, error } = await supabase.from("produtos").insert(payload).select("id").single();
+      if (error) {
+        // fallback minimal
+        const min = { nome: xProd, preco: it.preco_unitario, ativo: true, unidade_id: unidadeAtual.id, categoria };
+        const r2 = await supabase.from("produtos").insert(min).select("id").single();
+        if (r2.error) { toast.error(`Falha ao cadastrar "${xProd}": ${r2.error.message}`); lista.splice(i, 1); continue; }
+        novo = r2.data;
+      }
+      lista[i] = { ...it, produto_id: novo!.id, produto_nome: undefined, is_new: false };
+    }
+
+    setItens(lista);
+    setNovosProdDialogOpen(false);
+    setNovosCandidatos([]);
+    pendingItensRef.current = [];
+    await fetchProdutos();
+
+    const meta = pendingMetaRef.current;
+    pendingMetaRef.current = null;
+    toast.success(
+      `NF ${meta?.nNF || "S/N"} importada · ${lista.length} item(ns) · R$ ${(meta?.vNF ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+    );
+  };
+
+  const handleCancelNovosProdutos = () => {
+    setNovosProdDialogOpen(false);
+    setNovosCandidatos([]);
+    pendingItensRef.current = [];
+    pendingMetaRef.current = null;
+    setNfFiscal(null);
+    toast.info("Importação cancelada.");
+  };
+
 
   return (
     <MainLayout>
@@ -1288,6 +1499,15 @@ export default function Compras() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmarNovosProdutosDialog
+        open={novosProdDialogOpen}
+        onOpenChange={(v) => { if (!v) handleCancelNovosProdutos(); }}
+        candidatos={novosCandidatos}
+        produtosExistentes={produtos}
+        onConfirmar={handleConfirmNovosProdutos}
+        onCancelar={handleCancelNovosProdutos}
+      />
     </MainLayout>
   );
 }

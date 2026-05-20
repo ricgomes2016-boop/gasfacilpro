@@ -96,4 +96,7 @@ verify_jwt = false
 [functions.importar_xml_outlook_compras]
 verify_jwt = false
 
+[functions.match-produtos-xml]
+verify_jwt = false
+
 
