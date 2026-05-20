@@ -1,80 +1,22 @@
-## Objetivo
+## Problema
 
-Ao importar um XML em **Estoque → Compras**, quando um item da NF-e não tiver correspondência clara em `produtos`, o sistema deve:
+No orçamento da Forte Gás (Colégio Militar), o campo "Observações" preenchido na tela não aparece no PDF gerado. Verifiquei `src/services/orcamentoFundeparPdfService.ts`: a propriedade `observacoes` existe na interface `FundeparPdfData`, é repassada pelas telas que chamam `imprimirFundepar`, mas o gerador do PDF nunca desenha esse conteúdo.
 
-1. Verificar inteligentemente se já existe (mesmo com nome diferente).
-2. Perguntar ao usuário se deseja cadastrar.
-3. Se sim, cadastrar automaticamente usando **todos** os dados fiscais do XML.
+## Ajuste
 
-Hoje o fluxo (em `src/pages/estoque/Compras.tsx`, `handleImportXML`) faz apenas um match ingênuo por `nome.includes()` e, se não acha, marca o item como `is_new` e cadastra silenciosamente ao salvar a compra — sem confirmação e sem checagem mais forte.
+Em `src/services/orcamentoFundeparPdfService.ts`, dentro de `gerarFundeparPdf`, após o `autoTable` de itens e antes do bloco da data por extenso:
 
----
+1. Se `d.observacoes` estiver preenchido (trim não vazio):
+   - Adicionar um pequeno espaçamento.
+   - Escrever rótulo em negrito "Observações:" (fonte 10).
+   - Quebrar o texto com `doc.splitTextToSize(d.observacoes, larguraÚtil)` respeitando as margens (14mm de cada lado).
+   - Desenhar as linhas em fonte normal 9-10, atualizando `y` linha a linha (~4mm cada).
+   - Garantir `doc.addPage()` caso `y` ultrapasse a área útil antes de seguir para o bloco de data/assinatura/carimbo (manter o layout atual quando couber tudo na mesma página, que é o caso comum).
 
-## Mudanças
+2. Não alterar nenhuma outra seção (cabeçalho, tabela, assinatura, carimbo, fluxo de assinatura digital).
 
-### 1. Detecção mais forte de "produto já cadastrado" (sem IA primeiro)
+## Escopo
 
-No loop dos `<det>` do XML, antes de marcar como `is_new`, casar contra `produtos` da unidade por, nesta ordem:
-
-- `codigo_produto_fornecedor` salvo em algum produto (campo já existe na tabela)
-- `codigo_anp` (quando combustível)
-- `ncm` + similaridade alta no `nome` (normalizando acentos/caixa/“P-13”/“P 13”/“GLP 13kg”)
-- Similaridade pura no nome (limiar alto, ex. ≥ 0.75) — usar normalização local (slugify) ou trigram via RPC `similarity()`
-
-Se algum candidato passar, usa o produto existente (sem perguntar).
-
-### 2. Match assistido por IA para casos duvidosos
-
-Para os itens que sobraram **sem match forte**, fazer **uma única** chamada batch via Lovable AI Gateway (`google/gemini-3-flash-preview`, modo `--json`) passando:
-
-- Lista de itens não-mapeados do XML (`xProd`, `cProd`, `ncm`, `cProdANP`, `uCom`).
-- Lista resumida dos produtos da unidade (`id`, `nome`, `ncm`, `codigo_anp`).
-
-A IA retorna, por item: `{ match_produto_id | null, confianca: 0–1, motivo }`.
-
-- Confiança ≥ 0.85 → usa o produto existente.
-- Caso contrário → entra na fila de "novos para confirmar".
-
-Implementado como nova edge function `match-produtos-xml` (verify_jwt = false, valida JWT em código, CORS).
-
-### 3. Modal de confirmação "Cadastrar novos produtos?"
-
-Após o parse, se houver itens sem match, abrir um `Dialog` listando-os com:
-
-- `xProd`, `NCM`, `unidade`, `preço unit.`, sugestão de **categoria** (gas/agua/outros) inferida do nome/cProdANP.
-- Checkbox por item (todos marcados por padrão).
-- Para cada item, dropdown opcional **"Vincular a produto existente"** (caso o usuário reconheça manualmente).
-- Botões: **Cancelar importação** / **Importar sem esses itens** / **Cadastrar selecionados e continuar**.
-
-### 4. Cadastro automático com dados completos do XML
-
-Para cada item confirmado, criar produto com **todos** os campos fiscais já lidos do XML (igual ao que `reprocessar_itens_compras_outlook` já faz no servidor):
-
-`nome, preco (vUnCom), categoria, ativo=true, unidade_id, ncm, cest, cfop_entrada_padrao, codigo_anp, cst_icms, csosn_icms, cst_pis, cst_cofins, aliquota_pis, aliquota_cofins, unidade_tributavel, monofasico (deduzido), codigo_produto_fornecedor`.
-
-Após inserir, o item da compra passa a usar o `produto_id` real (deixa de ser `is_new`) e o restante do fluxo de salvar a compra segue inalterado.
-
-### 5. Escopo
-
-- **Somente** o import XML manual em `src/pages/estoque/Compras.tsx`.
-- **Não** mexer no Outlook importer, no parse server-side de Outlook, na tela da transportadora nem em RLS/schema.
-- Nenhuma alteração de banco — todos os campos usados já existem em `produtos` e `compra_itens`.
-
----
-
-## Detalhes técnicos
-
-**Arquivos a alterar/criar:**
-
-- `src/pages/estoque/Compras.tsx`
-  - Refatorar `handleImportXML`: extrair itens, rodar matcher local, chamar edge `match-produtos-xml` para os duvidosos, abrir modal de confirmação.
-  - Antes de `setItens(...)`, persistir os produtos confirmados e mapear `produto_id` real.
-- `src/components/estoque/ConfirmarNovosProdutosDialog.tsx` (novo) — modal com a lista editável.
-- `supabase/functions/match-produtos-xml/index.ts` (nova edge function) — chama Lovable AI Gateway e retorna o match.
-- `supabase/config.toml` — adicionar bloco `[functions.match-produtos-xml] verify_jwt = false`.
-
-**Sem migration.** Sem mudança em RLS. Sem mexer no fluxo de salvamento da compra.
-
-**Fora do escopo (pergunto se quiser depois):**
-- Aplicar a mesma lógica no `reprocessar_itens_compras_outlook` (server-side).
-- Backfill/normalização de `codigo_produto_fornecedor` em produtos antigos.
+- Arquivo único: `src/services/orcamentoFundeparPdfService.ts`.
+- Nenhuma mudança em telas, banco, RLS, edge functions ou tipos.
+- Sem mexer no fluxo de assinatura PAdES (a posição da linha de assinatura continua sendo calculada pelo `y` corrente, então funciona naturalmente após o bloco de observações).
