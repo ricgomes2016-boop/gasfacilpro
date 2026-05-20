@@ -368,16 +368,20 @@ export function ComprasListaTableEstoque({ compras, unidadesMap, onChanged, onDe
                     </td>
                     <td className="px-3 py-2">
                       <div className="inline-flex items-center gap-1 flex-wrap">
-                        <span
-                          className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border ${tipoBase.cls}`}
-                        >
-                          {tipoBase.label}
-                        </span>
-                        {subtipo && (
+                        {subtipos.length > 0 ? (
+                          subtipos.map((s) => (
+                            <span
+                              key={s}
+                              className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border ${SUBTIPO_CLS[s]}`}
+                            >
+                              {s}
+                            </span>
+                          ))
+                        ) : (
                           <span
-                            className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border ${SUBTIPO_CLS[subtipo]}`}
+                            className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold border ${tipoBase.cls}`}
                           >
-                            {subtipo}
+                            {tipoBase.label}
                           </span>
                         )}
                       </div>
