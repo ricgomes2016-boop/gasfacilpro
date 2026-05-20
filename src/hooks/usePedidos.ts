@@ -7,7 +7,7 @@ import { PedidoFormatado, PedidoStatus } from "@/types/pedido";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { reverterEstoqueVenda } from "@/services/estoqueService";
 import { toast } from "sonner";
-import { requestNotificationPermission, sendOrderNotification } from "@/services/notificationService";
+import { requestNotificationPermission } from "@/services/notificationService";
 
 export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) {
   const queryClient = useQueryClient();
