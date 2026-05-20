@@ -1,0 +1,143 @@
+import { createClient } from "npm:@supabase/supabase-js@2";
+import webpush from "npm:web-push@3.6.7";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+const VAPID_PUBLIC_KEY =
+  "BJnpqpoCph8LLsYCLBBTFxpJpAbDoFODpr3diJC-14ehvnadLdHVtKer8mSv8aQjKySPGBeSc-H_p8re4zQwQco";
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
+    const VAPID_SUBJECT =
+      Deno.env.get("VAPID_SUBJECT") ?? "mailto:contato@gasfacilpro.com.br";
+
+    if (!VAPID_PRIVATE_KEY) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "VAPID_PRIVATE_KEY ausente" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+
+    const body = await req.json().catch(() => ({}));
+    const pedidoId = body?.pedido_id as string | undefined;
+    if (!pedidoId) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "pedido_id obrigatório" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: pedido } = await supabase
+      .from("pedidos")
+      .select(
+        "id, numero_sequencial, valor_total, canal_venda, cliente_nome, forma_pagamento, unidade_id"
+      )
+      .eq("id", pedidoId)
+      .maybeSingle();
+
+    if (!pedido) {
+      return new Response(
+        JSON.stringify({ ok: true, skipped: "pedido não encontrado" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Descobrir empresa via unidade
+    let empresaId: string | null = null;
+    if (pedido.unidade_id) {
+      const { data: uni } = await supabase
+        .from("unidades")
+        .select("empresa_id")
+        .eq("id", pedido.unidade_id)
+        .maybeSingle();
+      empresaId = uni?.empresa_id ?? null;
+    }
+
+    // Buscar inscrições da empresa (ou todas se sem empresa)
+    let query = supabase.from("push_subscriptions").select("*");
+    if (empresaId) query = query.eq("empresa_id", empresaId);
+    const { data: subs } = await query;
+
+    if (!subs || subs.length === 0) {
+      return new Response(
+        JSON.stringify({ ok: true, sent: 0, note: "sem inscrições" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const cliente = pedido.cliente_nome || "Cliente";
+    const valor = Number(pedido.valor_total || 0).toFixed(2);
+    const ref =
+      pedido.numero_sequencial != null
+        ? String(pedido.numero_sequencial)
+        : pedido.id.slice(0, 8).toUpperCase();
+
+    const payload = JSON.stringify({
+      title: "🛵 Novo Pedido!",
+      body: `#${ref} · ${cliente} · R$ ${valor}`,
+      url: "/vendas/pedidos",
+      tag: `novo-pedido-${pedido.id}`,
+      pedidoId: pedido.id,
+    });
+
+    let sent = 0;
+    const staleEndpoints: string[] = [];
+
+    await Promise.all(
+      subs.map(async (s: any) => {
+        try {
+          await webpush.sendNotification(
+            {
+              endpoint: s.endpoint,
+              keys: { p256dh: s.p256dh, auth: s.auth },
+            },
+            payload,
+            { TTL: 60 }
+          );
+          sent++;
+        } catch (err: any) {
+          const status = err?.statusCode;
+          if (status === 404 || status === 410) {
+            staleEndpoints.push(s.endpoint);
+          } else {
+            console.warn("[send-push] erro envio:", status, err?.body);
+          }
+        }
+      })
+    );
+
+    if (staleEndpoints.length > 0) {
+      await supabase
+        .from("push_subscriptions")
+        .delete()
+        .in("endpoint", staleEndpoints);
+    }
+
+    return new Response(
+      JSON.stringify({ ok: true, sent, removed: staleEndpoints.length }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (e: any) {
+    console.error("[send-push-novo-pedido] erro:", e);
+    return new Response(
+      JSON.stringify({ ok: false, error: String(e?.message || e) }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});

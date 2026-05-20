@@ -35,31 +35,54 @@ self.addEventListener("message", (event) => {
   }
 });
 
+// === Web Push: recebe notificações mesmo com aba fechada ===
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "Novo Pedido", body: event.data?.text() || "" };
+  }
+
+  const title = data.title || "🛵 Novo Pedido!";
+  const options = {
+    body: data.body || "",
+    icon: "/favicon.png",
+    badge: "/favicon.png",
+    tag: data.tag || `novo-pedido-${Date.now()}`,
+    renotify: true,
+    requireInteraction: true,
+    data: { url: data.url || "/vendas/pedidos", pedidoId: data.pedidoId },
+    vibrate: [300, 100, 300],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const urlToOpen = new URL("/pedidos", self.location.origin).href;
+  const targetUrl = event.notification.data?.url || "/vendas/pedidos";
+  const urlToOpen = new URL(targetUrl, self.location.origin).href;
 
-  const promiseChain = self.clients.matchAll({
-    type: "window",
-    includeUncontrolled: true
-  }).then((windowClients) => {
-    let matchingClient = null;
-
-    for (let i = 0; i < windowClients.length; i++) {
-      const windowClient = windowClients[i];
-      if (windowClient.url === urlToOpen || windowClient.url.includes("/pedidos")) {
-        matchingClient = windowClient;
-        break;
+  const promiseChain = self.clients
+    .matchAll({ type: "window", includeUncontrolled: true })
+    .then((windowClients) => {
+      for (const client of windowClients) {
+        try {
+          const u = new URL(client.url);
+          if (u.pathname === new URL(urlToOpen).pathname) {
+            return client.focus();
+          }
+        } catch {}
       }
-    }
-
-    if (matchingClient) {
-      return matchingClient.focus();
-    } else {
+      // Sem aba aberta na rota — foca qualquer aba existente e navega, ou abre nova
+      if (windowClients.length > 0) {
+        const c = windowClients[0];
+        return c.focus().then(() => c.navigate(urlToOpen).catch(() => {}));
+      }
       return self.clients.openWindow(urlToOpen);
-    }
-  });
+    });
 
   event.waitUntil(promiseChain);
 });
