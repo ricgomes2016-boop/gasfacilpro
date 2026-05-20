@@ -892,7 +892,6 @@ export default function Compras() {
             }));
             const produtosPayload = (produtosFull || []).slice(0, 200).map(p => ({
               id: p.id, nome: p.nome, ncm: p.ncm, codigo_anp: p.codigo_anp,
-              codigo_produto_fornecedor: p.codigo_produto_fornecedor,
             }));
             const { data: aiResp } = await supabase.functions.invoke("match-produtos-xml", {
               body: { xml_items: xmlItemsPayload, produtos: produtosPayload },
