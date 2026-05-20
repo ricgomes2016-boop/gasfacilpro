@@ -183,7 +183,33 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
     margin: { left: 14, right: 14 },
   });
 
-  y = (doc as any).lastAutoTable.finalY + 10;
+  y = (doc as any).lastAutoTable.finalY + 6;
+
+  // Observações
+  const obsText = (d.observacoes || "").trim();
+  if (obsText) {
+    const pageH = doc.internal.pageSize.getHeight();
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("Observações:", 14, y);
+    y += 4.5;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    const obsLines = doc.splitTextToSize(obsText, W - 28);
+    for (const ln of obsLines) {
+      if (y > pageH - 20) {
+        doc.addPage();
+        y = 15;
+      }
+      doc.text(ln, 14, y);
+      y += 4;
+    }
+    y += 4;
+  } else {
+    y += 4;
+  }
+
+
 
   // Data
   const hoje = new Date();
