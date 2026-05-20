@@ -33,6 +33,7 @@ import { formatCurrency, parseCurrency, formatCNPJ } from "@/hooks/useInputMasks
 import { atualizarEstoqueCompra } from "@/services/estoqueService";
 import { OutlookImportButton } from "@/components/estoque/OutlookImportButton";
 import { ComprasListaTableEstoque } from "@/components/estoque/ComprasListaTableEstoque";
+import { ConfirmarNovosProdutosDialog, NovoProdutoCandidato, DecisaoItem } from "@/components/estoque/ConfirmarNovosProdutosDialog";
 
 interface Compra {
   id: string;
