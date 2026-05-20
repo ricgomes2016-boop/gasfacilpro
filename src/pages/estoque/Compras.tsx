@@ -741,11 +741,11 @@ export default function Compras() {
           valor_desconto: vDescItem || undefined,
         };
 
-        const produtoEncontrado = produtos.find(p =>
-          p.nome.toLowerCase() === xProd.toLowerCase() ||
-          p.nome.toLowerCase().includes(xProd.toLowerCase()) ||
-          xProd.toLowerCase().includes(p.nome.toLowerCase())
-        );
+        // Match local mínimo (igual canônico). O matching forte + IA acontece depois.
+        const normNome = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .replace(/[\-\.]/g, " ").replace(/\s+/g, " ").trim();
+        const xProdN = normNome(xProd);
+        const produtoEncontrado = produtos.find(p => normNome(p.nome) === xProdN);
 
         itensXml.push(produtoEncontrado ? {
           produto_id: produtoEncontrado.id,
