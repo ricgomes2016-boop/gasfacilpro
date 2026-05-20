@@ -64,16 +64,33 @@ const gatilhosIniciais: NotificacaoConfig[] = [
   },
 ];
 
+import { NOVO_PEDIDO_PUSH_PREF_KEY } from "@/lib/novoPedidoDedupe";
+
 export default function Notificacoes() {
-  const [gatilhos, setGatilhos] = useState(gatilhosIniciais);
+  const [gatilhos, setGatilhos] = useState<NotificacaoConfig[]>(() => {
+    // Hidrata switch "Push" do gatilho novo_pedido a partir do localStorage
+    const pushPedidoEnabled = (() => {
+      try { return localStorage.getItem(NOVO_PEDIDO_PUSH_PREF_KEY) !== "false"; }
+      catch { return true; }
+    })();
+    return gatilhosIniciais.map((g) =>
+      g.id === "novo_pedido"
+        ? { ...g, canais: { ...g.canais, push: pushPedidoEnabled } }
+        : g
+    );
+  });
 
   const toggleCanal = (gatilhoId: string, canal: "push" | "whatsapp" | "email") => {
     setGatilhos((prev) =>
-      prev.map((g) =>
-        g.id === gatilhoId
-          ? { ...g, canais: { ...g.canais, [canal]: !g.canais[canal] } }
-          : g
-      )
+      prev.map((g) => {
+        if (g.id !== gatilhoId) return g;
+        const novoValor = !g.canais[canal];
+        // Persistência do canal Push de "novo_pedido"
+        if (gatilhoId === "novo_pedido" && canal === "push") {
+          try { localStorage.setItem(NOVO_PEDIDO_PUSH_PREF_KEY, String(novoValor)); } catch {}
+        }
+        return { ...g, canais: { ...g.canais, [canal]: novoValor } };
+      })
     );
   };
 
