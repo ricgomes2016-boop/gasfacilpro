@@ -69,9 +69,11 @@ function RootRedirect() {
 }
 
 import { useNovoPedidoNotifier } from "@/hooks/useNovoPedidoNotifier";
+import { usePushSubscription } from "@/hooks/usePushSubscription";
 
 function GlobalNotifiers() {
   useNovoPedidoNotifier();
+  usePushSubscription();
   return null;
 }
 
