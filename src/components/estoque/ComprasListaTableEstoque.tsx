@@ -177,18 +177,19 @@ export function ComprasListaTableEstoque({ compras, unidadesMap, onChanged, onDe
     { v: "outros", label: `Outros (${tipoCounts.outros})` },
   ];
 
-  const subtipoFor = (c: any): string | null => {
+  const subtiposFor = (c: any): string[] => {
     const desc = String(c.observacoes || "").toLowerCase();
     const itensTxt = (c.compra_itens || [])
-      .map((i: any) => i.produtos?.nome || "")
+      .map((i: any) => `${i.produtos?.nome || ""} ${i.descricao || ""}`)
       .join(" ")
       .toLowerCase();
     const t = `${desc} ${itensTxt}`;
-    if (/p[\s-]?13|13\s*kg/.test(t)) return "P13";
-    if (/p[\s-]?20|20\s*kg/.test(t)) return "P20";
-    if (/p[\s-]?45|45\s*kg/.test(t)) return "P45";
-    if (/água|agua/.test(t)) return "Água";
-    return null;
+    const found: string[] = [];
+    if (/\bp[\s\-\.]*13\b|13\s*kg|glp\s*13|botij[aã]o\s*13/.test(t)) found.push("P13");
+    if (/\bp[\s\-\.]*20\b|20\s*kg|glp\s*20/.test(t)) found.push("P20");
+    if (/\bp[\s\-\.]*45\b|45\s*kg|glp\s*45/.test(t)) found.push("P45");
+    if (/[áa]gua|gal[aã]o\s*20\s*l|20\s*litros/.test(t)) found.push("Água");
+    return found;
   };
 
   return (
