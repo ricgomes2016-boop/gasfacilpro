@@ -1038,6 +1038,77 @@ export default function Compras() {
     if (data) setForm(prev => ({ ...prev, fornecedor_id: data.id }));
   };
 
+  const handleConfirmNovosProdutos = async (decisoes: Record<string, DecisaoItem>) => {
+    if (!unidadeAtual?.id) { toast.error("Selecione uma unidade"); return; }
+    const lista = [...pendingItensRef.current];
+
+    // Para cada item pendente, aplicar decisão
+    for (let i = lista.length - 1; i >= 0; i--) {
+      const it = lista[i];
+      if (!it.is_new) continue;
+      const dec = decisoes[it.produto_id];
+      if (!dec || dec.tipo === "pular") {
+        lista.splice(i, 1);
+        continue;
+      }
+      if (dec.tipo === "vincular") {
+        if (!dec.produto_id) { lista.splice(i, 1); continue; }
+        lista[i] = { ...it, produto_id: dec.produto_id, produto_nome: undefined, is_new: false };
+        continue;
+      }
+      // criar produto com dados fiscais completos do XML
+      const f = it.fiscal || {};
+      const xProd = it.produto_nome || f.descricao_xml || "Produto";
+      const n = xProd.toLowerCase();
+      const isMono = (f.cst_pis === "04" || f.cst_cofins === "04" || (f.codigo_anp || "").startsWith("21"));
+      const isGas = /g[áa]s|glp|p[\s\-]?13|p[\s\-]?20|p[\s\-]?45|botij/i.test(n);
+      const isAgua = /[aá]gua|gal[ãa]o/i.test(n);
+      const categoria = isGas ? "gas" : isAgua ? "agua" : null;
+      const payload: any = {
+        nome: xProd, preco: it.preco_unitario, ativo: true, unidade_id: unidadeAtual.id,
+        categoria,
+        ncm: f.ncm || null, cest: f.cest || null,
+        cfop_entrada_padrao: f.cfop || null, codigo_anp: f.codigo_anp || null,
+        cst_icms: f.cst_icms || null, csosn_icms: f.csosn_icms || null,
+        cst_pis: f.cst_pis || null, cst_cofins: f.cst_cofins || null,
+        aliquota_pis: f.aliquota_pis || null, aliquota_cofins: f.aliquota_cofins || null,
+        unidade_tributavel: f.unidade_xml || null,
+        monofasico: isMono,
+      };
+      let { data: novo, error } = await supabase.from("produtos").insert(payload).select("id").single();
+      if (error) {
+        // fallback minimal
+        const min = { nome: xProd, preco: it.preco_unitario, ativo: true, unidade_id: unidadeAtual.id, categoria };
+        const r2 = await supabase.from("produtos").insert(min).select("id").single();
+        if (r2.error) { toast.error(`Falha ao cadastrar "${xProd}": ${r2.error.message}`); lista.splice(i, 1); continue; }
+        novo = r2.data;
+      }
+      lista[i] = { ...it, produto_id: novo!.id, produto_nome: undefined, is_new: false };
+    }
+
+    setItens(lista);
+    setNovosProdDialogOpen(false);
+    setNovosCandidatos([]);
+    pendingItensRef.current = [];
+    await fetchProdutos();
+
+    const meta = pendingMetaRef.current;
+    pendingMetaRef.current = null;
+    toast.success(
+      `NF ${meta?.nNF || "S/N"} importada · ${lista.length} item(ns) · R$ ${(meta?.vNF ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+    );
+  };
+
+  const handleCancelNovosProdutos = () => {
+    setNovosProdDialogOpen(false);
+    setNovosCandidatos([]);
+    pendingItensRef.current = [];
+    pendingMetaRef.current = null;
+    setNfFiscal(null);
+    toast.info("Importação cancelada.");
+  };
+
+
   return (
     <MainLayout>
       <Header title="Compras" subtitle="Gestão de compras e pedidos" />
