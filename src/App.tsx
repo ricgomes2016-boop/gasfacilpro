@@ -68,6 +68,13 @@ function RootRedirect() {
   return <Navigate to={defaultRoute} replace />;
 }
 
+import { useNovoPedidoNotifier } from "@/hooks/useNovoPedidoNotifier";
+
+function GlobalNotifiers() {
+  useNovoPedidoNotifier();
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -83,6 +90,7 @@ const App = () => (
                     <Sonner />
                     <CallerIdPopup />
                     <WhatsAppFloatingChat />
+                    <GlobalNotifiers />
                     <ErrorBoundary>
                       <Suspense fallback={<PageLoader />}>
                         <SubdomainGuard>

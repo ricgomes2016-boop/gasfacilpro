@@ -33,17 +33,20 @@ export function PedidoPendenteAlertProvider() {
     }
   }, []);
 
-  // Notificação push para pedidos novos — SEMPRE (mesmo com aba visível)
+  // Notificação push para pedidos pendentes — só após 3min sem aceite
+  // (criação imediata é tratada por useNovoPedidoNotifier para evitar duplicidade)
   useEffect(() => {
+    const agora = Date.now();
     pendentes.forEach((p) => {
-      if (!notificadosRef.current.has(p.id)) {
-        notificadosRef.current.add(p.id);
-        sendNotification({
-          title: "🛵 Novo Pedido Pendente",
-          body: `${p.cliente_nome} · R$ ${p.valor_total.toFixed(2)} · ${p.itens_resumo}`,
-          tag: `pedido-${p.id}`,
-        });
-      }
+      if (notificadosRef.current.has(p.id)) return;
+      const idadeMin = (agora - new Date(p.created_at).getTime()) / 60000;
+      if (idadeMin < 3) return;
+      notificadosRef.current.add(p.id);
+      sendNotification({
+        title: "⏰ Pedido aguardando atendimento",
+        body: `${p.cliente_nome} · R$ ${p.valor_total.toFixed(2)} · ${p.itens_resumo}`,
+        tag: `pedido-pendente-${p.id}`,
+      });
     });
   }, [pendentes, sendNotification]);
 

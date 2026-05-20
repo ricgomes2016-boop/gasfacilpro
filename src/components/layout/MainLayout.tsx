@@ -9,6 +9,7 @@ import { MobileBottomBar } from "@/components/layout/MobileBottomBar";
 import { TransferenciaPendentePopup } from "@/components/estoque/TransferenciaPendentePopup";
 import { PedidoPendenteAlertProvider } from "@/components/alerts/PedidoPendenteAlertProvider";
 import { CalculatorPopover } from "@/components/shared/CalculatorPopover";
+import { ErpNotificationBanner } from "@/components/layout/ErpNotificationBanner";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 
 interface MainLayoutProps {
@@ -38,6 +39,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
           collapsed ? "xl:ml-16" : "xl:ml-[260px]"
         )}
       >
+        <ErpNotificationBanner />
         {children}
       </main>
       {!isAiPage && <AiFloatingButton externalOpen={aiOpen} onExternalClose={() => setAiOpen(false)} />}

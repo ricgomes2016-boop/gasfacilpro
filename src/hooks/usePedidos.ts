@@ -7,7 +7,7 @@ import { PedidoFormatado, PedidoStatus } from "@/types/pedido";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { reverterEstoqueVenda } from "@/services/estoqueService";
 import { toast } from "sonner";
-import { requestNotificationPermission, sendOrderNotification } from "@/services/notificationService";
+import { requestNotificationPermission } from "@/services/notificationService";
 
 export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) {
   const queryClient = useQueryClient();
@@ -125,25 +125,9 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "pedidos" },
-        (payload) => {
-          const p = payload.new as any;
-          // Pedidos criados pela Bia (canal telefone_ia) já são anunciados pelo
-          // CallerIdPopup — evitar toast/notification duplicados aqui.
-          const isTelefoneIA = p?.canal_venda === "telefone_ia";
-          if (!isTelefoneIA) {
-            toast("🛵 Novo Pedido!", {
-              description: `${p?.cliente_nome || "Cliente"} · R$ ${Number(p?.valor_total || 0).toFixed(2)}`,
-              duration: 5000,
-            });
-
-            // Disparar notificação nativa (Windows) via Service Worker
-            sendOrderNotification(
-              p?.cliente_nome || "Cliente",
-              Number(p?.valor_total || 0),
-              p?.forma_pagamento
-            );
-          }
-
+        () => {
+          // Notificação visual/sonora centralizada em useNovoPedidoNotifier.
+          // Aqui apenas atualizamos a lista.
           queryClient.invalidateQueries({ queryKey: ["pedidos"] });
         }
       )

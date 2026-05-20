@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { wasRecentOrderForPhone } from "@/lib/novoPedidoDedupe";
+
 
 interface WhatsAppNotificationContextValue {
   unreadByConversation: Record<string, number>;
@@ -102,9 +104,14 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
           // Fetch conv title for toast
           const { data: conv } = await supabase
             .from("ai_conversas")
-            .select("titulo")
+            .select("titulo, telefone")
             .eq("id", convId)
             .maybeSingle();
+
+          // Dedup: se acabamos de notificar um pedido desse telefone, suprimir
+          // o toast de chat para não empilhar 2 alertas pela mesma origem.
+          if (wasRecentOrderForPhone(conv?.telefone)) return;
+
           const title = conv?.titulo || "Nova mensagem";
           const preview = String(msg.content || "").slice(0, 80);
 
