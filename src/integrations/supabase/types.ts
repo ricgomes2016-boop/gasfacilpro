@@ -8202,6 +8202,45 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          empresa_id: string | null
+          endpoint: string
+          id: string
+          p256dh: string
+          unidade_id: string | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          empresa_id?: string | null
+          endpoint: string
+          id?: string
+          p256dh: string
+          unidade_id?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          empresa_id?: string | null
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          unidade_id?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       rastreio_lote: {
         Row: {
           cliente_id: string | null
