@@ -1499,6 +1499,15 @@ export default function Compras() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmarNovosProdutosDialog
+        open={novosProdDialogOpen}
+        onOpenChange={(v) => { if (!v) handleCancelNovosProdutos(); }}
+        candidatos={novosCandidatos}
+        produtosExistentes={produtos}
+        onConfirmar={handleConfirmNovosProdutos}
+        onCancelar={handleCancelNovosProdutos}
+      />
     </MainLayout>
   );
 }
