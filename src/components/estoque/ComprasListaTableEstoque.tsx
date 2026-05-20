@@ -323,7 +323,7 @@ export function ComprasListaTableEstoque({ compras, unidadesMap, onChanged, onDe
                 const isDup = dupNFs.has(c.numero_nota_fiscal || c.id);
                 const vencido = isVencido(c);
                 const tipoBase = TIPO_LABEL[c.tipo_produto || "outros"] || TIPO_LABEL.outros;
-                const subtipo = subtipoFor(c);
+                const subtipos = subtiposFor(c);
                 const qtd = qtdTotal(c);
                 const desc = Number(c.valor_desconto || 0);
                 const valorProdutos = Number(c.valor_produtos || c.valor_total || 0);
