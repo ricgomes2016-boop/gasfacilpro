@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -152,6 +153,7 @@ function formatDate(dateStr: string | null) {
 export default function Licitacoes() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { unidadeAtual, unidades } = useUnidade();
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
@@ -163,14 +165,24 @@ export default function Licitacoes() {
   const [editMode, setEditMode] = useState(false);
   const [novaOcorrencia, setNovaOcorrencia] = useState("");
 
+  const unidadeId = unidadeAtual?.id ?? null;
+  const empresaUnidadeIds = useMemo(() => unidades.map((u) => u.id), [unidades]);
+
   // ── Queries ──────────────────────────────────────────────────────────────────
   const { data: licitacoes = [], isLoading } = useQuery({
-    queryKey: ["licitacoes"],
+    queryKey: ["licitacoes", unidadeId, empresaUnidadeIds.join(",")],
+    enabled: !!unidadeId || empresaUnidadeIds.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("licitacoes")
         .select("*")
         .order("created_at", { ascending: false });
+      if (unidadeId) {
+        q = q.eq("unidade_id", unidadeId);
+      } else if (empresaUnidadeIds.length > 0) {
+        q = q.in("unidade_id", empresaUnidadeIds);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return data as Licitacao[];
     },
@@ -216,7 +228,8 @@ export default function Licitacoes() {
         const { error } = await supabase.from("licitacoes").update(body).eq("id", payload.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("licitacoes").insert(body);
+        if (!unidadeId) throw new Error("Selecione uma unidade antes de cadastrar.");
+        const { error } = await supabase.from("licitacoes").insert({ ...body, unidade_id: unidadeId });
         if (error) throw error;
       }
     },
