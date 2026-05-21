@@ -167,13 +167,18 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     const fetchConversas = async () => {
       let query = supabase
         .from("ai_conversas")
-        .select("id, titulo, updated_at, telefone, foto_url, foto_atualizada_em, unidade_id")
-        .not("telefone", "is", null)
+        .select("id, titulo, updated_at, telefone, foto_url, foto_atualizada_em, unidade_id, empresa_id")
         .order("updated_at", { ascending: false })
         .limit(200);
 
+      // Escopa por empresa do usuário (quando disponível)
+      if (empresa?.id) {
+        query = query.eq("empresa_id", empresa.id);
+      }
+
+      // Se há unidade selecionada, mostra conversas dessa unidade OU sem unidade (legado)
       if (unidadeAtual?.id) {
-        query = query.eq("unidade_id", unidadeAtual.id);
+        query = query.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
       }
 
       const { data } = await query;
@@ -218,7 +223,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [unidadeAtual?.id]);
+  }, [unidadeAtual?.id, empresa?.id]);
 
   // Background fetch profile photos for conversations missing foto_url (queued, throttled)
   useEffect(() => {
