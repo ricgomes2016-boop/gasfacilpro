@@ -1092,6 +1092,35 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             </Select>
           </div>
         </div>
+        {parceirosComEmpenho.length > 0 && (
+          <div className="mt-3 grid gap-3 md:grid-cols-2 border-t pt-3">
+            <div>
+              <Label className="text-xs font-semibold text-foreground">Empenho / Parceiro (opcional)</Label>
+              <Select value={parceiroEmpenhoId} onValueChange={(v) => { setParceiroEmpenhoId(v); if (v === "nenhum") setValeNumero(""); }}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Sem empenho" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhum">Sem empenho</SelectItem>
+                  {parceirosComEmpenho.map((p: any) => (
+                    <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {parceiroEmpenhoId !== "nenhum" && (
+              <div>
+                <Label className="text-xs font-semibold text-foreground">Nº do Vale Físico *</Label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  value={valeNumero}
+                  onChange={(e) => setValeNumero(e.target.value)}
+                  placeholder="Ex: 35"
+                  className="mt-1"
+                />
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
