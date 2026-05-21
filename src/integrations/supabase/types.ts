@@ -4112,6 +4112,107 @@ export type Database = {
           },
         ]
       }
+      empenhos: {
+        Row: {
+          created_at: string
+          data_empenho: string
+          empresa_id: string | null
+          id: string
+          licitacao_id: string | null
+          nfe_chave: string | null
+          nfe_id: string | null
+          nfe_numero: string | null
+          nfe_status: string | null
+          numero_empenho: string
+          observacoes: string | null
+          parceiro_id: string
+          produto_id: string
+          produto_nome: string
+          quantidade: number
+          quantidade_entregue: number
+          status: string
+          unidade_id: string
+          updated_at: string
+          valor_total: number | null
+          valor_unitario: number
+        }
+        Insert: {
+          created_at?: string
+          data_empenho?: string
+          empresa_id?: string | null
+          id?: string
+          licitacao_id?: string | null
+          nfe_chave?: string | null
+          nfe_id?: string | null
+          nfe_numero?: string | null
+          nfe_status?: string | null
+          numero_empenho: string
+          observacoes?: string | null
+          parceiro_id: string
+          produto_id: string
+          produto_nome: string
+          quantidade: number
+          quantidade_entregue?: number
+          status?: string
+          unidade_id: string
+          updated_at?: string
+          valor_total?: number | null
+          valor_unitario: number
+        }
+        Update: {
+          created_at?: string
+          data_empenho?: string
+          empresa_id?: string | null
+          id?: string
+          licitacao_id?: string | null
+          nfe_chave?: string | null
+          nfe_id?: string | null
+          nfe_numero?: string | null
+          nfe_status?: string | null
+          numero_empenho?: string
+          observacoes?: string | null
+          parceiro_id?: string
+          produto_id?: string
+          produto_nome?: string
+          quantidade?: number
+          quantidade_entregue?: number
+          status?: string
+          unidade_id?: string
+          updated_at?: string
+          valor_total?: number | null
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empenhos_licitacao_id_fkey"
+            columns: ["licitacao_id"]
+            isOneToOne: false
+            referencedRelation: "licitacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empenhos_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vale_gas_parceiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empenhos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empenhos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
           ativo: boolean
@@ -10260,6 +10361,7 @@ export type Database = {
       }
       vale_gas: {
         Row: {
+          cliente_final_id: string | null
           cliente_id: string | null
           cliente_nome: string | null
           codigo: string
@@ -10270,6 +10372,7 @@ export type Database = {
           created_at: string
           data_utilizacao: string | null
           descricao: string | null
+          empenho_id: string | null
           entregador_id: string | null
           entregador_nome: string | null
           id: string
@@ -10286,6 +10389,7 @@ export type Database = {
           venda_id: string | null
         }
         Insert: {
+          cliente_final_id?: string | null
           cliente_id?: string | null
           cliente_nome?: string | null
           codigo: string
@@ -10296,6 +10400,7 @@ export type Database = {
           created_at?: string
           data_utilizacao?: string | null
           descricao?: string | null
+          empenho_id?: string | null
           entregador_id?: string | null
           entregador_nome?: string | null
           id?: string
@@ -10312,6 +10417,7 @@ export type Database = {
           venda_id?: string | null
         }
         Update: {
+          cliente_final_id?: string | null
           cliente_id?: string | null
           cliente_nome?: string | null
           codigo?: string
@@ -10322,6 +10428,7 @@ export type Database = {
           created_at?: string
           data_utilizacao?: string | null
           descricao?: string | null
+          empenho_id?: string | null
           entregador_id?: string | null
           entregador_nome?: string | null
           id?: string
@@ -10339,10 +10446,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "vale_gas_cliente_final_id_fkey"
+            columns: ["cliente_final_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "vale_gas_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vale_gas_empenho_id_fkey"
+            columns: ["empenho_id"]
+            isOneToOne: false
+            referencedRelation: "empenhos"
             referencedColumns: ["id"]
           },
           {
@@ -11378,6 +11499,15 @@ export type Database = {
         Args: { _data: string; _unidade_id: string }
         Returns: boolean
       }
+      consumir_vale_empenho: {
+        Args: {
+          _cliente_final_id: string
+          _numero_vale: number
+          _parceiro_id: string
+          _pedido_id: string
+        }
+        Returns: Json
+      }
       contador_has_empresa: {
         Args: { _empresa_id: string; _user_id: string }
         Returns: boolean
@@ -11473,6 +11603,14 @@ export type Database = {
       user_in_same_empresa: {
         Args: { _target_user_id: string }
         Returns: boolean
+      }
+      vincular_vales_empenho: {
+        Args: {
+          _empenho_id: string
+          _numero_final: number
+          _numero_inicial: number
+        }
+        Returns: Json
       }
     }
     Enums: {
