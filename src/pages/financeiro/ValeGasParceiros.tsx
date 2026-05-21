@@ -33,6 +33,7 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
   const [saving, setSaving] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
   const emptyForm = {
     nome: "", cnpj: "", telefone: "", email: "", endereco: "",
     tipo: "prepago" as TipoParceiro,
