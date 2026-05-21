@@ -246,14 +246,23 @@ export function EmpenhosPanel() {
         open={importOpen}
         onClose={() => setImportOpen(false)}
         onParsed={(d: EmpenhoExtraido) => {
+          const itens = d.itens && d.itens.length > 0
+            ? d.itens.map((it) => ({
+                produto_id: it.produto_id_sugerido,
+                quantidade: it.quantidade,
+                valor_unitario: it.valor_unitario,
+              }))
+            : [{
+                produto_id: d.produto_id_sugerido,
+                quantidade: d.quantidade,
+                valor_unitario: d.valor_unitario,
+              }];
           setDadosImportados({
             numero_empenho: d.numero_empenho,
             data_empenho: d.data_empenho || undefined,
             parceiro_id: d.parceiro_id_sugerido,
-            produto_id: d.produto_id_sugerido,
-            quantidade: d.quantidade,
-            valor_unitario: d.valor_unitario,
             observacoes: d.observacoes,
+            itens,
           });
           setImportOpen(false);
           setNovoOpen(true);
