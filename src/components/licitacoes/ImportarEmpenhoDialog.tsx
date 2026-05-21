@@ -6,15 +6,25 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "sonner";
 import { Upload, Loader2, FileText } from "lucide-react";
 
+export interface EmpenhoExtraidoItem {
+  produto_descricao: string;
+  produto_id_sugerido: string | null;
+  quantidade: number;
+  valor_unitario: number;
+}
+
 export interface EmpenhoExtraido {
   numero_empenho: string;
   data_empenho: string | null;
   orgao_nome: string;
   parceiro_id_sugerido: string | null;
+  // Legacy single-item fields (primeiro item)
   produto_descricao: string;
   produto_id_sugerido: string | null;
   quantidade: number;
   valor_unitario: number;
+  // Multi-item
+  itens?: EmpenhoExtraidoItem[];
   observacoes: string;
 }
 
