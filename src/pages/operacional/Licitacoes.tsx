@@ -526,6 +526,8 @@ export default function Licitacoes() {
             );
           })}
         </Tabs>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* ── Dialog: Novo / Editar ──────────────────────────────────────────────── */}
