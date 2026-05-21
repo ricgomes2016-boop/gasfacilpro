@@ -191,6 +191,7 @@ export default function Produtos() {
   const { unidadeAtual } = useUnidade();
   const [scannerAtivo, setScannerAtivo] = useState(false);
   const [scanFeedback, setScanFeedback] = useState<string | null>(null);
+  const [buscandoEan, setBuscandoEan] = useState(false);
 
 
   // Import states
@@ -482,6 +483,38 @@ export default function Produtos() {
     setDialogAberto(true);
   };
 
+  const buscarDadosPorCodigo = async (barcode: string) => {
+    try {
+      setBuscandoEan(true);
+      const { data, error } = await supabase.functions.invoke("lookup-barcode", {
+        body: { codigo: barcode },
+      });
+      if (error) throw error;
+      if (data?.encontrado && data?.dados) {
+        const d = data.dados;
+        setForm((prev) => ({
+          ...prev,
+          nome: prev.nome?.trim() ? prev.nome : (d.nome || prev.nome),
+          descricao: prev.descricao?.trim() ? prev.descricao : (d.descricao || prev.descricao),
+          categoria: prev.categoria ? prev.categoria : (d.categoria_sugerida || prev.categoria),
+        }));
+        toast({
+          title: "Produto identificado",
+          description: `${d.nome}${d.marca ? ` — ${d.marca}` : ""} (via ${data.fonte})`,
+        });
+      } else {
+        toast({
+          title: "Código lido",
+          description: "Não encontramos dados públicos. Preencha manualmente.",
+        });
+      }
+    } catch (e: any) {
+      console.warn("lookup-barcode falhou:", e);
+    } finally {
+      setBuscandoEan(false);
+    }
+  };
+
   const handleBarcodeScan = (barcode: string) => {
     setScannerAtivo(false);
     setForm((prev) => ({ ...prev, codigo_barras: barcode }));
@@ -495,10 +528,11 @@ export default function Produtos() {
         description: `O código ${barcode} pertence a "${existente.nome}".`,
         variant: "destructive",
       });
-    } else {
-      setScanFeedback(`✅ Código ${barcode} lido com sucesso!`);
-      toast({ title: "Código lido!", description: `Código de barras: ${barcode}` });
+      return;
     }
+
+    setScanFeedback(`✅ Código ${barcode} lido — buscando dados...`);
+    buscarDadosPorCodigo(barcode);
   };
 
   // Filtrar produtos
@@ -732,6 +766,13 @@ export default function Produtos() {
                         setForm({ ...form, codigo_barras: e.target.value });
                         setScanFeedback(null);
                       }}
+                      onBlur={(e) => {
+                        const v = e.target.value.replace(/\D/g, "");
+                        if (v.length >= 8 && v.length <= 14 && !editandoProduto) {
+                          const existente = produtos.find((p) => p.codigo_barras === v);
+                          if (!existente) buscarDadosPorCodigo(v);
+                        }
+                      }}
                       className="flex-1"
                     />
                     <Button
@@ -746,6 +787,7 @@ export default function Produtos() {
                     >
                       {scannerAtivo ? <CameraOff className="h-4 w-4" /> : <ScanBarcode className="h-4 w-4" />}
                     </Button>
+                    {buscandoEan && <Loader2 className="h-4 w-4 animate-spin self-center text-muted-foreground" />}
                   </div>
 
                   {scannerAtivo && (
