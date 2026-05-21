@@ -1,32 +1,72 @@
 ## Objetivo
 
-Substituir a marca d'água atual (texto "ASSINADO DIGITALMENTE" / "ORÇAMENTO") por uma marca d'água em estilo Adobe: a **primeira letra** do nome da unidade (ou empresa, como fallback) renderizada em tamanho gigante, centralizada na página, com aparência de inicial monumental.
+Ao escanear/digitar um código de barras (EAN/GTIN) no cadastro de Produtos, buscar automaticamente os dados do produto em uma base externa e pré-preencher: **nome, descrição, categoria** (e marca, quando houver).
 
-## Onde alterar
+## Onde
 
-Apenas `src/services/orcamentoFundeparPdfService.ts`, dentro da função `gerarFundeparPdf`, no bloco da marca d'água que adicionamos por último.
+- Tela: `src/pages/cadastros/Produtos.tsx` (já tem `BarcodeScanner` + handler `handleBarcodeScan`).
+- Lógica nova: edge function `lookup-barcode` (server-side, evita CORS e esconde key se necessário).
 
-Os dados da unidade/empresa já são carregados em `fetchFornecedor()` e expostos em `f.nome_fantasia` / `f.razao_social`. Vou reutilizar esses campos sem nova query.
+## Fluxo
 
-## Lógica
+```text
+[Usuário escaneia / digita EAN]
+        │
+        ▼
+handleBarcodeScan(codigo)
+        │
+        ├─ já existe em produtos[]? → toast "duplicado" (comportamento atual)
+        │
+        ├─ não existe → chama edge fn lookup-barcode(codigo)
+        │
+        ▼
+edge fn tenta em ordem:
+   1) Open Food Facts  (gratuito, sem key, mundial)
+   2) Cosmos Bluesoft  (BR, mais preciso p/ não-alimentos) [se BLUESOFT_TOKEN existir]
+        │
+        ▼
+Retorna { nome, descricao, marca, categoria_sugerida, imagem_url, fonte }
+        │
+        ▼
+UI: preenche somente campos VAZIOS do form
+    + mostra toast "Dados encontrados via Open Food Facts ✓"
+    + se nada encontrado: toast neutro "Código lido, preencha manualmente"
+```
 
-1. Determinar a inicial:
-   - Pegar `f.nome_fantasia` (ou `f.razao_social` como fallback).
-   - Remover espaços/artigos iniciais e extrair o primeiro caractere alfanumérico.
-   - `toUpperCase()`. Se vazio → usar `"●"` como fallback neutro.
+## Fontes
 
-2. Renderizar em cada página (loop `pageCount` já existe):
-   - Fonte: `helvetica` bold (única fonte vetorial garantida no jsPDF; serif/Times também está disponível e dá visual mais "Adobe" — usar `times` bold para um traço mais clássico).
-   - Tamanho: ~260pt para ocupar boa parte da página A4.
-   - Opacidade: ~0.07 via `GState` (já temos esse padrão).
-   - Cor: cinza neutro `(120,120,120)` independente de assinatura — a info "assinado" fica no carimbo PAdES e no card da tela.
-   - Sem rotação (estilo Adobe inicial é vertical, não diagonal).
-   - Posição: centro horizontal e vertical da página, com pequeno ajuste de baseline para a letra ficar opticamente centrada.
+- **Open Food Facts** — `https://world.openfoodfacts.org/api/v2/product/{ean}.json` — sem key, cobre alimentos/bebidas (relevante p/ água mineral).
+- **Cosmos Bluesoft** (opcional, se o usuário quiser cobertura BR de não-alimentos como botijão, acessórios) — exige token (cadastro grátis, 25 consultas/dia). Pediremos via `add_secret` somente se o usuário aprovar.
 
-3. Manter o reset de `GState` e `setTextColor(0,0,0)` ao final do loop (como já está) para não vazar estilo para conteúdos futuros.
+Para o catálogo atual (gás P13/P20/P45, água 20L, acessórios), Open Food Facts cobre bem água; gás raramente tem EAN público. A função degrada com graça quando não encontra.
 
-## Observações
+## Categorização
 
-- Nada muda na tela do modal nem em outros PDFs (recibo, comprovante, declaração).
-- Não há mudança de dados, RLS, rotas ou estrutura — só ajuste visual no gerador do PDF Fundepar.
-- A marca d'água passa a ser a mesma independentemente de o orçamento ser assinado ou não, conforme o pedido (estilo Adobe = inicial da empresa).
+Mapeamento simples no edge fn:
+- contém "água"/"mineral" → `agua`
+- contém "gás"/"glp"/"botijão" → `gas`
+- caso contrário → `outro` (usuário ajusta)
+
+## Mudanças técnicas
+
+1. **Nova edge function** `supabase/functions/lookup-barcode/index.ts`
+   - Input: `{ codigo: string }`
+   - Tenta Open Food Facts → Cosmos (se token) → retorna `{ ok, encontrado, dados }`
+   - 200 OK sempre (mesmo se não encontrar), conforme regra do projeto.
+
+2. **`Produtos.tsx`** — em `handleBarcodeScan` (e também ao sair do input manual de código com `onBlur`):
+   - Após validar duplicidade, chamar `supabase.functions.invoke('lookup-barcode')`.
+   - Preencher `form.nome`, `form.descricao`, `form.categoria` **apenas se estiverem vazios** (não sobrescreve o que o usuário já digitou).
+   - Loading spinner discreto no campo enquanto consulta.
+
+3. **Sem mudanças** em schema, RLS, ou outras telas.
+
+## Fora de escopo
+
+- Cadastro em massa por scanner.
+- Integração com NF-e (já existe `match-produtos-xml`).
+- Upload da imagem do produto via URL (pode ser próxima iteração).
+
+## Pergunta antes de implementar
+
+Quer que eu **comece só com Open Food Facts** (sem dependências/keys) e depois, se precisar, adicionamos Cosmos Bluesoft? Recomendo sim — entrega valor imediato sem pedir nada extra.
