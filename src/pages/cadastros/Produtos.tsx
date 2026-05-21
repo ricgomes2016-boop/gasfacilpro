@@ -191,6 +191,7 @@ export default function Produtos() {
   const { unidadeAtual } = useUnidade();
   const [scannerAtivo, setScannerAtivo] = useState(false);
   const [scanFeedback, setScanFeedback] = useState<string | null>(null);
+  const [buscandoEan, setBuscandoEan] = useState(false);
 
 
   // Import states
