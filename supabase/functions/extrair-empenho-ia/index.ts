@@ -154,7 +154,16 @@ Deno.serve(async (req) => {
     try { args = JSON.parse(call.function.arguments || "{}"); } catch { args = {}; }
 
     const parceiro_id_sugerido = bestMatch(args.orgao_nome || "", parceiros);
-    const produto_id_sugerido = bestMatch(args.produto_descricao || "", produtos);
+    const itensIn: any[] = Array.isArray(args.itens) ? args.itens : [];
+    const itens = itensIn.map((it: any) => ({
+      produto_descricao: it?.produto_descricao ?? "",
+      produto_id_sugerido: bestMatch(it?.produto_descricao || "", produtos),
+      quantidade: Number(it?.quantidade) || 0,
+      valor_unitario: Number(it?.valor_unitario) || 0,
+    }));
+
+    // Backward-compat: primeiro item exposto também em campos planos
+    const primeiro = itens[0] || { produto_descricao: "", produto_id_sugerido: null, quantidade: 0, valor_unitario: 0 };
 
     return new Response(
       JSON.stringify({
@@ -164,10 +173,11 @@ Deno.serve(async (req) => {
           data_empenho: args.data_empenho ?? null,
           orgao_nome: args.orgao_nome ?? "",
           parceiro_id_sugerido,
-          produto_descricao: args.produto_descricao ?? "",
-          produto_id_sugerido,
-          quantidade: Number(args.quantidade) || 0,
-          valor_unitario: Number(args.valor_unitario) || 0,
+          produto_descricao: primeiro.produto_descricao,
+          produto_id_sugerido: primeiro.produto_id_sugerido,
+          quantidade: primeiro.quantidade,
+          valor_unitario: primeiro.valor_unitario,
+          itens,
           observacoes: args.observacoes ?? "",
         },
       }),
