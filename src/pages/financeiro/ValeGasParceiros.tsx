@@ -247,10 +247,15 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
                     <SelectContent>
                       <SelectItem value="prepago">Pré-pago (paga antecipado)</SelectItem>
                       <SelectItem value="consignado">Consignado (acerto posterior)</SelectItem>
+                      <SelectItem value="empenho">Empenho (Órgão Público / Licitação)</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    {formData.tipo === "prepago" ? "Parceiro compra os vales antecipadamente" : "Parceiro recebe vales em consignação e paga após utilização"}
+                    {formData.tipo === "prepago"
+                      ? "Parceiro compra os vales antecipadamente"
+                      : formData.tipo === "empenho"
+                      ? "Parceiro vinculado a empenhos de licitações — recebe vales conforme NF-e emitida"
+                      : "Parceiro recebe vales em consignação e paga após utilização"}
                   </p>
                 </div>
 
