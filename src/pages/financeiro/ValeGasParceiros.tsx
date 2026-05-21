@@ -145,7 +145,14 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
         toast.success("Parceiro atualizado!");
       } else {
         await addParceiro({
-          ...formData,
+          nome: formData.nome,
+          cnpj: formData.cnpj,
+          telefone: formData.telefone,
+          email: formData.email,
+          endereco: formData.endereco,
+          tipo: formData.tipo,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
           ativo: true,
           unidade_id: unidadeAtual?.id,
         });
@@ -240,10 +247,15 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
                     <SelectContent>
                       <SelectItem value="prepago">Pré-pago (paga antecipado)</SelectItem>
                       <SelectItem value="consignado">Consignado (acerto posterior)</SelectItem>
+                      <SelectItem value="empenho">Empenho (Órgão Público / Licitação)</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    {formData.tipo === "prepago" ? "Parceiro compra os vales antecipadamente" : "Parceiro recebe vales em consignação e paga após utilização"}
+                    {formData.tipo === "prepago"
+                      ? "Parceiro compra os vales antecipadamente"
+                      : formData.tipo === "empenho"
+                      ? "Parceiro vinculado a empenhos de licitações — recebe vales conforme NF-e emitida"
+                      : "Parceiro recebe vales em consignação e paga após utilização"}
                   </p>
                 </div>
 
@@ -339,8 +351,8 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
                         <div><p className="font-medium">{parceiro.nome}</p><p className="text-xs text-muted-foreground">{parceiro.cnpj}</p></div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={parceiro.tipo === "prepago" ? "default" : "secondary"}>
-                          {parceiro.tipo === "prepago" ? "Pré-pago" : "Consignado"}
+                        <Badge variant={parceiro.tipo === "prepago" ? "default" : parceiro.tipo === "empenho" ? "outline" : "secondary"}>
+                          {parceiro.tipo === "prepago" ? "Pré-pago" : parceiro.tipo === "empenho" ? "Empenho" : "Consignado"}
                         </Badge>
                       </TableCell>
                       <TableCell>

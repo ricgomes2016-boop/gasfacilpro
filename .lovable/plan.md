@@ -1,27 +1,50 @@
-## Problema
+## Problema 1 — Erro ao cadastrar parceiro
 
-A aba "Empenhos" hoje busca todos os registros da tabela `empenhos` sem filtrar pela unidade/empresa selecionada no topo do ERP. Resultado: o usuário enxerga empenhos de outras lojas/empresas misturados.
+**Causa:** Em `ValeGasParceiros.tsx` (linha 147) o código faz `addParceiro({ ...formData, ... })`. O `formData` inclui `login_email` e `login_password`, que são espalhados no payload e enviados ao Supabase. Como essas colunas não existem em `vale_gas_parceiros`, o PostgREST retorna: *"Could not find the 'login_email' column…"*.
 
-O mesmo vale para o filtro implícito ao criar/importar (parceiros e produtos já filtram, mas a listagem principal não).
+**Correção em `src/pages/financeiro/ValeGasParceiros.tsx`:**
+- Antes de chamar `addParceiro`, extrair só os campos válidos (`nome, cnpj, telefone, email, endereco, tipo, latitude, longitude`) — não usar `...formData`.
+- Mesmo tratamento já está OK no `update` (linha 135) que monta payload explícito.
 
-## Correções
+## Problema 2 — Novo tipo de parceiro "Empenho"
 
-### 1. `src/components/licitacoes/EmpenhosPanel.tsx`
-- Importar `useUnidade` (`@/contexts/UnidadeContext`) e `useEmpresa` (`@/contexts/EmpresaContext`) para pegar `unidadeAtual` e `empresa`.
-- Trocar o `useQuery(["empenhos"])` por uma queryKey que inclua `unidadeAtual?.id` e `empresa?.id`, e aplicar filtros na consulta:
-  - Se `unidadeAtual?.id` definido → `.eq("unidade_id", unidadeAtual.id)`.
-  - Senão, se `empresa?.id` → `.eq("empresa_id", empresa.id)` (mostra todas as unidades da empresa ativa).
-- Invalidar com a mesma key no `refresh()`.
-- Trocar o botão "Novo Empenho" e "Importar Empenho" para `disabled` quando não houver `unidadeAtual` (evita inserir empenho sem unidade), com tooltip "Selecione uma unidade".
+A coluna `tipo` é `text` livre (sem enum no banco), então não precisa de migration.
 
-### 2. `src/components/licitacoes/EmpenhoDetalheDialog.tsx` (verificar)
-- Se ele faz query separada de `vale_gas` vinculados, também filtrar por `unidade_id` para não vazar dados entre unidades. (Vou checar durante a implementação; ajuste só se necessário — RLS já protege, mas evitar request desnecessário.)
+**Mudanças:**
+- `src/contexts/ValeGasContext.tsx`: ampliar `TipoParceiro` para `"prepago" | "consignado" | "empenho"`.
+- `src/pages/financeiro/ValeGasParceiros.tsx`:
+  - Adicionar opção "Empenho (Órgão Público / Licitação)" no Select de tipo.
+  - Texto auxiliar: "Parceiro vinculado a empenhos de licitações — recebe vales conforme NF-e emitida."
+  - Atualizar estatísticas (card já existente) e badge da lista para reconhecer o novo tipo.
+  - Lógica de validação/sequência segue idêntica à do consignado (acerto posterior).
+- `NovoEmpenhoModal.tsx` (filtro de parceiros): manter `.eq("ativo", true)` — opcionalmente priorizar/filtrar `tipo IN ('empenho','consignado')`, mas sem quebrar o que já funciona.
 
-### 3. Sem mudanças de banco
-- A tabela `empenhos` já tem `unidade_id` e `empresa_id` (trigger `fn_empenho_fill_empresa` preenche).  
-- RLS já isola por empresa; o filtro extra é só para refletir o seletor de unidade do ERP.
+## Problema 3 — Empenho com múltiplos produtos
 
-## Fora de escopo
-- Não alterar `NovoEmpenhoModal` (já usa `unidadeAtual` no insert).
-- Não mexer em RLS nem migrações.
-- Não tocar em `App.tsx`/rotas.
+Hoje cada linha em `empenhos` representa 1 produto. Para suportar empenhos multi-produto sem alterar schema/RLS/lógica de vales:
+
+**Abordagem (mínimo invasiva, sem migration):**
+- Em `NovoEmpenhoModal.tsx`, transformar a seção "Produto/Quantidade/Valor unitário" em uma **lista dinâmica de itens** (botão "+ Adicionar item" e botão remover por linha).
+- Ao salvar, gerar **N inserts em `empenhos`** — um por item — todos compartilhando: `numero_empenho`, `data_empenho`, `parceiro_id`, `licitacao_id`, `unidade_id`, `observacoes`.
+- Validar pelo menos 1 item com `produto_id`, `quantidade > 0`, `valor_unitario >= 0`.
+- Total geral = soma de (qtd × valor) de todos os itens.
+
+**Em `EmpenhosPanel.tsx` (visualização):**
+- Manter listagem por linha (cada produto é uma linha), pois o nº do empenho repete e fica claro.
+- Opcional (fora deste plano): agrupar visualmente por `numero_empenho`.
+
+**Em `ImportarEmpenhoDialog` / edge function `extrair-empenho-ia`:**
+- Atualizar prompt/schema da IA para retornar um array `itens: [{ produto_id_sugerido, quantidade, valor_unitario }, …]` em vez de um único produto.
+- O painel popula a lista dinâmica do modal com todos os itens detectados.
+
+## Fora do escopo
+- Não alterar `App.tsx`, rotas, providers.
+- Não migrar schema do banco.
+- Não mexer em RLS nem em `vale_gas`.
+
+## Arquivos afetados
+- `src/pages/financeiro/ValeGasParceiros.tsx`
+- `src/contexts/ValeGasContext.tsx`
+- `src/components/licitacoes/NovoEmpenhoModal.tsx`
+- `src/components/licitacoes/ImportarEmpenhoDialog.tsx`
+- `supabase/functions/extrair-empenho-ia/index.ts`

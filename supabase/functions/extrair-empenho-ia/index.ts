@@ -63,19 +63,30 @@ Deno.serve(async (req) => {
         type: "function",
         function: {
           name: "registrar_empenho",
-          description: "Registra os dados extraídos da nota de empenho",
+          description: "Registra os dados extraídos da nota de empenho, incluindo todos os itens (produtos) listados",
           parameters: {
             type: "object",
             properties: {
               numero_empenho: { type: "string", description: "Número do empenho, ex: 2747/2026" },
               data_empenho: { type: "string", description: "Data do empenho YYYY-MM-DD" },
               orgao_nome: { type: "string", description: "Nome do órgão público / credor da despesa" },
-              produto_descricao: { type: "string", description: "Descrição do produto/item empenhado" },
-              quantidade: { type: "number" },
-              valor_unitario: { type: "number" },
+              itens: {
+                type: "array",
+                description: "Lista de TODOS os itens/produtos do empenho. Empenhos podem ter múltiplos produtos.",
+                items: {
+                  type: "object",
+                  properties: {
+                    produto_descricao: { type: "string", description: "Descrição do produto/item" },
+                    quantidade: { type: "number" },
+                    valor_unitario: { type: "number" },
+                  },
+                  required: ["produto_descricao", "quantidade", "valor_unitario"],
+                  additionalProperties: false,
+                },
+              },
               observacoes: { type: "string", description: "Resumo curto do que foi lido" },
             },
-            required: ["numero_empenho"],
+            required: ["numero_empenho", "itens"],
             additionalProperties: false,
           },
         },
@@ -143,7 +154,16 @@ Deno.serve(async (req) => {
     try { args = JSON.parse(call.function.arguments || "{}"); } catch { args = {}; }
 
     const parceiro_id_sugerido = bestMatch(args.orgao_nome || "", parceiros);
-    const produto_id_sugerido = bestMatch(args.produto_descricao || "", produtos);
+    const itensIn: any[] = Array.isArray(args.itens) ? args.itens : [];
+    const itens = itensIn.map((it: any) => ({
+      produto_descricao: it?.produto_descricao ?? "",
+      produto_id_sugerido: bestMatch(it?.produto_descricao || "", produtos),
+      quantidade: Number(it?.quantidade) || 0,
+      valor_unitario: Number(it?.valor_unitario) || 0,
+    }));
+
+    // Backward-compat: primeiro item exposto também em campos planos
+    const primeiro = itens[0] || { produto_descricao: "", produto_id_sugerido: null, quantidade: 0, valor_unitario: 0 };
 
     return new Response(
       JSON.stringify({
@@ -153,10 +173,11 @@ Deno.serve(async (req) => {
           data_empenho: args.data_empenho ?? null,
           orgao_nome: args.orgao_nome ?? "",
           parceiro_id_sugerido,
-          produto_descricao: args.produto_descricao ?? "",
-          produto_id_sugerido,
-          quantidade: Number(args.quantidade) || 0,
-          valor_unitario: Number(args.valor_unitario) || 0,
+          produto_descricao: primeiro.produto_descricao,
+          produto_id_sugerido: primeiro.produto_id_sugerido,
+          quantidade: primeiro.quantidade,
+          valor_unitario: primeiro.valor_unitario,
+          itens,
           observacoes: args.observacoes ?? "",
         },
       }),
