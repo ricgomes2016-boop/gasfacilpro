@@ -106,3 +106,6 @@ verify_jwt = false
 
 [functions.send-push-novo-chat]
 verify_jwt = false
+
+[functions.bia-followup-cron]
+verify_jwt = false
