@@ -273,6 +273,26 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
 
   doc.rect(boxX, y, boxW, boxH);
 
+  // Marca d'água estilo Adobe: inicial da unidade/empresa dentro do quadro de assinatura
+  const nomeBase = String(f.nome_fantasia || f.razao_social || "").trim();
+  const inicialMatch = nomeBase.normalize("NFD").replace(/[\u0300-\u036f]/g, "").match(/[A-Za-z0-9]/);
+  const inicial = (inicialMatch ? inicialMatch[0] : "●").toUpperCase();
+  {
+    const gs: any = (doc as any).GState ? new (doc as any).GState({ opacity: 0.10 }) : null;
+    if (gs && (doc as any).setGState) (doc as any).setGState(gs);
+    doc.setFont("times", "bold");
+    // Tamanho proporcional à altura do quadro (em mm -> pt ~ *2.83)
+    const fs = Math.max(28, Math.min(72, boxH * 2.4));
+    doc.setFontSize(fs);
+    doc.setTextColor(20, 60, 130);
+    doc.text(inicial, boxX + boxW / 2, y + boxH / 2, { align: "center", baseline: "middle" } as any);
+    if (gs && (doc as any).setGState) {
+      const gs2: any = new (doc as any).GState({ opacity: 1 });
+      (doc as any).setGState(gs2);
+    }
+    doc.setTextColor(20, 60, 130);
+  }
+
   let cy = y + padTop + titleH - 0.8;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(ps.titleFs);
@@ -291,28 +311,7 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
   doc.setTextColor(0, 0, 0);
   doc.setDrawColor(0, 0, 0);
 
-  // Marca d'água: inicial da unidade/empresa em estilo Adobe (letra monumental)
-  const nomeBase = String(f.nome_fantasia || f.razao_social || "").trim();
-  const inicialMatch = nomeBase.normalize("NFD").replace(/[\u0300-\u036f]/g, "").match(/[A-Za-z0-9]/);
-  const inicial = (inicialMatch ? inicialMatch[0] : "●").toUpperCase();
-  const pageCount = (doc as any).internal.getNumberOfPages();
-  const pageH = doc.internal.pageSize.getHeight();
-  for (let p = 1; p <= pageCount; p++) {
-    doc.setPage(p);
-    const gs: any = (doc as any).GState ? new (doc as any).GState({ opacity: 0.07 }) : null;
-    if (gs && (doc as any).setGState) (doc as any).setGState(gs);
-    doc.setFont("times", "bold");
-    doc.setFontSize(320);
-    doc.setTextColor(110, 110, 110);
-    // Ajuste óptico: desce ~1/4 do tamanho da fonte para centrar a letra verticalmente
-    doc.text(inicial, W / 2, pageH / 2 + 40, { align: "center", baseline: "middle" } as any);
-    if (gs && (doc as any).setGState) {
-      const gs2: any = new (doc as any).GState({ opacity: 1 });
-      (doc as any).setGState(gs2);
-    }
-    doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", "normal");
-  }
+
 
 
   // Anexa metadados para uso ao assinar (posição da linha de assinatura em mm)
