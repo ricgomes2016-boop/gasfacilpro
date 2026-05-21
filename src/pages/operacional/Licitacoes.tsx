@@ -228,7 +228,8 @@ export default function Licitacoes() {
         const { error } = await supabase.from("licitacoes").update(body).eq("id", payload.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("licitacoes").insert(body);
+        if (!unidadeId) throw new Error("Selecione uma unidade antes de cadastrar.");
+        const { error } = await supabase.from("licitacoes").insert({ ...body, unidade_id: unidadeId });
         if (error) throw error;
       }
     },
