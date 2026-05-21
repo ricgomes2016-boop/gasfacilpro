@@ -329,6 +329,15 @@ export default function Licitacoes() {
     <MainLayout>
       <Header title="Licitações Públicas" subtitle="Gerencie processos licitatórios e contratos com órgãos públicos" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
+        <Tabs defaultValue="licitacoes" className="w-full">
+          <TabsList>
+            <TabsTrigger value="licitacoes">Licitações</TabsTrigger>
+            <TabsTrigger value="empenhos">Empenhos</TabsTrigger>
+          </TabsList>
+          <TabsContent value="empenhos" className="mt-4">
+            <EmpenhosPanel />
+          </TabsContent>
+          <TabsContent value="licitacoes" className="mt-4 space-y-4 md:space-y-6">
         {/* Header actions */}
         <div className="flex justify-end">
           <Button onClick={openNew} className="gap-2">
