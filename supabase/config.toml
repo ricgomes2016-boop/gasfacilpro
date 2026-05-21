@@ -103,3 +103,6 @@ verify_jwt = false
 
 [functions.send-push-novo-pedido]
 verify_jwt = false
+
+[functions.send-push-novo-chat]
+verify_jwt = false
