@@ -25,12 +25,10 @@ export function EmpenhoDetalheDialog({ empenho, onClose }: Props) {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from("vale_gas")
-        .select("id, numero, status, data_utilizacao, cliente_final_id, venda_id, cliente:clientes!vale_gas_cliente_final_id_fkey(nome)")
+        .select("id, numero, status, data_utilizacao, cliente_final_id, venda_id")
         .eq("empenho_id", empenho!.id)
         .order("numero");
-      // Fallback: relação pode não estar nomeada; buscar clientes manualmente
-      if (!data) return [];
-      return data;
+      return data || [];
     },
   });
 
