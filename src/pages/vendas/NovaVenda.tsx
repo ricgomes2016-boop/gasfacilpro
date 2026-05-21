@@ -205,6 +205,29 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     refetchInterval: 30000,
   });
 
+  // Empenhos abertos (Licitações Ganhas) — usado para campo "Vale Físico"
+  const [parceiroEmpenhoId, setParceiroEmpenhoId] = useState<string>("nenhum");
+  const [valeNumero, setValeNumero] = useState<string>("");
+
+  const { data: parceirosComEmpenho = [] } = useQuery({
+    queryKey: ["parceiros-com-empenho-aberto", unidadeAtual?.id, empresa?.id],
+    queryFn: async () => {
+      const q = (supabase as any)
+        .from("empenhos")
+        .select("parceiro_id, parceiro:vale_gas_parceiros(id,nome)")
+        .in("status", ["aberto", "parcial"]);
+      if (unidadeAtual?.id) q.eq("unidade_id", unidadeAtual.id);
+      const { data, error } = await q;
+      if (error) return [];
+      const map = new Map<string, { id: string; nome: string }>();
+      (data || []).forEach((r: any) => {
+        if (r.parceiro?.id) map.set(r.parceiro.id, r.parceiro);
+      });
+      return Array.from(map.values());
+    },
+    enabled: !!empresa?.id,
+  });
+
   const [aiCommand, setAiCommand] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -735,7 +758,17 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       return;
     }
 
+    // Regra Empenho: se parceiro com empenho selecionado, exigir nº vale físico
+    if (parceiroEmpenhoId !== "nenhum") {
+      const n = parseInt(valeNumero, 10);
+      if (!n || n <= 0) {
+        toast({ title: "Vale físico obrigatório", description: "Informe o número do vale físico para este empenho.", variant: "destructive" });
+        return;
+      }
+    }
+
     setIsLoading(true);
+
 
     try {
       // Auto-cadastrar cliente se não estiver cadastrado
@@ -813,6 +846,23 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         .single();
 
       if (pedidoError) throw pedidoError;
+
+      // Regra Empenho: consumir vale físico vinculado ao empenho do parceiro
+      if (parceiroEmpenhoId !== "nenhum" && valeNumero) {
+        const { data: rpcData, error: rpcErr } = await (supabase as any).rpc("consumir_vale_empenho", {
+          _parceiro_id: parceiroEmpenhoId,
+          _numero_vale: parseInt(valeNumero, 10),
+          _cliente_final_id: clienteId,
+          _pedido_id: pedido.id,
+        });
+        if (rpcErr) {
+          // rollback pedido para não deixar venda órfã
+          await supabase.from("pedidos").delete().eq("id", pedido.id);
+          throw new Error(rpcErr.message || "Falha ao consumir vale do empenho");
+        }
+        toast({ title: "Vale consumido", description: `Vale ${valeNumero} vinculado ao empenho. Saldo: ${(rpcData as any)?.saldo_restante ?? "—"}` });
+      }
+
 
       const itensInsert = itens.map((item) => ({
         pedido_id: pedido.id,
@@ -1069,6 +1119,35 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             </Select>
           </div>
         </div>
+        {parceirosComEmpenho.length > 0 && (
+          <div className="mt-3 grid gap-3 md:grid-cols-2 border-t pt-3">
+            <div>
+              <Label className="text-xs font-semibold text-foreground">Empenho / Parceiro (opcional)</Label>
+              <Select value={parceiroEmpenhoId} onValueChange={(v) => { setParceiroEmpenhoId(v); if (v === "nenhum") setValeNumero(""); }}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Sem empenho" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhum">Sem empenho</SelectItem>
+                  {parceirosComEmpenho.map((p: any) => (
+                    <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {parceiroEmpenhoId !== "nenhum" && (
+              <div>
+                <Label className="text-xs font-semibold text-foreground">Nº do Vale Físico *</Label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  value={valeNumero}
+                  onChange={(e) => setValeNumero(e.target.value)}
+                  placeholder="Ex: 35"
+                  className="mt-1"
+                />
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
