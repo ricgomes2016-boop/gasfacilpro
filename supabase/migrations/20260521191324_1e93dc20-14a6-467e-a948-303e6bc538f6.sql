@@ -1,0 +1,2 @@
+ALTER TABLE public.vale_gas_parceiros DROP CONSTRAINT IF EXISTS vale_gas_parceiros_tipo_check;
+ALTER TABLE public.vale_gas_parceiros ADD CONSTRAINT vale_gas_parceiros_tipo_check CHECK (tipo = ANY (ARRAY['prepago'::text, 'consignado'::text, 'empenho'::text]));
