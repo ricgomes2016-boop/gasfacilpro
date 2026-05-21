@@ -10,13 +10,24 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
 
+export interface NovoEmpenhoInitialData {
+  numero_empenho?: string;
+  data_empenho?: string | null;
+  parceiro_id?: string | null;
+  produto_id?: string | null;
+  quantidade?: number;
+  valor_unitario?: number;
+  observacoes?: string;
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
+  initialData?: NovoEmpenhoInitialData | null;
 }
 
-export function NovoEmpenhoModal({ open, onClose, onCreated }: Props) {
+export function NovoEmpenhoModal({ open, onClose, onCreated, initialData }: Props) {
   const { unidadeAtual } = useUnidade() as any;
   const [parceiroId, setParceiroId] = useState("");
   const [licitacaoId, setLicitacaoId] = useState("nenhum");
@@ -62,8 +73,18 @@ export function NovoEmpenhoModal({ open, onClose, onCreated }: Props) {
       setParceiroId(""); setLicitacaoId("nenhum"); setNumero("");
       setData(new Date().toISOString().slice(0, 10));
       setProdutoId(""); setQuantidade(0); setValor(0); setObs("");
+      return;
     }
-  }, [open]);
+    if (initialData) {
+      if (initialData.numero_empenho) setNumero(initialData.numero_empenho);
+      if (initialData.data_empenho) setData(initialData.data_empenho);
+      if (initialData.parceiro_id) setParceiroId(initialData.parceiro_id);
+      if (initialData.produto_id) setProdutoId(initialData.produto_id);
+      if (typeof initialData.quantidade === "number") setQuantidade(initialData.quantidade);
+      if (typeof initialData.valor_unitario === "number") setValor(initialData.valor_unitario);
+      if (initialData.observacoes) setObs(initialData.observacoes);
+    }
+  }, [open, initialData]);
 
   const total = useMemo(() => (Number(quantidade) || 0) * (Number(valor) || 0), [quantidade, valor]);
   const produto = produtos.find((p: any) => p.id === produtoId);
@@ -101,6 +122,11 @@ export function NovoEmpenhoModal({ open, onClose, onCreated }: Props) {
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader><DialogTitle>Novo Empenho</DialogTitle></DialogHeader>
+        {initialData && (
+          <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary">
+            ✨ Dados extraídos por IA — confira antes de salvar.
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <Label>Parceiro (Órgão Público) *</Label>
