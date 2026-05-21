@@ -131,10 +131,10 @@ export function EmpenhosPanel() {
           </CardContent></Card>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 self-start">
-          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2" disabled={!unidadeId} title={!unidadeId ? "Selecione uma unidade" : undefined}>
             <Upload className="h-4 w-4" /> Importar Empenho
           </Button>
-          <Button onClick={() => { setDadosImportados(null); setNovoOpen(true); }} className="gap-2">
+          <Button onClick={() => { setDadosImportados(null); setNovoOpen(true); }} className="gap-2" disabled={!unidadeId} title={!unidadeId ? "Selecione uma unidade" : undefined}>
             <Plus className="h-4 w-4" /> Novo Empenho
           </Button>
         </div>
