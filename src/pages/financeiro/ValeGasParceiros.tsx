@@ -41,6 +41,58 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
   };
   const [formData, setFormData] = useState(emptyForm);
 
+  // Cliente search (to pre-fill new parceiro from existing cliente cadastro)
+  const [clienteBusca, setClienteBusca] = useState("");
+  const [clienteResultados, setClienteResultados] = useState<any[]>([]);
+  const [buscandoCliente, setBuscandoCliente] = useState(false);
+
+  const buscarClientes = async (q: string) => {
+    if (q.trim().length < 2) {
+      setClienteResultados([]);
+      return;
+    }
+    setBuscandoCliente(true);
+    try {
+      let query = (supabase as any)
+        .from("clientes")
+        .select("id, nome, cpf, telefone, email, endereco, numero, bairro, cidade, latitude, longitude")
+        .eq("ativo", true)
+        .or(`nome.ilike.%${q}%,cpf.ilike.%${q}%,telefone.ilike.%${q}%`)
+        .limit(8);
+      if (unidadeAtual?.id) {
+        const { data: cu } = await (supabase as any)
+          .from("cliente_unidades")
+          .select("cliente_id")
+          .eq("unidade_id", unidadeAtual.id);
+        const ids = (cu || []).map((c: any) => c.cliente_id);
+        if (ids.length > 0) query = query.in("id", ids);
+      }
+      const { data } = await query;
+      setClienteResultados(data || []);
+    } finally {
+      setBuscandoCliente(false);
+    }
+  };
+
+  const selecionarCliente = (c: any) => {
+    const enderecoCompleto = [c.endereco, c.numero, c.bairro, c.cidade]
+      .filter(Boolean)
+      .join(", ");
+    setFormData(p => ({
+      ...p,
+      nome: c.nome || p.nome,
+      cnpj: c.cpf || p.cnpj,
+      telefone: c.telefone || p.telefone,
+      email: c.email || p.email,
+      endereco: enderecoCompleto || p.endereco,
+      latitude: c.latitude ?? p.latitude,
+      longitude: c.longitude ?? p.longitude,
+    }));
+    setClienteBusca("");
+    setClienteResultados([]);
+    toast.success(`Dados de "${c.nome}" carregados`);
+  };
+
   // Track which parceiros already have a user linked
   const getParceiroHasUser = (parceiro: any) => !!parceiro.user_id;
 
