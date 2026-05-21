@@ -63,19 +63,30 @@ Deno.serve(async (req) => {
         type: "function",
         function: {
           name: "registrar_empenho",
-          description: "Registra os dados extraídos da nota de empenho",
+          description: "Registra os dados extraídos da nota de empenho, incluindo todos os itens (produtos) listados",
           parameters: {
             type: "object",
             properties: {
               numero_empenho: { type: "string", description: "Número do empenho, ex: 2747/2026" },
               data_empenho: { type: "string", description: "Data do empenho YYYY-MM-DD" },
               orgao_nome: { type: "string", description: "Nome do órgão público / credor da despesa" },
-              produto_descricao: { type: "string", description: "Descrição do produto/item empenhado" },
-              quantidade: { type: "number" },
-              valor_unitario: { type: "number" },
+              itens: {
+                type: "array",
+                description: "Lista de TODOS os itens/produtos do empenho. Empenhos podem ter múltiplos produtos.",
+                items: {
+                  type: "object",
+                  properties: {
+                    produto_descricao: { type: "string", description: "Descrição do produto/item" },
+                    quantidade: { type: "number" },
+                    valor_unitario: { type: "number" },
+                  },
+                  required: ["produto_descricao", "quantidade", "valor_unitario"],
+                  additionalProperties: false,
+                },
+              },
               observacoes: { type: "string", description: "Resumo curto do que foi lido" },
             },
-            required: ["numero_empenho"],
+            required: ["numero_empenho", "itens"],
             additionalProperties: false,
           },
         },
