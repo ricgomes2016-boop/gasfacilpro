@@ -61,13 +61,22 @@ export function EmpenhosPanel() {
   const [vincularEmp, setVincularEmp] = useState<Empenho | null>(null);
   const [detalheEmp, setDetalheEmp] = useState<Empenho | null>(null);
 
+  const { unidadeAtual } = useUnidade() as any;
+  const { empresa } = useEmpresa() as any;
+  const unidadeId = unidadeAtual?.id ?? null;
+  const empresaId = empresa?.id ?? null;
+
   const { data: empenhos = [], isLoading } = useQuery({
-    queryKey: ["empenhos"],
+    queryKey: ["empenhos", unidadeId, empresaId],
+    enabled: !!(unidadeId || empresaId),
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      let q = (supabase as any)
         .from("empenhos")
         .select("*, parceiro:vale_gas_parceiros(nome)")
         .order("created_at", { ascending: false });
+      if (unidadeId) q = q.eq("unidade_id", unidadeId);
+      else if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data, error } = await q;
       if (error) throw error;
       return (data || []) as Empenho[];
     },
