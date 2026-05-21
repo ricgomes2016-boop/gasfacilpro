@@ -145,7 +145,14 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
         toast.success("Parceiro atualizado!");
       } else {
         await addParceiro({
-          ...formData,
+          nome: formData.nome,
+          cnpj: formData.cnpj,
+          telefone: formData.telefone,
+          email: formData.email,
+          endereco: formData.endereco,
+          tipo: formData.tipo,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
           ativo: true,
           unidade_id: unidadeAtual?.id,
         });
