@@ -831,8 +831,24 @@ export default function Orcamentos() {
                   <Textarea value={fObs} onChange={(e) => setFObs(e.target.value)} rows={2} />
                 </div>
 
-                <div className="rounded-md border bg-muted/30 p-2 space-y-2">
-                  <div className="flex items-center gap-2">
+                <div className="relative rounded-md border bg-muted/30 p-2 space-y-2 overflow-hidden">
+                  {/* Marca d'água de fundo */}
+                  <div className="pointer-events-none select-none absolute inset-0 flex items-center justify-center">
+                    <span
+                      className={cn(
+                        "text-3xl sm:text-4xl font-black tracking-[0.25em] uppercase whitespace-nowrap -rotate-12",
+                        assinatura.disponivel && assinatura.ativo
+                          ? "text-emerald-600/[0.08] dark:text-emerald-400/[0.10]"
+                          : "text-muted-foreground/[0.08]"
+                      )}
+                    >
+                      {assinatura.disponivel && assinatura.ativo
+                        ? "● ASSINADO DIGITALMENTE ●"
+                        : "● SEM ASSINATURA ●"}
+                    </span>
+                  </div>
+
+                  <div className="relative z-10 flex items-center gap-2">
                     <Label className="text-xs whitespace-nowrap">Tamanho do carimbo:</Label>
                     <Select value={carimboTamanho} onValueChange={(v) => setCarimboTamanho(v as CarimboTamanho)}>
                       <SelectTrigger className="h-8 w-40">
@@ -846,7 +862,7 @@ export default function Orcamentos() {
                     </Select>
                     <span className="text-[11px] text-muted-foreground ml-auto">Salvo automaticamente</span>
                   </div>
-                  <div className="flex items-center gap-2 border-t pt-2">
+                  <div className="relative z-10 flex items-center gap-2 border-t pt-2">
                     {assinatura.disponivel ? (
                       <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
                     ) : (
@@ -870,7 +886,7 @@ export default function Orcamentos() {
                       disabled={!assinatura.disponivel}
                     />
                   </div>
-                  <div className="flex justify-end -mt-1">
+                  <div className="relative z-10 flex justify-end -mt-1">
                     <a
                       href="/config/assinatura-digital"
                       target="_blank"
