@@ -758,7 +758,17 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       return;
     }
 
+    // Regra Empenho: se parceiro com empenho selecionado, exigir nº vale físico
+    if (parceiroEmpenhoId !== "nenhum") {
+      const n = parseInt(valeNumero, 10);
+      if (!n || n <= 0) {
+        toast({ title: "Vale físico obrigatório", description: "Informe o número do vale físico para este empenho.", variant: "destructive" });
+        return;
+      }
+    }
+
     setIsLoading(true);
+
 
     try {
       // Auto-cadastrar cliente se não estiver cadastrado
