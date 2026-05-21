@@ -220,10 +220,42 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
   doc.text(dataExt, 14, y);
   y += 18;
 
+  // Quadro da Assinatura Digital (mesma dimensão da aparência PAdES) com marca d'água da inicial
+  const sigBoxW_mm = 140;
+  const sigBoxH_mm = 18;
+  const sigBoxX_mm = (W - sigBoxW_mm) / 2;
+  const sigBoxY_mm = y;
+  doc.setDrawColor(180, 180, 180);
+  doc.setLineWidth(0.3);
+  doc.rect(sigBoxX_mm, sigBoxY_mm, sigBoxW_mm, sigBoxH_mm);
+
+  // Marca d'água estilo Adobe: inicial da unidade/empresa
+  const nomeBaseSig = String(f.nome_fantasia || f.razao_social || "").trim();
+  const inicialMatchSig = nomeBaseSig.normalize("NFD").replace(/[\u0300-\u036f]/g, "").match(/[A-Za-z0-9]/);
+  const inicialSig = (inicialMatchSig ? inicialMatchSig[0] : "●").toUpperCase();
+  {
+    const gs: any = (doc as any).GState ? new (doc as any).GState({ opacity: 0.12 }) : null;
+    if (gs && (doc as any).setGState) (doc as any).setGState(gs);
+    doc.setFont("times", "bold");
+    const fs = Math.max(36, Math.min(80, sigBoxH_mm * 2.6));
+    doc.setFontSize(fs);
+    doc.setTextColor(20, 60, 130);
+    doc.text(inicialSig, sigBoxX_mm + sigBoxW_mm / 2, sigBoxY_mm + sigBoxH_mm / 2, { align: "center", baseline: "middle" } as any);
+    if (gs && (doc as any).setGState) {
+      const gs2: any = new (doc as any).GState({ opacity: 1 });
+      (doc as any).setGState(gs2);
+    }
+    doc.setTextColor(0, 0, 0);
+    doc.setDrawColor(0, 0, 0);
+  }
+
+  y = sigBoxY_mm + sigBoxH_mm;
   // Linha de assinatura
   doc.line(50, y, W - 50, y);
   const sigLineY_mm = y;
   y += 5;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
   doc.text("ASSINATURA (fornecedor)", W / 2, y, { align: "center" });
   y += 14;
 
@@ -272,26 +304,6 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
   const boxH = padTop + razaoLines.length * titleH + gap + bodyLines.length * lineH + padBottom;
 
   doc.rect(boxX, y, boxW, boxH);
-
-  // Marca d'água estilo Adobe: inicial da unidade/empresa dentro do quadro de assinatura
-  const nomeBase = String(f.nome_fantasia || f.razao_social || "").trim();
-  const inicialMatch = nomeBase.normalize("NFD").replace(/[\u0300-\u036f]/g, "").match(/[A-Za-z0-9]/);
-  const inicial = (inicialMatch ? inicialMatch[0] : "●").toUpperCase();
-  {
-    const gs: any = (doc as any).GState ? new (doc as any).GState({ opacity: 0.10 }) : null;
-    if (gs && (doc as any).setGState) (doc as any).setGState(gs);
-    doc.setFont("times", "bold");
-    // Tamanho proporcional à altura do quadro (em mm -> pt ~ *2.83)
-    const fs = Math.max(28, Math.min(72, boxH * 2.4));
-    doc.setFontSize(fs);
-    doc.setTextColor(20, 60, 130);
-    doc.text(inicial, boxX + boxW / 2, y + boxH / 2, { align: "center", baseline: "middle" } as any);
-    if (gs && (doc as any).setGState) {
-      const gs2: any = new (doc as any).GState({ opacity: 1 });
-      (doc as any).setGState(gs2);
-    }
-    doc.setTextColor(20, 60, 130);
-  }
 
   let cy = y + padTop + titleH - 0.8;
   doc.setFont("helvetica", "bold");
