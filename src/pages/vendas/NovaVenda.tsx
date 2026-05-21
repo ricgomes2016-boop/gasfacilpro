@@ -847,6 +847,23 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
       if (pedidoError) throw pedidoError;
 
+      // Regra Empenho: consumir vale físico vinculado ao empenho do parceiro
+      if (parceiroEmpenhoId !== "nenhum" && valeNumero) {
+        const { data: rpcData, error: rpcErr } = await (supabase as any).rpc("consumir_vale_empenho", {
+          _parceiro_id: parceiroEmpenhoId,
+          _numero_vale: parseInt(valeNumero, 10),
+          _cliente_final_id: clienteId,
+          _pedido_id: pedido.id,
+        });
+        if (rpcErr) {
+          // rollback pedido para não deixar venda órfã
+          await supabase.from("pedidos").delete().eq("id", pedido.id);
+          throw new Error(rpcErr.message || "Falha ao consumir vale do empenho");
+        }
+        toast({ title: "Vale consumido", description: `Vale ${valeNumero} vinculado ao empenho. Saldo: ${(rpcData as any)?.saldo_restante ?? "—"}` });
+      }
+
+
       const itensInsert = itens.map((item) => ({
         pedido_id: pedido.id,
         produto_id: item.produto_id,
