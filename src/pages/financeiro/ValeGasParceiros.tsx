@@ -41,6 +41,58 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
   };
   const [formData, setFormData] = useState(emptyForm);
 
+  // Cliente search (to pre-fill new parceiro from existing cliente cadastro)
+  const [clienteBusca, setClienteBusca] = useState("");
+  const [clienteResultados, setClienteResultados] = useState<any[]>([]);
+  const [buscandoCliente, setBuscandoCliente] = useState(false);
+
+  const buscarClientes = async (q: string) => {
+    if (q.trim().length < 2) {
+      setClienteResultados([]);
+      return;
+    }
+    setBuscandoCliente(true);
+    try {
+      let query = (supabase as any)
+        .from("clientes")
+        .select("id, nome, cpf, telefone, email, endereco, numero, bairro, cidade, latitude, longitude")
+        .eq("ativo", true)
+        .or(`nome.ilike.%${q}%,cpf.ilike.%${q}%,telefone.ilike.%${q}%`)
+        .limit(8);
+      if (unidadeAtual?.id) {
+        const { data: cu } = await (supabase as any)
+          .from("cliente_unidades")
+          .select("cliente_id")
+          .eq("unidade_id", unidadeAtual.id);
+        const ids = (cu || []).map((c: any) => c.cliente_id);
+        if (ids.length > 0) query = query.in("id", ids);
+      }
+      const { data } = await query;
+      setClienteResultados(data || []);
+    } finally {
+      setBuscandoCliente(false);
+    }
+  };
+
+  const selecionarCliente = (c: any) => {
+    const enderecoCompleto = [c.endereco, c.numero, c.bairro, c.cidade]
+      .filter(Boolean)
+      .join(", ");
+    setFormData(p => ({
+      ...p,
+      nome: c.nome || p.nome,
+      cnpj: c.cpf || p.cnpj,
+      telefone: c.telefone || p.telefone,
+      email: c.email || p.email,
+      endereco: enderecoCompleto || p.endereco,
+      latitude: c.latitude ?? p.latitude,
+      longitude: c.longitude ?? p.longitude,
+    }));
+    setClienteBusca("");
+    setClienteResultados([]);
+    toast.success(`Dados de "${c.nome}" carregados`);
+  };
+
   // Track which parceiros already have a user linked
   const getParceiroHasUser = (parceiro: any) => !!parceiro.user_id;
 
@@ -201,6 +253,41 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>{editingId ? "Editar Parceiro" : "Cadastrar Parceiro"}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {!editingId && (
+                  <div className="space-y-2 p-3 rounded-md border bg-muted/30 relative">
+                    <Label className="text-xs flex items-center gap-1.5">
+                      <Search className="h-3.5 w-3.5" /> Buscar cliente já cadastrado
+                    </Label>
+                    <Input
+                      value={clienteBusca}
+                      onChange={(e) => {
+                        setClienteBusca(e.target.value);
+                        buscarClientes(e.target.value);
+                      }}
+                      placeholder="Nome, CPF/CNPJ ou telefone..."
+                    />
+                    {buscandoCliente && (
+                      <p className="text-xs text-muted-foreground">Buscando...</p>
+                    )}
+                    {clienteResultados.length > 0 && (
+                      <div className="absolute z-50 left-3 right-3 top-full mt-1 bg-popover border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                        {clienteResultados.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => selecionarCliente(c)}
+                            className="w-full text-left px-3 py-2 hover:bg-accent border-b last:border-b-0"
+                          >
+                            <p className="text-sm font-medium">{c.nome}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {[c.cpf, c.telefone, c.bairro].filter(Boolean).join(" • ")}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="space-y-2"><Label>Nome/Razão Social *</Label><Input value={formData.nome} onChange={e => setFormData(p => ({ ...p, nome: e.target.value }))} placeholder="Nome do parceiro" required /></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>CNPJ *</Label><Input value={formData.cnpj} onChange={e => setFormData(p => ({ ...p, cnpj: e.target.value }))} placeholder="00.000.000/0001-00" required /></div>
