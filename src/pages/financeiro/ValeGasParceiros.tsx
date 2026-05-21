@@ -253,6 +253,41 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>{editingId ? "Editar Parceiro" : "Cadastrar Parceiro"}</DialogTitle></DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {!editingId && (
+                  <div className="space-y-2 p-3 rounded-md border bg-muted/30 relative">
+                    <Label className="text-xs flex items-center gap-1.5">
+                      <Search className="h-3.5 w-3.5" /> Buscar cliente já cadastrado
+                    </Label>
+                    <Input
+                      value={clienteBusca}
+                      onChange={(e) => {
+                        setClienteBusca(e.target.value);
+                        buscarClientes(e.target.value);
+                      }}
+                      placeholder="Nome, CPF/CNPJ ou telefone..."
+                    />
+                    {buscandoCliente && (
+                      <p className="text-xs text-muted-foreground">Buscando...</p>
+                    )}
+                    {clienteResultados.length > 0 && (
+                      <div className="absolute z-50 left-3 right-3 top-full mt-1 bg-popover border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                        {clienteResultados.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => selecionarCliente(c)}
+                            className="w-full text-left px-3 py-2 hover:bg-accent border-b last:border-b-0"
+                          >
+                            <p className="text-sm font-medium">{c.nome}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {[c.cpf, c.telefone, c.bairro].filter(Boolean).join(" • ")}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="space-y-2"><Label>Nome/Razão Social *</Label><Input value={formData.nome} onChange={e => setFormData(p => ({ ...p, nome: e.target.value }))} placeholder="Nome do parceiro" required /></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>CNPJ *</Label><Input value={formData.cnpj} onChange={e => setFormData(p => ({ ...p, cnpj: e.target.value }))} placeholder="00.000.000/0001-00" required /></div>
