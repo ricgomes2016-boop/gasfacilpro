@@ -1,67 +1,57 @@
-## Diagnóstico
+## Follow-up automático da Bia (5 min) com desconto de R$ 5,00
 
-Investiguei o código do Chat (`WhatsAppInbox.tsx`) e do contador de não lidas (`WhatsAppNotificationContext.tsx`) e confirmei no banco a causa do "badge 1 sem conversa":
+Quando um cliente conversa no WhatsApp, pergunta preço mas **não fecha pedido**, a Bia deve voltar sozinha após 5 minutos oferecendo um desconto de R$ 5,00 para tentar converter a venda.
 
-1. **Filtros divergentes entre badge e lista**
-   - `WhatsAppInbox` carrega conversas filtrando por `unidade_id = unidadeAtual.id` (e exige `telefone NOT NULL`).
-   - `WhatsAppNotificationContext` (que alimenta o badge) busca **as 100 conversas mais recentes sem filtrar por empresa nem por unidade**.
-   - Resultado: uma mensagem nova chega numa conversa de outra unidade (ou com `unidade_id NULL`, como várias conversas legadas que encontrei) → o badge soma `+1`, mas a conversa nunca aparece no inbox da unidade atual. É exatamente o que você viu ("badge 1, chat vazio").
+### Como vai funcionar
 
-2. **Conversas legadas sem `unidade_id`**
-   Existem conversas reais (ex.: "Ricardo", "Valeria") com `unidade_id = NULL` e `empresa_id` preenchido. Hoje elas ficam invisíveis no inbox enquanto qualquer unidade estiver selecionada.
+1. Toda vez que a Bia responde no WhatsApp (em `gateway-webhook` e webhooks Meta), o sistema registra/atualiza um "follow-up pendente" para aquela conversa, com horário de disparo = agora + 5 min.
+2. Se o cliente **fecha pedido** (tag `[PEDIDO_CONFIRMADO]` processada), **manda nova mensagem**, ou está **fora do horário**, o follow-up é cancelado/reagendado.
+3. Um **cron job** roda a cada 1 minuto, busca follow-ups vencidos cuja última mensagem foi da Bia (assistant) com sinal de "perguntou preço" e ainda sem pedido criado nos últimos 30 min → dispara mensagem de reengajamento com cupom de R$ 5,00.
+4. Cada conversa só recebe **1 follow-up por janela de 24h** para não virar spam.
 
-3. **Tempo real frágil quando o sistema está fechado**
-   - O contexto só atualiza o badge enquanto a aba está aberta.
-   - Quando a aba está fechada, dependemos do Web Push (já implementado para pedidos, mas **não para mensagens de chat**). Por isso "ontem o cliente mandou e você só viu hoje".
+### Critérios para disparar
+- Última mensagem da conversa é `assistant` (Bia respondeu e cliente sumiu).
+- Conversa contém intenção de preço (palavras: "preço", "valor", "quanto", "custa", "tá" + produto), detectado no momento do agendamento.
+- Não houve `pedido` criado para esse telefone nos últimos 30 minutos.
+- Está dentro do horário comercial da unidade.
+- Nenhum follow-up já enviado nas últimas 24h para essa conversa.
 
-## O que vou ajustar (só frontend + 1 edge function de push)
+### Mensagem enviada
+> "Oi {nome}! 👋 Notei que você se interessou pelo nosso gás. Pra fechar agora, libero **R$ 5,00 de desconto** no seu pedido. Posso anotar? 🔥"
 
-### 1. Alinhar o escopo do badge ao do inbox
-`src/contexts/WhatsAppNotificationContext.tsx`:
-- Receber `empresa.id` (via `useEmpresa`) e `unidadeAtual.id` (via `useUnidade`).
-- Carga inicial e contagem por conversa: filtrar `ai_conversas` por `empresa_id = empresa.id` e, quando houver unidade selecionada, `unidade_id = unidadeAtual.id OR unidade_id IS NULL` (inclui legado da mesma empresa).
-- No listener Realtime de `ai_mensagens INSERT`: antes de incrementar, buscar a conversa e validar que ela bate com o mesmo escopo (empresa + unidade/legado). Conversas de outra empresa/unidade são ignoradas para o badge.
+O desconto é registrado no histórico da conversa como negociação válida (já existe `extractLatestNegotiatedDiscountPerUnit`), então se o cliente aceitar, o pedido sai com R$ 5,00 a menos automaticamente.
 
-### 2. Mostrar conversas legadas no inbox
-`src/components/atendimento/WhatsAppInbox.tsx` (`fetchConversas`):
-- Filtro `unidade_id` passa a ser `eq(unidade_id, unidadeAtual.id) OR unidade_id IS NULL`, **sempre escopado por `empresa_id = empresa.id`** (via `.or()` no Postgrest e join lógico — uso `empresa_id` direto da tabela `ai_conversas`).
-- Remover `.not("telefone", "is", null)` (ou trocar por filtro tolerante) para não esconder conversa que momentaneamente está sem telefone.
-- O Realtime de `ai_conversas`/`ai_mensagens` já dispara `fetchConversas()`; só vou reaproveitar.
+---
 
-### 3. Selecionar automaticamente a conversa com não-lida quando o usuário abre o inbox
-Quando o painel do chat for aberto (`isWidgetOpen` ou navegação para `/atendimento/caixa-de-entrada`) e houver exatamente 1 conversa com `unread > 0`, abrir essa conversa direto — evita o caso "badge diz 1 mas nada acontece".
+### Detalhes técnicos
 
-### 4. Tempo real mesmo com sistema fechado (Web Push para chat)
-Criar `supabase/functions/send-push-novo-chat/index.ts` (espelho do `send-push-novo-pedido` já existente):
-- Dispara quando chega mensagem nova de cliente (`role NOT IN ('assistant','human')`).
-- Reaproveita a mesma tabela `push_subscriptions`, mesmas VAPID keys, e o mesmo Service Worker (`src/sw.js` já trata `push` e `notificationclick`).
-- Tag única `novo-chat-${conversa_id}` para não empilhar.
-- Trigger SQL análogo ao de pedidos (`fn_dispatch_push_novo_pedido`) chamando esta function quando insere em `ai_mensagens`.
+**Nova tabela `bia_followups`**
+- `conversa_id` (uuid, unique) · `telefone` · `unidade_id` · `empresa_id`
+- `agendado_para` (timestamptz) · `enviado_em` (timestamptz null) · `status` (`pendente`/`enviado`/`cancelado`/`convertido`)
+- `motivo` (texto curto, ex.: "preco_sem_pedido") · `tentativas` (int)
+- RLS: leitura por empresa, escrita só por service role.
 
-### 5. Pequena melhoria de UX
-- Badge piscando suave quando `totalUnread > 0` (CSS-only) para reforçar visibilidade.
-- Mostrar tooltip "X conversas não lidas" no botão flutuante.
+**Agendamento (no `bia-core.ts`)**
+- Após `saveMessage(assistant)`: se reply não contém `[PEDIDO_CONFIRMADO]` e mensagem do cliente parece pergunta de preço → upsert em `bia_followups` com `agendado_para = now() + 5min`.
+- Se reply contém `[PEDIDO_CONFIRMADO]` → marcar follow-up como `convertido`.
+- Se nova mensagem do cliente chega antes do disparo → cancelar/atualizar (reagenda só se voltar a perguntar preço).
 
-## Arquivos afetados
+**Edge function `bia-followup-cron`**
+- `verify_jwt = false`, chamada por `pg_cron` a cada 1 minuto via `extensions.http_post`.
+- Busca follow-ups `pendente` com `agendado_para <= now()`.
+- Valida horário comercial (`checkBusinessHours`) e ausência de pedido recente.
+- Envia mensagem via `sendMessage` (reaproveita `resolveConfig` por `unidade_id`).
+- Salva mensagem como `assistant` no `ai_mensagens` com metadado `{ follow_up: true, desconto_oferecido: 5 }`.
+- Marca `status = enviado`.
 
-```text
-src/contexts/WhatsAppNotificationContext.tsx     editar (escopo empresa+unidade)
-src/components/atendimento/WhatsAppInbox.tsx     editar (incluir unidade NULL, escopar empresa)
-src/components/atendimento/WhatsAppFloatingChat.tsx  editar (tooltip + auto-abrir 1ª não lida)
-supabase/functions/send-push-novo-chat/index.ts  criar (web push de chat)
-supabase/config.toml                              editar (verify_jwt=false p/ nova function)
-supabase/migrations/...sql                        criar (trigger AI mensagens → push)
-```
+**Cron**
+- `SELECT cron.schedule('bia-followup-1min', '* * * * *', $$ SELECT extensions.http_post(...) $$);`
 
-## Não vou mexer
+### Arquivos
+- **Migração**: tabela `bia_followups` + RLS + cron job.
+- **Editar**: `supabase/functions/_shared/bia-core.ts` (helpers `scheduleFollowup`, `cancelFollowup`, detecção de intenção de preço).
+- **Editar**: `supabase/functions/gateway-webhook/index.ts` e demais webhooks da Bia (Meta/Twilio) para chamar os helpers.
+- **Criar**: `supabase/functions/bia-followup-cron/index.ts`.
+- **Editar**: `supabase/config.toml` (adicionar bloco da nova função com `verify_jwt = false`).
 
-- App.tsx, providers, rotas — segue intocado (regra de estabilidade).
-- Estrutura de `ai_conversas`/`ai_mensagens` — só adiciono trigger e function, sem alterar colunas/RLS.
-- Lógica do `Bia`/webhooks — fora do escopo.
-
-## Validação após implementar
-
-1. Abrir Chat → o número do badge deve bater 1:1 com conversas visíveis.
-2. Marcar uma conversa como lida → badge zera imediatamente.
-3. Enviar uma mensagem de teste de outro WhatsApp → aparece em tempo real no inbox **e** notificação do navegador mesmo com aba fechada.
-4. Verificar nos logs da edge function `send-push-novo-chat` que o envio foi 200.
+Sem mudanças em `App.tsx`, rotas, providers ou na UI do chat.
