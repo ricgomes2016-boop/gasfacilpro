@@ -766,6 +766,13 @@ export default function Produtos() {
                         setForm({ ...form, codigo_barras: e.target.value });
                         setScanFeedback(null);
                       }}
+                      onBlur={(e) => {
+                        const v = e.target.value.replace(/\D/g, "");
+                        if (v.length >= 8 && v.length <= 14 && !editandoProduto) {
+                          const existente = produtos.find((p) => p.codigo_barras === v);
+                          if (!existente) buscarDadosPorCodigo(v);
+                        }
+                      }}
                       className="flex-1"
                     />
                     <Button
@@ -780,6 +787,7 @@ export default function Produtos() {
                     >
                       {scannerAtivo ? <CameraOff className="h-4 w-4" /> : <ScanBarcode className="h-4 w-4" />}
                     </Button>
+                    {buscandoEan && <Loader2 className="h-4 w-4 animate-spin self-center text-muted-foreground" />}
                   </div>
 
                   {scannerAtivo && (
