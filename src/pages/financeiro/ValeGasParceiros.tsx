@@ -53,28 +53,47 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
       setClienteResultados([]);
       return;
     }
+    if (!empresa?.id) {
+      toast.error("Empresa não identificada");
+      return;
+    }
     setBuscandoCliente(true);
     try {
-      let query = (supabase as any)
+      // Usa RPC autocomplete (SECURITY DEFINER, respeita empresa/unidade)
+      const { data: ac, error: acErr } = await (supabase as any).rpc("autocomplete_clientes", {
+        _empresa_id: empresa.id,
+        _unidade_id: unidadeAtual?.id ?? null,
+        _termo: q,
+        _limite: 8,
+      });
+      if (acErr) throw acErr;
+
+      const ids = (ac || []).map((c: any) => c.id);
+      if (ids.length === 0) {
+        setClienteResultados([]);
+        return;
+      }
+
+      // Busca dados completos (cpf, email, cidade, lat/lng) para preencher o form
+      const { data: full, error: fullErr } = await supabase
         .from("clientes")
         .select("id, nome, cpf, telefone, email, endereco, numero, bairro, cidade, latitude, longitude")
-        .eq("ativo", true)
-        .or(`nome.ilike.%${q}%,cpf.ilike.%${q}%,telefone.ilike.%${q}%`)
-        .limit(8);
-      if (unidadeAtual?.id) {
-        const { data: cu } = await (supabase as any)
-          .from("cliente_unidades")
-          .select("cliente_id")
-          .eq("unidade_id", unidadeAtual.id);
-        const ids = (cu || []).map((c: any) => c.cliente_id);
-        if (ids.length > 0) query = query.in("id", ids);
-      }
-      const { data } = await query;
-      setClienteResultados(data || []);
+        .in("id", ids);
+      if (fullErr) throw fullErr;
+
+      // Mantém ordem do autocomplete
+      const map = new Map((full || []).map((c: any) => [c.id, c]));
+      setClienteResultados(ids.map((id: string) => map.get(id)).filter(Boolean));
+    } catch (e: any) {
+      console.error("Erro ao buscar clientes:", e);
+      toast.error(e.message || "Erro ao buscar clientes");
+      setClienteResultados([]);
     } finally {
       setBuscandoCliente(false);
     }
   };
+
+
 
   const selecionarCliente = (c: any) => {
     const enderecoCompleto = [c.endereco, c.numero, c.bairro, c.cidade]
