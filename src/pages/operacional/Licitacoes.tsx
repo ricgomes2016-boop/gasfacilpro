@@ -57,6 +57,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
+import { EmpenhosPanel } from "@/components/licitacoes/EmpenhosPanel";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Licitacao {
