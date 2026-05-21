@@ -351,8 +351,8 @@ export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = 
                         <div><p className="font-medium">{parceiro.nome}</p><p className="text-xs text-muted-foreground">{parceiro.cnpj}</p></div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={parceiro.tipo === "prepago" ? "default" : "secondary"}>
-                          {parceiro.tipo === "prepago" ? "Pré-pago" : "Consignado"}
+                        <Badge variant={parceiro.tipo === "prepago" ? "default" : parceiro.tipo === "empenho" ? "outline" : "secondary"}>
+                          {parceiro.tipo === "prepago" ? "Pré-pago" : parceiro.tipo === "empenho" ? "Empenho" : "Consignado"}
                         </Badge>
                       </TableCell>
                       <TableCell>
