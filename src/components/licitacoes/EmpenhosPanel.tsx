@@ -17,6 +17,8 @@ import { NovoEmpenhoModal, type NovoEmpenhoInitialData } from "./NovoEmpenhoModa
 import { VincularValesModal } from "./VincularValesModal";
 import { EmpenhoDetalheDialog } from "./EmpenhoDetalheDialog";
 import { ImportarEmpenhoDialog, type EmpenhoExtraido } from "./ImportarEmpenhoDialog";
+import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 export interface Empenho {
   id: string;
@@ -59,13 +61,22 @@ export function EmpenhosPanel() {
   const [vincularEmp, setVincularEmp] = useState<Empenho | null>(null);
   const [detalheEmp, setDetalheEmp] = useState<Empenho | null>(null);
 
+  const { unidadeAtual } = useUnidade() as any;
+  const { empresa } = useEmpresa() as any;
+  const unidadeId = unidadeAtual?.id ?? null;
+  const empresaId = empresa?.id ?? null;
+
   const { data: empenhos = [], isLoading } = useQuery({
-    queryKey: ["empenhos"],
+    queryKey: ["empenhos", unidadeId, empresaId],
+    enabled: !!(unidadeId || empresaId),
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      let q = (supabase as any)
         .from("empenhos")
         .select("*, parceiro:vale_gas_parceiros(nome)")
         .order("created_at", { ascending: false });
+      if (unidadeId) q = q.eq("unidade_id", unidadeId);
+      else if (empresaId) q = q.eq("empresa_id", empresaId);
+      const { data, error } = await q;
       if (error) throw error;
       return (data || []) as Empenho[];
     },
@@ -120,10 +131,10 @@ export function EmpenhosPanel() {
           </CardContent></Card>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 self-start">
-          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2" disabled={!unidadeId} title={!unidadeId ? "Selecione uma unidade" : undefined}>
             <Upload className="h-4 w-4" /> Importar Empenho
           </Button>
-          <Button onClick={() => { setDadosImportados(null); setNovoOpen(true); }} className="gap-2">
+          <Button onClick={() => { setDadosImportados(null); setNovoOpen(true); }} className="gap-2" disabled={!unidadeId} title={!unidadeId ? "Selecione uma unidade" : undefined}>
             <Plus className="h-4 w-4" /> Novo Empenho
           </Button>
         </div>

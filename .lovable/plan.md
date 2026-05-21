@@ -1,63 +1,27 @@
-# Importar Empenho com IA
+## Problema
 
-Adicionar na aba **Empenhos** um botão **"Importar Empenho"** que aceita PDF ou imagem (foto) da Nota de Empenho. A IA (Lovable AI / Gemini) lê o arquivo, extrai os dados e abre o modal **Novo Empenho** já preenchido para o usuário revisar e salvar.
+A aba "Empenhos" hoje busca todos os registros da tabela `empenhos` sem filtrar pela unidade/empresa selecionada no topo do ERP. Resultado: o usuário enxerga empenhos de outras lojas/empresas misturados.
 
-## Fluxo do usuário
+O mesmo vale para o filtro implícito ao criar/importar (parceiros e produtos já filtram, mas a listagem principal não).
 
-1. Aba Empenhos → botão **"Importar Empenho"** (ao lado de "Novo Empenho").
-2. Abre um diálogo simples com dropzone: aceita `.pdf`, `.png`, `.jpg`.
-3. Após selecionar o arquivo: spinner "Analisando documento com IA..." (3–10s).
-4. IA retorna os campos extraídos. O modal **NovoEmpenhoModal** abre já pré-preenchido com:
-   - Nº do Empenho
-   - Data
-   - Órgão (texto reconhecido → tenta casar com Parceiro existente; se não achar, deixa vazio com aviso)
-   - Produto (tenta casar pelo nome com produtos da unidade; ex.: "Gás P13" / "Botijão 13kg")
-   - Quantidade
-   - Valor unitário
-   - Observações (resumo do que a IA leu)
-5. Usuário revisa, ajusta o que faltar (parceiro/produto), e clica **Salvar** normalmente.
+## Correções
 
-## Detalhes técnicos
+### 1. `src/components/licitacoes/EmpenhosPanel.tsx`
+- Importar `useUnidade` (`@/contexts/UnidadeContext`) e `useEmpresa` (`@/contexts/EmpresaContext`) para pegar `unidadeAtual` e `empresa`.
+- Trocar o `useQuery(["empenhos"])` por uma queryKey que inclua `unidadeAtual?.id` e `empresa?.id`, e aplicar filtros na consulta:
+  - Se `unidadeAtual?.id` definido → `.eq("unidade_id", unidadeAtual.id)`.
+  - Senão, se `empresa?.id` → `.eq("empresa_id", empresa.id)` (mostra todas as unidades da empresa ativa).
+- Invalidar com a mesma key no `refresh()`.
+- Trocar o botão "Novo Empenho" e "Importar Empenho" para `disabled` quando não houver `unidadeAtual` (evita inserir empenho sem unidade), com tooltip "Selecione uma unidade".
 
-### 1. Edge function `extrair-empenho-ia` (nova)
-- Recebe `{ fileBase64, mimeType, parceiros: [{id,nome}], produtos: [{id,nome}] }`.
-- Chama Lovable AI Gateway com `google/gemini-2.5-flash` (multimodal, lê PDF e imagem direto via `image_url` / `file`).
-- Usa **tool calling** para retornar JSON estruturado:
-  ```
-  { numero_empenho, data_empenho (YYYY-MM-DD),
-    orgao_nome, parceiro_id_sugerido,
-    produto_descricao, produto_id_sugerido,
-    quantidade, valor_unitario,
-    observacoes }
-  ```
-- Match de parceiro/produto: normaliza (lowercase, sem acento) e procura por inclusão; se não bater, retorna `null` e a UI deixa o campo vazio.
-- Sempre retorna `200 OK` com `{ ok: true, dados }` ou `{ ok: false, erro }` (regra do projeto — sem 500).
-- Trata 429/402 do Gateway com mensagem amigável.
+### 2. `src/components/licitacoes/EmpenhoDetalheDialog.tsx` (verificar)
+- Se ele faz query separada de `vale_gas` vinculados, também filtrar por `unidade_id` para não vazar dados entre unidades. (Vou checar durante a implementação; ajuste só se necessário — RLS já protege, mas evitar request desnecessário.)
 
-### 2. Componente novo `ImportarEmpenhoDialog.tsx`
-- Dialog pequeno com `<input type="file" accept="application/pdf,image/*">`.
-- Converte arquivo para base64, busca lista de parceiros + produtos da unidade, chama a edge function.
-- No sucesso: fecha esse dialog e chama `onParsed(dadosExtraidos)`.
-
-### 3. Ajuste em `NovoEmpenhoModal.tsx`
-- Aceitar prop opcional `initialData?: Partial<...>` para vir pré-preenchido.
-- Inicializar os `useState` a partir de `initialData` quando presente.
-- Adicionar pequeno banner no topo: "Dados extraídos por IA — confira antes de salvar" quando `initialData` for fornecido.
-
-### 4. Ajuste em `EmpenhosPanel.tsx`
-- Novo botão **"Importar Empenho"** (ícone `Upload`) ao lado de "Novo Empenho".
-- Estado `importOpen` e `dadosImportados`.
-- Ao concluir importação → fecha import dialog → abre `NovoEmpenhoModal` com `initialData`.
+### 3. Sem mudanças de banco
+- A tabela `empenhos` já tem `unidade_id` e `empresa_id` (trigger `fn_empenho_fill_empresa` preenche).  
+- RLS já isola por empresa; o filtro extra é só para refletir o seletor de unidade do ERP.
 
 ## Fora de escopo
-- OCR offline (sempre via IA do gateway).
-- Importação em lote (apenas um empenho por vez nesta primeira versão).
-- Salvamento automático sem revisão (o usuário sempre confirma).
-
-## Segurança
-- Edge function valida JWT, tamanho máximo do arquivo (5MB), tipos permitidos.
-- Não persiste o arquivo — só processa em memória.
-- Usa `LOVABLE_API_KEY` (já configurada).
-
-## Teste manual
-Carregar uma Nota de Empenho real (PDF de prefeitura) → verificar se número, data, quantidade, valor e produto são reconhecidos corretamente, e se o Parceiro é sugerido quando existe cadastro com nome parecido.
+- Não alterar `NovoEmpenhoModal` (já usa `unidadeAtual` no insert).
+- Não mexer em RLS nem migrações.
+- Não tocar em `App.tsx`/rotas.
