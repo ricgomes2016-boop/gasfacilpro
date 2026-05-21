@@ -12,10 +12,11 @@ import { Progress } from "@/components/ui/progress";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Link2, Eye, FileText, Filter } from "lucide-react";
-import { NovoEmpenhoModal } from "./NovoEmpenhoModal";
+import { Plus, Search, Link2, Eye, FileText, Filter, Upload } from "lucide-react";
+import { NovoEmpenhoModal, type NovoEmpenhoInitialData } from "./NovoEmpenhoModal";
 import { VincularValesModal } from "./VincularValesModal";
 import { EmpenhoDetalheDialog } from "./EmpenhoDetalheDialog";
+import { ImportarEmpenhoDialog, type EmpenhoExtraido } from "./ImportarEmpenhoDialog";
 
 export interface Empenho {
   id: string;
@@ -53,6 +54,8 @@ export function EmpenhosPanel() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [novoOpen, setNovoOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [dadosImportados, setDadosImportados] = useState<NovoEmpenhoInitialData | null>(null);
   const [vincularEmp, setVincularEmp] = useState<Empenho | null>(null);
   const [detalheEmp, setDetalheEmp] = useState<Empenho | null>(null);
 
@@ -116,9 +119,14 @@ export function EmpenhosPanel() {
             <p className="text-base font-bold">{fmtBRL(stats.valor)}</p>
           </CardContent></Card>
         </div>
-        <Button onClick={() => setNovoOpen(true)} className="gap-2 self-start">
-          <Plus className="h-4 w-4" /> Novo Empenho
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 self-start">
+          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+            <Upload className="h-4 w-4" /> Importar Empenho
+          </Button>
+          <Button onClick={() => { setDadosImportados(null); setNovoOpen(true); }} className="gap-2">
+            <Plus className="h-4 w-4" /> Novo Empenho
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -217,7 +225,29 @@ export function EmpenhosPanel() {
         </CardContent>
       </Card>
 
-      <NovoEmpenhoModal open={novoOpen} onClose={() => setNovoOpen(false)} onCreated={refresh} />
+      <NovoEmpenhoModal
+        open={novoOpen}
+        onClose={() => { setNovoOpen(false); setDadosImportados(null); }}
+        onCreated={refresh}
+        initialData={dadosImportados}
+      />
+      <ImportarEmpenhoDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onParsed={(d: EmpenhoExtraido) => {
+          setDadosImportados({
+            numero_empenho: d.numero_empenho,
+            data_empenho: d.data_empenho || undefined,
+            parceiro_id: d.parceiro_id_sugerido,
+            produto_id: d.produto_id_sugerido,
+            quantidade: d.quantidade,
+            valor_unitario: d.valor_unitario,
+            observacoes: d.observacoes,
+          });
+          setImportOpen(false);
+          setNovoOpen(true);
+        }}
+      />
       <VincularValesModal
         empenho={vincularEmp}
         onClose={() => setVincularEmp(null)}
