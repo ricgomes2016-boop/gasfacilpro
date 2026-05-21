@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef, Re
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { wasRecentOrderForPhone } from "@/lib/novoPedidoDedupe";
+import { useEmpresa } from "@/contexts/EmpresaContext";
+import { useUnidade } from "@/contexts/UnidadeContext";
 
 
 interface WhatsAppNotificationContextValue {
@@ -43,38 +45,64 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
   const selectedRef = useRef<string | null>(null);
   const openRef = useRef(false);
 
+  // Escopo: empresa do usuário + unidade atual (quando houver)
+  const { empresa } = useEmpresa();
+  const { unidadeAtual } = useUnidade();
+  const empresaId = empresa?.id ?? null;
+  const unidadeId = unidadeAtual?.id ?? null;
+  const empresaRef = useRef<string | null>(null);
+  const unidadeRef = useRef<string | null>(null);
+  useEffect(() => { empresaRef.current = empresaId; }, [empresaId]);
+  useEffect(() => { unidadeRef.current = unidadeId; }, [unidadeId]);
+
   useEffect(() => { selectedRef.current = selectedConversaId; }, [selectedConversaId]);
   useEffect(() => { openRef.current = isWidgetOpen; }, [isWidgetOpen]);
 
+  // Helper: a conversa pertence ao escopo atual (mesma empresa + unidade atual ou legado sem unidade)?
+  const conversaNoEscopo = useCallback((conv: { empresa_id?: string | null; unidade_id?: string | null } | null | undefined) => {
+    if (!conv) return false;
+    const emp = empresaRef.current;
+    if (emp && conv.empresa_id && conv.empresa_id !== emp) return false;
+    const uni = unidadeRef.current;
+    if (uni && conv.unidade_id && conv.unidade_id !== uni) return false;
+    return true;
+  }, []);
+
   // Initial load: count unread per conversation based on localStorage timestamps
   useEffect(() => {
+    if (!empresaId) { setUnread({}); return; }
     let cancelled = false;
     (async () => {
-      const { data: convs } = await supabase
+      let q = supabase
         .from("ai_conversas")
-        .select("id, titulo, updated_at")
+        .select("id, titulo, updated_at, empresa_id, unidade_id")
+        .eq("empresa_id", empresaId)
         .order("updated_at", { ascending: false })
-        .limit(100);
+        .limit(200);
+      const { data: convs } = await q;
       if (!convs || cancelled) return;
+
+      // Mesmo filtro do inbox: unidade atual OU sem unidade (legado)
+      const inScope = convs.filter((c) => !unidadeId || !c.unidade_id || c.unidade_id === unidadeId);
 
       const counts: Record<string, number> = {};
       await Promise.all(
-        convs.map(async (c) => {
+        inScope.map(async (c) => {
           const lastRead = localStorage.getItem(LS_PREFIX + c.id);
-          let q = supabase
+          let q2 = supabase
             .from("ai_mensagens")
             .select("id", { count: "exact", head: true })
             .eq("conversa_id", c.id)
-            .not("role", "in", "(assistant,human)");
-          if (lastRead) q = q.gt("created_at", lastRead);
-          const { count } = await q;
+            .not("role", "in", "(assistant,human,system)");
+          if (lastRead) q2 = q2.gt("created_at", lastRead);
+          const { count } = await q2;
           if (count && count > 0) counts[c.id] = count;
         })
       );
       if (!cancelled) setUnread(counts);
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [empresaId, unidadeId]);
 
   // Realtime listener for new incoming messages
   useEffect(() => {
@@ -86,46 +114,39 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
         async (payload) => {
           const msg = payload.new as any;
           if (!msg?.conversa_id) return;
-          // Only count incoming (not assistant/human/operator)
-          if (msg.role === "assistant" || msg.role === "human") return;
+          // Only count incoming (not assistant/human/system)
+          if (msg.role === "assistant" || msg.role === "human" || msg.role === "system") return;
 
           const convId = msg.conversa_id as string;
-          const isOpenInWidget = openRef.current && selectedRef.current === convId;
 
+          // Valida escopo antes de incrementar/notificar
+          const { data: conv } = await supabase
+            .from("ai_conversas")
+            .select("titulo, telefone, empresa_id, unidade_id")
+            .eq("id", convId)
+            .maybeSingle();
+          if (!conversaNoEscopo(conv)) return;
+
+          const isOpenInWidget = openRef.current && selectedRef.current === convId;
           if (isOpenInWidget) {
-            // Auto-mark as read
             localStorage.setItem(LS_PREFIX + convId, new Date().toISOString());
             return;
           }
 
-          // Increment unread count
           setUnread((prev) => ({ ...prev, [convId]: (prev[convId] || 0) + 1 }));
 
-          // Fetch conv title for toast
-          const { data: conv } = await supabase
-            .from("ai_conversas")
-            .select("titulo, telefone")
-            .eq("id", convId)
-            .maybeSingle();
-
-          // Dedup: se acabamos de notificar um pedido desse telefone, suprimir
-          // o toast de chat para não empilhar 2 alertas pela mesma origem.
           if (wasRecentOrderForPhone(conv?.telefone)) return;
 
           const title = conv?.titulo || "Nova mensagem";
           const preview = String(msg.content || "").slice(0, 80);
-
-          toast(`💬 ${title}`, {
-            description: preview,
-            duration: 5000,
-          });
+          toast(`💬 ${title}`, { description: preview, duration: 5000 });
           playBeep();
         }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [conversaNoEscopo]);
 
   const markAsRead = useCallback((conversaId: string) => {
     localStorage.setItem(LS_PREFIX + conversaId, new Date().toISOString());
