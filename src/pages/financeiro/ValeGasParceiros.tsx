@@ -24,6 +24,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 export default function ValeGasParceiros({ embedded }: { embedded?: boolean } = {}) {
   const { parceiros, addParceiro, getEstatisticasParceiro, refetch } = useValeGas();
