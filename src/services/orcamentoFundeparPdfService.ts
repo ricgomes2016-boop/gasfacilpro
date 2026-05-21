@@ -305,26 +305,6 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
 
   doc.rect(boxX, y, boxW, boxH);
 
-  // Marca d'água estilo Adobe: inicial da unidade/empresa dentro do quadro de assinatura
-  const nomeBase = String(f.nome_fantasia || f.razao_social || "").trim();
-  const inicialMatch = nomeBase.normalize("NFD").replace(/[\u0300-\u036f]/g, "").match(/[A-Za-z0-9]/);
-  const inicial = (inicialMatch ? inicialMatch[0] : "●").toUpperCase();
-  {
-    const gs: any = (doc as any).GState ? new (doc as any).GState({ opacity: 0.10 }) : null;
-    if (gs && (doc as any).setGState) (doc as any).setGState(gs);
-    doc.setFont("times", "bold");
-    // Tamanho proporcional à altura do quadro (em mm -> pt ~ *2.83)
-    const fs = Math.max(28, Math.min(72, boxH * 2.4));
-    doc.setFontSize(fs);
-    doc.setTextColor(20, 60, 130);
-    doc.text(inicial, boxX + boxW / 2, y + boxH / 2, { align: "center", baseline: "middle" } as any);
-    if (gs && (doc as any).setGState) {
-      const gs2: any = new (doc as any).GState({ opacity: 1 });
-      (doc as any).setGState(gs2);
-    }
-    doc.setTextColor(20, 60, 130);
-  }
-
   let cy = y + padTop + titleH - 0.8;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(ps.titleFs);
