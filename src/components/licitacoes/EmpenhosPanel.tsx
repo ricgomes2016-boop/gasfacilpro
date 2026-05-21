@@ -17,6 +17,8 @@ import { NovoEmpenhoModal, type NovoEmpenhoInitialData } from "./NovoEmpenhoModa
 import { VincularValesModal } from "./VincularValesModal";
 import { EmpenhoDetalheDialog } from "./EmpenhoDetalheDialog";
 import { ImportarEmpenhoDialog, type EmpenhoExtraido } from "./ImportarEmpenhoDialog";
+import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 export interface Empenho {
   id: string;
