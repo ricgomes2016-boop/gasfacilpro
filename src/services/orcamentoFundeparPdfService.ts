@@ -291,6 +291,27 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
   doc.setTextColor(0, 0, 0);
   doc.setDrawColor(0, 0, 0);
 
+  // Marca d'água diagonal em todas as páginas
+  const assinadoWM = Boolean(d.assinar);
+  const wmText = assinadoWM ? "ASSINADO DIGITALMENTE" : "ORÇAMENTO";
+  const pageCount = (doc as any).internal.getNumberOfPages();
+  const pageH = doc.internal.pageSize.getHeight();
+  for (let p = 1; p <= pageCount; p++) {
+    doc.setPage(p);
+    const gs: any = (doc as any).GState ? new (doc as any).GState({ opacity: 0.08 }) : null;
+    if (gs && (doc as any).setGState) (doc as any).setGState(gs);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(70);
+    if (assinadoWM) doc.setTextColor(20, 130, 70);
+    else doc.setTextColor(120, 120, 120);
+    doc.text(wmText, W / 2, pageH / 2, { align: "center", angle: 30 } as any);
+    if (gs && (doc as any).setGState) {
+      const gs2: any = new (doc as any).GState({ opacity: 1 });
+      (doc as any).setGState(gs2);
+    }
+    doc.setTextColor(0, 0, 0);
+  }
+
   // Anexa metadados para uso ao assinar (posição da linha de assinatura em mm)
   (doc as any).__sigLineY_mm = sigLineY_mm;
   (doc as any).__pageH_mm = doc.internal.pageSize.getHeight();
