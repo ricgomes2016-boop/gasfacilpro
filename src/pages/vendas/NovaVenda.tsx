@@ -205,6 +205,29 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     refetchInterval: 30000,
   });
 
+  // Empenhos abertos (Licitações Ganhas) — usado para campo "Vale Físico"
+  const [parceiroEmpenhoId, setParceiroEmpenhoId] = useState<string>("nenhum");
+  const [valeNumero, setValeNumero] = useState<string>("");
+
+  const { data: parceirosComEmpenho = [] } = useQuery({
+    queryKey: ["parceiros-com-empenho-aberto", unidadeAtual?.id, empresa?.id],
+    queryFn: async () => {
+      const q = (supabase as any)
+        .from("empenhos")
+        .select("parceiro_id, parceiro:vale_gas_parceiros(id,nome)")
+        .in("status", ["aberto", "parcial"]);
+      if (unidadeAtual?.id) q.eq("unidade_id", unidadeAtual.id);
+      const { data, error } = await q;
+      if (error) return [];
+      const map = new Map<string, { id: string; nome: string }>();
+      (data || []).forEach((r: any) => {
+        if (r.parceiro?.id) map.set(r.parceiro.id, r.parceiro);
+      });
+      return Array.from(map.values());
+    },
+    enabled: !!empresa?.id,
+  });
+
   const [aiCommand, setAiCommand] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
