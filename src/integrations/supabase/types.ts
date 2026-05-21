@@ -744,6 +744,62 @@ export type Database = {
           },
         ]
       }
+      bia_followups: {
+        Row: {
+          agendado_para: string
+          conversa_id: string
+          created_at: string
+          desconto_oferecido: number
+          empresa_id: string | null
+          enviado_em: string | null
+          id: string
+          motivo: string
+          status: string
+          telefone: string
+          tentativas: number
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          agendado_para: string
+          conversa_id: string
+          created_at?: string
+          desconto_oferecido?: number
+          empresa_id?: string | null
+          enviado_em?: string | null
+          id?: string
+          motivo?: string
+          status?: string
+          telefone: string
+          tentativas?: number
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agendado_para?: string
+          conversa_id?: string
+          created_at?: string
+          desconto_oferecido?: number
+          empresa_id?: string | null
+          enviado_em?: string | null
+          id?: string
+          motivo?: string
+          status?: string
+          telefone?: string
+          tentativas?: number
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bia_followups_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       boletos_emitidos: {
         Row: {
           conta_receber_id: string | null
