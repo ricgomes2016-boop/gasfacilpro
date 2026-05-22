@@ -10939,13 +10939,17 @@ export type Database = {
           created_at: string
           data_validade: string | null
           data_venda: string
+          empresa_id: string | null
           forma_pagamento: string
           id: string
+          numero_sequencial: number | null
           observacoes: string | null
           pedido_utilizacao_id: string | null
           saldo_restante: number | null
           status: string
+          total_unidades: number
           unidade_id: string | null
+          unidades_retiradas: number
           updated_at: string
           user_id: string
           valor_pago: number
@@ -10957,13 +10961,17 @@ export type Database = {
           created_at?: string
           data_validade?: string | null
           data_venda?: string
+          empresa_id?: string | null
           forma_pagamento: string
           id?: string
+          numero_sequencial?: number | null
           observacoes?: string | null
           pedido_utilizacao_id?: string | null
           saldo_restante?: number | null
           status?: string
+          total_unidades?: number
           unidade_id?: string | null
+          unidades_retiradas?: number
           updated_at?: string
           user_id: string
           valor_pago: number
@@ -10975,13 +10983,17 @@ export type Database = {
           created_at?: string
           data_validade?: string | null
           data_venda?: string
+          empresa_id?: string | null
           forma_pagamento?: string
           id?: string
+          numero_sequencial?: number | null
           observacoes?: string | null
           pedido_utilizacao_id?: string | null
           saldo_restante?: number | null
           status?: string
+          total_unidades?: number
           unidade_id?: string | null
+          unidades_retiradas?: number
           updated_at?: string
           user_id?: string
           valor_pago?: number
@@ -11007,6 +11019,153 @@ export type Database = {
             columns: ["unidade_id"]
             isOneToOne: false
             referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendas_antecipadas_itens: {
+        Row: {
+          created_at: string
+          id: string
+          produto_id: string | null
+          produto_nome: string
+          quantidade: number
+          quantidade_retirada: number
+          valor_total: number | null
+          valor_unitario: number
+          venda_antecipada_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          produto_id?: string | null
+          produto_nome: string
+          quantidade: number
+          quantidade_retirada?: number
+          valor_total?: number | null
+          valor_unitario?: number
+          venda_antecipada_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          produto_id?: string | null
+          produto_nome?: string
+          quantidade?: number
+          quantidade_retirada?: number
+          valor_total?: number | null
+          valor_unitario?: number
+          venda_antecipada_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendas_antecipadas_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_antecipadas_itens_venda_antecipada_id_fkey"
+            columns: ["venda_antecipada_id"]
+            isOneToOne: false
+            referencedRelation: "vendas_antecipadas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendas_antecipadas_vales: {
+        Row: {
+          cliente_id: string | null
+          codigo: string
+          created_at: string
+          data_retirada: string | null
+          empresa_id: string | null
+          id: string
+          item_id: string
+          numero: number
+          observacao_retirada: string | null
+          pedido_id: string | null
+          produto_id: string | null
+          produto_nome: string
+          retirado_por: string | null
+          status: string
+          unidade_id: string | null
+          valor_unitario: number
+          venda_antecipada_id: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          codigo: string
+          created_at?: string
+          data_retirada?: string | null
+          empresa_id?: string | null
+          id?: string
+          item_id: string
+          numero: number
+          observacao_retirada?: string | null
+          pedido_id?: string | null
+          produto_id?: string | null
+          produto_nome: string
+          retirado_por?: string | null
+          status?: string
+          unidade_id?: string | null
+          valor_unitario?: number
+          venda_antecipada_id: string
+        }
+        Update: {
+          cliente_id?: string | null
+          codigo?: string
+          created_at?: string
+          data_retirada?: string | null
+          empresa_id?: string | null
+          id?: string
+          item_id?: string
+          numero?: number
+          observacao_retirada?: string | null
+          pedido_id?: string | null
+          produto_id?: string | null
+          produto_nome?: string
+          retirado_por?: string | null
+          status?: string
+          unidade_id?: string | null
+          valor_unitario?: number
+          venda_antecipada_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendas_antecipadas_vales_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_antecipadas_vales_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "vendas_antecipadas_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_antecipadas_vales_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_antecipadas_vales_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_antecipadas_vales_venda_antecipada_id_fkey"
+            columns: ["venda_antecipada_id"]
+            isOneToOne: false
+            referencedRelation: "vendas_antecipadas"
             referencedColumns: ["id"]
           },
         ]
@@ -11506,6 +11665,10 @@ export type Database = {
           _parceiro_id: string
           _pedido_id: string
         }
+        Returns: Json
+      }
+      consumir_vale_venda_antecipada: {
+        Args: { _codigo: string; _observacao?: string; _pedido_id?: string }
         Returns: Json
       }
       contador_has_empresa: {
