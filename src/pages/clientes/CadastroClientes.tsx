@@ -890,32 +890,12 @@ export default function CadastroClientesCad() {
 
     setIsSavingBulk(true);
     try {
-      // Buscar todos os clientes existentes para validação
-      const { data: existingClientes, error: fetchError } = await supabase
-        .from("clientes")
-        .select("id, nome, cpf");
-      
-      if (fetchError) throw fetchError;
-
       const skipped: string[] = [];
       const inserts = [];
 
       for (const c of toSave) {
-        // Verificar nome duplicado (case-insensitive)
-        // Nomes duplicados são permitidos — apenas CPF é verificado
-        // Verificar CPF duplicado
-        if (c.cpf && c.cpf.trim()) {
-          const cpfClean = c.cpf.replace(/\D/g, "");
-          const cpfDuplicated = existingClientes?.some(ec => {
-            const existingCpf = ec.cpf?.replace(/\D/g, "");
-            return existingCpf === cpfClean;
-          });
-          
-          if (cpfDuplicated) {
-            skipped.push(`${c.nome} (CPF duplicado)`);
-            continue;
-          }
-        }
+        // CPF/CNPJ duplicado é permitido
+
 
         inserts.push({
           nome: c.nome.trim(),
