@@ -1,50 +1,63 @@
-## Problema 1 — Erro ao cadastrar parceiro
+# Venda Antecipada com Vales Numerados (Uso Pessoal)
 
-**Causa:** Em `ValeGasParceiros.tsx` (linha 147) o código faz `addParceiro({ ...formData, ... })`. O `formData` inclui `login_email` e `login_password`, que são espalhados no payload e enviados ao Supabase. Como essas colunas não existem em `vale_gas_parceiros`, o PostgREST retorna: *"Could not find the 'login_email' column…"*.
+Hoje a Venda Antecipada guarda apenas um valor monetário. Vou evoluí-la para registrar **produtos e quantidades**, gerando **1 vale numerado com QR Code por unidade** (igual ao fluxo do Vale Gás), permitindo retiradas **parciais** ao longo do tempo.
 
-**Correção em `src/pages/financeiro/ValeGasParceiros.tsx`:**
-- Antes de chamar `addParceiro`, extrair só os campos válidos (`nome, cnpj, telefone, email, endereco, tipo, latitude, longitude`) — não usar `...formData`.
-- Mesmo tratamento já está OK no `update` (linha 135) que monta payload explícito.
+## Mudanças no banco
 
-## Problema 2 — Novo tipo de parceiro "Empenho"
+**Tabela `vendas_antecipadas` (adicionar):**
+- `numero_sequencial` (int) — número da venda antecipada (por empresa)
+- `total_unidades` / `unidades_retiradas` — controle agregado
+- Status passa a ser calculado: `ativo` | `parcial` | `concluido` | `cancelado`
 
-A coluna `tipo` é `text` livre (sem enum no banco), então não precisa de migration.
+**Nova tabela `vendas_antecipadas_itens`:**
+- `venda_antecipada_id`, `produto_id`, `produto_nome`, `quantidade`, `valor_unitario`, `valor_total`, `quantidade_retirada`
 
-**Mudanças:**
-- `src/contexts/ValeGasContext.tsx`: ampliar `TipoParceiro` para `"prepago" | "consignado" | "empenho"`.
-- `src/pages/financeiro/ValeGasParceiros.tsx`:
-  - Adicionar opção "Empenho (Órgão Público / Licitação)" no Select de tipo.
-  - Texto auxiliar: "Parceiro vinculado a empenhos de licitações — recebe vales conforme NF-e emitida."
-  - Atualizar estatísticas (card já existente) e badge da lista para reconhecer o novo tipo.
-  - Lógica de validação/sequência segue idêntica à do consignado (acerto posterior).
-- `NovoEmpenhoModal.tsx` (filtro de parceiros): manter `.eq("ativo", true)` — opcionalmente priorizar/filtrar `tipo IN ('empenho','consignado')`, mas sem quebrar o que já funciona.
+**Nova tabela `vendas_antecipadas_vales` (1 linha por unidade):**
+- `venda_antecipada_id`, `item_id`, `produto_id`, `produto_nome`
+- `numero` (sequencial dentro da venda, ex: 1/4, 2/4…)
+- `codigo` único para o QR (ex: `VA-2026-00042-01`)
+- `valor_unitario`
+- `status`: `disponivel` | `retirado` | `cancelado`
+- `data_retirada`, `retirado_por` (entregador/operador), `pedido_id`
+- `cliente_id`, `unidade_id`, `empresa_id`
 
-## Problema 3 — Empenho com múltiplos produtos
+RLS por `unidade_id`/`empresa_id` (mesmo padrão das outras tabelas). Trigger para preencher `empresa_id` a partir da unidade. Função RPC `consumir_vale_venda_antecipada(codigo, pedido_id, retirado_por)` análoga a `consumir_vale_empenho`.
 
-Hoje cada linha em `empenhos` representa 1 produto. Para suportar empenhos multi-produto sem alterar schema/RLS/lógica de vales:
+## Mudanças na UI — `/financeiro/venda-antecipada`
 
-**Abordagem (mínimo invasiva, sem migration):**
-- Em `NovoEmpenhoModal.tsx`, transformar a seção "Produto/Quantidade/Valor unitário" em uma **lista dinâmica de itens** (botão "+ Adicionar item" e botão remover por linha).
-- Ao salvar, gerar **N inserts em `empenhos`** — um por item — todos compartilhando: `numero_empenho`, `data_empenho`, `parceiro_id`, `licitacao_id`, `unidade_id`, `observacoes`.
-- Validar pelo menos 1 item com `produto_id`, `quantidade > 0`, `valor_unitario >= 0`.
-- Total geral = soma de (qtd × valor) de todos os itens.
+**Novo modal "Nova Venda Antecipada":**
+- Busca de cliente (já existe)
+- Lista dinâmica de itens: produto (Select dos produtos da unidade) + quantidade + valor unitário → calcula valor total automaticamente
+- Forma de pagamento, validade, observações
+- Ao salvar: cria venda + itens + N vales numerados (um por unidade) com códigos únicos
 
-**Em `EmpenhosPanel.tsx` (visualização):**
-- Manter listagem por linha (cada produto é uma linha), pois o nº do empenho repete e fica claro.
-- Opcional (fora deste plano): agrupar visualmente por `numero_empenho`.
+**Tela de detalhe da venda antecipada:**
+- Resumo: cliente, total pago, total retirado, saldo de unidades
+- Tabela de vales com status (disponível / retirado / cancelado)
+- Botão **"Imprimir todos QR Codes"** (folha A4 com vários por página) e botão de QR individual (reaproveita `ValeGasQRCode`)
+- Botão "Retirar manualmente" por vale (baixa pelo operador no ERP)
 
-**Em `ImportarEmpenhoDialog` / edge function `extrair-empenho-ia`:**
-- Atualizar prompt/schema da IA para retornar um array `itens: [{ produto_id_sugerido, quantidade, valor_unitario }, …]` em vez de um único produto.
-- O painel popula a lista dinâmica do modal com todos os itens detectados.
+**Listagem principal:**
+- Mostra número da venda, cliente, produtos resumidos (ex: "4× P13, 2× Água"), unidades retiradas/totais, status colorido
 
-## Fora do escopo
-- Não alterar `App.tsx`, rotas, providers.
-- Não migrar schema do banco.
-- Não mexer em RLS nem em `vale_gas`.
+## Validação da retirada
 
-## Arquivos afetados
-- `src/pages/financeiro/ValeGasParceiros.tsx`
-- `src/contexts/ValeGasContext.tsx`
-- `src/components/licitacoes/NovoEmpenhoModal.tsx`
-- `src/components/licitacoes/ImportarEmpenhoDialog.tsx`
-- `supabase/functions/extrair-empenho-ia/index.ts`
+**No app do entregador:** adiciono leitura do QR no scanner existente. Se o código bater com `VA-…`, chama a RPC `consumir_vale_venda_antecipada` (vincula ao pedido em curso, marca o vale como retirado).
+
+**No ERP:** botão "Retirar" em cada vale da tela de detalhe, mesma RPC.
+
+## Componente QR Code
+
+Generaliza o `ValeGasQRCode` em um `ValeQRCode` reutilizável (parâmetro de título/logo), evitando duplicação. O fluxo de impressão em lote usa um modal com grid de QRs (3 colunas × N linhas) e CSS de impressão.
+
+## Detalhes técnicos
+
+- Códigos: `VA-{ano}-{numero_venda 5d}-{numero_vale 2d}` — único globalmente
+- `numero_sequencial` da venda calculado por trigger (igual `fn_assign_numero_pedido`)
+- Saldo monetário atual (`valor_pago`/`valor_utilizado`) é mantido por compatibilidade, mas a tela passa a operar por **unidades**
+- RPC valida tenant (`empresa_id` do usuário) antes de marcar como retirado, retorna erro se já retirado/cancelado
+- Realtime opcional para atualizar lista de vales quando entregador escaneia
+
+## Fora de escopo deste plano
+- Integração com estoque (baixa automática ao retirar) — pode ser adicionada depois
+- Pagamento parcelado da venda antecipada
