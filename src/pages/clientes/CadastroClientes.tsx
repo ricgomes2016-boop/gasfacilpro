@@ -533,48 +533,9 @@ export default function CadastroClientesCad() {
     setIsModalOpen(true);
   };
 
-  const checkDuplicates = async (cpf: string, excludeId?: string) => {
-    // Nomes duplicados são permitidos — apenas CPF é verificado
-    if (!cpf || !cpf.trim()) return true;
-
-    try {
-      const cpfClean = cpf.replace(/\D/g, "");
-      let dupQuery = supabase
-        .from("clientes")
-        .select("id, cpf");
-      
-      if (empresa?.id) {
-        dupQuery = dupQuery.eq("empresa_id", empresa.id);
-      }
-
-      const { data: allClientes, error: fetchError } = await dupQuery;
-
-      if (fetchError) throw fetchError;
-
-      const duplicated = allClientes?.find(c => {
-        const existingCpf = c.cpf?.replace(/\D/g, "");
-        return existingCpf === cpfClean && c.id !== excludeId;
-      });
-
-      if (duplicated) {
-        toast({
-          title: "CPF duplicado",
-          description: "Já existe um cliente com este CPF.",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Erro ao verificar duplicatas:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível verificar duplicatas.",
-        variant: "destructive",
-      });
-      return false;
-    }
+  const checkDuplicates = async (_cpf: string, _excludeId?: string) => {
+    // CPF/CNPJ duplicado é permitido (mesmo CNPJ pode pertencer a múltiplos clientes)
+    return true;
   };
 
   const handleSubmit = async () => {
@@ -929,32 +890,12 @@ export default function CadastroClientesCad() {
 
     setIsSavingBulk(true);
     try {
-      // Buscar todos os clientes existentes para validação
-      const { data: existingClientes, error: fetchError } = await supabase
-        .from("clientes")
-        .select("id, nome, cpf");
-      
-      if (fetchError) throw fetchError;
-
       const skipped: string[] = [];
       const inserts = [];
 
       for (const c of toSave) {
-        // Verificar nome duplicado (case-insensitive)
-        // Nomes duplicados são permitidos — apenas CPF é verificado
-        // Verificar CPF duplicado
-        if (c.cpf && c.cpf.trim()) {
-          const cpfClean = c.cpf.replace(/\D/g, "");
-          const cpfDuplicated = existingClientes?.some(ec => {
-            const existingCpf = ec.cpf?.replace(/\D/g, "");
-            return existingCpf === cpfClean;
-          });
-          
-          if (cpfDuplicated) {
-            skipped.push(`${c.nome} (CPF duplicado)`);
-            continue;
-          }
-        }
+        // CPF/CNPJ duplicado é permitido
+
 
         inserts.push({
           nome: c.nome.trim(),
