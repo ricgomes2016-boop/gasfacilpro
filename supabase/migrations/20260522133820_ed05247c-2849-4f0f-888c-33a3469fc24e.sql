@@ -1,0 +1,1 @@
+ALTER TABLE public.clientes DROP CONSTRAINT IF EXISTS clientes_cpf_key;
