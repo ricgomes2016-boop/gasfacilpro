@@ -10,6 +10,7 @@ import {
 import logoImg from "@/assets/logo.png";
 import { SeletorEmpresaUnidade } from "@/components/contador/SeletorEmpresaUnidade";
 import { FiltroPeriodo } from "@/components/contador/FiltroPeriodo";
+import { SystemFooter } from "@/components/layout/SystemFooter";
 
 
 interface ContadorPortalLayoutProps {
