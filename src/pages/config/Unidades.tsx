@@ -52,9 +52,15 @@ export default function UnidadesConfig() {
 
   const fetchUnidades = async () => {
     try {
+      // NOTE: avoid select("*") because sensitive credential columns
+      // (certificado_a1_senha, provedor_nfe_token, nfce_csc_token, contador_email,
+      // contador_cpf_cnpj) have column-level SELECT revoked from `authenticated`.
+      // They are loaded on demand via the get_unidade_credenciais RPC.
       const { data, error } = await supabase
         .from("unidades")
-        .select("*")
+        .select(
+          "id, nome, tipo, ativo, razao_social, nome_fantasia, cnpj, inscricao_estadual, inscricao_estadual_st, inscricao_municipal, cnae_principal, regime_tributario, telefone, email, endereco, bairro, cidade, estado, cep, chave_pix, bairros_atendidos, horario_abertura, horario_fechamento, certificado_a1_path, certificado_a1_validade, certificado_a1_titular, nfe_ambiente, nfe_serie, nfe_proximo_numero, nfce_serie, nfce_proximo_numero, nfce_csc_id, cte_serie, cte_proximo_numero, cfop_padrao_venda, cfop_padrao_devolucao, natureza_operacao_padrao, aliquota_icms_padrao, aliquota_pis_padrao, aliquota_cofins_padrao, cst_csosn_padrao, contador_nome, contador_crc, contador_telefone, provedor_nfe, provedor_nfe_url, empresa_id, created_at, updated_at"
+        )
         .eq("ativo", true)
         .order("tipo")
         .order("nome");
@@ -68,6 +74,7 @@ export default function UnidadesConfig() {
       );
     } catch (error: any) {
       toast({ title: "Erro ao carregar unidades", description: error.message, variant: "destructive" });
+
     } finally {
       setLoading(false);
     }
@@ -169,19 +176,17 @@ export default function UnidadesConfig() {
         bairros_atendidos: u.bairros_atendidos || null,
         horario_abertura: u.horario_abertura || "07:00",
         horario_fechamento: u.horario_fechamento || "18:00",
-        // Certificado
+        // Certificado (senha tratada via RPC)
         certificado_a1_path: u.certificado_a1_path || null,
-        certificado_a1_senha: u.certificado_a1_senha || null,
         certificado_a1_validade: u.certificado_a1_validade || null,
         certificado_a1_titular: u.certificado_a1_titular || null,
-        // NFe / NFC-e / CT-e
+        // NFe / NFC-e / CT-e (tokens tratados via RPC)
         nfe_ambiente: u.nfe_ambiente || "homologacao",
         nfe_serie: numOrNull(u.nfe_serie),
         nfe_proximo_numero: numOrNull(u.nfe_proximo_numero),
         nfce_serie: numOrNull(u.nfce_serie),
         nfce_proximo_numero: numOrNull(u.nfce_proximo_numero),
         nfce_csc_id: u.nfce_csc_id || null,
-        nfce_csc_token: u.nfce_csc_token || null,
         cte_serie: numOrNull(u.cte_serie),
         cte_proximo_numero: numOrNull(u.cte_proximo_numero),
         // Tributação
@@ -192,20 +197,29 @@ export default function UnidadesConfig() {
         aliquota_pis_padrao: numOrNull(u.aliquota_pis_padrao),
         aliquota_cofins_padrao: numOrNull(u.aliquota_cofins_padrao),
         cst_csosn_padrao: u.cst_csosn_padrao || null,
-        // Contador
+        // Contador (email e cpf_cnpj tratados via RPC)
         contador_nome: u.contador_nome || null,
-        contador_cpf_cnpj: u.contador_cpf_cnpj || null,
         contador_crc: u.contador_crc || null,
-        contador_email: u.contador_email || null,
         contador_telefone: u.contador_telefone || null,
-        // Provedor
+        // Provedor (token tratado via RPC)
         provedor_nfe: u.provedor_nfe || null,
-        provedor_nfe_token: u.provedor_nfe_token || null,
         provedor_nfe_url: u.provedor_nfe_url || null,
       };
 
       const { error } = await supabase.from("unidades").update(payload).eq("id", u.id);
       if (error) throw error;
+
+      // Salva credenciais sensíveis via RPC restrita a admin/gestor
+      const { error: credErr } = await supabase.rpc("update_unidade_credenciais", {
+        _unidade_id: u.id,
+        _certificado_a1_senha: u.certificado_a1_senha || null,
+        _provedor_nfe_token: u.provedor_nfe_token || null,
+        _nfce_csc_token: u.nfce_csc_token || null,
+        _contador_email: u.contador_email || null,
+        _contador_cpf_cnpj: u.contador_cpf_cnpj || null,
+      });
+      if (credErr) throw credErr;
+
       toast({ title: "Salvo!", description: `Dados de ${u.nome} atualizados.` });
       setEditingUnidade(null);
       fetchUnidades();
@@ -284,7 +298,19 @@ export default function UnidadesConfig() {
                       <Badge variant={unidade.tipo === "matriz" ? "default" : "secondary"}>
                         {unidade.tipo === "matriz" ? "Matriz" : "Filial"}
                       </Badge>
-                      <Button size="icon" variant="ghost" onClick={() => { setActiveTab("geral"); setEditingUnidade({ ...unidade }); }}>
+                      <Button size="icon" variant="ghost" onClick={async () => {
+                        setActiveTab("geral");
+                        const { data: cred } = await supabase.rpc("get_unidade_credenciais", { _unidade_id: unidade.id });
+                        const c = Array.isArray(cred) ? cred[0] : cred;
+                        setEditingUnidade({
+                          ...unidade,
+                          certificado_a1_senha: c?.certificado_a1_senha ?? "",
+                          provedor_nfe_token: c?.provedor_nfe_token ?? "",
+                          nfce_csc_token: c?.nfce_csc_token ?? "",
+                          contador_email: c?.contador_email ?? "",
+                          contador_cpf_cnpj: c?.contador_cpf_cnpj ?? "",
+                        });
+                      }}>
                         <Edit className="h-4 w-4" />
                       </Button>
                     </div>
