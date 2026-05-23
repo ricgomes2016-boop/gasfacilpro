@@ -89,11 +89,11 @@ serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(1);
       if (!lastInbound || lastInbound.length === 0) {
-        return json(409, {
+        return json(200, {
           ok: false,
-          error: "out_of_window",
+          error: "Cliente não interagiu nas últimas 24h. Use um template aprovado pela Meta.",
           requires_template: true,
-          message: "Cliente não interagiu nas últimas 24h. Use um template aprovado pela Meta.",
+          out_of_window: true,
         });
       }
     }
