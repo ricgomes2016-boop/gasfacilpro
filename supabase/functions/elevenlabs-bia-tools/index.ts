@@ -214,20 +214,25 @@ serve(async (req) => {
     if (action === "consultar_precos") {
       const tp = await getTabelaPrecosBia();
       const itens = [
-        { nome: "Gás P13", preco: tp.gas_p13.preco },
-        { nome: "Gás P20", preco: tp.gas_p20.preco },
-        { nome: "Gás P45", preco: tp.gas_p45.preco },
-        { nome: "Água Mineral 20L", preco: tp.agua_20l.preco },
+        { nome: "Gás P13", preco: tp.gas_p13.preco, preco_desconto: tp.gas_p13.preco_desconto },
+        { nome: "Gás P20", preco: tp.gas_p20.preco, preco_desconto: tp.gas_p20.preco_desconto },
+        { nome: "Gás P45", preco: tp.gas_p45.preco, preco_desconto: tp.gas_p45.preco_desconto },
+        { nome: "Água Mineral 20L", preco: tp.agua_20l.preco, preco_desconto: tp.agua_20l.preco_desconto },
       ].filter((i) => i.preco > 0);
 
+      const fmt = (n: number) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
       const lista = itens
-        .map((i) => `${i.nome}: R$ ${i.preco.toFixed(2).replace(".", ",")}`)
+        .map((i) =>
+          i.preco_desconto && i.preco_desconto > 0 && i.preco_desconto < i.preco
+            ? `${i.nome}: ${fmt(i.preco)} (com desconto ${fmt(i.preco_desconto)})`
+            : `${i.nome}: ${fmt(i.preco)}`
+        )
         .join("; ");
 
       return ok({
         precos: itens,
         mensagem: itens.length
-          ? `Preços oficiais da tabela: ${lista}. Use SEMPRE estes valores. NUNCA invente preços.`
+          ? `Tabela oficial de preços: ${lista}. REGRAS: (1) Cote SEMPRE o preço NORMAL primeiro. (2) Só ofereça o preço com desconto se o cliente pedir desconto, perguntar "tem desconto?", citar concorrência ou hesitar. (3) NUNCA invente valores — use exclusivamente os números desta lista.`
           : "Tabela de preços não configurada. Peça ao cliente um momento e avise o gestor.",
       });
     }
