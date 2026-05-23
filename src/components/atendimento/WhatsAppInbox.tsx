@@ -1039,11 +1039,11 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
               <button
                 onClick={() => setContactPanelOpen(true)}
                 title="Ver detalhes"
-                className="p-2 rounded-full hover:bg-white transition-colors"
+                className="hidden sm:inline-flex p-2 rounded-full hover:bg-white transition-colors"
               >
                 <User className="h-5 w-5 text-[#54656f]" />
               </button>
-              <button className="p-2 rounded-full hover:bg-white transition-colors" title="Buscar na conversa">
+              <button className="hidden sm:inline-flex p-2 rounded-full hover:bg-white transition-colors" title="Buscar na conversa">
                 <Search className="h-5 w-5 text-[#54656f]" />
               </button>
               <DropdownMenu>
