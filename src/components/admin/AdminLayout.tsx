@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { SystemFooter } from "@/components/layout/SystemFooter";
 
 const navItems = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard, description: "Visão geral da plataforma" },
