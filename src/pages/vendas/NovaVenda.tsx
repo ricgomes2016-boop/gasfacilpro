@@ -146,13 +146,15 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
               data-done={step.done}
               disabled={!step.enabled || !onStepClick}
               onClick={() => onStepClick?.(step.id)}
+              title={onStepClick && activeStep !== step.id ? `Clique para ir para ${step.label}` : undefined}
+              aria-label={`Etapa ${step.label}${step.done ? " (preenchida)" : ""}`}
               className={cn(
                 "flex items-center gap-1.5 rounded-full text-xs font-medium transition-colors disabled:cursor-not-allowed",
                 "venda-step-tab",
                 STEP_TONE_CLASS[step.id],
                 compact ? "px-2 py-1" : "px-2.5 py-1.5",
                 activeStep === step.id || step.done ? "" : "bg-muted text-muted-foreground",
-                step.enabled && onStepClick && activeStep !== step.id && "hover:bg-muted/80"
+                step.enabled && onStepClick && activeStep !== step.id && "cursor-pointer hover:bg-muted/80 hover:ring-2 hover:ring-primary/30"
               )}
             >
               {step.done ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
