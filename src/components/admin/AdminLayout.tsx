@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { SystemFooter } from "@/components/layout/SystemFooter";
 
 const navItems = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard, description: "Visão geral da plataforma" },
@@ -185,8 +186,9 @@ export function AdminLayout({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        <main className="flex-1 p-4 md:p-8 overflow-auto">{children}</main>
+        <main className="flex-1 p-4 md:p-8 md:pb-14 overflow-auto">{children}</main>
       </div>
+      <SystemFooter portalKey="painel" />
     </div>
   );
 }

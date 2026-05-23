@@ -7,6 +7,7 @@ import {
   Truck, LayoutDashboard, CarFront, Users, Route, ArrowLeftRight,
   Receipt, Package, Brain, FileBarChart, LogOut, Menu, X, ShoppingCart,
 } from "lucide-react";
+import { SystemFooter } from "@/components/layout/SystemFooter";
 
 const navItems = [
   { to: "/transportadora", icon: LayoutDashboard, label: "Dashboard" },
@@ -111,10 +112,11 @@ export function TransportadoraLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 md:pb-14">
           {children}
         </main>
       </div>
+      <SystemFooter portalKey="transportadora" />
     </div>
   );
 }

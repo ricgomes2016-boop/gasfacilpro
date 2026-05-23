@@ -13,6 +13,7 @@ import { ErpNotificationBanner } from "@/components/layout/ErpNotificationBanner
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 import { NovaVendaWindowsProvider } from "@/contexts/NovaVendaWindowsContext";
 import { NovaVendaWindowsHost } from "@/components/vendas/NovaVendaWindowsHost";
+import { SystemFooter } from "@/components/layout/SystemFooter";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -37,7 +38,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       <Sidebar />
       <main
         className={cn(
-          "relative min-h-screen transition-all duration-300 ml-0 pb-16 md:pb-0",
+          "relative min-h-screen transition-all duration-300 ml-0 pb-16 md:pb-10",
           collapsed ? "xl:ml-16" : "xl:ml-[260px]"
         )}
       >
@@ -56,6 +57,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       />
       <CalculatorPopover externalOpen={calcOpen} onExternalClose={() => setCalcOpen(false)} />
       <NovaVendaWindowsHost />
+      <SystemFooter />
     </div>
   );
 }
