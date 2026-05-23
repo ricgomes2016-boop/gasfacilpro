@@ -1,25 +1,28 @@
-## Rodapé fixo motivacional em todas as telas internas
+## Objetivo
+Tornar o tom do chat da Bia/Bot levemente mais formal (mas não excessivo) e simplificar ao máximo a experiência de chat.
 
-Hoje o rodapé com frase motivacional existe só em `/auth` (CircleAuthLayout). Vamos replicá-lo em todos os layouts internos (ERP + portais), mantendo o mesmo visual e a regra de "uma frase fixa por portal".
+## Arquivos a alterar
 
-### 1. Novo `src/components/layout/SystemFooter.tsx`
-- Detecta o `portalKey` (admin, painel, cliente, entregador, contador, transportadora, parceiro) via path/subdomínio.
-- Usa `n(portalKey)` de `@/lib/motivationalQuotes` (mesma função do CircleAuthLayout), fixado com `useState` para não trocar em re-render.
-- Render: `<footer>` `fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-background/80 backdrop-blur-md` com um dot colorido + frase em itálico `text-xs md:text-sm text-muted-foreground` centralizado.
-- **Oculto no mobile** (`hidden md:flex`) para não conflitar com a `MobileBottomBar`.
+### 1. Edge function `ai-assistant` (linha ~585)
+- **System prompt do GásBot**: ajustar instruções de tom para ser "direto, simples e levemente formal". Remover emojis, gírias e expressões muito coloquiais no prompt.
+- **Simplificar a descrição de formatação**: manter apenas o essencial (tabelas, negrito, R$).
 
-### 2. Inclusão nos layouts (apenas render do `<SystemFooter />` no final + `md:pb-10` no container principal para não cobrir conteúdo)
-- `src/components/layout/MainLayout.tsx` (ERP)
-- `src/components/cliente/ClienteLayout.tsx`
-- `src/components/entregador/EntregadorLayout.tsx`
-- `src/components/contador/ContadorPortalLayout.tsx`
-- `src/components/transportadora/TransportadoraLayout.tsx`
-- `src/components/parceiro/ParceiroLayout.tsx`
-- `src/components/admin/AdminLayout.tsx`
+### 2. Edge function `bia-site-chat` (linha ~134)
+- **System prompt da Bia**: alterar de "simpática, breve e objetiva (responda como em WhatsApp)" para "cordial, simples e objetiva". Manter frases curtas, mas sem gírias excessivas.
+- **Regras de fluxo**: simplificar a linguagem das instruções internas.
 
-### 3. Critérios
-- Rodapé fixo aparece em todas as telas internas (ERP + portais) no desktop.
-- Oculto no mobile (não afeta MobileBottomBar).
-- Frase varia por portal/subdomínio usando o mesmo gerador do `/auth`.
-- Conteúdo não fica coberto pelo rodapé.
-- Não altera `App.tsx`, providers ou rotas.
+### 3. Componente `AiAssistantChat.tsx` (linhas ~399-404)
+- **Saudação inicial**: simplificar texto. Trocar "Olá! Sou o GásBot, assistente IA do sistema. Pergunte sobre dados, peça análises ou execute ações no sistema." por algo mais direto e levemente formal.
+- **Loading**: trocar "Pensando..." por algo mais neutro (ex: "Processando...").
+
+### 4. Componente `BiaChatWidget.tsx` (linhas ~99-104)
+- **Saudação inicial padrão**: simplificar. Trocar "Oi! Sou a Bia da ${nomeLoja} 👋 Pra agilizar seu pedido, me passa seu telefone com DDD?" por algo mais direto, sem emoji, levemente formal.
+
+### 5. Componente `VoiceAssistant.tsx` (linha ~302)
+- **Label**: trocar "GásBot:" por "Assistente:".
+
+## Critérios de aceite
+- Nenhum emoji nos prompts de sistema ou saudações iniciais.
+- Frases curtas e diretas.
+- Tom cordial, sem ser robótico — evitar "Vossa Senhoria" ou "Prezado", mas também evitar "E aí", "beleza", "show".
+- Nenhuma mudança de funcionalidade — apenas texto/prompt.

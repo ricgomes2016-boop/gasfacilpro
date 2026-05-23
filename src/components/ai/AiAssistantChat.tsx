@@ -399,8 +399,8 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
           <div className="space-y-4">
             <div className="text-center text-muted-foreground text-sm">
               <Bot className="mx-auto h-10 w-10 mb-2 text-primary" />
-              <p className="font-medium text-foreground">Olá! Sou o GásBot, assistente IA do sistema.</p>
-              <p>Pergunte sobre dados, peça análises ou execute ações no sistema.</p>
+              <p className="font-medium text-foreground">Olá. Como posso ajudar?</p>
+              <p>Consulte dados ou solicite uma ação do sistema.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {suggestions.map((s) => (
@@ -451,7 +451,7 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
         {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
           <div className="flex justify-start">
             <div className="bg-muted rounded-xl px-4 py-2 text-sm text-muted-foreground">
-              <span className="animate-pulse">Pensando...</span>
+              <span className="animate-pulse">Processando...</span>
             </div>
           </div>
         )}
