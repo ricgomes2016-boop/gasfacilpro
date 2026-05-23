@@ -146,13 +146,15 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
               data-done={step.done}
               disabled={!step.enabled || !onStepClick}
               onClick={() => onStepClick?.(step.id)}
+              title={onStepClick && activeStep !== step.id ? `Clique para ir para ${step.label}` : undefined}
+              aria-label={`Etapa ${step.label}${step.done ? " (preenchida)" : ""}`}
               className={cn(
                 "flex items-center gap-1.5 rounded-full text-xs font-medium transition-colors disabled:cursor-not-allowed",
                 "venda-step-tab",
                 STEP_TONE_CLASS[step.id],
                 compact ? "px-2 py-1" : "px-2.5 py-1.5",
                 activeStep === step.id || step.done ? "" : "bg-muted text-muted-foreground",
-                step.enabled && onStepClick && activeStep !== step.id && "hover:bg-muted/80"
+                step.enabled && onStepClick && activeStep !== step.id && "cursor-pointer hover:bg-muted/80 hover:ring-2 hover:ring-primary/30"
               )}
             >
               {step.done ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
@@ -670,29 +672,15 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     : "confirmar";
 
   useEffect(() => {
-    const current = {
+    // Navegação entre etapas é 100% manual via clique nas abas do stepper.
+    // Apenas mantemos previousStepState atualizado para preservar o indicador "done" (✓).
+    previousStepState.current = {
       cliente: clientePreenchido,
       produtos: produtosPreenchidos,
       pagamento: pagamentoPreenchido,
       entregador: entregadorPreenchido,
     };
-
-    if (!useNewView) {
-      previousStepState.current = current;
-      return;
-    }
-
-    const previous = previousStepState.current;
-    let nextStep: VendaStepId | null = null;
-
-    if (!previous.cliente && current.cliente && activeStep === "cliente") nextStep = "produtos";
-    else if (!previous.produtos && current.produtos && activeStep === "produtos") nextStep = "pagamento";
-    else if (!previous.pagamento && current.pagamento && activeStep === "pagamento") nextStep = "entregador";
-    else if (!previous.entregador && current.entregador && activeStep === "entregador") nextStep = "confirmar";
-
-    previousStepState.current = current;
-    if (nextStep) setActiveStep(nextStep);
-  }, [useNewView, activeStep, clientePreenchido, produtosPreenchidos, pagamentoPreenchido, entregadorPreenchido]);
+  }, [clientePreenchido, produtosPreenchidos, pagamentoPreenchido, entregadorPreenchido]);
 
   const canOpenStep = (step: VendaStepId) => {
     return VENDA_STEPS.includes(step);
@@ -710,7 +698,6 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
 
   const handleSelecionarEntregador = (id: string, nome: string) => {
     setEntregador({ id, nome });
-    if (useNewView) setActiveStep("confirmar");
     toast({
       title: "Entregador selecionado!",
       description: `${nome} foi atribuído a esta venda.`,
