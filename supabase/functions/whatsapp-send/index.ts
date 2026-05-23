@@ -62,7 +62,7 @@ serve(async (req) => {
     // Tenant guard
     if (!auth.isServiceRole && !userRoles.includes("super_admin")) {
       if (!userEmpresaId || conversa.empresa_id !== userEmpresaId) {
-        return json(403, { ok: false, error: "forbidden_tenant" });
+        return json(200, { ok: false, error: "Conversa pertence a outra empresa (forbidden_tenant)" });
       }
     }
 
