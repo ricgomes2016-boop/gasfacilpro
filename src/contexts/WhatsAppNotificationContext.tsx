@@ -14,11 +14,76 @@ interface WhatsAppNotificationContextValue {
   setSelectedConversaId: (id: string | null) => void;
   setWidgetOpen: (open: boolean) => void;
   markAsRead: (conversaId: string) => void;
+  requestNotificationPermission: () => Promise<NotificationPermission | "unsupported">;
 }
 
 const Ctx = createContext<WhatsAppNotificationContextValue | undefined>(undefined);
 
 const LS_PREFIX = "wa_last_read_";
+const NOTIFIED_PREFIX = "wa_notified_msg_";
+
+function supportsBrowserNotifications(): boolean {
+  return typeof window !== "undefined" && "Notification" in window;
+}
+
+function isWindowVisibleAndFocused(): boolean {
+  if (typeof document === "undefined") return false;
+  const visible = document.visibilityState === "visible";
+  let focused = true;
+  try { focused = document.hasFocus(); } catch { focused = true; }
+  return visible && focused;
+}
+
+async function requestNotificationPermission(): Promise<NotificationPermission | "unsupported"> {
+  if (!supportsBrowserNotifications()) return "unsupported";
+  if (Notification.permission === "granted" || Notification.permission === "denied") {
+    return Notification.permission;
+  }
+  try {
+    return await Notification.requestPermission();
+  } catch {
+    return Notification.permission;
+  }
+}
+
+async function showBrowserNotification(title: string, body: string, conversaId: string) {
+  if (!supportsBrowserNotifications()) return;
+  if (Notification.permission !== "granted") return;
+  const data = { url: "/atendimento/caixa-de-entrada", conversaId };
+  try {
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, {
+        body,
+        icon: "/favicon.ico",
+        badge: "/favicon.ico",
+        tag: `wa-msg-${conversaId}`,
+        renotify: true,
+        data,
+      } as NotificationOptions);
+      return;
+    }
+  } catch {}
+  try {
+    const n = new Notification(title, {
+      body,
+      icon: "/favicon.ico",
+      tag: `wa-msg-${conversaId}`,
+      data,
+    } as NotificationOptions);
+    n.onclick = () => {
+      try { window.focus(); } catch {}
+      try {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("wa-open-conversa", { detail: { conversaId } }));
+        }
+      } catch {}
+      n.close();
+    };
+    setTimeout(() => { try { n.close(); } catch {} }, 10000);
+  } catch {}
+}
+
 
 function playBeep() {
   try {
@@ -113,9 +178,13 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
         { event: "INSERT", schema: "public", table: "ai_mensagens" },
         async (payload) => {
           const msg = payload.new as any;
-          if (!msg?.conversa_id) return;
+          if (!msg?.id || !msg?.conversa_id) return;
           // Only count incoming (not assistant/human/system)
           if (msg.role === "assistant" || msg.role === "human" || msg.role === "system") return;
+
+          const msgId = String(msg.id);
+          const notifiedKey = NOTIFIED_PREFIX + msgId;
+          if (localStorage.getItem(notifiedKey)) return;
 
           const convId = msg.conversa_id as string;
 
@@ -127,8 +196,11 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
             .maybeSingle();
           if (!conversaNoEscopo(conv)) return;
 
+          try { localStorage.setItem(notifiedKey, "1"); } catch {}
+
+          const windowVisibleFocused = isWindowVisibleAndFocused();
           const isOpenInWidget = openRef.current && selectedRef.current === convId;
-          if (isOpenInWidget) {
+          if (isOpenInWidget && windowVisibleFocused) {
             localStorage.setItem(LS_PREFIX + convId, new Date().toISOString());
             return;
           }
@@ -141,7 +213,12 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
           const preview = String(msg.content || "").slice(0, 80);
           toast(`💬 ${title}`, { description: preview, duration: 5000 });
           playBeep();
+
+          if (!windowVisibleFocused && supportsBrowserNotifications() && Notification.permission === "granted") {
+            showBrowserNotification(`💬 ${title}`, preview, convId);
+          }
         }
+
       )
       .subscribe();
 
@@ -170,6 +247,8 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
         setSelectedConversaId,
         setWidgetOpen,
         markAsRead,
+        requestNotificationPermission,
+
       }}
     >
       {children}
@@ -189,6 +268,7 @@ export function useWhatsAppNotifications() {
       setSelectedConversaId: () => {},
       setWidgetOpen: () => {},
       markAsRead: () => {},
+      requestNotificationPermission: async () => "unsupported" as const,
     } as WhatsAppNotificationContextValue;
   }
   return ctx;
