@@ -137,11 +137,56 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { messages, entregador_id, unidade_id } = await req.json();
+
+    // Validate unidade_id as UUID to prevent prompt/SQL injection
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (unidade_id !== null && unidade_id !== undefined && unidade_id !== "" && !UUID_RE.test(String(unidade_id))) {
+      return new Response(JSON.stringify({ error: "unidade_id inválido" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (entregador_id && !UUID_RE.test(String(entregador_id))) {
+      return new Response(JSON.stringify({ error: "entregador_id inválido" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify caller is the entregador (or owns the unidade)
+    const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData } = await callerClient.auth.getUser();
+    if (!userData?.user) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (entregador_id) {
+      const { data: ent } = await supabase.from("entregadores").select("id, unidade_id").eq("id", entregador_id).eq("user_id", userData.user.id).maybeSingle();
+      if (!ent) {
+        return new Response(JSON.stringify({ error: "Acesso negado" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (unidade_id && ent.unidade_id !== unidade_id) {
+        return new Response(JSON.stringify({ error: "Acesso negado a essa unidade" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");

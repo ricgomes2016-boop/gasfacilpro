@@ -389,6 +389,14 @@ serve(async (req) => {
   try {
     const { messages, unidade_id } = await req.json();
 
+    // Validate unidade_id as UUID to prevent prompt/SQL injection
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (unidade_id !== null && unidade_id !== undefined && unidade_id !== "" && !UUID_RE.test(String(unidade_id))) {
+      return new Response(JSON.stringify({ error: "unidade_id inválido" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
@@ -426,6 +434,20 @@ serve(async (req) => {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Verify unidade_id belongs to the caller's empresa (tenant isolation)
+    if (unidade_id) {
+      const { data: profile } = await callerClient.from("profiles").select("empresa_id").eq("user_id", userData.user.id).single();
+      if (profile?.empresa_id) {
+        const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+        const { data: u } = await adminClient.from("unidades").select("id").eq("id", unidade_id).eq("empresa_id", profile.empresa_id).maybeSingle();
+        if (!u) {
+          return new Response(JSON.stringify({ error: "Acesso negado a essa unidade." }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
