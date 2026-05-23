@@ -1,34 +1,37 @@
-## Problema
+## Objetivo
 
-Na tela **Nova Venda**, o stepper (Cliente → Produtos → Pagamento → Entregador → Confirmar) avança automaticamente quando os campos da etapa atual ficam preenchidos. Isso atrapalha quando você está corrigindo um cadastro de cliente: qualquer interação dispara o pulo para "Produtos".
+Adicionar navegação por teclado ao stepper da **Nova Venda** (Cliente → Produtos → Pagamento → Entregador → Confirmar) com foco visível e acessibilidade.
 
-Há dois pontos que causam isso em `src/pages/vendas/NovaVenda.tsx`:
+## Comportamento de teclado
 
-1. **`useEffect` (linhas ~672-695)** que detecta quando uma etapa fica "preenchida" e chama `setActiveStep(nextStep)`.
-2. **`handleSelecionarEntregador` (linha 713)** que força `setActiveStep("confirmar")` ao escolher o entregador.
+- **Seta direita (→)**: avança para a próxima etapa.
+- **Seta esquerda (←)**: volta para a etapa anterior.
+- **Enter / Espaço**: ativa a etapa atualmente focada.
+- Sem wrap-around: na primeira etapa, ← não faz nada; na última, → não faz nada.
+- Sem Home/End ou auto-activation — apenas o que foi pedido.
 
-## Solução proposta
+## Mudanças em `src/pages/vendas/NovaVenda.tsx` (componente `VendaStepper`)
 
-Tornar a navegação do stepper **100% manual via clique nas abas** (Cliente, Produtos, Pagamento, Entregador, Confirmar). O card do stepper já existe e fica fixo no topo — vamos só remover os avanços automáticos e reforçar o visual de "clique para avançar".
+1. **Tablist acessível**
+   - Wrapper recebe `role="tablist"` e `aria-label="Etapas da venda"`.
+   - Cada botão: `role="tab"`, `aria-selected`, `aria-current="step"` na ativa, `tabIndex={activeStep === step.id ? 0 : -1}` (roving tabindex).
 
-### Mudanças
+2. **Refs + handler `onKeyDown`**
+   - `useRef<(HTMLButtonElement | null)[]>([])` para focar irmãos.
+   - `ArrowRight` / `ArrowLeft`: move foco para a próxima/anterior etapa habilitada e chama `onStepClick` dessa etapa.
+   - `Enter` / `Space`: chama `onStepClick(step.id)` (com `preventDefault` no Space).
 
-1. **Remover o auto-advance** do `useEffect` — manter apenas a atualização de `previousStepState.current` (para preservar o indicador "done" ✓ nas abas), sem nunca chamar `setActiveStep`.
-2. **Remover o `setActiveStep("confirmar")`** de `handleSelecionarEntregador`. Continua mostrando o toast "Entregador selecionado".
-3. **Reforço visual no stepper** (`VendaStepper`, linhas ~115-167):
-   - Adicionar `title`/`aria-label` "Clique para avançar" nos botões das abas.
-   - Garantir cursor `pointer` e hover mais visível na aba não-ativa quando `onStepClick` está disponível (já existe um hover básico, vamos deixar mais claro).
-4. **(Opcional, recomendado) Toast discreto na primeira vez** que o usuário preenche uma etapa, dizendo "Clique em Produtos para continuar" — só na primeira venda da sessão, usando `sessionStorage`. Posso pular se preferir mantermos só o stepper clicável.
+3. **Foco visível**
+   - Classes Tailwind no botão: `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2` (tokens do design system).
 
-### Fora de escopo
+4. **Preservar**
+   - `title`, `aria-label`, comportamento de clique, layout e estilos atuais permanecem.
 
-- Não mexer em validação, em regras de quais etapas podem ser abertas (`canOpenStep` já libera todas) nem em layout/posição do card.
-- Não mexer no fluxo da view antiga (`useNewView = false`).
+## Fora de escopo
 
-### Arquivos
+- Não alterar validações, auto-advance (já removido), view antiga, ou outros steppers do projeto.
+- Sem mudanças em CSS global.
 
-- `src/pages/vendas/NovaVenda.tsx` (única alteração).
+## Arquivo
 
-## Pergunta antes de implementar
-
-Quer que eu inclua o **toast de dica** ("Clique em Produtos para continuar") na primeira venda da sessão, ou prefere **apenas remover o auto-advance** sem nenhuma dica extra?
+- `src/pages/vendas/NovaVenda.tsx` — apenas o componente `VendaStepper`.
