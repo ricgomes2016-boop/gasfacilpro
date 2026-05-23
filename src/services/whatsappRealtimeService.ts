@@ -136,11 +136,16 @@ export class WhatsAppRealtimeService {
   }
 
   /**
-   * Escutar todas as conversas (para inbox)
+   * Escutar todas as conversas de UMA empresa (para inbox).
+   * O empresaId é OBRIGATÓRIO — proíbe escuta global cross-tenant.
    */
-  subscribeToAllConversations(): void {
-    const channelName = "wa-all-conversations";
-    
+  subscribeToAllConversations(empresaId: string): void {
+    if (!empresaId) {
+      console.warn("[whatsappRealtime] subscribeToAllConversations chamado sem empresaId — ignorando");
+      return;
+    }
+    const channelName = `wa-empresa-${empresaId}`;
+
     if (this.channels.has(channelName)) return;
 
     const channel = supabase
@@ -151,6 +156,7 @@ export class WhatsAppRealtimeService {
           event: "INSERT",
           schema: "public",
           table: "ai_mensagens",
+          filter: `empresa_id=eq.${empresaId}`,
         },
         (payload) => {
           const message = payload.new as RealtimeMessage;
@@ -163,9 +169,9 @@ export class WhatsAppRealtimeService {
           event: "*",
           schema: "public",
           table: "ai_conversas",
+          filter: `empresa_id=eq.${empresaId}`,
         },
         () => {
-          // Notificar que conversas foram atualizadas
           // Handlers podem refetch a lista
         }
       )
