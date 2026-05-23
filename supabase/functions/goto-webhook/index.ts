@@ -13,21 +13,27 @@ serve(async (req) => {
 
   try {
     // Require shared secret to prevent unauthenticated call injection.
+    // Fail-closed: if the secret env var is not configured, reject all requests.
     const expectedSecret = Deno.env.get("GOTO_WEBHOOK_SECRET");
-    if (expectedSecret) {
-      const provided =
-        req.headers.get("x-goto-secret") ||
-        req.headers.get("x-webhook-secret") ||
-        req.headers.get("x-goto-signature") ||
-        req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
-        new URL(req.url).searchParams.get("secret") ||
-        "";
-      if (provided !== expectedSecret) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    if (!expectedSecret) {
+      console.error("[GOTO] GOTO_WEBHOOK_SECRET not configured — rejecting request");
+      return new Response(JSON.stringify({ error: "Webhook not configured" }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const provided =
+      req.headers.get("x-goto-secret") ||
+      req.headers.get("x-webhook-secret") ||
+      req.headers.get("x-goto-signature") ||
+      req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
+      new URL(req.url).searchParams.get("secret") ||
+      "";
+    if (provided !== expectedSecret) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
