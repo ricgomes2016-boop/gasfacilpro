@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import logoImg from "@/assets/logo.png";
+import { SystemFooter } from "@/components/layout/SystemFooter";
 import { useCliente } from "@/contexts/ClienteContext";
 
 interface ClienteLayoutProps {
