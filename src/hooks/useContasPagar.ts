@@ -280,7 +280,7 @@ export function useContasPagar() {
     const total = selecionadasAbertas.reduce((s, c) => s + Number(c.valor), 0);
     setPagamentoEmLoteIds(new Set(selecionadasAbertas.map(c => c.id)));
     setPagarConta({ ...selecionadasAbertas[0], fornecedor: `${selecionadasAbertas.length} contas selecionadas`, descricao: "Pagamento em lote", valor: total });
-    setPagarForm({ formasPagamento: [{ forma: "", valor: String(total) }] });
+    setPagarForm({ formasPagamento: [{ forma: "", valor: String(total), origemTipo: "", origemId: "" }] });
     setPagarDialogOpen(true);
   };
 
