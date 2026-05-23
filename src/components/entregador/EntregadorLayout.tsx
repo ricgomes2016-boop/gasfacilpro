@@ -209,6 +209,7 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
           </button>
         </div>
       </nav>
+      <SystemFooter portalKey="entregador" />
     </div>
   );
 }
