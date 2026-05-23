@@ -111,10 +111,11 @@ export function ContadorPortalLayout({ children }: ContadorPortalLayoutProps) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 md:pb-14">
           {children}
         </main>
       </div>
+      <SystemFooter portalKey="contador" />
     </div>
   );
 }
