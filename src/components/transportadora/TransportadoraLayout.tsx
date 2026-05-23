@@ -7,6 +7,7 @@ import {
   Truck, LayoutDashboard, CarFront, Users, Route, ArrowLeftRight,
   Receipt, Package, Brain, FileBarChart, LogOut, Menu, X, ShoppingCart,
 } from "lucide-react";
+import { SystemFooter } from "@/components/layout/SystemFooter";
 
 const navItems = [
   { to: "/transportadora", icon: LayoutDashboard, label: "Dashboard" },
