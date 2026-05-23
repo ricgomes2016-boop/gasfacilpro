@@ -1,54 +1,67 @@
+## Objetivo
 
-## Problema
+Aplicar a correção de débito bancário às **10 contas já pagas** da unidade **Central Gas** que foram marcadas como pagas antes do novo fluxo existir (todas sem `conta_bancaria_id` e sem movimentação bancária), debitando o valor da conta **Sisprime Cooperativa**.
 
-1. Em **Financeiro › Contas a Pagar**, ao confirmar pagamento de uma conta/boleto, o sistema apenas marca como paga e grava a forma no texto de observações — **não debita** o Caixa da Loja nem a Conta Bancária. Resultado: saldos ficam errados.
-2. Na **Caixa do Dia › Tesouraria**, as contas bancárias aparecem sem indicar se estão "conectadas" (vinculadas/em uso) com o caixa do dia.
+## Escopo
 
-## Solução
+Unidade: Central Gas (`aa5b7c93-4fe6-4dba-a0b5-2af43cd20614`)
+Conta destino do débito: **Sisprime** (`b073d858-e3ff-4227-bc75-28611f32b41b`) — saldo atual R$ 157.544,70
+Total a debitar: **R$ 273.077,95** em 10 lançamentos.
 
-### 1. Diálogo "Pagar Conta" passa a perguntar a origem do dinheiro
+Contas afetadas (id / descrição / valor):
 
-No modal de pagamento (`ContasPagar.tsx` + `useContasPagar.ts`), cada linha de **forma de pagamento** ganha um seletor extra **"Sair de"**:
+- 87e86989 — Acerto Combustível AUTO POSTO CENTRO — R$ 714,55
+- 7dbbb060 — Compra NF 1603 Nacional Gas — R$ 47.412,00
+- c79b808d — Reaviso água/esgoto 01/2026 — R$ 27,26
+- 5d76ded8 — Compra NF 12 Nacional Gas — R$ 51.437,04
+- 188a9d2a — Acerto Combustível AUTO POSTO PANORAMA — R$ 2.413,12
+- e68e67cd — Conta água/esgoto 02/2026 — R$ 208,09
+- 11b87dfb — Compra NF S/N Nacional Gas — R$ 47.412,00
+- 3a26c207 — Compra NF S/N Nacional Gas — R$ 48.924,00
+- 486b98c0 — Fatura Claro — R$ 450,30
+- 798ee803 — Compra NF S/N Nacional Gas — R$ 74.079,59
 
-- Se a forma for **Dinheiro** → seletor lista o **Caixa da Loja** (unidade atual).
-- Se for **PIX / Transferência / Débito / Boleto / Cheque** → seletor lista as **Contas Bancárias ativas** da unidade.
-- Se for **Cartão de Crédito** → seletor lista os cartões cadastrados (gera `contas_pagar` da fatura, sem mexer em saldo agora).
+> Atenção: após o débito, o saldo do **Sisprime ficaria negativo** (157.544,70 − 273.077,95 = **−115.533,25**). Confirme se é isso mesmo ou se parte das contas saiu de outra conta (Itaú, Pagbank, Caixa da Empresa).
 
-Validação: campo "Sair de" obrigatório antes de confirmar.
+## Execução (script único, transacional)
 
-### 2. `handlePagar` registra as movimentações reais
+Para cada uma das 10 contas:
 
-Ao confirmar:
+1. Inserir linha em `movimentacoes_bancarias`:
+   - `conta_bancaria_id = Sisprime`
+   - `tipo = 'saida'`, `valor = -<valor>` (sinal coerente com o restante da base)
+   - `data = COALESCE(data_pagamento, created_at::date)`
+   - `categoria = 'Pagamento de Conta'`
+   - `descricao = 'Pagamento retroativo - ' || descricao_conta`
+   - `origem = 'contas_pagar'`, `referencia_id = <id da conta>`, `referencia_tipo = 'contas_pagar'`
+   - `unidade_id = Central Gas`
+   - `saldo_apos` calculado em cadeia (saldo Sisprime atual menos somatório acumulado).
+2. Atualizar `contas_pagar`:
+   - `conta_bancaria_id = Sisprime`
+   - `forma_pagamento = 'pix'` (forma padrão para saída de banco; ajustável)
+   - `data_pagamento = COALESCE(data_pagamento, created_at::date)` quando nulo
+   - `observacoes` recebe nota: "Origem do pagamento ajustada retroativamente para Sisprime em 2026-05-23".
+3. Atualizar `contas_bancarias.saldo_atual` do Sisprime: `saldo_atual − 273.077,95`.
 
-- **Dinheiro** → cria `movimentacoes_caixa` (tipo `saida`, categoria "Pagamento de Conta", `unidade_id`, descrição com fornecedor e nº doc). O saldo do Caixa do Dia já é calculado a partir dessa tabela.
-- **Banco/PIX/Boleto/etc.** → cria `movimentacoes_bancarias` (tipo `saida`, `conta_bancaria_id`, `valor`, descrição, `origem='contas_pagar'`, `referencia_id=<id da conta>`) e debita `contas_bancarias.saldo_atual` (na mesma transação, via RPC para evitar inconsistência).
-- Em pagamentos parciais e em lote, segue o mesmo princípio (uma movimentação por linha de forma).
-- Grava em `contas_pagar`: `data_pagamento`, `conta_bancaria_id` (quando aplicável) e `forma_pagamento` estruturada além das observações.
+Tudo dentro de uma única transação via `supabase--insert` (BEGIN/COMMIT implícito do statement único com CTEs) para garantir consistência. Não cria migração — é correção de dados.
 
-### 3. Caixa do Dia › Tesouraria mostra status de conexão
+## Critérios de aceite
 
-No card **Contas Bancárias** da aba Tesouraria (`CaixaDia.tsx`):
+- Sisprime mostra 10 novas saídas no extrato (Caixa do Dia › Tesouraria e tela de Contas Bancárias).
+- `saldo_atual` do Sisprime reduz exatamente em R$ 273.077,95.
+- As 10 contas em Contas a Pagar passam a exibir "Pago via Sisprime" e ficam vinculadas (`conta_bancaria_id` preenchido).
+- Nenhuma outra unidade é afetada.
 
-- Para cada conta, adicionar badge **"Conectada"** (verde) quando houver pelo menos 1 movimentação no dia OU quando a conta estiver marcada como ativa e vinculada à unidade.
-- Mostrar também, abaixo do nome, as últimas movimentações do dia daquela conta (entrada/saída) com origem (ex.: "Pagamento Enel – R$ 250,00").
-- Botão "Ver extrato" abre a página `ContasBancarias` filtrada pela conta.
+## Fora de escopo
 
-### Detalhes técnicos
+- Demais unidades (Temgas etc.).
+- Contas pagas que já tenham `conta_bancaria_id` definido (não serão tocadas).
+- Estorno/rollback automático (caso necessário, será feito manualmente).
 
-- **Tabelas envolvidas**: `contas_pagar`, `contas_bancarias`, `movimentacoes_caixa`, `movimentacoes_bancarias`.
-- **Migração**: adicionar coluna `conta_bancaria_id uuid` em `contas_pagar` (FK para `contas_bancarias`, nullable) caso ainda não exista; e `forma_pagamento text`.
-- **RPC** `pagar_conta_pagar(p_conta_id, p_pagamentos jsonb)` em SECURITY DEFINER: recebe lista `[{forma, valor, origem_id, origem_tipo}]`, cria as movimentações, atualiza saldos e marca a conta como paga/parcial em uma única transação. Isola por `empresa_id` via `get_user_empresa_id`.
-- **Frontend**: refatorar `pagarForm` para `{forma, valor, origemTipo: 'caixa'|'banco'|'cartao', origemId}`. Carregar listas via hooks já existentes (`useContasBancarias`).
-- **Tesouraria**: enriquecer `fetchTesouraria` para trazer `movimentacoes_bancarias` do dia agrupadas por `conta_bancaria_id` e calcular status "Conectada".
+## Pergunta antes de executar
 
-### Critérios de aceite
+O saldo do Sisprime hoje (R$ 157.544,70) não cobre os R$ 273.077,95. Quero confirmar:
 
-- Pagar uma conta de R$ 100 em **Dinheiro** reduz o Saldo do Caixa do Dia em R$ 100 e gera linha em "Movimentações".
-- Pagar uma conta de R$ 500 em **PIX** pela conta "Itaú PJ" reduz `saldo_atual` da Itaú em R$ 500 e aparece no extrato bancário.
-- Pagamento parcial e em lote seguem a mesma regra (cada linha de forma vira uma movimentação).
-- Aba Tesouraria mostra badge **Conectada** + últimas movimentações do dia por conta bancária.
-
-### Fora de escopo
-
-- Conciliação automática com extrato OFX/Open Finance.
-- Estorno de pagamento (será tratado em iteração futura).
+1. **Debitar tudo no Sisprime mesmo** (saldo ficará negativo, refletindo a realidade contábil)?
+2. Ou **dividir** algumas contas em outras contas (Itaú, Pagbank, Caixa da Empresa)?
+3. Ou **ajustar primeiro o saldo inicial** do Sisprime para refletir o saldo bancário real antes do débito?
