@@ -670,29 +670,15 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     : "confirmar";
 
   useEffect(() => {
-    const current = {
+    // Navegação entre etapas é 100% manual via clique nas abas do stepper.
+    // Apenas mantemos previousStepState atualizado para preservar o indicador "done" (✓).
+    previousStepState.current = {
       cliente: clientePreenchido,
       produtos: produtosPreenchidos,
       pagamento: pagamentoPreenchido,
       entregador: entregadorPreenchido,
     };
-
-    if (!useNewView) {
-      previousStepState.current = current;
-      return;
-    }
-
-    const previous = previousStepState.current;
-    let nextStep: VendaStepId | null = null;
-
-    if (!previous.cliente && current.cliente && activeStep === "cliente") nextStep = "produtos";
-    else if (!previous.produtos && current.produtos && activeStep === "produtos") nextStep = "pagamento";
-    else if (!previous.pagamento && current.pagamento && activeStep === "pagamento") nextStep = "entregador";
-    else if (!previous.entregador && current.entregador && activeStep === "entregador") nextStep = "confirmar";
-
-    previousStepState.current = current;
-    if (nextStep) setActiveStep(nextStep);
-  }, [useNewView, activeStep, clientePreenchido, produtosPreenchidos, pagamentoPreenchido, entregadorPreenchido]);
+  }, [clientePreenchido, produtosPreenchidos, pagamentoPreenchido, entregadorPreenchido]);
 
   const canOpenStep = (step: VendaStepId) => {
     return VENDA_STEPS.includes(step);
