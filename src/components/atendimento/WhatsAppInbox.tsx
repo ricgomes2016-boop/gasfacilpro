@@ -929,10 +929,10 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
         ) : (
           <>
             {/* Chat Header */}
-            <div className="h-[60px] bg-[#f0f2f5] flex items-center px-4 gap-3 border-b border-[#e9edef] flex-shrink-0">
+            <div className="min-h-[64px] bg-gradient-to-r from-[#f0f2f5] to-[#f5f7f6] flex items-center px-3 md:px-4 gap-2 md:gap-3 border-b border-[#e9edef] flex-shrink-0 py-2">
               {/* Back button (mobile) */}
               <button
-                className="md:hidden p-1 rounded-full hover:bg-[#e9edef] mr-1"
+                className="md:hidden p-1.5 rounded-full hover:bg-white mr-0.5 flex-shrink-0"
                 onClick={() => setSelectedId(null)}
               >
                 <ArrowLeft className="h-5 w-5 text-[#54656f]" />
@@ -941,31 +941,80 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
               {/* Contact Avatar + Info — clicável abre painel */}
               <button
                 onClick={() => setContactPanelOpen(true)}
-                className="flex items-center gap-3 flex-1 min-w-0 text-left hover:bg-[#e9edef] -mx-1 px-1 py-1 rounded transition-colors"
+                className="flex items-center gap-3 flex-1 min-w-0 text-left hover:bg-white/60 px-1.5 py-1 rounded-lg transition-colors"
               >
                 <ChatAvatar url={selectedConversa?.foto_url} name={selectedConversa?.titulo || "??"} size="sm" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[#111b21] text-base font-normal truncate">
-                    {selectedConversa?.titulo}
-                  </p>
-                  <p className={cn(
-                    "text-xs",
-                    profileSyncStatus === "offline" ? "text-[#b54708]" : "text-[#667781]"
-                  )}>
-                    {profileSyncStatus === "syncing" && "atualizando foto…"}
-                    {profileSyncStatus === "offline" && "sem conexão com WhatsApp — usando avatar padrão"}
-                    {profileSyncStatus === "idle" && "online"}
-                  </p>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <p className="text-[#111b21] text-[15px] font-semibold truncate">
+                      {selectedConversa?.titulo}
+                    </p>
+                    {selectedId && (clienteByConv[selectedId] ? (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-px rounded-full bg-[#0288d1]/15 text-[#0277bd] border border-[#0288d1]/25 flex-shrink-0">
+                        <User className="h-2.5 w-2.5" />
+                        Cliente vinculado
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-px rounded-full bg-[#fef0c7] text-[#b54708] border border-[#fdb022]/40 flex-shrink-0">
+                        <AlertCircle className="h-2.5 w-2.5" />
+                        Não vinculado
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 text-[11.5px] mt-0.5">
+                    {selectedConversa?.telefone && (
+                      <span className="text-[#54656f] font-medium tabular-nums">{selectedConversa.telefone}</span>
+                    )}
+                    <span className={cn(
+                      "inline-flex items-center gap-1",
+                      profileSyncStatus === "offline" ? "text-[#b54708]" : "text-[#667781]"
+                    )}>
+                      <span className={cn(
+                        "h-1.5 w-1.5 rounded-full",
+                        profileSyncStatus === "offline" ? "bg-[#b54708]" : profileSyncStatus === "syncing" ? "bg-[#fdb022] animate-pulse" : "bg-[#25d366]"
+                      )} />
+                      {profileSyncStatus === "syncing" && "atualizando…"}
+                      {profileSyncStatus === "offline" && "sem conexão"}
+                      {profileSyncStatus === "idle" && "online"}
+                    </span>
+                  </div>
                 </div>
               </button>
 
-              {/* Header Actions */}
-              <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors">
+              {/* Header Actions - Vincular/Editar atalho */}
+              {selectedId && (clienteByConv[selectedId] ? (
+                <button
+                  onClick={openEditCliente}
+                  title="Editar cliente"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-[#e9edef] text-[12px] font-semibold text-[#54656f] hover:bg-[#f5f6f6] hover:border-[#0288d1]/40 hover:text-[#0277bd] transition-all"
+                >
+                  <UserCog className="h-3.5 w-3.5" />
+                  Editar
+                </button>
+              ) : (
+                <button
+                  onClick={handleOpenLinkDialog}
+                  title="Vincular cliente"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#00a884] text-white text-[12px] font-semibold shadow-sm shadow-[#00a884]/25 hover:bg-[#008f72] transition-all"
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Vincular
+                </button>
+              ))}
+
+              <button
+                onClick={() => setContactPanelOpen(true)}
+                title="Ver detalhes"
+                className="p-2 rounded-full hover:bg-white transition-colors"
+              >
+                <User className="h-5 w-5 text-[#54656f]" />
+              </button>
+              <button className="p-2 rounded-full hover:bg-white transition-colors" title="Buscar na conversa">
                 <Search className="h-5 w-5 text-[#54656f]" />
               </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors" aria-label="Mais opções">
+                  <button className="p-2 rounded-full hover:bg-white transition-colors" aria-label="Mais opções">
                     <MoreVertical className="h-5 w-5 text-[#54656f]" />
                   </button>
                 </DropdownMenuTrigger>
@@ -985,8 +1034,8 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                     className="text-destructive focus:text-destructive"
                     onClick={() => selectedId && setConfirmDeleteId(selectedId)}
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Apagar conversa
+                    <Archive className="h-4 w-4 mr-2" />
+                    Arquivar conversa
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
