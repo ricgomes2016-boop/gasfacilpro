@@ -14,11 +14,76 @@ interface WhatsAppNotificationContextValue {
   setSelectedConversaId: (id: string | null) => void;
   setWidgetOpen: (open: boolean) => void;
   markAsRead: (conversaId: string) => void;
+  requestNotificationPermission: () => Promise<NotificationPermission | "unsupported">;
 }
 
 const Ctx = createContext<WhatsAppNotificationContextValue | undefined>(undefined);
 
 const LS_PREFIX = "wa_last_read_";
+const NOTIFIED_PREFIX = "wa_notified_msg_";
+
+function supportsBrowserNotifications(): boolean {
+  return typeof window !== "undefined" && "Notification" in window;
+}
+
+function isWindowVisibleAndFocused(): boolean {
+  if (typeof document === "undefined") return false;
+  const visible = document.visibilityState === "visible";
+  let focused = true;
+  try { focused = document.hasFocus(); } catch { focused = true; }
+  return visible && focused;
+}
+
+async function requestNotificationPermission(): Promise<NotificationPermission | "unsupported"> {
+  if (!supportsBrowserNotifications()) return "unsupported";
+  if (Notification.permission === "granted" || Notification.permission === "denied") {
+    return Notification.permission;
+  }
+  try {
+    return await Notification.requestPermission();
+  } catch {
+    return Notification.permission;
+  }
+}
+
+async function showBrowserNotification(title: string, body: string, conversaId: string) {
+  if (!supportsBrowserNotifications()) return;
+  if (Notification.permission !== "granted") return;
+  const data = { url: "/atendimento/caixa-de-entrada", conversaId };
+  try {
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, {
+        body,
+        icon: "/favicon.ico",
+        badge: "/favicon.ico",
+        tag: `wa-msg-${conversaId}`,
+        renotify: true,
+        data,
+      } as NotificationOptions);
+      return;
+    }
+  } catch {}
+  try {
+    const n = new Notification(title, {
+      body,
+      icon: "/favicon.ico",
+      tag: `wa-msg-${conversaId}`,
+      data,
+    } as NotificationOptions);
+    n.onclick = () => {
+      try { window.focus(); } catch {}
+      try {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("wa-open-conversa", { detail: { conversaId } }));
+        }
+      } catch {}
+      n.close();
+    };
+    setTimeout(() => { try { n.close(); } catch {} }, 10000);
+  } catch {}
+}
+
 
 function playBeep() {
   try {
