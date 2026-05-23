@@ -640,7 +640,7 @@ serve(async (req) => {
           numero_entrega: numero || null,
           bairro_entrega: bairro || null,
           cep_entrega: cep || null,
-          observacoes: `Pedido criado pela Bia (IA por telefone). ${referencia ? "Ref: " + referencia : ""}`,
+          observacoes: `Pedido criado pela Bia (IA por telefone).${aplicarDesconto ? " [Preço com desconto aplicado]" : ""} ${referencia ? "Ref: " + referencia : ""}`,
         })
         .select("id, numero_sequencial")
         .single();
