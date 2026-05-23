@@ -258,6 +258,46 @@ serve(async (req) => {
   const safeFrom = from.startsWith("+") ? from : `+${from.replace(/\D/g, "")}`;
   const safeTo = to.startsWith("+") ? to : `+${to.replace(/\D/g, "")}`;
 
+  // Carrega tabela oficial de preços (configuracoes_empresa.regras_bia.tabela_precos)
+  // para injetar como dynamic_variables. Sem isso, o prompt fica com {{preco_*}}
+  // vazio e o modelo alucina valores (ex.: R$ 102 quando o real é R$ 125).
+  const precoVars: Record<string, string> = {
+    preco_gas_p13: "",
+    preco_gas_p13_desconto: "",
+    preco_gas_p20: "",
+    preco_gas_p20_desconto: "",
+    preco_gas_p45: "",
+    preco_gas_p45_desconto: "",
+    preco_agua_20l: "",
+    preco_agua_20l_desconto: "",
+  };
+  if (empresaId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const { data: cfg } = await supabase
+        .from("configuracoes_empresa")
+        .select("regras_bia")
+        .eq("empresa_id", empresaId)
+        .maybeSingle();
+      const tp = (cfg?.regras_bia as any)?.tabela_precos || {};
+      const fmt = (n: any) => {
+        const v = Number(n);
+        return v > 0 ? v.toFixed(2).replace(".", ",") : "";
+      };
+      precoVars.preco_gas_p13 = fmt(tp.gas_p13?.preco);
+      precoVars.preco_gas_p13_desconto = fmt(tp.gas_p13?.preco_desconto);
+      precoVars.preco_gas_p20 = fmt(tp.gas_p20?.preco);
+      precoVars.preco_gas_p20_desconto = fmt(tp.gas_p20?.preco_desconto);
+      precoVars.preco_gas_p45 = fmt(tp.gas_p45?.preco);
+      precoVars.preco_gas_p45_desconto = fmt(tp.gas_p45?.preco_desconto);
+      precoVars.preco_agua_20l = fmt(tp.agua_20l?.preco);
+      precoVars.preco_agua_20l_desconto = fmt(tp.agua_20l?.preco_desconto);
+      console.log("[TWILIO-VOICE] dynamic preço vars:", precoVars);
+    } catch (e) {
+      console.error("[TWILIO-VOICE] erro carregando tabela_precos:", e);
+    }
+  }
+
   const twiml = await registerElevenLabsTwilioCall(ELEVENLABS_AGENT_ID, safeFrom, safeTo, {
     caller_phone: callerConfiavel ? from : "",
     caller_confiavel: callerConfiavel ? "true" : "false",
@@ -266,6 +306,7 @@ serve(async (req) => {
     empresa_id: empresaId ?? "",
     empresa_nome: empresaNome,
     unidade_id: unidadeId ?? "",
+    ...precoVars,
   });
 
   if (!twiml) {

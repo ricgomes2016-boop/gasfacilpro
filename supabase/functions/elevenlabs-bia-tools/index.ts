@@ -214,20 +214,25 @@ serve(async (req) => {
     if (action === "consultar_precos") {
       const tp = await getTabelaPrecosBia();
       const itens = [
-        { nome: "Gás P13", preco: tp.gas_p13.preco },
-        { nome: "Gás P20", preco: tp.gas_p20.preco },
-        { nome: "Gás P45", preco: tp.gas_p45.preco },
-        { nome: "Água Mineral 20L", preco: tp.agua_20l.preco },
+        { nome: "Gás P13", preco: tp.gas_p13.preco, preco_desconto: tp.gas_p13.preco_desconto },
+        { nome: "Gás P20", preco: tp.gas_p20.preco, preco_desconto: tp.gas_p20.preco_desconto },
+        { nome: "Gás P45", preco: tp.gas_p45.preco, preco_desconto: tp.gas_p45.preco_desconto },
+        { nome: "Água Mineral 20L", preco: tp.agua_20l.preco, preco_desconto: tp.agua_20l.preco_desconto },
       ].filter((i) => i.preco > 0);
 
+      const fmt = (n: number) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
       const lista = itens
-        .map((i) => `${i.nome}: R$ ${i.preco.toFixed(2).replace(".", ",")}`)
+        .map((i) =>
+          i.preco_desconto && i.preco_desconto > 0 && i.preco_desconto < i.preco
+            ? `${i.nome}: ${fmt(i.preco)} (com desconto ${fmt(i.preco_desconto)})`
+            : `${i.nome}: ${fmt(i.preco)}`
+        )
         .join("; ");
 
       return ok({
         precos: itens,
         mensagem: itens.length
-          ? `Preços oficiais da tabela: ${lista}. Use SEMPRE estes valores. NUNCA invente preços.`
+          ? `Tabela oficial de preços: ${lista}. REGRAS: (1) Cote SEMPRE o preço NORMAL primeiro. (2) Só ofereça o preço com desconto se o cliente pedir desconto, perguntar "tem desconto?", citar concorrência ou hesitar. (3) NUNCA invente valores — use exclusivamente os números desta lista.`
           : "Tabela de preços não configurada. Peça ao cliente um momento e avise o gestor.",
       });
     }
@@ -302,12 +307,35 @@ serve(async (req) => {
       const last = telefone.slice(-11);
       const last10b = telefone.slice(-10);
 
-      const { data: clientes } = await supabase
-        .from("clientes")
-        .select("id, nome, telefone, endereco, numero, bairro, cidade, cep")
-        .eq("empresa_id", empresa.id)
-        .or(`telefone.ilike.%${last}%,telefone.ilike.%${last10b}%`)
-        .limit(1);
+      // Busca cliente + tabela de preços em paralelo (envia preços no 1º turno).
+      const [clientesRes, tp] = await Promise.all([
+        supabase
+          .from("clientes")
+          .select("id, nome, telefone, endereco, numero, bairro, cidade, cep")
+          .eq("empresa_id", empresa.id)
+          .or(`telefone.ilike.%${last}%,telefone.ilike.%${last10b}%`)
+          .limit(1),
+        getTabelaPrecosBia(),
+      ]);
+      const clientes = clientesRes.data;
+
+      const fmtMoeda = (n: number) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
+      const linhasPrecos = [
+        { nome: "Gás P13", ...tp.gas_p13 },
+        { nome: "Gás P20", ...tp.gas_p20 },
+        { nome: "Gás P45", ...tp.gas_p45 },
+        { nome: "Água Mineral 20L", ...tp.agua_20l },
+      ]
+        .filter((i) => i.preco > 0)
+        .map((i) =>
+          i.preco_desconto && i.preco_desconto > 0 && i.preco_desconto < i.preco
+            ? `${i.nome} ${fmtMoeda(i.preco)} (desconto ${fmtMoeda(i.preco_desconto)})`
+            : `${i.nome} ${fmtMoeda(i.preco)}`
+        )
+        .join("; ");
+      const blocoPrecos = linhasPrecos
+        ? ` TABELA OFICIAL DE PREÇOS: ${linhasPrecos}. Use EXCLUSIVAMENTE estes valores. Cote primeiro o preço NORMAL; só ofereça o preço com desconto se o cliente pedir desconto. NUNCA invente valores.`
+        : "";
 
       await upsertChamadaBia(supabase, unidade.id, {
         telefone,
@@ -330,18 +358,23 @@ serve(async (req) => {
           numero: c.numero,
           bairro: c.bairro,
           cidade: c.cidade,
+          tabela_precos: tp,
           mensagem:
             `Cliente identificado: ${c.nome}. Endereço cadastrado: ${enderecoFmt}. ` +
             `CONFIRME EM UMA ÚNICA FRASE CURTA: "Confirma a entrega na ${c.endereco || "rua cadastrada"}, número ${c.numero || "[peça o número]"}?". ` +
             `Se o cliente disser SIM/ISSO/CORRETO/IGUAL/MESMO LUGAR, chame criar_pedido passando APENAS cliente_id (NÃO envie endereco/numero/bairro novos — eu uso o cadastro). ` +
             `Só pergunte rua/número/bairro se o cliente disser EXPLICITAMENTE que mudou ou que é entrega em outro lugar. ` +
-            `NUNCA crie cliente novo: este já existe.`,
+            `NUNCA crie cliente novo: este já existe.` +
+            blocoPrecos,
         });
       }
 
       return ok({
         encontrado: false,
-        mensagem: "Cliente novo. Peça apenas o PRIMEIRO NOME (não o nome completo) e o endereço (rua, número, bairro).",
+        tabela_precos: tp,
+        mensagem:
+          "Cliente novo. Peça apenas o PRIMEIRO NOME (não o nome completo) e o endereço (rua, número, bairro)." +
+          blocoPrecos,
       });
     }
 
@@ -354,7 +387,13 @@ serve(async (req) => {
         produto,
         quantidade,
         forma_pagamento,
+        usar_desconto,
       } = body;
+      const aplicarDesconto =
+        usar_desconto === true ||
+        usar_desconto === "true" ||
+        usar_desconto === 1 ||
+        usar_desconto === "1";
       let { endereco, numero, bairro, cep, referencia } = body;
 
       if (!produto) return err("Produto é obrigatório");
@@ -485,9 +524,17 @@ serve(async (req) => {
       if (!prod) return err(`Produto ${nomeProduto} não cadastrado na unidade`);
 
       // Preço: tabela das Regras da Bia > preco_telefone > preco
+      // Se a Bia passar usar_desconto=true, usa o preco_desconto da tabela.
       let precoUnitario = 0;
       const chaveTab = chaveTabelaParaProduto(nomeProduto);
-      if (chaveTab) precoUnitario = Number(tabelaPrecos[chaveTab]?.preco || 0);
+      if (chaveTab) {
+        const linha = tabelaPrecos[chaveTab];
+        if (aplicarDesconto && Number(linha?.preco_desconto) > 0) {
+          precoUnitario = Number(linha.preco_desconto);
+        } else {
+          precoUnitario = Number(linha?.preco || 0);
+        }
+      }
       if (!precoUnitario) precoUnitario = Number(prod.preco_telefone || prod.preco || 0);
 
       const qty = Math.max(1, Number(qtdInput) || 1);
@@ -593,7 +640,7 @@ serve(async (req) => {
           numero_entrega: numero || null,
           bairro_entrega: bairro || null,
           cep_entrega: cep || null,
-          observacoes: `Pedido criado pela Bia (IA por telefone). ${referencia ? "Ref: " + referencia : ""}`,
+          observacoes: `Pedido criado pela Bia (IA por telefone).${aplicarDesconto ? " [Preço com desconto aplicado]" : ""} ${referencia ? "Ref: " + referencia : ""}`,
         })
         .select("id, numero_sequencial")
         .single();
