@@ -204,16 +204,18 @@ export default function VendaAntecipada() {
 
   const handlePrintAll = () => {
     const w = window.open("", "_blank"); if (!w) return;
+    const _esc = (v: unknown) => v === null || v === undefined ? "" : String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     const cards = vales.map((v: any) => {
+      // SVG comes from QRCode lib (trusted DOM), not user input
       const svg = document.getElementById(`qr-${v.id}`)?.outerHTML || "";
       return `<div class="card">
         <div class="logo">🔥 Vale</div>
         ${svg}
-        <div class="num">Nº ${detalheVA.numero_sequencial}-${String(v.numero).padStart(2,"0")}</div>
-        <div class="cod">${v.codigo}</div>
-        <div class="prod">${v.produto_nome}</div>
+        <div class="num">Nº ${_esc(detalheVA.numero_sequencial)}-${String(v.numero).padStart(2,"0")}</div>
+        <div class="cod">${_esc(v.codigo)}</div>
+        <div class="prod">${_esc(v.produto_nome)}</div>
         <div class="val">R$ ${Number(v.valor_unitario).toFixed(2)}</div>
-        <div class="cli">${detalheVA.cliente_nome}</div>
+        <div class="cli">${_esc(detalheVA.cliente_nome)}</div>
       </div>`;
     }).join("");
     w.document.write(`<!DOCTYPE html><html><head><title>Vales</title><style>

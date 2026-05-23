@@ -27,6 +27,16 @@ serve(async (req) => {
     const body = await req.json();
     console.log("Z-API webhook:", JSON.stringify(body).substring(0, 800));
 
+    // Authenticate webhook: if a security_token is configured on the integration,
+    // require it on the incoming request (via header or query string). Z-API
+    // sends it in the "Client-Token" / "Security-Token" headers.
+    const incomingToken =
+      req.headers.get("client-token") ||
+      req.headers.get("security-token") ||
+      req.headers.get("x-security-token") ||
+      new URL(req.url).searchParams.get("security_token") ||
+      "";
+
     // Skip own messages and non-messages
     if (body.fromMe === true) return OK({ ok: true, skipped: "fromMe" });
     const isAudio = body.type === "audio" || body.type === "ptt" || body.isAudio === true || !!body.audio || !!body.audioMessage;
@@ -85,6 +95,15 @@ serve(async (req) => {
         unidadeId: null, descontoEtapa1: 5, descontoEtapa2: 10,
         precoMinimoP13: null, precoMinimoP20: null, provedor: "zapi",
       };
+    }
+
+    // Enforce security token if configured (defense against fake inbound messages)
+    if (finalConfig.securityToken && incomingToken !== finalConfig.securityToken) {
+      console.warn("Z-API webhook: invalid or missing security token");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const normalized = normalizePhone(phone);

@@ -47,6 +47,22 @@ serve(async (req) => {
       return OK({ ok: true, skipped: "config_not_found" });
     }
 
+    // Validate webhook secret against whatsapp_gateway_instances.webhook_secret
+    const incomingSecret = req.headers.get("x-webhook-secret") || "";
+    const { data: gwInstance } = await supabase
+      .from("whatsapp_gateway_instances")
+      .select("webhook_secret")
+      .eq("instance_name", instanceName)
+      .maybeSingle();
+    const expectedSecret = gwInstance?.webhook_secret || null;
+    if (expectedSecret && incomingSecret !== expectedSecret) {
+      console.warn("Gateway webhook: invalid or missing x-webhook-secret for instance", instanceName);
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const normalized = normalizePhone(phone);
     const conversationId = await generateUUIDFromString(`whatsapp_${normalized}`);
 

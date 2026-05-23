@@ -53,6 +53,23 @@ serve(async (req) => {
       return OK({ ok: true, skipped: "no_config" });
     }
 
+    // Enforce instance token: Evolution forwards apikey/Authorization header on webhooks.
+    // If we have a token stored for this instance, require it.
+    const incomingToken =
+      req.headers.get("apikey") ||
+      req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
+      req.headers.get("x-evolution-apikey") ||
+      url.searchParams.get("apikey") ||
+      "";
+    const expectedToken = (config as any).instanciaToken || (config as any).token || null;
+    if (expectedToken && incomingToken !== expectedToken) {
+      console.warn("Evolution webhook: invalid or missing instance token");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Extract text from various message types (conversation, extendedTextMessage, imageMessage, etc.)
     let messageText = payload.message?.conversation || 
                        payload.message?.extendedTextMessage?.text || 
