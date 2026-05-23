@@ -196,16 +196,17 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
           .in("conversa_id", ids)
           .order("created_at", { ascending: false })
           .limit(500);
-        const lastByConv = new Map<string, { role: string; content: string }>();
+        const lastByConv = new Map<string, { role: string; content: string; created_at: string }>();
         (msgs || []).forEach((m: any) => {
           if (!lastByConv.has(m.conversa_id)) {
-            lastByConv.set(m.conversa_id, { role: m.role, content: m.content });
+            lastByConv.set(m.conversa_id, { role: m.role, content: m.content, created_at: m.created_at });
           }
         });
         convs.forEach((c) => {
           const last = lastByConv.get(c.id);
           c.last_message = last?.content || null;
           c.last_role = last?.role || null;
+          c.last_message_at = last?.created_at || null;
         });
       }
 
