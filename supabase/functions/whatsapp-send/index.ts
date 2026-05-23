@@ -36,7 +36,7 @@ serve(async (req) => {
       userRoles = (roles || []).map((r: any) => r.role);
       const allowed = ["super_admin", "admin", "gestor", "operacional", "financeiro"];
       if (!userRoles.some((r) => allowed.includes(r))) {
-        return json(403, { ok: false, error: "forbidden_role" });
+        return json(200, { ok: false, error: "Usuário sem permissão para enviar mensagens (forbidden_role)" });
       }
     }
 
