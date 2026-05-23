@@ -390,7 +390,7 @@ serve(async (req) => {
     const { messages, unidade_id } = await req.json();
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -399,6 +399,35 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    // Validate JWT before doing anything privileged
+    const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await callerClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Require a privileged role to use the AI assistant (it can read all tenant data
+    // and perform mutations via the service role key).
+    const allowedRoles = ["admin", "gestor", "super_admin", "financeiro", "operacional"];
+    const { data: roleRows } = await callerClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userData.user.id);
+    const hasAllowedRole = (roleRows || []).some((r: any) => allowedRoles.includes(r.role));
+    if (!hasAllowedRole) {
+      return new Response(JSON.stringify({ error: "Acesso negado: requer perfil administrativo." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
