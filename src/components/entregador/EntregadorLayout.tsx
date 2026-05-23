@@ -28,6 +28,7 @@ import { useGeoTracking, GeoTrackingState } from "@/hooks/useGeoTracking";
 import { GpsPermissionBanner } from "./GpsPermissionBanner";
 import { TrackingStatusCard } from "./TrackingStatusCard";
 import { PendingDeliveriesBanner } from "./PendingDeliveriesBanner";
+import { SystemFooter } from "@/components/layout/SystemFooter";
 import { ChatBase } from "./ChatBase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
