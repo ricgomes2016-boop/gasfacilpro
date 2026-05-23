@@ -186,8 +186,9 @@ export function AdminLayout({ children }: { children: ReactNode }) {
           </div>
         )}
 
-        <main className="flex-1 p-4 md:p-8 overflow-auto">{children}</main>
+        <main className="flex-1 p-4 md:p-8 md:pb-14 overflow-auto">{children}</main>
       </div>
+      <SystemFooter portalKey="painel" />
     </div>
   );
 }
