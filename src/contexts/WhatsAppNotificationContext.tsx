@@ -178,9 +178,13 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
         { event: "INSERT", schema: "public", table: "ai_mensagens" },
         async (payload) => {
           const msg = payload.new as any;
-          if (!msg?.conversa_id) return;
+          if (!msg?.id || !msg?.conversa_id) return;
           // Only count incoming (not assistant/human/system)
           if (msg.role === "assistant" || msg.role === "human" || msg.role === "system") return;
+
+          const msgId = String(msg.id);
+          const notifiedKey = NOTIFIED_PREFIX + msgId;
+          if (localStorage.getItem(notifiedKey)) return;
 
           const convId = msg.conversa_id as string;
 
@@ -192,8 +196,11 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
             .maybeSingle();
           if (!conversaNoEscopo(conv)) return;
 
+          try { localStorage.setItem(notifiedKey, "1"); } catch {}
+
+          const windowVisibleFocused = isWindowVisibleAndFocused();
           const isOpenInWidget = openRef.current && selectedRef.current === convId;
-          if (isOpenInWidget) {
+          if (isOpenInWidget && windowVisibleFocused) {
             localStorage.setItem(LS_PREFIX + convId, new Date().toISOString());
             return;
           }
@@ -206,7 +213,12 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
           const preview = String(msg.content || "").slice(0, 80);
           toast(`💬 ${title}`, { description: preview, duration: 5000 });
           playBeep();
+
+          if (!windowVisibleFocused && supportsBrowserNotifications() && Notification.permission === "granted") {
+            showBrowserNotification(`💬 ${title}`, preview, convId);
+          }
         }
+
       )
       .subscribe();
 
