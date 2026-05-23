@@ -40,6 +40,7 @@ interface Conversa {
   unidade_id?: string | null;
   last_message?: string | null;
   last_role?: string | null;
+  last_message_at?: string | null;
 }
 
 interface MensagemMetadata {
@@ -195,16 +196,17 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
           .in("conversa_id", ids)
           .order("created_at", { ascending: false })
           .limit(500);
-        const lastByConv = new Map<string, { role: string; content: string }>();
+        const lastByConv = new Map<string, { role: string; content: string; created_at: string }>();
         (msgs || []).forEach((m: any) => {
           if (!lastByConv.has(m.conversa_id)) {
-            lastByConv.set(m.conversa_id, { role: m.role, content: m.content });
+            lastByConv.set(m.conversa_id, { role: m.role, content: m.content, created_at: m.created_at });
           }
         });
         convs.forEach((c) => {
           const last = lastByConv.get(c.id);
           c.last_message = last?.content || null;
           c.last_role = last?.role || null;
+          c.last_message_at = last?.created_at || null;
         });
       }
 
@@ -619,7 +621,9 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       const ua = unreadByConversation[a.id] || 0;
       const ub = unreadByConversation[b.id] || 0;
       if (ua !== ub) return ub - ua;
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      const ta = new Date(a.last_message_at ?? a.updated_at).getTime();
+      const tb = new Date(b.last_message_at ?? b.updated_at).getTime();
+      return tb - ta;
     });
 
   // Métricas calculadas a partir dos dados já carregados
@@ -852,7 +856,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                         "text-[11px] flex-shrink-0 tabular-nums",
                         unread > 0 ? "text-[#00a884] font-semibold" : "text-[#667781]"
                       )}>
-                        {format(new Date(c.updated_at), "HH:mm")}
+                        {format(new Date(c.last_message_at ?? c.updated_at), "HH:mm")}
                       </span>
                     </div>
 
