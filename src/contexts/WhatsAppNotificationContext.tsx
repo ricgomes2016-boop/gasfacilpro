@@ -268,6 +268,7 @@ export function useWhatsAppNotifications() {
       setSelectedConversaId: () => {},
       setWidgetOpen: () => {},
       markAsRead: () => {},
+      requestNotificationPermission: async () => "unsupported" as const,
     } as WhatsAppNotificationContextValue;
   }
   return ctx;
