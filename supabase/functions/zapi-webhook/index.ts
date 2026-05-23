@@ -97,6 +97,15 @@ serve(async (req) => {
       };
     }
 
+    // Enforce security token if configured (defense against fake inbound messages)
+    if (finalConfig.securityToken && incomingToken !== finalConfig.securityToken) {
+      console.warn("Z-API webhook: invalid or missing security token");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const normalized = normalizePhone(phone);
     const conversationId = await generateUUIDFromString(`whatsapp_${normalized}`);
     const messageKey = body.messageId ? String(body.messageId) : `${normalized}_${body.momment || ""}_${messageText.trim().toLowerCase()}`;

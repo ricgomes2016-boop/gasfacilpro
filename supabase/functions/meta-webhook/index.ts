@@ -51,7 +51,43 @@ serve(async (req) => {
 
   try {
     const supabase = createSupabase();
-    const body = await req.json();
+    // Read the raw body so we can validate Meta's X-Hub-Signature-256 HMAC.
+    const rawBody = await req.text();
+
+    // Validate signature when META_APP_SECRET is configured.
+    const appSecret = Deno.env.get("META_APP_SECRET");
+    if (appSecret) {
+      const signatureHeader = req.headers.get("x-hub-signature-256") || "";
+      const provided = signatureHeader.startsWith("sha256=") ? signatureHeader.slice(7) : "";
+      try {
+        const key = await crypto.subtle.importKey(
+          "raw",
+          new TextEncoder().encode(appSecret),
+          { name: "HMAC", hash: "SHA-256" },
+          false,
+          ["sign"],
+        );
+        const macBuf = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(rawBody));
+        const expected = Array.from(new Uint8Array(macBuf))
+          .map((b) => b.toString(16).padStart(2, "0")).join("");
+        // Constant-time-ish comparison
+        if (provided.length !== expected.length || provided !== expected) {
+          console.warn("Meta webhook: invalid X-Hub-Signature-256");
+          return new Response(JSON.stringify({ error: "Invalid signature" }), {
+            status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } catch (e) {
+        console.error("Meta webhook signature verification error:", e);
+        return new Response(JSON.stringify({ error: "Signature error" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      console.warn("Meta webhook: META_APP_SECRET not configured — skipping signature verification");
+    }
+
+    const body = JSON.parse(rawBody);
     console.log("Meta webhook:", JSON.stringify(body).substring(0, 500));
 
     // Meta sends { object: "whatsapp_business_account", entry: [...] }
