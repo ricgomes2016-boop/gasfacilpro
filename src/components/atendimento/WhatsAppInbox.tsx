@@ -895,21 +895,35 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       {/* Right Panel - Chat Area */}
       <div className={cn("flex-1 flex flex-col min-w-0", !selectedId && "hidden md:flex")}>
         {!selectedId ? (
-          /* Empty State - WhatsApp style */
-          <div className="flex-1 flex flex-col items-center justify-center bg-[#f0f2f5] border-b-[6px] border-[#00a884]">
-            <div className="text-center space-y-4">
-              <div className="mx-auto w-[320px] h-[188px] flex items-center justify-center opacity-30">
-                <svg viewBox="0 0 303 172" width="303" height="172">
-                  <path fill="#DAF7C3" d="M229.565 160.229c32.647-16.166 51.418-50.323 51.418-86.642C280.983 32.722 248.26 0 207.395 0c-25.666 0-48.236 13.14-61.423 33.035C132.785 13.14 110.215 0 84.55 0 43.683 0 10.963 32.722 10.963 73.587c0 36.32 18.77 70.476 51.418 86.642C97.39 177.476 145.972 172 145.972 172s48.581 5.476 83.593-11.771z"/>
-                  <path fill="#FFF" d="M145.972 172s-48.581 5.476-83.593-11.771C29.733 144.063 10.963 109.906 10.963 73.587 10.963 32.722 43.683 0 84.55 0c25.666 0 48.236 13.14 61.423 33.035C132.785 13.14 110.215 0 84.55 0" opacity=".08"/>
-                </svg>
+          /* Empty State - Central de Atendimento */
+          <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-[#f0f2f5] via-[#f5f7f6] to-[#e7f5f0] border-b-[6px] border-[#00a884] px-6">
+            <div className="text-center space-y-5 max-w-2xl">
+              <div className="mx-auto h-20 w-20 rounded-2xl bg-[#00a884]/15 flex items-center justify-center shadow-sm">
+                <MessageSquare className="h-10 w-10 text-[#00a884]" />
               </div>
-              <h2 className="text-[#41525d] text-3xl font-light">WhatsApp Web</h2>
-              <p className="text-[#667781] text-sm max-w-md leading-relaxed">
-                Envie e receba mensagens sem precisar manter seu celular conectado.
-                <br />
-                Selecione uma conversa para começar.
-              </p>
+              <div className="space-y-2">
+                <h2 className="text-[#111b21] text-2xl md:text-3xl font-semibold">Central de Atendimento WhatsApp</h2>
+                <p className="text-[#54656f] text-sm md:text-base leading-relaxed max-w-md mx-auto">
+                  Selecione uma conversa para atender, vender ou acompanhar pedidos.
+                </p>
+              </div>
+
+              {/* Feature cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4">
+                {[
+                  { icon: Bot, label: "Atendimento BIA", color: "text-[#6b3fa0]", bg: "bg-[#6b3fa0]/10" },
+                  { icon: Headset, label: "Atendimento humano", color: "text-[#00a884]", bg: "bg-[#00a884]/10" },
+                  { icon: ShoppingCart, label: "Pedidos pelo WhatsApp", color: "text-[#0288d1]", bg: "bg-[#0288d1]/10" },
+                  { icon: History, label: "Histórico do cliente", color: "text-[#b54708]", bg: "bg-[#b54708]/10" },
+                ].map((f) => (
+                  <div key={f.label} className="bg-white rounded-xl p-3 border border-[#e9edef] shadow-sm hover:shadow-md transition-shadow">
+                    <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center mx-auto mb-2", f.bg)}>
+                      <f.icon className={cn("h-4 w-4", f.color)} />
+                    </div>
+                    <p className="text-[11.5px] font-semibold text-[#111b21] leading-tight">{f.label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         ) : (
