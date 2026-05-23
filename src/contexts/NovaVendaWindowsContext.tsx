@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, ReactNode } from "react";
+import { useSyncExternalStore, useCallback, ReactNode } from "react";
 
 export interface NovaVendaWindowState {
   id: string;
@@ -16,20 +16,6 @@ interface OpenWindowArgs {
   title?: string;
 }
 
-interface NovaVendaWindowsContextValue {
-  windows: NovaVendaWindowState[];
-  openWindow: (args?: OpenWindowArgs) => string;
-  closeWindow: (id: string) => void;
-  minimizeWindow: (id: string) => void;
-  restoreWindow: (id: string) => void;
-  bringToFront: (id: string) => void;
-  updateWindowTitle: (id: string, title: string) => void;
-  updateWindowPosition: (id: string, x: number, y: number) => void;
-  setWindowMaximized: (id: string, maximized: boolean) => void;
-}
-
-const NovaVendaWindowsContext = createContext<NovaVendaWindowsContextValue | null>(null);
-
 const STORAGE_KEY = "nova-venda:windows:v1";
 
 function readInitial(): NovaVendaWindowState[] {
@@ -45,105 +31,106 @@ function readInitial(): NovaVendaWindowState[] {
   }
 }
 
+function persist(windows: NovaVendaWindowState[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(windows));
+  } catch {}
+}
+
+// ===== Singleton store (module-level) =====
+let state: NovaVendaWindowState[] = readInitial();
+let zCounter = 1000;
+const listeners = new Set<() => void>();
+
+function emit() {
+  persist(state);
+  listeners.forEach((l) => l());
+}
+
+function subscribe(l: () => void) {
+  listeners.add(l);
+  return () => listeners.delete(l);
+}
+
+function getSnapshot() {
+  return state;
+}
+
+function getServerSnapshot() {
+  return [] as NovaVendaWindowState[];
+}
+
+function bringToFront(id: string) {
+  zCounter += 1;
+  const z = zCounter;
+  state = state.map((w) => (w.id === id ? { ...w, zIndex: z } : w));
+  emit();
+}
+
+function openWindow({ clienteId, title }: OpenWindowArgs = {}) {
+  zCounter += 1;
+  const z = zCounter;
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `nv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  state = [
+    ...state,
+    { id, clienteId: clienteId ?? null, title: title || "Nova Venda", minimized: false, maximized: false, zIndex: z },
+  ];
+  emit();
+  return id;
+}
+
+function closeWindow(id: string) {
+  state = state.filter((w) => w.id !== id);
+  emit();
+}
+
+function minimizeWindow(id: string) {
+  state = state.map((w) => (w.id === id ? { ...w, minimized: true } : w));
+  emit();
+}
+
+function restoreWindow(id: string) {
+  zCounter += 1;
+  const z = zCounter;
+  state = state.map((w) => (w.id === id ? { ...w, minimized: false, zIndex: z } : w));
+  emit();
+}
+
+function updateWindowTitle(id: string, title: string) {
+  state = state.map((w) => (w.id === id ? { ...w, title } : w));
+  emit();
+}
+
+function updateWindowPosition(id: string, x: number, y: number) {
+  state = state.map((w) => (w.id === id ? { ...w, x, y } : w));
+  emit();
+}
+
+function setWindowMaximized(id: string, maximized: boolean) {
+  state = state.map((w) => (w.id === id ? { ...w, maximized } : w));
+  emit();
+}
+
+// Provider mantido por compatibilidade (no-op) — o store é global.
 export function NovaVendaWindowsProvider({ children }: { children: ReactNode }) {
-  const [windows, setWindows] = useState<NovaVendaWindowState[]>(readInitial);
-  const zCounter = useRef(1000);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(windows));
-    } catch {}
-  }, [windows]);
-
-  const bringToFront = useCallback((id: string) => {
-    zCounter.current += 1;
-    const z = zCounter.current;
-    setWindows((prev) => prev.map((w) => (w.id === id ? { ...w, zIndex: z } : w)));
-  }, []);
-
-  const openWindow = useCallback(({ clienteId, title }: OpenWindowArgs = {}) => {
-    zCounter.current += 1;
-    const z = zCounter.current;
-    const id =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `nv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    setWindows((prev) => [
-      ...prev,
-      { id, clienteId: clienteId ?? null, title: title || "Nova Venda", minimized: false, maximized: false, zIndex: z },
-    ]);
-    return id;
-  }, []);
-
-  const closeWindow = useCallback((id: string) => {
-    setWindows((prev) => prev.filter((w) => w.id !== id));
-  }, []);
-
-  const minimizeWindow = useCallback((id: string) => {
-    setWindows((prev) => prev.map((w) => (w.id === id ? { ...w, minimized: true } : w)));
-  }, []);
-
-  const restoreWindow = useCallback((id: string) => {
-    zCounter.current += 1;
-    const z = zCounter.current;
-    setWindows((prev) => prev.map((w) => (w.id === id ? { ...w, minimized: false, zIndex: z } : w)));
-  }, []);
-
-  const updateWindowTitle = useCallback((id: string, title: string) => {
-    setWindows((prev) => prev.map((w) => (w.id === id ? { ...w, title } : w)));
-  }, []);
-
-  const updateWindowPosition = useCallback((id: string, x: number, y: number) => {
-    setWindows((prev) => prev.map((w) => (w.id === id ? { ...w, x, y } : w)));
-  }, []);
-
-  const setWindowMaximized = useCallback((id: string, maximized: boolean) => {
-    setWindows((prev) => prev.map((w) => (w.id === id ? { ...w, maximized } : w)));
-  }, []);
-
-  const value = useMemo<NovaVendaWindowsContextValue>(
-    () => ({
-      windows,
-      openWindow,
-      closeWindow,
-      minimizeWindow,
-      restoreWindow,
-      bringToFront,
-      updateWindowTitle,
-      updateWindowPosition,
-      setWindowMaximized,
-    }),
-    [
-      windows,
-      openWindow,
-      closeWindow,
-      minimizeWindow,
-      restoreWindow,
-      bringToFront,
-      updateWindowTitle,
-      updateWindowPosition,
-      setWindowMaximized,
-    ],
-  );
-
-  return <NovaVendaWindowsContext.Provider value={value}>{children}</NovaVendaWindowsContext.Provider>;
+  return <>{children}</>;
 }
 
 export function useNovaVendaWindows() {
-  const ctx = useContext(NovaVendaWindowsContext);
-  if (!ctx) {
-    return {
-      windows: [] as NovaVendaWindowState[],
-      openWindow: () => "",
-      closeWindow: () => {},
-      minimizeWindow: () => {},
-      restoreWindow: () => {},
-      bringToFront: () => {},
-      updateWindowTitle: () => {},
-      updateWindowPosition: () => {},
-      setWindowMaximized: () => {},
-    } as NovaVendaWindowsContextValue;
-  }
-  return ctx;
+  const windows = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return {
+    windows,
+    openWindow: useCallback(openWindow, []),
+    closeWindow: useCallback(closeWindow, []),
+    minimizeWindow: useCallback(minimizeWindow, []),
+    restoreWindow: useCallback(restoreWindow, []),
+    bringToFront: useCallback(bringToFront, []),
+    updateWindowTitle: useCallback(updateWindowTitle, []),
+    updateWindowPosition: useCallback(updateWindowPosition, []),
+    setWindowMaximized: useCallback(setWindowMaximized, []),
+  };
 }
