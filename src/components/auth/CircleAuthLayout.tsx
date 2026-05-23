@@ -45,7 +45,7 @@ export function CircleAuthLayout({
   return (
     <div
       className={cn(
-        "min-h-screen flex items-center justify-center p-3 md:p-6",
+        "min-h-screen flex flex-col items-center justify-center p-3 md:p-6 pb-20 md:pb-24",
         pageClassName ?? "bg-gradient-to-br from-background via-muted/20 to-background",
       )}
     >
