@@ -112,6 +112,8 @@ export default function CaixaDia() {
   const [transferenciaForm, setTransferenciaForm] = useState({ unidadeDestinoId: "", valor: "", descricao: "" });
   const [periodoChart, setPeriodoChart] = useState<"7dias" | "30dias">("7dias");
   const [chartMovs, setChartMovs] = useState<Mov[]>([]);
+  const [movsBancariasHoje, setMovsBancariasHoje] = useState<Array<{ id: string; conta_bancaria_id: string; tipo: string; descricao: string; valor: number; created_at: string }>>([]);
+
 
   const [entregadoresPendentes, setEntregadoresPendentes] = useState<{ nome: string; entregas: number; total: number }[]>([]);
   const [sangriasPendentes, setSangriasPendentes] = useState(0);
