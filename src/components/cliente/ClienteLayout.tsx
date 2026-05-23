@@ -188,6 +188,7 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
           })}
         </div>
       </nav>
+      <SystemFooter portalKey="cliente" />
     </div>
   );
 }
