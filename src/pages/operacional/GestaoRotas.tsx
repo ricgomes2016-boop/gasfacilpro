@@ -378,8 +378,9 @@ export default function GestaoRotas() {
   const handlePrintManifesto = (carreg: Carregamento) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
+    const _esc = (v: unknown) => v === null || v === undefined ? "" : String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     const html = `
-      <html><head><title>Manifesto - ${carreg.entregador_nome}</title>
+      <html><head><title>Manifesto - ${_esc(carreg.entregador_nome)}</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 20px; }
         h2 { margin-bottom: 5px; }
@@ -392,17 +393,17 @@ export default function GestaoRotas() {
         @media print { body { padding: 0; } }
       </style></head><body>
       <h2>Manifesto de Carregamento</h2>
-      <p class="info"><strong>Entregador:</strong> ${carreg.entregador_nome}</p>
-      <p class="info"><strong>Loja:</strong> ${carreg.unidade_nome || "—"}</p>
-      <p class="info"><strong>Rota:</strong> ${carreg.rota_nome || "—"}</p>
-      <p class="info"><strong>Data Saída:</strong> ${format(new Date(carreg.data_saida), "dd/MM/yyyy HH:mm")}</p>
+      <p class="info"><strong>Entregador:</strong> ${_esc(carreg.entregador_nome)}</p>
+      <p class="info"><strong>Loja:</strong> ${_esc(carreg.unidade_nome || "—")}</p>
+      <p class="info"><strong>Rota:</strong> ${_esc(carreg.rota_nome || "—")}</p>
+      <p class="info"><strong>Data Saída:</strong> ${_esc(format(new Date(carreg.data_saida), "dd/MM/yyyy HH:mm"))}</p>
       <table>
         <thead><tr><th>#</th><th>Produto</th><th>Qtd. Saída</th><th>Qtd. Retorno</th><th>Qtd. Vendida</th></tr></thead>
         <tbody>
           ${carreg.itens.map((i, idx) => `
             <tr>
               <td>${idx + 1}</td>
-              <td>${i.produto_nome}</td>
+              <td>${_esc(i.produto_nome)}</td>
               <td>${i.quantidade_saida}</td>
               <td>${i.quantidade_retorno ?? "—"}</td>
               <td>${i.quantidade_vendida ?? "—"}</td>

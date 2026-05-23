@@ -5,6 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { Printer, MessageCircle, XCircle, Clock, Truck, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PedidoFormatado } from "@/types/pedido";
+import { esc } from "@/lib/escapeHtml";
 
 interface PedidoViewDialogProps {
   pedido: PedidoFormatado | null;
@@ -35,13 +36,13 @@ export function PedidoViewDialog({ pedido, open, onOpenChange, onCancelar }: Ped
 
   const handlePrint = () => {
     const itensHtml = pedido.itens
-      .map((item) => `<div class="info">${item.quantidade}x ${item.produto?.nome || 'Produto'} - R$ ${(item.preco_unitario * item.quantidade).toFixed(2)}</div>`)
+      .map((item) => `<div class="info">${item.quantidade}x ${esc(item.produto?.nome || 'Produto')} - R$ ${(item.preco_unitario * item.quantidade).toFixed(2)}</div>`)
       .join("");
 
     const printContent = `
       <html>
         <head>
-          <title>Pedido #${idCurto}</title>
+          <title>Pedido #${esc(idCurto)}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 20px; }
             .header { text-align: center; margin-bottom: 20px; }
@@ -53,17 +54,17 @@ export function PedidoViewDialog({ pedido, open, onOpenChange, onCancelar }: Ped
         </head>
         <body>
           <div class="header">
-            <h2>PEDIDO #${idCurto}</h2>
-            <p>${pedido.data}</p>
+            <h2>PEDIDO #${esc(idCurto)}</h2>
+            <p>${esc(pedido.data)}</p>
           </div>
           <div class="separator"></div>
-          <div class="info"><span class="label">Cliente:</span> ${pedido.cliente}</div>
-          <div class="info"><span class="label">Endereço:</span> ${pedido.endereco}</div>
+          <div class="info"><span class="label">Cliente:</span> ${esc(pedido.cliente)}</div>
+          <div class="info"><span class="label">Endereço:</span> ${esc(pedido.endereco)}</div>
           <div class="separator"></div>
           <div class="info"><span class="label">Itens:</span></div>
-          ${itensHtml || `<div class="info">${pedido.produtos}</div>`}
-          ${pedido.entregador ? `<div class="separator"></div><div class="info"><span class="label">Entregador:</span> ${pedido.entregador}</div>` : ''}
-          ${pedido.observacoes ? `<div class="info"><span class="label">Obs:</span> ${pedido.observacoes}</div>` : ''}
+          ${itensHtml || `<div class="info">${esc(pedido.produtos)}</div>`}
+          ${pedido.entregador ? `<div class="separator"></div><div class="info"><span class="label">Entregador:</span> ${esc(pedido.entregador)}</div>` : ''}
+          ${pedido.observacoes ? `<div class="info"><span class="label">Obs:</span> ${esc(pedido.observacoes)}</div>` : ''}
           <div class="separator"></div>
           <div class="total">TOTAL: R$ ${pedido.valor.toFixed(2)}</div>
         </body>
