@@ -1314,18 +1314,18 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       <AlertDialog open={!!confirmDeleteId} onOpenChange={(o) => !o && setConfirmDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Apagar esta conversa?</AlertDialogTitle>
+            <AlertDialogTitle>Arquivar esta conversa?</AlertDialogTitle>
             <AlertDialogDescription>
-              Todas as mensagens desta conversa serão removidas permanentemente. Esta ação não pode ser desfeita.
+              A conversa será removida da sua caixa de entrada. O histórico permanecerá registrado para fins de auditoria e poderá ser recuperado pelo administrador, se necessário.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
+              className="bg-[#00a884] hover:bg-[#008f72]"
               onClick={() => confirmDeleteId && handleDeleteConversa(confirmDeleteId)}
             >
-              Apagar
+              Arquivar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
