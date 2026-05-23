@@ -11,6 +11,8 @@ import { PedidoPendenteAlertProvider } from "@/components/alerts/PedidoPendenteA
 import { CalculatorPopover } from "@/components/shared/CalculatorPopover";
 import { ErpNotificationBanner } from "@/components/layout/ErpNotificationBanner";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
+import { NovaVendaWindowsProvider } from "@/contexts/NovaVendaWindowsContext";
+import { NovaVendaWindowsHost } from "@/components/vendas/NovaVendaWindowsHost";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -53,6 +55,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
         chatUnread={chatUnread}
       />
       <CalculatorPopover externalOpen={calcOpen} onExternalClose={() => setCalcOpen(false)} />
+      <NovaVendaWindowsHost />
     </div>
   );
 }
@@ -60,7 +63,9 @@ function MainLayoutContent({ children }: MainLayoutProps) {
 export function MainLayout({ children }: MainLayoutProps) {
   return (
     <SidebarProvider>
-      <MainLayoutContent>{children}</MainLayoutContent>
+      <NovaVendaWindowsProvider>
+        <MainLayoutContent>{children}</MainLayoutContent>
+      </NovaVendaWindowsProvider>
     </SidebarProvider>
   );
 }

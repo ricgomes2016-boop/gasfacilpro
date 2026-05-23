@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Phone, MessageSquare, X, User, Clock, Truck, Eye, Battery, BatteryWarning, ShoppingCart, Navigation } from "lucide-react";
 import { RepassarEntregadorDialog } from "./RepassarEntregadorDialog";
-import { NovaVendaModal } from "@/components/vendas/NovaVendaModal";
+import { useNovaVendaWindows } from "@/contexts/NovaVendaWindowsContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,11 +42,10 @@ export function CallerIdPopup() {
   const [chamada, setChamada] = useState<ChamadaRecebida | null>(null);
   const [ultimoPedido, setUltimoPedido] = useState<UltimoPedidoInfo | null>(null);
   const [showRepassar, setShowRepassar] = useState(false);
-  const [showVendaModal, setShowVendaModal] = useState(false);
-  const [vendaClienteId, setVendaClienteId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { unidadeAtual } = useUnidade();
   const { notify } = useDesktopNotification();
+  const { openWindow: openNovaVendaWindow } = useNovaVendaWindows();
 
   const handleNovaChamada = useCallback(async (nova: ChamadaRecebida) => {
     setChamada(nova);
@@ -170,13 +169,7 @@ export function CallerIdPopup() {
   }, [handleNovaChamada]);
 
   if (!chamada) {
-    return (
-      <NovaVendaModal
-        open={showVendaModal}
-        onClose={() => setShowVendaModal(false)}
-        clienteId={vendaClienteId}
-      />
-    );
+    return null;
   }
 
   const handleVerPedido = () => {
@@ -185,9 +178,9 @@ export function CallerIdPopup() {
   };
 
   const handleNovaVenda = () => {
-    setVendaClienteId(chamada.cliente_id || null);
+    const titulo = chamada.cliente_nome || chamada.telefone || "Nova Venda";
+    openNovaVendaWindow({ clienteId: chamada.cliente_id || null, title: titulo });
     setChamada(null);
-    setShowVendaModal(true);
   };
 
   const handleVerPerfil = () => {
@@ -335,11 +328,6 @@ export function CallerIdPopup() {
         onOpenChange={setShowRepassar}
         pedidoId={chamada.pedido_gerado_id}
         onSuccess={() => setChamada(null)}
-      />
-      <NovaVendaModal
-        open={showVendaModal}
-        onClose={() => setShowVendaModal(false)}
-        clienteId={vendaClienteId}
       />
     </div>
   );
