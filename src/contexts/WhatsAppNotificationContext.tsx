@@ -247,6 +247,8 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
         setSelectedConversaId,
         setWidgetOpen,
         markAsRead,
+        requestNotificationPermission,
+
       }}
     >
       {children}
