@@ -717,8 +717,8 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
             </button>
           </div>
 
-          {/* Quick metrics */}
-          <div className="grid grid-cols-4 gap-1.5">
+          {/* Quick metrics - hidden on small mobile to save vertical space */}
+          <div className="hidden sm:grid grid-cols-4 gap-1.5">
             <div className="flex flex-col items-center bg-white/70 rounded-lg py-1.5 px-1 border border-[#e9edef]">
               <span className="text-[13px] font-bold text-[#111b21] leading-none">{totalConversas}</span>
               <span className="text-[9.5px] text-[#667781] mt-0.5 uppercase tracking-wide">Total</span>
@@ -735,6 +735,21 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
               <span className="text-[13px] font-bold text-[#111b21] leading-none">{totalHumano}</span>
               <span className="text-[9.5px] text-[#667781] mt-0.5 uppercase tracking-wide">Humano</span>
             </div>
+          </div>
+
+          {/* Mobile-only compact summary chips */}
+          <div className="flex sm:hidden items-center gap-1.5 text-[10.5px] font-semibold">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/80 border border-[#e9edef] text-[#54656f]">
+              <span className="tabular-nums">{totalConversas}</span> conv.
+            </span>
+            {totalNaoLidas > 0 && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#25d366]/15 border border-[#25d366]/30 text-[#017561]">
+                <span className="tabular-nums">{totalNaoLidas}</span> não lidas
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#6b3fa0]/10 border border-[#6b3fa0]/25 text-[#6b3fa0]">
+              BIA <span className="tabular-nums">{totalBia}</span>
+            </span>
           </div>
         </div>
 
@@ -1024,11 +1039,11 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
               <button
                 onClick={() => setContactPanelOpen(true)}
                 title="Ver detalhes"
-                className="p-2 rounded-full hover:bg-white transition-colors"
+                className="hidden sm:inline-flex p-2 rounded-full hover:bg-white transition-colors"
               >
                 <User className="h-5 w-5 text-[#54656f]" />
               </button>
-              <button className="p-2 rounded-full hover:bg-white transition-colors" title="Buscar na conversa">
+              <button className="hidden sm:inline-flex p-2 rounded-full hover:bg-white transition-colors" title="Buscar na conversa">
                 <Search className="h-5 w-5 text-[#54656f]" />
               </button>
               <DropdownMenu>
@@ -1231,7 +1246,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
             </div>
 
             {/* Input Area */}
-            <div className="bg-[#f0f2f5] px-4 py-2.5 flex items-end gap-2 flex-shrink-0">
+            <div className="bg-[#f0f2f5] px-2 sm:px-4 py-2 sm:py-2.5 flex items-end gap-1.5 sm:gap-2 flex-shrink-0">
 
               {/* Hidden file input */}
               <input
@@ -1242,8 +1257,8 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                 onChange={handleFilePick}
               />
 
-              {/* Emoji button (decorativo) */}
-              <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors flex-shrink-0">
+              {/* Emoji button (decorativo) - hidden on mobile to save space */}
+              <button className="hidden sm:inline-flex p-2 rounded-full hover:bg-[#e9edef] transition-colors flex-shrink-0">
                 <Smile className="h-6 w-6 text-[#54656f]" />
               </button>
 
