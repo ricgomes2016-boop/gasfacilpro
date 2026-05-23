@@ -291,7 +291,19 @@ export default function UnidadesConfig() {
                       <Badge variant={unidade.tipo === "matriz" ? "default" : "secondary"}>
                         {unidade.tipo === "matriz" ? "Matriz" : "Filial"}
                       </Badge>
-                      <Button size="icon" variant="ghost" onClick={() => { setActiveTab("geral"); setEditingUnidade({ ...unidade }); }}>
+                      <Button size="icon" variant="ghost" onClick={async () => {
+                        setActiveTab("geral");
+                        const { data: cred } = await supabase.rpc("get_unidade_credenciais", { _unidade_id: unidade.id });
+                        const c = Array.isArray(cred) ? cred[0] : cred;
+                        setEditingUnidade({
+                          ...unidade,
+                          certificado_a1_senha: c?.certificado_a1_senha ?? "",
+                          provedor_nfe_token: c?.provedor_nfe_token ?? "",
+                          nfce_csc_token: c?.nfce_csc_token ?? "",
+                          contador_email: c?.contador_email ?? "",
+                          contador_cpf_cnpj: c?.contador_cpf_cnpj ?? "",
+                        });
+                      }}>
                         <Edit className="h-4 w-4" />
                       </Button>
                     </div>
