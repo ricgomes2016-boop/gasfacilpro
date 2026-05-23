@@ -40,6 +40,7 @@ interface Conversa {
   unidade_id?: string | null;
   last_message?: string | null;
   last_role?: string | null;
+  last_message_at?: string | null;
 }
 
 interface MensagemMetadata {
