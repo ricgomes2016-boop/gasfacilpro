@@ -67,9 +67,11 @@ export function useContasPagar() {
 
   // ------- Forms -------
   const [form, setForm] = useState(EMPTY_FORM);
-  const [pagarForm, setPagarForm] = useState<{ formasPagamento: { forma: string; valor: string }[] }>({
-    formasPagamento: [{ forma: "", valor: "" }],
+  const [pagarForm, setPagarForm] = useState<{ formasPagamento: { forma: string; valor: string; origemTipo: string; origemId: string }[] }>({
+    formasPagamento: [{ forma: "", valor: "", origemTipo: "", origemId: "" }],
   });
+  const [contasBancarias, setContasBancarias] = useState<Array<{ id: string; nome: string; banco: string; saldo_atual: number }>>([]);
+
 
   // ------- Consolidation -------
   const [selectedFornecedor, setSelectedFornecedor] = useState<string | null>(null);
