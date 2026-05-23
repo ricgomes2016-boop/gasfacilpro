@@ -4,6 +4,7 @@ import {
   createSupabase, resolveConfig, checkBusinessHours,
   findCliente, sendMessage, saveMessage,
 } from "../_shared/bia-core.ts";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +14,10 @@ const OK = (d: any) => new Response(JSON.stringify(d), { headers: { ...corsHeade
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const auth = await requireAuth(req, corsHeaders);
+  if (!auth.ok) return auth.response;
+
   const supabase = createSupabase();
 
   const { data: dueList, error } = await supabase

@@ -20,6 +20,14 @@ serve(async (req) => {
 
     const { unidade_id } = await req.json().catch(() => ({ unidade_id: null }));
 
+    // Validate unidade_id as UUID to prevent SQL injection
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (unidade_id !== null && unidade_id !== undefined && !UUID_RE.test(String(unidade_id))) {
+      return new Response(JSON.stringify({ error: "unidade_id inválido" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -66,7 +74,14 @@ serve(async (req) => {
       });
     }
 
-    // Build empresa-scoped filter
+    // Verify the requested unidade_id belongs to the caller's empresa
+    if (unidade_id && !unidadeIds.includes(unidade_id)) {
+      return new Response(JSON.stringify({ error: "Acesso negado" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Build empresa-scoped filter (all values are validated UUIDs)
     const unidadeList = unidadeIds.map((id: string) => `'${id}'`).join(",");
     const unidadeFilter = unidade_id
       ? `AND unidade_id = '${unidade_id}'`
