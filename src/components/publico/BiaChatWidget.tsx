@@ -100,7 +100,7 @@ export function BiaChatWidget({
         role: "assistant",
         content:
           saudacao ??
-          `Oi! Sou a Bia da ${nomeLoja} 👋 Pra agilizar seu pedido, me passa seu telefone com DDD?`,
+          `Olá, sou a Bia da ${nomeLoja}. Para iniciar seu pedido, informe seu telefone com DDD, por favor.`,
       },
     ];
   });

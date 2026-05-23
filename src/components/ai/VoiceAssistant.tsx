@@ -299,7 +299,7 @@ export function VoiceAssistant({ userName = "Gestor" }: VoiceAssistantProps) {
           <div className="rounded-lg bg-primary/5 border border-primary/10 p-3 text-sm max-h-48 overflow-y-auto">
             <div className="flex items-center gap-1 mb-1">
               <Volume2 className="h-3 w-3 text-primary" />
-              <span className="text-xs text-muted-foreground">GásBot:</span>
+              <span className="text-xs text-muted-foreground">Assistente:</span>
             </div>
             <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
               <ReactMarkdown>{response.replace(/\[CHART_META\].*?\[\/CHART_META\]/s, "")}</ReactMarkdown>
