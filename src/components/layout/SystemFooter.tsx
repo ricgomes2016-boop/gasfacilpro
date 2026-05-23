@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { getRandomQuote, AuthPortalKey } from "@/lib/motivationalQuotes";
+import { useSidebarContext } from "@/contexts/SidebarContext";
 
 interface SystemFooterProps {
   /** Optional override for the portal key. If omitted, inferred from subdomain/path. */
@@ -47,6 +48,7 @@ function detectPortalKey(pathname: string): AuthPortalKey {
  */
 export function SystemFooter({ portalKey, accentHsl, className }: SystemFooterProps) {
   const location = useLocation();
+  const { collapsed } = useSidebarContext();
   const resolvedKey = useMemo(
     () => portalKey ?? detectPortalKey(location.pathname),
     [portalKey, location.pathname],
@@ -57,7 +59,9 @@ export function SystemFooter({ portalKey, accentHsl, className }: SystemFooterPr
   return (
     <footer
       className={cn(
-        "hidden md:flex fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-background/80 backdrop-blur-md",
+        "hidden md:flex fixed bottom-0 right-0 z-40 border-t border-border/40 bg-background/80 backdrop-blur-md transition-all duration-300",
+        "left-0",
+        collapsed ? "xl:left-16" : "xl:left-[260px]",
         className,
       )}
     >
