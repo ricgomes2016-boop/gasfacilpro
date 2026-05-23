@@ -621,7 +621,9 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       const ua = unreadByConversation[a.id] || 0;
       const ub = unreadByConversation[b.id] || 0;
       if (ua !== ub) return ub - ua;
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      const ta = new Date(a.last_message_at ?? a.updated_at).getTime();
+      const tb = new Date(b.last_message_at ?? b.updated_at).getTime();
+      return tb - ta;
     });
 
   // Métricas calculadas a partir dos dados já carregados
