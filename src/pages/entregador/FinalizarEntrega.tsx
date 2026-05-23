@@ -89,6 +89,7 @@ export default function FinalizarEntrega() {
   const [chavePix, setChavePix] = useState<string | null>(null);
   const [nomeUnidade, setNomeUnidade] = useState<string | null>(null);
   const [unidadeId, setUnidadeId] = useState<string | null>(null);
+  const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [showPixQR, setShowPixQR] = useState(false);
   // Cheque fields
   const [chequeNumero, setChequeNumero] = useState("");
@@ -147,12 +148,13 @@ export default function FinalizarEntrega() {
           setUnidadeId((data as any).unidade_id);
           const { data: unidadeData } = await supabase
             .from("unidades")
-            .select("chave_pix, nome")
+            .select("chave_pix, nome, empresa_id")
             .eq("id", (data as any).unidade_id)
             .maybeSingle();
           if (unidadeData) {
             setChavePix((unidadeData as any).chave_pix || null);
             setNomeUnidade(unidadeData.nome || null);
+            setEmpresaId((unidadeData as any).empresa_id || null);
           }
         }
         // Fetch entregador_id for the current pedido
@@ -386,7 +388,8 @@ export default function FinalizarEntrega() {
           let assinaturaUrl: string | null = null;
           if (assinatura.assinatura_data_url) {
             const blob = await (await fetch(assinatura.assinatura_data_url)).blob();
-            const path = `${id}/${Date.now()}.png`;
+            if (!empresaId) throw new Error("Empresa não identificada para o upload");
+            const path = `${empresaId}/${id}/${Date.now()}.png`;
             const { error: upErr } = await supabase.storage
               .from("comprovantes-entrega")
               .upload(path, blob, { contentType: "image/png", upsert: true });
