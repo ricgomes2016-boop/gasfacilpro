@@ -387,7 +387,13 @@ serve(async (req) => {
         produto,
         quantidade,
         forma_pagamento,
+        usar_desconto,
       } = body;
+      const aplicarDesconto =
+        usar_desconto === true ||
+        usar_desconto === "true" ||
+        usar_desconto === 1 ||
+        usar_desconto === "1";
       let { endereco, numero, bairro, cep, referencia } = body;
 
       if (!produto) return err("Produto é obrigatório");
