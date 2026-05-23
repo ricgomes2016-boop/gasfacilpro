@@ -74,6 +74,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const auth = await requireAuth(req, corsHeaders);
+    if (!auth.ok) return auth.response;
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -86,6 +89,29 @@ serve(async (req) => {
       return new Response(JSON.stringify({ ok: false, error: "unidade_id é obrigatório" }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Tenant guard: a unidade tem que ser da empresa do usuário (super_admin/service ignoram)
+    if (!auth.isServiceRole && auth.userId) {
+      const [{ data: prof }, { data: uni }] = await Promise.all([
+        supabase.from("profiles").select("empresa_id").eq("user_id", auth.userId).maybeSingle(),
+        supabase.from("unidades").select("empresa_id").eq("id", unidade_id).maybeSingle(),
+      ]);
+      const isSuper = (await supabase.from("user_roles").select("role").eq("user_id", auth.userId).eq("role", "super_admin").maybeSingle()).data;
+      if (!isSuper && (!prof?.empresa_id || prof.empresa_id !== uni?.empresa_id)) {
+        return new Response(JSON.stringify({ ok: false, error: "forbidden_tenant" }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (conversa_id) {
+        const { data: conv } = await supabase
+          .from("ai_conversas").select("empresa_id").eq("id", conversa_id).maybeSingle();
+        if (!isSuper && conv?.empresa_id && conv.empresa_id !== prof?.empresa_id) {
+          return new Response(JSON.stringify({ ok: false, error: "forbidden_tenant" }), {
+            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
     }
 
     // Resolve provedor primário da unidade
