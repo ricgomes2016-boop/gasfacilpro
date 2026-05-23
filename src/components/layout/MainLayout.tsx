@@ -57,6 +57,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       />
       <CalculatorPopover externalOpen={calcOpen} onExternalClose={() => setCalcOpen(false)} />
       <NovaVendaWindowsHost />
+      <SystemFooter />
     </div>
   );
 }
