@@ -148,12 +148,13 @@ export default function FinalizarEntrega() {
           setUnidadeId((data as any).unidade_id);
           const { data: unidadeData } = await supabase
             .from("unidades")
-            .select("chave_pix, nome")
+            .select("chave_pix, nome, empresa_id")
             .eq("id", (data as any).unidade_id)
             .maybeSingle();
           if (unidadeData) {
             setChavePix((unidadeData as any).chave_pix || null);
             setNomeUnidade(unidadeData.nome || null);
+            setEmpresaId((unidadeData as any).empresa_id || null);
           }
         }
         // Fetch entregador_id for the current pedido
