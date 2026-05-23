@@ -168,6 +168,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       let query = supabase
         .from("ai_conversas")
         .select("id, titulo, updated_at, telefone, foto_url, foto_atualizada_em, unidade_id, empresa_id")
+        .is("deleted_at", null)
         .order("updated_at", { ascending: false })
         .limit(200);
 
