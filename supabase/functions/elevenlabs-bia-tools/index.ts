@@ -524,9 +524,17 @@ serve(async (req) => {
       if (!prod) return err(`Produto ${nomeProduto} não cadastrado na unidade`);
 
       // Preço: tabela das Regras da Bia > preco_telefone > preco
+      // Se a Bia passar usar_desconto=true, usa o preco_desconto da tabela.
       let precoUnitario = 0;
       const chaveTab = chaveTabelaParaProduto(nomeProduto);
-      if (chaveTab) precoUnitario = Number(tabelaPrecos[chaveTab]?.preco || 0);
+      if (chaveTab) {
+        const linha = tabelaPrecos[chaveTab];
+        if (aplicarDesconto && Number(linha?.preco_desconto) > 0) {
+          precoUnitario = Number(linha.preco_desconto);
+        } else {
+          precoUnitario = Number(linha?.preco || 0);
+        }
+      }
       if (!precoUnitario) precoUnitario = Number(prod.preco_telefone || prod.preco || 0);
 
       const qty = Math.max(1, Number(qtdInput) || 1);
