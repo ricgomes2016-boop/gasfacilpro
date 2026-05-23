@@ -133,28 +133,61 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
     { id: "entregador", label: "Entregador", done: entregadorSelecionado, enabled: true, icon: ShoppingBag },
     { id: "confirmar", label: "Confirmar", done: pagamentoOk && produtosOk && entregadorSelecionado, enabled: true, icon: CheckCircle },
   ];
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const focusStep = (idx: number) => {
+    const target = steps[idx];
+    if (!target) return;
+    tabRefs.current[idx]?.focus();
+    onStepClick?.(target.id);
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLButtonElement>, idx: number) => {
+    if (e.key === "ArrowRight") {
+      if (idx < steps.length - 1) {
+        e.preventDefault();
+        focusStep(idx + 1);
+      }
+    } else if (e.key === "ArrowLeft") {
+      if (idx > 0) {
+        e.preventDefault();
+        focusStep(idx - 1);
+      }
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onStepClick?.(steps[idx].id);
+    }
+  };
 
   return (
-    <div className="flex items-center justify-between gap-1">
+    <div className="flex items-center justify-between gap-1" role="tablist" aria-label="Etapas da venda">
       {steps.map((step, i) => {
         const Icon = step.icon;
+        const isActive = activeStep === step.id;
         return (
           <div key={step.label} className="flex items-center gap-1 flex-1">
             <button
+              ref={(el) => (tabRefs.current[i] = el)}
               type="button"
-              data-active={activeStep === step.id}
+              role="tab"
+              aria-selected={isActive}
+              aria-current={isActive ? "step" : undefined}
+              tabIndex={isActive ? 0 : -1}
+              data-active={isActive}
               data-done={step.done}
               disabled={!step.enabled || !onStepClick}
               onClick={() => onStepClick?.(step.id)}
-              title={onStepClick && activeStep !== step.id ? `Clique para ir para ${step.label}` : undefined}
+              onKeyDown={(e) => handleKeyDown(e, i)}
+              title={onStepClick && !isActive ? `Clique ou use ← → para ir para ${step.label}` : undefined}
               aria-label={`Etapa ${step.label}${step.done ? " (preenchida)" : ""}`}
               className={cn(
                 "flex items-center gap-1.5 rounded-full text-xs font-medium transition-colors disabled:cursor-not-allowed",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                 "venda-step-tab",
                 STEP_TONE_CLASS[step.id],
                 compact ? "px-2 py-1" : "px-2.5 py-1.5",
-                activeStep === step.id || step.done ? "" : "bg-muted text-muted-foreground",
-                step.enabled && onStepClick && activeStep !== step.id && "cursor-pointer hover:bg-muted/80 hover:ring-2 hover:ring-primary/30"
+                isActive || step.done ? "" : "bg-muted text-muted-foreground",
+                step.enabled && onStepClick && !isActive && "cursor-pointer hover:bg-muted/80 hover:ring-2 hover:ring-primary/30"
               )}
             >
               {step.done ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
@@ -169,6 +202,7 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
     </div>
   );
 }
+
 
 interface NovaVendaProps {
   embedded?: boolean;
