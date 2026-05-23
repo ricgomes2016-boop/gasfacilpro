@@ -27,6 +27,16 @@ serve(async (req) => {
     const body = await req.json();
     console.log("Z-API webhook:", JSON.stringify(body).substring(0, 800));
 
+    // Authenticate webhook: if a security_token is configured on the integration,
+    // require it on the incoming request (via header or query string). Z-API
+    // sends it in the "Client-Token" / "Security-Token" headers.
+    const incomingToken =
+      req.headers.get("client-token") ||
+      req.headers.get("security-token") ||
+      req.headers.get("x-security-token") ||
+      new URL(req.url).searchParams.get("security_token") ||
+      "";
+
     // Skip own messages and non-messages
     if (body.fromMe === true) return OK({ ok: true, skipped: "fromMe" });
     const isAudio = body.type === "audio" || body.type === "ptt" || body.isAudio === true || !!body.audio || !!body.audioMessage;
