@@ -13,6 +13,7 @@ import { ErpNotificationBanner } from "@/components/layout/ErpNotificationBanner
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 import { NovaVendaWindowsProvider } from "@/contexts/NovaVendaWindowsContext";
 import { NovaVendaWindowsHost } from "@/components/vendas/NovaVendaWindowsHost";
+import { SystemFooter } from "@/components/layout/SystemFooter";
 
 interface MainLayoutProps {
   children: ReactNode;
