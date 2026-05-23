@@ -124,7 +124,15 @@ export function useContasPagar() {
     if (data) setCategoriasDB(data as CategoriaDesp[]);
   };
 
-  useEffect(() => { fetchContas(); fetchCategorias(); }, [unidadeAtual]);
+  const fetchContasBancarias = async () => {
+    let q = supabase.from("contas_bancarias").select("id, nome, banco, saldo_atual").eq("ativo", true).order("nome");
+    if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
+    const { data } = await q;
+    setContasBancarias((data as any) || []);
+  };
+
+  useEffect(() => { fetchContas(); fetchCategorias(); fetchContasBancarias(); }, [unidadeAtual]);
+
 
   // ===================== COMPUTED (derived state) =====================
 
