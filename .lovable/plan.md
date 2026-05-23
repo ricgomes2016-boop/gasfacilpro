@@ -1,67 +1,88 @@
-## Objetivo
+# Plano: Auditoria e correção de segurança Gas Facil Pro
 
-Aplicar a correção de débito bancário às **10 contas já pagas** da unidade **Central Gas** que foram marcadas como pagas antes do novo fluxo existir (todas sem `conta_bancaria_id` e sem movimentação bancária), debitando o valor da conta **Sisprime Cooperativa**.
+Escopo grande — divido em 6 fases sequenciais. Cada fase é uma migration + código relacionado, validável antes da próxima. **Vou pedir aprovação de cada migration via tool de migração** conforme avançamos.
 
-## Escopo
+## Fase 1 — Diagnóstico (sem mudanças)
 
-Unidade: Central Gas (`aa5b7c93-4fe6-4dba-a0b5-2af43cd20614`)
-Conta destino do débito: **Sisprime** (`b073d858-e3ff-4227-bc75-28611f32b41b`) — saldo atual R$ 157.544,70
-Total a debitar: **R$ 273.077,95** em 10 lançamentos.
+Antes de qualquer alteração, vou:
 
-Contas afetadas (id / descrição / valor):
+1. Rodar `supabase--linter` para pegar problemas óbvios de RLS já flagados.
+2. Listar policies atuais de: `profiles`, `user_roles`, `empresas`, `unidades`, `clientes`, `pedidos`, `ai_conversas`, `ai_mensagens`, `integracoes_whatsapp`, `whatsapp_web_sessions`.
+3. Verificar colunas de `ai_mensagens` (se já tem `empresa_id`/`unidade_id` ou só `conversa_id`).
+4. Listar policies do bucket `chat-anexos`.
+5. Buscar usos de `service_role` no frontend (`rg "service_role|SERVICE_ROLE" src/`).
+6. Confirmar que `.env` só tem `VITE_*` + anon key.
 
-- 87e86989 — Acerto Combustível AUTO POSTO CENTRO — R$ 714,55
-- 7dbbb060 — Compra NF 1603 Nacional Gas — R$ 47.412,00
-- c79b808d — Reaviso água/esgoto 01/2026 — R$ 27,26
-- 5d76ded8 — Compra NF 12 Nacional Gas — R$ 51.437,04
-- 188a9d2a — Acerto Combustível AUTO POSTO PANORAMA — R$ 2.413,12
-- e68e67cd — Conta água/esgoto 02/2026 — R$ 208,09
-- 11b87dfb — Compra NF S/N Nacional Gas — R$ 47.412,00
-- 3a26c207 — Compra NF S/N Nacional Gas — R$ 48.924,00
-- 486b98c0 — Fatura Claro — R$ 450,30
-- 798ee803 — Compra NF S/N Nacional Gas — R$ 74.079,59
+Entrego um relatório curto no chat com os achados antes de seguir.
 
-> Atenção: após o débito, o saldo do **Sisprime ficaria negativo** (157.544,70 − 273.077,95 = **−115.533,25**). Confirme se é isso mesmo ou se parte das contas saiu de outra conta (Itaú, Pagbank, Caixa da Empresa).
+## Fase 2 — Realtime filtrado por empresa (alto impacto, baixo risco)
 
-## Execução (script único, transacional)
+Problema atual em `whatsappRealtimeService.ts` + `useWhatsAppInboxRealtime`: `subscribeToAllConversations()` escuta **todas** as conversas globalmente — qualquer usuário logado recebe payloads de outras empresas via WebSocket (RLS no Realtime filtra somente quando há filtro server-side aplicado corretamente).
 
-Para cada uma das 10 contas:
+Mudanças:
 
-1. Inserir linha em `movimentacoes_bancarias`:
-   - `conta_bancaria_id = Sisprime`
-   - `tipo = 'saida'`, `valor = -<valor>` (sinal coerente com o restante da base)
-   - `data = COALESCE(data_pagamento, created_at::date)`
-   - `categoria = 'Pagamento de Conta'`
-   - `descricao = 'Pagamento retroativo - ' || descricao_conta`
-   - `origem = 'contas_pagar'`, `referencia_id = <id da conta>`, `referencia_tipo = 'contas_pagar'`
-   - `unidade_id = Central Gas`
-   - `saldo_apos` calculado em cadeia (saldo Sisprime atual menos somatório acumulado).
-2. Atualizar `contas_pagar`:
-   - `conta_bancaria_id = Sisprime`
-   - `forma_pagamento = 'pix'` (forma padrão para saída de banco; ajustável)
-   - `data_pagamento = COALESCE(data_pagamento, created_at::date)` quando nulo
-   - `observacoes` recebe nota: "Origem do pagamento ajustada retroativamente para Sisprime em 2026-05-23".
-3. Atualizar `contas_bancarias.saldo_atual` do Sisprime: `saldo_atual − 273.077,95`.
+- `ai_mensagens`: se não tiver `empresa_id`, adicionar a coluna + backfill via `conversa_id → ai_conversas.empresa_id` + trigger `BEFORE INSERT` para preencher.
+- Mesma coisa para `unidade_id` se ausente.
+- Forçar `NOT NULL` após backfill.
+- `whatsappRealtimeService.subscribe*`: exigir `empresaId` como parâmetro obrigatório e aplicar `filter: empresa_id=eq.<id>` em todos os canais.
+- `useWhatsAppInboxRealtime` passa a receber `empresaId` (do `useAuth`/`EmpresaContext`); sem isso não inscreve.
+- RLS de Realtime: garantir policy `SELECT` em `ai_mensagens` e `ai_conversas` exigindo `empresa_id = get_user_empresa_id()` OR super_admin.
 
-Tudo dentro de uma única transação via `supabase--insert` (BEGIN/COMMIT implícito do statement único com CTEs) para garantir consistência. Não cria migração — é correção de dados.
+## Fase 3 — RLS hardening (migration grande)
 
-## Critérios de aceite
+Para cada tabela abaixo, garantir RLS ON + policies estritas usando funções `SECURITY DEFINER` já existentes (`has_role`, `get_user_empresa_id`, `unidade_belongs_to_user_empresa`):
 
-- Sisprime mostra 10 novas saídas no extrato (Caixa do Dia › Tesouraria e tela de Contas Bancárias).
-- `saldo_atual` do Sisprime reduz exatamente em R$ 273.077,95.
-- As 10 contas em Contas a Pagar passam a exibir "Pago via Sisprime" e ficam vinculadas (`conta_bancaria_id` preenchido).
-- Nenhuma outra unidade é afetada.
+| Tabela | SELECT | INSERT/UPDATE/DELETE |
+|---|---|---|
+| `profiles` | próprio user OR mesma empresa OR super_admin | só próprio user (campo `email`/`phone`); `empresa_id` imutável exceto super_admin |
+| `user_roles` | mesma empresa | **bloqueado** para usuário comum; só super_admin/admin via `WITH CHECK has_role(auth.uid(),'admin')` |
+| `empresas` | só a própria | só super_admin |
+| `unidades` | empresa do user | admin/gestor da empresa |
+| `clientes` | empresa do user | empresa do user, com `WITH CHECK empresa_id = get_user_empresa_id()` |
+| `pedidos` | empresa do user (via unidade) | idem |
+| `ai_conversas` | empresa do user | empresa do user |
+| `ai_mensagens` | via empresa_id direta (após Fase 2) | idem |
+| `integracoes_whatsapp` | admin/gestor da empresa | admin/gestor da empresa |
+| `whatsapp_web_sessions` | admin/gestor da empresa | admin/gestor da empresa |
+
+Triggers `BEFORE INSERT/UPDATE` preenchem `empresa_id` a partir de `auth.uid()` se vier nulo (defesa em profundidade — frontend não decide tenant).
+
+## Fase 4 — Edge Functions
+
+Padronizar com helper `requireAuth` já existente em `_shared/auth.ts` + nova função `assertUserOwnsConversa(supabase, userId, conversaId)`.
+
+- `whatsapp-send`: hoje já usa `requireAuth`, mas aceita `unidade_id` do body. Substituir por: buscar `conversa.empresa_id`, comparar com `profile.empresa_id` do `auth.uid()`, exigir role `admin|gestor|operacional|atendente`. Ignorar `unidade_id` do payload.
+- `whatsapp-refresh-profile`: aplicar `requireAuth` + validação `unidade ∈ empresa do user` + `conversa ∈ empresa do user`.
+- Outras funções WhatsApp/Bia: passar `requireAuth` (exceto webhooks externos que validam via assinatura).
+
+## Fase 5 — Storage `chat-anexos` + soft delete
+
+- Bucket `chat-anexos` → `public = false`.
+- Policies storage: path deve começar com `<empresa_id>/...`; SELECT/INSERT/DELETE exigem `(storage.foldername(name))[1] = get_user_empresa_id()::text`.
+- Frontend (`WhatsAppInbox` upload): força prefixo `${empresaId}/conversas/${conversaId}/...`.
+- URLs públicas → trocar por `createSignedUrl` (60s) sob demanda.
+- Soft delete em `ai_conversas`: adicionar `archived_at`, `deleted_at`, `deleted_by`; nunca usar `.delete()` no frontend — usar `update`. Policies de SELECT filtram `deleted_at IS NULL` por padrão; admin pode ver lixeira.
+
+## Fase 6 — Auditoria
+
+Reutilizar `audit_log` + `fn_audit_trigger` já existentes. Anexar trigger nas tabelas: `ai_conversas`, `ai_mensagens` (apenas INSERT human/system + UPDATE de status archived/deleted), `clientes` (UPDATE/DELETE), `user_roles` (qualquer op), `integracoes_whatsapp` (qualquer op).
+
+Para envios de mensagem, gravação extra em `whatsapp_eventos` (já existe) — confirmar que `whatsapp-send` está logando `text_sent`/`media_sent` (já está, ok).
+
+## Detalhes técnicos relevantes
+
+- Nenhuma mudança em `App.tsx`, providers ou rotas (memória Core).
+- Selects com valor "nenhum" (memória Core).
+- Migrations divididas para minimizar bloqueio; backfills em batch quando tabela for grande.
+- `ai_mensagens.empresa_id` indexado (`(empresa_id, created_at desc)`).
+- Confirmação prévia: vou rodar Fase 1 (diagnóstico) **antes** de pedir aprovação de qualquer migration, e listar exatamente as policies e gaps encontrados.
 
 ## Fora de escopo
 
-- Demais unidades (Temgas etc.).
-- Contas pagas que já tenham `conta_bancaria_id` definido (não serão tocadas).
-- Estorno/rollback automático (caso necessário, será feito manualmente).
+- Refatorar UX do WhatsAppInbox além das chamadas críticas (envio/upload/exclusão/cliente).
+- Rate limiting (assunto separado).
+- 2FA admin (assunto separado).
 
-## Pergunta antes de executar
+## Aprovação
 
-O saldo do Sisprime hoje (R$ 157.544,70) não cobre os R$ 273.077,95. Quero confirmar:
-
-1. **Debitar tudo no Sisprime mesmo** (saldo ficará negativo, refletindo a realidade contábil)?
-2. Ou **dividir** algumas contas em outras contas (Itaú, Pagbank, Caixa da Empresa)?
-3. Ou **ajustar primeiro o saldo inicial** do Sisprime para refletir o saldo bancário real antes do débito?
+Confirma que devo seguir nessa ordem? Se sim, começo pela Fase 1 (somente leitura, sem mudanças) e volto com o relatório de gaps + as migrations específicas para você aprovar uma a uma.

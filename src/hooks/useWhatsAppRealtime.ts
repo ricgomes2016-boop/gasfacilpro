@@ -142,17 +142,19 @@ export function useWhatsAppRealtime(options: UseWhatsAppRealtimeOptions = {}): U
 }
 
 /**
- * Hook para escutar todas as conversas (inbox)
+ * Hook para escutar todas as conversas (inbox) de UMA empresa.
+ * Sem empresaId não inscreve — evita vazamento cross-tenant.
  */
-export function useWhatsAppInboxRealtime() {
+export function useWhatsAppInboxRealtime(empresaId?: string | null) {
   const [newMessages, setNewMessages] = useState<RealtimeMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    whatsappRealtime.subscribeToAllConversations();
+    if (!empresaId) return;
+    whatsappRealtime.subscribeToAllConversations(empresaId);
 
     const unsubMessage = whatsappRealtime.onMessage((message) => {
-      setNewMessages((prev) => [...prev.slice(-50), message]); // Manter últimas 50
+      setNewMessages((prev) => [...prev.slice(-50), message]);
     });
 
     const unsubConnection = whatsappRealtime.onConnectionChange((status) => {
@@ -163,7 +165,7 @@ export function useWhatsAppInboxRealtime() {
       unsubMessage();
       unsubConnection();
     };
-  }, []);
+  }, [empresaId]);
 
   const clearNewMessages = useCallback(() => {
     setNewMessages([]);

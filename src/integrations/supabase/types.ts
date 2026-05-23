@@ -116,6 +116,8 @@ export type Database = {
           assigned_to_user_id: string | null
           closed_at: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           empresa_id: string | null
           foto_atualizada_em: string | null
           foto_url: string | null
@@ -136,6 +138,8 @@ export type Database = {
           assigned_to_user_id?: string | null
           closed_at?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           empresa_id?: string | null
           foto_atualizada_em?: string | null
           foto_url?: string | null
@@ -156,6 +160,8 @@ export type Database = {
           assigned_to_user_id?: string | null
           closed_at?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           empresa_id?: string | null
           foto_atualizada_em?: string | null
           foto_url?: string | null
@@ -180,6 +186,7 @@ export type Database = {
           created_at: string
           delivered_at: string | null
           direction: string | null
+          empresa_id: string | null
           error_message: string | null
           id: string
           metadata: Json | null
@@ -187,6 +194,7 @@ export type Database = {
           role: string
           sent_at: string | null
           status: string | null
+          unidade_id: string | null
           wa_message_id: string | null
         }
         Insert: {
@@ -195,6 +203,7 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           direction?: string | null
+          empresa_id?: string | null
           error_message?: string | null
           id?: string
           metadata?: Json | null
@@ -202,6 +211,7 @@ export type Database = {
           role: string
           sent_at?: string | null
           status?: string | null
+          unidade_id?: string | null
           wa_message_id?: string | null
         }
         Update: {
@@ -210,6 +220,7 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           direction?: string | null
+          empresa_id?: string | null
           error_message?: string | null
           id?: string
           metadata?: Json | null
@@ -217,6 +228,7 @@ export type Database = {
           role?: string
           sent_at?: string | null
           status?: string | null
+          unidade_id?: string | null
           wa_message_id?: string | null
         }
         Relationships: [
