@@ -88,13 +88,16 @@ serve(async (req) => {
   let from = "";
   let to = "";
   let callSid = "";
+  let rawBodyText = "";
+  let postParams: Record<string, string> = {};
   try {
     let params: URLSearchParams;
     if (req.method === "GET") {
       params = new URL(req.url).searchParams;
     } else {
-      const text = await req.text();
-      params = new URLSearchParams(text);
+      rawBodyText = await req.text();
+      params = new URLSearchParams(rawBodyText);
+      for (const [k, v] of params.entries()) postParams[k] = v;
     }
     from = params.get("From") || params.get("Caller") || params.get("SipHeader_From") || "";
     to =
@@ -115,6 +118,42 @@ serve(async (req) => {
   } catch (e) {
     console.error("[TWILIO-VOICE] parse error:", e);
   }
+
+  // Verify Twilio signature (HMAC-SHA1) to prevent fake call injection
+  // and ElevenLabs credit abuse. See https://www.twilio.com/docs/usage/webhooks/webhooks-security
+  const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
+  if (TWILIO_AUTH_TOKEN) {
+    const signature = req.headers.get("x-twilio-signature") || "";
+    try {
+      const fullUrl = req.url;
+      let dataToSign = fullUrl;
+      if (req.method === "POST") {
+        const sortedKeys = Object.keys(postParams).sort();
+        for (const k of sortedKeys) dataToSign += k + postParams[k];
+      }
+      const keyData = new TextEncoder().encode(TWILIO_AUTH_TOKEN);
+      const msgData = new TextEncoder().encode(dataToSign);
+      const cryptoKey = await crypto.subtle.importKey(
+        "raw", keyData, { name: "HMAC", hash: "SHA-1" }, false, ["sign"],
+      );
+      const sigBuf = await crypto.subtle.sign("HMAC", cryptoKey, msgData);
+      const expected = btoa(String.fromCharCode(...new Uint8Array(sigBuf)));
+      if (signature !== expected) {
+        console.warn("[TWILIO-VOICE] Invalid Twilio signature", { got: signature?.substring(0, 12), expected: expected.substring(0, 12) });
+        return new Response(twimlError("Acesso negado."), {
+          status: 403, headers: { "Content-Type": "text/xml" },
+        });
+      }
+    } catch (e) {
+      console.error("[TWILIO-VOICE] signature verification error:", e);
+      return new Response(twimlError("Erro de autenticação."), {
+        status: 403, headers: { "Content-Type": "text/xml" },
+      });
+    }
+  } else {
+    console.warn("[TWILIO-VOICE] TWILIO_AUTH_TOKEN not set — skipping signature verification");
+  }
+
 
   // Caller-id trust check.
   // Vonage forwards calls into Twilio with `from = '0000000000'` (sentinel)
