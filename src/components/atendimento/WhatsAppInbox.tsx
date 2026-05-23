@@ -650,42 +650,122 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
         )}
       >
         {/* Sidebar Header */}
-        <div className="bg-[#f0f2f5] px-4 pt-2 pb-2 flex flex-col gap-1">
+        <div className="bg-gradient-to-br from-[#f8faf9] to-[#f0f2f5] px-4 pt-3 pb-3 flex flex-col gap-3 border-b border-[#e9edef]">
           <div className="flex items-center gap-3">
-            <ChatAvatar url={storeAvatar} name={unidadeAtual?.nome || "Loja"} size="sm" />
+            <div className="relative">
+              <ChatAvatar url={storeAvatar} name={unidadeAtual?.nome || "Loja"} size="sm" />
+              <span
+                className={cn(
+                  "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white",
+                  unitIntegration?.ativo ? "bg-[#25d366]" : "bg-[#b54708]"
+                )}
+                title={unitIntegration?.ativo ? "Conectado" : "Desconectado"}
+              />
+            </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold text-[#111b21] truncate">
+              <p className="text-[14px] font-semibold text-[#111b21] truncate leading-tight">
                 {unidadeAtual?.nome || "Selecione uma unidade"}
               </p>
-              <p className="text-[11px] text-[#667781] truncate">
-                {unitIntegration?.numero
-                  ? <>WhatsApp {unitIntegration.numero}{unitIntegration.provedor ? ` · ${unitIntegration.provedor === 'meta' ? 'Meta Oficial' : unitIntegration.provedor === 'zapi' ? 'Z-API' : unitIntegration.provedor.toUpperCase()}` : ''}</>
-                  : <span className="text-destructive">WhatsApp não conectado para esta unidade.</span>}
-              </p>
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                {unitIntegration?.numero ? (
+                  <>
+                    <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold px-1.5 py-0.5 rounded-md bg-[#25d366]/15 text-[#017561] border border-[#25d366]/25">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Conectado
+                    </span>
+                    {provedorLabel && (
+                      <span className="inline-flex items-center text-[10.5px] font-semibold px-1.5 py-0.5 rounded-md bg-[#6b3fa0]/10 text-[#6b3fa0] border border-[#6b3fa0]/20">
+                        {provedorLabel}
+                      </span>
+                    )}
+                    <span className="text-[11px] text-[#667781] truncate">{unitIntegration.numero}</span>
+                  </>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold px-1.5 py-0.5 rounded-md bg-[#fef0c7] text-[#b54708] border border-[#fdb022]/40">
+                    <AlertCircle className="h-3 w-3" />
+                    WhatsApp não conectado
+                  </span>
+                )}
+              </div>
             </div>
             <button
               onClick={() => setNovaOpen(true)}
               title="Nova conversa"
-              className="p-2 rounded-full hover:bg-[#e9edef] transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#00a884] text-white text-[12.5px] font-semibold shadow-sm shadow-[#00a884]/30 hover:bg-[#008f72] hover:shadow-md transition-all active:scale-95"
             >
-              <SquarePen className="h-5 w-5 text-[#54656f]" />
+              <SquarePen className="h-4 w-4" />
+              <span className="hidden sm:inline">Nova</span>
             </button>
+          </div>
+
+          {/* Quick metrics */}
+          <div className="grid grid-cols-4 gap-1.5">
+            <div className="flex flex-col items-center bg-white/70 rounded-lg py-1.5 px-1 border border-[#e9edef]">
+              <span className="text-[13px] font-bold text-[#111b21] leading-none">{totalConversas}</span>
+              <span className="text-[9.5px] text-[#667781] mt-0.5 uppercase tracking-wide">Total</span>
+            </div>
+            <div className="flex flex-col items-center bg-white/70 rounded-lg py-1.5 px-1 border border-[#25d366]/30">
+              <span className="text-[13px] font-bold text-[#017561] leading-none">{totalNaoLidas}</span>
+              <span className="text-[9.5px] text-[#017561] mt-0.5 uppercase tracking-wide">Não lidas</span>
+            </div>
+            <div className="flex flex-col items-center bg-white/70 rounded-lg py-1.5 px-1 border border-[#6b3fa0]/25">
+              <span className="text-[13px] font-bold text-[#6b3fa0] leading-none">{totalBia}</span>
+              <span className="text-[9.5px] text-[#6b3fa0] mt-0.5 uppercase tracking-wide">BIA</span>
+            </div>
+            <div className="flex flex-col items-center bg-white/70 rounded-lg py-1.5 px-1 border border-[#e9edef]">
+              <span className="text-[13px] font-bold text-[#111b21] leading-none">{totalHumano}</span>
+              <span className="text-[9.5px] text-[#667781] mt-0.5 uppercase tracking-wide">Humano</span>
+            </div>
           </div>
         </div>
 
         {/* Search Bar */}
-        <div className="px-2 py-1.5 bg-white border-b border-[#e9edef]">
-          <div className="relative flex items-center bg-[#f0f2f5] rounded-lg px-3 py-1.5">
-            <Search className="h-4 w-4 text-[#54656f] mr-3 flex-shrink-0" />
+        <div className="px-3 py-2 bg-white border-b border-[#e9edef] flex flex-col gap-2">
+          <div className="relative flex items-center bg-[#f0f2f5] rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-[#00a884]/30 transition-all">
+            <Search className="h-4 w-4 text-[#54656f] mr-2 flex-shrink-0" />
             <input
               type="text"
-              placeholder="Pesquisar ou começar uma nova conversa"
+              placeholder="Pesquisar conversa, nome ou telefone"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-transparent text-sm text-[#3b4a54] placeholder-[#667781] outline-none"
             />
+            {search && (
+              <button onClick={() => setSearch("")} className="text-[#667781] hover:text-[#111b21]">
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Filter pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+            {([
+              { id: "all", label: "Todas", icon: null },
+              { id: "unread", label: "Não lidas", icon: null },
+              { id: "bia", label: "BIA", icon: Bot },
+              { id: "human", label: "Humano", icon: Headset },
+            ] as const).map((f) => {
+              const active = activeFilter === f.id;
+              const Ic = f.icon;
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => setActiveFilter(f.id)}
+                  className={cn(
+                    "inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11.5px] font-semibold whitespace-nowrap transition-all border",
+                    active
+                      ? "bg-[#00a884] text-white border-[#00a884] shadow-sm"
+                      : "bg-white text-[#54656f] border-[#e9edef] hover:bg-[#f5f6f6]"
+                  )}
+                >
+                  {Ic && <Ic className="h-3 w-3" />}
+                  {f.label}
+                </button>
+              );
+            })}
           </div>
         </div>
+
 
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto">
