@@ -1,6 +1,7 @@
 // Reprocessa data_emissao das notas_fiscais relendo o XML do bucket contabil-xmls.
 // Corrige registros importados com shift de fuso (ex: 31/03 23:15-03 virando 01/04).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.0";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const auth = await requireAuth(req, corsHeaders);
+    if (!auth.ok) return auth.response;
+
     const body = await req.json().catch(() => ({}));
     const { empresa_id, dry_run = false } = body;
 
