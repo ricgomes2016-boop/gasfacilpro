@@ -19,6 +19,15 @@ serve(async (req) => {
 
     const { unidade_id, periodo } = await req.json().catch(() => ({ unidade_id: null, periodo: "mensal" }));
 
+    // Validate unidade_id as UUID to prevent SQL injection
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (unidade_id !== null && unidade_id !== undefined && !UUID_RE.test(String(unidade_id))) {
+      return new Response(JSON.stringify({ error: "unidade_id inválido" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const periodoSafe = periodo === "semanal" ? "semanal" : "mensal";
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
