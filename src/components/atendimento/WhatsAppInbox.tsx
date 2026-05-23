@@ -1246,7 +1246,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
             </div>
 
             {/* Input Area */}
-            <div className="bg-[#f0f2f5] px-4 py-2.5 flex items-end gap-2 flex-shrink-0">
+            <div className="bg-[#f0f2f5] px-2 sm:px-4 py-2 sm:py-2.5 flex items-end gap-1.5 sm:gap-2 flex-shrink-0">
 
               {/* Hidden file input */}
               <input
