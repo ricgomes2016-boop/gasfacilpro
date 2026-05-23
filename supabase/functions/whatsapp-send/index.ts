@@ -36,15 +36,15 @@ serve(async (req) => {
       userRoles = (roles || []).map((r: any) => r.role);
       const allowed = ["super_admin", "admin", "gestor", "operacional", "financeiro"];
       if (!userRoles.some((r) => allowed.includes(r))) {
-        return json(403, { ok: false, error: "forbidden_role" });
+        return json(200, { ok: false, error: "Usuário sem permissão para enviar mensagens (forbidden_role)" });
       }
     }
 
     // Ignora unidade_id do payload — confiamos só na conversa
     const { conversa_id, content, media_url, media_type, mime_type, filename } = await req.json();
 
-    if (!conversa_id) return json(400, { ok: false, error: "conversa_id é obrigatório" });
-    if (!media_url && !content?.trim()) return json(400, { ok: false, error: "Envie content ou media_url" });
+    if (!conversa_id) return json(200, { ok: false, error: "conversa_id é obrigatório" });
+    if (!media_url && !content?.trim()) return json(200, { ok: false, error: "Envie content ou media_url" });
 
     // 1. Conversa
     const { data: conversa } = await supabase
@@ -53,16 +53,16 @@ serve(async (req) => {
       .eq("id", conversa_id)
       .maybeSingle();
 
-    if (!conversa?.telefone) return json(400, { ok: false, error: "Conversa sem telefone" });
-    if ((conversa as any).deleted_at) return json(409, { ok: false, error: "Conversa excluída" });
+    if (!conversa?.telefone) return json(200, { ok: false, error: "Conversa sem telefone" });
+    if ((conversa as any).deleted_at) return json(200, { ok: false, error: "Conversa excluída" });
     if (conversa.status === "archived" || conversa.status === "closed") {
-      return json(409, { ok: false, error: "Conversa arquivada/encerrada — reabra para enviar" });
+      return json(200, { ok: false, error: "Conversa arquivada/encerrada — reabra para enviar" });
     }
 
     // Tenant guard
     if (!auth.isServiceRole && !userRoles.includes("super_admin")) {
       if (!userEmpresaId || conversa.empresa_id !== userEmpresaId) {
-        return json(403, { ok: false, error: "forbidden_tenant" });
+        return json(200, { ok: false, error: "Conversa pertence a outra empresa (forbidden_tenant)" });
       }
     }
 
@@ -75,7 +75,7 @@ serve(async (req) => {
       config = await resolveConfig(supabase, p, effectiveUnidade, null);
       if (config) break;
     }
-    if (!config) return json(400, { ok: false, error: "Nenhuma integração WhatsApp ativa para a unidade" });
+    if (!config) return json(200, { ok: false, error: "Nenhuma integração WhatsApp ativa para a unidade" });
 
     // 3. Janela 24h (apenas Meta) — apenas texto livre sofre restrição
     if (config.provedor === "meta" && !media_url) {
@@ -89,11 +89,11 @@ serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(1);
       if (!lastInbound || lastInbound.length === 0) {
-        return json(409, {
+        return json(200, {
           ok: false,
-          error: "out_of_window",
+          error: "Cliente não interagiu nas últimas 24h. Use um template aprovado pela Meta.",
           requires_template: true,
-          message: "Cliente não interagiu nas últimas 24h. Use um template aprovado pela Meta.",
+          out_of_window: true,
         });
       }
     }
@@ -122,7 +122,7 @@ serve(async (req) => {
 
     if (insertErr || !inserted) {
       console.error("Erro ao inserir mensagem pending:", insertErr);
-      return json(500, { ok: false, error: insertErr?.message || "insert_failed" });
+      return json(200, { ok: false, error: insertErr?.message || "insert_failed" });
     }
 
     // 5. Envia
