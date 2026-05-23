@@ -250,7 +250,7 @@ export function useContasPagar() {
   const openPagarDialog = (conta: ContaPagar) => {
     setPagamentoEmLoteIds(new Set());
     setPagarConta(conta);
-    setPagarForm({ formasPagamento: [{ forma: "", valor: String(conta.valor) }] });
+    setPagarForm({ formasPagamento: [{ forma: "", valor: String(conta.valor), origemTipo: "", origemId: "" }] });
     setPagarDialogOpen(true);
   };
 
