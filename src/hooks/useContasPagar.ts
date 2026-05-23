@@ -67,9 +67,11 @@ export function useContasPagar() {
 
   // ------- Forms -------
   const [form, setForm] = useState(EMPTY_FORM);
-  const [pagarForm, setPagarForm] = useState<{ formasPagamento: { forma: string; valor: string }[] }>({
-    formasPagamento: [{ forma: "", valor: "" }],
+  const [pagarForm, setPagarForm] = useState<{ formasPagamento: { forma: string; valor: string; origemTipo: string; origemId: string }[] }>({
+    formasPagamento: [{ forma: "", valor: "", origemTipo: "", origemId: "" }],
   });
+  const [contasBancarias, setContasBancarias] = useState<Array<{ id: string; nome: string; banco: string; saldo_atual: number }>>([]);
+
 
   // ------- Consolidation -------
   const [selectedFornecedor, setSelectedFornecedor] = useState<string | null>(null);
@@ -122,7 +124,15 @@ export function useContasPagar() {
     if (data) setCategoriasDB(data as CategoriaDesp[]);
   };
 
-  useEffect(() => { fetchContas(); fetchCategorias(); }, [unidadeAtual]);
+  const fetchContasBancarias = async () => {
+    let q = supabase.from("contas_bancarias").select("id, nome, banco, saldo_atual").eq("ativo", true).order("nome");
+    if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
+    const { data } = await q;
+    setContasBancarias((data as any) || []);
+  };
+
+  useEffect(() => { fetchContas(); fetchCategorias(); fetchContasBancarias(); }, [unidadeAtual]);
+
 
   // ===================== COMPUTED (derived state) =====================
 
@@ -248,7 +258,7 @@ export function useContasPagar() {
   const openPagarDialog = (conta: ContaPagar) => {
     setPagamentoEmLoteIds(new Set());
     setPagarConta(conta);
-    setPagarForm({ formasPagamento: [{ forma: "", valor: String(conta.valor) }] });
+    setPagarForm({ formasPagamento: [{ forma: "", valor: String(conta.valor), origemTipo: "", origemId: "" }] });
     setPagarDialogOpen(true);
   };
 
@@ -278,7 +288,7 @@ export function useContasPagar() {
     const total = selecionadasAbertas.reduce((s, c) => s + Number(c.valor), 0);
     setPagamentoEmLoteIds(new Set(selecionadasAbertas.map(c => c.id)));
     setPagarConta({ ...selecionadasAbertas[0], fornecedor: `${selecionadasAbertas.length} contas selecionadas`, descricao: "Pagamento em lote", valor: total });
-    setPagarForm({ formasPagamento: [{ forma: "", valor: String(total) }] });
+    setPagarForm({ formasPagamento: [{ forma: "", valor: String(total), origemTipo: "", origemId: "" }] });
     setPagarDialogOpen(true);
   };
 
@@ -291,44 +301,73 @@ export function useContasPagar() {
     if (totalPago <= 0) { toast.error("Informe o valor pago"); return; }
     if (totalPago > valorConta + 0.01) { toast.error("Valor pago excede o valor da conta"); return; }
 
+    const formasValidas = pagarForm.formasPagamento.filter(f => f.forma && parseFloat(f.valor) > 0);
+    for (const f of formasValidas) {
+      if (!f.origemTipo) { toast.error(`Informe de qual conta sairá o pagamento (${f.forma})`); return; }
+      if (f.origemTipo === "banco" && !f.origemId) { toast.error("Selecione a conta bancária"); return; }
+    }
+
     const isParcial = totalPago < valorConta - 0.01;
-    const formasStr = pagarForm.formasPagamento
-      .filter(f => f.forma && parseFloat(f.valor) > 0)
-      .map(f => `${f.forma}: R$ ${parseFloat(f.valor).toFixed(2)}`).join(", ");
+    const formasStr = formasValidas.map(f => `${f.forma}: R$ ${parseFloat(f.valor).toFixed(2)}`).join(", ");
 
     if (isLote && isParcial) { toast.error("Pagamento em lote precisa quitar o total selecionado"); return; }
 
+    const payload = formasValidas.map(f => ({
+      forma: f.forma,
+      valor: parseFloat(f.valor),
+      origem_tipo: f.origemTipo,
+      origem_id: f.origemId || null,
+    }));
+
     if (isLote) {
-      const { error } = await supabase.from("contas_pagar").update({
-        status: "paga",
-        observacoes: formasStr ? `Pago em lote via ${formasStr}` : "Pago em lote",
-      }).in("id", contasLote.map(c => c.id));
-      if (error) { toast.error("Erro ao confirmar pagamento em lote"); return; }
-      toast.success(`${contasLote.length} contas pagas!`);
+      // Rateia proporcionalmente cada conta do lote nas mesmas formas — paga via RPC uma a uma
+      for (const c of contasLote) {
+        const proporcao = Number(c.valor) / valorConta;
+        const pags = payload.map(p => ({ ...p, valor: Number((p.valor * proporcao).toFixed(2)) }));
+        const { error } = await supabase.rpc("registrar_pagamento_conta_pagar" as any, {
+          p_conta_id: c.id, p_pagamentos: pags, p_quitar: true,
+        });
+        if (error) { toast.error(`Erro ao pagar ${c.fornecedor}: ${error.message}`); return; }
+      }
+      toast.success(`${contasLote.length} contas pagas! Saldos atualizados.`);
       setSelecionadasPagamentoIds(new Set());
       setPagamentoEmLoteIds(new Set());
     } else if (isParcial) {
       const restante = valorConta - totalPago;
+      const { error } = await supabase.rpc("registrar_pagamento_conta_pagar" as any, {
+        p_conta_id: pagarConta.id, p_pagamentos: payload, p_quitar: false,
+      });
+      if (error) { toast.error(`Erro: ${error.message}`); return; }
       const obs = `${pagarConta.observacoes || ""}\nPago parcial R$ ${totalPago.toFixed(2)} em ${format(new Date(), "dd/MM/yyyy")} (${formasStr})`.trim();
-      const { error } = await supabase.from("contas_pagar").update({ valor: restante, observacoes: obs }).eq("id", pagarConta.id);
-      if (error) { toast.error("Erro ao processar pagamento parcial"); return; }
+      await supabase.from("contas_pagar").update({ valor: restante, observacoes: obs }).eq("id", pagarConta.id);
       toast.success(`Pago R$ ${totalPago.toFixed(2)} — Restante: R$ ${restante.toFixed(2)}`);
     } else {
-      const { error } = await supabase.from("contas_pagar").update({
-        status: "paga",
-        observacoes: formasStr ? `${pagarConta.observacoes || ""}\nPago via ${formasStr}`.trim() : pagarConta.observacoes,
-      }).eq("id", pagarConta.id);
-      if (error) { toast.error("Erro ao confirmar pagamento"); return; }
-      toast.success("Conta paga integralmente!");
+      const { error } = await supabase.rpc("registrar_pagamento_conta_pagar" as any, {
+        p_conta_id: pagarConta.id, p_pagamentos: payload, p_quitar: true,
+      });
+      if (error) { toast.error(`Erro ao confirmar pagamento: ${error.message}`); return; }
+      toast.success("Conta paga! Saldo atualizado.");
     }
     setPagarDialogOpen(false);
     fetchContas();
   };
 
-  const addFormaPagamento = () => setPagarForm(prev => ({ ...prev, formasPagamento: [...prev.formasPagamento, { forma: "", valor: "" }] }));
+  const addFormaPagamento = () => setPagarForm(prev => ({ ...prev, formasPagamento: [...prev.formasPagamento, { forma: "", valor: "", origemTipo: "", origemId: "" }] }));
   const removeFormaPagamento = (idx: number) => setPagarForm(prev => ({ ...prev, formasPagamento: prev.formasPagamento.filter((_, i) => i !== idx) }));
-  const updateFormaPagamento = (idx: number, field: "forma" | "valor", value: string) =>
-    setPagarForm(prev => ({ ...prev, formasPagamento: prev.formasPagamento.map((f, i) => i === idx ? { ...f, [field]: value } : f) }));
+  const updateFormaPagamento = (idx: number, field: "forma" | "valor" | "origemTipo" | "origemId", value: string) =>
+    setPagarForm(prev => ({ ...prev, formasPagamento: prev.formasPagamento.map((f, i) => {
+      if (i !== idx) return f;
+      const next = { ...f, [field]: value };
+      if (field === "forma") {
+        // Auto-detect origem tipo by forma
+        const formaLow = value.toLowerCase();
+        if (formaLow.includes("dinheiro")) { next.origemTipo = "caixa"; next.origemId = ""; }
+        else if (formaLow.includes("cartão") || formaLow.includes("cartao")) { next.origemTipo = "cartao"; next.origemId = ""; }
+        else { next.origemTipo = "banco"; }
+      }
+      return next;
+    }) }));
+
 
   // ===================== FILTERS =====================
 
@@ -630,5 +669,8 @@ export function useContasPagar() {
     exportToExcel, exportToPDF,
     // refresh
     fetchContas,
+    // contas bancárias para origem do pagamento
+    contasBancarias,
   };
+
 }

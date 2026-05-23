@@ -112,6 +112,8 @@ export default function CaixaDia() {
   const [transferenciaForm, setTransferenciaForm] = useState({ unidadeDestinoId: "", valor: "", descricao: "" });
   const [periodoChart, setPeriodoChart] = useState<"7dias" | "30dias">("7dias");
   const [chartMovs, setChartMovs] = useState<Mov[]>([]);
+  const [movsBancariasHoje, setMovsBancariasHoje] = useState<Array<{ id: string; conta_bancaria_id: string; tipo: string; descricao: string; valor: number; created_at: string }>>([]);
+
 
   const [entregadoresPendentes, setEntregadoresPendentes] = useState<{ nome: string; entregas: number; total: number }[]>([]);
   const [sangriasPendentes, setSangriasPendentes] = useState(0);
@@ -296,7 +298,18 @@ export default function CaixaDia() {
     if (unidadeAtual?.id) qChart = qChart.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
     const { data: cData } = await qChart;
     setChartMovs((cData as Mov[]) || []);
+
+    // Movimentações bancárias de hoje (para mostrar status "Conectada" + extrato resumido)
+    const hojeISO = format(new Date(), "yyyy-MM-dd");
+    let qMovBanc = supabase.from("movimentacoes_bancarias")
+      .select("id, conta_bancaria_id, tipo, descricao, valor, created_at")
+      .eq("data", hojeISO)
+      .order("created_at", { ascending: false });
+    if (unidadeAtual?.id) qMovBanc = qMovBanc.eq("unidade_id", unidadeAtual.id);
+    const { data: mbData } = await qMovBanc;
+    setMovsBancariasHoje((mbData as any) || []);
   };
+
 
   useEffect(() => { fetchTesouraria(); }, [unidadeAtual]);
 
@@ -1002,15 +1015,43 @@ export default function CaixaDia() {
                   <CardHeader><CardTitle className="flex items-center gap-2"><Landmark className="h-5 w-5" />Contas Bancárias</CardTitle></CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {contas.map(c => (
-                        <div key={c.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                          <div>
-                            <p className="font-medium text-sm">{c.nome}</p>
-                            <p className="text-xs text-muted-foreground">{c.banco}</p>
+                      {contas.map(c => {
+                        const movsConta = movsBancariasHoje.filter(m => m.conta_bancaria_id === c.id);
+                        const conectada = movsConta.length > 0;
+                        return (
+                          <div key={c.id} className="p-3 rounded-lg bg-muted/50 space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="font-medium text-sm truncate">{c.nome}</p>
+                                  {conectada ? (
+                                    <Badge variant="default" className="bg-success/15 text-success border-success/30 text-[10px] px-1.5 py-0">● Conectada</Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-muted-foreground">Sem mov. hoje</Badge>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">{c.banco}</p>
+                              </div>
+                              <span className="font-bold text-sm whitespace-nowrap">R$ {Number(c.saldo_atual).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                            </div>
+                            {conectada && (
+                              <div className="space-y-1 pl-1 border-l-2 border-success/30">
+                                {movsConta.slice(0, 4).map(m => (
+                                  <div key={m.id} className="flex justify-between items-center text-xs px-2">
+                                    <span className="truncate text-muted-foreground">{m.tipo === "saida" ? "↓" : "↑"} {m.descricao}</span>
+                                    <span className={m.tipo === "saida" ? "text-destructive font-medium" : "text-success font-medium"}>
+                                      {m.tipo === "saida" ? "-" : "+"} R$ {Number(m.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                    </span>
+                                  </div>
+                                ))}
+                                {movsConta.length > 4 && (
+                                  <p className="text-[10px] text-muted-foreground px-2">+ {movsConta.length - 4} movimentações</p>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <span className="font-bold text-sm">R$ {Number(c.saldo_atual).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
@@ -1018,6 +1059,7 @@ export default function CaixaDia() {
             </div>
           </TabsContent>
         </Tabs>
+
 
         {/* Dialog Acerto Pendente detalhes */}
         <AcertoPendenteDialog

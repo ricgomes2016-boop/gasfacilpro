@@ -405,21 +405,49 @@ export default function ContasPagar() {
                     <Button type="button" variant="outline" size="sm" onClick={cp.addFormaPagamento}>+ Forma</Button>
                   </div>
                   {cp.pagarForm.formasPagamento.map((fp, idx) => (
-                    <div key={idx} className="flex gap-2 items-end">
-                      <div className="flex-1">
-                        <Select value={fp.forma} onValueChange={v => cp.updateFormaPagamento(idx, "forma", v)}>
-                          <SelectTrigger><SelectValue placeholder="Forma" /></SelectTrigger>
-                          <SelectContent>{FORMAS_PAGAMENTO.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
-                        </Select>
+                    <div key={idx} className="space-y-2 p-2 rounded-md border bg-card">
+                      <div className="flex gap-2 items-end">
+                        <div className="flex-1">
+                          <Label className="text-xs">Forma</Label>
+                          <Select value={fp.forma} onValueChange={v => cp.updateFormaPagamento(idx, "forma", v)}>
+                            <SelectTrigger><SelectValue placeholder="Forma" /></SelectTrigger>
+                            <SelectContent>{FORMAS_PAGAMENTO.map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </div>
+                        <div className="w-[120px]">
+                          <Label className="text-xs">Valor</Label>
+                          <Input type="number" step="0.01" placeholder="0,00" value={fp.valor} onChange={e => cp.updateFormaPagamento(idx, "valor", e.target.value)} />
+                        </div>
+                        {cp.pagarForm.formasPagamento.length > 1 && (
+                          <Button variant="ghost" size="icon" onClick={() => cp.removeFormaPagamento(idx)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        )}
                       </div>
-                      <div className="w-[120px]">
-                        <Input type="number" step="0.01" placeholder="Valor" value={fp.valor} onChange={e => cp.updateFormaPagamento(idx, "valor", e.target.value)} />
-                      </div>
-                      {cp.pagarForm.formasPagamento.length > 1 && (
-                        <Button variant="ghost" size="icon" onClick={() => cp.removeFormaPagamento(idx)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      {fp.forma && fp.origemTipo !== "cartao" && (
+                        <div>
+                          <Label className="text-xs">Sair de *</Label>
+                          {fp.origemTipo === "caixa" ? (
+                            <div className="px-3 py-2 text-sm rounded-md bg-muted/60 border">💵 Caixa da Loja</div>
+                          ) : (
+                            <Select value={fp.origemId} onValueChange={v => cp.updateFormaPagamento(idx, "origemId", v)}>
+                              <SelectTrigger><SelectValue placeholder="Selecione a conta bancária" /></SelectTrigger>
+                              <SelectContent>
+                                {cp.contasBancarias.length === 0 && <SelectItem value="nenhum" disabled>Nenhuma conta cadastrada</SelectItem>}
+                                {cp.contasBancarias.map(c => (
+                                  <SelectItem key={c.id} value={c.id}>
+                                    {c.nome} ({c.banco}) — R$ {Number(c.saldo_atual).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      )}
+                      {fp.origemTipo === "cartao" && (
+                        <p className="text-xs text-muted-foreground px-1">💳 Será lançado na fatura — não debita saldo agora.</p>
                       )}
                     </div>
                   ))}
+
                   <div className="text-sm text-muted-foreground">
                     Total informado: <span className="font-medium text-foreground">R$ {cp.pagarForm.formasPagamento.reduce((s, f) => s + (parseFloat(f.valor) || 0), 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                     {cp.pagarForm.formasPagamento.reduce((s, f) => s + (parseFloat(f.valor) || 0), 0) < Number(cp.pagarConta.valor) - 0.01 && (

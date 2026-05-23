@@ -3289,8 +3289,11 @@ export type Database = {
           boleto_linha_digitavel: string | null
           boleto_url: string | null
           categoria: string | null
+          conta_bancaria_id: string | null
           created_at: string
+          data_pagamento: string | null
           descricao: string
+          forma_pagamento: string | null
           fornecedor: string
           grupo_parcela_id: string | null
           id: string
@@ -3310,8 +3313,11 @@ export type Database = {
           boleto_linha_digitavel?: string | null
           boleto_url?: string | null
           categoria?: string | null
+          conta_bancaria_id?: string | null
           created_at?: string
+          data_pagamento?: string | null
           descricao: string
+          forma_pagamento?: string | null
           fornecedor: string
           grupo_parcela_id?: string | null
           id?: string
@@ -3331,8 +3337,11 @@ export type Database = {
           boleto_linha_digitavel?: string | null
           boleto_url?: string | null
           categoria?: string | null
+          conta_bancaria_id?: string | null
           created_at?: string
+          data_pagamento?: string | null
           descricao?: string
+          forma_pagamento?: string | null
           fornecedor?: string
           grupo_parcela_id?: string | null
           id?: string
@@ -3348,6 +3357,13 @@ export type Database = {
           vencimento?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contas_pagar_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contas_pagar_plano_contas_id_fkey"
             columns: ["plano_contas_id"]
@@ -11736,6 +11752,10 @@ export type Database = {
         Returns: undefined
       }
       proximo_numero_pedido: { Args: { _empresa_id: string }; Returns: number }
+      registrar_pagamento_conta_pagar: {
+        Args: { p_conta_id: string; p_pagamentos: Json; p_quitar?: boolean }
+        Returns: Json
+      }
       resolver_empresa_por_did: {
         Args: { _did: string }
         Returns: {
