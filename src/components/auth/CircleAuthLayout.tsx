@@ -113,6 +113,19 @@ export function CircleAuthLayout({
           </div>
         </div>
       </div>
+
+      {/* Fixed footer with motivational quote */}
+      <footer className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-background/80 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-center gap-2">
+          <div
+            className="w-2 h-2 rounded-full shrink-0"
+            style={{ background: `hsl(${gradientFrom})` }}
+          />
+          <p className="text-xs md:text-sm text-muted-foreground italic text-center">
+            "{quote}"
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
