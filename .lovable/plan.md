@@ -1,37 +1,33 @@
-## Objetivo
+## Problema
 
-Adicionar navegação por teclado ao stepper da **Nova Venda** (Cliente → Produtos → Pagamento → Entregador → Confirmar) com foco visível e acessibilidade.
+Na tela **Pedidos**, ao clicar em **Nova Venda**, navega para `/vendas/nova`. A sidebar, que estava recolhida, aparece **expandida** novamente.
 
-## Comportamento de teclado
+## Causa raiz
 
-- **Seta direita (→)**: avança para a próxima etapa.
-- **Seta esquerda (←)**: volta para a etapa anterior.
-- **Enter / Espaço**: ativa a etapa atualmente focada.
-- Sem wrap-around: na primeira etapa, ← não faz nada; na última, → não faz nada.
-- Sem Home/End ou auto-activation — apenas o que foi pedido.
+`MainLayout` (`src/components/layout/MainLayout.tsx`) monta seu próprio `<SidebarProvider>` em cada página. Como o estado `collapsed` vive só na memória do provider (`useState(false)` em `src/contexts/SidebarContext.tsx`), toda navegação entre rotas remonta o provider e o estado volta para "expandido".
 
-## Mudanças em `src/pages/vendas/NovaVenda.tsx` (componente `VendaStepper`)
+A regra de estabilidade proíbe refatorar `App.tsx`/aninhamento de providers, então **não vou mover** o `SidebarProvider` para cima.
 
-1. **Tablist acessível**
-   - Wrapper recebe `role="tablist"` e `aria-label="Etapas da venda"`.
-   - Cada botão: `role="tab"`, `aria-selected`, `aria-current="step"` na ativa, `tabIndex={activeStep === step.id ? 0 : -1}` (roving tabindex).
+## Solução
 
-2. **Refs + handler `onKeyDown`**
-   - `useRef<(HTMLButtonElement | null)[]>([])` para focar irmãos.
-   - `ArrowRight` / `ArrowLeft`: move foco para a próxima/anterior etapa habilitada e chama `onStepClick` dessa etapa.
-   - `Enter` / `Space`: chama `onStepClick(step.id)` (com `preventDefault` no Space).
+Persistir o estado `collapsed` em `localStorage` dentro do próprio `SidebarContext`, sem mexer em `App.tsx`, `MainLayout` ou em qualquer página.
 
-3. **Foco visível**
-   - Classes Tailwind no botão: `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2` (tokens do design system).
+### Mudanças em `src/contexts/SidebarContext.tsx`
 
-4. **Preservar**
-   - `title`, `aria-label`, comportamento de clique, layout e estilos atuais permanecem.
+- Chave: `"sidebar:collapsed"`.
+- Inicializar `useState` com função leitora do `localStorage` (com `try/catch` p/ SSR / acesso negado).
+- `useEffect` grava no `localStorage` sempre que `collapsed` muda.
+- Sem alterar API pública (`collapsed`, `setCollapsed`, `toggle`).
+
+### Efeito
+
+Quando o usuário clica "Nova Venda" na tela de Pedidos (ou em qualquer outra navegação), o novo `MainLayout` lê o último valor salvo e a sidebar **permanece recolhida**.
 
 ## Fora de escopo
 
-- Não alterar validações, auto-advance (já removido), view antiga, ou outros steppers do projeto.
-- Sem mudanças em CSS global.
+- Não tocar em `App.tsx`, providers globais, `MainLayout` ou rotas.
+- Sem mudança visual ou de animação.
 
 ## Arquivo
 
-- `src/pages/vendas/NovaVenda.tsx` — apenas o componente `VendaStepper`.
+- `src/contexts/SidebarContext.tsx` (único).
