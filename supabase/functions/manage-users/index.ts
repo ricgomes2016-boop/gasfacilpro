@@ -221,6 +221,22 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Helper: ensure target user belongs to the same empresa as caller (unless super_admin)
+    const assertSameEmpresa = async (targetUserId: string): Promise<Response | null> => {
+      if (isSuperAdmin) return null;
+      const { data: callerProfile } = await supabaseAdmin
+        .from("profiles").select("empresa_id").eq("user_id", caller.id).maybeSingle();
+      const { data: targetProfile } = await supabaseAdmin
+        .from("profiles").select("empresa_id").eq("user_id", targetUserId).maybeSingle();
+      if (!callerProfile?.empresa_id || !targetProfile?.empresa_id || callerProfile.empresa_id !== targetProfile.empresa_id) {
+        return new Response(JSON.stringify({ error: "Acesso negado: usuário não pertence à sua empresa" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return null;
+    };
+
     // UPDATE user (profile + role + unidades)
     if (action === "update") {
       const { user_id, full_name, phone, role, unidade_ids } = params;
@@ -231,6 +247,9 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      const denied = await assertSameEmpresa(user_id);
+      if (denied) return denied;
 
       // Update profile fields
       const profileUpdate: Record<string, string> = {};
@@ -252,6 +271,13 @@ Deno.serve(async (req) => {
       }
 
       if (role) {
+        // Prevent non-super-admin from elevating to admin/super_admin
+        if (!isSuperAdmin && (role === "super_admin" || (isGestor && role === "admin"))) {
+          return new Response(JSON.stringify({ error: "Permissão insuficiente para atribuir este papel" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         const { error: roleError } = await supabaseAdmin
           .from("user_roles")
           .update({ role })
@@ -293,6 +319,16 @@ Deno.serve(async (req) => {
         });
       }
 
+      const denied = await assertSameEmpresa(user_id);
+      if (denied) return denied;
+
+      if (!isSuperAdmin && (role === "super_admin" || (isGestor && role === "admin"))) {
+        return new Response(JSON.stringify({ error: "Permissão insuficiente para atribuir este papel" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const { error } = await supabaseAdmin
         .from("user_roles")
         .update({ role })
@@ -321,6 +357,9 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      const denied = await assertSameEmpresa(user_id);
+      if (denied) return denied;
 
       const { error } = await supabaseAdmin.auth.admin.deleteUser(user_id);
       if (error) throw error;
