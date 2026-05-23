@@ -589,6 +589,13 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
 
   const filtered = conversas
     .filter((c) => c.titulo.toLowerCase().includes(search.toLowerCase()))
+    .filter((c) => {
+      if (activeFilter === "all") return true;
+      if (activeFilter === "unread") return (unreadByConversation[c.id] || 0) > 0;
+      if (activeFilter === "bia") return c.last_role === "assistant";
+      if (activeFilter === "human") return c.last_role === "human" || c.last_role === "user";
+      return true;
+    })
     .sort((a, b) => {
       const ua = unreadByConversation[a.id] || 0;
       const ub = unreadByConversation[b.id] || 0;
@@ -596,8 +603,35 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
     });
 
+  // Métricas calculadas a partir dos dados já carregados
+  const totalConversas = conversas.length;
+  const totalNaoLidas = conversas.reduce((acc, c) => acc + (unreadByConversation[c.id] || 0), 0);
+  const totalBia = conversas.filter((c) => c.last_role === "assistant").length;
+  const totalHumano = conversas.filter((c) => c.last_role === "human").length;
+
   const selectedConversa = conversas.find((c) => c.id === selectedId);
   const isOutgoing = (role: string) => role === "assistant" || role === "human";
+
+  // Provedor formatado para badge
+  const provedorLabel = (() => {
+    if (!unitIntegration?.provedor) return null;
+    const p = unitIntegration.provedor.toLowerCase();
+    if (p === "meta") return "Meta Oficial";
+    if (p === "zapi") return "Z-API";
+    return unitIntegration.provedor.toUpperCase();
+  })();
+
+  // Quick replies (apenas inserem texto, não enviam)
+  const quickReplies = [
+    { label: "💰 Preço do gás", text: "Olá! O valor do nosso botijão é R$ XX,XX com entrega rápida. Posso confirmar seu pedido?" },
+    { label: "✅ Confirmar pedido", text: "Pedido confirmado! Em breve nosso entregador estará a caminho. 🚚" },
+    { label: "🛵 Saiu para entrega", text: "Seu pedido já saiu para entrega! O entregador chegará em alguns minutos. 📍" },
+    { label: "💳 Forma de pagamento", text: "Aceitamos dinheiro, PIX, débito e crédito na entrega. Qual prefere?" },
+    { label: "👋 Encerrar", text: "Agradecemos o contato! Qualquer coisa estamos à disposição. 🙏" },
+  ];
+  const insertQuickReply = (text: string) => {
+    setNewMsg((prev) => prev ? `${prev} ${text}` : text);
+  };
 
   // Get last message for preview
   const getLastMessage = (conversaId: string) => {
