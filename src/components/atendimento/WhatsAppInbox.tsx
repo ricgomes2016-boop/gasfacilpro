@@ -856,7 +856,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                         "text-[11px] flex-shrink-0 tabular-nums",
                         unread > 0 ? "text-[#00a884] font-semibold" : "text-[#667781]"
                       )}>
-                        {format(new Date(c.updated_at), "HH:mm")}
+                        {format(new Date(c.last_message_at ?? c.updated_at), "HH:mm")}
                       </span>
                     </div>
 
