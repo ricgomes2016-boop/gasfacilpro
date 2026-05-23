@@ -669,5 +669,8 @@ export function useContasPagar() {
     exportToExcel, exportToPDF,
     // refresh
     fetchContas,
+    // contas bancárias para origem do pagamento
+    contasBancarias,
   };
+
 }
