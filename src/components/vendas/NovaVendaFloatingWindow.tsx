@@ -11,20 +11,41 @@ interface Props {
   index: number;
 }
 
+function computeDefaultPos(index: number) {
+  if (typeof window === "undefined") return { x: 80, y: 60 };
+  const offset = (index % 6) * 32;
+  const baseW = Math.min(1100, window.innerWidth * 0.95);
+  const baseH = Math.min(800, window.innerHeight * 0.85);
+  return {
+    x: Math.max(8, (window.innerWidth - baseW) / 2 + offset),
+    y: Math.max(8, (window.innerHeight - baseH) / 2 + offset - 40),
+  };
+}
+
 export function NovaVendaFloatingWindow({ win, index }: Props) {
-  const { closeWindow, minimizeWindow, bringToFront } = useNovaVendaWindows();
-  const [maximized, setMaximized] = useState(false);
+  const { closeWindow, minimizeWindow, bringToFront, updateWindowPosition, setWindowMaximized } = useNovaVendaWindows();
+  const maximized = !!win.maximized;
   const [pos, setPos] = useState(() => {
-    if (typeof window === "undefined") return { x: 80, y: 60 };
-    const offset = (index % 6) * 32;
-    const baseW = Math.min(1100, window.innerWidth * 0.95);
-    const baseH = Math.min(800, window.innerHeight * 0.85);
-    return {
-      x: Math.max(8, (window.innerWidth - baseW) / 2 + offset),
-      y: Math.max(8, (window.innerHeight - baseH) / 2 + offset - 40),
-    };
+    if (typeof win.x === "number" && typeof win.y === "number") return { x: win.x, y: win.y };
+    return computeDefaultPos(index);
   });
   const dragState = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+
+  // Se a posição salva vier do contexto depois (ex.: hidratação), sincroniza.
+  useEffect(() => {
+    if (typeof win.x === "number" && typeof win.y === "number" && (win.x !== pos.x || win.y !== pos.y)) {
+      if (!dragState.current) setPos({ x: win.x, y: win.y });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [win.x, win.y]);
+
+  // Garante que a posição inicial calculada seja persistida.
+  useEffect(() => {
+    if (typeof win.x !== "number" || typeof win.y !== "number") {
+      updateWindowPosition(win.id, pos.x, pos.y);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onPointerDownHeader = (e: React.PointerEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest("[data-no-drag]")) return;
@@ -44,6 +65,9 @@ export function NovaVendaFloatingWindow({ win, index }: Props) {
   };
 
   const onPointerUpHeader = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragState.current) {
+      updateWindowPosition(win.id, pos.x, pos.y);
+    }
     dragState.current = null;
     try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
   };
@@ -101,7 +125,7 @@ export function NovaVendaFloatingWindow({ win, index }: Props) {
             variant="ghost"
             size="icon"
             className="h-7 w-7"
-            onClick={() => setMaximized((m) => !m)}
+            onClick={() => setWindowMaximized(win.id, !maximized)}
             title={maximized ? "Restaurar" : "Maximizar"}
             aria-label={maximized ? "Restaurar" : "Maximizar"}
           >
