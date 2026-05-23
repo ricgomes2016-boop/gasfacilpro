@@ -1196,8 +1196,24 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
               </div>
             </div>
 
+            {/* Quick Replies */}
+            <div className="bg-[#f0f2f5] px-3 pt-2 pb-1 border-t border-[#e9edef] flex items-center gap-1.5 overflow-x-auto flex-shrink-0">
+              <Zap className="h-3.5 w-3.5 text-[#00a884] flex-shrink-0" />
+              <span className="text-[10.5px] font-bold text-[#54656f] uppercase tracking-wide flex-shrink-0 mr-1">Respostas rápidas</span>
+              {quickReplies.map((q) => (
+                <button
+                  key={q.label}
+                  onClick={() => insertQuickReply(q.text)}
+                  className="text-[11.5px] font-medium px-2.5 py-1 rounded-full bg-white border border-[#e9edef] text-[#54656f] hover:bg-[#e7f5f0] hover:border-[#00a884]/40 hover:text-[#017561] transition-all whitespace-nowrap"
+                >
+                  {q.label}
+                </button>
+              ))}
+            </div>
+
             {/* Input Area */}
             <div className="bg-[#f0f2f5] px-4 py-2.5 flex items-end gap-2 flex-shrink-0">
+
               {/* Hidden file input */}
               <input
                 ref={fileInputRef}
