@@ -298,7 +298,18 @@ export default function CaixaDia() {
     if (unidadeAtual?.id) qChart = qChart.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
     const { data: cData } = await qChart;
     setChartMovs((cData as Mov[]) || []);
+
+    // Movimentações bancárias de hoje (para mostrar status "Conectada" + extrato resumido)
+    const hojeISO = format(new Date(), "yyyy-MM-dd");
+    let qMovBanc = supabase.from("movimentacoes_bancarias")
+      .select("id, conta_bancaria_id, tipo, descricao, valor, created_at")
+      .eq("data", hojeISO)
+      .order("created_at", { ascending: false });
+    if (unidadeAtual?.id) qMovBanc = qMovBanc.eq("unidade_id", unidadeAtual.id);
+    const { data: mbData } = await qMovBanc;
+    setMovsBancariasHoje((mbData as any) || []);
   };
+
 
   useEffect(() => { fetchTesouraria(); }, [unidadeAtual]);
 
