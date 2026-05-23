@@ -307,12 +307,35 @@ serve(async (req) => {
       const last = telefone.slice(-11);
       const last10b = telefone.slice(-10);
 
-      const { data: clientes } = await supabase
-        .from("clientes")
-        .select("id, nome, telefone, endereco, numero, bairro, cidade, cep")
-        .eq("empresa_id", empresa.id)
-        .or(`telefone.ilike.%${last}%,telefone.ilike.%${last10b}%`)
-        .limit(1);
+      // Busca cliente + tabela de preços em paralelo (envia preços no 1º turno).
+      const [clientesRes, tp] = await Promise.all([
+        supabase
+          .from("clientes")
+          .select("id, nome, telefone, endereco, numero, bairro, cidade, cep")
+          .eq("empresa_id", empresa.id)
+          .or(`telefone.ilike.%${last}%,telefone.ilike.%${last10b}%`)
+          .limit(1),
+        getTabelaPrecosBia(),
+      ]);
+      const clientes = clientesRes.data;
+
+      const fmtMoeda = (n: number) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
+      const linhasPrecos = [
+        { nome: "Gás P13", ...tp.gas_p13 },
+        { nome: "Gás P20", ...tp.gas_p20 },
+        { nome: "Gás P45", ...tp.gas_p45 },
+        { nome: "Água Mineral 20L", ...tp.agua_20l },
+      ]
+        .filter((i) => i.preco > 0)
+        .map((i) =>
+          i.preco_desconto && i.preco_desconto > 0 && i.preco_desconto < i.preco
+            ? `${i.nome} ${fmtMoeda(i.preco)} (desconto ${fmtMoeda(i.preco_desconto)})`
+            : `${i.nome} ${fmtMoeda(i.preco)}`
+        )
+        .join("; ");
+      const blocoPrecos = linhasPrecos
+        ? ` TABELA OFICIAL DE PREÇOS: ${linhasPrecos}. Use EXCLUSIVAMENTE estes valores. Cote primeiro o preço NORMAL; só ofereça o preço com desconto se o cliente pedir desconto. NUNCA invente valores.`
+        : "";
 
       await upsertChamadaBia(supabase, unidade.id, {
         telefone,
@@ -335,18 +358,23 @@ serve(async (req) => {
           numero: c.numero,
           bairro: c.bairro,
           cidade: c.cidade,
+          tabela_precos: tp,
           mensagem:
             `Cliente identificado: ${c.nome}. Endereço cadastrado: ${enderecoFmt}. ` +
             `CONFIRME EM UMA ÚNICA FRASE CURTA: "Confirma a entrega na ${c.endereco || "rua cadastrada"}, número ${c.numero || "[peça o número]"}?". ` +
             `Se o cliente disser SIM/ISSO/CORRETO/IGUAL/MESMO LUGAR, chame criar_pedido passando APENAS cliente_id (NÃO envie endereco/numero/bairro novos — eu uso o cadastro). ` +
             `Só pergunte rua/número/bairro se o cliente disser EXPLICITAMENTE que mudou ou que é entrega em outro lugar. ` +
-            `NUNCA crie cliente novo: este já existe.`,
+            `NUNCA crie cliente novo: este já existe.` +
+            blocoPrecos,
         });
       }
 
       return ok({
         encontrado: false,
-        mensagem: "Cliente novo. Peça apenas o PRIMEIRO NOME (não o nome completo) e o endereço (rua, número, bairro).",
+        tabela_precos: tp,
+        mensagem:
+          "Cliente novo. Peça apenas o PRIMEIRO NOME (não o nome completo) e o endereço (rua, número, bairro)." +
+          blocoPrecos,
       });
     }
 
