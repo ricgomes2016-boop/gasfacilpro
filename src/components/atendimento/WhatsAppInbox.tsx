@@ -1257,8 +1257,8 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                 onChange={handleFilePick}
               />
 
-              {/* Emoji button (decorativo) */}
-              <button className="p-2 rounded-full hover:bg-[#e9edef] transition-colors flex-shrink-0">
+              {/* Emoji button (decorativo) - hidden on mobile to save space */}
+              <button className="hidden sm:inline-flex p-2 rounded-full hover:bg-[#e9edef] transition-colors flex-shrink-0">
                 <Smile className="h-6 w-6 text-[#54656f]" />
               </button>
 
