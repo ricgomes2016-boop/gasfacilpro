@@ -24,7 +24,24 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { conversa_id, content, unidade_id, media_url, media_type, mime_type, filename } = await req.json();
+    // Tenant do usuário autenticado (ignorado se service_role)
+    let userEmpresaId: string | null = null;
+    let userRoles: string[] = [];
+    if (!auth.isServiceRole && auth.userId) {
+      const [{ data: prof }, { data: roles }] = await Promise.all([
+        supabase.from("profiles").select("empresa_id").eq("user_id", auth.userId).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", auth.userId),
+      ]);
+      userEmpresaId = prof?.empresa_id ?? null;
+      userRoles = (roles || []).map((r: any) => r.role);
+      const allowed = ["super_admin", "admin", "gestor", "operacional", "financeiro"];
+      if (!userRoles.some((r) => allowed.includes(r))) {
+        return json(403, { ok: false, error: "forbidden_role" });
+      }
+    }
+
+    // Ignora unidade_id do payload — confiamos só na conversa
+    const { conversa_id, content, media_url, media_type, mime_type, filename } = await req.json();
 
     if (!conversa_id) return json(400, { ok: false, error: "conversa_id é obrigatório" });
     if (!media_url && !content?.trim()) return json(400, { ok: false, error: "Envie content ou media_url" });
@@ -32,16 +49,24 @@ serve(async (req) => {
     // 1. Conversa
     const { data: conversa } = await supabase
       .from("ai_conversas")
-      .select("id, telefone, unidade_id, empresa_id, status")
+      .select("id, telefone, unidade_id, empresa_id, status, deleted_at")
       .eq("id", conversa_id)
       .maybeSingle();
 
     if (!conversa?.telefone) return json(400, { ok: false, error: "Conversa sem telefone" });
+    if ((conversa as any).deleted_at) return json(409, { ok: false, error: "Conversa excluída" });
     if (conversa.status === "archived" || conversa.status === "closed") {
       return json(409, { ok: false, error: "Conversa arquivada/encerrada — reabra para enviar" });
     }
 
-    const effectiveUnidade = unidade_id || conversa.unidade_id || null;
+    // Tenant guard
+    if (!auth.isServiceRole && !userRoles.includes("super_admin")) {
+      if (!userEmpresaId || conversa.empresa_id !== userEmpresaId) {
+        return json(403, { ok: false, error: "forbidden_tenant" });
+      }
+    }
+
+    const effectiveUnidade = conversa.unidade_id || null;
 
     // 2. Config: prioriza o provedor configurado na unidade
     const provedores = ["meta", "evolution", "zapi", "uazapi", "gateway"] as const;
