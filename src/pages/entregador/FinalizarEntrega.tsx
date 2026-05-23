@@ -388,7 +388,8 @@ export default function FinalizarEntrega() {
           let assinaturaUrl: string | null = null;
           if (assinatura.assinatura_data_url) {
             const blob = await (await fetch(assinatura.assinatura_data_url)).blob();
-            const path = `${id}/${Date.now()}.png`;
+            if (!empresaId) throw new Error("Empresa não identificada para o upload");
+            const path = `${empresaId}/${id}/${Date.now()}.png`;
             const { error: upErr } = await supabase.storage
               .from("comprovantes-entrega")
               .upload(path, blob, { contentType: "image/png", upsert: true });
