@@ -33,12 +33,13 @@ export function useAssinaturaDigital() {
     setStatus((s) => ({ ...s, carregando: true }));
     supabase
       .from("unidades")
-      .select("certificado_a1_path, certificado_a1_senha, certificado_a1_validade, certificado_a1_titular")
+      .select("certificado_a1_path, certificado_a1_validade, certificado_a1_titular")
       .eq("id", unidadeAtual.id)
       .maybeSingle()
       .then(({ data }) => {
         if (cancelado) return;
-        const cadastrado = Boolean(data?.certificado_a1_path && data?.certificado_a1_senha);
+        // certificado_a1_senha não é mais legível pelo cliente; basta verificar path/validade.
+        const cadastrado = Boolean(data?.certificado_a1_path);
         const vencido = Boolean(
           data?.certificado_a1_validade && new Date(data.certificado_a1_validade) < new Date(),
         );
