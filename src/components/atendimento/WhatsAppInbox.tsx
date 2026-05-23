@@ -92,6 +92,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [newMsg, setNewMsg] = useState("");
   const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState<"all" | "unread" | "bia" | "human">("all");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [novaOpen, setNovaOpen] = useState(false);
