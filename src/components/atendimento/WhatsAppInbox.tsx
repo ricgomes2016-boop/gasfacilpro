@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Send, Search, MessageSquare, ArrowLeft, Bot, Headset, User, Smile, Paperclip, Mic, SquarePen, X, Trash2, FileText, Download, MoreVertical, UserPlus, UserCog } from "lucide-react";
+import { Send, Search, MessageSquare, ArrowLeft, Bot, Headset, User, Smile, Paperclip, Mic, SquarePen, X, Trash2, FileText, Download, MoreVertical, UserPlus, UserCog, CheckCircle2, AlertCircle, Zap, Users, Archive, ShoppingCart, History, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useWhatsAppNotifications } from "@/contexts/WhatsAppNotificationContext";
