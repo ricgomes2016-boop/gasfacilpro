@@ -118,6 +118,7 @@ export function ParceiroLayout({ children, title }: ParceiroLayoutProps) {
           })}
         </div>
       </nav>
+      <SystemFooter portalKey="parceiro" />
     </div>
   );
 }
