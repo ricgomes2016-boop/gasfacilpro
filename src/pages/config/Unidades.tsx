@@ -176,19 +176,17 @@ export default function UnidadesConfig() {
         bairros_atendidos: u.bairros_atendidos || null,
         horario_abertura: u.horario_abertura || "07:00",
         horario_fechamento: u.horario_fechamento || "18:00",
-        // Certificado
+        // Certificado (senha tratada via RPC)
         certificado_a1_path: u.certificado_a1_path || null,
-        certificado_a1_senha: u.certificado_a1_senha || null,
         certificado_a1_validade: u.certificado_a1_validade || null,
         certificado_a1_titular: u.certificado_a1_titular || null,
-        // NFe / NFC-e / CT-e
+        // NFe / NFC-e / CT-e (tokens tratados via RPC)
         nfe_ambiente: u.nfe_ambiente || "homologacao",
         nfe_serie: numOrNull(u.nfe_serie),
         nfe_proximo_numero: numOrNull(u.nfe_proximo_numero),
         nfce_serie: numOrNull(u.nfce_serie),
         nfce_proximo_numero: numOrNull(u.nfce_proximo_numero),
         nfce_csc_id: u.nfce_csc_id || null,
-        nfce_csc_token: u.nfce_csc_token || null,
         cte_serie: numOrNull(u.cte_serie),
         cte_proximo_numero: numOrNull(u.cte_proximo_numero),
         // Tributação
@@ -199,20 +197,29 @@ export default function UnidadesConfig() {
         aliquota_pis_padrao: numOrNull(u.aliquota_pis_padrao),
         aliquota_cofins_padrao: numOrNull(u.aliquota_cofins_padrao),
         cst_csosn_padrao: u.cst_csosn_padrao || null,
-        // Contador
+        // Contador (email e cpf_cnpj tratados via RPC)
         contador_nome: u.contador_nome || null,
-        contador_cpf_cnpj: u.contador_cpf_cnpj || null,
         contador_crc: u.contador_crc || null,
-        contador_email: u.contador_email || null,
         contador_telefone: u.contador_telefone || null,
-        // Provedor
+        // Provedor (token tratado via RPC)
         provedor_nfe: u.provedor_nfe || null,
-        provedor_nfe_token: u.provedor_nfe_token || null,
         provedor_nfe_url: u.provedor_nfe_url || null,
       };
 
       const { error } = await supabase.from("unidades").update(payload).eq("id", u.id);
       if (error) throw error;
+
+      // Salva credenciais sensíveis via RPC restrita a admin/gestor
+      const { error: credErr } = await supabase.rpc("update_unidade_credenciais", {
+        _unidade_id: u.id,
+        _certificado_a1_senha: u.certificado_a1_senha || null,
+        _provedor_nfe_token: u.provedor_nfe_token || null,
+        _nfce_csc_token: u.nfce_csc_token || null,
+        _contador_email: u.contador_email || null,
+        _contador_cpf_cnpj: u.contador_cpf_cnpj || null,
+      });
+      if (credErr) throw credErr;
+
       toast({ title: "Salvo!", description: `Dados de ${u.nome} atualizados.` });
       setEditingUnidade(null);
       fetchUnidades();
