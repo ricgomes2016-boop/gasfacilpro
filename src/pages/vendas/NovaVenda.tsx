@@ -1382,7 +1382,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     </>
   );
 
-  const novaVendaModalElement = null;
+
 
   if (embedded) {
     return vendaContent;
