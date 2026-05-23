@@ -494,7 +494,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
         .eq("empresa_id", empresa.id)
         .eq("ativo", true)
         .order("nome")
-        .limit(20);
+        .limit(200);
       setLinkResults((data || []) as any);
     }
   };
@@ -504,14 +504,33 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     if (!empresa?.id) return;
     const t = term.trim();
     const digits = t.replace(/\D/g, "");
-    let q = supabase.from("clientes").select("id, nome, telefone").eq("empresa_id", empresa.id).eq("ativo", true).limit(20);
+    const last8 = digits.slice(-8);
+    const last9 = digits.slice(-9);
+
+    let q = supabase
+      .from("clientes")
+      .select("id, nome, telefone")
+      .eq("empresa_id", empresa.id)
+      .eq("ativo", true)
+      .limit(100);
+
     if (t) {
-      q = digits.length >= 3
-        ? q.or(`nome.ilike.%${t}%,telefone.ilike.%${digits}%`)
-        : q.ilike("nome", `%${t}%`);
+      if (digits.length >= 3) {
+        // Busca por nome OU telefone (com dígitos completos, últimos 8 e últimos 9)
+        const filters = [
+          `nome.ilike.%${t}%`,
+          `telefone.ilike.%${digits}%`,
+        ];
+        if (last8.length >= 8) filters.push(`telefone.ilike.%${last8}%`);
+        if (last9.length >= 9) filters.push(`telefone.ilike.%${last9}%`);
+        q = q.or(filters.join(","));
+      } else {
+        q = q.ilike("nome", `%${t}%`);
+      }
     } else {
       q = q.order("nome");
     }
+
     const { data } = await q;
     setLinkResults((data || []) as any);
   };
