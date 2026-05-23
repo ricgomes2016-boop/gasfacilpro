@@ -466,7 +466,11 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
 
   // ===== Ações por conversa =====
   const handleDeleteConversa = async (conversaId: string) => {
-    const { error } = await supabase.from("ai_conversas").delete().eq("id", conversaId);
+    const userId = (await supabase.auth.getUser()).data.user?.id || null;
+    const { error } = await supabase
+      .from("ai_conversas")
+      .update({ deleted_at: new Date().toISOString(), deleted_by: userId } as any)
+      .eq("id", conversaId);
     if (error) {
       toast({ title: "Erro ao apagar", description: error.message, variant: "destructive" });
       return;
