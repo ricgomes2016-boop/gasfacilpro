@@ -782,12 +782,15 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
             filtered.map((c) => {
               const unread = unreadByConversation[c.id] || 0;
               const isSelected = selectedId === c.id;
+              const linked = clienteByConv[c.id];
               return (
                 <div
                   key={c.id}
                   className={cn(
-                    "group relative w-full flex items-center gap-3 px-3 py-3 text-left transition-colors border-b border-[#e9edef] cursor-pointer",
-                    isSelected ? "bg-[#f0f2f5]" : "hover:bg-[#f5f6f6]"
+                    "group relative w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all cursor-pointer border-l-[3px]",
+                    isSelected
+                      ? "bg-[#e7f5f0] border-l-[#00a884]"
+                      : "border-l-transparent hover:bg-[#f5f6f6]"
                   )}
                   onClick={() => setSelectedId(c.id)}
                   role="button"
@@ -795,30 +798,68 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedId(c.id); } }}
                 >
                   {/* Avatar */}
-                  <ChatAvatar url={c.foto_url} name={c.titulo} size="md" />
+                  <div className="relative flex-shrink-0">
+                    <ChatAvatar url={c.foto_url} name={c.titulo} size="md" />
+                    {unread > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-[#25d366] border-2 border-white" />
+                    )}
+                  </div>
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[#111b21] text-base truncate font-normal">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className={cn(
+                        "text-[#111b21] text-[14.5px] truncate",
+                        unread > 0 ? "font-semibold" : "font-medium"
+                      )}>
                         {c.titulo}
                       </p>
                       <span className={cn(
-                        "text-xs flex-shrink-0 ml-2",
-                        unread > 0 ? "text-[#00a884]" : "text-[#667781]"
+                        "text-[11px] flex-shrink-0 tabular-nums",
+                        unread > 0 ? "text-[#00a884] font-semibold" : "text-[#667781]"
                       )}>
                         {format(new Date(c.updated_at), "HH:mm")}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between mt-0.5">
-                      <p className="text-[#667781] text-sm truncate flex-1">
-                        {c.last_role === "assistant" && <span className="text-[#6b3fa0] mr-1">BIA:</span>}
-                        {c.last_role === "human" && <span className="text-[#00a884] mr-1">Você:</span>}
+
+                    {c.telefone && (
+                      <p className="text-[11px] text-[#8696a0] truncate leading-tight">{c.telefone}</p>
+                    )}
+
+                    <div className="flex items-center justify-between gap-2 mt-0.5">
+                      <p className={cn(
+                        "text-[13px] truncate flex-1",
+                        unread > 0 ? "text-[#111b21] font-medium" : "text-[#667781]"
+                      )}>
+                        {c.last_role === "assistant" && <span className="text-[#6b3fa0] mr-1 font-semibold">BIA:</span>}
+                        {c.last_role === "human" && <span className="text-[#00a884] mr-1 font-semibold">Você:</span>}
                         {c.last_message?.replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/g, "").trim() || "Sem mensagens"}
                       </p>
                       {unread > 0 && (
-                        <span className="bg-[#25d366] text-white text-[11px] font-medium rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 flex-shrink-0 ml-2">
+                        <span className="bg-[#25d366] text-white text-[10.5px] font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 flex-shrink-0 shadow-sm">
                           {unread}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Badges row */}
+                    <div className="flex items-center gap-1 mt-1">
+                      {c.last_role === "assistant" && (
+                        <span className="inline-flex items-center gap-0.5 text-[9.5px] font-semibold px-1.5 py-px rounded bg-[#6b3fa0]/10 text-[#6b3fa0]">
+                          <Bot className="h-2.5 w-2.5" />
+                          BIA
+                        </span>
+                      )}
+                      {c.last_role === "human" && (
+                        <span className="inline-flex items-center gap-0.5 text-[9.5px] font-semibold px-1.5 py-px rounded bg-[#00a884]/15 text-[#017561]">
+                          <Headset className="h-2.5 w-2.5" />
+                          Humano
+                        </span>
+                      )}
+                      {linked && (
+                        <span className="inline-flex items-center gap-0.5 text-[9.5px] font-semibold px-1.5 py-px rounded bg-[#0288d1]/10 text-[#0277bd]">
+                          <User className="h-2.5 w-2.5" />
+                          Cliente
                         </span>
                       )}
                     </div>
@@ -828,7 +869,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                       <button
-                        className="opacity-0 group-hover:opacity-100 focus:opacity-100 data-[state=open]:opacity-100 p-1.5 rounded-full hover:bg-[#e9edef] transition"
+                        className="opacity-0 group-hover:opacity-100 focus:opacity-100 data-[state=open]:opacity-100 p-1.5 rounded-full hover:bg-white transition self-start"
                         aria-label="Ações da conversa"
                       >
                         <MoreVertical className="h-4 w-4 text-[#54656f]" />
@@ -839,8 +880,8 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                         className="text-destructive focus:text-destructive"
                         onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(c.id); }}
                       >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Apagar conversa
+                        <Archive className="h-4 w-4 mr-2" />
+                        Arquivar conversa
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
