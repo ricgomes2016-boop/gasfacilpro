@@ -11729,6 +11729,17 @@ export type Database = {
           slug: string
         }[]
       }
+      get_unidade_credenciais: {
+        Args: { _unidade_id: string }
+        Returns: {
+          certificado_a1_senha: string
+          contador_cpf_cnpj: string
+          contador_email: string
+          id: string
+          nfce_csc_token: string
+          provedor_nfe_token: string
+        }[]
+      }
       get_user_empresa_id: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
@@ -11782,6 +11793,17 @@ export type Database = {
       unidade_belongs_to_user_empresa: {
         Args: { _unidade_id: string }
         Returns: boolean
+      }
+      update_unidade_credenciais: {
+        Args: {
+          _certificado_a1_senha?: string
+          _contador_cpf_cnpj?: string
+          _contador_email?: string
+          _nfce_csc_token?: string
+          _provedor_nfe_token?: string
+          _unidade_id: string
+        }
+        Returns: undefined
       }
       user_belongs_to_empresa: {
         Args: { _empresa_id: string; _user_id: string }
