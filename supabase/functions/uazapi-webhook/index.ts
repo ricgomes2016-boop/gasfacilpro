@@ -114,6 +114,24 @@ serve(async (req) => {
     const config = await resolveConfig(supabase, "uazapi", url.searchParams.get("unidade_id"), null);
     if (!config) throw new Error("UaZapi credentials not configured");
 
+    // Enforce token auth (defense against fake inbound messages).
+    // UaZapi forwards the instance token in headers; require it to match the configured token.
+    const incomingToken =
+      req.headers.get("token") ||
+      req.headers.get("apikey") ||
+      req.headers.get("x-api-key") ||
+      req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
+      url.searchParams.get("token") ||
+      "";
+    const expectedToken = (config as any).securityToken || (config as any).token;
+    if (expectedToken && incomingToken !== expectedToken) {
+      console.warn("UaZapi webhook: invalid or missing token");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const normalized = normalizePhone(phone);
     const conversationId = await generateUUIDFromString(`whatsapp_${normalized}`);
     const messageKey = body.id || body.messageId || `${normalized}_${Date.now()}_${messageText.trim().toLowerCase().slice(0, 30)}`;
