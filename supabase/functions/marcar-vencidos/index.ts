@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAuth } from "../_shared/auth.ts";
 
 /**
  * Edge Function: marcar-vencidos
@@ -11,6 +12,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  */
 Deno.serve(async (req: Request) => {
   try {
+    const auth = await requireAuth(req, { "Content-Type": "application/json" });
+    if (!auth.ok) return auth.response;
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
