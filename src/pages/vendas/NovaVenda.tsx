@@ -19,7 +19,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Calendar, ShoppingBag, Sparkles, Loader2, Send, Mic, MicOff, Camera, ImageIcon, PlusCircle, Check, User, Package as PackageIcon, CreditCard, CheckCircle, CalendarClock } from "lucide-react";
-import { NovaVendaModal } from "@/components/vendas/NovaVendaModal";
+import { useNovaVendaWindows } from "@/contexts/NovaVendaWindowsContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateReceiptPdf, EmpresaConfig } from "@/services/receiptPdfService";
@@ -727,8 +727,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   };
 
 
-  // Nova Venda modal state
-  const [showNovaVendaModal, setShowNovaVendaModal] = useState(false);
+  // Floating windows manager (multi-instância)
+  const { openWindow: openNovaVendaWindow } = useNovaVendaWindows();
 
   const handleSelecionarEntregador = (id: string, nome: string) => {
     setEntregador({ id, nome });
@@ -1236,7 +1236,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               <Button variant="ghost" size="sm" onClick={toggleViewMode} className="h-8 px-2 text-xs font-semibold text-foreground hover:text-primary">
                 {useNewView ? "Versão antiga" : "Versão nova"}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setShowNovaVendaModal(true)} className="gap-1.5 text-xs">
+              <Button variant="outline" size="sm" onClick={() => openNovaVendaWindow({})} className="gap-1.5 text-xs">
                 <PlusCircle className="h-3.5 w-3.5" />
                 Nova Venda
               </Button>
@@ -1382,9 +1382,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     </>
   );
 
-  const novaVendaModalElement = (
-    <NovaVendaModal open={showNovaVendaModal} onClose={() => setShowNovaVendaModal(false)} />
-  );
+  const novaVendaModalElement = null;
 
   if (embedded) {
     return vendaContent;
