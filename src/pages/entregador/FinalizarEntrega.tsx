@@ -89,6 +89,7 @@ export default function FinalizarEntrega() {
   const [chavePix, setChavePix] = useState<string | null>(null);
   const [nomeUnidade, setNomeUnidade] = useState<string | null>(null);
   const [unidadeId, setUnidadeId] = useState<string | null>(null);
+  const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [showPixQR, setShowPixQR] = useState(false);
   // Cheque fields
   const [chequeNumero, setChequeNumero] = useState("");
