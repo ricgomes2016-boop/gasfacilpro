@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { wasRecentOrderForPhone } from "@/lib/novoPedidoDedupe";
 
-
 interface WhatsAppNotificationContextValue {
   unreadByConversation: Record<string, number>;
   totalUnread: number;
@@ -12,11 +11,13 @@ interface WhatsAppNotificationContextValue {
   setSelectedConversaId: (id: string | null) => void;
   setWidgetOpen: (open: boolean) => void;
   markAsRead: (conversaId: string) => void;
+  requestNotificationPermission: () => Promise<NotificationPermission | "unsupported">;
 }
 
 const Ctx = createContext<WhatsAppNotificationContextValue | undefined>(undefined);
 
 const LS_PREFIX = "wa_last_read_";
+const NOTIFIED_PREFIX = "wa_notified_msg_";
 
 function playBeep() {
   try {
@@ -36,6 +37,14 @@ function playBeep() {
   } catch {}
 }
 
+function supportsBrowserNotifications() {
+  return typeof window !== "undefined" && "Notification" in window;
+}
+
+function isWindowVisibleAndFocused() {
+  return document.visibilityState === "visible" && document.hasFocus();
+}
+
 export function WhatsAppNotificationProvider({ children }: { children: ReactNode }) {
   const [unreadByConversation, setUnread] = useState<Record<string, number>>({});
   const [selectedConversaId, setSelectedConversaId] = useState<string | null>(null);
@@ -45,6 +54,32 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
 
   useEffect(() => { selectedRef.current = selectedConversaId; }, [selectedConversaId]);
   useEffect(() => { openRef.current = isWidgetOpen; }, [isWidgetOpen]);
+
+  const requestNotificationPermission = useCallback(async (): Promise<NotificationPermission | "unsupported"> => {
+    if (!supportsBrowserNotifications()) return "unsupported";
+    if (Notification.permission !== "default") return Notification.permission;
+    return Notification.requestPermission();
+  }, []);
+
+  const showBrowserNotification = useCallback((title: string, body: string, conversaId: string) => {
+    if (!supportsBrowserNotifications()) return;
+    if (Notification.permission !== "granted") return;
+
+    try {
+      const notification = new Notification(title, {
+        body,
+        icon: "/favicon.ico",
+        tag: `whatsapp-${conversaId}`,
+        renotify: true,
+      });
+
+      notification.onclick = () => {
+        window.focus();
+        setSelectedConversaId(conversaId);
+        notification.close();
+      };
+    } catch {}
+  }, []);
 
   // Initial load: count unread per conversation based on localStorage timestamps
   useEffect(() => {
@@ -65,7 +100,7 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
             .from("ai_mensagens")
             .select("id", { count: "exact", head: true })
             .eq("conversa_id", c.id)
-            .not("role", "in", "(assistant,human)");
+            .not("role", "in", "(assistant,human,system)");
           if (lastRead) q = q.gt("created_at", lastRead);
           const { count } = await q;
           if (count && count > 0) counts[c.id] = count;
@@ -85,15 +120,20 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
         { event: "INSERT", schema: "public", table: "ai_mensagens" },
         async (payload) => {
           const msg = payload.new as any;
-          if (!msg?.conversa_id) return;
-          // Only count incoming (not assistant/human/operator)
-          if (msg.role === "assistant" || msg.role === "human") return;
+          if (!msg?.id || !msg?.conversa_id) return;
+          // Only count incoming (not assistant/human/operator/system)
+          if (msg.role === "assistant" || msg.role === "human" || msg.role === "system") return;
 
+          const msgId = String(msg.id);
           const convId = msg.conversa_id as string;
-          const isOpenInWidget = openRef.current && selectedRef.current === convId;
+          const alreadyNotifiedKey = NOTIFIED_PREFIX + msgId;
+          if (localStorage.getItem(alreadyNotifiedKey)) return;
+          localStorage.setItem(alreadyNotifiedKey, new Date().toISOString());
 
-          if (isOpenInWidget) {
-            // Auto-mark as read
+          const isOpenInWidget = openRef.current && selectedRef.current === convId;
+          const isVisibleAndFocused = isWindowVisibleAndFocused();
+
+          if (isOpenInWidget && isVisibleAndFocused) {
             localStorage.setItem(LS_PREFIX + convId, new Date().toISOString());
             return;
           }
@@ -101,7 +141,7 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
           // Increment unread count
           setUnread((prev) => ({ ...prev, [convId]: (prev[convId] || 0) + 1 }));
 
-          // Fetch conv title for toast
+          // Fetch conv title for toast/browser notification
           const { data: conv } = await supabase
             .from("ai_conversas")
             .select("titulo, telefone")
@@ -113,19 +153,28 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
           if (wasRecentOrderForPhone(conv?.telefone)) return;
 
           const title = conv?.titulo || "Nova mensagem";
-          const preview = String(msg.content || "").slice(0, 80);
+          const preview = String(msg.content || "").slice(0, 100);
 
-          toast(`💬 ${title}`, {
-            description: preview,
-            duration: 5000,
-          });
+          if (isVisibleAndFocused) {
+            toast(`💬 ${title}`, {
+              description: preview,
+              duration: 5000,
+            });
+          } else {
+            showBrowserNotification(`💬 ${title}`, preview || "Nova mensagem recebida", convId);
+            toast(`💬 ${title}`, {
+              description: preview,
+              duration: 5000,
+            });
+          }
+
           playBeep();
         }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [showBrowserNotification]);
 
   const markAsRead = useCallback((conversaId: string) => {
     localStorage.setItem(LS_PREFIX + conversaId, new Date().toISOString());
@@ -149,6 +198,7 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
         setSelectedConversaId,
         setWidgetOpen,
         markAsRead,
+        requestNotificationPermission,
       }}
     >
       {children}
@@ -168,6 +218,7 @@ export function useWhatsAppNotifications() {
       setSelectedConversaId: () => {},
       setWidgetOpen: () => {},
       markAsRead: () => {},
+      requestNotificationPermission: async () => "unsupported",
     } as WhatsAppNotificationContextValue;
   }
   return ctx;
