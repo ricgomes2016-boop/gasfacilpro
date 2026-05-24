@@ -8,7 +8,7 @@ import {
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall, getEntregadorLocation,
   downloadAudio, transcribeAudio, collectBufferedMessages, getOffHoursMessage,
-  identifyContact, checkRateLimit, processCancelTagInReply,
+  identifyContact, checkRateLimit, processCancelTagInReply, stripPedidoConfirmadoBlock,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
