@@ -492,7 +492,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     if (empresa?.id) {
       const { data } = await supabase
         .from("clientes")
-        .select("id, nome, telefone")
+        .select("id, nome, telefone, endereco, numero, bairro, cidade, cep")
         .eq("empresa_id", empresa.id)
         .eq("ativo", true)
         .order("nome")
@@ -511,24 +511,26 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
 
     let q = supabase
       .from("clientes")
-      .select("id, nome, telefone")
+      .select("id, nome, telefone, endereco, numero, bairro, cidade, cep")
       .eq("empresa_id", empresa.id)
       .eq("ativo", true)
       .limit(100);
 
     if (t) {
+      const filters = [
+        `nome.ilike.%${t}%`,
+        `endereco.ilike.%${t}%`,
+        `bairro.ilike.%${t}%`,
+        `cidade.ilike.%${t}%`,
+        `numero.ilike.%${t}%`,
+        `cep.ilike.%${t}%`,
+      ];
       if (digits.length >= 3) {
-        // Busca por nome OU telefone (com dígitos completos, últimos 8 e últimos 9)
-        const filters = [
-          `nome.ilike.%${t}%`,
-          `telefone.ilike.%${digits}%`,
-        ];
+        filters.push(`telefone.ilike.%${digits}%`);
         if (last8.length >= 8) filters.push(`telefone.ilike.%${last8}%`);
         if (last9.length >= 9) filters.push(`telefone.ilike.%${last9}%`);
-        q = q.or(filters.join(","));
-      } else {
-        q = q.ilike("nome", `%${t}%`);
       }
+      q = q.or(filters.join(","));
     } else {
       q = q.order("nome");
     }
@@ -1379,7 +1381,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
             </DialogDescription>
           </DialogHeader>
           <Input
-            placeholder="Buscar por nome ou telefone..."
+            placeholder="Buscar por nome, telefone ou endereço..."
             value={linkSearch}
             onChange={(e) => searchLink(e.target.value)}
             autoFocus
@@ -1388,16 +1390,25 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
             {linkResults.length === 0 ? (
               <p className="text-sm text-muted-foreground p-4 text-center">Nenhum cliente encontrado</p>
             ) : (
-              linkResults.map((cli) => (
-                <button
-                  key={cli.id}
-                  className="w-full text-left p-3 hover:bg-muted transition"
-                  onClick={() => linkClienteToConversa(cli.id, cli.nome)}
-                >
-                  <p className="font-medium text-sm">{cli.nome}</p>
-                  {cli.telefone && <p className="text-xs text-muted-foreground">{cli.telefone}</p>}
-                </button>
-              ))
+              linkResults.map((cli: any) => {
+                const enderecoParts = [
+                  [cli.endereco, cli.numero].filter(Boolean).join(", "),
+                  cli.bairro,
+                  cli.cidade,
+                ].filter(Boolean);
+                const enderecoStr = enderecoParts.join(" · ");
+                return (
+                  <button
+                    key={cli.id}
+                    className="w-full text-left p-3 hover:bg-muted transition"
+                    onClick={() => linkClienteToConversa(cli.id, cli.nome)}
+                  >
+                    <p className="font-medium text-sm">{cli.nome}</p>
+                    {cli.telefone && <p className="text-xs text-muted-foreground">{cli.telefone}</p>}
+                    {enderecoStr && <p className="text-xs text-muted-foreground truncate">{enderecoStr}</p>}
+                  </button>
+                );
+              })
             )}
           </div>
           <div className="flex justify-end">
