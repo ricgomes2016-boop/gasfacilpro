@@ -11,6 +11,7 @@ import {
   getEntregadorLocation,
   identifyContact,
   processCancelTagInReply,
+  stripPedidoConfirmadoBlock,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
