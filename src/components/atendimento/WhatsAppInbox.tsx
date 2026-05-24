@@ -116,7 +116,9 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkSearch, setLinkSearch] = useState("");
-  const [linkResults, setLinkResults] = useState<Array<{ id: string; nome: string; telefone: string | null }>>([]);
+  const [linkResults, setLinkResults] = useState<Array<{ id: string; nome: string; telefone: string | null; endereco?: string | null; numero?: string | null; bairro?: string | null; cidade?: string | null; cep?: string | null }>>([]);
+  const linkSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const linkSearchSeq = useRef(0);
   const [editClienteOpen, setEditClienteOpen] = useState(false);
   const [editClienteData, setEditClienteData] = useState<{ id: string; form: ClienteForm } | null>(null);
   const [clienteByConv, setClienteByConv] = useState<Record<string, { id: string; nome: string } | null>>({});
