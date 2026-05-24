@@ -1,36 +1,31 @@
-# Corrigir horário das conversas no Atendimento WhatsApp
+## Objetivo
+Permitir que o modal "Vincular ao cadastro" do WhatsAppInbox busque clientes por endereço (rua, bairro, cidade, número, CEP) além de nome e telefone.
 
-## Problema
+## Escopo
+Arquivo: `src/components/atendimento/WhatsAppInbox.tsx`
 
-Na lista de conversas (`src/components/atendimento/WhatsAppInbox.tsx`), o horário exibido ao lado de cada conversa vem de `ai_conversas.updated_at`. Esse campo é atualizado por vários eventos que não são "nova mensagem do cliente":
+## Mudanças
 
-- Resposta automática da BIA
-- Atualização de foto/perfil em background (`whatsapp-refresh-profile`)
-- Mudanças de status, título, vínculo de cliente
-- Triggers internos do banco
+### 1. `handleOpenLinkDialog` (linha ~488)
+- Expandir o `.select(...)` para incluir os campos de endereço: `endereco`, `numero`, `bairro`, `cidade`, `cep`
 
-Resultado: o operador não consegue distinguir qual conversa tem a mensagem mais recente do cliente, e parece que "só de clicar a hora muda" (clicar não escreve no banco, mas eventos paralelos atualizam a linha logo depois).
+### 2. `searchLink` (linha ~504)
+- Adicionar filtros `ilike` para os campos de endereço quando houver texto digitado:
+  - `endereco.ilike.%${t}%`
+  - `bairro.ilike.%${t}%`
+  - `cidade.ilike.%${t}%`
+  - `numero.ilike.%${t}%`
+  - `cep.ilike.%${t}%`
+- Manter a lógica existente de busca por nome e telefone/dígitos
 
-## Solução
+### 3. UI do modal "Vincular ao cadastro" (linha ~1372)
+- Atualizar o placeholder do input para: "Buscar por nome, telefone ou endereço..."
+- Na lista de resultados, exibir o endereço do cliente abaixo do telefone (quando disponível), no formato: `Rua, Nº · Bairro · Cidade`
 
-Passar a usar o `created_at` da **última mensagem real** da conversa, tanto para exibição quanto para ordenação. Esse dado já é buscado no `fetchConversas` — só não está sendo guardado nem usado.
-
-## Mudanças (apenas em `src/components/atendimento/WhatsAppInbox.tsx`)
-
-1. **Tipo `Conversa`**: adicionar campo opcional `last_message_at?: string | null`.
-
-2. **`fetchConversas` (~linha 192-208)**: ao montar o `lastByConv`, guardar também `created_at`. Atribuir `c.last_message_at = last?.created_at ?? null`.
-
-3. **Ordenação**: ordenar a lista final no cliente por `last_message_at` desc (com fallback para `updated_at`), já que a query atual ordena só por `updated_at`. Manter o `.order("updated_at", ...)` do Supabase como pré-ordenação (a re-ordenação final acontece no `useMemo` que já existe na linha 622).
-
-4. **Exibição (linha 855)**: trocar `format(new Date(c.updated_at), "HH:mm")` por `format(new Date(c.last_message_at ?? c.updated_at), "HH:mm")`.
+### 4. Tipos
+- Adicionar campos de endereço ao tipo inferido usado em `linkResults` (se necessário, como `any` já é usado, tipagem inline mínima basta).
 
 ## Fora de escopo
-
-- Não mexer em triggers, RLS, edge functions ou webhook.
-- Não alterar `WhatsAppNotificationContext`, envio de mensagem, vínculo de cliente, painel de contato.
-- Não mudar a query principal (continua trazendo 200 conversas ordenadas por `updated_at` — suficiente como filtro inicial).
-
-## Resultado esperado
-
-O horário ao lado de cada conversa passa a refletir a **última mensagem trocada** (cliente ou BIA), e a ordem da lista também. Eventos colaterais (foto, status) deixam de "mexer" no horário visível.
+- Não alterar `ContactDetailsPanel`
+- Não alterar regras de WhatsApp, envio de mensagens ou lógica de conversa
+- Não alterar banco de dados ou RLS
