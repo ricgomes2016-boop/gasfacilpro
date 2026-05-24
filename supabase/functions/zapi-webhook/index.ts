@@ -187,13 +187,19 @@ serve(async (req) => {
       return OK({ ok: true, fallback: true });
     }
 
+    // Parse order tag from raw reply BEFORE cleaning
+    const rawReply = reply;
+    const orderMatch = rawReply.match(/\[PEDIDO_CONFIRMADO\]([\s\S]*?)\[\/PEDIDO_CONFIRMADO\]/);
+
+    // Strip internal tag before saving / sending
+    reply = stripPedidoConfirmadoBlock(reply);
+
     await saveMessage(supabase, conversationId, "assistant", reply);
 
     // Process cancellation tag
     { const cancelRes = await processCancelTagInReply(supabase, reply, cliente.id); reply = cancelRes.reply; }
 
     // Process order
-    const orderMatch = reply.match(/\[PEDIDO_CONFIRMADO\]([\s\S]*?)\[\/PEDIDO_CONFIRMADO\]/);
     if (orderMatch) {
       const orderData = parseOrderData(orderMatch[1]);
       if (orderData) {
@@ -204,17 +210,15 @@ serve(async (req) => {
           .ilike("observacoes", `%${normalized}%`).limit(1);
 
         if (dup?.length) {
-          reply = reply.replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/, "").trim();
           reply += "\n\nSeu pedido já foi registrado! Aguarde a entrega 😊";
         } else {
           const isAgendado = bh.isOffHours || orderData.agendado === "sim";
           const { data: prevMsgs } = await supabase.from("ai_mensagens").select("content")
             .eq("conversa_id", conversationId).eq("role", "assistant")
             .order("created_at", { ascending: false }).limit(30);
-          const discount = extractLatestNegotiatedDiscountPerUnit([reply, ...(prevMsgs || []).map((m: any) => m.content)]);
+          const discount = extractLatestNegotiatedDiscountPerUnit([rawReply, ...(prevMsgs || []).map((m: any) => m.content)]);
 
           const orderResult = await createOrder(supabase, orderData, cliente.id, cliente.nome, senderName, normalized, finalConfig.unidadeId, isAgendado, discount);
-          reply = reply.replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/, "").trim();
           await registerCall(supabase, phone, cliente.id, cliente.nome, senderName, finalConfig.unidadeId, orderResult?.pedidoId);
         }
       }
