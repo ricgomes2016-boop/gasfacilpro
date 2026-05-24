@@ -116,7 +116,9 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkSearch, setLinkSearch] = useState("");
-  const [linkResults, setLinkResults] = useState<Array<{ id: string; nome: string; telefone: string | null }>>([]);
+  const [linkResults, setLinkResults] = useState<Array<{ id: string; nome: string; telefone: string | null; endereco?: string | null; numero?: string | null; bairro?: string | null; cidade?: string | null; cep?: string | null }>>([]);
+  const linkSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const linkSearchSeq = useRef(0);
   const [editClienteOpen, setEditClienteOpen] = useState(false);
   const [editClienteData, setEditClienteData] = useState<{ id: string; form: ClienteForm } | null>(null);
   const [clienteByConv, setClienteByConv] = useState<Record<string, { id: string; nome: string } | null>>({});
@@ -501,68 +503,40 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     }
   };
 
-  const searchLink = async (term: string) => {
+  const searchLink = (term: string) => {
     setLinkSearch(term);
     if (!empresa?.id) return;
     const t = term.trim();
+    const seq = ++linkSearchSeq.current;
 
-    let q = supabase
-      .from("clientes")
-      .select("id, nome, telefone, endereco, numero, bairro, cidade, cep")
-      .eq("empresa_id", empresa.id)
-      .eq("ativo", true)
-      .limit(100);
-
-    if (t) {
-      // Tokeniza por espaço/vírgula (vírgula quebraria o .or do PostgREST).
-      // Cada token precisa casar em algum campo (AND entre tokens, OR entre campos).
-      const tokens = t
-        .split(/[\s,]+/)
-        .map((s) => s.trim())
-        .filter((s) => s.length >= 2)
-        .slice(0, 4);
-
-      // Se nenhum token textual válido, tenta como telefone puro.
-      if (tokens.length === 0) {
-        const digits = t.replace(/\D/g, "");
-        if (digits.length >= 3) {
-          const filters = [`telefone.ilike.%${digits}%`];
-          const last8 = digits.slice(-8);
-          const last9 = digits.slice(-9);
-          if (last8.length >= 8) filters.push(`telefone.ilike.%${last8}%`);
-          if (last9.length >= 9) filters.push(`telefone.ilike.%${last9}%`);
-          q = q.or(filters.join(","));
-        }
-      } else {
-        for (const tok of tokens) {
-          // escapa parênteses/aspas que poderiam quebrar o parser
-          const safe = tok.replace(/[(),"]/g, " ").trim();
-          if (!safe) continue;
-          const digits = safe.replace(/\D/g, "");
-          const filters = [
-            `nome.ilike.%${safe}%`,
-            `endereco.ilike.%${safe}%`,
-            `bairro.ilike.%${safe}%`,
-            `cidade.ilike.%${safe}%`,
-            `numero.ilike.%${safe}%`,
-            `cep.ilike.%${safe}%`,
-          ];
-          if (digits.length >= 2) {
-            filters.push(`telefone.ilike.%${digits}%`);
-            filters.push(`numero.ilike.%${digits}%`);
-          }
-          // Múltiplos .or são combinados com AND -> cada token precisa casar em algum campo
-          q = q.or(filters.join(","));
-        }
+    if (linkSearchTimer.current) clearTimeout(linkSearchTimer.current);
+    linkSearchTimer.current = setTimeout(async () => {
+      if (!t) {
+        const { data } = await supabase
+          .from("clientes")
+          .select("id, nome, telefone, endereco, numero, bairro, cidade, cep")
+          .eq("empresa_id", empresa.id)
+          .eq("ativo", true)
+          .order("nome")
+          .limit(200);
+        if (seq === linkSearchSeq.current) setLinkResults((data || []) as any);
+        return;
       }
-      q = q.order("nome");
-    } else {
-      q = q.order("nome");
-    }
 
-    const { data } = await q;
-    setLinkResults((data || []) as any);
+      const { data, error } = await supabase.rpc("autocomplete_clientes_v2", {
+        _empresa_id: empresa.id,
+        _unidade_id: unidadeAtual?.id ?? null,
+        _termo: t,
+        _limite: 30,
+      });
+      if (error) {
+        console.error("searchLink rpc error", error);
+        return;
+      }
+      if (seq === linkSearchSeq.current) setLinkResults((data || []) as any);
+    }, 250);
   };
+
 
   const linkClienteToConversa = async (clienteId: string, clienteNome: string) => {
     if (!selectedId) return;
