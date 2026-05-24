@@ -505,9 +505,6 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     setLinkSearch(term);
     if (!empresa?.id) return;
     const t = term.trim();
-    const digits = t.replace(/\D/g, "");
-    const last8 = digits.slice(-8);
-    const last9 = digits.slice(-9);
 
     let q = supabase
       .from("clientes")
@@ -517,20 +514,48 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       .limit(100);
 
     if (t) {
-      const filters = [
-        `nome.ilike.%${t}%`,
-        `endereco.ilike.%${t}%`,
-        `bairro.ilike.%${t}%`,
-        `cidade.ilike.%${t}%`,
-        `numero.ilike.%${t}%`,
-        `cep.ilike.%${t}%`,
-      ];
-      if (digits.length >= 3) {
-        filters.push(`telefone.ilike.%${digits}%`);
-        if (last8.length >= 8) filters.push(`telefone.ilike.%${last8}%`);
-        if (last9.length >= 9) filters.push(`telefone.ilike.%${last9}%`);
+      // Tokeniza por espaço/vírgula (vírgula quebraria o .or do PostgREST).
+      // Cada token precisa casar em algum campo (AND entre tokens, OR entre campos).
+      const tokens = t
+        .split(/[\s,]+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length >= 2)
+        .slice(0, 4);
+
+      // Se nenhum token textual válido, tenta como telefone puro.
+      if (tokens.length === 0) {
+        const digits = t.replace(/\D/g, "");
+        if (digits.length >= 3) {
+          const filters = [`telefone.ilike.%${digits}%`];
+          const last8 = digits.slice(-8);
+          const last9 = digits.slice(-9);
+          if (last8.length >= 8) filters.push(`telefone.ilike.%${last8}%`);
+          if (last9.length >= 9) filters.push(`telefone.ilike.%${last9}%`);
+          q = q.or(filters.join(","));
+        }
+      } else {
+        for (const tok of tokens) {
+          // escapa parênteses/aspas que poderiam quebrar o parser
+          const safe = tok.replace(/[(),"]/g, " ").trim();
+          if (!safe) continue;
+          const digits = safe.replace(/\D/g, "");
+          const filters = [
+            `nome.ilike.%${safe}%`,
+            `endereco.ilike.%${safe}%`,
+            `bairro.ilike.%${safe}%`,
+            `cidade.ilike.%${safe}%`,
+            `numero.ilike.%${safe}%`,
+            `cep.ilike.%${safe}%`,
+          ];
+          if (digits.length >= 2) {
+            filters.push(`telefone.ilike.%${digits}%`);
+            filters.push(`numero.ilike.%${digits}%`);
+          }
+          // Múltiplos .or são combinados com AND -> cada token precisa casar em algum campo
+          q = q.or(filters.join(","));
+        }
       }
-      q = q.or(filters.join(","));
+      q = q.order("nome");
     } else {
       q = q.order("nome");
     }
