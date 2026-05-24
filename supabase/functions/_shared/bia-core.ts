@@ -1,4 +1,17 @@
 // bia-core.ts — Lógica compartilhada da BIA (WhatsApp assistant)
+
+/**
+ * Remove o bloco técnico [PEDIDO_CONFIRMADO]...[/PEDIDO_CONFIRMADO] da resposta
+ * da BIA antes de enviar ao cliente / salvar / exibir no chat.
+ * O bloco é apenas para uso interno (parser de pedidos).
+ */
+export function stripPedidoConfirmadoBlock(text: string): string {
+  if (!text) return text;
+  return text
+    .replace(/\[PEDIDO_CONFIRMADO\][\s\S]*?\[\/PEDIDO_CONFIRMADO\]/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ========== TYPES ==========
