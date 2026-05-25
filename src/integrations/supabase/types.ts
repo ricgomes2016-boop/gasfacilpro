@@ -11733,6 +11733,8 @@ export type Database = {
         Args: { _unidade_id: string }
         Returns: {
           certificado_a1_senha: string
+          contador_cpf_cnpj: string
+          contador_email: string
           nfce_csc_token: string
           provedor_nfe_token: string
         }[]
