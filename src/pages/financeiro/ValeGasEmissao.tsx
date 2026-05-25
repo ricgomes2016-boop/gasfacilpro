@@ -33,6 +33,8 @@ import { useState, useMemo, useRef } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { QRCodeSVG } from "qrcode.react";
+import { esc } from "@/lib/escapeHtml";
 
 type ModoEmissao = "lote" | "automatico" | "manual";
 
