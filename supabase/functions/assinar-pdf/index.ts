@@ -9,7 +9,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import forge from "npm:node-forge@1.3.1";
 import { Buffer } from "node:buffer";
-import { PDFDocument, StandardFonts, rgb, degrees } from "npm:pdf-lib@1.17.1";
+import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
 // @ts-ignore - sem tipos
 import { SignPdf } from "npm:@signpdf/signpdf@3.2.4";
 // @ts-ignore
@@ -190,29 +190,6 @@ async function desenharAparenciaAssinatura(
   }
 }
 
-async function aplicarMarcaDagua(pdfDoc: any, texto: string) {
-  if (!texto) return;
-  const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const pages = pdfDoc.getPages();
-  const fontSize = 42;
-  for (const page of pages) {
-    const { width, height } = page.getSize();
-    const textWidth = font.widthOfTextAtSize(texto, fontSize);
-    // Posiciona centralizado e desenha em diagonal (~30°)
-    const cx = width / 2;
-    const cy = height / 2;
-    page.drawText(texto, {
-      x: cx - textWidth / 2,
-      y: cy,
-      size: fontSize,
-      font,
-      color: rgb(0.5, 0.5, 0.5),
-      opacity: 0.12,
-      rotate: degrees(30),
-    });
-  }
-}
-
 async function assinarBytes(
   pdfBytes: Uint8Array,
   pfxBytes: Uint8Array,
@@ -220,12 +197,6 @@ async function assinarBytes(
   meta: { titular: string; cnpj: string | null; motivo: string; local: string; contato: string; visivel?: VisivelOpts; empresaNome?: string },
 ): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.load(pdfBytes);
-
-  // Marca d'água com o nome da empresa em todas as páginas
-  const watermarkText = meta.empresaNome
-    ? `Assinado digitalmente por ${meta.empresaNome}`
-    : `Assinado digitalmente por ${meta.titular}`;
-  await aplicarMarcaDagua(pdfDoc, watermarkText);
 
   if (meta.visivel) {
     const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
