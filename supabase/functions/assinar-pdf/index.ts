@@ -412,6 +412,7 @@ Deno.serve(async (req) => {
       local,
       contato,
       visivel,
+      empresaNome,
     });
 
     return json({
