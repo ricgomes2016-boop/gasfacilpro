@@ -360,7 +360,7 @@ export async function imprimirFundepar(d: FundeparPdfData) {
     const pageH_mm = (doc as any).__pageH_mm as number;
     const pageW_mm = (doc as any).__pageW_mm as number;
     const boxW_mm = 140;
-    const boxH_mm = 18;
+    const boxH_mm = 32;
     const boxX_mm = (pageW_mm - boxW_mm) / 2;
     const visivel = {
       x: boxX_mm * PT_PER_MM,
