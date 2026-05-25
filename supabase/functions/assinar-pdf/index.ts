@@ -333,12 +333,14 @@ Deno.serve(async (req) => {
 
     const { data: unidade, error: uErr } = await supabaseAdmin
       .from("unidades")
-      .select("certificado_a1_path, certificado_a1_senha, certificado_a1_validade, certificado_a1_titular")
+      .select("certificado_a1_path, certificado_a1_senha, certificado_a1_validade, certificado_a1_titular, empresa_id, empresas:empresa_id(nome_fantasia, razao_social, nome)")
       .eq("id", unidadeId)
       .maybeSingle();
     if (uErr || !unidade) {
       return json({ ok: false, motivo: "unidade_nao_encontrada", mensagem: "Unidade não encontrada." });
     }
+    const emp: any = (unidade as any).empresas || {};
+    const empresaNome: string = emp.nome_fantasia || emp.razao_social || emp.nome || "";
 
     const pfxPath: string | null = unidade.certificado_a1_path;
     const pfxSenha: string | null = unidade.certificado_a1_senha;
