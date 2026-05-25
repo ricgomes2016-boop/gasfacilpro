@@ -1,31 +1,17 @@
-## Problema
+## Ajustar marca d'água dentro do quadro de assinatura (Orçamento Padrão)
 
-Em **Gestão Financeira → Vale Gás → Emissão**, ao emitir um lote, o cupom gerado (`CupomPrint` em `src/pages/financeiro/ValeGasEmissao.tsx`) sai só em texto monoespaçado, sem QR Code. Já o vale do empenho usa `src/components/valegas/ValeGasQRCode.tsx`, que tem layout bonito com QR Code grande, valor destacado e instrução de uso. O objetivo é deixar os cupons da emissão visualmente equivalentes, com QR Code escaneável pelo entregador.
+**Arquivo:** `src/services/orcamentoPadraoPdfService.ts` (linhas 219-255)
 
-## O que será feito
+### Problema
+O quadro de assinatura tem 18mm de altura, mas a inicial (marca d'água) é renderizada com fonte ~46pt (≈16mm), que visualmente "estoura" o quadro e some atrás da linha de assinatura, parecendo estar fora.
 
-Apenas frontend, sem mexer em banco, contexto, regras de negócio ou no fluxo de emissão.
+### Mudanças
+1. **Aumentar o quadro** para `sigBoxH_mm = 32mm` (largura mantida em 140mm) para acomodar a marca d'água + linha de assinatura **dentro** do quadro.
+2. **Calibrar a inicial** para caber confortavelmente dentro: `fs = Math.min(70, sigBoxH_mm * 2)` e desenhar centralizada no quadro.
+3. **Mover a linha de assinatura para dentro do quadro**, próxima à base (ex.: `sigBoxY + sigBoxH - 6mm`), com margens laterais internas (`sigBoxX + 10` até `sigBoxX + sigBoxW - 10`).
+4. **Rótulo "ASSINATURA (fornecedor)"** permanece logo abaixo do quadro (fora dele).
+5. Manter opacidade 0.12, cor azul e GState reset como já está.
 
-### 1. `src/pages/financeiro/ValeGasEmissao.tsx` — refatorar `CupomPrint`
-
-- Importar `QRCodeSVG` de `qrcode.react` (já usado no projeto) e renderizar o QR Code de cada cupom dentro de um container oculto (`ref`) para extrair o SVG no momento da impressão, igual ao padrão de `ValeGasQRCode.tsx`.
-- Para cada vale selecionado, gerar o SVG do QR a partir de `c.codigo` (mesmo valor usado no QR público) e injetar o `outerHTML` no HTML da `printWindow`.
-- Reescrever o CSS/HTML do cupom impresso usando o mesmo visual de `ValeGasQRCode.tsx`:
-  - Card com borda arredondada, header com nome da unidade/descrição, QR Code centralizado (~180px), número do vale em destaque, código monoespaçado, valor grande em verde, dados do parceiro/cliente/produto abaixo e rodapé com instrução "Apresente este QR Code ao entregador…".
-  - Manter `page-break-inside: avoid` e `@page { margin: 10mm }` para impressão em lote.
-- Manter a lista de seleção (checkbox por vale) e o botão "Imprimir (n)" como já existem.
-- Adicionar prévia visual de **um** cupom (o primeiro selecionado) acima da lista, renderizando o mesmo layout em tela com `QRCodeSVG`, para o usuário ver como vai sair antes de imprimir.
-- Escapar valores dinâmicos no HTML (reaproveitar helper `escapeHtml` de `src/lib/escapeHtml.ts`) para evitar quebra de markup.
-
-### 2. Reimpressão de lote já existente
-
-A função `handleReimprimirLote` continua chamando o mesmo `CupomPrint`, então automaticamente passa a imprimir com QR Code — nenhuma mudança adicional necessária.
-
-## Fora do escopo
-
-- `ValeGasQRCode.tsx`, `ValeGasControle`, `ValeGasAcerto`, contexto `ValeGasContext`, RLS, edge functions, banco, `App.tsx`, rotas.
-- Mudança no código/numeração dos vales — o QR continua codificando exatamente `c.codigo` (`VG-AAAA-NNNNN`), que já é o identificador validado pelo fluxo de venda pública.
-
-## Arquivos
-
-- **Editar:** `src/pages/financeiro/ValeGasEmissao.tsx`
+### Fora de escopo
+- Não alterar metadados de assinatura digital, carimbo da unidade, cabeçalho, tabela de itens, observações ou outras seções.
+- Não tocar em `ValeGasEmissao`, `Orcamentos.tsx`, RLS, edge functions ou rotas.
