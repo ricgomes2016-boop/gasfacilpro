@@ -402,7 +402,9 @@ export async function findCliente(supabase: any, phone: string, senderName?: str
       endereco: [data[0].endereco, data[0].numero, data[0].bairro].filter(Boolean).join(", "),
     };
   }
-  return { id: null, nome: null, endereco: null };
+  // Cliente não cadastrado: devolve o pushName do WhatsApp para uso no título/saudação
+  const fallbackName = (senderName && senderName.trim().length >= 2) ? senderName.trim() : null;
+  return { id: null, nome: fallbackName, endereco: null };
 }
 
 // ========== MESSAGE DEBOUNCE ==========
