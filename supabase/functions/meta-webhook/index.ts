@@ -263,7 +263,8 @@ serve(async (req) => {
             reply = reply.replace(/\[ENVIAR_LOCALIZACAO\]/g, "").trim();
             const loc = await getEntregadorLocation(supabase, cliente.id);
             if (loc) {
-              await sendMessage(config, phone, reply);
+              const cleanReply = reply.replace(/\[STATE\][\s\S]*?\[\/STATE\]/gi, "").trim();
+              await sendMessage(config, phone, cleanReply);
               await sendLocation(config, phone, loc.lat, loc.lng, loc.nome);
               continue;
             }
@@ -278,7 +279,8 @@ serve(async (req) => {
             });
           } catch (_) {}
 
-          await sendMessage(config, phone, reply);
+          const finalCleanReply = reply.replace(/\[STATE\][\s\S]*?\[\/STATE\]/gi, "").trim();
+          await sendMessage(config, phone, finalCleanReply);
         }
       }
     }

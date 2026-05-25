@@ -478,12 +478,29 @@ export async function getProducts(supabase: any, unidadeId: string | null, confi
 export function extractCollectedData(history: any[]): { pagamento?: string; produto?: string; enderecoConfirmado?: boolean; clienteInstitucional?: boolean; skipPagamentoValor?: boolean } {
   const result: { pagamento?: string; produto?: string; enderecoConfirmado?: boolean; clienteInstitucional?: boolean; skipPagamentoValor?: boolean } = {};
 
-  // Scan user messages for payment method and institutional detection
+  // 1. Extração via [STATE] gerado pela IA (Structured Output)
+  const assistantMsgs = history.filter((m: any) => m.role === "assistant");
+  if (assistantMsgs.length > 0) {
+    const lastMsg = assistantMsgs[assistantMsgs.length - 1].content;
+    const match = lastMsg.match(/\[STATE\]([\s\S]*?)\[\/STATE\]/i);
+    if (match) {
+      try {
+        const parsedState = JSON.parse(match[1].trim());
+        if (parsedState.produto) result.produto = parsedState.produto;
+        if (parsedState.pagamento) result.pagamento = parsedState.pagamento;
+        if (parsedState.enderecoConfirmado === true) result.enderecoConfirmado = true;
+      } catch (e) {
+        console.error("Falha ao parsear STATE JSON", e);
+      }
+    }
+  }
+
+  // 2. Fallback: Scan user messages for institutional / payment / product IF NOT defined by STATE
   const userMsgs = history.filter((m: any) => m.role === "user");
   for (const msg of userMsgs) {
     const t = msg.content.toLowerCase();
 
-  // Detect institutional client (expanded keywords)
+    // Detect institutional client (always active to skip price steps immediately)
     if (!result.clienteInstitucional && /\b(escola|col[eé]gio|creche|emei|emef|ubs|posto\s*de\s*sa[uú]de|pol[ií]cia|secretaria|assist[eê]ncia\s*social|prefeitura|damasco|municipal|estadual)\b/i.test(t)) {
       result.clienteInstitucional = true;
       result.pagamento = "institucional";
@@ -505,16 +522,6 @@ export function extractCollectedData(history: any[]): { pagamento?: string; prod
       else if (/\bp\s*20\b/i.test(t)) result.produto = "Gás P20";
       else if (/\bp\s*45\b/i.test(t)) result.produto = "Gás P45";
       else if (/\b(água|agua|mineral|gal[aã]o|20\s*l)/i.test(t)) result.produto = "Água Mineral 20L";
-    }
-  }
-
-  // Check if address was confirmed (assistant asked "Entrego na..." and user said sim/ok)
-  for (let i = 0; i < history.length - 1; i++) {
-    if (history[i].role === "assistant" && /entrego\s*(na|no|em)\s/i.test(history[i].content)) {
-      const next = history[i + 1];
-      if (next?.role === "user" && /^(sim|ok|isso|pode|confirmo|confirmed|s|ss|sss|é|eh|correto|certo|beleza|blz)/i.test(next.content.trim())) {
-        result.enderecoConfirmado = true;
-      }
     }
   }
 
@@ -670,6 +677,11 @@ REGRAS DE OURO:
 1. NÃO FINALIZAR PEDIDOS AUTOMATICAMENTE: Mesmo que o cliente já seja conhecido, NUNCA crie ou confirme um pedido no início da conversa.
 2. ESPERAR O PEDIDO: Na primeira mensagem, APENAS cumprimente pelo nome de forma calorosa. NÃO mencione endereço, NÃO mencione produto, NÃO pergunte o que deseja. Espere o cliente dizer espontaneamente que quer gás ou água.
 3. PREÇO RÍGIDO: O valor a ser registrado no sistema deve ser EXATAMENTE o valor que você informou ao cliente na conversa.
+4. STATE OBRIGATÓRIO (CRÍTICO): VOCÊ DEVE OBRIGATORIAMENTE incluir a tag [STATE] no final de TODAS as suas respostas (em uma nova linha), contendo o estado atual do pedido em JSON.
+   Exemplo:
+   Sua resposta para o cliente... 😊
+   [STATE] {"produto": "Gás P13", "enderecoConfirmado": true, "pagamento": "dinheiro"} [/STATE]
+   Seja inteligente: se o cliente disser "isso", "pode mandar", "aqui mesmo", mude "enderecoConfirmado" para true. Se não tiver uma informação, omita-a do JSON.
 
 ⚠️ REGRA CRÍTICA DE SAUDAÇÃO:
 - Quando o cliente diz "Oi", "Olá", "Bom dia", "Boa tarde" ou qualquer saudação SIMPLES (sem pedir produto):
