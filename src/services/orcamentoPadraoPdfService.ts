@@ -226,16 +226,29 @@ export async function gerarOrcamentoPadraoPdf(d: PadraoPdfData): Promise<jsPDF> 
   doc.rect(sigBoxX_mm, sigBoxY_mm, sigBoxW_mm, sigBoxH_mm);
 
   const nomeBaseSig = String(f.nome_fantasia || f.razao_social || "").trim();
-  const inicialMatchSig = nomeBaseSig.normalize("NFD").replace(/[\u0300-\u036f]/g, "").match(/[A-Za-z0-9]/);
-  const inicialSig = (inicialMatchSig ? inicialMatchSig[0] : "●").toUpperCase();
   {
     const gs: any = (doc as any).GState ? new (doc as any).GState({ opacity: 0.12 }) : null;
     if (gs && (doc as any).setGState) (doc as any).setGState(gs);
-    doc.setFont("times", "bold");
-    const fs = Math.min(70, sigBoxH_mm * 2);
-    doc.setFontSize(fs);
+    doc.setFont("helvetica", "bold");
+    // Ajusta fonte para caber dentro do quadro (max 70pt, min 12pt)
+    const maxFontSize = Math.min(70, sigBoxH_mm * 2);
+    let fontSize = maxFontSize;
+    doc.setFontSize(fontSize);
+    const textWidth = doc.getTextWidth(nomeBaseSig);
+    if (textWidth > sigBoxW_mm - 10) {
+      fontSize = Math.max(12, (sigBoxW_mm - 10) / textWidth * fontSize);
+      doc.setFontSize(fontSize);
+    }
     doc.setTextColor(20, 60, 130);
-    doc.text(inicialSig, sigBoxX_mm + sigBoxW_mm / 2, sigBoxY_mm + sigBoxH_mm / 2, { align: "center", baseline: "middle" } as any);
+    const nomeLines = doc.splitTextToSize(nomeBaseSig, sigBoxW_mm - 10) as string[];
+    const lineH = fontSize * 0.4;
+    const totalTextH = nomeLines.length * lineH;
+    const startY = sigBoxY_mm + (sigBoxH_mm - Math.min(totalTextH, sigBoxH_mm - 4)) / 2 + lineH / 2;
+    let ly = startY;
+    for (const ln of nomeLines) {
+      doc.text(ln, sigBoxX_mm + sigBoxW_mm / 2, ly, { align: "center", baseline: "middle" } as any);
+      ly += lineH;
+    }
     if (gs && (doc as any).setGState) {
       const gs2: any = new (doc as any).GState({ opacity: 1 });
       (doc as any).setGState(gs2);
