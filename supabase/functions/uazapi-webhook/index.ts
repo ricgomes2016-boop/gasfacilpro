@@ -168,7 +168,10 @@ serve(async (req) => {
     }
 
     // Debounce: wait 3s and collect any follow-up messages
-    const combinedText = await collectBufferedMessages(supabase, conversationId, messageText);
+    const { text: combinedText, isLatest } = await collectBufferedMessages(supabase, conversationId, messageText, messageKey);
+    if (!isLatest) {
+      return OK({ ok: true, skipped: "debounce_waiting" });
+    }
     const finalMessageText = combinedText || messageText;
 
     // Post-order shortcut
@@ -247,13 +250,15 @@ serve(async (req) => {
       reply = reply.replace(/\[ENVIAR_LOCALIZACAO\]/g, "").trim();
       const loc = await getEntregadorLocation(supabase, cliente.id);
       if (loc) {
-        await sendMessage(config, phone, reply);
+        const cleanReply = reply.replace(/\[STATE\][\s\S]*?\[\/STATE\]/gi, "").trim();
+        await sendMessage(config, phone, cleanReply);
         await sendLocation(config, phone, loc.lat, loc.lng, loc.nome);
         return OK({ ok: true, reply: reply.substring(0, 100), location_sent: true });
       }
     }
 
-    await sendMessage(config, phone, reply);
+    const finalCleanReply = reply.replace(/\[STATE\][\s\S]*?\[\/STATE\]/gi, "").trim();
+    await sendMessage(config, phone, finalCleanReply);
     return OK({ ok: true, reply: reply.substring(0, 100) });
   } catch (error) {
     console.error("UaZapi webhook error:", error);

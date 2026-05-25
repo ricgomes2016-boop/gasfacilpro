@@ -186,7 +186,7 @@ export default function Vendas() {
         </div>
         
         {/* Metric cards with trend (#3) */}
-        <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardContent className="flex items-center gap-3 p-3 md:p-4">
               <div className="rounded-lg bg-primary/10 p-2 md:p-3">

@@ -252,9 +252,30 @@ export default function Dashboard() {
         {/* Alertas de estoque crítico */}
         <StockAlerts />
 
-        {/* Cards extras (no GásMais os 4 principais já estão no hero) */}
-        <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
-          {!isGasmaisDashboard && (
+        {/* Cards com comparativo e Ticket Médio */}
+        <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+          <StatCard
+            title={`Vendas ${periodLabel}`}
+            value={`R$ ${(stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+            icon={DollarSign}
+            variant="primary"
+            trend={stats?.trendVendas}
+          />
+          <StatCard
+            title="Pedidos"
+            value={stats?.totalPedidos ?? 0}
+            icon={ShoppingCart}
+            trend={stats?.trendPedidos}
+          />
+          <StatCard title="Pendentes" value={stats?.pendentes ?? 0} icon={Truck} variant="warning" />
+          <StatCard title="Clientes Ativos" value={stats?.clientesAtivos ?? 0} icon={Users} />
+          <StatCard
+            title="Ticket Médio"
+            value={`R$ ${(stats?.ticketMedio ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+            icon={TrendingUp}
+            variant="info"
+          />
+          {period === "hoje" && (
             <>
               <StatCard
                 title={`Vendas ${periodLabel}`}

@@ -408,27 +408,36 @@ export async function findCliente(supabase: any, phone: string, senderName?: str
 }
 
 // ========== MESSAGE DEBOUNCE ==========
-export async function collectBufferedMessages(supabase: any, conversationId: string, currentText: string, delayMs = 3000): Promise<string> {
+export async function collectBufferedMessages(supabase: any, conversationId: string, currentText: string, currentMessageId: string, delayMs = 3000): Promise<{ text: string; isLatest: boolean }> {
   // Wait for more messages to arrive
   await new Promise(resolve => setTimeout(resolve, delayMs));
 
-  // Fetch all user messages from the last 5 seconds that haven't been processed
-  const fiveSecsAgo = new Date(Date.now() - 5000).toISOString();
+  // Fetch all user messages from the last 5 seconds
+  const fiveSecsAgo = new Date(Date.now() - 6000).toISOString();
   const { data: recentMsgs } = await supabase.from("ai_mensagens")
-    .select("content, created_at")
+    .select("content, created_at, metadata")
     .eq("conversa_id", conversationId)
     .eq("role", "user")
     .gte("created_at", fiveSecsAgo)
     .order("created_at", { ascending: true });
 
-  if (recentMsgs && recentMsgs.length > 1) {
-    // Combine all recent messages
-    const combined = recentMsgs.map((m: any) => m.content).join("\n");
-    console.log("Debounce: combined", recentMsgs.length, "messages:", combined.substring(0, 100));
-    return combined;
+  if (recentMsgs && recentMsgs.length > 0) {
+    // Check if the CURRENT message is the LAST one in the window
+    const lastMsg = recentMsgs[recentMsgs.length - 1];
+    const isLatest = lastMsg.metadata?.message_id === currentMessageId;
+
+    if (recentMsgs.length > 1) {
+      const combined = recentMsgs.map((m: any) => m.content).join("\n");
+      if (isLatest) {
+        console.log("Debounce: combined", recentMsgs.length, "messages.");
+      }
+      return { text: combined, isLatest };
+    }
+    
+    return { text: currentText, isLatest };
   }
 
-  return currentText;
+  return { text: currentText, isLatest: true };
 }
 
 // ========== RECENT ORDERS ==========
@@ -592,12 +601,29 @@ export async function getProducts(supabase: any, unidadeId: string | null, confi
 export function extractCollectedData(history: any[]): { pagamento?: string; produto?: string; enderecoConfirmado?: boolean; clienteInstitucional?: boolean; skipPagamentoValor?: boolean } {
   const result: { pagamento?: string; produto?: string; enderecoConfirmado?: boolean; clienteInstitucional?: boolean; skipPagamentoValor?: boolean } = {};
 
-  // Scan user messages for payment method and institutional detection
+  // 1. Extração via [STATE] gerado pela IA (Structured Output)
+  const assistantMsgs = history.filter((m: any) => m.role === "assistant");
+  if (assistantMsgs.length > 0) {
+    const lastMsg = assistantMsgs[assistantMsgs.length - 1].content;
+    const match = lastMsg.match(/\[STATE\]([\s\S]*?)\[\/STATE\]/i);
+    if (match) {
+      try {
+        const parsedState = JSON.parse(match[1].trim());
+        if (parsedState.produto) result.produto = parsedState.produto;
+        if (parsedState.pagamento) result.pagamento = parsedState.pagamento;
+        if (parsedState.enderecoConfirmado === true) result.enderecoConfirmado = true;
+      } catch (e) {
+        console.error("Falha ao parsear STATE JSON", e);
+      }
+    }
+  }
+
+  // 2. Fallback: Scan user messages for institutional / payment / product IF NOT defined by STATE
   const userMsgs = history.filter((m: any) => m.role === "user");
   for (const msg of userMsgs) {
     const t = msg.content.toLowerCase();
 
-  // Detect institutional client (expanded keywords)
+    // Detect institutional client (always active to skip price steps immediately)
     if (!result.clienteInstitucional && /\b(escola|col[eé]gio|creche|emei|emef|ubs|posto\s*de\s*sa[uú]de|pol[ií]cia|secretaria|assist[eê]ncia\s*social|prefeitura|damasco|municipal|estadual)\b/i.test(t)) {
       result.clienteInstitucional = true;
       result.pagamento = "institucional";
@@ -619,16 +645,6 @@ export function extractCollectedData(history: any[]): { pagamento?: string; prod
       else if (/\bp\s*20\b/i.test(t)) result.produto = "Gás P20";
       else if (/\bp\s*45\b/i.test(t)) result.produto = "Gás P45";
       else if (/\b(água|agua|mineral|gal[aã]o|20\s*l)/i.test(t)) result.produto = "Água Mineral 20L";
-    }
-  }
-
-  // Check if address was confirmed (assistant asked "Entrego na..." and user said sim/ok)
-  for (let i = 0; i < history.length - 1; i++) {
-    if (history[i].role === "assistant" && /entrego\s*(na|no|em)\s/i.test(history[i].content)) {
-      const next = history[i + 1];
-      if (next?.role === "user" && /^(sim|ok|isso|pode|confirmo|confirmed|s|ss|sss|é|eh|correto|certo|beleza|blz)/i.test(next.content.trim())) {
-        result.enderecoConfirmado = true;
-      }
     }
   }
 
@@ -817,7 +833,11 @@ REGRAS DE OURO:
 1. NÃO FINALIZAR PEDIDOS AUTOMATICAMENTE: Mesmo que o cliente já seja conhecido, NUNCA crie ou confirme um pedido no início da conversa.
 2. ESPERAR O PEDIDO: Na primeira mensagem, APENAS cumprimente pelo nome de forma calorosa. NÃO mencione endereço, NÃO mencione produto, NÃO pergunte o que deseja. Espere o cliente dizer espontaneamente que quer gás ou água.
 3. PREÇO RÍGIDO: O valor a ser registrado no sistema deve ser EXATAMENTE o valor que você informou ao cliente na conversa.
-4. ANTI-INVENÇÃO DE PRODUTO (NUNCA QUEBRE): NÃO descreva cor do botijão (azul, vermelho, amarelo, verde, "padrão"), NÃO cite marca (Ultragaz, Liquigás, Copagaz, Supergasbras, Nacional Gás, Servgás, Consigaz, etc.), NÃO use parênteses descritivos do tipo "(aquele botijão azul)", "(aquele botijão padrão de cozinha)", "(comum de casa)", "(tradicional)". Refira-se ao produto APENAS pelo nome cadastrado no catálogo (ex: "Gás P13", "Gás P20", "Gás P45", "Água 20L"). Se o cliente perguntar marca ou cor, responda: "Trabalhamos com a marca disponível no momento — pode variar por entrega. Garantimos gás original, lacrado e dentro da validade. 😊"
+4. STATE OBRIGATÓRIO (CRÍTICO): VOCÊ DEVE OBRIGATORIAMENTE incluir a tag [STATE] no final de TODAS as suas respostas (em uma nova linha), contendo o estado atual do pedido em JSON.
+   Exemplo:
+   Sua resposta para o cliente... 😊
+   [STATE] {"produto": "Gás P13", "enderecoConfirmado": true, "pagamento": "dinheiro"} [/STATE]
+   Seja inteligente: se o cliente disser "isso", "pode mandar", "aqui mesmo", mude "enderecoConfirmado" para true. Se não tiver uma informação, omita-a do JSON.
 
 ⚠️ REGRA CRÍTICA DE SAUDAÇÃO:
 - Quando o cliente diz "Oi", "Olá", "Bom dia", "Boa tarde" ou qualquer saudação SIMPLES (sem pedir produto):
@@ -1012,8 +1032,6 @@ export async function upsertConversation(supabase: any, conversationId: string, 
     updated_at: new Date().toISOString(),
   };
   if (telefone) payload.telefone = telefone;
-  if (unidadeId) payload.unidade_id = unidadeId; // trigger preenche empresa_id
-
   await supabase.from("ai_conversas").upsert(payload, { onConflict: "id" });
 }
 
@@ -1090,23 +1108,72 @@ export function detectDissatisfaction(messageText: string): boolean {
 
 // ========== AI CALL ==========
 export async function callAI(messages: any[]): Promise<string> {
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "google/gemini-3-flash-preview", messages }),
-  });
-
-  if (!resp.ok) {
-    if (resp.status === 429) throw new Error("RATE_LIMIT");
-    if (resp.status === 402) throw new Error("CREDITS_EXHAUSTED");
-    throw new Error(`AI_ERROR_${resp.status}`);
+  if (!OPENAI_API_KEY && !LOVABLE_API_KEY && !GEMINI_API_KEY) {
+    throw new Error("AI_CONFIG_MISSING: Nenhuma chave de IA configurada (GEMINI, OPENAI ou LOVABLE).");
   }
 
-  const result = await resp.json();
-  return result.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem.";
+  // Prioridade 1: Gemini Direto (Google AI Studio)
+  if (GEMINI_API_KEY) {
+    const systemInstruction = messages.find(m => m.role === "system")?.content;
+    const history = messages.filter(m => m.role !== "system").map(m => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }]
+    }));
+
+    const payload: any = { contents: history };
+    if (systemInstruction) {
+      payload.system_instruction = { parts: [{ text: systemInstruction }] };
+    }
+
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (resp.ok) {
+      const result = await resp.json();
+      return result.candidates?.[0]?.content?.parts?.[0]?.text || "Desculpe, tive um problema ao processar via Gemini.";
+    }
+    console.error("Gemini direct API error:", await resp.text());
+  }
+
+  // Prioridade 2: OpenAI
+  if (OPENAI_API_KEY) {
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "gpt-4o-mini", messages }),
+    });
+    if (resp.ok) {
+      const result = await resp.json();
+      return result.choices?.[0]?.message?.content || "Desculpe, tive um problema ao processar via OpenAI.";
+    }
+  }
+
+  // Prioridade 3: Lovable Gateway
+  if (LOVABLE_API_KEY) {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "google/gemini-2.0-flash-exp", messages }),
+    });
+
+    if (!resp.ok) {
+      if (resp.status === 429) throw new Error("RATE_LIMIT");
+      if (resp.status === 402) throw new Error("CREDITS_EXHAUSTED");
+      throw new Error(`AI_ERROR_${resp.status}`);
+    }
+
+    const result = await resp.json();
+    return result.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem pelo gateway.";
+  }
+
+  return "Erro de configuração de IA.";
 }
 
 // ========== AUDIO TRANSCRIPTION ==========
@@ -1157,22 +1224,52 @@ export async function downloadAudio(config: BiaConfig, mediaUrl: string): Promis
 }
 
 export async function transcribeAudio(audioBase64: string, mimeType: string): Promise<string | null> {
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) return null;
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
   try {
-    // Use Gemini with inline audio data for transcription
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // 1. Tenta via Gemini Direto (Suporta áudio nativamente)
+    if (GEMINI_API_KEY) {
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: "Transcreva este áudio do WhatsApp da forma mais fiel possível." },
+              { inline_data: { mime_type: mimeType, data: audioBase64 } }
+            ]
+          }]
+        }),
+      });
+
+      if (resp.ok) {
+        const result = await resp.json();
+        return result.candidates?.[0]?.content?.parts?.[0]?.text || null;
+      }
+    }
+
+    const token = LOVABLE_API_KEY || OPENAI_API_KEY;
+    if (!token) return null;
+
+    const baseUrl = LOVABLE_API_KEY 
+      ? "https://ai.gateway.lovable.dev/v1/chat/completions"
+      : "https://api.openai.com/v1/chat/completions";
+
+    const model = LOVABLE_API_KEY ? "google/gemini-2.0-flash-exp" : "gpt-4o-audio-preview";
+
+    const resp = await fetch(baseUrl, {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: model,
         messages: [
           {
             role: "user",
             content: [
               {
-                type: "image_url",
+                type: "image_url", // Lovable Gateway uses this schema for any binary (audio/image)
                 image_url: { url: `data:${mimeType};base64,${audioBase64}` },
               },
               {

@@ -137,8 +137,7 @@ serve(async (req) => {
       instance: instanceName,
       tipo_contato: contact.tipo, contato_id: contact.id || null,
     });
-    await upsertConversation(supabase, conversationId, `${cliente.nome || senderName || normalized}`, normalized, config?.unidadeId || null);
-
+    await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
     // Hard block: off-hours → fixed message, no AI
     if (bh.isOffHours) {
       const reply = getOffHoursMessage(cliente.nome, bh.horarioInfo);
@@ -148,9 +147,11 @@ serve(async (req) => {
     }
 
     // Debounce: wait 3s and collect any follow-up messages
-    const combinedText = await collectBufferedMessages(supabase, conversationId, messageText);
+    const { text: combinedText, isLatest } = await collectBufferedMessages(supabase, conversationId, messageText, messageKey);
+    if (!isLatest) {
+      return OK({ ok: true, skipped: "debounce_waiting" });
+    }
     const finalMessageText = combinedText || messageText;
-
     // Post-order follow-up shortcut
     const postOrderResult = await isPostOrderFollowUp(supabase, normalized, finalMessageText);
     if (postOrderResult === "rating") {
@@ -235,13 +236,15 @@ serve(async (req) => {
       reply = reply.replace(/\[ENVIAR_LOCALIZACAO\]/g, "").trim();
       const loc = await getEntregadorLocation(supabase, cliente.id);
       if (loc) {
-        await sendMessage(config, phone, reply);
+        const cleanReply = reply.replace(/\[STATE\][\s\S]*?\[\/STATE\]/gi, "").trim();
+        await sendMessage(config, phone, cleanReply);
         await sendLocation(config, phone, loc.lat, loc.lng, loc.nome);
         return OK({ ok: true, reply: reply.substring(0, 100), location_sent: true });
       }
     }
 
-    await sendMessage(config, phone, reply);
+    const finalCleanReply = reply.replace(/\[STATE\][\s\S]*?\[\/STATE\]/gi, "").trim();
+    await sendMessage(config, phone, finalCleanReply);
 
     // --- AUTO FOLLOW-UP FOR NEGOTIATION (Evolution) ---
     // Only runs if auto_followup_ativo is enabled in regras_bia
