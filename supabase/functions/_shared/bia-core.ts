@@ -911,7 +911,7 @@ produto: (Nome EXATO: "Gás P13", "Gás P20", "Gás P45" ou "Água Mineral 20L")
 quantidade: 1
 endereco: Endereço completo
 pagamento: forma escolhida (ou "institucional" / "vale gás")
-valor: (O valor EXATO que você informou ao cliente, ou 0 para institucional/vale gás)
+valor: NÚMERO TOTAL do pedido (preço × quantidade, já com qualquer desconto que VOCÊ ofereceu). Use EXATAMENTE o valor que você falou ao cliente nesta conversa. Ex.: se você disse "R$ 125,00", escreva 125. Use 0 SOMENTE se for institucional ou vale gás. Em caso de dúvida, multiplique o preço da tabela acima pela quantidade.
 telefone: ${normalized}
 [/PEDIDO_CONFIRMADO]
 
@@ -1288,7 +1288,27 @@ export async function createOrder(
     const qty = parseInt(orderData.quantidade) || 1;
     const discInf = parseFloat(String(orderData.desconto ?? "").replace(",", ".")) || 0;
     const disc = discInf > 0 ? discInf : (fallbackDiscountPerUnit > 0 ? fallbackDiscountPerUnit * qty : 0);
-    const total = Math.max(0, produto.preco * qty - disc);
+
+    // ===== FONTE AUTORITATIVA DE PREÇO =====
+    // O valor cotado pela BIA na conversa (campo `valor:` da tag [PEDIDO_CONFIRMADO])
+    // é a fonte da verdade. Isso garante que o que o cliente leu no chat
+    // seja exatamente o que entra em valor_total e pedido_itens.preco_unitario,
+    // evitando divergência entre `regras_bia.tabela_precos` e `produtos.preco`.
+    const valorCotadoRaw = String(orderData.valor ?? "").replace(/[^\d.,-]/g, "").replace(/\./g, "").replace(",", ".");
+    const valorCotado = parseFloat(valorCotadoRaw);
+    const usaCotacao = Number.isFinite(valorCotado) && valorCotado > 0;
+
+    const total = usaCotacao
+      ? Math.max(0, valorCotado - disc)
+      : Math.max(0, produto.preco * qty - disc);
+
+    const precoUnitario = usaCotacao
+      ? Math.max(0, total / qty)
+      : produto.preco;
+
+    console.log("[createOrder] preço fonte:", usaCotacao ? "cotação BIA" : "produtos.preco", {
+      valorCotado, produtoPreco: produto.preco, qty, disc, total, precoUnitario,
+    });
 
     const payMap: Record<string, string> = {
       dinheiro: "dinheiro", pix: "pix", "cartão": "cartao", cartao: "cartao",
@@ -1307,7 +1327,7 @@ export async function createOrder(
 
     if (error) { console.error("Order insert error:", error); return; }
     await supabase.from("pedido_itens").insert({
-      pedido_id: ped.id, produto_id: produto.id, quantidade: qty, preco_unitario: produto.preco,
+      pedido_id: ped.id, produto_id: produto.id, quantidade: qty, preco_unitario: precoUnitario,
     });
 
     // Auto-assign entregador based on proximity or route
