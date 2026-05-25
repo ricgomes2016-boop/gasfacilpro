@@ -125,18 +125,31 @@ export default function Orcamentos() {
   });
 
   // Clientes — RPC server-side com debounce
+  // Estratégia: busca primeiro na unidade ativa. Se vier vazio e o termo tiver
+  // tamanho mínimo, faz fallback para a empresa inteira e marca como "outra unidade".
   const { data: clientes = [] } = useQuery({
     queryKey: ["clientes-orcamento", empresa?.id, unidadeAtual?.id, clienteSearch],
     enabled: !!empresa?.id,
     queryFn: async () => {
+      const termo = (clienteSearch || "").trim();
       const { data, error } = await supabase.rpc("autocomplete_clientes_v2", {
         _empresa_id: empresa!.id,
         _unidade_id: unidadeAtual?.id ?? null,
-        _termo: clienteSearch || null,
+        _termo: termo || null,
         _limite: 30,
       });
       if (error) throw error;
-      return data || [];
+      const local = (data || []).map((c: any) => ({ ...c, __outraUnidade: false }));
+      if (local.length > 0 || termo.length < 2 || !unidadeAtual?.id) return local;
+
+      // Fallback: busca em toda a empresa
+      const { data: dataAll } = await supabase.rpc("autocomplete_clientes_v2", {
+        _empresa_id: empresa!.id,
+        _unidade_id: null,
+        _termo: termo,
+        _limite: 30,
+      });
+      return (dataAll || []).map((c: any) => ({ ...c, __outraUnidade: true }));
     },
   });
 
@@ -391,10 +404,20 @@ export default function Orcamentos() {
     setFundeparOpen(true);
   };
 
-  const selectCliente = (c: any) => {
+  const selectCliente = async (c: any) => {
     setClienteId(c.id);
     setClienteNome(c.nome || `${c.endereco || ""} ${c.numero || ""}`.trim() || c.telefone || "Sem nome");
     setClienteOpen(false);
+    // Se veio do fallback (outra unidade), vincula à unidade ativa para próximas buscas
+    if (c.__outraUnidade && unidadeAtual?.id) {
+      try {
+        await supabase
+          .from("cliente_unidades")
+          .insert({ cliente_id: c.id, unidade_id: unidadeAtual.id });
+      } catch {
+        /* ignora duplicidade */
+      }
+    }
   };
 
   const selectProduto = (
@@ -587,7 +610,14 @@ export default function Orcamentos() {
                                   <CommandItem key={c.id} value={c.id} onSelect={() => selectCliente(c)}>
                                     <Check className={cn("mr-2 h-4 w-4", clienteId === c.id ? "opacity-100" : "opacity-0")} />
                                     <div className="flex flex-col">
-                                      <span className="font-medium">{label}</span>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium">{label}</span>
+                                        {c.__outraUnidade && (
+                                          <span className="text-[10px] uppercase tracking-wide bg-amber-500/15 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded">
+                                            outra unidade
+                                          </span>
+                                        )}
+                                      </div>
                                       {c.telefone && <span className="text-xs text-muted-foreground">{c.telefone}</span>}
                                       {c.endereco && <span className="text-xs text-muted-foreground">{c.endereco}{c.numero ? `, ${c.numero}` : ""} {c.bairro ? `- ${c.bairro}` : ""}</span>}
                                     </div>
