@@ -1,57 +1,56 @@
-## Diagnóstico definitivo
+## Problemas identificados (analisando o print do chat 4399199779)
 
-A BIA respondeu R$ 125,00 e negou desconto, mas o pedido foi registrado a R$ 120,00. Existem **duas fontes de preço** desencontradas no fluxo:
+### 1. Valor virou R$12.500,00 em vez de R$125,00
+**Arquivo:** `supabase/functions/_shared/bia-core.ts` linha 1297
 
-1. **No chat com o cliente** (`buildSystemPrompt` → `productList`): a BIA cita o preço de `regras_bia.tabela_precos.gas_p13.preco` configurado (R$ 125,00).
-2. **Na criação do pedido** (`createOrder`, `supabase/functions/_shared/bia-core.ts` linha 1291): o total é calculado como `produto.preco * qty - disc`, lendo `produtos.preco` da tabela (que está em R$ 120,00).
-
-O campo `valor:` da tag `[PEDIDO_CONFIRMADO]` — onde a BIA é instruída a colocar "O valor EXATO que você informou ao cliente" — **nunca é lido**. Por isso o pedido sai com o preço do cadastro de produtos, ignorando a cotação do chat.
-
-Quando o cliente pediu desconto, a BIA agiu corretamente (recusou). Mas no momento do insert, o sistema buscou `produtos.preco` (R$ 120) — o que acidentalmente "deu o desconto" que ela tinha negado.
-
-## Correção
-
-Tornar a cotação do chat a fonte autoritativa do preço do pedido.
-
-### Arquivo: `supabase/functions/_shared/bia-core.ts`
-
-**1. Em `createOrder` (linhas ~1288-1311):**
-
-- Ler `orderData.valor` (string do tag) e converter para número (`parseFloat` com vírgula→ponto).
-- Se `valorCotado > 0`:
-  - `precoUnitario = valorCotado / qty` (cotação inclui qty).
-  - `total = valorCotado - disc` (desconto adicional ainda subtrai, mas raramente vem aqui — `disc` quase sempre é 0 quando o valor já vem cotado).
-- Se `valorCotado == 0` ou ausente (institucional/vale gás ou tag mal formada): manter fallback atual `produto.preco * qty - disc`.
-- Garantir `total >= 0` com `Math.max(0, …)`.
-- Usar `precoUnitario` (não `produto.preco`) no insert de `pedido_itens.preco_unitario`, para o DRE/relatórios baterem com o que o cliente pagou.
-- Adicionar log claro: `console.log("[createOrder] preço fonte:", valorCotado > 0 ? "cotação BIA" : "produtos.preco", { valorCotado, produtoPreco: produto.preco, total })` para auditoria futura.
-
-**2. Reforço no prompt (`buildSystemPrompt`, bloco `[PEDIDO_CONFIRMADO]` linha ~907-916):**
-
-Trocar o comentário do campo `valor:` por uma instrução mais explícita e fechada:
-
-```
-valor: NÚMERO TOTAL DO PEDIDO (preço × quantidade, descontando o que você ofereceu).
-       Use EXATAMENTE o valor que você falou ao cliente nesta conversa.
-       NUNCA use 0 a não ser que seja institucional ou vale gás.
-       Se houver dúvida, use o preço da tabela acima multiplicado pela quantidade.
+```ts
+const valorCotadoRaw = String(orderData.valor ?? "")
+  .replace(/[^\d.,-]/g, "")
+  .replace(/\./g, "")      // ← BUG: remove TODOS os pontos
+  .replace(",", ".");
 ```
 
-Isso elimina ambiguidade e garante que o modelo sempre emite o número correto.
+Se a BIA escrever `valor: 125.00` (formato com ponto decimal — comum em IA), o `.replace(/\./g, "")` apaga o ponto e vira `12500` → `parseFloat = 12500`. O prompt instrui a usar `125` puro, mas o modelo frequentemente escreve `125.00` ou `125,00`.
 
-### Por que isso resolve definitivamente
+**Correção:** parser inteligente que distingue separador decimal de milhar:
+- Se a string contém `,` → ponto é milhar, vírgula é decimal (formato BR)
+- Se a string contém só `.` e o último ponto tem 1-2 dígitos depois → ponto é decimal
+- Caso contrário → ponto é milhar
 
-- **Uma única fonte de verdade no momento de fechar**: o que o cliente leu na conversa = o que entra no `valor_total` do pedido = o que aparece em `pedido_itens.preco_unitario`.
-- Atualizar o cadastro de `produtos` deixa de ser obrigatório para a BIA cobrar o valor certo (`tabela_precos` já é a referência usada pela BIA, e agora ela também alimenta o pedido).
-- Negociações de desconto que a BIA faz (`extractLatestNegotiatedDiscountPerUnit`, fluxo de gerente) continuam funcionando — o `valor` que ela escreve na tag já considera o desconto que ela aceitou.
-- Pedidos institucional/vale gás (valor: 0) continuam intactos pelo fallback.
+### 2. BIA criou pedido duplicado 30min depois do primeiro
+No print: pedido confirmado às 10:30 → cliente pergunta "Obg, ja saiu?" às 11:00 → BIA pergunta de novo sobre pix → cliente diz "Sim" → BIA dispara **novo** `[PEDIDO_CONFIRMADO]`.
 
-## Fora de escopo
+Causas:
+- `isPostOrderFollowUp` só pega frases curtas tipo "obrigado/valeu". "Obg, ja saiu?" não casa.
+- Dedup em `createOrder` só checa janela de **2 minutos** (linha ~1340) — 30 min depois passa direto.
+- O prompt não bloqueia explicitamente reconfirmação quando já há pedido ativo.
 
-- Não vou unificar `tabela_precos` e `produtos.preco` no banco (isso exige migração e validação do usuário).
-- Não vou mexer em layout, telas financeiras, estoque, ou envio manual do operador.
-- Não vou alterar `webhook` handlers — só o núcleo compartilhado `bia-core.ts`.
+**Correção dupla:**
+- **Em `createOrder`** (bia-core.ts ~linha 1338): ampliar a janela de dedup para **2 horas** quando já existe pedido ativo (`status in (pendente, confirmado, em_rota, agendado)`) do mesmo cliente_id no mesmo telefone. Se existir, abortar a criação e logar.
+- **No `buildSystemPrompt`**: adicionar bloco quando `orderStatus` está presente (já existe pedido ativo): "🚫 NUNCA gere nova tag `[PEDIDO_CONFIRMADO]` nesta conversa. O cliente já tem pedido em andamento (#${orderStatus.id}). Se ele mandar 'obg', 'ja saiu', 'cadê', 'sim', etc, apenas confirme o status atual do pedido sem reabrir fluxo de venda."
+
+### 3. Chat exibe "Cliente" em vez do nome real
+No print: aparece "Cliente 4399199779" na lista. O título da conversa é gravado em `ai_conversas.titulo` por `upsertConversation` usando `cliente.nome || senderName || normalized`.
+
+Causa: nos webhooks (`gateway-webhook`, `evolution-webhook`, `meta-webhook`, `uazapi-webhook`, `zapi-webhook`) o `findCliente(supabase, phone)` é chamado **sem** o `senderName`, então o pushName do WhatsApp nunca atualiza o cadastro nem entra no título. Para clientes antigos com `nome = "Cliente"` (genérico), o título fica eternamente "Cliente".
+
+**Correção:**
+- Passar `senderName` para `findCliente` em todos os 5 webhooks (`findCliente(supabase, phone, senderName)`).
+- Em `upsertConversation`: se o `title` recebido contém apenas "Cliente"/"WhatsApp: Cliente"/telefone e existe `senderName` melhor, preferir o pushName.
+- No prompt da BIA (linha 909): trocar `nome: ${cliente.nome || "Cliente"}` para também aceitar o `senderName` real do WhatsApp.
+
+## Arquivos a editar
+- `supabase/functions/_shared/bia-core.ts` — parser de valor, dedup 2h, prompt anti-reconfirmação
+- `supabase/functions/gateway-webhook/index.ts` — passar senderName ao findCliente
+- `supabase/functions/evolution-webhook/index.ts` — idem
+- `supabase/functions/meta-webhook/index.ts` — idem
+- `supabase/functions/uazapi-webhook/index.ts` — idem
+- `supabase/functions/zapi-webhook/index.ts` — idem
 
 ## Deploy
+Após edits, redeploy dos 5 webhooks.
 
-Após editar, fazer deploy dos webhooks que usam `createOrder`: `evolution-webhook`, `gateway-webhook`, `meta-webhook`, `uazapi-webhook`, `zapi-webhook`.
+## Fora de escopo
+- Não mexer em UI/layout do chat
+- Não mexer em finance, estoque ou roteirização
+- Não unificar `tabela_precos` × `produtos.preco` (já decidido manter cotação BIA como fonte da verdade)

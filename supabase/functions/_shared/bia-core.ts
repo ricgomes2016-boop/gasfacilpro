@@ -402,7 +402,9 @@ export async function findCliente(supabase: any, phone: string, senderName?: str
       endereco: [data[0].endereco, data[0].numero, data[0].bairro].filter(Boolean).join(", "),
     };
   }
-  return { id: null, nome: null, endereco: null };
+  // Cliente não cadastrado: devolve o pushName do WhatsApp para uso no título/saudação
+  const fallbackName = (senderName && senderName.trim().length >= 2) ? senderName.trim() : null;
+  return { id: null, nome: fallbackName, endereco: null };
 }
 
 // ========== MESSAGE DEBOUNCE ==========
@@ -713,6 +715,11 @@ export function buildSystemPrompt(
     finalizeHint = "\n\n⚠️ CLIENTE INSTITUCIONAL OU VALE GÁS — TODOS OS DADOS COLETADOS. FINALIZE O PEDIDO IMEDIATAMENTE com pagamento '" + collected.pagamento + "' e valor: 0. Gere a tag [PEDIDO_CONFIRMADO] AGORA.";
   }
 
+  // 🚫 BLOQUEIO DE PEDIDO DUPLICADO: se já existe pedido ativo, NUNCA reabrir fluxo de venda
+  if (orderStatus && orderStatus.statusRaw !== "entregue" && orderStatus.statusRaw !== "cancelado") {
+    finalizeHint = `\n\n🚫 PEDIDO JÁ EM ANDAMENTO (#${orderStatus.id}, ${orderStatus.status}, R$ ${orderStatus.valor}).\n- NÃO gere a tag [PEDIDO_CONFIRMADO] nesta conversa. O pedido já foi registrado.\n- Se o cliente perguntar "já saiu?", "cadê?", "demora?", "obrigado", "sim", "ok" → apenas confirme o status atual de forma curta e gentil.\n- Só reabra um novo fluxo de venda se o cliente disser EXPLICITAMENTE que quer um NOVO pedido (ex: "quero outro botijão", "preciso de mais um").`;
+  }
+
   // If contact is entregador or parceiro, return specialized prompt
   if (contactIdentity?.tipo === "entregador") {
     return `Você é a ${agentName}, assistente virtual ${empresaLabel}.
@@ -987,10 +994,21 @@ export async function saveMessage(supabase: any, conversationId: string, role: s
 }
 
 export async function upsertConversation(supabase: any, conversationId: string, title: string, telefone?: string, unidadeId?: string | null) {
+  // Se já existe uma conversa com título genérico ("Cliente", "WhatsApp: Cliente", só dígitos), substituir pelo novo title
+  let finalTitle = title;
+  try {
+    const { data: existing } = await supabase.from("ai_conversas").select("titulo").eq("id", conversationId).maybeSingle();
+    const oldTitle = (existing?.titulo || "").trim();
+    const isOldGeneric = !oldTitle || /^(whatsapp:\s*)?(cliente(\s*whatsapp)?|unknown|\+?\d{8,})$/i.test(oldTitle);
+    const isNewGeneric = /^(whatsapp:\s*)?(cliente(\s*whatsapp)?|unknown|\+?\d{8,})$/i.test(title.trim());
+    // Mantém título atual se o novo for genérico e o antigo for melhor
+    if (!isOldGeneric && isNewGeneric) finalTitle = oldTitle;
+  } catch {}
+
   const payload: any = {
     id: conversationId,
     user_id: "00000000-0000-0000-0000-000000000000",
-    titulo: title,
+    titulo: finalTitle,
     updated_at: new Date().toISOString(),
   };
   if (telefone) payload.telefone = telefone;
@@ -1208,6 +1226,30 @@ export function extractLatestNegotiatedDiscountPerUnit(messages: string[]): numb
   return 0;
 }
 
+// ========== PARSE VALOR BR ==========
+// Distingue "125", "125,00", "125.00", "1.250,00", "1,250.00"
+export function parseValorBR(input: any): number {
+  if (input === null || input === undefined) return NaN;
+  let s = String(input).replace(/[^\d.,-]/g, "").trim();
+  if (!s) return NaN;
+  const hasComma = s.includes(",");
+  const hasDot = s.includes(".");
+  if (hasComma && hasDot) {
+    // Quem aparece por último é o decimal
+    if (s.lastIndexOf(",") > s.lastIndexOf(".")) s = s.replace(/\./g, "").replace(",", ".");
+    else s = s.replace(/,/g, "");
+  } else if (hasComma) {
+    s = s.replace(",", ".");
+  } else if (hasDot) {
+    // Se o ponto vier com 1-2 dígitos depois, é decimal; senão é milhar
+    const parts = s.split(".");
+    const last = parts[parts.length - 1];
+    if (parts.length > 2 || last.length === 3) s = s.replace(/\./g, "");
+    // else mantém o ponto como decimal
+  }
+  return parseFloat(s);
+}
+
 // ========== CREATE ORDER ==========
 export async function createOrder(
   supabase: any, orderData: Record<string, string>,
@@ -1216,6 +1258,25 @@ export async function createOrder(
   isAgendado = false, fallbackDiscountPerUnit = 0
 ) {
   try {
+    // ===== ANTI-DUPLICATA: pedido ativo nas últimas 2h do mesmo telefone =====
+    {
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      const normPhone = normalizePhone(phone);
+      const { data: ativos } = await supabase.from("pedidos")
+        .select("id, status, created_at, valor_total")
+        .eq("canal_venda", "whatsapp")
+        .gte("created_at", twoHoursAgo)
+        .in("status", ["pendente", "confirmado", "em_rota", "saiu_entrega", "agendado"])
+        .ilike("observacoes", `%(${normPhone})%`)
+        .limit(1);
+      if (ativos?.length) {
+        console.warn("[createOrder] BLOQUEADO: pedido ativo recente já existe", {
+          phone: normPhone, pedidoExistente: ativos[0].id, status: ativos[0].status,
+        });
+        return { pedidoId: ativos[0].id as string, entregadorId: null, duplicado: true } as any;
+      }
+    }
+
     // Auto-register client
     if (!clienteId && (orderData.nome || senderName)) {
       const nome = orderData.nome || senderName;
@@ -1290,24 +1351,26 @@ export async function createOrder(
     const disc = discInf > 0 ? discInf : (fallbackDiscountPerUnit > 0 ? fallbackDiscountPerUnit * qty : 0);
 
     // ===== FONTE AUTORITATIVA DE PREÇO =====
-    // O valor cotado pela BIA na conversa (campo `valor:` da tag [PEDIDO_CONFIRMADO])
-    // é a fonte da verdade. Isso garante que o que o cliente leu no chat
-    // seja exatamente o que entra em valor_total e pedido_itens.preco_unitario,
-    // evitando divergência entre `regras_bia.tabela_precos` e `produtos.preco`.
-    const valorCotadoRaw = String(orderData.valor ?? "").replace(/[^\d.,-]/g, "").replace(/\./g, "").replace(",", ".");
-    const valorCotado = parseFloat(valorCotadoRaw);
+    // O valor cotado pela BIA é fonte da verdade, mas precisamos parser inteligente
+    // para distinguir separador decimal de milhar (BR usa "125,00"; IA às vezes usa "125.00").
+    const valorCotado = parseValorBR(orderData.valor);
     const usaCotacao = Number.isFinite(valorCotado) && valorCotado > 0;
 
-    const total = usaCotacao
+    // Sanidade: se o valor cotado for absurdamente maior que o preço de tabela (>10x), descarta
+    const precoTabela = produto.preco * qty;
+    const valorSane = usaCotacao && precoTabela > 0 && valorCotado > precoTabela * 10 ? false : usaCotacao;
+
+    const total = valorSane
       ? Math.max(0, valorCotado - disc)
       : Math.max(0, produto.preco * qty - disc);
 
-    const precoUnitario = usaCotacao
+    const precoUnitario = valorSane
       ? Math.max(0, total / qty)
       : produto.preco;
 
-    console.log("[createOrder] preço fonte:", usaCotacao ? "cotação BIA" : "produtos.preco", {
-      valorCotado, produtoPreco: produto.preco, qty, disc, total, precoUnitario,
+    console.log("[createOrder] preço fonte:", valorSane ? "cotação BIA" : "produtos.preco", {
+      valorRaw: orderData.valor, valorCotado, precoTabela, qty, disc, total, precoUnitario,
+      descartouCotacao: usaCotacao && !valorSane,
     });
 
     const payMap: Record<string, string> = {
