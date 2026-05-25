@@ -1,56 +1,46 @@
-## Problemas identificados (analisando o print do chat 4399199779)
+## Problema
 
-### 1. Valor virou R$12.500,00 em vez de R$125,00
-**Arquivo:** `supabase/functions/_shared/bia-core.ts` linha 1297
+Na tela **Gestão Financeira → Orçamentos**, aba **Padrão**, não há botão para imprimir/salvar PDF nem para assinar digitalmente. Esses recursos só existem hoje para orçamentos Fundepar.
 
-```ts
-const valorCotadoRaw = String(orderData.valor ?? "")
-  .replace(/[^\d.,-]/g, "")
-  .replace(/\./g, "")      // ← BUG: remove TODOS os pontos
-  .replace(",", ".");
-```
+## Solução
 
-Se a BIA escrever `valor: 125.00` (formato com ponto decimal — comum em IA), o `.replace(/\./g, "")` apaga o ponto e vira `12500` → `parseFloat = 12500`. O prompt instrui a usar `125` puro, mas o modelo frequentemente escreve `125.00` ou `125,00`.
+Adicionar geração de PDF e assinatura digital (PAdES via `assinar-pdf`) para o orçamento Padrão, reaproveitando exatamente a mesma infraestrutura do Fundepar.
 
-**Correção:** parser inteligente que distingue separador decimal de milhar:
-- Se a string contém `,` → ponto é milhar, vírgula é decimal (formato BR)
-- Se a string contém só `.` e o último ponto tem 1-2 dígitos depois → ponto é decimal
-- Caso contrário → ponto é milhar
+### 1. Novo serviço `src/services/orcamentoPadraoPdfService.ts`
 
-### 2. BIA criou pedido duplicado 30min depois do primeiro
-No print: pedido confirmado às 10:30 → cliente pergunta "Obg, ja saiu?" às 11:00 → BIA pergunta de novo sobre pix → cliente diz "Sim" → BIA dispara **novo** `[PEDIDO_CONFIRMADO]`.
+Espelha `orcamentoFundeparPdfService.ts`, mas com layout comercial limpo:
 
-Causas:
-- `isPostOrderFollowUp` só pega frases curtas tipo "obrigado/valeu". "Obg, ja saiu?" não casa.
-- Dedup em `createOrder` só checa janela de **2 minutos** (linha ~1340) — 30 min depois passa direto.
-- O prompt não bloqueia explicitamente reconfirmação quando já há pedido ativo.
+- Reusa `fetchFornecedor(empresa_id, unidade_id)` (mesma lógica) para puxar dados da unidade/empresa.
+- Cabeçalho: razão social + nome fantasia da unidade, CNPJ, endereço, telefone, e-mail.
+- Bloco "**ORÇAMENTO Nº {numero}**" com data de emissão e validade.
+- Bloco do **cliente** (nome, telefone, endereço).
+- Tabela de itens (descrição, qtd, valor unit., subtotal) via `jspdf-autotable`.
+- Linha de **desconto** (se > 0) e **Total Final**.
+- **Observações** (se houver).
+- Data por extenso, **linha de assinatura** + **caixa de aparência da assinatura digital** (mesma marca d'água com a inicial da unidade do Fundepar) + **carimbo** da unidade.
+- Exporta `gerarOrcamentoPadraoPdf(data)` e `imprimirOrcamentoPadrao(data)` (mesma assinatura de `imprimirFundepar`), incluindo `assinar?: boolean` que chama `assinarPdfRemoto` com a caixa visível posicionada acima da linha de assinatura.
 
-**Correção dupla:**
-- **Em `createOrder`** (bia-core.ts ~linha 1338): ampliar a janela de dedup para **2 horas** quando já existe pedido ativo (`status in (pendente, confirmado, em_rota, agendado)`) do mesmo cliente_id no mesmo telefone. Se existir, abortar a criação e logar.
-- **No `buildSystemPrompt`**: adicionar bloco quando `orderStatus` está presente (já existe pedido ativo): "🚫 NUNCA gere nova tag `[PEDIDO_CONFIRMADO]` nesta conversa. O cliente já tem pedido em andamento (#${orderStatus.id}). Se ele mandar 'obg', 'ja saiu', 'cadê', 'sim', etc, apenas confirme o status atual do pedido sem reabrir fluxo de venda."
+### 2. Alterações em `src/pages/financeiro/Orcamentos.tsx`
 
-### 3. Chat exibe "Cliente" em vez do nome real
-No print: aparece "Cliente 4399199779" na lista. O título da conversa é gravado em `ai_conversas.titulo` por `upsertConversation` usando `cliente.nome || senderName || normalized`.
+- Importar `imprimirOrcamentoPadrao`.
+- Criar `reimprimirPadrao(orc, assinar)` que:
+  - Busca itens do orçamento em `orcamento_itens` por `orcamento_id` (mesmo padrão usado pelo Fundepar via `editFundepar`).
+  - Busca dados do cliente.
+  - Chama `imprimirOrcamentoPadrao({ ...campos, assinar, unidade_id, empresa_id })`.
+- Na **linha da tabela** (orçamentos `tipo === 'padrao'`): adicionar botões `Printer` (imprimir) e `PenLine` (imprimir com assinatura digital), ao lado dos atuais Visualizar/Duplicar/Excluir.
+- No **viewDialog**: adicionar dois botões na seção do orçamento padrão — "Imprimir" e "Imprimir com Assinatura Digital".
+- No **diálogo de Novo Orçamento Padrão**: trocar o botão único "Salvar Orçamento" por dois:
+  - "Salvar"
+  - "Salvar e Imprimir" (chama `createMutation` e, ao sucesso, dispara `imprimirOrcamentoPadrao` com os dados recém-salvos).
 
-Causa: nos webhooks (`gateway-webhook`, `evolution-webhook`, `meta-webhook`, `uazapi-webhook`, `zapi-webhook`) o `findCliente(supabase, phone)` é chamado **sem** o `senderName`, então o pushName do WhatsApp nunca atualiza o cadastro nem entra no título. Para clientes antigos com `nome = "Cliente"` (genérico), o título fica eternamente "Cliente".
+### 3. Escopo intencionalmente fora
 
-**Correção:**
-- Passar `senderName` para `findCliente` em todos os 5 webhooks (`findCliente(supabase, phone, senderName)`).
-- Em `upsertConversation`: se o `title` recebido contém apenas "Cliente"/"WhatsApp: Cliente"/telefone e existe `senderName` melhor, preferir o pushName.
-- No prompt da BIA (linha 909): trocar `nome: ${cliente.nome || "Cliente"}` para também aceitar o `senderName` real do WhatsApp.
+- Sem mexer em `bia-core.ts`, webhooks, preços, RLS ou qualquer backend.
+- Sem alterar PDF/fluxo do Fundepar.
+- Sem alterar `App.tsx`, rotas ou providers.
+- Sem migração de banco (campos `numero`, `valor_total`, `desconto`, `observacoes`, `validade`, `cliente_nome`, `unidade_id`, `empresa_id` já existem no orçamento, e os itens já são lidos pelo fluxo atual).
 
-## Arquivos a editar
-- `supabase/functions/_shared/bia-core.ts` — parser de valor, dedup 2h, prompt anti-reconfirmação
-- `supabase/functions/gateway-webhook/index.ts` — passar senderName ao findCliente
-- `supabase/functions/evolution-webhook/index.ts` — idem
-- `supabase/functions/meta-webhook/index.ts` — idem
-- `supabase/functions/uazapi-webhook/index.ts` — idem
-- `supabase/functions/zapi-webhook/index.ts` — idem
+## Arquivos
 
-## Deploy
-Após edits, redeploy dos 5 webhooks.
-
-## Fora de escopo
-- Não mexer em UI/layout do chat
-- Não mexer em finance, estoque ou roteirização
-- Não unificar `tabela_precos` × `produtos.preco` (já decidido manter cotação BIA como fonte da verdade)
+- **Criar:** `src/services/orcamentoPadraoPdfService.ts`
+- **Editar:** `src/pages/financeiro/Orcamentos.tsx`
