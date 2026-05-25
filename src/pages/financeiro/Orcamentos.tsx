@@ -750,9 +750,23 @@ export default function Orcamentos() {
                   <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} className="mt-1.5" rows={2} />
                 </div>
 
-                <Button className="w-full gradient-primary text-primary-foreground shadow-lg gap-2" onClick={() => createMutation.mutate()} disabled={!clienteNome.trim() || !unidadeAtual || createMutation.isPending}>
-                  {createMutation.isPending ? "Salvando..." : (<><CheckCircle2 className="h-4 w-4" />Salvar Orçamento</>)}
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" className="gap-2" onClick={() => createMutation.mutate()} disabled={!clienteNome.trim() || !unidadeAtual || createMutation.isPending}>
+                    {createMutation.isPending ? "Salvando..." : (<><CheckCircle2 className="h-4 w-4" />Salvar</>)}
+                  </Button>
+                  <Button
+                    className="gradient-primary text-primary-foreground shadow-lg gap-2"
+                    disabled={!clienteNome.trim() || !unidadeAtual || createMutation.isPending}
+                    onClick={async () => {
+                      try {
+                        const orc: any = await createMutation.mutateAsync();
+                        if (orc) await imprimirPadrao(orc, assinatura.ativo);
+                      } catch {}
+                    }}
+                  >
+                    <Printer className="h-4 w-4" />Salvar e Imprimir
+                  </Button>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
