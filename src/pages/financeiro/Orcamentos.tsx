@@ -125,18 +125,31 @@ export default function Orcamentos() {
   });
 
   // Clientes — RPC server-side com debounce
+  // Estratégia: busca primeiro na unidade ativa. Se vier vazio e o termo tiver
+  // tamanho mínimo, faz fallback para a empresa inteira e marca como "outra unidade".
   const { data: clientes = [] } = useQuery({
     queryKey: ["clientes-orcamento", empresa?.id, unidadeAtual?.id, clienteSearch],
     enabled: !!empresa?.id,
     queryFn: async () => {
+      const termo = (clienteSearch || "").trim();
       const { data, error } = await supabase.rpc("autocomplete_clientes_v2", {
         _empresa_id: empresa!.id,
         _unidade_id: unidadeAtual?.id ?? null,
-        _termo: clienteSearch || null,
+        _termo: termo || null,
         _limite: 30,
       });
       if (error) throw error;
-      return data || [];
+      const local = (data || []).map((c: any) => ({ ...c, __outraUnidade: false }));
+      if (local.length > 0 || termo.length < 2 || !unidadeAtual?.id) return local;
+
+      // Fallback: busca em toda a empresa
+      const { data: dataAll } = await supabase.rpc("autocomplete_clientes_v2", {
+        _empresa_id: empresa!.id,
+        _unidade_id: null,
+        _termo: termo,
+        _limite: 30,
+      });
+      return (dataAll || []).map((c: any) => ({ ...c, __outraUnidade: true }));
     },
   });
 
