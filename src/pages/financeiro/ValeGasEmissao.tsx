@@ -33,6 +33,8 @@ import { useState, useMemo, useRef } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { QRCodeSVG } from "qrcode.react";
+import { esc } from "@/lib/escapeHtml";
 
 type ModoEmissao = "lote" | "automatico" | "manual";
 
@@ -72,7 +74,7 @@ function gerarCuponsDoLote(
 }
 
 function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => void }) {
-  const printRef = useRef<HTMLDivElement>(null);
+  const qrContainerRef = useRef<HTMLDivElement>(null);
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set(cupons.map(c => c.numero)));
 
   const toggleAll = () => {
@@ -86,58 +88,72 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
     setSelecionados(next);
   };
 
+  const previewCupom = useMemo(() => {
+    const firstSel = cupons.find(c => selecionados.has(c.numero));
+    return firstSel ?? cupons[0];
+  }, [cupons, selecionados]);
+
   const handlePrint = () => {
     const cuponsParaImprimir = cupons.filter(c => selecionados.has(c.numero));
     if (cuponsParaImprimir.length === 0) { toast.error("Selecione ao menos um vale"); return; }
+
+    const container = qrContainerRef.current;
+    if (!container) { toast.error("Erro ao gerar QR Codes"); return; }
+    const qrMap = new Map<number, string>();
+    container.querySelectorAll<SVGSVGElement>("svg[data-vale-numero]").forEach(svg => {
+      const num = Number(svg.getAttribute("data-vale-numero"));
+      qrMap.set(num, svg.outerHTML);
+    });
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) { toast.error("Popup bloqueado. Permita popups."); return; }
 
     printWindow.document.write(`
-      <html><head><title>Cupons Vale Gás</title>
+      <!DOCTYPE html><html><head><title>Cupons Vale Gás</title>
       <style>
-        @media print { @page { margin: 10mm; } }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Courier New', monospace; }
-        body { padding: 10px; }
-        .cupom { border: 2px dashed #333; padding: 16px; margin-bottom: 16px; page-break-inside: avoid; max-width: 350px; }
-        .cupom-header { text-align: center; border-bottom: 1px solid #999; padding-bottom: 8px; margin-bottom: 8px; }
-        .cupom-header h2 { font-size: 18px; margin-bottom: 4px; }
-        .cupom-header p { font-size: 11px; color: #666; }
-        .cupom-body { font-size: 12px; line-height: 1.6; }
-        .cupom-body .row { display: flex; justify-content: space-between; }
-        .cupom-body .label { font-weight: bold; }
-        .cupom-numero { text-align: center; font-size: 28px; font-weight: bold; margin: 10px 0; letter-spacing: 2px; }
-        .cupom-codigo { text-align: center; font-size: 14px; background: #f0f0f0; padding: 6px; margin: 8px 0; letter-spacing: 1px; }
-        .cupom-valor { text-align: center; font-size: 22px; font-weight: bold; margin: 10px 0; }
-        .cupom-footer { text-align: center; border-top: 1px solid #999; padding-top: 8px; margin-top: 8px; font-size: 10px; color: #999; }
-        .divider { border-top: 1px dashed #ccc; margin: 6px 0; }
+        @media print { @page { margin: 8mm; } }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, Helvetica, sans-serif; padding: 12px; background: #fff; }
+        .cupom {
+          border: 2px dashed #333; border-radius: 12px; padding: 18px 16px;
+          margin: 0 auto 14px; width: 320px; text-align: center;
+          page-break-inside: avoid; background: #fff;
+        }
+        .logo { font-size: 20px; font-weight: 800; color: #2fc2b5; margin-bottom: 4px; }
+        .desc { font-size: 11px; color: #666; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .qr { margin: 10px 0; display: flex; justify-content: center; }
+        .qr svg { width: 180px; height: 180px; }
+        .numero { font-size: 24px; font-weight: 800; margin: 8px 0 2px; letter-spacing: 1px; }
+        .codigo { font-family: 'Courier New', monospace; font-size: 11px; color: #666; margin-bottom: 8px; }
+        .valor { font-size: 30px; font-weight: 800; color: #16a34a; margin: 10px 0; }
+        .info { font-size: 11px; color: #444; line-height: 1.5; text-align: left; padding: 6px 4px; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; margin: 8px 0; }
+        .info .row { display: flex; justify-content: space-between; gap: 8px; }
+        .info .label { font-weight: 700; color: #333; }
+        .footer { font-size: 10px; color: #999; margin-top: 8px; line-height: 1.4; }
       </style></head><body>
       ${cuponsParaImprimir.map(c => `
         <div class="cupom">
-          <div class="cupom-header">
-            <h2>🔥 VALE GÁS</h2>
-            <p>${c.descricao}</p>
+          <div class="logo">🔥 VALE GÁS</div>
+          <div class="desc">${esc(c.descricao)}</div>
+          <div class="qr">${qrMap.get(c.numero) ?? ""}</div>
+          <div class="numero">Nº ${esc(c.numero)}</div>
+          <div class="codigo">${esc(c.codigo)}</div>
+          <div class="valor">R$ ${esc(c.valor.toFixed(2))}</div>
+          <div class="info">
+            <div class="row"><span class="label">Parceiro:</span><span>${esc(c.parceiroNome)}</span></div>
+            ${c.parceiroCnpj ? `<div class="row"><span class="label">CNPJ:</span><span>${esc(c.parceiroCnpj)}</span></div>` : ""}
+            ${c.parceiroTelefone ? `<div class="row"><span class="label">Tel:</span><span>${esc(c.parceiroTelefone)}</span></div>` : ""}
+            <div class="row"><span class="label">Tipo:</span><span>${esc(c.parceiroTipo)}</span></div>
+            ${c.produtoNome ? `<div class="row"><span class="label">Produto:</span><span>${esc(c.produtoNome)}</span></div>` : ""}
+            ${c.clienteNome ? `<div class="row"><span class="label">Cliente:</span><span>${esc(c.clienteNome)}</span></div>` : ""}
           </div>
-          <div class="cupom-body">
-            <div class="cupom-numero">Nº ${c.numero}</div>
-            <div class="cupom-codigo">${c.codigo}</div>
-            <div class="divider"></div>
-            <div class="row"><span class="label">Parceiro:</span><span>${c.parceiroNome}</span></div>
-            ${c.parceiroCnpj ? `<div class="row"><span class="label">CNPJ:</span><span>${c.parceiroCnpj}</span></div>` : ""}
-            ${c.parceiroTelefone ? `<div class="row"><span class="label">Tel:</span><span>${c.parceiroTelefone}</span></div>` : ""}
-            <div class="row"><span class="label">Tipo:</span><span>${c.parceiroTipo}</span></div>
-            <div class="divider"></div>
-            ${c.produtoNome ? `<div class="row"><span class="label">Produto:</span><span>${c.produtoNome}</span></div>` : ""}
-            ${c.clienteNome ? `<div class="row"><span class="label">Cliente:</span><span>${c.clienteNome}</span></div>` : ""}
-            <div class="cupom-valor">R$ ${c.valor.toFixed(2)}</div>
-          </div>
-          <div class="cupom-footer">
-            <p>Emitido em ${c.dataEmissao}</p>
-            <p>Vale válido conforme condições do parceiro</p>
+          <div class="footer">
+            Emitido em ${esc(c.dataEmissao)}<br/>
+            Apresente este QR Code ao entregador para validar seu vale gás.
           </div>
         </div>
       `).join("")}
-      <script>window.onload = function() { window.print(); window.close(); }</script>
+      <script>window.onload = function() { window.print(); setTimeout(function(){ window.close(); }, 300); }</script>
       </body></html>
     `);
     printWindow.document.close();
@@ -145,6 +161,47 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
 
   return (
     <div className="space-y-4">
+      {/* QR Codes ocultos só para extrair o SVG na impressão */}
+      <div ref={qrContainerRef} className="hidden" aria-hidden="true">
+        {cupons.map(c => (
+          <QRCodeSVG
+            key={c.numero}
+            value={c.codigo}
+            size={180}
+            level="H"
+            includeMargin
+            data-vale-numero={c.numero}
+          />
+        ))}
+      </div>
+
+      {previewCupom && (
+        <div className="flex justify-center">
+          <div className="bg-white border-2 border-dashed border-muted-foreground/40 rounded-xl p-5 w-[300px] text-center">
+            <div className="text-lg font-extrabold text-primary">🔥 VALE GÁS</div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+              {previewCupom.descricao}
+            </div>
+            <div className="flex justify-center my-2">
+              <QRCodeSVG value={previewCupom.codigo} size={160} level="H" includeMargin />
+            </div>
+            <div className="text-xl font-extrabold">Nº {previewCupom.numero}</div>
+            <div className="font-mono text-[11px] text-muted-foreground">{previewCupom.codigo}</div>
+            <div className="text-2xl font-extrabold text-green-600 my-2">
+              R$ {previewCupom.valor.toFixed(2)}
+            </div>
+            <div className="text-[11px] text-left border-t border-dashed pt-2 space-y-0.5">
+              <div><strong>Parceiro:</strong> {previewCupom.parceiroNome}</div>
+              {previewCupom.produtoNome && <div><strong>Produto:</strong> {previewCupom.produtoNome}</div>}
+              {previewCupom.clienteNome && <div><strong>Cliente:</strong> {previewCupom.clienteNome}</div>}
+            </div>
+            <div className="text-[10px] text-muted-foreground mt-2">
+              Apresente este QR Code ao entregador.
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <Label className="text-base font-semibold">Selecione os vales para imprimir</Label>
         <Button type="button" variant="outline" size="sm" onClick={toggleAll}>
@@ -163,12 +220,6 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
           </div>
         ))}
       </div>
-      <div className="p-3 bg-muted rounded-lg text-sm">
-        <p><strong>Parceiro:</strong> {cupons[0]?.parceiroNome} ({cupons[0]?.parceiroTipo})</p>
-        {cupons[0]?.parceiroCnpj && <p><strong>CNPJ:</strong> {cupons[0]?.parceiroCnpj}</p>}
-        {cupons[0]?.produtoNome && <p><strong>Produto:</strong> {cupons[0]?.produtoNome}</p>}
-        {cupons[0]?.clienteNome && <p><strong>Cliente:</strong> {cupons[0]?.clienteNome}</p>}
-      </div>
       <div className="flex gap-2 justify-end">
         <Button type="button" variant="outline" onClick={onClose}>Fechar</Button>
         <Button type="button" className="gap-2" onClick={handlePrint}>
@@ -178,6 +229,7 @@ function CupomPrint({ cupons, onClose }: { cupons: CupomVale[]; onClose: () => v
     </div>
   );
 }
+
 
 export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}) {
   const { parceiros, lotes, vales, emitirLote, cancelarLote, registrarPagamentoLote, proximoNumeroVale } = useValeGas();

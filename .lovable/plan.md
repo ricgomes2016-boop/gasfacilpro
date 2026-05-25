@@ -1,46 +1,31 @@
 ## Problema
 
-Na tela **Gestão Financeira → Orçamentos**, aba **Padrão**, não há botão para imprimir/salvar PDF nem para assinar digitalmente. Esses recursos só existem hoje para orçamentos Fundepar.
+Em **Gestão Financeira → Vale Gás → Emissão**, ao emitir um lote, o cupom gerado (`CupomPrint` em `src/pages/financeiro/ValeGasEmissao.tsx`) sai só em texto monoespaçado, sem QR Code. Já o vale do empenho usa `src/components/valegas/ValeGasQRCode.tsx`, que tem layout bonito com QR Code grande, valor destacado e instrução de uso. O objetivo é deixar os cupons da emissão visualmente equivalentes, com QR Code escaneável pelo entregador.
 
-## Solução
+## O que será feito
 
-Adicionar geração de PDF e assinatura digital (PAdES via `assinar-pdf`) para o orçamento Padrão, reaproveitando exatamente a mesma infraestrutura do Fundepar.
+Apenas frontend, sem mexer em banco, contexto, regras de negócio ou no fluxo de emissão.
 
-### 1. Novo serviço `src/services/orcamentoPadraoPdfService.ts`
+### 1. `src/pages/financeiro/ValeGasEmissao.tsx` — refatorar `CupomPrint`
 
-Espelha `orcamentoFundeparPdfService.ts`, mas com layout comercial limpo:
+- Importar `QRCodeSVG` de `qrcode.react` (já usado no projeto) e renderizar o QR Code de cada cupom dentro de um container oculto (`ref`) para extrair o SVG no momento da impressão, igual ao padrão de `ValeGasQRCode.tsx`.
+- Para cada vale selecionado, gerar o SVG do QR a partir de `c.codigo` (mesmo valor usado no QR público) e injetar o `outerHTML` no HTML da `printWindow`.
+- Reescrever o CSS/HTML do cupom impresso usando o mesmo visual de `ValeGasQRCode.tsx`:
+  - Card com borda arredondada, header com nome da unidade/descrição, QR Code centralizado (~180px), número do vale em destaque, código monoespaçado, valor grande em verde, dados do parceiro/cliente/produto abaixo e rodapé com instrução "Apresente este QR Code ao entregador…".
+  - Manter `page-break-inside: avoid` e `@page { margin: 10mm }` para impressão em lote.
+- Manter a lista de seleção (checkbox por vale) e o botão "Imprimir (n)" como já existem.
+- Adicionar prévia visual de **um** cupom (o primeiro selecionado) acima da lista, renderizando o mesmo layout em tela com `QRCodeSVG`, para o usuário ver como vai sair antes de imprimir.
+- Escapar valores dinâmicos no HTML (reaproveitar helper `escapeHtml` de `src/lib/escapeHtml.ts`) para evitar quebra de markup.
 
-- Reusa `fetchFornecedor(empresa_id, unidade_id)` (mesma lógica) para puxar dados da unidade/empresa.
-- Cabeçalho: razão social + nome fantasia da unidade, CNPJ, endereço, telefone, e-mail.
-- Bloco "**ORÇAMENTO Nº {numero}**" com data de emissão e validade.
-- Bloco do **cliente** (nome, telefone, endereço).
-- Tabela de itens (descrição, qtd, valor unit., subtotal) via `jspdf-autotable`.
-- Linha de **desconto** (se > 0) e **Total Final**.
-- **Observações** (se houver).
-- Data por extenso, **linha de assinatura** + **caixa de aparência da assinatura digital** (mesma marca d'água com a inicial da unidade do Fundepar) + **carimbo** da unidade.
-- Exporta `gerarOrcamentoPadraoPdf(data)` e `imprimirOrcamentoPadrao(data)` (mesma assinatura de `imprimirFundepar`), incluindo `assinar?: boolean` que chama `assinarPdfRemoto` com a caixa visível posicionada acima da linha de assinatura.
+### 2. Reimpressão de lote já existente
 
-### 2. Alterações em `src/pages/financeiro/Orcamentos.tsx`
+A função `handleReimprimirLote` continua chamando o mesmo `CupomPrint`, então automaticamente passa a imprimir com QR Code — nenhuma mudança adicional necessária.
 
-- Importar `imprimirOrcamentoPadrao`.
-- Criar `reimprimirPadrao(orc, assinar)` que:
-  - Busca itens do orçamento em `orcamento_itens` por `orcamento_id` (mesmo padrão usado pelo Fundepar via `editFundepar`).
-  - Busca dados do cliente.
-  - Chama `imprimirOrcamentoPadrao({ ...campos, assinar, unidade_id, empresa_id })`.
-- Na **linha da tabela** (orçamentos `tipo === 'padrao'`): adicionar botões `Printer` (imprimir) e `PenLine` (imprimir com assinatura digital), ao lado dos atuais Visualizar/Duplicar/Excluir.
-- No **viewDialog**: adicionar dois botões na seção do orçamento padrão — "Imprimir" e "Imprimir com Assinatura Digital".
-- No **diálogo de Novo Orçamento Padrão**: trocar o botão único "Salvar Orçamento" por dois:
-  - "Salvar"
-  - "Salvar e Imprimir" (chama `createMutation` e, ao sucesso, dispara `imprimirOrcamentoPadrao` com os dados recém-salvos).
+## Fora do escopo
 
-### 3. Escopo intencionalmente fora
-
-- Sem mexer em `bia-core.ts`, webhooks, preços, RLS ou qualquer backend.
-- Sem alterar PDF/fluxo do Fundepar.
-- Sem alterar `App.tsx`, rotas ou providers.
-- Sem migração de banco (campos `numero`, `valor_total`, `desconto`, `observacoes`, `validade`, `cliente_nome`, `unidade_id`, `empresa_id` já existem no orçamento, e os itens já são lidos pelo fluxo atual).
+- `ValeGasQRCode.tsx`, `ValeGasControle`, `ValeGasAcerto`, contexto `ValeGasContext`, RLS, edge functions, banco, `App.tsx`, rotas.
+- Mudança no código/numeração dos vales — o QR continua codificando exatamente `c.codigo` (`VG-AAAA-NNNNN`), que já é o identificador validado pelo fluxo de venda pública.
 
 ## Arquivos
 
-- **Criar:** `src/services/orcamentoPadraoPdfService.ts`
-- **Editar:** `src/pages/financeiro/Orcamentos.tsx`
+- **Editar:** `src/pages/financeiro/ValeGasEmissao.tsx`
