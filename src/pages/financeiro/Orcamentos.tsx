@@ -610,7 +610,14 @@ export default function Orcamentos() {
                                   <CommandItem key={c.id} value={c.id} onSelect={() => selectCliente(c)}>
                                     <Check className={cn("mr-2 h-4 w-4", clienteId === c.id ? "opacity-100" : "opacity-0")} />
                                     <div className="flex flex-col">
-                                      <span className="font-medium">{label}</span>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium">{label}</span>
+                                        {c.__outraUnidade && (
+                                          <span className="text-[10px] uppercase tracking-wide bg-amber-500/15 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded">
+                                            outra unidade
+                                          </span>
+                                        )}
+                                      </div>
                                       {c.telefone && <span className="text-xs text-muted-foreground">{c.telefone}</span>}
                                       {c.endereco && <span className="text-xs text-muted-foreground">{c.endereco}{c.numero ? `, ${c.numero}` : ""} {c.bairro ? `- ${c.bairro}` : ""}</span>}
                                     </div>
