@@ -1,36 +1,50 @@
-## Problema
-A busca atual em `searchLink` (WhatsAppInbox.tsx) usa múltiplos `.or()` encadeados com `ilike` em vários campos. Isso falha em casos comuns:
+## 1. Busca de cliente — aba Orçamento Padrão
 
-- "rua cambara, 260" — vira 3 tokens (`rua`, `cambara`, `260`) e cada um precisa casar em algum campo. Endereços salvos como "Cambará" (sem prefixo "Rua") quebram o filtro.
-- Não trata acentos (`cambara` vs `Cambará`).
-- Não trata telefone normalizado (só dígitos).
-- Lógica de "logradouro + número" não existe — número entra como token isolado.
+**Problema:** No diálogo de novo Orçamento (Padrão), o autocomplete usa a RPC `autocomplete_clientes_v2` passando `_unidade_id = unidadeAtual.id`. Clientes que existem no cadastro da empresa mas que **não estão vinculados** na tabela `cliente_unidades` à unidade atual ficam invisíveis. Isso explica casos como "Rua Cambará, 260" que aparecem no cadastro geral, mas não no orçamento.
 
-Já existe a função RPC `autocomplete_clientes_v2(_empresa_id, _unidade_id, _termo, _limite)` que resolve exatamente isso: usa `unaccent`, separa parte textual de número (ex: "Rua Brasil 340"), normaliza telefone, faz score e retorna `id, nome, telefone, endereco, numero, bairro, cep, cidade`. O `NovaConversaDialog` já usa essa RPC.
+**Solução (somente front, sem mexer no RPC nem em RLS):**
 
-## Mudanças
+Em `src/pages/financeiro/Orcamentos.tsx` (linhas 127-141):
+- Manter a chamada principal com `_unidade_id` para priorizar clientes da unidade.
+- Se o termo tiver ≥ 2 caracteres **e** o retorno vier vazio, fazer um **fallback automático** chamando a mesma RPC com `_unidade_id: null` (escopo empresa inteira).
+- Marcar visualmente os resultados de fallback com um pequeno selo "outra unidade" no `CommandItem`, para o operador saber que o cliente não está vinculado à unidade ativa.
+- Ao selecionar um cliente vindo do fallback, vincular automaticamente à unidade atual via `insert` em `cliente_unidades` (ignorar erro de duplicidade), de modo que a próxima busca já encontre direto.
 
-Arquivo: `src/components/atendimento/WhatsAppInbox.tsx`
+Isso resolve tanto o caso do CNPJ/nome quanto o caso de endereço (Rua + número), que a RPC já trata.
 
-1. **`searchLink`** (linhas ~504-565): substituir toda a lógica de `.or()` por uma chamada à RPC:
+## 2. Marca d'água com nome da empresa na assinatura digital
+
+**Onde:** `supabase/functions/assinar-pdf/index.ts`.
+
+Hoje a função aplica PAdES (assinatura criptográfica) e, opcionalmente, desenha um carimbo visível na última página. **Não há marca d'água** repetida em todas as páginas.
+
+**Mudanças:**
+
+1. Ao carregar o certificado da unidade, fazer também `select` no nome da empresa:
    ```ts
-   supabase.rpc("autocomplete_clientes_v2", {
-     _empresa_id: empresa.id,
-     _unidade_id: unidadeAtual?.id ?? null, // se disponível no escopo
-     _termo: t,
-     _limite: 30,
-   })
+   .select("certificado_..., empresa_id, empresas:empresa_id(nome_fantasia, razao_social)")
    ```
-   - Quando `t` estiver vazio, manter o comportamento atual (listar primeiros 200 por nome via `.from("clientes")`).
-   - Aplicar debounce de ~250ms (igual ao NovaConversaDialog) para evitar spam de queries enquanto o usuário digita.
+   Resolver `empresaNome = empresas.nome_fantasia || empresas.razao_social || titular`.
 
-2. **`handleOpenLinkDialog`** (linhas ~488-502): manter como está (load inicial dos 200 primeiros). Apenas garantir que o tipo de `linkResults` aceite os campos retornados pela RPC.
+2. Criar função `aplicarMarcaDagua(pdfDoc, texto)` que, para **cada página**:
+   - Embeda Helvetica.
+   - Desenha o texto `"Assinado digitalmente por ${empresaNome}"` em diagonal (rotação ~45°), centralizado, fonte ~48pt, cor cinza com opacidade ~0.12 (`rgb(0.5,0.5,0.5)` + `opacity: 0.12`).
+   - Calcula posição usando `page.getSize()` para ficar centralizado independente do tamanho da página.
 
-3. **Tipo de `linkResults`** (linha ~119): expandir para incluir `endereco, numero, bairro, cidade, cep` (já é renderizado na UI).
+3. Chamar `aplicarMarcaDagua` dentro de `assinarPdf(...)` **antes** do bloco PAdES, para que a marca faça parte do hash assinado.
 
-4. **UI do modal** (linhas ~1400-1430): nenhuma mudança visual — apenas continuar exibindo `Rua, Nº · Bairro · Cidade` como já implementado.
+4. Aplicar também no fluxo `acao: "amostra"` para que a pré-visualização mostre a marca.
 
-## Fora de escopo
-- Não mexer em `ContactDetailsPanel`, lógica de WhatsApp, envio de mensagens, ou qualquer outra parte do inbox.
-- Não criar/alterar funções no banco — a RPC já existe.
-- Não alterar o `NovaConversaDialog`.
+5. Não alterar o carimbo visível existente (continua opcional via `visivel`).
+
+## 3. Fora de escopo
+
+- Não alterar layout das telas.
+- Não alterar a lógica do RPC `autocomplete_clientes_v2` nem RLS.
+- Não mexer no fluxo Fundepar (já busca empresa inteira).
+- Não alterar envio/criação de orçamento.
+
+### Arquivos a editar
+
+- `src/pages/financeiro/Orcamentos.tsx` — fallback de busca + auto-vínculo na unidade.
+- `supabase/functions/assinar-pdf/index.ts` — marca d'água com nome da empresa em todas as páginas + lookup do nome.
