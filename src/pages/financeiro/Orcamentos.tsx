@@ -404,10 +404,20 @@ export default function Orcamentos() {
     setFundeparOpen(true);
   };
 
-  const selectCliente = (c: any) => {
+  const selectCliente = async (c: any) => {
     setClienteId(c.id);
     setClienteNome(c.nome || `${c.endereco || ""} ${c.numero || ""}`.trim() || c.telefone || "Sem nome");
     setClienteOpen(false);
+    // Se veio do fallback (outra unidade), vincula à unidade ativa para próximas buscas
+    if (c.__outraUnidade && unidadeAtual?.id) {
+      try {
+        await supabase
+          .from("cliente_unidades")
+          .insert({ cliente_id: c.id, unidade_id: unidadeAtual.id });
+      } catch {
+        /* ignora duplicidade */
+      }
+    }
   };
 
   const selectProduto = (
