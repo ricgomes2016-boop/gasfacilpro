@@ -216,9 +216,9 @@ export async function gerarOrcamentoPadraoPdf(d: PadraoPdfData): Promise<jsPDF> 
   doc.text(dataExt, 14, y);
   y += 14;
 
-  // Quadro assinatura digital (com marca d'água da inicial)
+  // Quadro assinatura digital (com marca d'água da inicial dentro)
   const sigBoxW_mm = 140;
-  const sigBoxH_mm = 18;
+  const sigBoxH_mm = 32;
   const sigBoxX_mm = (W - sigBoxW_mm) / 2;
   const sigBoxY_mm = y;
   doc.setDrawColor(180, 180, 180);
@@ -232,7 +232,7 @@ export async function gerarOrcamentoPadraoPdf(d: PadraoPdfData): Promise<jsPDF> 
     const gs: any = (doc as any).GState ? new (doc as any).GState({ opacity: 0.12 }) : null;
     if (gs && (doc as any).setGState) (doc as any).setGState(gs);
     doc.setFont("times", "bold");
-    const fs = Math.max(36, Math.min(80, sigBoxH_mm * 2.6));
+    const fs = Math.min(70, sigBoxH_mm * 2);
     doc.setFontSize(fs);
     doc.setTextColor(20, 60, 130);
     doc.text(inicialSig, sigBoxX_mm + sigBoxW_mm / 2, sigBoxY_mm + sigBoxH_mm / 2, { align: "center", baseline: "middle" } as any);
@@ -244,11 +244,13 @@ export async function gerarOrcamentoPadraoPdf(d: PadraoPdfData): Promise<jsPDF> 
     doc.setDrawColor(0, 0, 0);
   }
 
-  y = sigBoxY_mm + sigBoxH_mm;
-  // Linha de assinatura
-  doc.line(50, y, W - 50, y);
-  const sigLineY_mm = y;
-  y += 5;
+  // Linha de assinatura dentro do quadro, próxima à base
+  const sigLineY_mm = sigBoxY_mm + sigBoxH_mm - 6;
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.3);
+  doc.line(sigBoxX_mm + 10, sigLineY_mm, sigBoxX_mm + sigBoxW_mm - 10, sigLineY_mm);
+
+  y = sigBoxY_mm + sigBoxH_mm + 5;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.text("ASSINATURA (fornecedor)", W / 2, y, { align: "center" });
