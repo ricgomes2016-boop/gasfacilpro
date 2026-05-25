@@ -545,6 +545,7 @@ export default function Orcamentos() {
     });
   };
 
+  const pendentes = orcamentos.filter((o: any) => o.status === "pendente");
   const aprovados = orcamentos.filter((o: any) => o.status === "aprovado");
   const valorPendente = pendentes.reduce((s: number, o: any) => s + Number(o.valor_total || 0), 0);
   const valorAprovado = aprovados.reduce((s: number, o: any) => s + Number(o.valor_total || 0), 0);
