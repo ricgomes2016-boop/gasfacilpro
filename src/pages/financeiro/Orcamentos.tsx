@@ -28,6 +28,7 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { imprimirFundepar, type CarimboTamanho } from "@/services/orcamentoFundeparPdfService";
+import { imprimirOrcamentoPadrao } from "@/services/orcamentoPadraoPdfService";
 import { Switch } from "@/components/ui/switch";
 import { useAssinaturaDigital } from "@/hooks/useAssinaturaDigital";
 import { ShieldCheck, ShieldAlert } from "lucide-react";
