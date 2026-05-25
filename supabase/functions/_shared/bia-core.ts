@@ -1290,24 +1290,26 @@ export async function createOrder(
     const disc = discInf > 0 ? discInf : (fallbackDiscountPerUnit > 0 ? fallbackDiscountPerUnit * qty : 0);
 
     // ===== FONTE AUTORITATIVA DE PREÇO =====
-    // O valor cotado pela BIA na conversa (campo `valor:` da tag [PEDIDO_CONFIRMADO])
-    // é a fonte da verdade. Isso garante que o que o cliente leu no chat
-    // seja exatamente o que entra em valor_total e pedido_itens.preco_unitario,
-    // evitando divergência entre `regras_bia.tabela_precos` e `produtos.preco`.
-    const valorCotadoRaw = String(orderData.valor ?? "").replace(/[^\d.,-]/g, "").replace(/\./g, "").replace(",", ".");
-    const valorCotado = parseFloat(valorCotadoRaw);
+    // O valor cotado pela BIA é fonte da verdade, mas precisamos parser inteligente
+    // para distinguir separador decimal de milhar (BR usa "125,00"; IA às vezes usa "125.00").
+    const valorCotado = parseValorBR(orderData.valor);
     const usaCotacao = Number.isFinite(valorCotado) && valorCotado > 0;
 
-    const total = usaCotacao
+    // Sanidade: se o valor cotado for absurdamente maior que o preço de tabela (>10x), descarta
+    const precoTabela = produto.preco * qty;
+    const valorSane = usaCotacao && precoTabela > 0 && valorCotado > precoTabela * 10 ? false : usaCotacao;
+
+    const total = valorSane
       ? Math.max(0, valorCotado - disc)
       : Math.max(0, produto.preco * qty - disc);
 
-    const precoUnitario = usaCotacao
+    const precoUnitario = valorSane
       ? Math.max(0, total / qty)
       : produto.preco;
 
-    console.log("[createOrder] preço fonte:", usaCotacao ? "cotação BIA" : "produtos.preco", {
-      valorCotado, produtoPreco: produto.preco, qty, disc, total, precoUnitario,
+    console.log("[createOrder] preço fonte:", valorSane ? "cotação BIA" : "produtos.preco", {
+      valorRaw: orderData.valor, valorCotado, precoTabela, qty, disc, total, precoUnitario,
+      descartouCotacao: usaCotacao && !valorSane,
     });
 
     const payMap: Record<string, string> = {
