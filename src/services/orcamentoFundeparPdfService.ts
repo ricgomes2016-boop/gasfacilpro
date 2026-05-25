@@ -220,27 +220,41 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
   doc.text(dataExt, 14, y);
   y += 18;
 
-  // Quadro da Assinatura Digital (mesma dimensão da aparência PAdES) com marca d'água da inicial
+  // Quadro da Assinatura Digital com marca d'água do nome da unidade DENTRO do quadro
   const sigBoxW_mm = 140;
-  const sigBoxH_mm = 18;
+  const sigBoxH_mm = 32;
   const sigBoxX_mm = (W - sigBoxW_mm) / 2;
   const sigBoxY_mm = y;
   doc.setDrawColor(180, 180, 180);
   doc.setLineWidth(0.3);
   doc.rect(sigBoxX_mm, sigBoxY_mm, sigBoxW_mm, sigBoxH_mm);
 
-  // Marca d'água estilo Adobe: inicial da unidade/empresa
-  const nomeBaseSig = String(f.nome_fantasia || f.razao_social || "").trim();
-  const inicialMatchSig = nomeBaseSig.normalize("NFD").replace(/[\u0300-\u036f]/g, "").match(/[A-Za-z0-9]/);
-  const inicialSig = (inicialMatchSig ? inicialMatchSig[0] : "●").toUpperCase();
+  // Marca d'água: nome completo da unidade/filial, centralizado dentro do quadro
+  const nomeBaseSig = String(f.nome_fantasia || f.razao_social || "").trim().toUpperCase();
   {
     const gs: any = (doc as any).GState ? new (doc as any).GState({ opacity: 0.12 }) : null;
     if (gs && (doc as any).setGState) (doc as any).setGState(gs);
     doc.setFont("times", "bold");
-    const fs = Math.max(36, Math.min(80, sigBoxH_mm * 2.6));
-    doc.setFontSize(fs);
     doc.setTextColor(20, 60, 130);
-    doc.text(inicialSig, sigBoxX_mm + sigBoxW_mm / 2, sigBoxY_mm + sigBoxH_mm / 2, { align: "center", baseline: "middle" } as any);
+
+    const maxW = sigBoxW_mm - 8;
+    let fs = Math.min(70, sigBoxH_mm * 2);
+    let lines: string[] = [];
+    while (fs > 8) {
+      doc.setFontSize(fs);
+      lines = doc.splitTextToSize(nomeBaseSig, maxW);
+      const lineH = fs * 0.3528;
+      if (lines.length * lineH <= sigBoxH_mm - 8) break;
+      fs -= 2;
+    }
+    const lineH = fs * 0.3528;
+    const totalH = lines.length * lineH;
+    let cy = sigBoxY_mm + (sigBoxH_mm - totalH) / 2 + lineH * 0.75;
+    for (const ln of lines) {
+      doc.text(ln, sigBoxX_mm + sigBoxW_mm / 2, cy, { align: "center" } as any);
+      cy += lineH;
+    }
+
     if (gs && (doc as any).setGState) {
       const gs2: any = new (doc as any).GState({ opacity: 1 });
       (doc as any).setGState(gs2);
@@ -249,11 +263,10 @@ export async function gerarFundeparPdf(d: FundeparPdfData): Promise<jsPDF> {
     doc.setDrawColor(0, 0, 0);
   }
 
-  y = sigBoxY_mm + sigBoxH_mm;
-  // Linha de assinatura
-  doc.line(50, y, W - 50, y);
-  const sigLineY_mm = y;
-  y += 5;
+  // Linha de assinatura DENTRO do quadro, próxima à base
+  const sigLineY_mm = sigBoxY_mm + sigBoxH_mm - 6;
+  doc.line(sigBoxX_mm + 10, sigLineY_mm, sigBoxX_mm + sigBoxW_mm - 10, sigLineY_mm);
+  y = sigBoxY_mm + sigBoxH_mm + 4;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.text("ASSINATURA (fornecedor)", W / 2, y, { align: "center" });
@@ -347,7 +360,7 @@ export async function imprimirFundepar(d: FundeparPdfData) {
     const pageH_mm = (doc as any).__pageH_mm as number;
     const pageW_mm = (doc as any).__pageW_mm as number;
     const boxW_mm = 140;
-    const boxH_mm = 18;
+    const boxH_mm = 32;
     const boxX_mm = (pageW_mm - boxW_mm) / 2;
     const visivel = {
       x: boxX_mm * PT_PER_MM,
