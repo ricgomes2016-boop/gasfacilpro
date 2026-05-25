@@ -9,7 +9,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import forge from "npm:node-forge@1.3.1";
 import { Buffer } from "node:buffer";
-import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
+import { PDFDocument, StandardFonts, rgb, degrees } from "npm:pdf-lib@1.17.1";
 // @ts-ignore - sem tipos
 import { SignPdf } from "npm:@signpdf/signpdf@3.2.4";
 // @ts-ignore
