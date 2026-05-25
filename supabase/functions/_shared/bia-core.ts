@@ -911,7 +911,7 @@ produto: (Nome EXATO: "Gás P13", "Gás P20", "Gás P45" ou "Água Mineral 20L")
 quantidade: 1
 endereco: Endereço completo
 pagamento: forma escolhida (ou "institucional" / "vale gás")
-valor: (O valor EXATO que você informou ao cliente, ou 0 para institucional/vale gás)
+valor: NÚMERO TOTAL do pedido (preço × quantidade, já com qualquer desconto que VOCÊ ofereceu). Use EXATAMENTE o valor que você falou ao cliente nesta conversa. Ex.: se você disse "R$ 125,00", escreva 125. Use 0 SOMENTE se for institucional ou vale gás. Em caso de dúvida, multiplique o preço da tabela acima pela quantidade.
 telefone: ${normalized}
 [/PEDIDO_CONFIRMADO]
 
