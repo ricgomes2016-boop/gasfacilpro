@@ -11735,7 +11735,6 @@ export type Database = {
           certificado_a1_senha: string
           contador_cpf_cnpj: string
           contador_email: string
-          id: string
           nfce_csc_token: string
           provedor_nfe_token: string
         }[]
