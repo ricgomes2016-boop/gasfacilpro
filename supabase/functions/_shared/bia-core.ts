@@ -713,6 +713,11 @@ export function buildSystemPrompt(
     finalizeHint = "\n\n⚠️ CLIENTE INSTITUCIONAL OU VALE GÁS — TODOS OS DADOS COLETADOS. FINALIZE O PEDIDO IMEDIATAMENTE com pagamento '" + collected.pagamento + "' e valor: 0. Gere a tag [PEDIDO_CONFIRMADO] AGORA.";
   }
 
+  // 🚫 BLOQUEIO DE PEDIDO DUPLICADO: se já existe pedido ativo, NUNCA reabrir fluxo de venda
+  if (orderStatus && orderStatus.statusRaw !== "entregue" && orderStatus.statusRaw !== "cancelado") {
+    finalizeHint = `\n\n🚫 PEDIDO JÁ EM ANDAMENTO (#${orderStatus.id}, ${orderStatus.status}, R$ ${orderStatus.valor}).\n- NÃO gere a tag [PEDIDO_CONFIRMADO] nesta conversa. O pedido já foi registrado.\n- Se o cliente perguntar "já saiu?", "cadê?", "demora?", "obrigado", "sim", "ok" → apenas confirme o status atual de forma curta e gentil.\n- Só reabra um novo fluxo de venda se o cliente disser EXPLICITAMENTE que quer um NOVO pedido (ex: "quero outro botijão", "preciso de mais um").`;
+  }
+
   // If contact is entregador or parceiro, return specialized prompt
   if (contactIdentity?.tipo === "entregador") {
     return `Você é a ${agentName}, assistente virtual ${empresaLabel}.
