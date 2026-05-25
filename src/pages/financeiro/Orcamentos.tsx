@@ -504,7 +504,47 @@ export default function Orcamentos() {
     });
   };
 
-  const pendentes = orcamentos.filter((o: any) => o.status === "pendente");
+  const imprimirPadrao = async (orc: any, assinar = false) => {
+    const { data: its } = await supabase
+      .from("orcamento_itens")
+      .select("*")
+      .eq("orcamento_id", orc.id);
+    let cli: any = null;
+    if (orc.cliente_id) {
+      const { data } = await supabase
+        .from("clientes")
+        .select("nome, cnpj, telefone, endereco, numero, bairro, cidade")
+        .eq("id", orc.cliente_id)
+        .maybeSingle();
+      cli = data;
+    }
+    const enderecoCli = cli
+      ? [cli.endereco, cli.numero, cli.bairro].filter(Boolean).join(", ")
+      : "";
+    await imprimirOrcamentoPadrao({
+      numero: orc.numero,
+      data_emissao: orc.data_emissao || orc.created_at,
+      validade: orc.validade,
+      cliente_nome: orc.cliente_nome || cli?.nome,
+      cliente_telefone: cli?.telefone,
+      cliente_endereco: enderecoCli,
+      cliente_cidade: cli?.cidade,
+      cliente_cnpj: cli?.cnpj,
+      itens: (its || []).map((i: any) => ({
+        descricao: i.descricao,
+        quantidade: Number(i.quantidade),
+        preco_unitario: Number(i.preco_unitario),
+        subtotal: Number(i.subtotal),
+      })),
+      desconto: Number(orc.desconto || 0),
+      valor_total: Number(orc.valor_total || 0),
+      observacoes: orc.observacoes,
+      empresa_id: empresa?.id,
+      unidade_id: orc.unidade_id || unidadeAtual?.id,
+      assinar,
+    });
+  };
+
   const aprovados = orcamentos.filter((o: any) => o.status === "aprovado");
   const valorPendente = pendentes.reduce((s: number, o: any) => s + Number(o.valor_total || 0), 0);
   const valorAprovado = aprovados.reduce((s: number, o: any) => s + Number(o.valor_total || 0), 0);
