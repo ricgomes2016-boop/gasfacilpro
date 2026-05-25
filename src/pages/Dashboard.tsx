@@ -187,7 +187,7 @@ export default function Dashboard() {
         <StockAlerts />
 
         {/* Cards com comparativo e Ticket Médio */}
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
+        <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
           <StatCard
             title={`Vendas ${periodLabel}`}
             value={`R$ ${(stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}

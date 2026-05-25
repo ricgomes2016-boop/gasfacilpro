@@ -8,7 +8,7 @@ import {
   isPostOrderFollowUp, callAI, parseOrderData, extractLatestNegotiatedDiscountPerUnit,
   createOrder, sendTyping, sendMessage, sendLocation, registerCall,
   getOffHoursMessage,
-  downloadAudio, transcribeAudio, getEntregadorLocation,
+  downloadAudio, transcribeAudio, getEntregadorLocation, collectBufferedMessages,
   identifyContact,
 } from "../_shared/bia-core.ts";
 
@@ -70,8 +70,33 @@ serve(async (req) => {
         const phoneNumberId = metadata?.phone_number_id;
 
         for (const msg of value.messages) {
-          // Skip status updates
+          // Skip status updates (no sender or type)
           if (!msg.from || !msg.type) continue;
+
+          // ─── COEXISTENCE LOOP PROTECTION ───────────────────────────────────
+          // In Coexistence Mode, Meta echoes messages sent FROM the WhatsApp
+          // Business App back to the webhook. We must ignore these echoes so
+          // the BIA doesn't reply to the business owner's own messages.
+          //
+          // How it works:
+          //  - Meta puts the CUSTOMER's phone in `msg.from` for inbound messages.
+          //  - For echo messages (sent by the business app), `msg.from` contains
+          //    the BUSINESS phone number itself.
+          //  - We compare the last 10 digits of `msg.from` with the registered
+          //    business number's last 10 digits (554335241094 → 4335241094).
+          //  - We also skip `system` type messages (Meta internal notifications).
+          if (msg.type === "system") {
+            console.log("Meta: skipping system/internal message (coexistence)");
+            continue;
+          }
+          // Known business phone number digits (last 10 of +55 43 3524-1094)
+          const BUSINESS_PHONE_LAST10 = "4335241094";
+          const senderLast10 = (msg.from || "").replace(/\D/g, "").slice(-10);
+          if (senderLast10 === BUSINESS_PHONE_LAST10) {
+            console.log("Meta: skipping echo from business number (coexistence protection):", msg.from);
+            continue;
+          }
+          // ─── END COEXISTENCE LOOP PROTECTION ───────────────────────────────
 
           const phone = msg.from; // Already in international format without +
           const senderName = value.contacts?.[0]?.profile?.name || "";
@@ -152,10 +177,6 @@ serve(async (req) => {
           ]);
 
           // Save inbound
-<<<<<<< HEAD
-          await saveMessage(supabase, conversationId, "user", messageText, { source: "meta-webhook", message_id: messageId });
-          await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
-=======
           await saveMessage(supabase, conversationId, "user", messageText, { source: "meta-webhook", message_id: messageId, tipo_contato: contact.tipo, contato_id: contact.id || null });
           await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
 
@@ -166,10 +187,17 @@ serve(async (req) => {
             await sendMessage(config, phone, reply);
             continue;
           }
->>>>>>> d40740467ebe81de75e4e2bb8e545d10e44d55ab
+
+          // Debounce: wait 3s and collect any follow-up messages
+          const { text: combinedText, isLatest } = await collectBufferedMessages(supabase, conversationId, messageText, messageId);
+          if (!isLatest) {
+            console.log("Meta: message not latest, skipping (debounced). ID:", messageId);
+            continue;
+          }
+          const finalMessageText = combinedText || messageText;
 
           // Post-order shortcut
-          const postOrderResult = await isPostOrderFollowUp(supabase, normalized, messageText);
+          const postOrderResult = await isPostOrderFollowUp(supabase, normalized, finalMessageText);
           if (postOrderResult === "rating") {
             const reply = "Obrigado pela avaliação! ⭐ Sua opinião é muito importante para nós. Até a próxima! 😊";
             await saveMessage(supabase, conversationId, "assistant", reply, { source: "meta-webhook", rating_response: true });
@@ -184,7 +212,7 @@ serve(async (req) => {
           }
 
           // Build AI prompt
-          const negHint = buildNegotiationHint(history, config, messageText);
+          const negHint = buildNegotiationHint(history, config, finalMessageText);
           const systemPrompt = buildSystemPrompt(products, cliente, recentOrders, normalized, config, bh.isOffHours, bh.horarioInfo, orderStatus, negHint, { isSunday: bh.isSunday, waterDeliveryAllowed: bh.waterDeliveryAllowed }, history, { entrega: bh.gasDoPovoEntrega ?? false, taxa: bh.gasDoPovoTaxa ?? 15 }, contact);
 
           let reply: string;
@@ -192,7 +220,7 @@ serve(async (req) => {
             reply = await callAI([
               { role: "system", content: systemPrompt },
               ...history,
-              { role: "user", content: messageText },
+              { role: "user", content: finalMessageText },
             ]);
           } catch (e: any) {
             const fallback = e.message === "RATE_LIMIT"

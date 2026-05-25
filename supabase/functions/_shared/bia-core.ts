@@ -360,27 +360,36 @@ export async function findCliente(supabase: any, phone: string, senderName?: str
 }
 
 // ========== MESSAGE DEBOUNCE ==========
-export async function collectBufferedMessages(supabase: any, conversationId: string, currentText: string, delayMs = 3000): Promise<string> {
+export async function collectBufferedMessages(supabase: any, conversationId: string, currentText: string, currentMessageId: string, delayMs = 3000): Promise<{ text: string; isLatest: boolean }> {
   // Wait for more messages to arrive
   await new Promise(resolve => setTimeout(resolve, delayMs));
 
-  // Fetch all user messages from the last 5 seconds that haven't been processed
-  const fiveSecsAgo = new Date(Date.now() - 5000).toISOString();
+  // Fetch all user messages from the last 5 seconds
+  const fiveSecsAgo = new Date(Date.now() - 6000).toISOString();
   const { data: recentMsgs } = await supabase.from("ai_mensagens")
-    .select("content, created_at")
+    .select("content, created_at, metadata")
     .eq("conversa_id", conversationId)
     .eq("role", "user")
     .gte("created_at", fiveSecsAgo)
     .order("created_at", { ascending: true });
 
-  if (recentMsgs && recentMsgs.length > 1) {
-    // Combine all recent messages
-    const combined = recentMsgs.map((m: any) => m.content).join("\n");
-    console.log("Debounce: combined", recentMsgs.length, "messages:", combined.substring(0, 100));
-    return combined;
+  if (recentMsgs && recentMsgs.length > 0) {
+    // Check if the CURRENT message is the LAST one in the window
+    const lastMsg = recentMsgs[recentMsgs.length - 1];
+    const isLatest = lastMsg.metadata?.message_id === currentMessageId;
+
+    if (recentMsgs.length > 1) {
+      const combined = recentMsgs.map((m: any) => m.content).join("\n");
+      if (isLatest) {
+        console.log("Debounce: combined", recentMsgs.length, "messages.");
+      }
+      return { text: combined, isLatest };
+    }
+    
+    return { text: currentText, isLatest };
   }
 
-  return currentText;
+  return { text: currentText, isLatest: true };
 }
 
 // ========== RECENT ORDERS ==========
@@ -800,10 +809,6 @@ export async function upsertConversation(supabase: any, conversationId: string, 
     updated_at: new Date().toISOString(),
   };
   if (telefone) payload.telefone = telefone;
-<<<<<<< HEAD
-
-=======
->>>>>>> d40740467ebe81de75e4e2bb8e545d10e44d55ab
   await supabase.from("ai_conversas").upsert(payload, { onConflict: "id" });
 }
 
@@ -880,23 +885,72 @@ export function detectDissatisfaction(messageText: string): boolean {
 
 // ========== AI CALL ==========
 export async function callAI(messages: any[]): Promise<string> {
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "google/gemini-3-flash-preview", messages }),
-  });
-
-  if (!resp.ok) {
-    if (resp.status === 429) throw new Error("RATE_LIMIT");
-    if (resp.status === 402) throw new Error("CREDITS_EXHAUSTED");
-    throw new Error(`AI_ERROR_${resp.status}`);
+  if (!OPENAI_API_KEY && !LOVABLE_API_KEY && !GEMINI_API_KEY) {
+    throw new Error("AI_CONFIG_MISSING: Nenhuma chave de IA configurada (GEMINI, OPENAI ou LOVABLE).");
   }
 
-  const result = await resp.json();
-  return result.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem.";
+  // Prioridade 1: Gemini Direto (Google AI Studio)
+  if (GEMINI_API_KEY) {
+    const systemInstruction = messages.find(m => m.role === "system")?.content;
+    const history = messages.filter(m => m.role !== "system").map(m => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }]
+    }));
+
+    const payload: any = { contents: history };
+    if (systemInstruction) {
+      payload.system_instruction = { parts: [{ text: systemInstruction }] };
+    }
+
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (resp.ok) {
+      const result = await resp.json();
+      return result.candidates?.[0]?.content?.parts?.[0]?.text || "Desculpe, tive um problema ao processar via Gemini.";
+    }
+    console.error("Gemini direct API error:", await resp.text());
+  }
+
+  // Prioridade 2: OpenAI
+  if (OPENAI_API_KEY) {
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "gpt-4o-mini", messages }),
+    });
+    if (resp.ok) {
+      const result = await resp.json();
+      return result.choices?.[0]?.message?.content || "Desculpe, tive um problema ao processar via OpenAI.";
+    }
+  }
+
+  // Prioridade 3: Lovable Gateway
+  if (LOVABLE_API_KEY) {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "google/gemini-2.0-flash-exp", messages }),
+    });
+
+    if (!resp.ok) {
+      if (resp.status === 429) throw new Error("RATE_LIMIT");
+      if (resp.status === 402) throw new Error("CREDITS_EXHAUSTED");
+      throw new Error(`AI_ERROR_${resp.status}`);
+    }
+
+    const result = await resp.json();
+    return result.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua mensagem pelo gateway.";
+  }
+
+  return "Erro de configuração de IA.";
 }
 
 // ========== AUDIO TRANSCRIPTION ==========
@@ -947,22 +1001,52 @@ export async function downloadAudio(config: BiaConfig, mediaUrl: string): Promis
 }
 
 export async function transcribeAudio(audioBase64: string, mimeType: string): Promise<string | null> {
+  const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) return null;
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
   try {
-    // Use Gemini with inline audio data for transcription
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // 1. Tenta via Gemini Direto (Suporta áudio nativamente)
+    if (GEMINI_API_KEY) {
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: "Transcreva este áudio do WhatsApp da forma mais fiel possível." },
+              { inline_data: { mime_type: mimeType, data: audioBase64 } }
+            ]
+          }]
+        }),
+      });
+
+      if (resp.ok) {
+        const result = await resp.json();
+        return result.candidates?.[0]?.content?.parts?.[0]?.text || null;
+      }
+    }
+
+    const token = LOVABLE_API_KEY || OPENAI_API_KEY;
+    if (!token) return null;
+
+    const baseUrl = LOVABLE_API_KEY 
+      ? "https://ai.gateway.lovable.dev/v1/chat/completions"
+      : "https://api.openai.com/v1/chat/completions";
+
+    const model = LOVABLE_API_KEY ? "google/gemini-2.0-flash-exp" : "gpt-4o-audio-preview";
+
+    const resp = await fetch(baseUrl, {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: model,
         messages: [
           {
             role: "user",
             content: [
               {
-                type: "image_url",
+                type: "image_url", // Lovable Gateway uses this schema for any binary (audio/image)
                 image_url: { url: `data:${mimeType};base64,${audioBase64}` },
               },
               {

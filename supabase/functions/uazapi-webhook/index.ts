@@ -138,10 +138,6 @@ serve(async (req) => {
     ]);
 
     // Save inbound
-<<<<<<< HEAD
-    await saveMessage(supabase, conversationId, "user", messageText, { source: "uazapi-webhook", message_id: messageKey });
-    await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
-=======
     await saveMessage(supabase, conversationId, "user", messageText, { source: "uazapi-webhook", message_id: messageKey, tipo_contato: contact.tipo, contato_id: contact.id || null });
     await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
 
@@ -154,9 +150,11 @@ serve(async (req) => {
     }
 
     // Debounce: wait 3s and collect any follow-up messages
-    const combinedText = await collectBufferedMessages(supabase, conversationId, messageText);
+    const { text: combinedText, isLatest } = await collectBufferedMessages(supabase, conversationId, messageText, messageKey);
+    if (!isLatest) {
+      return OK({ ok: true, skipped: "debounce_waiting" });
+    }
     const finalMessageText = combinedText || messageText;
->>>>>>> d40740467ebe81de75e4e2bb8e545d10e44d55ab
 
     // Post-order shortcut
     const postOrderResult = await isPostOrderFollowUp(supabase, normalized, finalMessageText);
