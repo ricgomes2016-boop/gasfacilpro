@@ -28,6 +28,7 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { imprimirFundepar, type CarimboTamanho } from "@/services/orcamentoFundeparPdfService";
+import { imprimirOrcamentoPadrao } from "@/services/orcamentoPadraoPdfService";
 import { Switch } from "@/components/ui/switch";
 import { useAssinaturaDigital } from "@/hooks/useAssinaturaDigital";
 import { ShieldCheck, ShieldAlert } from "lucide-react";
@@ -503,6 +504,47 @@ export default function Orcamentos() {
     });
   };
 
+  const imprimirPadrao = async (orc: any, assinar = false) => {
+    const { data: its } = await supabase
+      .from("orcamento_itens")
+      .select("*")
+      .eq("orcamento_id", orc.id);
+    let cli: any = null;
+    if (orc.cliente_id) {
+      const { data } = await supabase
+        .from("clientes")
+        .select("nome, cnpj, telefone, endereco, numero, bairro, cidade")
+        .eq("id", orc.cliente_id)
+        .maybeSingle();
+      cli = data;
+    }
+    const enderecoCli = cli
+      ? [cli.endereco, cli.numero, cli.bairro].filter(Boolean).join(", ")
+      : "";
+    await imprimirOrcamentoPadrao({
+      numero: orc.numero,
+      data_emissao: orc.data_emissao || orc.created_at,
+      validade: orc.validade,
+      cliente_nome: orc.cliente_nome || cli?.nome,
+      cliente_telefone: cli?.telefone,
+      cliente_endereco: enderecoCli,
+      cliente_cidade: cli?.cidade,
+      cliente_cnpj: cli?.cnpj,
+      itens: (its || []).map((i: any) => ({
+        descricao: i.descricao,
+        quantidade: Number(i.quantidade),
+        preco_unitario: Number(i.preco_unitario),
+        subtotal: Number(i.subtotal),
+      })),
+      desconto: Number(orc.desconto || 0),
+      valor_total: Number(orc.valor_total || 0),
+      observacoes: orc.observacoes,
+      empresa_id: empresa?.id,
+      unidade_id: orc.unidade_id || unidadeAtual?.id,
+      assinar,
+    });
+  };
+
   const pendentes = orcamentos.filter((o: any) => o.status === "pendente");
   const aprovados = orcamentos.filter((o: any) => o.status === "aprovado");
   const valorPendente = pendentes.reduce((s: number, o: any) => s + Number(o.valor_total || 0), 0);
@@ -708,9 +750,23 @@ export default function Orcamentos() {
                   <Textarea value={observacoes} onChange={(e) => setObservacoes(e.target.value)} className="mt-1.5" rows={2} />
                 </div>
 
-                <Button className="w-full gradient-primary text-primary-foreground shadow-lg gap-2" onClick={() => createMutation.mutate()} disabled={!clienteNome.trim() || !unidadeAtual || createMutation.isPending}>
-                  {createMutation.isPending ? "Salvando..." : (<><CheckCircle2 className="h-4 w-4" />Salvar Orçamento</>)}
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" className="gap-2" onClick={() => createMutation.mutate()} disabled={!clienteNome.trim() || !unidadeAtual || createMutation.isPending}>
+                    {createMutation.isPending ? "Salvando..." : (<><CheckCircle2 className="h-4 w-4" />Salvar</>)}
+                  </Button>
+                  <Button
+                    className="gradient-primary text-primary-foreground shadow-lg gap-2"
+                    disabled={!clienteNome.trim() || !unidadeAtual || createMutation.isPending}
+                    onClick={async () => {
+                      try {
+                        const orc: any = await createMutation.mutateAsync();
+                        if (orc) await imprimirPadrao(orc, assinatura.ativo);
+                      } catch {}
+                    }}
+                  >
+                    <Printer className="h-4 w-4" />Salvar e Imprimir
+                  </Button>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
@@ -1024,9 +1080,17 @@ export default function Orcamentos() {
                                 <Eye className="h-4 w-4" />
                               </Button>
                               {!isFundepar && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicar(orc)}>
-                                  <Copy className="h-4 w-4" />
-                                </Button>
+                                <>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Imprimir" onClick={() => imprimirPadrao(orc, false)}>
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Imprimir com Assinatura Digital" onClick={() => imprimirPadrao(orc, true)}>
+                                    <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => duplicar(orc)}>
+                                    <Copy className="h-4 w-4" />
+                                  </Button>
+                                </>
                               )}
                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { if (confirm("Excluir orçamento?")) deleteMutation.mutate(orc.id); }}>
                                 <Trash2 className="h-3.5 w-3.5 text-destructive" />
@@ -1084,10 +1148,19 @@ export default function Orcamentos() {
                 {selectedOrcamento.observacoes && (
                   <div className="text-sm rounded-lg bg-muted/50 p-3"><span className="text-xs uppercase tracking-wide text-muted-foreground">Observações</span><p className="mt-1">{selectedOrcamento.observacoes}</p></div>
                 )}
-                {(selectedOrcamento.tipo || "padrao") === "fundepar" && (
+                {(selectedOrcamento.tipo || "padrao") === "fundepar" ? (
                   <Button variant="outline" className="w-full gap-2" onClick={() => reimprimirFundepar(selectedOrcamento)}>
                     <Printer className="h-4 w-4" />Imprimir Fundepar
                   </Button>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" className="gap-2" onClick={() => imprimirPadrao(selectedOrcamento, false)}>
+                      <Printer className="h-4 w-4" />Imprimir
+                    </Button>
+                    <Button variant="outline" className="gap-2" onClick={() => imprimirPadrao(selectedOrcamento, true)}>
+                      <ShieldCheck className="h-4 w-4 text-emerald-600" />Imprimir Assinado
+                    </Button>
+                  </div>
                 )}
               </div>
             )}
