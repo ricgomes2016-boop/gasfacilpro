@@ -1134,10 +1134,19 @@ export default function Orcamentos() {
                 {selectedOrcamento.observacoes && (
                   <div className="text-sm rounded-lg bg-muted/50 p-3"><span className="text-xs uppercase tracking-wide text-muted-foreground">Observações</span><p className="mt-1">{selectedOrcamento.observacoes}</p></div>
                 )}
-                {(selectedOrcamento.tipo || "padrao") === "fundepar" && (
+                {(selectedOrcamento.tipo || "padrao") === "fundepar" ? (
                   <Button variant="outline" className="w-full gap-2" onClick={() => reimprimirFundepar(selectedOrcamento)}>
                     <Printer className="h-4 w-4" />Imprimir Fundepar
                   </Button>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" className="gap-2" onClick={() => imprimirPadrao(selectedOrcamento, false)}>
+                      <Printer className="h-4 w-4" />Imprimir
+                    </Button>
+                    <Button variant="outline" className="gap-2" onClick={() => imprimirPadrao(selectedOrcamento, true)}>
+                      <ShieldCheck className="h-4 w-4 text-emerald-600" />Imprimir Assinado
+                    </Button>
+                  </div>
                 )}
               </div>
             )}
