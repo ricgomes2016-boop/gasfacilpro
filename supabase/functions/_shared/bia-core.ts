@@ -994,10 +994,21 @@ export async function saveMessage(supabase: any, conversationId: string, role: s
 }
 
 export async function upsertConversation(supabase: any, conversationId: string, title: string, telefone?: string, unidadeId?: string | null) {
+  // Se já existe uma conversa com título genérico ("Cliente", "WhatsApp: Cliente", só dígitos), substituir pelo novo title
+  let finalTitle = title;
+  try {
+    const { data: existing } = await supabase.from("ai_conversas").select("titulo").eq("id", conversationId).maybeSingle();
+    const oldTitle = (existing?.titulo || "").trim();
+    const isOldGeneric = !oldTitle || /^(whatsapp:\s*)?(cliente(\s*whatsapp)?|unknown|\+?\d{8,})$/i.test(oldTitle);
+    const isNewGeneric = /^(whatsapp:\s*)?(cliente(\s*whatsapp)?|unknown|\+?\d{8,})$/i.test(title.trim());
+    // Mantém título atual se o novo for genérico e o antigo for melhor
+    if (!isOldGeneric && isNewGeneric) finalTitle = oldTitle;
+  } catch {}
+
   const payload: any = {
     id: conversationId,
     user_id: "00000000-0000-0000-0000-000000000000",
-    titulo: title,
+    titulo: finalTitle,
     updated_at: new Date().toISOString(),
   };
   if (telefone) payload.telefone = telefone;
