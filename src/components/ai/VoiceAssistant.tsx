@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Mic, MicOff, Volume2, VolumeX, X, Loader2 } from "lucide-react";
@@ -15,6 +16,7 @@ interface VoiceAssistantProps {
 }
 
 export function VoiceAssistant({ userName = "Gestor" }: VoiceAssistantProps) {
+  const navigate = useNavigate();
   const { unidadeAtual } = useUnidade();
   const [listening, setListening] = useState(false);
   const [speaking, setSpeaking] = useState(false);
@@ -79,6 +81,41 @@ export function VoiceAssistant({ userName = "Gestor" }: VoiceAssistantProps) {
   const sendToAI = useCallback(async (text: string) => {
     setProcessing(true);
     setResponse("");
+
+    // ETAPA 1: Tentar interpretar como comando de venda / consulta de fiado
+    try {
+      const { data: parsed, error: parseErr } = await supabase.functions.invoke("parse-sales-command", {
+        body: { comando: text, unidade_id: unidadeAtual?.id || null },
+      });
+
+      if (!parseErr && parsed) {
+        // Consulta de fiado: fala a mensagem e encerra
+        if (parsed.tipo === "consulta_fiado" && parsed.mensagem) {
+          setResponse(parsed.mensagem);
+          speak(parsed.mensagem);
+          setProcessing(false);
+          return;
+        }
+
+        // Venda detectada: navega para Nova Venda pré-preenchida
+        if (Array.isArray(parsed.itens) && parsed.itens.length > 0) {
+          try {
+            sessionStorage.setItem("nova_venda_voz_payload", JSON.stringify(parsed));
+          } catch {}
+          const msg = `Abrindo nova venda${parsed.cliente_nome ? " para " + parsed.cliente_nome : ""}.`;
+          setResponse(msg);
+          speak(msg);
+          setProcessing(false);
+          setOpen(false);
+          navigate("/vendas/nova?fromVoice=1");
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("parse-sales-command falhou, caindo para chat:", e);
+    }
+
+    // ETAPA 2: Cai no fluxo de chat genérico
 
     try {
       const resp = await fetch(CHAT_URL, {
@@ -146,7 +183,7 @@ export function VoiceAssistant({ userName = "Gestor" }: VoiceAssistantProps) {
     } finally {
       setProcessing(false);
     }
-  }, [unidadeAtual?.id, speak]);
+  }, [unidadeAtual?.id, speak, navigate]);
 
   const startListening = useCallback(() => {
     if (!isSupported) {

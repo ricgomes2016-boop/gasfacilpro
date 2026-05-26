@@ -112,20 +112,24 @@ serve(async (req) => {
     }
 
     // ETAPA 1: Extrair pistas + detectar intenção (venda OU consulta de fiado/notinhas)
-    const extractPrompt = `Você analisa um comando do operador em português. Retorne APENAS JSON válido:
+    const extractPrompt = `Você analisa um comando do operador em português falado/digitado. Retorne APENAS JSON válido:
 {
   "intencao": "venda" ou "consulta_fiado" (use "consulta_fiado" quando o operador pergunta sobre fiado, notinhas, débito, dívida, conta, o que cliente deve, quanto deve, o que tem em aberto, etc.),
   "nome": "primeiro nome ou nome completo do cliente, se mencionado, senão null",
   "telefone": "apenas dígitos do telefone, se mencionado, senão null",
   "endereco_rua": "nome da rua/avenida sem número, senão null",
-  "numero": "apenas o número do endereço, senão null",
-  "bairro": "nome do bairro, se mencionado, senão null"
+  "numero": "apenas o número do endereço (string só com dígitos), senão null",
+  "complemento": "apto, bloco, casa, fundos, etc, senão null",
+  "bairro": "nome do bairro, se mencionado, senão null",
+  "valor_informado": "número decimal quando o operador disser 'no valor de R$ X', 'por X reais', 'cobrei X', 'fica X' — sem símbolo, use ponto decimal (ex: 125 ou 125.50). null se não mencionado",
+  "forma_pagamento_bruta": "texto livre da forma de pagamento se mencionado: cartão, crédito, débito, pix, dinheiro, fiado, etc. null se não mencionado"
 }
 Exemplos:
-- "lança um P13 pra Maria da Rua das Flores" → intencao: "venda"
+- "lança um P13 pra Maria da Rua das Flores 220, cartão, 125 reais" → intencao: "venda", endereco_rua: "Rua das Flores", numero: "220", valor_informado: 125, forma_pagamento_bruta: "cartão"
+- "manda um gás na Aparecido Cassiano 115 apto 2, no débito, fica 120" → endereco_rua: "Aparecido Cassiano", numero: "115", complemento: "apto 2", forma_pagamento_bruta: "débito", valor_informado: 120
 - "como tá o fiado da Maria?" → intencao: "consulta_fiado"
 - "quanto o João deve?" → intencao: "consulta_fiado"
-- "tem notinha em aberto da Ana?" → intencao: "consulta_fiado"
+SEMPRE capture o número do endereço, mesmo grudado na rua ("Rua X 115", "Rua X, 115", "Rua X número 115").
 Não invente dados. Use null quando incerto.`;
 
     const cluesContent = await callAI(extractPrompt, comando, apiKey, 0);
@@ -238,6 +242,9 @@ Não invente dados. Use null quando incerto.`;
     // ETAPA 3: IA escolhe o cliente correto e monta a venda
     const systemPrompt = `Você é um assistente de vendas de uma distribuidora de gás. Interprete o comando do usuário e retorne JSON estruturado para lançar a venda.
 
+PISTAS JÁ EXTRAÍDAS DO COMANDO (use como referência):
+${JSON.stringify(clues, null, 2)}
+
 CANDIDATOS DE CLIENTE (já filtrados por similaridade de nome/telefone/endereço):
 ${candidatosList}
 
@@ -247,11 +254,20 @@ ${produtosList}
 REGRAS CRÍTICAS:
 1. SEMPRE prefira reutilizar um cliente da lista de candidatos. Se houver candidato cujo NOME e/ou ENDEREÇO bate com o comando, use o id dele em "cliente_id". NÃO crie cliente novo nesse caso.
 2. Se NENHUM candidato bater de forma plausível, retorne "cliente_id": null e preencha os campos de endereço com base no comando.
-3. Para identificar o produto: "gás", "botijão", "P13" → procure o produto correspondente. "1 gás" significa quantidade 1.
+3. Para identificar o produto: "gás", "botijão", "P13" → procure o produto correspondente (geralmente "Gás P13"). "1 gás" significa quantidade 1. Use sempre o produto cheio (não vazio).
 4. Quantidade padrão = 1 se não especificada.
-5. Forma de pagamento: dinheiro|pix|cartao_credito|cartao_debito|fiado. "crédito"=cartao_credito, "débito"=cartao_debito. null se não mencionado.
+5. Forma de pagamento — MAPEAMENTO OBRIGATÓRIO:
+   - "cartão" sozinho (sem qualificador) → "cartao_credito"
+   - "crédito", "no crédito", "cartão de crédito" → "cartao_credito"
+   - "débito", "no débito", "cartão de débito" → "cartao_debito"
+   - "pix" → "pix"
+   - "dinheiro", "à vista" → "dinheiro"
+   - "fiado", "anota", "depois pago" → "fiado"
+   - Use null APENAS se nenhuma forma foi mencionada.
 6. canal_venda: telefone|whatsapp|balcao|portaria. Padrão "telefone".
-7. Comandos por voz podem ter erros — interprete da melhor forma.
+7. PREÇO: Se as pistas trazem "valor_informado" preenchido, use esse valor como preco_unitario do(s) item(ns) (divida pelo total de unidades se houver múltiplas quantidades). Caso contrário, use o preço cadastrado do produto.
+8. Comandos por voz podem ter erros de transcrição — interprete da melhor forma.
+9. Preencha "complemento" se as pistas trouxerem.
 
 Retorne APENAS JSON neste formato:
 {
@@ -264,7 +280,7 @@ Retorne APENAS JSON neste formato:
   "bairro": "ou null",
   "cep": "ou null",
   "cidade": "ou null",
-  "itens": [{ "produto_id": "uuid", "nome": "nome", "quantidade": 1, "preco_unitario": 100 }],
+  "itens": [{ "produto_id": "uuid", "nome": "nome", "quantidade": 1, "preco_unitario": 125 }],
   "forma_pagamento": "dinheiro|pix|cartao_credito|cartao_debito|fiado|null",
   "canal_venda": "telefone|whatsapp|balcao|portaria",
   "observacoes": "info extra do comando ou string vazia"
@@ -279,6 +295,30 @@ Retorne APENAS JSON neste formato:
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Reforço de segurança: se valor_informado existir e a IA não aplicou, sobrescreve preco_unitario
+    const valorInformado = Number(clues.valor_informado);
+    if (!Number.isNaN(valorInformado) && valorInformado > 0 && Array.isArray(parsed.itens) && parsed.itens.length > 0) {
+      const totalQtd = parsed.itens.reduce((s: number, i: any) => s + (Number(i.quantidade) || 1), 0);
+      const precoUnit = valorInformado / Math.max(totalQtd, 1);
+      parsed.itens = parsed.itens.map((i: any) => ({ ...i, preco_unitario: precoUnit }));
+      parsed.preco_manual = true;
+    }
+
+    // Reforço: mapeia forma_pagamento_bruta se IA deixou null
+    if (!parsed.forma_pagamento && clues.forma_pagamento_bruta) {
+      const fp = String(clues.forma_pagamento_bruta).toLowerCase();
+      if (fp.includes("débito") || fp.includes("debito")) parsed.forma_pagamento = "cartao_debito";
+      else if (fp.includes("crédito") || fp.includes("credito")) parsed.forma_pagamento = "cartao_credito";
+      else if (fp.includes("cartão") || fp.includes("cartao")) parsed.forma_pagamento = "cartao_credito";
+      else if (fp.includes("pix")) parsed.forma_pagamento = "pix";
+      else if (fp.includes("dinheiro") || fp.includes("vista")) parsed.forma_pagamento = "dinheiro";
+      else if (fp.includes("fiado") || fp.includes("anota") || fp.includes("depois")) parsed.forma_pagamento = "fiado";
+    }
+
+    // Reforço: complemento das pistas se IA não trouxe
+    if (!parsed.complemento && clues.complemento) parsed.complemento = clues.complemento;
+    if (!parsed.numero && clues.numero) parsed.numero = clues.numero;
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
