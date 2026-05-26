@@ -112,20 +112,24 @@ serve(async (req) => {
     }
 
     // ETAPA 1: Extrair pistas + detectar intenção (venda OU consulta de fiado/notinhas)
-    const extractPrompt = `Você analisa um comando do operador em português. Retorne APENAS JSON válido:
+    const extractPrompt = `Você analisa um comando do operador em português falado/digitado. Retorne APENAS JSON válido:
 {
   "intencao": "venda" ou "consulta_fiado" (use "consulta_fiado" quando o operador pergunta sobre fiado, notinhas, débito, dívida, conta, o que cliente deve, quanto deve, o que tem em aberto, etc.),
   "nome": "primeiro nome ou nome completo do cliente, se mencionado, senão null",
   "telefone": "apenas dígitos do telefone, se mencionado, senão null",
   "endereco_rua": "nome da rua/avenida sem número, senão null",
-  "numero": "apenas o número do endereço, senão null",
-  "bairro": "nome do bairro, se mencionado, senão null"
+  "numero": "apenas o número do endereço (string só com dígitos), senão null",
+  "complemento": "apto, bloco, casa, fundos, etc, senão null",
+  "bairro": "nome do bairro, se mencionado, senão null",
+  "valor_informado": "número decimal quando o operador disser 'no valor de R$ X', 'por X reais', 'cobrei X', 'fica X' — sem símbolo, use ponto decimal (ex: 125 ou 125.50). null se não mencionado",
+  "forma_pagamento_bruta": "texto livre da forma de pagamento se mencionado: cartão, crédito, débito, pix, dinheiro, fiado, etc. null se não mencionado"
 }
 Exemplos:
-- "lança um P13 pra Maria da Rua das Flores" → intencao: "venda"
+- "lança um P13 pra Maria da Rua das Flores 220, cartão, 125 reais" → intencao: "venda", endereco_rua: "Rua das Flores", numero: "220", valor_informado: 125, forma_pagamento_bruta: "cartão"
+- "manda um gás na Aparecido Cassiano 115 apto 2, no débito, fica 120" → endereco_rua: "Aparecido Cassiano", numero: "115", complemento: "apto 2", forma_pagamento_bruta: "débito", valor_informado: 120
 - "como tá o fiado da Maria?" → intencao: "consulta_fiado"
 - "quanto o João deve?" → intencao: "consulta_fiado"
-- "tem notinha em aberto da Ana?" → intencao: "consulta_fiado"
+SEMPRE capture o número do endereço, mesmo grudado na rua ("Rua X 115", "Rua X, 115", "Rua X número 115").
 Não invente dados. Use null quando incerto.`;
 
     const cluesContent = await callAI(extractPrompt, comando, apiKey, 0);
