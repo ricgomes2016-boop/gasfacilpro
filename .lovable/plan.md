@@ -1,67 +1,40 @@
-## Objetivo
+## Causa raiz
 
-Permitir que comandos de voz como "lança um gás na Rua Aparecido Cassiano, 115, cartão, R$ 125" funcionem tanto no **Dashboard** quanto na **Nova Venda**, criando a venda corretamente.
+O comando "lança um gás na Rua Aparecido Cassiano, 115, cartão, R$ 125" **não tem nome de cliente**. Hoje, em `NovaVenda.applyParsedSale`:
 
----
+- Sem `cliente_id` **e** sem `cliente_nome`, o bloco que chama `setCustomer(...)` é totalmente pulado → endereço falado é jogado fora.
+- O wizard mostra **apenas uma etapa por vez** e começa em `activeStep = "cliente"`. Como nada foi setado no cliente, a tela parece "em branco" mesmo com itens/pagamento populados nos bastidores.
+- O toast "Venda pré-preenchida por voz" aparece porque `applyParsedSale` rodou — mas visualmente o usuário não vê itens/pagamento (estão em outra aba do stepper).
 
 ## Mudanças
 
-### 1. `supabase/functions/parse-sales-command/index.ts` — melhorar interpretação
+### 1. `src/pages/vendas/NovaVenda.tsx` — `applyParsedSale`
 
-**Etapa 1 (extração de pistas)** — adicionar campos:
-- `complemento` (apto, bloco, fundos, etc.)
-- `valor_informado` (número decimal quando o operador disser "no valor de R$ X", "por X reais", "cobrei X")
-- `forma_pagamento_bruta` (texto livre: "cartão", "pix", "fiado", "dinheiro", "crédito", "débito")
-- Reforçar a regra de capturar `numero` mesmo quando vem grudado na rua ("Rua X, 115" / "Rua X número 115" / "Rua X, 115 - apto 2").
+- Adicionar um **fallback** quando não há `cliente_id` nem `cliente_nome`: se vier qualquer dado de endereço/telefone (`data.endereco`, `data.numero`, `data.complemento`, `data.bairro`, `data.cliente_telefone`, `data.observacoes`), preencher `setCustomer({...initialCustomerData, nome: "", telefone, endereco, numero, complemento, bairro, cep, observacao})`. Assim a aba Cliente sai do vazio mostrando o endereço falado.
+- **Depois** de aplicar itens/pagamento/cliente, calcular o "estágio mais avançado preenchido" e mover o stepper:
+  - tem `pagamentos` com valor → `setActiveStep("confirmar")`
+  - senão tem `itens` → `setActiveStep("pagamento")`
+  - senão tem endereço/cliente → `setActiveStep("produtos")`
+  - Faz isso só quando vier do fluxo de voz (passar flag `fromVoice` no chamador).
+- Trocar o toast final para algo mais útil: "Venda pré-preenchida — confirme os dados antes de salvar."
 
-**Etapa 3 (montagem da venda)** — atualizar prompt e schema:
-- Mapear `forma_pagamento`:
-  - "cartão" sem qualificador → `cartao_credito` (padrão mais comum)
-  - "crédito" → `cartao_credito`
-  - "débito" → `cartao_debito`
-  - "pix", "dinheiro", "fiado" → idem
-- Se `valor_informado` existir, retornar `preco_unitario` = valor_informado / quantidade (e marcar `preco_manual: true` no JSON de saída).
-- Incluir `complemento` no JSON final.
+### 2. `src/pages/vendas/NovaVenda.tsx` — chamadores
 
-### 2. `src/pages/vendas/NovaVenda.tsx` — respeitar preço manual
+- `handleAiCommand` → `await applyParsedSale(data, { fromVoice: true })`.
+- `useEffect` do `?fromVoice=1` → `applyParsedSale(payload, { fromVoice: true })`.
 
-No `handleAiCommand` (linhas ~401-500), ao montar `itens` a partir de `data.itens`:
-- Se o item vier com `preco_unitario` definido pela IA, **usar esse valor** em vez de sobrescrever pelo `produto.preco` cadastrado.
-- Preencher `setCustomer(...)` também com `complemento: data.complemento` (já existe no destino, falta no source).
+### 3. `supabase/functions/parse-sales-command/index.ts` — pequeno reforço
 
-### 3. Dashboard — fazer o `VoiceAssistant` lançar venda
+- Garantir que o JSON final **sempre** inclua os campos de endereço quando vierem das pistas, mesmo sem nome de cliente (o prompt já tenta, mas reforçar: "Se o operador NÃO mencionou nome do cliente, retorne `cliente_nome: null` e `cliente_id: null`, mas mantenha `endereco`, `numero`, `complemento`, `bairro` preenchidos a partir do comando").
 
-Hoje (`src/components/ai/VoiceAssistant.tsx`) o `sendToAI` sempre vai para `ai-assistant`. Vamos adicionar **roteamento de intenção** antes:
+## Não muda
 
-- Antes do `fetch(CHAT_URL)`, chamar `supabase.functions.invoke("parse-sales-command", { body: { comando: text, unidade_id } })`.
-- Se a resposta tiver `itens` (intenção de venda detectada):
-  - Salvar o payload em `sessionStorage` com chave `nova_venda_voz_payload`.
-  - Navegar para `/vendas/nova?fromVoice=1` via `useNavigate`.
-  - Falar: "Abrindo nova venda com os dados…" e fechar o painel de voz.
-- Se a resposta for `tipo: "consulta_fiado"`, falar a `mensagem` retornada (sem ir para chat).
-- Em qualquer outro caso (erro 422, comando não é venda), cai no fluxo atual (`ai-assistant` chat).
+- `App.tsx`, rotas, RLS, contextos, brand themes, layout do wizard.
+- Fluxo de criação real do cliente (continua acontecendo só quando há nome).
+- `VoiceAssistant.tsx`, `ai-assistant`.
 
-### 4. `src/pages/vendas/NovaVenda.tsx` — auto-preenchimento ao chegar com `?fromVoice=1`
+## Validação manual
 
-No mount, ler `sessionStorage.getItem("nova_venda_voz_payload")`:
-- Se existir, executar o mesmo bloco que `handleAiCommand` já roda após obter `data` (popular customer, itens, forma de pagamento), e limpar o storage.
-- Não chamar a edge novamente — o payload já vem pronto.
-
----
-
-## Detalhes técnicos
-
-**Arquivos editados:**
-- `supabase/functions/parse-sales-command/index.ts` (prompt das duas etapas + schema de saída)
-- `src/pages/vendas/NovaVenda.tsx` (handleAiCommand respeita `preco_unitario`/`complemento`; novo `useEffect` para `?fromVoice=1`)
-- `src/components/ai/VoiceAssistant.tsx` (roteamento de intenção antes do chat)
-
-**Sem alterações em:**
-- `App.tsx`, rotas, RLS, tabelas, brand themes, layouts.
-- `ai-assistant` edge function (continua só para consultas/chat livre).
-
-**Validação manual após implementar:**
-1. Dashboard, microfone: "lança um gás na Rua Aparecido Cassiano 115, cartão, 125 reais" → deve abrir `/vendas/nova` já com endereço, item gás (preço R$ 125) e forma `cartao_credito`.
-2. Nova Venda, microfone: mesma frase → mesmo resultado, sem navegar.
-3. Dashboard, microfone: "como tá o fiado da Maria?" → fala a resposta (consulta_fiado).
-4. Dashboard, microfone: "qual filial vendeu mais essa semana?" → fluxo de chat normal continua.
+1. Mobile, Dashboard, microfone: "lança um gás na Rua Aparecido Cassiano 115, cartão, 125 reais" → abre `/vendas/nova`, aba **Confirmar** ativa, com endereço, item gás (R$ 125) e pagamento `cartao_credito` visíveis.
+2. Mesmo comando dentro de Nova Venda → idem, sem navegar.
+3. Comando com nome ("lança um gás pra Maria Rua X 10, pix, 120") → continua criando/reaproveitando cliente como antes.
