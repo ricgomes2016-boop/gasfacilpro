@@ -268,6 +268,7 @@ REGRAS CRÍTICAS:
 7. PREÇO: Se as pistas trazem "valor_informado" preenchido, use esse valor como preco_unitario do(s) item(ns) (divida pelo total de unidades se houver múltiplas quantidades). Caso contrário, use o preço cadastrado do produto.
 8. Comandos por voz podem ter erros de transcrição — interprete da melhor forma.
 9. Preencha "complemento" se as pistas trouxerem.
+10. Se o operador NÃO mencionou nome do cliente, retorne "cliente_id": null e "cliente_nome": null, MAS mantenha "endereco", "numero", "complemento", "bairro" preenchidos a partir do comando — não jogue fora o endereço só porque não há nome.
 
 Retorne APENAS JSON neste formato:
 {
