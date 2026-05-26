@@ -336,9 +336,12 @@ export default function PersonalizacaoVisual() {
                           setConfig((p) => ({ ...p, corPrimaria: preset.cor, darkMode: preset.dark }));
                           if ("brandThemeId" in preset) {
                             setBrandTheme(preset.brandThemeId as BrandThemeId);
-                          } else {
-                            setBrandTheme("gasfacil");
                           }
+                          // Para presets sem brandThemeId: NÃO forçar "gasfacil".
+                          // A classe .brand-theme-gasfacil sobrescreve os tokens
+                          // do preset (--primary, --sidebar-*), fazendo o tema
+                          // não aparecer em cards/menu. applyTheme já escreve
+                          // os tokens inline no <body> para vencer a classe.
                         }}
                       >
                         <div className="flex items-center gap-2 mb-1">
