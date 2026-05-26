@@ -548,7 +548,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       });
 
       if (error) throw error;
-      await applyParsedSale(data);
+      await applyParsedSale(data, { fromVoice: true });
       setAiCommand("");
     } catch (error: any) {
       console.error("Erro IA:", error);
