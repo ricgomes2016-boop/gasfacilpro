@@ -183,7 +183,7 @@ export function VoiceAssistant({ userName = "Gestor" }: VoiceAssistantProps) {
     } finally {
       setProcessing(false);
     }
-  }, [unidadeAtual?.id, speak]);
+  }, [unidadeAtual?.id, speak, navigate]);
 
   const startListening = useCallback(() => {
     if (!isSupported) {
