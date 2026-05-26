@@ -555,6 +555,32 @@ export const OVERRIDABLE_VARS = Array.from(
 );
 
 const PRESET_STYLE_ID = "preset-extra-css";
+const PRESET_VARS_STYLE_ID = "preset-vars-override";
+
+// Classes brand-theme-* que vivem em MainLayout/Sidebar e que, por herança
+// local, sobrescrevem os tokens do preset escolhido. Precisamos forçar as
+// variáveis também DENTRO dessas classes para o tema valer no menu/cards.
+const BRAND_THEME_SELECTORS = [
+  ".brand-theme-gasfacil",
+  ".brand-theme-saas",
+  ".brand-theme-pastel-dashboard",
+  ".brand-theme-signature",
+  ".brand-theme-gasmais",
+  ".brand-theme-executive",
+];
+
+function buildPresetVarsCss(presetId: string, overrides: Record<string, string>): string {
+  const decls = Object.entries(overrides)
+    .map(([k, v]) => `  ${k}: ${v};`)
+    .join("\n");
+  const rootBlock = `html[data-theme-preset="${presetId}"],
+html[data-theme-preset="${presetId}"] body {\n${decls}\n}`;
+  const scopedSelectors = BRAND_THEME_SELECTORS.map(
+    (sel) => `html[data-theme-preset="${presetId}"] ${sel}`
+  ).join(",\n");
+  const scopedBlock = `${scopedSelectors} {\n${decls}\n}`;
+  return `${rootBlock}\n${scopedBlock}`;
+}
 
 export function applyTheme(darkMode: boolean, corPrimaria: string, presetId?: string) {
   const root = document.documentElement;
@@ -565,7 +591,7 @@ export function applyTheme(darkMode: boolean, corPrimaria: string, presetId?: st
     root.classList.remove("dark");
   }
 
-  // Limpa overrides anteriores (root + body)
+  // Limpa overrides inline anteriores (root + body)
   OVERRIDABLE_VARS.forEach((v) => {
     root.style.removeProperty(v);
     body?.style.removeProperty(v);
@@ -578,28 +604,35 @@ export function applyTheme(darkMode: boolean, corPrimaria: string, presetId?: st
     root.removeAttribute("data-theme-preset");
   }
 
-  // Injeta/remove CSS extra do preset
-  let styleEl = document.getElementById(PRESET_STYLE_ID) as HTMLStyleElement | null;
+  // CSS extra (efeitos visuais avançados por preset)
+  let extraStyleEl = document.getElementById(PRESET_STYLE_ID) as HTMLStyleElement | null;
   const extraCss = presetId ? PRESET_EXTRA_CSS[presetId] : undefined;
   if (extraCss) {
-    if (!styleEl) {
-      styleEl = document.createElement("style");
-      styleEl.id = PRESET_STYLE_ID;
-      document.head.appendChild(styleEl);
+    if (!extraStyleEl) {
+      extraStyleEl = document.createElement("style");
+      extraStyleEl.id = PRESET_STYLE_ID;
+      document.head.appendChild(extraStyleEl);
     }
-    styleEl.textContent = extraCss;
-  } else if (styleEl) {
-    styleEl.textContent = "";
+    extraStyleEl.textContent = extraCss;
+  } else if (extraStyleEl) {
+    extraStyleEl.textContent = "";
   }
 
-  // Aplica overrides do preset especial (se houver)
-  // IMPORTANTE: aplicamos também no <body> porque as classes .brand-theme-*
-  // vivem no body e redefinem essas mesmas variáveis (--primary, --sidebar-*,
-  // --card etc.). CSS variable definida na própria classe do body vence o
-  // inline do <html> por herança — então precisamos escrever inline no body
-  // para o tema selecionado prevalecer em cards, sidebar, header e popovers.
+  // Stylesheet que força as variáveis do preset DENTRO das classes
+  // .brand-theme-* (Sidebar/MainLayout). Sem isso, o sidebar herda os tokens
+  // da própria classe brand-theme aplicada nele e o preset não aparece.
+  let varsStyleEl = document.getElementById(PRESET_VARS_STYLE_ID) as HTMLStyleElement | null;
   const overrides = presetId ? PRESET_THEME_OVERRIDES[presetId] : undefined;
-  if (overrides) {
+
+  if (presetId && overrides) {
+    if (!varsStyleEl) {
+      varsStyleEl = document.createElement("style");
+      varsStyleEl.id = PRESET_VARS_STYLE_ID;
+      document.head.appendChild(varsStyleEl);
+    }
+    varsStyleEl.textContent = buildPresetVarsCss(presetId, overrides);
+
+    // Mantém inline em root+body por redundância
     Object.entries(overrides).forEach(([k, v]) => {
       root.style.setProperty(k, v);
       body?.style.setProperty(k, v);
@@ -607,9 +640,17 @@ export function applyTheme(darkMode: boolean, corPrimaria: string, presetId?: st
     return;
   }
 
-  // Caso padrao: so ajusta a cor primaria
-  root.style.setProperty("--primary", corPrimaria);
-  root.style.setProperty("--sidebar-primary", corPrimaria);
-  root.style.setProperty("--ring", corPrimaria);
-  root.style.setProperty("--sidebar-ring", corPrimaria);
+  // Sem preset: limpa override e aplica apenas a cor primária
+  if (varsStyleEl) varsStyleEl.textContent = "";
+
+  const primaryVars: Record<string, string> = {
+    "--primary": corPrimaria,
+    "--sidebar-primary": corPrimaria,
+    "--ring": corPrimaria,
+    "--sidebar-ring": corPrimaria,
+  };
+  Object.entries(primaryVars).forEach(([k, v]) => {
+    root.style.setProperty(k, v);
+    body?.style.setProperty(k, v);
+  });
 }
