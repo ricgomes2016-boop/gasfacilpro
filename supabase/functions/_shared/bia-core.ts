@@ -261,7 +261,8 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
   if (!unidadeId) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: null };
 
   const { data: u } = await supabase.from("unidades")
-    .select("horario_abertura, horario_fechamento, empresa_id, cidade, estado, bairros_atendidos").eq("id", unidadeId).maybeSingle();
+    .select("horario_abertura, horario_fechamento, empresa_id, cidade, estado, bairros_atendidos, endereco, bairro, cep")
+    .eq("id", unidadeId).maybeSingle();
 
   let empresaNome: string | null = null;
   if (u?.empresa_id) {
@@ -274,6 +275,9 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
     estado: u?.estado || null,
     bairros: Array.isArray(u?.bairros_atendidos) ? u.bairros_atendidos : [],
     empresaNome,
+    endereco: u?.endereco || null,
+    bairro: u?.bairro || null,
+    cep: u?.cep || null,
   };
 
   if (!u?.empresa_id) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: u?.empresa_id || null, unidadeLocation };
@@ -697,7 +701,7 @@ export function buildSystemPrompt(
   history?: any[],
   gasDoPovoConfig?: { entrega: boolean; taxa: number },
   contactIdentity?: ContactIdentity,
-  unidadeLocation?: { cidade: string | null; estado: string | null; bairros: string[]; empresaNome?: string | null }
+  unidadeLocation?: { cidade: string | null; estado: string | null; bairros: string[]; empresaNome?: string | null; endereco?: string | null; bairro?: string | null; cep?: string | null }
 ): string {
   const agentName = config.agentName || "Bia";
   const empresaNome = unidadeLocation?.empresaNome || null;
@@ -804,12 +808,27 @@ REGRAS OBRIGATÓRIAS:
 - Se o endereço informado pelo cliente for claramente de outra cidade/estado, recuse a entrega com gentileza.`;
   }
 
+  // Endereço REAL da loja/unidade
+  let enderecoLojaSection = "";
+  if (unidadeLocation?.endereco) {
+    const parts = [
+      unidadeLocation.endereco,
+      unidadeLocation.bairro,
+      unidadeLocation.cep ? `CEP ${unidadeLocation.cep}` : null,
+    ].filter(Boolean);
+    const enderecoLoja = parts.join(", ");
+    enderecoLojaSection = `\n\n📍 ENDEREÇO DA LOJA (USE EXATAMENTE ESTE ENDEREÇO):
+- Endereço da loja: ${enderecoLoja}
+- Se o cliente perguntar o endereço/horário da loja para retirada, informe SOMENTE este endereço acima e o horário de funcionamento.
+- NUNCA invente outro endereço. NUNCA misture com endereços de outras filiais.`;
+  }
+
   return `Você é a ${agentName}, atendente virtual de vendas de gás ${empresaLabel}. Seu atendimento deve ser CALOROSO, HUMANO e NATURAL — como uma atendente simpática de verdade, não um robô.
 
 ⚠️ IDENTIFICAÇÃO (CRÍTICO — UMA ÚNICA VEZ):
 - Apresente-se ("Aqui é a ${agentName} da ${empresaNome || "loja"}") APENAS na PRIMEIRA mensagem da conversa, quando ainda não há histórico de mensagens suas.
 - Se o histórico já contém QUALQUER mensagem sua (assistant), NUNCA mais se apresente, NUNCA mais diga "Aqui é a ${agentName}", NUNCA mais cite o nome da loja em saudação. Apenas responda direto ao que o cliente disse.
-- Nas mensagens seguintes, fale como uma atendente que já está na conversa: respostas curtas, naturais, sem reabrir saudações.${areaAtendimentoSection}
+- Nas mensagens seguintes, fale como uma atendente que já está na conversa: respostas curtas, naturais, sem reabrir saudações.${areaAtendimentoSection}${enderecoLojaSection}
 
 PERSONALIDADE:
 - Seja ACOLHEDORA e SIMPÁTICA, use emojis com moderação (1-2 por mensagem)
