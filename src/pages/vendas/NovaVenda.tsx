@@ -398,7 +398,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     setIsListening(false);
   };
 
-  const applyParsedSale = async (data: any) => {
+  const applyParsedSale = async (data: any, opts: { fromVoice?: boolean } = {}) => {
     // Se for uma consulta de fiado/notinhas, mostra resultado e não cria venda
     if (data?.tipo === "consulta_fiado") {
       toast({
