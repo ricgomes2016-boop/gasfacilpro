@@ -138,3 +138,42 @@
 .brand-theme-executive {
   font-family: var(--brand-font);
 }
+
+/* =====================================================================
+   Normalização de cores hardcoded dentro do ERP (.system-surface).
+   Componentes públicos / app cliente / entregador / parceiro / contador
+   NÃO vivem em .system-surface — mantêm seu branding original.
+   :where() = especificidade 0 → qualquer ! ou estilo inline ainda vence.
+   ===================================================================== */
+.system-surface :where(.bg-white) {
+  background-color: hsl(var(--card));
+}
+.system-surface :where(
+  .bg-gray-50, .bg-gray-100,
+  .bg-slate-50, .bg-slate-100,
+  .bg-zinc-50, .bg-zinc-100,
+  .bg-neutral-50, .bg-neutral-100
+) {
+  background-color: hsl(var(--muted));
+}
+.system-surface :where(
+  .text-black,
+  .text-gray-900, .text-slate-900, .text-zinc-900, .text-neutral-900
+) {
+  color: hsl(var(--foreground));
+}
+.system-surface :where(
+  .text-gray-700, .text-gray-600,
+  .text-slate-700, .text-slate-600,
+  .text-zinc-700, .text-zinc-600
+) {
+  color: hsl(var(--muted-foreground));
+}
+.system-surface :where(
+  .border-gray-100, .border-gray-200,
+  .border-slate-100, .border-slate-200,
+  .border-zinc-100, .border-zinc-200,
+  .border-neutral-100, .border-neutral-200
+) {
+  border-color: hsl(var(--border));
+}
