@@ -558,14 +558,18 @@ const PRESET_STYLE_ID = "preset-extra-css";
 
 export function applyTheme(darkMode: boolean, corPrimaria: string, presetId?: string) {
   const root = document.documentElement;
+  const body = document.body;
   if (darkMode) {
     root.classList.add("dark");
   } else {
     root.classList.remove("dark");
   }
 
-  // Limpa overrides anteriores
-  OVERRIDABLE_VARS.forEach((v) => root.style.removeProperty(v));
+  // Limpa overrides anteriores (root + body)
+  OVERRIDABLE_VARS.forEach((v) => {
+    root.style.removeProperty(v);
+    body?.style.removeProperty(v);
+  });
 
   // Atributo do preset (para CSS escopado)
   if (presetId) {
@@ -589,9 +593,17 @@ export function applyTheme(darkMode: boolean, corPrimaria: string, presetId?: st
   }
 
   // Aplica overrides do preset especial (se houver)
+  // IMPORTANTE: aplicamos também no <body> porque as classes .brand-theme-*
+  // vivem no body e redefinem essas mesmas variáveis (--primary, --sidebar-*,
+  // --card etc.). CSS variable definida na própria classe do body vence o
+  // inline do <html> por herança — então precisamos escrever inline no body
+  // para o tema selecionado prevalecer em cards, sidebar, header e popovers.
   const overrides = presetId ? PRESET_THEME_OVERRIDES[presetId] : undefined;
   if (overrides) {
-    Object.entries(overrides).forEach(([k, v]) => root.style.setProperty(k, v));
+    Object.entries(overrides).forEach(([k, v]) => {
+      root.style.setProperty(k, v);
+      body?.style.setProperty(k, v);
+    });
     return;
   }
 
