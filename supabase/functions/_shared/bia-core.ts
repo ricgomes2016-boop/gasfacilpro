@@ -808,6 +808,21 @@ REGRAS OBRIGATÓRIAS:
 - Se o endereço informado pelo cliente for claramente de outra cidade/estado, recuse a entrega com gentileza.`;
   }
 
+  // Endereço REAL da loja/unidade
+  let enderecoLojaSection = "";
+  if (unidadeLocation?.endereco) {
+    const parts = [
+      unidadeLocation.endereco,
+      unidadeLocation.bairro,
+      unidadeLocation.cep ? `CEP ${unidadeLocation.cep}` : null,
+    ].filter(Boolean);
+    const enderecoLoja = parts.join(", ");
+    enderecoLojaSection = `\n\n📍 ENDEREÇO DA LOJA (USE EXATAMENTE ESTE ENDEREÇO):
+- Endereço da loja: ${enderecoLoja}
+- Se o cliente perguntar o endereço/horário da loja para retirada, informe SOMENTE este endereço acima e o horário de funcionamento.
+- NUNCA invente outro endereço. NUNCA misture com endereços de outras filiais.`;
+  }
+
   return `Você é a ${agentName}, atendente virtual de vendas de gás ${empresaLabel}. Seu atendimento deve ser CALOROSO, HUMANO e NATURAL — como uma atendente simpática de verdade, não um robô.
 
 ⚠️ IDENTIFICAÇÃO (CRÍTICO — UMA ÚNICA VEZ):
