@@ -16,6 +16,7 @@ interface VoiceAssistantProps {
 }
 
 export function VoiceAssistant({ userName = "Gestor" }: VoiceAssistantProps) {
+  const navigate = useNavigate();
   const { unidadeAtual } = useUnidade();
   const [listening, setListening] = useState(false);
   const [speaking, setSpeaking] = useState(false);
