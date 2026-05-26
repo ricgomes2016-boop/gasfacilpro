@@ -398,6 +398,121 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     setIsListening(false);
   };
 
+  const applyParsedSale = async (data: any) => {
+    // Se for uma consulta de fiado/notinhas, mostra resultado e não cria venda
+    if (data?.tipo === "consulta_fiado") {
+      toast({
+        title: "Consulta de fiado",
+        description: data.mensagem,
+        duration: 12000,
+      });
+      return;
+    }
+
+    if (data.cliente_id) {
+      const { data: clienteData } = await supabase
+        .from("clientes")
+        .select("*")
+        .eq("id", data.cliente_id)
+        .single();
+      if (clienteData) {
+        setCustomer({
+          id: clienteData.id,
+          nome: clienteData.nome,
+          telefone: clienteData.telefone || "",
+          endereco: data.endereco || clienteData.endereco || "",
+          numero: data.numero || "",
+          complemento: data.complemento || "",
+          bairro: data.bairro || clienteData.bairro || "",
+          cep: data.cep || clienteData.cep || "",
+          observacao: data.observacoes || "",
+        });
+      }
+    } else if (data.cliente_nome) {
+      const novoCliente: any = {
+        nome: data.cliente_nome,
+        endereco: data.endereco || null,
+        bairro: data.bairro || null,
+        cep: data.cep || null,
+        cidade: data.cidade || null,
+        telefone: data.cliente_telefone || null,
+        ativo: true,
+        empresa_id: empresa?.id || null,
+      };
+
+      const { data: clienteCriado, error: createError } = await supabase
+        .from("clientes")
+        .insert(novoCliente)
+        .select("id")
+        .single();
+
+      if (createError) {
+        setCustomer({
+          ...initialCustomerData,
+          nome: data.cliente_nome,
+          telefone: data.cliente_telefone || "",
+          endereco: data.endereco || "",
+          numero: data.numero || "",
+          complemento: data.complemento || "",
+          bairro: data.bairro || "",
+          cep: data.cep || "",
+          observacao: data.observacoes || "",
+        });
+      } else {
+        if (unidadeAtual?.id) {
+          await supabase.from("cliente_unidades").insert({
+            cliente_id: clienteCriado.id,
+            unidade_id: unidadeAtual.id,
+          });
+        }
+        setCustomer({
+          id: clienteCriado.id,
+          nome: data.cliente_nome,
+          telefone: data.cliente_telefone || "",
+          endereco: data.endereco || "",
+          numero: data.numero || "",
+          complemento: data.complemento || "",
+          bairro: data.bairro || "",
+          cep: data.cep || "",
+          observacao: data.observacoes || "",
+        });
+        toast({
+          title: "Novo cliente cadastrado!",
+          description: `${data.cliente_nome} foi adicionado automaticamente ao sistema.`,
+        });
+      }
+    }
+
+    if (data.itens && data.itens.length > 0) {
+      const newItens: ItemVenda[] = data.itens.map((item: any) => ({
+        id: crypto.randomUUID(),
+        produto_id: item.produto_id,
+        nome: item.nome,
+        quantidade: item.quantidade || 1,
+        preco_unitario: Number(item.preco_unitario) || 0,
+        total: (item.quantidade || 1) * (Number(item.preco_unitario) || 0),
+      }));
+      setItens(newItens);
+    }
+
+    if (data.forma_pagamento) {
+      const totalItens = (data.itens || []).reduce(
+        (a: number, i: any) => a + (i.quantidade || 1) * (Number(i.preco_unitario) || 0),
+        0
+      );
+      setPagamentos([{ id: crypto.randomUUID(), forma: data.forma_pagamento, valor: totalItens }]);
+    }
+
+    if (data.canal_venda) {
+      setCanalVenda(data.canal_venda);
+    }
+
+    toast({
+      title: "Venda pré-preenchida por voz",
+      description: `${data.cliente_nome || "Cliente"}${data.preco_manual ? " — preço informado por voz" : ""}.`,
+    });
+  };
+
   const handleAiCommand = async () => {
     if (!aiCommand.trim()) return;
     setAiLoading(true);
@@ -407,120 +522,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       });
 
       if (error) throw error;
-
-      // Se for uma consulta de fiado/notinhas, mostra resultado e não cria venda
-      if (data?.tipo === "consulta_fiado") {
-        toast({
-          title: "Consulta de fiado",
-          description: data.mensagem,
-          duration: 12000,
-        });
-        setAiCommand("");
-        setAiLoading(false);
-        return;
-      }
-
-      if (data.cliente_id) {
-        const { data: clienteData } = await supabase
-          .from("clientes")
-          .select("*")
-          .eq("id", data.cliente_id)
-          .single();
-        if (clienteData) {
-          setCustomer({
-            id: clienteData.id,
-            nome: clienteData.nome,
-            telefone: clienteData.telefone || "",
-            endereco: data.endereco || clienteData.endereco || "",
-            numero: data.numero || "",
-            complemento: data.complemento || "",
-            bairro: data.bairro || clienteData.bairro || "",
-            cep: data.cep || clienteData.cep || "",
-            observacao: data.observacoes || "",
-          });
-        }
-      } else if (data.cliente_nome) {
-        const novoCliente: any = {
-          nome: data.cliente_nome,
-          endereco: data.endereco || null,
-          bairro: data.bairro || null,
-          cep: data.cep || null,
-          cidade: data.cidade || null,
-          telefone: data.cliente_telefone || null,
-          ativo: true,
-          empresa_id: empresa?.id || null,
-        };
-
-        const { data: clienteCriado, error: createError } = await supabase
-          .from("clientes")
-          .insert(novoCliente)
-          .select("id")
-          .single();
-
-        if (createError) {
-          setCustomer({
-            ...initialCustomerData,
-            nome: data.cliente_nome,
-            telefone: data.cliente_telefone || "",
-            endereco: data.endereco || "",
-            numero: data.numero || "",
-            complemento: data.complemento || "",
-            bairro: data.bairro || "",
-            cep: data.cep || "",
-            observacao: data.observacoes || "",
-          });
-        } else {
-          // Associate new client with current unidade
-          if (unidadeAtual?.id) {
-            await supabase.from("cliente_unidades").insert({
-              cliente_id: clienteCriado.id,
-              unidade_id: unidadeAtual.id,
-            });
-          }
-          setCustomer({
-            id: clienteCriado.id,
-            nome: data.cliente_nome,
-            telefone: data.cliente_telefone || "",
-            endereco: data.endereco || "",
-            numero: data.numero || "",
-            complemento: data.complemento || "",
-            bairro: data.bairro || "",
-            cep: data.cep || "",
-            observacao: data.observacoes || "",
-          });
-          toast({
-            title: "Novo cliente cadastrado!",
-            description: `${data.cliente_nome} foi adicionado automaticamente ao sistema.`,
-          });
-        }
-      }
-
-      if (data.itens && data.itens.length > 0) {
-        const newItens: ItemVenda[] = data.itens.map((item: any) => ({
-          id: crypto.randomUUID(),
-          produto_id: item.produto_id,
-          nome: item.nome,
-          quantidade: item.quantidade || 1,
-          preco_unitario: item.preco_unitario,
-          total: (item.quantidade || 1) * item.preco_unitario,
-        }));
-        setItens(newItens);
-      }
-
-      if (data.forma_pagamento) {
-        const totalItens = (data.itens || []).reduce((a: number, i: any) => a + (i.quantidade || 1) * i.preco_unitario, 0);
-        setPagamentos([{ id: crypto.randomUUID(), forma: data.forma_pagamento, valor: totalItens }]);
-      }
-
-      if (data.canal_venda) {
-        setCanalVenda(data.canal_venda);
-      }
-
+      await applyParsedSale(data);
       setAiCommand("");
-      toast({
-        title: "Comando interpretado!",
-        description: `Venda pré-preenchida para ${data.cliente_nome || "cliente não identificado"}.`,
-      });
     } catch (error: any) {
       console.error("Erro IA:", error);
       toast({
@@ -532,6 +535,26 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       setAiLoading(false);
     }
   };
+
+  // Auto-aplicar payload de voz vindo do Dashboard (?fromVoice=1)
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("fromVoice") !== "1") return;
+    try {
+      const raw = sessionStorage.getItem("nova_venda_voz_payload");
+      if (!raw) return;
+      const payload = JSON.parse(raw);
+      sessionStorage.removeItem("nova_venda_voz_payload");
+      applyParsedSale(payload);
+    } catch (e) {
+      console.error("Erro ao aplicar payload de voz:", e);
+    } finally {
+      const next = new URLSearchParams(searchParams);
+      next.delete("fromVoice");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Photo OCR handler
   const compressImage = (file: File): Promise<string> => {
