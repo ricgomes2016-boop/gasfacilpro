@@ -1,40 +1,67 @@
-## Diagnóstico
+## Objetivo
 
-Encontrei a causa real de "só o pastel funciona":
+Permitir que comandos de voz como "lança um gás na Rua Aparecido Cassiano, 115, cartão, R$ 125" funcionem tanto no **Dashboard** quanto na **Nova Venda**, criando a venda corretamente.
 
-1. `applyTheme()` em `src/lib/themeUtils.ts` aplica os tokens (`--primary`, `--sidebar-*`, `--card`, etc.) como **inline style no `<html>`**.
-2. Mas em `PersonalizacaoVisual.tsx` (linhas 337–341), quando o preset escolhido **não tem** `brandThemeId`, chamamos `setBrandTheme("gasfacil")`. Isso coloca a classe `.brand-theme-gasfacil` no `<body>`.
-3. Em `src/styles/brand-themes.css`, `.brand-theme-gasfacil` redefine `--primary: 174 61% 47%`, `--sidebar-background: 174 61% 47%`, `--sidebar-gradient-from/to`, `--sidebar-accent*`, `--ring`, etc.
-4. Como CSS variables são herdadas, a regra **no `body`** vence sobre o inline do `<html>` para todo o conteúdo (cards, menu, header).
+---
 
-Resultado: só os presets que possuem `brandThemeId` próprio (`dashboard-pastel`, `saas-moderno`) funcionam; os demais (gas-clássico, eco-verde, premium-dark, energia, aurora-glass, onyx-prestige, forte-gas, forte-gas-light) caem no `brand-theme-gasfacil` e ficam com a cara teal padrão. O modo escuro continua mudando porque a classe `.dark` é aplicada à parte.
+## Mudanças
 
-## O que vou alterar
+### 1. `supabase/functions/parse-sales-command/index.ts` — melhorar interpretação
 
-### 1. `src/lib/themeUtils.ts` — `applyTheme()`
-- Após aplicar os overrides no `<html>`, **replicar** os mesmos `setProperty` no `document.body.style`. Inline no body vence a classe `.brand-theme-*` do próprio body.
-- Antes de aplicar, limpar `OVERRIDABLE_VARS` também do `document.body.style` (mesmo loop que já fazemos no root) para não acumular lixo de troca de tema.
-- Sem isso o modo "padrão" (sem preset) continua igual; só passamos a propagar tokens quando há preset.
+**Etapa 1 (extração de pistas)** — adicionar campos:
+- `complemento` (apto, bloco, fundos, etc.)
+- `valor_informado` (número decimal quando o operador disser "no valor de R$ X", "por X reais", "cobrei X")
+- `forma_pagamento_bruta` (texto livre: "cartão", "pix", "fiado", "dinheiro", "crédito", "débito")
+- Reforçar a regra de capturar `numero` mesmo quando vem grudado na rua ("Rua X, 115" / "Rua X número 115" / "Rua X, 115 - apto 2").
 
-### 2. `src/pages/config/PersonalizacaoVisual.tsx` (linhas 335–342)
-- Continuar chamando `setBrandTheme(preset.brandThemeId)` quando existir.
-- Para presets sem `brandThemeId`, **manter o brand theme atual** (não forçar `"gasfacil"`). Hoje forçar `gasfacil` é exatamente o que sobrescreve os tokens. Como agora o `applyTheme` escreve no body, a classe ainda fica, mas o inline do body vence — fica seguro.
-- Alternativa, se a classe atrapalhar fontes/logo: introduzir id sentinel `"none"` em `brandThemes.ts` (className vazia). Não vou fazer isso para evitar refactor; basta o passo do applyTheme.
+**Etapa 3 (montagem da venda)** — atualizar prompt e schema:
+- Mapear `forma_pagamento`:
+  - "cartão" sem qualificador → `cartao_credito` (padrão mais comum)
+  - "crédito" → `cartao_credito`
+  - "débito" → `cartao_debito`
+  - "pix", "dinheiro", "fiado" → idem
+- Se `valor_informado` existir, retornar `preco_unitario` = valor_informado / quantidade (e marcar `preco_manual: true` no JSON de saída).
+- Incluir `complemento` no JSON final.
 
-### 3. `src/components/layout/ThemeSync.tsx`
-- Nenhuma mudança lógica. Continua escolhendo o preset por `cor + dark` e chamando `applyTheme(..., preset.id)`. Como agora `applyTheme` propaga ao body, a sincronização entre rotas/recarregamentos passa a refletir o tema correto em cards e menu também.
+### 2. `src/pages/vendas/NovaVenda.tsx` — respeitar preço manual
 
-## Validação
+No `handleAiCommand` (linhas ~401-500), ao montar `itens` a partir de `data.itens`:
+- Se o item vier com `preco_unitario` definido pela IA, **usar esse valor** em vez de sobrescrever pelo `produto.preco` cadastrado.
+- Preencher `setCustomer(...)` também com `complemento: data.complemento` (já existe no destino, falta no source).
 
-1. Em `/config/personalizacao` clicar em cada um dos 10 temas e confirmar que **header, sidebar (gradiente + item ativo), cards, popovers e bordas** mudam imediatamente.
-2. Salvar, navegar para outra rota (ex.: `/dashboard`, `/financeiro`, `/estoque`) e confirmar que o tema permanece em todas as páginas.
-3. Recarregar a página: `ThemeSync` deve reaplicar o tema salvo no banco e o visual deve continuar igual.
-4. Telas públicas (App Cliente, Entregador, ForteGás, JapaGás, CentralGasCP, Auth) — confirmar que **não foram afetadas** (elas vivem fora do `MainLayout`/`.system-surface`, e como não escrevemos tokens em CSS global, seguem com seu branding próprio).
-5. Sidebar colapsada e Drawer mobile herdam os mesmos tokens (continuam OK).
+### 3. Dashboard — fazer o `VoiceAssistant` lançar venda
 
-## Arquivos a editar
+Hoje (`src/components/ai/VoiceAssistant.tsx`) o `sendToAI` sempre vai para `ai-assistant`. Vamos adicionar **roteamento de intenção** antes:
 
-- `src/lib/themeUtils.ts` (alterar somente a função `applyTheme`)
-- `src/pages/config/PersonalizacaoVisual.tsx` (remover `setBrandTheme("gasfacil")` no `else`)
+- Antes do `fetch(CHAT_URL)`, chamar `supabase.functions.invoke("parse-sales-command", { body: { comando: text, unidade_id } })`.
+- Se a resposta tiver `itens` (intenção de venda detectada):
+  - Salvar o payload em `sessionStorage` com chave `nova_venda_voz_payload`.
+  - Navegar para `/vendas/nova?fromVoice=1` via `useNavigate`.
+  - Falar: "Abrindo nova venda com os dados…" e fechar o painel de voz.
+- Se a resposta for `tipo: "consulta_fiado"`, falar a `mensagem` retornada (sem ir para chat).
+- Em qualquer outro caso (erro 422, comando não é venda), cai no fluxo atual (`ai-assistant` chat).
 
-Nenhuma alteração em `index.css`, `Sidebar.tsx`, `MainLayout.tsx` ou `brand-themes.css`.
+### 4. `src/pages/vendas/NovaVenda.tsx` — auto-preenchimento ao chegar com `?fromVoice=1`
+
+No mount, ler `sessionStorage.getItem("nova_venda_voz_payload")`:
+- Se existir, executar o mesmo bloco que `handleAiCommand` já roda após obter `data` (popular customer, itens, forma de pagamento), e limpar o storage.
+- Não chamar a edge novamente — o payload já vem pronto.
+
+---
+
+## Detalhes técnicos
+
+**Arquivos editados:**
+- `supabase/functions/parse-sales-command/index.ts` (prompt das duas etapas + schema de saída)
+- `src/pages/vendas/NovaVenda.tsx` (handleAiCommand respeita `preco_unitario`/`complemento`; novo `useEffect` para `?fromVoice=1`)
+- `src/components/ai/VoiceAssistant.tsx` (roteamento de intenção antes do chat)
+
+**Sem alterações em:**
+- `App.tsx`, rotas, RLS, tabelas, brand themes, layouts.
+- `ai-assistant` edge function (continua só para consultas/chat livre).
+
+**Validação manual após implementar:**
+1. Dashboard, microfone: "lança um gás na Rua Aparecido Cassiano 115, cartão, 125 reais" → deve abrir `/vendas/nova` já com endereço, item gás (preço R$ 125) e forma `cartao_credito`.
+2. Nova Venda, microfone: mesma frase → mesmo resultado, sem navegar.
+3. Dashboard, microfone: "como tá o fiado da Maria?" → fala a resposta (consulta_fiado).
+4. Dashboard, microfone: "qual filial vendeu mais essa semana?" → fluxo de chat normal continua.
