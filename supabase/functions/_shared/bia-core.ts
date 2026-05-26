@@ -701,7 +701,7 @@ export function buildSystemPrompt(
   history?: any[],
   gasDoPovoConfig?: { entrega: boolean; taxa: number },
   contactIdentity?: ContactIdentity,
-  unidadeLocation?: { cidade: string | null; estado: string | null; bairros: string[]; empresaNome?: string | null }
+  unidadeLocation?: { cidade: string | null; estado: string | null; bairros: string[]; empresaNome?: string | null; endereco?: string | null; bairro?: string | null; cep?: string | null }
 ): string {
   const agentName = config.agentName || "Bia";
   const empresaNome = unidadeLocation?.empresaNome || null;
