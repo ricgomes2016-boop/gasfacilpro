@@ -1,17 +1,22 @@
-## Ajustar marca d'água dentro do quadro de assinatura (Orçamento Padrão)
+## Problema
 
-**Arquivo:** `src/services/orcamentoPadraoPdfService.ts` (linhas 219-255)
+A tela `/config/personalizacao` quebra ao montar porque o `useEffect` que aplica o tema (linha 67-72 de `src/pages/config/PersonalizacaoVisual.tsx`) referencia `PRESET_THEME_OVERRIDES`, mas esse símbolo não está incluído no `import` vindo de `@/lib/themeUtils`.
 
-### Problema
-O quadro de assinatura tem 18mm de altura, mas a inicial (marca d'água) é renderizada com fonte ~46pt (≈16mm), que visualmente "estoura" o quadro e some atrás da linha de assinatura, parecendo estar fora.
+Resultado: `ReferenceError: PRESET_THEME_OVERRIDES is not defined` → a página não renderiza nada (ou trava no loader, dependendo da ordem de execução).
 
-### Mudanças
-1. **Aumentar o quadro** para `sigBoxH_mm = 32mm` (largura mantida em 140mm) para acomodar a marca d'água + linha de assinatura **dentro** do quadro.
-2. **Calibrar a inicial** para caber confortavelmente dentro: `fs = Math.min(70, sigBoxH_mm * 2)` e desenhar centralizada no quadro.
-3. **Mover a linha de assinatura para dentro do quadro**, próxima à base (ex.: `sigBoxY + sigBoxH - 6mm`), com margens laterais internas (`sigBoxX + 10` até `sigBoxX + sigBoxW - 10`).
-4. **Rótulo "ASSINATURA (fornecedor)"** permanece logo abaixo do quadro (fora dele).
-5. Manter opacidade 0.12, cor azul e GState reset como já está.
+## Correção
 
-### Fora de escopo
-- Não alterar metadados de assinatura digital, carimbo da unidade, cabeçalho, tabela de itens, observações ou outras seções.
-- Não tocar em `ValeGasEmissao`, `Orcamentos.tsx`, RLS, edge functions ou rotas.
+Arquivo: `src/pages/config/PersonalizacaoVisual.tsx`
+
+- Linha 18: incluir `PRESET_THEME_OVERRIDES` no import existente:
+
+```ts
+import { THEME_PRESETS, COLOR_OPTIONS, applyTheme, PRESET_THEME_OVERRIDES } from "@/lib/themeUtils";
+```
+
+Nenhuma outra alteração necessária — `PRESET_THEME_OVERRIDES` já é exportado em `src/lib/themeUtils.ts` e o resto da lógica está correto.
+
+## Validação
+
+- Abrir `/config/personalizacao` e confirmar que a tela carrega, lista os temas prontos e permite salvar.
+- Console sem `ReferenceError`.

@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 import type { BrandThemeId } from "@/lib/brandThemes";
-import { THEME_PRESETS, COLOR_OPTIONS, applyTheme } from "@/lib/themeUtils";
+import { THEME_PRESETS, COLOR_OPTIONS, applyTheme, PRESET_THEME_OVERRIDES } from "@/lib/themeUtils";
 
 interface ComprovanteConfig {
   mostrarLogo: boolean;
