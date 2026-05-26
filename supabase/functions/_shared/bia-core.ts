@@ -261,7 +261,8 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
   if (!unidadeId) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: null };
 
   const { data: u } = await supabase.from("unidades")
-    .select("horario_abertura, horario_fechamento, empresa_id, cidade, estado, bairros_atendidos").eq("id", unidadeId).maybeSingle();
+    .select("horario_abertura, horario_fechamento, empresa_id, cidade, estado, bairros_atendidos, endereco, bairro, cep")
+    .eq("id", unidadeId).maybeSingle();
 
   let empresaNome: string | null = null;
   if (u?.empresa_id) {
@@ -274,6 +275,9 @@ export async function checkBusinessHours(supabase: any, unidadeId: string | null
     estado: u?.estado || null,
     bairros: Array.isArray(u?.bairros_atendidos) ? u.bairros_atendidos : [],
     empresaNome,
+    endereco: u?.endereco || null,
+    bairro: u?.bairro || null,
+    cep: u?.cep || null,
   };
 
   if (!u?.empresa_id) return { isOffHours: false, horarioInfo: "", isSunday: false, waterDeliveryAllowed: true, empresaId: u?.empresa_id || null, unidadeLocation };
