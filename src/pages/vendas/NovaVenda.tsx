@@ -571,7 +571,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       if (!raw) return;
       const payload = JSON.parse(raw);
       sessionStorage.removeItem("nova_venda_voz_payload");
-      applyParsedSale(payload);
+      applyParsedSale(payload, { fromVoice: true });
     } catch (e) {
       console.error("Erro ao aplicar payload de voz:", e);
     } finally {
