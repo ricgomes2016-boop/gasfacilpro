@@ -19,6 +19,7 @@ import { PageLoader } from "@/components/ui/page-loader";
 import { renderRoutes } from "@/routes/helpers";
 import { SubdomainGuard } from "@/components/routing/SubdomainGuard";
 import { detectSubdomainApp, getSubdomainDefaultRoute } from "@/lib/subdomain";
+import { ThemeSync } from "@/components/layout/ThemeSync";
 
 import { adminRoutes } from "@/routes/adminRoutes";
 import { vendasRoutes } from "@/routes/vendasRoutes";
@@ -84,6 +85,7 @@ const App = () => (
         <AuthProvider>
           <EmpresaProvider>
             <UnidadeProvider>
+              <ThemeSync />
               <DeliveryNotificationProvider>
                 <ClienteProvider>
                   <ValeGasProvider>
