@@ -1087,7 +1087,6 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   };
 
   // Load initial client when in embedded mode (e.g., from CallerIdPopup) OR via URL ?cliente_id=
-  const [searchParams] = useSearchParams();
   const urlClienteId = searchParams.get("cliente_id");
   const urlRepetirPedido = searchParams.get("repetir_pedido");
   const effectiveClienteId = initialClienteId || urlClienteId;
