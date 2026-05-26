@@ -481,9 +481,23 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           description: `${data.cliente_nome} foi adicionado automaticamente ao sistema.`,
         });
       }
+    } else if (data.endereco || data.numero || data.complemento || data.bairro || data.cliente_telefone || data.observacoes) {
+      // Fallback: comando sem nome de cliente mas com endereço/telefone → preenche aba Cliente mesmo assim
+      setCustomer({
+        ...initialCustomerData,
+        nome: "",
+        telefone: data.cliente_telefone || "",
+        endereco: data.endereco || "",
+        numero: data.numero || "",
+        complemento: data.complemento || "",
+        bairro: data.bairro || "",
+        cep: data.cep || "",
+        observacao: data.observacoes || "",
+      });
     }
 
-    if (data.itens && data.itens.length > 0) {
+    const hasItens = data.itens && data.itens.length > 0;
+    if (hasItens) {
       const newItens: ItemVenda[] = data.itens.map((item: any) => ({
         id: crypto.randomUUID(),
         produto_id: item.produto_id,
@@ -495,7 +509,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       setItens(newItens);
     }
 
-    if (data.forma_pagamento) {
+    const hasPagamento = !!data.forma_pagamento;
+    if (hasPagamento) {
       const totalItens = (data.itens || []).reduce(
         (a: number, i: any) => a + (i.quantidade || 1) * (Number(i.preco_unitario) || 0),
         0
@@ -507,9 +522,20 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       setCanalVenda(data.canal_venda);
     }
 
+    // Avança o stepper para o estágio mais adiantado preenchido (apenas no fluxo de voz)
+    if (opts.fromVoice) {
+      if (hasPagamento && hasItens) {
+        setActiveStep("confirmar");
+      } else if (hasItens) {
+        setActiveStep("pagamento");
+      } else if (data.cliente_id || data.cliente_nome || data.endereco) {
+        setActiveStep("produtos");
+      }
+    }
+
     toast({
       title: "Venda pré-preenchida por voz",
-      description: `${data.cliente_nome || "Cliente"}${data.preco_manual ? " — preço informado por voz" : ""}.`,
+      description: `Confira os dados e confirme antes de salvar${data.preco_manual ? " (preço informado por voz)" : ""}.`,
     });
   };
 
