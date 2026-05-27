@@ -8,6 +8,7 @@ import {
   Receipt, Package, Brain, FileBarChart, LogOut, Menu, X, ShoppingCart,
 } from "lucide-react";
 import { SystemFooter } from "@/components/layout/SystemFooter";
+import { SidebarProvider } from "@/contexts/SidebarContext";
 
 const navItems = [
   { to: "/transportadora", icon: LayoutDashboard, label: "Dashboard" },
@@ -23,7 +24,7 @@ const navItems = [
   { to: "/transportadora/relatorios", icon: FileBarChart, label: "Relatórios" },
 ];
 
-export function TransportadoraLayout({ children }: { children: ReactNode }) {
+function TransportadoraLayoutInner({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
@@ -118,5 +119,13 @@ export function TransportadoraLayout({ children }: { children: ReactNode }) {
       </div>
       <SystemFooter portalKey="transportadora" />
     </div>
+  );
+}
+
+export function TransportadoraLayout({ children }: { children: ReactNode }) {
+  return (
+    <SidebarProvider>
+      <TransportadoraLayoutInner>{children}</TransportadoraLayoutInner>
+    </SidebarProvider>
   );
 }
