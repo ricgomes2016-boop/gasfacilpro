@@ -107,7 +107,7 @@ const statusOptions = [
   { value: "excluido", label: "Excluído", color: "bg-destructive/10 text-destructive" },
 ];
 
-const emptyForm = { placa: "", modelo: "", marca: "", ano: "", km_atual: "", tipo: "moto", entregador_id: "", valor_fipe: "", status: "ativo", foto_url: "", renavam: "", crlv_vencimento: "", seguro_vencimento: "", seguro_empresa: "" };
+const emptyForm = { placa: "", modelo: "", marca: "", ano: "", km_atual: "", tipo: "moto", entregador_id: "", valor_fipe: "", status: "ativo", foto_url: "", renavam: "", crlv_vencimento: "", seguro_vencimento: "", seguro_empresa: "", foto_painel: "", foto_frente: "", foto_lado_direito: "", foto_lado_esquerdo: "", foto_traseira: "" };
 
 export default function Veiculos() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
