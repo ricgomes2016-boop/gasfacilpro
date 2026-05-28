@@ -7,7 +7,7 @@ const Combustivel = lazy(() => import("@/pages/frota/Combustivel"));
 const Manutencao = lazy(() => import("@/pages/frota/Manutencao"));
 const RelatoriosFrota = lazy(() => import("@/pages/frota/RelatoriosFrota"));
 const Gamificacao = lazy(() => import("@/pages/frota/Gamificacao"));
-const DocumentosFrota = lazy(() => import("@/pages/frota/DocumentosFrota"));
+
 const ChecklistSaida = lazy(() => import("@/pages/frota/ChecklistSaida"));
 const MultasFrota = lazy(() => import("@/pages/frota/MultasFrota"));
 
