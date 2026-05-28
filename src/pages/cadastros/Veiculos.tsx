@@ -785,13 +785,15 @@ export default function Veiculos() {
                     return (
                     <TableRow key={v.id} className={(v.status === "excluido" || v.status === "inativo") ? "opacity-60" : ""}>
                       <TableCell className="w-16">
+                        <button type="button" onClick={() => setDetalheVeiculo(v)} className="focus:outline-none focus:ring-2 focus:ring-primary rounded-lg" title="Ver detalhes">
                         {v.foto_url ? (
-                          <img src={v.foto_url} alt={v.placa} className="h-12 w-12 rounded-lg object-cover border border-border" />
+                          <img src={v.foto_url} alt={v.placa} className="h-12 w-12 rounded-lg object-cover border border-border cursor-pointer hover:opacity-80 transition" />
                         ) : (
-                          <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
+                          <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center cursor-pointer hover:bg-muted/70 transition">
                             <Car className="h-5 w-5 text-muted-foreground" />
                           </div>
                         )}
+                        </button>
                       </TableCell>
                       <TableCell className="font-mono font-bold">
                         <div>{v.placa}</div>
