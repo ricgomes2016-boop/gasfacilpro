@@ -149,13 +149,14 @@ export function VeiculoDetalheDialog({ open, onOpenChange, veiculo }: VeiculoDet
           <p className="text-muted-foreground py-8 text-center">Carregando dados...</p>
         ) : (
           <Tabs defaultValue="alertas" className="mt-2">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="alertas" className="gap-1">
                 <AlertTriangle className="h-4 w-4" /> Alertas
                 {alertas.filter(a => a.nivel !== "ok").length > 0 && (
                   <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">{alertas.filter(a => a.nivel !== "ok").length}</Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="fotos" className="gap-1"><Camera className="h-4 w-4" /> Fotos</TabsTrigger>
               <TabsTrigger value="tco" className="gap-1"><DollarSign className="h-4 w-4" /> TCO</TabsTrigger>
               <TabsTrigger value="historico" className="gap-1"><Calendar className="h-4 w-4" /> Histórico</TabsTrigger>
             </TabsList>
