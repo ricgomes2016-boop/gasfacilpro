@@ -25,6 +25,12 @@ interface VeiculoDetalheDialogProps {
     crlv_vencimento?: string | null;
     seguro_vencimento?: string | null;
     seguro_empresa?: string | null;
+    foto_url?: string | null;
+    foto_painel?: string | null;
+    foto_frente?: string | null;
+    foto_lado_direito?: string | null;
+    foto_lado_esquerdo?: string | null;
+    foto_traseira?: string | null;
   } | null;
 }
 
