@@ -380,9 +380,10 @@ export default function Veiculos() {
 
     autoTable(doc, {
       startY: 33,
-      head: [["Placa", "Modelo", "Marca", "Ano", "Tipo", "KM", "Status", "Filial", "Entregador", "FIPE (R$)"]],
+      head: [["Placa", "RENAVAM", "Modelo", "Marca", "Ano", "Tipo", "KM", "Status", "Filial", "Entregador", "FIPE (R$)", "CRLV", "Seguro"]],
       body: filtered.map(v => [
         v.placa,
+        v.renavam || "—",
         v.modelo,
         v.marca || "—",
         v.ano?.toString() || "—",
@@ -392,8 +393,10 @@ export default function Veiculos() {
         getUnidadeNome(v.unidade_id),
         getEntregadorNome(v.entregador_id) || "—",
         Number(v.valor_fipe || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
+        v.crlv_vencimento ? new Date(v.crlv_vencimento).toLocaleDateString("pt-BR") : "—",
+        v.seguro_vencimento ? new Date(v.seguro_vencimento).toLocaleDateString("pt-BR") : "—",
       ]),
-      styles: { fontSize: 9, cellPadding: 2 },
+      styles: { fontSize: 8, cellPadding: 1.5 },
       headStyles: { fillColor: [41, 98, 89], textColor: 255, fontStyle: "bold" },
     });
 
