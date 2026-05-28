@@ -120,6 +120,69 @@ export default function Veiculos() {
   const [fipeLoading, setFipeLoading] = useState(false);
   const [bulkFipeLoading, setBulkFipeLoading] = useState(false);
   const { unidadeAtual, unidades } = useUnidade();
+  const [importingCrlv, setImportingCrlv] = useState(false);
+
+  const getDocStatus = (date: string | null) => {
+    if (!date) return { label: "Não informado", variant: "secondary" as const, dias: null as number | null };
+    const dias = Math.ceil((new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    if (dias <= 0) return { label: `Vencido ${Math.abs(dias)}d`, variant: "destructive" as const, dias };
+    if (dias <= 30) return { label: `${dias}d`, variant: "default" as const, dias };
+    return { label: `${dias}d`, variant: "secondary" as const, dias };
+  };
+
+  const compressImage = (file: File, maxWidth = 1600): Promise<string> =>
+    new Promise((resolve, reject) => {
+      if (file.type === "application/pdf") {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result as string);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ratio = Math.min(maxWidth / img.width, 1);
+          canvas.width = img.width * ratio;
+          canvas.height = img.height * ratio;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return reject("Canvas error");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.85));
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handleImportCrlvForm = async (file: File) => {
+    setImportingCrlv(true);
+    try {
+      const imageBase64 = await compressImage(file);
+      const { data, error } = await supabase.functions.invoke("parse-crlv", { body: { imageBase64 } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const patch: any = {};
+      if (data.crlv_vencimento) patch.crlv_vencimento = data.crlv_vencimento;
+      if (data.renavam) patch.renavam = String(data.renavam);
+      if (data.placa && !form.placa) patch.placa = formatPlacaMercosul(String(data.placa));
+      if (Object.keys(patch).length === 0) {
+        toast.error("Nada foi identificado no CRLV.");
+        return;
+      }
+      setForm(f => ({ ...f, ...patch }));
+      toast.success("CRLV importado!");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao importar CRLV");
+    } finally {
+      setImportingCrlv(false);
+    }
+  };
+
 
   const handleBuscarFipeForm = async () => {
     if (!form.marca || !form.modelo) {
