@@ -496,14 +496,6 @@ export default function Veiculos() {
                 <DialogTitle>{editId ? "Editar Veículo" : "Cadastrar Novo Veículo"}</DialogTitle>
                 <DialogDescription>Preencha os dados do veículo</DialogDescription>
               </DialogHeader>
-              <div className="mt-4 flex flex-col items-start gap-2 sm:items-center sm:flex-row sm:gap-4">
-                <div className="space-y-2">
-                  <Label>Foto do veículo</Label>
-                  <ImageUpload
-                    value={form.foto_url || null}
-                    onChange={(url) => setForm({ ...form, foto_url: url || "" })}
-                    bucket="vehicle-photos"
-                    folder="veiculos"
               <div className="mt-4 space-y-2">
                 <Label className="text-sm font-semibold">Galeria de Fotos</Label>
                 <p className="text-xs text-muted-foreground">Tire ou anexe fotos do veículo. A "Capa" é mostrada na listagem.</p>
@@ -529,6 +521,7 @@ export default function Veiculos() {
                   ))}
                 </div>
               </div>
+              <div className="grid grid-cols-1 gap-4 mt-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Placa *</Label>
                   <Input
