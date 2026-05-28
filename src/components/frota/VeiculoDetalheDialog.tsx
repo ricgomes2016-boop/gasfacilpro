@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertTriangle, Fuel, Wrench, FileWarning, DollarSign, Calendar, TrendingUp } from "lucide-react";
+import { AlertTriangle, Fuel, Wrench, FileWarning, DollarSign, Calendar, TrendingUp, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, differenceInDays, parseISO, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -25,6 +25,12 @@ interface VeiculoDetalheDialogProps {
     crlv_vencimento?: string | null;
     seguro_vencimento?: string | null;
     seguro_empresa?: string | null;
+    foto_url?: string | null;
+    foto_painel?: string | null;
+    foto_frente?: string | null;
+    foto_lado_direito?: string | null;
+    foto_lado_esquerdo?: string | null;
+    foto_traseira?: string | null;
   } | null;
 }
 
@@ -143,13 +149,14 @@ export function VeiculoDetalheDialog({ open, onOpenChange, veiculo }: VeiculoDet
           <p className="text-muted-foreground py-8 text-center">Carregando dados...</p>
         ) : (
           <Tabs defaultValue="alertas" className="mt-2">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="alertas" className="gap-1">
                 <AlertTriangle className="h-4 w-4" /> Alertas
                 {alertas.filter(a => a.nivel !== "ok").length > 0 && (
                   <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">{alertas.filter(a => a.nivel !== "ok").length}</Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="fotos" className="gap-1"><Camera className="h-4 w-4" /> Fotos</TabsTrigger>
               <TabsTrigger value="tco" className="gap-1"><DollarSign className="h-4 w-4" /> TCO</TabsTrigger>
               <TabsTrigger value="historico" className="gap-1"><Calendar className="h-4 w-4" /> Histórico</TabsTrigger>
             </TabsList>
@@ -172,6 +179,42 @@ export function VeiculoDetalheDialog({ open, onOpenChange, veiculo }: VeiculoDet
               {veiculo.seguro_empresa && (
                 <p className="text-xs text-muted-foreground">Seguradora: {veiculo.seguro_empresa}</p>
               )}
+            </TabsContent>
+
+            {/* FOTOS */}
+            <TabsContent value="fotos" className="mt-4">
+              {(() => {
+                const fotos: { label: string; url: string | null | undefined }[] = [
+                  { label: "Capa", url: veiculo.foto_url },
+                  { label: "Painel", url: veiculo.foto_painel },
+                  { label: "Frente", url: veiculo.foto_frente },
+                  { label: "Lado Direito", url: veiculo.foto_lado_direito },
+                  { label: "Lado Esquerdo", url: veiculo.foto_lado_esquerdo },
+                  { label: "Traseira", url: veiculo.foto_traseira },
+                ];
+                const total = fotos.filter(f => !!f.url).length;
+                if (total === 0) {
+                  return <p className="text-muted-foreground text-center py-8 text-sm">Nenhuma foto cadastrada. Edite o veículo para adicionar.</p>;
+                }
+                return (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {fotos.map(f => (
+                      <div key={f.label} className="space-y-1">
+                        <p className="text-xs font-medium text-muted-foreground">{f.label}</p>
+                        {f.url ? (
+                          <a href={f.url} target="_blank" rel="noopener noreferrer" className="block">
+                            <img src={f.url} alt={f.label} className="w-full h-32 object-cover rounded-lg border border-border hover:opacity-90 transition cursor-zoom-in" />
+                          </a>
+                        ) : (
+                          <div className="w-full h-32 rounded-lg border border-dashed border-border bg-muted/30 flex items-center justify-center">
+                            <Camera className="h-6 w-6 text-muted-foreground/50" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </TabsContent>
 
             {/* TCO */}

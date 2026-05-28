@@ -93,6 +93,11 @@ interface Veiculo {
   foto_url: string | null;
   unidade_id: string | null;
   renavam: string | null;
+  foto_painel: string | null;
+  foto_frente: string | null;
+  foto_lado_direito: string | null;
+  foto_lado_esquerdo: string | null;
+  foto_traseira: string | null;
 }
 
 const statusOptions = [
@@ -102,7 +107,7 @@ const statusOptions = [
   { value: "excluido", label: "Excluído", color: "bg-destructive/10 text-destructive" },
 ];
 
-const emptyForm = { placa: "", modelo: "", marca: "", ano: "", km_atual: "", tipo: "moto", entregador_id: "", valor_fipe: "", status: "ativo", foto_url: "", renavam: "", crlv_vencimento: "", seguro_vencimento: "", seguro_empresa: "" };
+const emptyForm = { placa: "", modelo: "", marca: "", ano: "", km_atual: "", tipo: "moto", entregador_id: "", valor_fipe: "", status: "ativo", foto_url: "", renavam: "", crlv_vencimento: "", seguro_vencimento: "", seguro_empresa: "", foto_painel: "", foto_frente: "", foto_lado_direito: "", foto_lado_esquerdo: "", foto_traseira: "" };
 
 export default function Veiculos() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
@@ -301,6 +306,11 @@ export default function Veiculos() {
       crlv_vencimento: form.crlv_vencimento || null,
       seguro_vencimento: form.seguro_vencimento || null,
       seguro_empresa: form.seguro_empresa?.trim() || null,
+      foto_painel: form.foto_painel || null,
+      foto_frente: form.foto_frente || null,
+      foto_lado_direito: form.foto_lado_direito || null,
+      foto_lado_esquerdo: form.foto_lado_esquerdo || null,
+      foto_traseira: form.foto_traseira || null,
     };
     if (!editId && unidadeAtual?.id) {
       payload.unidade_id = unidadeAtual.id;
@@ -337,6 +347,11 @@ export default function Veiculos() {
       crlv_vencimento: v.crlv_vencimento || "",
       seguro_vencimento: v.seguro_vencimento || "",
       seguro_empresa: v.seguro_empresa || "",
+      foto_painel: v.foto_painel || "",
+      foto_frente: v.foto_frente || "",
+      foto_lado_direito: v.foto_lado_direito || "",
+      foto_lado_esquerdo: v.foto_lado_esquerdo || "",
+      foto_traseira: v.foto_traseira || "",
     });
     setEditId(v.id);
     setOpen(true);
@@ -481,16 +496,29 @@ export default function Veiculos() {
                 <DialogTitle>{editId ? "Editar Veículo" : "Cadastrar Novo Veículo"}</DialogTitle>
                 <DialogDescription>Preencha os dados do veículo</DialogDescription>
               </DialogHeader>
-              <div className="mt-4 flex flex-col items-start gap-2 sm:items-center sm:flex-row sm:gap-4">
-                <div className="space-y-2">
-                  <Label>Foto do veículo</Label>
-                  <ImageUpload
-                    value={form.foto_url || null}
-                    onChange={(url) => setForm({ ...form, foto_url: url || "" })}
-                    bucket="vehicle-photos"
-                    folder="veiculos"
-                    allowCamera
-                  />
+              <div className="mt-4 space-y-2">
+                <Label className="text-sm font-semibold">Galeria de Fotos</Label>
+                <p className="text-xs text-muted-foreground">Tire ou anexe fotos do veículo. A "Capa" é mostrada na listagem.</p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {([
+                    { key: "foto_url", label: "Capa" },
+                    { key: "foto_painel", label: "Painel" },
+                    { key: "foto_frente", label: "Frente" },
+                    { key: "foto_lado_direito", label: "Lado Direito" },
+                    { key: "foto_lado_esquerdo", label: "Lado Esquerdo" },
+                    { key: "foto_traseira", label: "Traseira" },
+                  ] as const).map(({ key, label }) => (
+                    <div key={key} className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">{label}</Label>
+                      <ImageUpload
+                        value={(form as any)[key] || null}
+                        onChange={(url) => setForm({ ...form, [key]: url || "" } as any)}
+                        bucket="vehicle-photos"
+                        folder="veiculos"
+                        allowCamera
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-4 mt-4 sm:grid-cols-2">
@@ -688,13 +716,15 @@ export default function Veiculos() {
                     <div key={v.id} className={`rounded-2xl border border-border/45 bg-card p-3 shadow-sm w-full min-w-0 ${(v.status === "excluido" || v.status === "inativo") ? "opacity-60" : ""}`}>
                       <div className="flex items-start justify-between gap-3 w-full min-w-0">
                         <div className="flex items-start gap-3 min-w-0 flex-1">
+                          <button type="button" onClick={() => setDetalheVeiculo(v)} className="shrink-0 focus:outline-none focus:ring-2 focus:ring-primary rounded-lg" title="Ver detalhes">
                           {v.foto_url ? (
-                            <img src={v.foto_url} alt={v.placa} className="h-14 w-14 rounded-lg object-cover border border-border shrink-0" />
+                            <img src={v.foto_url} alt={v.placa} className="h-14 w-14 rounded-lg object-cover border border-border cursor-pointer hover:opacity-80 transition" />
                           ) : (
-                            <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center cursor-pointer hover:bg-muted/70 transition">
                               <Car className="h-6 w-6 text-muted-foreground" />
                             </div>
                           )}
+                          </button>
                           <div className="min-w-0 flex-1">
                             <p className="font-mono text-sm font-bold truncate">{v.placa}</p>
                             <p className="text-sm font-medium truncate">{v.modelo}</p>
@@ -755,13 +785,15 @@ export default function Veiculos() {
                     return (
                     <TableRow key={v.id} className={(v.status === "excluido" || v.status === "inativo") ? "opacity-60" : ""}>
                       <TableCell className="w-16">
+                        <button type="button" onClick={() => setDetalheVeiculo(v)} className="focus:outline-none focus:ring-2 focus:ring-primary rounded-lg" title="Ver detalhes">
                         {v.foto_url ? (
-                          <img src={v.foto_url} alt={v.placa} className="h-12 w-12 rounded-lg object-cover border border-border" />
+                          <img src={v.foto_url} alt={v.placa} className="h-12 w-12 rounded-lg object-cover border border-border cursor-pointer hover:opacity-80 transition" />
                         ) : (
-                          <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center">
+                          <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center cursor-pointer hover:bg-muted/70 transition">
                             <Car className="h-5 w-5 text-muted-foreground" />
                           </div>
                         )}
+                        </button>
                       </TableCell>
                       <TableCell className="font-mono font-bold">
                         <div>{v.placa}</div>

@@ -1,40 +1,31 @@
-## Objetivo
+## Mudanças em Gestão de Frota
 
-Consolidar os dados de documentos do veículo (CRLV, Seguro, Seguradora e **RENAVAM**) dentro da tela **Gestão de Frota → Veículos**, removendo a duplicação que hoje existe na aba "Veículos" de **Documentos da Frota**. Nenhuma nova aba será criada — as informações entrarão dentro de cada card/linha do veículo. O PDF exportado da lista de veículos passará a incluir o RENAVAM.
+### 1. Remover rota "Documentos" do menu Frota
+- **`src/routes/frotaRoutes.ts`**: remover a entrada `{ path: "/frota/documentos", component: DocumentosFrota, ... }` (a página `DocumentosFrota.tsx` continua no projeto por enquanto, apenas sai do menu/rotas — as informações de CNH já vivem em RH/Funcionários e as de veículo já foram consolidadas em Cadastros/Veículos).
+- Remover o item de menu correspondente em `src/components/layout/AppSidebar.tsx` (ou onde estiver listado o link "Documentos" sob Frota).
 
-## O que muda
+### 2. Galeria de fotos do veículo (Cadastros / Veículos)
 
-### 1. Banco de dados
-- Adicionar coluna `renavam` (texto, opcional) na tabela `veiculos`.
+**Banco** — migration adicionando 5 colunas opcionais em `public.veiculos`:
+- `foto_painel text`
+- `foto_frente text`
+- `foto_lado_direito text`
+- `foto_lado_esquerdo text`
+- `foto_traseira text`
 
-### 2. Tela "Veículos" (Gestão de Frota → Veículos)
-- **Formulário de cadastro/edição de veículo**: incluir os campos
-  - RENAVAM
-  - Vencimento do CRLV
-  - Vencimento do Seguro
-  - Seguradora
-  - Botão "Importar CRLV (foto/PDF)" — reaproveita a função `parse-crlv` já usada hoje em Documentos
-- **Card do veículo (mobile)** e **linha do veículo (desktop)**: exibir, dentro do próprio card, badges de status do CRLV e do Seguro (Vencido / X dias restantes / OK) e o RENAVAM em texto pequeno. Sem aba nova, apenas mais informação dentro do mesmo card.
-- **PDF "Exportar PDF"**: adicionar a coluna **RENAVAM** entre Placa e Modelo, e duas colunas extras de Vencimento CRLV e Vencimento Seguro ao final.
+(`foto_url` continua sendo a foto principal/capa.)
 
-### 3. Tela "Documentos da Frota"
-- Remover a aba **Veículos** (CRLV / Seguro), já que esses dados passam a ser editados em Veículos.
-- Manter a aba **CNH Motoristas** (dado do entregador, não do veículo) e ajustar o KPI do topo para mostrar somente o que sobrou (Entregadores e CNH vencendo).
-- Manter o menu lateral apontando para "Documentos" — a página continua existindo, só fica focada em CNH.
+**`src/pages/cadastros/Veiculos.tsx`**:
+- Estender `interface Veiculo`, `emptyForm`, `handleSave` e `handleEdit` com os 5 novos campos.
+- No dialog de novo/editar veículo, adicionar uma seção **"Galeria de Fotos"** com 6 slots `ImageUpload` (`allowCamera`): Capa, Painel, Frente, Lado Direito, Lado Esquerdo, Traseira. Cada slot grava na sua coluna. Layout em grid responsivo (`grid-cols-2 md:grid-cols-3`).
+- Ao clicar em "Visualizar" (ícone Eye) ou na **foto do card do veículo**, abrir o `VeiculoDetalheDialog` (já é o comportamento atual via `setDetalheVeiculo`). Garantir que o clique na imagem do card também dispare isso (adicionar handler na thumbnail).
 
-## Detalhes técnicos
+**`src/components/frota/VeiculoDetalheDialog.tsx`**:
+- Estender a prop `veiculo` com os 5 novos campos opcionais.
+- Adicionar uma nova aba **"Fotos"** (entre Alertas/TCO/Histórico) que renderiza um grid com as 6 fotos disponíveis (capa + painel + frente + lados + traseira), cada uma com label. Slots vazios mostram um placeholder discreto. Clicar na foto abre em tamanho cheio (lightbox simples via `Dialog`).
+- Passar os novos campos no `setDetalheVeiculo(v)` em Veículos.tsx (já passa o objeto inteiro, então só precisa do tipo).
 
-- Migração SQL: `ALTER TABLE public.veiculos ADD COLUMN renavam text;` (sem alterar RLS/GRANTs existentes).
-- `src/pages/cadastros/Veiculos.tsx`:
-  - Estender `interface Veiculo`, `emptyForm`, `handleSave`, `handleEdit` para incluir `renavam`, `crlv_vencimento`, `seguro_vencimento`, `seguro_empresa`.
-  - Adicionar `handleImportCrlv` (mesma lógica do arquivo `DocumentosFrota.tsx`) dentro do dialog do formulário.
-  - Função `getDocStatus(date)` (igual à existente em DocumentosFrota) para gerar badges de CRLV/Seguro nos cards e linhas.
-  - Atualizar `handleExportarPDF` para incluir `RENAVAM`, `CRLV` e `Seguro` no `head`/`body` do `autoTable`.
-- `src/pages/frota/DocumentosFrota.tsx`:
-  - Remover `<TabsTrigger value="veiculos">` e respectivo `<TabsContent>`, o dialog de edição de veículo, a função `handleImportCrlv` e o KPI "Alertas Veículos".
-  - Trocar o `Tabs` por render direto da seção CNH; ajustar título/subtitle para "Documentos — CNH Motoristas".
-
-## Fora de escopo
-- Não mexer em `App.tsx`, provider nesting ou rotas.
-- Não alterar permissões / RLS.
-- Não criar abas novas em lugar nenhum.
+### Fora do escopo
+- Nada em `App.tsx`, providers ou outras rotas.
+- Nenhuma alteração em RH/Funcionários (já tem os documentos de motorista).
+- Nenhuma alteração de RLS além das colunas novas herdarem as políticas existentes da tabela `veiculos`.
