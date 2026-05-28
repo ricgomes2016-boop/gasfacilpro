@@ -471,7 +471,7 @@ export default function DashboardFrota({
                   <Shield className="h-5 w-5 text-destructive" />
                   <CardTitle className="text-base">Alertas de Documentos ({alertasDoc.length})</CardTitle>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => navigate("/frota/documentos")}>
+                <Button variant="outline" size="sm" onClick={() => navigate("/cadastros/veiculos")}>
                   Ver todos <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
               </div>
