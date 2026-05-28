@@ -567,6 +567,47 @@ export default function Veiculos() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2 sm:col-span-2 border-t border-border/40 pt-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="flex items-center gap-2 text-sm font-semibold"><ShieldCheck className="h-4 w-4 text-primary" />Documentos do veículo</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={importingCrlv}
+                      className="gap-1"
+                      onClick={() => {
+                        const input = document.createElement("input");
+                        input.type = "file";
+                        input.accept = "image/*,application/pdf";
+                        input.onchange = (ev: any) => {
+                          const f = ev.target.files?.[0];
+                          if (f) handleImportCrlvForm(f);
+                        };
+                        input.click();
+                      }}
+                    >
+                      {importingCrlv ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      Importar CRLV
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>RENAVAM</Label>
+                  <Input value={form.renavam} onChange={e => setForm({...form, renavam: e.target.value.replace(/\D/g, "")})} placeholder="00000000000" maxLength={11} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Vencimento CRLV</Label>
+                  <Input type="date" value={form.crlv_vencimento} onChange={e => setForm({...form, crlv_vencimento: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Vencimento Seguro</Label>
+                  <Input type="date" value={form.seguro_vencimento} onChange={e => setForm({...form, seguro_vencimento: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Seguradora</Label>
+                  <Input value={form.seguro_empresa} onChange={e => setForm({...form, seguro_empresa: e.target.value})} placeholder="Nome da seguradora" />
+                </div>
               </div>
               <div className="flex flex-col-reverse gap-2 mt-4 sm:flex-row sm:justify-end">
                 <Button className="h-10" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
