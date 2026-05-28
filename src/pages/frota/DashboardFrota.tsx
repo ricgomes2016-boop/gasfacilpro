@@ -500,7 +500,7 @@ export default function DashboardFrota({
             { label: "Combustível", icon: Fuel, path: "/frota/combustivel" },
             { label: "Manutenção", icon: Wrench, path: "/frota/manutencao" },
             { label: "Relatórios", icon: DollarSign, path: "/frota/relatorios" },
-            { label: "Documentos", icon: Shield, path: "/frota/documentos" },
+            { label: "Documentos", icon: Shield, path: "/cadastros/veiculos" },
             { label: "Gamificação", icon: CheckCircle2, path: "/frota/gamificacao" },
           ].map((item) => (
             <Card key={item.path} className="cursor-pointer transition-shadow hover:shadow-md" onClick={() => navigate(item.path)}>
