@@ -92,6 +92,7 @@ interface Veiculo {
   seguro_empresa: string | null;
   foto_url: string | null;
   unidade_id: string | null;
+  renavam: string | null;
 }
 
 const statusOptions = [
