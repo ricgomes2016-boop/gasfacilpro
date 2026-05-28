@@ -266,6 +266,10 @@ export default function Veiculos() {
       valor_fipe: v.valor_fipe?.toString() || "",
       status: v.status || "ativo",
       foto_url: v.foto_url || "",
+      renavam: v.renavam || "",
+      crlv_vencimento: v.crlv_vencimento || "",
+      seguro_vencimento: v.seguro_vencimento || "",
+      seguro_empresa: v.seguro_empresa || "",
     });
     setEditId(v.id);
     setOpen(true);
