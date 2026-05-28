@@ -504,11 +504,31 @@ export default function Veiculos() {
                     onChange={(url) => setForm({ ...form, foto_url: url || "" })}
                     bucket="vehicle-photos"
                     folder="veiculos"
-                    allowCamera
-                  />
+              <div className="mt-4 space-y-2">
+                <Label className="text-sm font-semibold">Galeria de Fotos</Label>
+                <p className="text-xs text-muted-foreground">Tire ou anexe fotos do veículo. A "Capa" é mostrada na listagem.</p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {([
+                    { key: "foto_url", label: "Capa" },
+                    { key: "foto_painel", label: "Painel" },
+                    { key: "foto_frente", label: "Frente" },
+                    { key: "foto_lado_direito", label: "Lado Direito" },
+                    { key: "foto_lado_esquerdo", label: "Lado Esquerdo" },
+                    { key: "foto_traseira", label: "Traseira" },
+                  ] as const).map(({ key, label }) => (
+                    <div key={key} className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">{label}</Label>
+                      <ImageUpload
+                        value={(form as any)[key] || null}
+                        onChange={(url) => setForm({ ...form, [key]: url || "" } as any)}
+                        bucket="vehicle-photos"
+                        folder="veiculos"
+                        allowCamera
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-4 mt-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Placa *</Label>
                   <Input
