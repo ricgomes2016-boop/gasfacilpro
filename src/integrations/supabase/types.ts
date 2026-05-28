@@ -10875,6 +10875,11 @@ export type Database = {
           created_at: string
           crlv_vencimento: string | null
           entregador_id: string | null
+          foto_frente: string | null
+          foto_lado_direito: string | null
+          foto_lado_esquerdo: string | null
+          foto_painel: string | null
+          foto_traseira: string | null
           foto_url: string | null
           id: string
           km_atual: number | null
@@ -10896,6 +10901,11 @@ export type Database = {
           created_at?: string
           crlv_vencimento?: string | null
           entregador_id?: string | null
+          foto_frente?: string | null
+          foto_lado_direito?: string | null
+          foto_lado_esquerdo?: string | null
+          foto_painel?: string | null
+          foto_traseira?: string | null
           foto_url?: string | null
           id?: string
           km_atual?: number | null
@@ -10917,6 +10927,11 @@ export type Database = {
           created_at?: string
           crlv_vencimento?: string | null
           entregador_id?: string | null
+          foto_frente?: string | null
+          foto_lado_direito?: string | null
+          foto_lado_esquerdo?: string | null
+          foto_painel?: string | null
+          foto_traseira?: string | null
           foto_url?: string | null
           id?: string
           km_atual?: number | null
