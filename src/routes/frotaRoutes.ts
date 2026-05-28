@@ -18,7 +18,7 @@ export const frotaRoutes: RouteConfig[] = [
   { path: "/frota/manutencao", component: Manutencao, roles: ["admin", "gestor"] },
   { path: "/frota/relatorios", component: RelatoriosFrota, roles: ["admin", "gestor"] },
   { path: "/frota/gamificacao", component: Gamificacao, roles: ["admin", "gestor"] },
-  { path: "/frota/documentos", component: DocumentosFrota, roles: ["admin", "gestor"] },
+  
   { path: "/frota/checklist", component: ChecklistSaida, roles: ["admin", "gestor", "operacional"] },
   { path: "/frota/multas", component: MultasFrota, roles: ["admin", "gestor"] },
 ];
