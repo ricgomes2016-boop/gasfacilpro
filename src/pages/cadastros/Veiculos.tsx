@@ -682,6 +682,8 @@ export default function Veiculos() {
                 {filtered.map(v => {
                   const gps = getGpsStatus(v.entregador_id);
                   const kmL = getKmL(v.id);
+                  const crlv = getDocStatus(v.crlv_vencimento);
+                  const seguro = getDocStatus(v.seguro_vencimento);
                   return (
                     <div key={v.id} className={`rounded-2xl border border-border/45 bg-card p-3 shadow-sm w-full min-w-0 ${(v.status === "excluido" || v.status === "inativo") ? "opacity-60" : ""}`}>
                       <div className="flex items-start justify-between gap-3 w-full min-w-0">
@@ -697,6 +699,7 @@ export default function Veiculos() {
                             <p className="font-mono text-sm font-bold truncate">{v.placa}</p>
                             <p className="text-sm font-medium truncate">{v.modelo}</p>
                             <p className="text-xs text-muted-foreground truncate">{v.marca || "Sem marca"} {v.ano || ""}</p>
+                            {v.renavam && <p className="text-[10px] text-muted-foreground truncate">RENAVAM: {v.renavam}</p>}
                           </div>
                         </div>
                         {getStatusBadge(v.status)}
@@ -706,6 +709,13 @@ export default function Veiculos() {
                         <div className="rounded-xl bg-muted/50 p-2 min-w-0"><span className="text-muted-foreground">KM</span><p className="font-medium truncate">{v.km_atual?.toLocaleString("pt-BR") || 0}</p></div>
                         <div className="rounded-xl bg-muted/50 p-2 min-w-0"><span className="text-muted-foreground">KM/L</span><p className="font-medium truncate">{kmL ? kmL.toFixed(1) : "—"}</p></div>
                         <div className="rounded-xl bg-muted/50 p-2 min-w-0"><span className="text-muted-foreground">GPS</span><p className="font-medium truncate">{v.entregador_id ? gps.label : "—"}</p></div>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                        <span className="text-muted-foreground">CRLV:</span>
+                        <Badge variant={crlv.variant} className="h-5">{crlv.label}</Badge>
+                        <span className="text-muted-foreground ml-1">Seguro:</span>
+                        <Badge variant={seguro.variant} className="h-5">{seguro.label}</Badge>
+                        {v.seguro_empresa && <span className="text-muted-foreground truncate">· {v.seguro_empresa}</span>}
                       </div>
                       <div className="mt-3 flex items-center justify-between gap-2 w-full min-w-0">
                         <span className="text-xs text-muted-foreground truncate">{getEntregadorNome(v.entregador_id) || "Sem entregador"}</span>
