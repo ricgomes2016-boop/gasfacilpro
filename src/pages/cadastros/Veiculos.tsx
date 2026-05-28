@@ -23,7 +23,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Truck, Plus, Search, Edit, Trash2, User, Car, ExternalLink, Eye, MapPin, Fuel, WifiOff, Building2, FileDown, RefreshCw, DollarSign, Loader2 } from "lucide-react";
+import { Truck, Plus, Search, Edit, Trash2, User, Car, ExternalLink, Eye, MapPin, Fuel, WifiOff, Building2, FileDown, RefreshCw, DollarSign, Loader2, Upload, ShieldCheck } from "lucide-react";
 import { consultarFipe } from "@/lib/fipe";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -92,6 +92,7 @@ interface Veiculo {
   seguro_empresa: string | null;
   foto_url: string | null;
   unidade_id: string | null;
+  renavam: string | null;
 }
 
 const statusOptions = [
@@ -101,7 +102,7 @@ const statusOptions = [
   { value: "excluido", label: "Excluído", color: "bg-destructive/10 text-destructive" },
 ];
 
-const emptyForm = { placa: "", modelo: "", marca: "", ano: "", km_atual: "", tipo: "moto", entregador_id: "", valor_fipe: "", status: "ativo", foto_url: "" };
+const emptyForm = { placa: "", modelo: "", marca: "", ano: "", km_atual: "", tipo: "moto", entregador_id: "", valor_fipe: "", status: "ativo", foto_url: "", renavam: "", crlv_vencimento: "", seguro_vencimento: "", seguro_empresa: "" };
 
 export default function Veiculos() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
@@ -119,6 +120,69 @@ export default function Veiculos() {
   const [fipeLoading, setFipeLoading] = useState(false);
   const [bulkFipeLoading, setBulkFipeLoading] = useState(false);
   const { unidadeAtual, unidades } = useUnidade();
+  const [importingCrlv, setImportingCrlv] = useState(false);
+
+  const getDocStatus = (date: string | null) => {
+    if (!date) return { label: "Não informado", variant: "secondary" as const, dias: null as number | null };
+    const dias = Math.ceil((new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    if (dias <= 0) return { label: `Vencido ${Math.abs(dias)}d`, variant: "destructive" as const, dias };
+    if (dias <= 30) return { label: `${dias}d`, variant: "default" as const, dias };
+    return { label: `${dias}d`, variant: "secondary" as const, dias };
+  };
+
+  const compressImage = (file: File, maxWidth = 1600): Promise<string> =>
+    new Promise((resolve, reject) => {
+      if (file.type === "application/pdf") {
+        const r = new FileReader();
+        r.onload = () => resolve(r.result as string);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const ratio = Math.min(maxWidth / img.width, 1);
+          canvas.width = img.width * ratio;
+          canvas.height = img.height * ratio;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return reject("Canvas error");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", 0.85));
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handleImportCrlvForm = async (file: File) => {
+    setImportingCrlv(true);
+    try {
+      const imageBase64 = await compressImage(file);
+      const { data, error } = await supabase.functions.invoke("parse-crlv", { body: { imageBase64 } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const patch: any = {};
+      if (data.crlv_vencimento) patch.crlv_vencimento = data.crlv_vencimento;
+      if (data.renavam) patch.renavam = String(data.renavam);
+      if (data.placa && !form.placa) patch.placa = formatPlacaMercosul(String(data.placa));
+      if (Object.keys(patch).length === 0) {
+        toast.error("Nada foi identificado no CRLV.");
+        return;
+      }
+      setForm(f => ({ ...f, ...patch }));
+      toast.success("CRLV importado!");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao importar CRLV");
+    } finally {
+      setImportingCrlv(false);
+    }
+  };
+
 
   const handleBuscarFipeForm = async () => {
     if (!form.marca || !form.modelo) {
@@ -233,6 +297,10 @@ export default function Veiculos() {
       status: form.status || "ativo",
       ativo: form.status !== "excluido",
       foto_url: form.foto_url || null,
+      renavam: form.renavam?.trim() || null,
+      crlv_vencimento: form.crlv_vencimento || null,
+      seguro_vencimento: form.seguro_vencimento || null,
+      seguro_empresa: form.seguro_empresa?.trim() || null,
     };
     if (!editId && unidadeAtual?.id) {
       payload.unidade_id = unidadeAtual.id;
@@ -265,6 +333,10 @@ export default function Veiculos() {
       valor_fipe: v.valor_fipe?.toString() || "",
       status: v.status || "ativo",
       foto_url: v.foto_url || "",
+      renavam: v.renavam || "",
+      crlv_vencimento: v.crlv_vencimento || "",
+      seguro_vencimento: v.seguro_vencimento || "",
+      seguro_empresa: v.seguro_empresa || "",
     });
     setEditId(v.id);
     setOpen(true);
@@ -308,9 +380,10 @@ export default function Veiculos() {
 
     autoTable(doc, {
       startY: 33,
-      head: [["Placa", "Modelo", "Marca", "Ano", "Tipo", "KM", "Status", "Filial", "Entregador", "FIPE (R$)"]],
+      head: [["Placa", "RENAVAM", "Modelo", "Marca", "Ano", "Tipo", "KM", "Status", "Filial", "Entregador", "FIPE (R$)", "CRLV", "Seguro"]],
       body: filtered.map(v => [
         v.placa,
+        v.renavam || "—",
         v.modelo,
         v.marca || "—",
         v.ano?.toString() || "—",
@@ -320,8 +393,10 @@ export default function Veiculos() {
         getUnidadeNome(v.unidade_id),
         getEntregadorNome(v.entregador_id) || "—",
         Number(v.valor_fipe || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
+        v.crlv_vencimento ? new Date(v.crlv_vencimento).toLocaleDateString("pt-BR") : "—",
+        v.seguro_vencimento ? new Date(v.seguro_vencimento).toLocaleDateString("pt-BR") : "—",
       ]),
-      styles: { fontSize: 9, cellPadding: 2 },
+      styles: { fontSize: 8, cellPadding: 1.5 },
       headStyles: { fillColor: [41, 98, 89], textColor: 255, fontStyle: "bold" },
     });
 
@@ -492,6 +567,47 @@ export default function Veiculos() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-2 sm:col-span-2 border-t border-border/40 pt-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="flex items-center gap-2 text-sm font-semibold"><ShieldCheck className="h-4 w-4 text-primary" />Documentos do veículo</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={importingCrlv}
+                      className="gap-1"
+                      onClick={() => {
+                        const input = document.createElement("input");
+                        input.type = "file";
+                        input.accept = "image/*,application/pdf";
+                        input.onchange = (ev: any) => {
+                          const f = ev.target.files?.[0];
+                          if (f) handleImportCrlvForm(f);
+                        };
+                        input.click();
+                      }}
+                    >
+                      {importingCrlv ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      Importar CRLV
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>RENAVAM</Label>
+                  <Input value={form.renavam} onChange={e => setForm({...form, renavam: e.target.value.replace(/\D/g, "")})} placeholder="00000000000" maxLength={11} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Vencimento CRLV</Label>
+                  <Input type="date" value={form.crlv_vencimento} onChange={e => setForm({...form, crlv_vencimento: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Vencimento Seguro</Label>
+                  <Input type="date" value={form.seguro_vencimento} onChange={e => setForm({...form, seguro_vencimento: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Seguradora</Label>
+                  <Input value={form.seguro_empresa} onChange={e => setForm({...form, seguro_empresa: e.target.value})} placeholder="Nome da seguradora" />
+                </div>
               </div>
               <div className="flex flex-col-reverse gap-2 mt-4 sm:flex-row sm:justify-end">
                 <Button className="h-10" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
@@ -566,6 +682,8 @@ export default function Veiculos() {
                 {filtered.map(v => {
                   const gps = getGpsStatus(v.entregador_id);
                   const kmL = getKmL(v.id);
+                  const crlv = getDocStatus(v.crlv_vencimento);
+                  const seguro = getDocStatus(v.seguro_vencimento);
                   return (
                     <div key={v.id} className={`rounded-2xl border border-border/45 bg-card p-3 shadow-sm w-full min-w-0 ${(v.status === "excluido" || v.status === "inativo") ? "opacity-60" : ""}`}>
                       <div className="flex items-start justify-between gap-3 w-full min-w-0">
@@ -581,6 +699,7 @@ export default function Veiculos() {
                             <p className="font-mono text-sm font-bold truncate">{v.placa}</p>
                             <p className="text-sm font-medium truncate">{v.modelo}</p>
                             <p className="text-xs text-muted-foreground truncate">{v.marca || "Sem marca"} {v.ano || ""}</p>
+                            {v.renavam && <p className="text-[10px] text-muted-foreground truncate">RENAVAM: {v.renavam}</p>}
                           </div>
                         </div>
                         {getStatusBadge(v.status)}
@@ -590,6 +709,13 @@ export default function Veiculos() {
                         <div className="rounded-xl bg-muted/50 p-2 min-w-0"><span className="text-muted-foreground">KM</span><p className="font-medium truncate">{v.km_atual?.toLocaleString("pt-BR") || 0}</p></div>
                         <div className="rounded-xl bg-muted/50 p-2 min-w-0"><span className="text-muted-foreground">KM/L</span><p className="font-medium truncate">{kmL ? kmL.toFixed(1) : "—"}</p></div>
                         <div className="rounded-xl bg-muted/50 p-2 min-w-0"><span className="text-muted-foreground">GPS</span><p className="font-medium truncate">{v.entregador_id ? gps.label : "—"}</p></div>
+                      </div>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                        <span className="text-muted-foreground">CRLV:</span>
+                        <Badge variant={crlv.variant} className="h-5">{crlv.label}</Badge>
+                        <span className="text-muted-foreground ml-1">Seguro:</span>
+                        <Badge variant={seguro.variant} className="h-5">{seguro.label}</Badge>
+                        {v.seguro_empresa && <span className="text-muted-foreground truncate">· {v.seguro_empresa}</span>}
                       </div>
                       <div className="mt-3 flex items-center justify-between gap-2 w-full min-w-0">
                         <span className="text-xs text-muted-foreground truncate">{getEntregadorNome(v.entregador_id) || "Sem entregador"}</span>
@@ -615,6 +741,7 @@ export default function Veiculos() {
                     <TableHead>KM/L</TableHead>
                     <TableHead>GPS</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Documentos</TableHead>
                     <TableHead>Entregador</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -623,6 +750,8 @@ export default function Veiculos() {
                   {filtered.map(v => {
                     const gps = getGpsStatus(v.entregador_id);
                     const kmL = getKmL(v.id);
+                    const crlv = getDocStatus(v.crlv_vencimento);
+                    const seguro = getDocStatus(v.seguro_vencimento);
                     return (
                     <TableRow key={v.id} className={(v.status === "excluido" || v.status === "inativo") ? "opacity-60" : ""}>
                       <TableCell className="w-16">
@@ -634,7 +763,10 @@ export default function Veiculos() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="font-mono font-bold">{v.placa}</TableCell>
+                      <TableCell className="font-mono font-bold">
+                        <div>{v.placa}</div>
+                        {v.renavam && <div className="text-[10px] font-normal text-muted-foreground">RENAVAM {v.renavam}</div>}
+                      </TableCell>
                       <TableCell>
                         <div className="text-sm">{v.modelo}</div>
                         {v.marca && <div className="text-xs text-muted-foreground">{v.marca} {v.ano || ""}</div>}
@@ -672,6 +804,19 @@ export default function Veiculos() {
                         ) : <span className="text-muted-foreground text-xs">—</span>}
                       </TableCell>
                       <TableCell>{getStatusBadge(v.status)}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1 text-xs">
+                            <span className="text-muted-foreground">CRLV</span>
+                            <Badge variant={crlv.variant} className="h-5 px-1.5 text-[10px]">{crlv.label}</Badge>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs">
+                            <span className="text-muted-foreground">Seg.</span>
+                            <Badge variant={seguro.variant} className="h-5 px-1.5 text-[10px]">{seguro.label}</Badge>
+                          </div>
+                          {v.seguro_empresa && <div className="text-[10px] text-muted-foreground truncate max-w-[140px]">{v.seguro_empresa}</div>}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         {getEntregadorNome(v.entregador_id) ? (
                           <Badge variant="secondary" className="gap-1">
@@ -722,7 +867,7 @@ export default function Veiculos() {
                     );
                   })}
                   {filtered.length === 0 && (
-                    <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">Nenhum veículo encontrado</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground">Nenhum veículo encontrado</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>

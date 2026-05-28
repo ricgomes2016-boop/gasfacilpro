@@ -12,102 +12,23 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Tabs, TabsContent, TabsList, TabsTrigger,
-} from "@/components/ui/tabs";
-import {
-  Shield, AlertTriangle, CheckCircle2, Loader2, Edit, Truck, User, Upload,
-} from "lucide-react";
+import { AlertTriangle, Loader2, Edit, User, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 export default function DocumentosFrota() {
   const { unidadeAtual } = useUnidade();
   const [loading, setLoading] = useState(true);
-  const [veiculos, setVeiculos] = useState<any[]>([]);
   const [entregadores, setEntregadores] = useState<any[]>([]);
-
-  const [editVeiculo, setEditVeiculo] = useState<any | null>(null);
   const [editEntregador, setEditEntregador] = useState<any | null>(null);
-  const [formVeiculo, setFormVeiculo] = useState({ crlv_vencimento: "", seguro_vencimento: "", seguro_empresa: "" });
   const [formEntregador, setFormEntregador] = useState({ cnh_vencimento: "" });
-  const [importingId, setImportingId] = useState<string | null>(null);
-
-  const compressImage = (file: File, maxWidth = 1600): Promise<string> =>
-    new Promise((resolve, reject) => {
-      if (file.type === "application/pdf") {
-        const r = new FileReader();
-        r.onload = () => resolve(r.result as string);
-        r.onerror = reject;
-        r.readAsDataURL(file);
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const ratio = Math.min(maxWidth / img.width, 1);
-          canvas.width = img.width * ratio;
-          canvas.height = img.height * ratio;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) return reject("Canvas error");
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL("image/jpeg", 0.85));
-        };
-        img.onerror = reject;
-        img.src = e.target?.result as string;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-  const handleImportCrlv = async (veiculo: any, file: File) => {
-    setImportingId(veiculo.id);
-    try {
-      const imageBase64 = await compressImage(file);
-      const { data, error } = await supabase.functions.invoke("parse-crlv", { body: { imageBase64 } });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-
-      const placaCRLV = (data.placa || "").toUpperCase();
-      const placaVeic = (veiculo.placa || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
-      if (placaCRLV && placaVeic && placaCRLV !== placaVeic) {
-        const ok = confirm(`A placa do CRLV (${placaCRLV}) não corresponde à do veículo (${placaVeic}). Deseja continuar mesmo assim?`);
-        if (!ok) { setImportingId(null); return; }
-      }
-
-      if (!data.crlv_vencimento) {
-        toast.error("Não foi possível identificar a data de vencimento.");
-        setImportingId(null);
-        return;
-      }
-
-      const { error: upErr } = await supabase
-        .from("veiculos")
-        .update({ crlv_vencimento: data.crlv_vencimento } as any)
-        .eq("id", veiculo.id);
-      if (upErr) throw upErr;
-
-      toast.success(`CRLV importado! Vencimento: ${new Date(data.crlv_vencimento).toLocaleDateString("pt-BR")}`);
-      fetchData();
-    } catch (e: any) {
-      toast.error(e.message || "Erro ao importar CRLV");
-    } finally {
-      setImportingId(null);
-    }
-  };
 
   useEffect(() => { fetchData(); }, [unidadeAtual?.id]);
 
   const fetchData = async () => {
     setLoading(true);
-    let vq = supabase.from("veiculos").select("id, placa, modelo, crlv_vencimento, seguro_vencimento, seguro_empresa").eq("ativo", true).order("placa");
-    if (unidadeAtual?.id) vq = vq.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
-    const { data: v } = await vq;
-    setVeiculos(v || []);
-
     let eq = supabase.from("entregadores").select("id, nome, cnh, cnh_vencimento").eq("ativo", true).order("nome");
     if (unidadeAtual?.id) eq = eq.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
     const { data: e } = await eq;
@@ -123,19 +44,6 @@ export default function DocumentosFrota() {
     return { label: `${dias}d`, variant: "secondary" as const, dias };
   };
 
-  const handleSaveVeiculo = async () => {
-    if (!editVeiculo) return;
-    const { error } = await supabase.from("veiculos").update({
-      crlv_vencimento: formVeiculo.crlv_vencimento || null,
-      seguro_vencimento: formVeiculo.seguro_vencimento || null,
-      seguro_empresa: formVeiculo.seguro_empresa || null,
-    } as any).eq("id", editVeiculo.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Documentos atualizados!");
-    setEditVeiculo(null);
-    fetchData();
-  };
-
   const handleSaveEntregador = async () => {
     if (!editEntregador) return;
     const { error } = await supabase.from("entregadores").update({
@@ -147,12 +55,6 @@ export default function DocumentosFrota() {
     fetchData();
   };
 
-  const alertasVeiculos = veiculos.filter(v => {
-    const crlv = getStatus(v.crlv_vencimento);
-    const seguro = getStatus(v.seguro_vencimento);
-    return (crlv.dias !== null && crlv.dias <= 30) || (seguro.dias !== null && seguro.dias <= 30);
-  }).length;
-
   const alertasCNH = entregadores.filter(e => {
     const s = getStatus(e.cnh_vencimento);
     return s.dias !== null && s.dias <= 30;
@@ -161,7 +63,7 @@ export default function DocumentosFrota() {
   if (loading) {
     return (
       <MainLayout>
-        <Header title="Documentos da Frota" subtitle="Controle de CRLV, Seguro e CNH" />
+        <Header title="Documentos — CNH Motoristas" subtitle="Controle das CNHs dos entregadores" />
         <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       </MainLayout>
     );
@@ -169,18 +71,19 @@ export default function DocumentosFrota() {
 
   return (
     <MainLayout>
-      <Header title="Documentos da Frota" subtitle="Controle de CRLV, Seguro e CNH" />
+      <Header title="Documentos — CNH Motoristas" subtitle="Controle das CNHs dos entregadores" />
       <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">Veículos</CardTitle><Truck className="h-4 w-4 text-primary" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold">{veiculos.length}</div></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">Alertas Veículos</CardTitle><AlertTriangle className="h-4 w-4 text-destructive" /></CardHeader>
-            <CardContent><div className="text-2xl font-bold text-destructive">{alertasVeiculos}</div></CardContent>
-          </Card>
+        <Card className="border-dashed">
+          <CardContent className="flex items-start gap-3 p-4">
+            <Truck className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium">CRLV, Seguro e RENAVAM agora ficam em <Link to="/cadastros/veiculos" className="text-primary underline">Veículos</Link>.</p>
+              <p className="text-muted-foreground">Cada card de veículo exibe e permite editar os documentos do próprio veículo.</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2"><CardTitle className="text-sm">Entregadores</CardTitle><User className="h-4 w-4 text-primary" /></CardHeader>
             <CardContent><div className="text-2xl font-bold">{entregadores.length}</div></CardContent>
@@ -191,153 +94,46 @@ export default function DocumentosFrota() {
           </Card>
         </div>
 
-        <Tabs defaultValue="veiculos">
-          <TabsList>
-            <TabsTrigger value="veiculos"><Truck className="h-4 w-4 mr-2" />Veículos</TabsTrigger>
-            <TabsTrigger value="cnh"><User className="h-4 w-4 mr-2" />CNH Motoristas</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="veiculos" className="mt-4">
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Placa</TableHead>
-                        <TableHead>Modelo</TableHead>
-                        <TableHead>CRLV</TableHead>
-                        <TableHead>Seguro</TableHead>
-                        <TableHead>Seguradora</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Entregador</TableHead>
+                    <TableHead>CNH</TableHead>
+                    <TableHead>Vencimento</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {entregadores.map(e => {
+                    const s = getStatus(e.cnh_vencimento);
+                    return (
+                      <TableRow key={e.id}>
+                        <TableCell className="font-medium">{e.nome}</TableCell>
+                        <TableCell>{e.cnh || "—"}</TableCell>
+                        <TableCell>{e.cnh_vencimento ? new Date(e.cnh_vencimento).toLocaleDateString("pt-BR") : "—"}</TableCell>
+                        <TableCell><Badge variant={s.variant}>{s.label}</Badge></TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => {
+                            setEditEntregador(e);
+                            setFormEntregador({ cnh_vencimento: e.cnh_vencimento || "" });
+                          }}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {veiculos.map(v => {
-                        const crlv = getStatus(v.crlv_vencimento);
-                        const seguro = getStatus(v.seguro_vencimento);
-                        return (
-                          <TableRow key={v.id}>
-                            <TableCell className="font-medium">{v.placa}</TableCell>
-                            <TableCell>{v.modelo}</TableCell>
-                            <TableCell>
-                              <Badge variant={crlv.variant}>{crlv.label}</Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={seguro.variant}>{seguro.label}</Badge>
-                            </TableCell>
-                            <TableCell>{v.seguro_empresa || "—"}</TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  title="Importar CRLV (foto ou PDF)"
-                                  disabled={importingId === v.id}
-                                  onClick={() => {
-                                    const input = document.createElement("input");
-                                    input.type = "file";
-                                    input.accept = "image/*,application/pdf";
-                                    input.onchange = (ev: any) => {
-                                      const f = ev.target.files?.[0];
-                                      if (f) handleImportCrlv(v, f);
-                                    };
-                                    input.click();
-                                  }}
-                                >
-                                  {importingId === v.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => {
-                                  setEditVeiculo(v);
-                                  setFormVeiculo({
-                                    crlv_vencimento: v.crlv_vencimento || "",
-                                    seguro_vencimento: v.seguro_vencimento || "",
-                                    seguro_empresa: v.seguro_empresa || "",
-                                  });
-                                }}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="cnh" className="mt-4">
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Entregador</TableHead>
-                        <TableHead>CNH</TableHead>
-                        <TableHead>Vencimento</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {entregadores.map(e => {
-                        const s = getStatus(e.cnh_vencimento);
-                        return (
-                          <TableRow key={e.id}>
-                            <TableCell className="font-medium">{e.nome}</TableCell>
-                            <TableCell>{e.cnh || "—"}</TableCell>
-                            <TableCell>{e.cnh_vencimento ? new Date(e.cnh_vencimento).toLocaleDateString("pt-BR") : "—"}</TableCell>
-                            <TableCell><Badge variant={s.variant}>{s.label}</Badge></TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" onClick={() => {
-                                setEditEntregador(e);
-                                setFormEntregador({ cnh_vencimento: e.cnh_vencimento || "" });
-                              }}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Edit Veículo Dialog */}
-      <Dialog open={!!editVeiculo} onOpenChange={(o) => !o && setEditVeiculo(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Documentos — {editVeiculo?.placa}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Vencimento CRLV</Label>
-              <Input type="date" value={formVeiculo.crlv_vencimento} onChange={e => setFormVeiculo(p => ({ ...p, crlv_vencimento: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Vencimento Seguro</Label>
-              <Input type="date" value={formVeiculo.seguro_vencimento} onChange={e => setFormVeiculo(p => ({ ...p, seguro_vencimento: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Seguradora</Label>
-              <Input value={formVeiculo.seguro_empresa} onChange={e => setFormVeiculo(p => ({ ...p, seguro_empresa: e.target.value }))} placeholder="Nome da seguradora" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditVeiculo(null)}>Cancelar</Button>
-            <Button onClick={handleSaveVeiculo}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit CNH Dialog */}
       <Dialog open={!!editEntregador} onOpenChange={(o) => !o && setEditEntregador(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>CNH — {editEntregador?.nome}</DialogTitle></DialogHeader>
