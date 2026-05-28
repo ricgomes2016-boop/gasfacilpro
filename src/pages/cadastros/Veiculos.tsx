@@ -750,6 +750,8 @@ export default function Veiculos() {
                   {filtered.map(v => {
                     const gps = getGpsStatus(v.entregador_id);
                     const kmL = getKmL(v.id);
+                    const crlv = getDocStatus(v.crlv_vencimento);
+                    const seguro = getDocStatus(v.seguro_vencimento);
                     return (
                     <TableRow key={v.id} className={(v.status === "excluido" || v.status === "inativo") ? "opacity-60" : ""}>
                       <TableCell className="w-16">
@@ -761,7 +763,10 @@ export default function Veiculos() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="font-mono font-bold">{v.placa}</TableCell>
+                      <TableCell className="font-mono font-bold">
+                        <div>{v.placa}</div>
+                        {v.renavam && <div className="text-[10px] font-normal text-muted-foreground">RENAVAM {v.renavam}</div>}
+                      </TableCell>
                       <TableCell>
                         <div className="text-sm">{v.modelo}</div>
                         {v.marca && <div className="text-xs text-muted-foreground">{v.marca} {v.ano || ""}</div>}
