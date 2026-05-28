@@ -342,6 +342,11 @@ export default function Veiculos() {
       crlv_vencimento: v.crlv_vencimento || "",
       seguro_vencimento: v.seguro_vencimento || "",
       seguro_empresa: v.seguro_empresa || "",
+      foto_painel: v.foto_painel || "",
+      foto_frente: v.foto_frente || "",
+      foto_lado_direito: v.foto_lado_direito || "",
+      foto_lado_esquerdo: v.foto_lado_esquerdo || "",
+      foto_traseira: v.foto_traseira || "",
     });
     setEditId(v.id);
     setOpen(true);
