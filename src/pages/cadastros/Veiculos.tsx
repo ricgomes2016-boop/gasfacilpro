@@ -306,6 +306,11 @@ export default function Veiculos() {
       crlv_vencimento: form.crlv_vencimento || null,
       seguro_vencimento: form.seguro_vencimento || null,
       seguro_empresa: form.seguro_empresa?.trim() || null,
+      foto_painel: form.foto_painel || null,
+      foto_frente: form.foto_frente || null,
+      foto_lado_direito: form.foto_lado_direito || null,
+      foto_lado_esquerdo: form.foto_lado_esquerdo || null,
+      foto_traseira: form.foto_traseira || null,
     };
     if (!editId && unidadeAtual?.id) {
       payload.unidade_id = unidadeAtual.id;
