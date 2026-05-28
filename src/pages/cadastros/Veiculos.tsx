@@ -867,7 +867,7 @@ export default function Veiculos() {
                     );
                   })}
                   {filtered.length === 0 && (
-                    <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">Nenhum veículo encontrado</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground">Nenhum veículo encontrado</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
