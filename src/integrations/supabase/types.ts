@@ -10881,6 +10881,7 @@ export type Database = {
           marca: string | null
           modelo: string
           placa: string
+          renavam: string | null
           seguro_empresa: string | null
           seguro_vencimento: string | null
           status: string | null
@@ -10901,6 +10902,7 @@ export type Database = {
           marca?: string | null
           modelo: string
           placa: string
+          renavam?: string | null
           seguro_empresa?: string | null
           seguro_vencimento?: string | null
           status?: string | null
@@ -10921,6 +10923,7 @@ export type Database = {
           marca?: string | null
           modelo?: string
           placa?: string
+          renavam?: string | null
           seguro_empresa?: string | null
           seguro_vencimento?: string | null
           status?: string | null
