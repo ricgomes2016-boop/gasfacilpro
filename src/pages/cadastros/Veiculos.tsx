@@ -93,6 +93,11 @@ interface Veiculo {
   foto_url: string | null;
   unidade_id: string | null;
   renavam: string | null;
+  foto_painel: string | null;
+  foto_frente: string | null;
+  foto_lado_direito: string | null;
+  foto_lado_esquerdo: string | null;
+  foto_traseira: string | null;
 }
 
 const statusOptions = [
