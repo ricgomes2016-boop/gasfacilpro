@@ -716,13 +716,15 @@ export default function Veiculos() {
                     <div key={v.id} className={`rounded-2xl border border-border/45 bg-card p-3 shadow-sm w-full min-w-0 ${(v.status === "excluido" || v.status === "inativo") ? "opacity-60" : ""}`}>
                       <div className="flex items-start justify-between gap-3 w-full min-w-0">
                         <div className="flex items-start gap-3 min-w-0 flex-1">
+                          <button type="button" onClick={() => setDetalheVeiculo(v)} className="shrink-0 focus:outline-none focus:ring-2 focus:ring-primary rounded-lg" title="Ver detalhes">
                           {v.foto_url ? (
-                            <img src={v.foto_url} alt={v.placa} className="h-14 w-14 rounded-lg object-cover border border-border shrink-0" />
+                            <img src={v.foto_url} alt={v.placa} className="h-14 w-14 rounded-lg object-cover border border-border cursor-pointer hover:opacity-80 transition" />
                           ) : (
-                            <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center cursor-pointer hover:bg-muted/70 transition">
                               <Car className="h-6 w-6 text-muted-foreground" />
                             </div>
                           )}
+                          </button>
                           <div className="min-w-0 flex-1">
                             <p className="font-mono text-sm font-bold truncate">{v.placa}</p>
                             <p className="text-sm font-medium truncate">{v.modelo}</p>
