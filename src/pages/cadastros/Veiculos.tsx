@@ -234,6 +234,10 @@ export default function Veiculos() {
       status: form.status || "ativo",
       ativo: form.status !== "excluido",
       foto_url: form.foto_url || null,
+      renavam: form.renavam?.trim() || null,
+      crlv_vencimento: form.crlv_vencimento || null,
+      seguro_vencimento: form.seguro_vencimento || null,
+      seguro_empresa: form.seguro_empresa?.trim() || null,
     };
     if (!editId && unidadeAtual?.id) {
       payload.unidade_id = unidadeAtual.id;
