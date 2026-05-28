@@ -741,6 +741,7 @@ export default function Veiculos() {
                     <TableHead>KM/L</TableHead>
                     <TableHead>GPS</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Documentos</TableHead>
                     <TableHead>Entregador</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
