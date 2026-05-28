@@ -805,6 +805,19 @@ export default function Veiculos() {
                       </TableCell>
                       <TableCell>{getStatusBadge(v.status)}</TableCell>
                       <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1 text-xs">
+                            <span className="text-muted-foreground">CRLV</span>
+                            <Badge variant={crlv.variant} className="h-5 px-1.5 text-[10px]">{crlv.label}</Badge>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs">
+                            <span className="text-muted-foreground">Seg.</span>
+                            <Badge variant={seguro.variant} className="h-5 px-1.5 text-[10px]">{seguro.label}</Badge>
+                          </div>
+                          {v.seguro_empresa && <div className="text-[10px] text-muted-foreground truncate max-w-[140px]">{v.seguro_empresa}</div>}
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         {getEntregadorNome(v.entregador_id) ? (
                           <Badge variant="secondary" className="gap-1">
                             <User className="h-3 w-3" />
