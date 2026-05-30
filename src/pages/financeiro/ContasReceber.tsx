@@ -117,9 +117,9 @@ export default function ContasReceber() {
   const [receberConta, setReceberConta] = useState<ContaReceber | null>(null);
   const [dataInicial, setDataInicial] = useState("");
   const [dataFinal, setDataFinal] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("pendente");
-  const [showFilters, setShowFilters] = useState(false);
-  const [activeTab, setActiveTab] = useState("todos");
+  const [filtroStatus, setFiltroStatus] = useState<Set<StatusFiltro>>(new Set(["a_receber", "vencida"]));
+  const [filtroFormas, setFiltroFormas] = useState<Set<FormaCategoria>>(new Set());
+  const [activeTab, setActiveTab] = useState("todos"); // mantido só pra aba Conferência
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { unidadeAtual } = useUnidade();
 
