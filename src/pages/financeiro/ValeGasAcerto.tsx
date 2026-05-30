@@ -62,12 +62,34 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
 
   const handleGerarAcerto = async () => {
     if (!parceiroSelecionado) { toast.error("Selecione um parceiro"); return; }
+    const venc = vencimentoAcerto || defaultVencAcerto();
     try {
       const acerto = await gerarAcerto(parceiroSelecionado);
       if (acerto) {
+        const parceiro = parceiros.find(p => p.id === parceiroSelecionado);
+        // Gera o título financeiro do acerto em Contas a Receber
+        try {
+          const { error: crErr } = await supabase.from("contas_receber").insert({
+            cliente: acerto.parceiro_nome,
+            descricao: `Acerto Vale Gás - ${acerto.parceiro_nome} - ${acerto.quantidade} vales`,
+            valor: acerto.valor_total,
+            vencimento: venc,
+            status: "pendente",
+            forma_pagamento: "vale_gas",
+            vale_gas_parceiro_id: parceiro?.id,
+            origem: "vale_gas_acerto",
+            unidade_id: unidadeAtual?.id || null,
+            observacoes: `${acertoMarker(acerto.id)} Acerto de ${acerto.quantidade} vales utilizados.`,
+          });
+          if (crErr) throw crErr;
+        } catch (e: any) {
+          console.error("Erro ao gerar conta a receber do acerto:", e);
+          toast.error("Acerto gerado, mas falhou ao criar a conta a receber. Crie manualmente.");
+        }
         toast.success(`Acerto gerado! ${acerto.quantidade} vales - R$ ${Number(acerto.valor_total).toFixed(2)}`);
         setNovoAcertoDialog(false);
         setParceiroSelecionado("");
+        setVencimentoAcerto(defaultVencAcerto());
       } else {
         toast.error("Não há vales pendentes de acerto");
       }
@@ -79,6 +101,23 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
   const handleRegistrarPagamento = async () => {
     if (!pagamentoAcertoId || !formaPagamento) { toast.error("Selecione a forma de pagamento"); return; }
     await registrarPagamentoAcerto(pagamentoAcertoId, formaPagamento);
+    // Sincroniza a conta a receber correspondente
+    try {
+      const hoje = new Date().toISOString().split("T")[0];
+      const { error } = await supabase
+        .from("contas_receber")
+        .update({
+          status: "recebida",
+          data_pagamento: hoje,
+          forma_pagamento: formaPagamento,
+        })
+        .eq("origem", "vale_gas_acerto")
+        .eq("status", "pendente")
+        .ilike("observacoes", `%${acertoMarker(pagamentoAcertoId)}%`);
+      if (error) throw error;
+    } catch (e: any) {
+      console.error("Erro ao atualizar conta a receber do acerto:", e);
+    }
     toast.success("Pagamento registrado!");
     setPagamentoAcertoId(null);
     setFormaPagamento("");
