@@ -48,6 +48,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
     .toUpperCase() || "SA";
 
   return (
+    <SidebarProvider>
     <div className="min-h-screen flex bg-background">
       {/* Sidebar desktop */}
       <aside className="hidden md:flex w-72 flex-col border-r border-border/50 bg-card/80 backdrop-blur-xl">
