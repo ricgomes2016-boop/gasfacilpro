@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { SystemFooter } from "@/components/layout/SystemFooter";
+import { SidebarProvider } from "@/contexts/SidebarContext";
 
 const navItems = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard, description: "Visão geral da plataforma" },
@@ -47,6 +48,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
     .toUpperCase() || "SA";
 
   return (
+    <SidebarProvider>
     <div className="min-h-screen flex bg-background">
       {/* Sidebar desktop */}
       <aside className="hidden md:flex w-72 flex-col border-r border-border/50 bg-card/80 backdrop-blur-xl">
@@ -190,5 +192,6 @@ export function AdminLayout({ children }: { children: ReactNode }) {
       </div>
       <SystemFooter portalKey="painel" />
     </div>
+    </SidebarProvider>
   );
 }
