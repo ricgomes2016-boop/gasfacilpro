@@ -51,6 +51,7 @@ export function useMapaOperacionalData({
   const [entregadores, setEntregadores] = useState<EntregadorOp[]>([]);
   const [pedidos, setPedidos] = useState<PedidoOp[]>([]);
   const [pontosCache, setPontosCache] = useState<Record<string, PontoGPS[]>>({});
+  const [rotasAtivasPorEntregador, setRotasAtivasPorEntregador] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
 
