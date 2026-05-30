@@ -626,17 +626,22 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
                   </div>
                 )}
 
-                <div className="border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="gerarConta" checked={formData.gerarContaReceber} onCheckedChange={c => setFormData(p => ({ ...p, gerarContaReceber: c === true }))} />
-                    <Label htmlFor="gerarConta" className="flex items-center gap-2 cursor-pointer"><Receipt className="h-4 w-4" /> Gerar contas a receber</Label>
+                <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                  <Label className="flex items-center gap-2 font-semibold">
+                    <Receipt className="h-4 w-4" /> Conta a Receber do Parceiro
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Será criada automaticamente uma conta a receber para o parceiro com o valor total do lote.
+                    A venda paga com Vale Gás não gera cobrança — quem paga é o parceiro.
+                  </p>
+                  <div className="space-y-2">
+                    <Label>Vencimento do título</Label>
+                    <Input
+                      type="date"
+                      value={formData.dataVencimentoConta}
+                      onChange={e => setFormData(p => ({ ...p, dataVencimentoConta: e.target.value }))}
+                    />
                   </div>
-                  {formData.gerarContaReceber && (
-                    <div className="space-y-2 pl-6">
-                      <Label>Vencimento da Conta</Label>
-                      <Input type="date" value={formData.dataVencimentoConta} onChange={e => setFormData(p => ({ ...p, dataVencimentoConta: e.target.value }))} />
-                    </div>
-                  )}
                 </div>
 
                 <div className="space-y-2">
