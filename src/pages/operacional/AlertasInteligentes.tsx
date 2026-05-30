@@ -19,7 +19,7 @@ interface Alerta {
   acao?: string;
 }
 
-export default function AlertasInteligentes() {
+export function AlertasInteligentesContent() {
   const { unidadeAtual } = useUnidade();
   const [loading, setLoading] = useState(true);
   const [alertas, setAlertas] = useState<Alerta[]>([]);
@@ -108,10 +108,7 @@ export default function AlertasInteligentes() {
   const info = alertas.filter(a => a.tipo === "info");
 
   if (loading) return (
-    <MainLayout>
-      <Header title="Alertas Inteligentes" subtitle="Monitoramento proativo" />
-      <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
-    </MainLayout>
+    <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
   );
 
   const renderAlerta = (alerta: Alerta) => (
@@ -132,22 +129,30 @@ export default function AlertasInteligentes() {
   );
 
   return (
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex items-center justify-between">
+        <Button onClick={analisar}><AlertTriangle className="h-4 w-4 mr-2" />Reanalisar</Button>
+      </div>
+
+      <div className="grid gap-3 grid-cols-3">
+        <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-destructive">{criticos.length}</p><p className="text-xs text-muted-foreground">Críticos</p></CardContent></Card>
+        <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-chart-4">{atencao.length}</p><p className="text-xs text-muted-foreground">Atenção</p></CardContent></Card>
+        <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-primary">{info.length}</p><p className="text-xs text-muted-foreground">Informativos</p></CardContent></Card>
+      </div>
+
+      {criticos.length > 0 && <div className="space-y-3">{criticos.map(renderAlerta)}</div>}
+      {atencao.length > 0 && <div className="space-y-3">{atencao.map(renderAlerta)}</div>}
+      {info.length > 0 && <div className="space-y-3">{info.map(renderAlerta)}</div>}
+    </div>
+  );
+}
+
+export default function AlertasInteligentes() {
+  return (
     <MainLayout>
       <Header title="Alertas Inteligentes" subtitle="Monitoramento proativo" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-4 md:space-y-6">
-        <div className="flex items-center justify-between">
-          <Button onClick={analisar}><AlertTriangle className="h-4 w-4 mr-2" />Reanalisar</Button>
-        </div>
-
-        <div className="grid gap-3 grid-cols-3">
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-destructive">{criticos.length}</p><p className="text-xs text-muted-foreground">Críticos</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-chart-4">{atencao.length}</p><p className="text-xs text-muted-foreground">Atenção</p></CardContent></Card>
-          <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-primary">{info.length}</p><p className="text-xs text-muted-foreground">Informativos</p></CardContent></Card>
-        </div>
-
-        {criticos.length > 0 && <div className="space-y-3">{criticos.map(renderAlerta)}</div>}
-        {atencao.length > 0 && <div className="space-y-3">{atencao.map(renderAlerta)}</div>}
-        {info.length > 0 && <div className="space-y-3">{info.map(renderAlerta)}</div>}
+      <div className="p-3 sm:p-4 md:p-6">
+        <AlertasInteligentesContent />
       </div>
     </MainLayout>
   );
