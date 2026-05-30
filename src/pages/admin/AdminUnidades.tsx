@@ -144,13 +144,22 @@ export default function AdminUnidades() {
     }
   };
 
-  const filtered = unidades.filter((u) =>
-    u.nome.toLowerCase().includes(search.toLowerCase()) ||
-    getEmpresaNome(u.empresa_id).toLowerCase().includes(search.toLowerCase())
-  );
+  const empresasAtivas = empresas.filter((e) => e.ativo);
+  const filtered = unidades.filter((u) => {
+    const emp = getEmpresa(u.empresa_id);
+    if (onlyActiveEmpresas && emp && !emp.ativo) return false;
+    if (onlyActiveEmpresas && !emp) return false;
+    const term = search.toLowerCase();
+    if (!term) return true;
+    return (
+      u.nome.toLowerCase().includes(term) ||
+      getEmpresaNome(u.empresa_id).toLowerCase().includes(term)
+    );
+  });
 
   return (
     <AdminLayout>
+      <TooltipProvider>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -158,8 +167,18 @@ export default function AdminUnidades() {
               <MapPin className="h-6 w-6 text-primary" />
               Unidades
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {unidades.length} unidades em {empresas.length} empresas.
+            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+              <span>{filtered.length} de {unidades.length} unidades · {empresasAtivas.length} empresas ativas ({empresas.length} no total).</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" className="inline-flex items-center text-muted-foreground hover:text-foreground">
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs">
+                  Toda nova empresa cadastrada no SaaS recebe automaticamente uma unidade "Matriz" criada pelo sistema. Por isso aparecem várias Matrizes de outras empresas — elas pertencem a outros tenants e ficam isoladas por RLS.
+                </TooltipContent>
+              </Tooltip>
             </p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
