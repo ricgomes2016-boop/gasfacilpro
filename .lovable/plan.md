@@ -1,33 +1,65 @@
-## Ajustes em `AdminUnidades.tsx`
+## Controle de acesso por plano (Básico / Starter / Enterprise)
 
-Apenas mudanças de front-end na tela `/admin/unidades` para esclarecer as "Matrizes" de outras empresas SaaS.
+Nova área no admin para mapear cada página/módulo do sistema a um ou mais planos do SaaS, usando checkboxes. O plano da empresa (`empresas.plano`) já existe — vamos usar a mesma chave (`basico`, `starter`, `enterprise`).
 
-### Mudanças
+### 1. Banco de dados (migration)
 
-1. **Carregar todas as empresas (ativas e inativas)**
-   - Remover o filtro `ativo = true` no carregamento de `empresas`.
-   - Manter o flag `ativo` no objeto em memória para uso na UI.
+Criar tabela `public.plano_modulos` para guardar a matriz de acesso:
 
-2. **Coluna "Empresa" sempre preenchida**
-   - Exibir o nome da empresa mesmo quando inativa.
-   - Sub-label discreto "Empresa inativa" abaixo do nome quando `ativo = false`.
-   - Eliminar o `—` que dava a falsa impressão de unidade órfã.
+```
+plano_modulos
+- id (uuid, pk)
+- modulo_key (text, ex: "vendas.pdv")  -- identificador único da página/submenu
+- modulo_label (text, ex: "PDV")
+- modulo_grupo (text, ex: "Vendas")    -- para agrupar na UI
+- path (text, nullable)                 -- rota usada para gate em runtime
+- planos (text[])                       -- ex: {'starter','enterprise'}
+- updated_at, updated_by
+```
 
-3. **Filtro "Mostrar apenas empresas ativas"**
-   - Toggle/checkbox no topo da listagem, ligado por padrão.
-   - Quando ligado: oculta unidades cuja empresa está inativa (esconde as Matrizes "fantasma" de tenants desativados).
-   - Quando desligado: mostra tudo, útil para auditoria super_admin.
+- Índices: `unique(modulo_key)`, `gin(planos)`.
+- GRANTs: `SELECT` para `authenticated` (todo usuário logado precisa ler para o sidebar/guard); `ALL` para `service_role`; INSERT/UPDATE/DELETE só via política de super_admin.
+- RLS:
+  - SELECT: `authenticated` (público interno, sem dados sensíveis).
+  - INSERT/UPDATE/DELETE: `has_role(auth.uid(),'super_admin')`.
+- Seed inicial: popular com **todos os itens** de `src/components/layout/menuItems.ts` (cada submenu vira uma linha) + páginas do `/admin/*` ficam de fora (admin não é gated por plano). Default: todos os módulos liberados para `{'basico','starter','enterprise'}` para não quebrar nada na largada.
 
-4. **Legenda explicativa**
-   - Pequeno aviso/tooltip informando que toda nova empresa SaaS recebe automaticamente uma unidade "Matriz" via trigger do sistema.
+### 2. Nova página admin: `/admin/planos-modulos`
 
-### O que NÃO muda
+- Adicionar item "Planos & Módulos" no `AdminLayout` (ícone `Lock`/`Package`).
+- Layout: tabela agrupada por `modulo_grupo` com:
+  - Coluna "Módulo" (label + path em cinza).
+  - 3 colunas de checkbox: **Básico**, **Starter**, **Enterprise**.
+  - Checkbox no header de cada plano para marcar/desmarcar a coluna inteira.
+- Toolbar: busca por nome, filtro por grupo, botão "Salvar alterações" (faz upsert em batch).
+- Edição puramente client-side até clicar em salvar (evita ruído com toggles individuais).
+- Toast de sucesso/erro e `fetchData()` após salvar.
 
-- Trigger `trg_create_default_unidade_for_empresa` permanece.
-- Matrizes existentes não são apagadas.
-- RLS e isolamento entre empresas permanecem intactos.
-- Nenhuma alteração em outras telas.
+### 3. Runtime: aplicar o gate
 
-### Próximo passo opcional (não incluído)
+Criar `src/hooks/usePlanoAccess.ts`:
+- Busca `empresas.plano` da empresa do usuário (cache via React Query).
+- Busca `plano_modulos` (cache 5 min) e expõe:
+  - `canAccess(moduloKey | path): boolean`
+  - `planoAtual: 'basico' | 'starter' | 'enterprise'`
+  - Super_admin sempre `true`.
 
-Se quiser, posso depois listar as empresas inativas e propor desativar/remover suas Matrizes — mas só com confirmação explícita.
+Pontos de integração (mínimos, sem refatorar):
+1. **Sidebar (`menuItems.ts` + `Sidebar.tsx`)**: filtrar submenu items cujo `path` não esteja liberado para o plano atual. Itens de grupo cujos submenus ficam todos bloqueados são ocultados.
+2. **Rotas**: criar `<PlanoGuard>` wrapper leve usado em `App.tsx` apenas como fallback — se o usuário acessar uma URL direta de módulo não liberado, mostra tela "Módulo não incluído no seu plano — faça upgrade" com CTA para WhatsApp/contato. **Não vamos refatorar App.tsx**: o guard é opt-in, aplicado só onde quisermos depois; o filtro do sidebar já cobre 99% dos casos.
+
+### 4. O que NÃO muda agora
+
+- `App.tsx`, providers e rotas existentes permanecem intactos.
+- Páginas do `/admin/*`, `/contador/*`, `/cliente/*`, `/entregador/*`, `/transportadora/*` não entram no controle (são portais separados).
+- Não mexemos em RLS de outras tabelas — o gate é só de UI/rota.
+- Nada bloqueia retroativamente: seed começa com todo mundo liberado em todos os planos.
+
+### 5. Ordem de execução
+
+1. Migration: tabela + RLS + GRANTs + seed completo dos módulos.
+2. Página `/admin/planos-modulos` + item no `AdminLayout`.
+3. Hook `usePlanoAccess` + filtro no `Sidebar`.
+4. Componente `PlanoGuard` (sem aplicar em rotas ainda — fica disponível).
+
+Quer que eu siga assim? Posso ajustar a granularidade (ex: marcar página inteira vs. submenu individual) ou trocar o default do seed (liberar tudo só no enterprise, por ex.) antes de começar.

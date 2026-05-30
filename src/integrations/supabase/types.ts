@@ -7962,6 +7962,39 @@ export type Database = {
           },
         ]
       }
+      plano_modulos: {
+        Row: {
+          id: string
+          modulo_grupo: string
+          modulo_key: string
+          modulo_label: string
+          path: string | null
+          planos: string[]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          modulo_grupo: string
+          modulo_key: string
+          modulo_label: string
+          path?: string | null
+          planos?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          modulo_grupo?: string
+          modulo_key?: string
+          modulo_label?: string
+          path?: string | null
+          planos?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       politicas_cobranca: {
         Row: {
           ativo: boolean | null

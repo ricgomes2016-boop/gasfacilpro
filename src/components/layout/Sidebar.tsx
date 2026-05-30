@@ -16,10 +16,11 @@ import {
 } from "@/components/ui/tooltip";
 import { useSidebarContext } from "@/contexts/SidebarContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { menuItems } from "./menuItems";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
+import { usePlanoAccess } from "@/hooks/usePlanoAccess";
 
 // Color map for menu category icons using only semantic design-system tokens
 const menuIconColors: Record<string, string> = {
@@ -170,8 +171,23 @@ export function Sidebar() {
   const navigate = useNavigate();
   const { collapsed, setCollapsed, toggle } = useSidebarContext();
   const { signOut, profile } = useAuth();
+  const { canAccessPath } = usePlanoAccess();
   const [openMenus, setOpenMenus] = useState<string[]>([]);
   const sidebarRef = useRef<HTMLElement | null>(null);
+
+  // Filtra menu items pelas regras de plano (fail-open: se nada cadastrado, mostra tudo)
+  const visibleMenuItems = useMemo(() => {
+    return menuItems
+      .map((item) => {
+        if (item.submenu) {
+          const sub = item.submenu.filter((s) => !s.path || canAccessPath(s.path));
+          if (sub.length === 0) return null;
+          return { ...item, submenu: sub };
+        }
+        return canAccessPath(item.path) ? item : null;
+      })
+      .filter(Boolean) as typeof menuItems;
+  }, [canAccessPath]);
 
   // Auto-open active submenu
   useEffect(() => {
@@ -286,7 +302,7 @@ export function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3.5 py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="space-y-2">
-            {menuItems.map((item, idx) => {
+            {visibleMenuItems.map((item, idx) => {
               const hasSubmenu = !!item.submenu;
               const isOpen = isSubmenuOpen(item.label);
               const isItemActive = isActive(item.path);
