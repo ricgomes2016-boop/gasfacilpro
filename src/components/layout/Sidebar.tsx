@@ -302,7 +302,7 @@ export function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3.5 py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="space-y-2">
-            {menuItems.map((item, idx) => {
+            {visibleMenuItems.map((item, idx) => {
               const hasSubmenu = !!item.submenu;
               const isOpen = isSubmenuOpen(item.label);
               const isItemActive = isActive(item.path);
