@@ -1,31 +1,96 @@
-## Mudanças em Gestão de Frota
+## Diagnóstico — Relatório de Vendas hoje
 
-### 1. Remover rota "Documentos" do menu Frota
-- **`src/routes/frotaRoutes.ts`**: remover a entrada `{ path: "/frota/documentos", component: DocumentosFrota, ... }` (a página `DocumentosFrota.tsx` continua no projeto por enquanto, apenas sai do menu/rotas — as informações de CNH já vivem em RH/Funcionários e as de veículo já foram consolidadas em Cadastros/Veículos).
-- Remover o item de menu correspondente em `src/components/layout/AppSidebar.tsx` (ou onde estiver listado o link "Documentos" sob Frota).
+Hoje a tela tem **três blocos de filtro diferentes**, com sobreposição de função:
 
-### 2. Galeria de fotos do veículo (Cadastros / Veículos)
+1. **Card "Filtros" global (topo)** — `RelatorioVendas.tsx` linhas 796–890
+   - Data Início / Data Fim (input date)
+   - Status / Canal / botão Atualizar
+   - Linha "Período rápido": Mês atual, Últimos 3/6/12, Ano atual, Ano anterior
+   - Switch "Consolidar todas as unidades" (matriz)
 
-**Banco** — migration adicionando 5 colunas opcionais em `public.veiculos`:
-- `foto_painel text`
-- `foto_frente text`
-- `foto_lado_direito text`
-- `foto_lado_esquerdo text`
-- `foto_traseira text`
+2. **Card verde "Comparativo Mensal por Produto"** dentro da aba **Produtos** — linhas 1250–1353
+   - De / Até (input month, independente do filtro global)
+   - Select Quantidade / Faturamento
+   - Atalhos próprios: Ano todo, Até hoje, Últimos 3/6/12, Ano anterior
+   - Chips dos meses selecionados (Jan/26, Fev/26…)
 
-(`foto_url` continua sendo a foto principal/capa.)
+3. **Aba "Produtos Vendidos"** (`ProdutosVendidosTab.tsx`) — linhas 261–360
+   - Repete Data Início / Data Fim
+   - Repete "Período rápido"
+   - Botão exportar XLSX
 
-**`src/pages/cadastros/Veiculos.tsx`**:
-- Estender `interface Veiculo`, `emptyForm`, `handleSave` e `handleEdit` com os 5 novos campos.
-- No dialog de novo/editar veículo, adicionar uma seção **"Galeria de Fotos"** com 6 slots `ImageUpload` (`allowCamera`): Capa, Painel, Frente, Lado Direito, Lado Esquerdo, Traseira. Cada slot grava na sua coluna. Layout em grid responsivo (`grid-cols-2 md:grid-cols-3`).
-- Ao clicar em "Visualizar" (ícone Eye) ou na **foto do card do veículo**, abrir o `VeiculoDetalheDialog` (já é o comportamento atual via `setDetalheVeiculo`). Garantir que o clique na imagem do card também dispare isso (adicionar handler na thumbnail).
+Resultado: o usuário vê o mesmo filtro 2–3 vezes, com estados independentes que se contradizem. No mobile (384px) a tela fica cheia de cartões verdes/roxos com seletores de data repetidos.
 
-**`src/components/frota/VeiculoDetalheDialog.tsx`**:
-- Estender a prop `veiculo` com os 5 novos campos opcionais.
-- Adicionar uma nova aba **"Fotos"** (entre Alertas/TCO/Histórico) que renderiza um grid com as 6 fotos disponíveis (capa + painel + frente + lados + traseira), cada uma com label. Slots vazios mostram um placeholder discreto. Clicar na foto abre em tamanho cheio (lightbox simples via `Dialog`).
-- Passar os novos campos no `setDetalheVeiculo(v)` em Veículos.tsx (já passa o objeto inteiro, então só precisa do tipo).
+---
 
-### Fora do escopo
-- Nada em `App.tsx`, providers ou outras rotas.
-- Nenhuma alteração em RH/Funcionários (já tem os documentos de motorista).
-- Nenhuma alteração de RLS além das colunas novas herdarem as políticas existentes da tabela `veiculos`.
+## Plano
+
+### 1. Barra de filtros única, fixa e enxuta (topo)
+
+Substituir o `Card "Filtros"` por uma **FilterBar** compacta, com dois níveis:
+
+**Linha 1 — sempre visível (1 só linha no mobile):**
+
+```text
+[ Período ▾ ]   [ Atualizar ⟳ ]   [ Mais filtros ▾ ]
+```
+
+- **Botão Período** abre um **Popover** com:
+  - Presets em chips: Mês atual · Últimos 3m · Últimos 6m · Últimos 12m · Ano atual · Ano anterior · Personalizado
+  - Quando "Personalizado" → mostra Data Início / Data Fim
+  - O período escolhido é **a única fonte da verdade** (estado `dataInicio`/`dataFim` global).
+- **Mais filtros** abre Popover com Status, Canal e (se matriz) o switch Consolidar.
+- Resumo do filtro ativo aparece como chips abaixo da barra: "Mai/2026 · Entregue · Loja" (com X para limpar individual).
+
+### 2. Aba "Produtos" — remover filtros próprios do Comparativo Mensal
+
+- Eliminar os inputs De/Até e os 6 botões de atalho do header verde "Comparativo Mensal por Produto".
+- **O comparativo passa a usar o período global** (`dataInicio`/`dataFim`) e derivar os meses cobertos automaticamente. Os chips de meses selecionados continuam aparecendo, mas só como visualização (read-only).
+- Manter apenas o **Select "Quantidade / Faturamento"** dentro do card, pois é uma opção de **métrica**, não de período.
+- Remover `rangeIni` / `rangeFim` / `setRangeIni` / `setRangeFim` e a lista de presets do JSX. Os meses passam a ser calculados a partir do intervalo global (`startOfMonth(dataInicio)` → `endOfMonth(dataFim)`, limitado a, por exemplo, 24 meses para proteção).
+
+### 3. Aba "Produtos Vendidos" — remover filtros duplicados
+
+- Em `ProdutosVendidosTab.tsx`, remover o bloco de Data Início/Data Fim (linhas ~261) e o bloco "Período rápido" (linhas ~325).
+- Manter apenas: o agrupamento (dia/semana/mês), busca por produto e o botão Exportar XLSX.
+- A prop `onPeriodoChange` deixa de ser usada para alterar período (segue read-only via `dataInicio`/`dataFim` recebidos).
+
+### 4. Layout mobile (384px)
+
+- FilterBar fica **sticky no topo** da página (`sticky top-0 z-20`) com `backdrop-blur` para continuar legível ao rolar.
+- Popovers usam `ResponsiveDialog` (drawer no mobile) seguindo o padrão do projeto.
+- Chips de filtro ativo quebram em múltiplas linhas (`flex-wrap`).
+
+### 5. Detalhes técnicos / arquivos afetados
+
+- `src/pages/vendas/RelatorioVendas.tsx`
+  - Trocar o `<Card>` de Filtros pela nova `FilterBar` (componente local no mesmo arquivo ou em `src/components/vendas/FilterBarRelatorio.tsx`).
+  - Remover `rangeIni`, `rangeFim` e seus presets; derivar `periodosSelecionados` a partir de `dataInicio`/`dataFim` global.
+  - Remover a action do `VendaSectionHeader` do comparativo (deixar só o Select de métrica).
+- `src/pages/vendas/ProdutosVendidosTab.tsx`
+  - Apagar os dois blocos de filtro de período (Linhas 261–283 e 325–360 aprox), mantendo o restante intacto.
+- Sem mudanças em backend, RLS, queries ou rotas.
+
+### 6. Fora do escopo
+
+- Não mexer em `App.tsx`, providers, autenticação, dados ou RLS.
+- Não alterar gráficos, tabelas, exportações (PDF/XLSX) nem a lógica de vendas manuais — apenas a UI de filtros.
+
+---
+
+## Resultado esperado
+
+```text
+ANTES                              DEPOIS
+─────────────                      ─────────────
+Filtros (5 inputs + 6 chips)       FilterBar (1 linha)
+  ↓                                 ↓ chips de filtro ativo
+Tabs                               Tabs
+  Produtos                          Produtos
+   └ Comparativo (De/Até + 6        └ Comparativo (só Qtd/Fat)
+     presets + chips)               (usa período global)
+  Produtos Vendidos                 Produtos Vendidos
+   └ Data Início/Fim + 6 presets    └ só agrupamento + busca
+```
+
+Um único lugar para escolher período/status/canal. As abas só mostram dados.
