@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { UNIDADES_PUBLIC_COLUMNS } from "@/lib/db/sensitiveColumns";
 
 export interface Unidade {
   id: string;
@@ -56,7 +57,7 @@ export function UnidadeProvider({ children }: { children: ReactNode }) {
         // Admin/gestor sees all active unidades of their empresa
         let query = supabase
           .from("unidades")
-          .select("*")
+          .select(UNIDADES_PUBLIC_COLUMNS)
           .eq("ativo", true)
           .order("tipo", { ascending: true })
           .order("nome");
@@ -74,11 +75,11 @@ export function UnidadeProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const typedData = (data || []).map((u) => ({
+        const typedData = ((data as any[]) || []).map((u) => ({
           ...u,
           tipo: u.tipo as "matriz" | "filial",
           ativo: u.ativo ?? true,
-        }));
+        })) as Unidade[];
 
         setUnidades(typedData);
         selectDefault(typedData);
@@ -106,7 +107,7 @@ export function UnidadeProvider({ children }: { children: ReactNode }) {
 
         const { data, error } = await supabase
           .from("unidades")
-          .select("*")
+          .select(UNIDADES_PUBLIC_COLUMNS)
           .in("id", unidadeIds)
           .eq("ativo", true)
           .order("tipo", { ascending: true })
@@ -118,11 +119,11 @@ export function UnidadeProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const typedData = (data || []).map((u) => ({
+        const typedData = ((data as any[]) || []).map((u) => ({
           ...u,
           tipo: u.tipo as "matriz" | "filial",
           ativo: u.ativo ?? true,
-        }));
+        })) as Unidade[];
 
         setUnidades(typedData);
         selectDefault(typedData);
