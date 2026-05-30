@@ -261,12 +261,14 @@ export default function ContasReceber() {
     if (!form.cliente || !form.descricao || !form.valor || !form.vencimento) {
       toast.error("Preencha os campos obrigatórios"); return;
     }
-    const payload = {
+    const autoBaixa = isFormaAVista(form.forma_pagamento);
+    const payload: any = {
       cliente: form.cliente, descricao: form.descricao,
       valor: parseFloat(form.valor), vencimento: form.vencimento,
       forma_pagamento: form.forma_pagamento || null,
       observacoes: form.observacoes || null,
       unidade_id: unidadeAtual?.id || null,
+      ...(autoBaixa && !editId ? { status: "recebida", data_recebimento: form.vencimento || getBrasiliaDateString() } : {}),
     };
     if (editId) {
       const { error } = await supabase.from("contas_receber").update(payload).eq("id", editId);
