@@ -133,9 +133,30 @@ export default function AdminWhatsAppConfig() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("integracoes_whatsapp")
-        .select("*");
+        .select(INTEGRACOES_WHATSAPP_PUBLIC_COLUMNS);
       if (error) throw error;
-      return data as unknown as WhatsAppConfig[];
+      const base = (data as any[]) || [];
+      // Merge sensitive credential columns via admin-only RPC for each row.
+      // Column-level SELECT on tokens is revoked from `authenticated`; secrets
+      // are only readable through `get_whatsapp_integration_secrets`.
+      const merged = await Promise.all(
+        base.map(async (cfg) => {
+          const { data: secrets } = await supabase.rpc(
+            "get_whatsapp_integration_secrets",
+            { p_unidade_id: cfg.unidade_id }
+          );
+          const s = Array.isArray(secrets) ? secrets[0] : secrets;
+          return {
+            ...cfg,
+            token: s?.token ?? "",
+            instancia_token: s?.instancia_token ?? "",
+            meta_access_token: s?.meta_access_token ?? "",
+            security_token: s?.security_token ?? "",
+            meta_verify_token: s?.meta_verify_token ?? "",
+          };
+        })
+      );
+      return merged as unknown as WhatsAppConfig[];
     },
     refetchInterval: qrPolling ? 5000 : false,
   });
