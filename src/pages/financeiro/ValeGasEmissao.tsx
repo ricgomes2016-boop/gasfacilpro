@@ -361,8 +361,9 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
         unidadeId: unidadeAtual?.id || null,
       });
 
-      // Título financeiro do parceiro — SEMPRE gerado (regra fixa).
-      if (parceiro) {
+      // Título financeiro do parceiro — só para PRÉ-PAGO.
+      // Consignado/Empenho: o título nasce no Acerto (ValeGasAcerto), após apurar os vales utilizados.
+      if (parceiro && parceiro.tipo === "prepago") {
         try {
           const vencimento = formData.dataVencimentoConta || defaultVencConta();
           const { error: crErr } = await supabase.from("contas_receber").insert({
@@ -383,6 +384,8 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
           console.error("Erro ao gerar conta a receber do lote:", e);
           toast.error("Lote emitido, mas falhou ao gerar a conta a receber. Gere manualmente.");
         }
+      } else if (parceiro) {
+        toast.info("Parceiro consignado: o título será gerado no Acerto.");
       }
 
       // Gerar cupons para impressão
