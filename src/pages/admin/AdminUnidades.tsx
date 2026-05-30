@@ -446,6 +446,7 @@ export default function AdminUnidades() {
           </div>
         </div>
       )}
+      </TooltipProvider>
     </AdminLayout>
   );
 }
