@@ -727,11 +727,8 @@ export default function ContasReceber() {
     toast.success("PDF exportado!");
   };
 
-  const renderTabBadge = (key: string) => {
-    const count = countByTab[key] || 0;
-    if (count === 0) return null;
-    return <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1 text-[10px]">{count}</Badge>;
-  };
+  // (renderTabBadge removido — abas por forma foram substituídas pelo filtro unificado)
+
 
   const renderTable = () => (
     <>
