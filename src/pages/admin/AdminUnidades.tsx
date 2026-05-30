@@ -294,7 +294,19 @@ export default function AdminUnidades() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="text-xs">{getEmpresaNome(u.empresa_id)}</Badge>
+                        {(() => {
+                          const emp = getEmpresa(u.empresa_id);
+                          return (
+                            <div className="flex flex-col gap-0.5">
+                              <Badge variant="secondary" className="text-xs w-fit">
+                                {emp?.nome || "Empresa removida"}
+                              </Badge>
+                              {emp && !emp.ativo && (
+                                <span className="text-[10px] text-amber-600 dark:text-amber-400">Empresa inativa</span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="capitalize text-xs">{u.tipo}</Badge>
