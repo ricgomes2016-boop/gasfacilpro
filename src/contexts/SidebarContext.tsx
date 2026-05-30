@@ -39,10 +39,17 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const FALLBACK_SIDEBAR_CONTEXT: SidebarContextType = {
+  collapsed: false,
+  setCollapsed: () => {},
+  toggle: () => {},
+};
+
 export function useSidebarContext() {
   const context = useContext(SidebarContext);
   if (!context) {
-    throw new Error("useSidebarContext must be used within a SidebarProvider");
+    // Fallback for portals (parceiro, cliente, entregador) que não usam o Sidebar do ERP.
+    return FALLBACK_SIDEBAR_CONTEXT;
   }
   return context;
 }

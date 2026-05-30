@@ -1,7 +1,18 @@
-Plano para corrigir o portal do parceiro:
+Vou corrigir o portal parceiro de forma direta e segura.
 
-1. Ajustar `src/pages/auth/AuthParceiro.tsx` para redirecionar imediatamente para `/parceiro` assim que o login retorna sucesso, sem depender apenas do `useEffect` esperar os papéis carregarem.
-2. Manter a validação de perfil `parceiro`: se o usuário logado não tiver esse papel, continuar fazendo logout e exibindo o aviso correto.
-3. Testar no domínio publicado `https://portal.gasfacilpro.com.br/auth` com `amigao2@gmail.com` / `123456`, verificando se sai de `/auth` e cai em `/parceiro`.
+Plano:
+1. Ajustar `SystemFooter` para não quebrar quando for usado em layouts sem `SidebarProvider`.
+   - Hoje ele chama `useSidebarContext()` obrigatoriamente.
+   - No portal parceiro não existe sidebar lateral do ERP, então isso causa o erro: `useSidebarContext must be used within a SidebarProvider`.
+   - A correção será tornar o footer compatível com portais sem sidebar, usando `collapsed = false` como fallback.
 
-Detalhe técnico: o código local já aponta para `/parceiro`, mas no teste real a sessão autentica e os dados carregam com 200 OK sem troca de rota. Vou tornar o redirecionamento parte explícita do submit do login do parceiro para eliminar essa dependência assíncrona.
+2. Manter o layout do parceiro funcionando sem depender do layout do ERP.
+   - Não vou refatorar `App.tsx`, rotas globais ou providers, respeitando a estabilidade do projeto.
+   - O painel do parceiro continuará usando seu layout mobile/fixo atual.
+
+3. Validar o fluxo crítico:
+   - Acessar `/parceiro` sem quebrar.
+   - Confirmar que o erro do `SidebarProvider` desapareceu.
+   - Confirmar que o parceiro consegue abrir o painel e seguir para vender vale.
+
+4. Depois da correção, publicar a nova versão para o domínio `portal.gasfacilpro.com.br` receber o ajuste.
