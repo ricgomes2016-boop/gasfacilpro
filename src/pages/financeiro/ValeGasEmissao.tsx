@@ -410,7 +410,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
       setFormData({
         parceiroId: "", quantidade: "", valorUnitario: "105", dataVencimento: "",
         observacao: "", descricao: "VALE GÁS", clienteId: "", produtoId: "",
-        gerarContaReceber: false, dataVencimentoConta: "",
+        dataVencimentoConta: defaultVencConta(),
         numeroInicialCustom: "", numeroFinalCustom: "", numeroManual: "",
       });
     } catch (err: any) {
