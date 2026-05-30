@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth, AppRole } from "@/contexts/AuthContext";
 import { useAuthForm } from "@/hooks/useAuthForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +25,7 @@ export default function AuthErp() {
   const [resetLoading, setResetLoading] = useState(false);
 
   useEffect(() => {
-    document.title = "GasFacil Pro - Sistema de Gestao";
+    document.title = "GásFácil Pro - Sistema de Gestão";
   }, []);
 
   useEffect(() => {
@@ -61,11 +61,11 @@ export default function AuthErp() {
     setResetLoading(false);
 
     if (error) {
-      form.setErrors({ general: "Nao foi possivel enviar o email de recuperacao. Tente novamente." });
+      form.setErrors({ general: "Não foi possível enviar o email de recuperação. Tente novamente." });
       return;
     }
 
-    toast.success("Enviamos as instrucoes de recuperacao para o email informado.");
+    toast.success("Enviamos as instruções de recuperação para o email informado.");
   };
 
   if (loading) {
@@ -79,8 +79,8 @@ export default function AuthErp() {
   return (
     <CircleAuthLayout
       portalKey="erp"
-      title="GasFacil Pro - ERP"
-      subtitle="Sistema de gestao da distribuidora"
+      title="GásFácil Pro - ERP"
+      subtitle="Sistema de gestão da distribuidora"
       gradientFrom="220 78% 58%"
       gradientTo="265 70% 52%"
       showFooter={false}
@@ -96,7 +96,7 @@ export default function AuthErp() {
               Acesso seguro para a rotina da distribuidora.
             </h2>
             <p className="text-sm leading-6 text-white/80">
-              Entre com seu usuario autorizado para acompanhar vendas, financeiro, estoque e operacao em um so lugar.
+              Entre com seu usuário autorizado para acompanhar vendas, financeiro, estoque e operação em um só lugar.
             </p>
           </div>
           <div className="grid gap-3 text-sm text-white/85">
@@ -110,7 +110,7 @@ export default function AuthErp() {
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/12">
                 <Headphones className="h-4 w-4" />
               </span>
-              Suporte disponivel para problemas de acesso
+              Suporte disponível para problemas de acesso
             </div>
           </div>
         </div>
@@ -128,7 +128,7 @@ export default function AuthErp() {
       {roleError && (
         <div className="mb-4 flex gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>Esta conta nao possui acesso ao sistema de gestao. Use o portal correto para o seu perfil.</span>
+          <span>Esta conta não possui acesso ao sistema de gestão. Use o portal correto para o seu perfil.</span>
         </div>
       )}
       {form.errors.general && (
@@ -214,9 +214,9 @@ export default function AuthErp() {
 
       <div className="mt-5 flex flex-col gap-2 text-center text-xs text-muted-foreground md:text-left">
         <p>Problemas para acessar? Confirme seu email corporativo ou solicite apoio ao administrador.</p>
-        <Link to="/auth" className="font-medium text-primary underline-offset-4 hover:underline">
-          Retornar ao portal de acesso
-        </Link>
+        <a href="mailto:suporte@gasfacilpro.com.br" className="font-medium text-primary underline-offset-4 hover:underline">
+          Falar com suporte
+        </a>
       </div>
     </CircleAuthLayout>
   );
