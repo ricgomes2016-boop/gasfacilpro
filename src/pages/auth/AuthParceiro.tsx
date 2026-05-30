@@ -27,7 +27,7 @@ export default function AuthParceiro() {
       setRoleError(true);
       return;
     }
-    navigate("/parceiro/dashboard");
+    navigate("/parceiro");
   }, [user, loading, roles, navigate, signOut]);
 
   if (loading) {
