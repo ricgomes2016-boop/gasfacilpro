@@ -1,96 +1,69 @@
-## Diagnóstico — Relatório de Vendas hoje
 
-Hoje a tela tem **três blocos de filtro diferentes**, com sobreposição de função:
+## Problema identificado
 
-1. **Card "Filtros" global (topo)** — `RelatorioVendas.tsx` linhas 796–890
-   - Data Início / Data Fim (input date)
-   - Status / Canal / botão Atualizar
-   - Linha "Período rápido": Mês atual, Últimos 3/6/12, Ano atual, Ano anterior
-   - Switch "Consolidar todas as unidades" (matriz)
+Confirmei no banco: o entregador **Flavio Henrique** aparece como `em_rota` mas o `updated_at` é de **31 dias atrás** — sem GPS recente, sem rota ativa. O Mapa Operacional confia 100% na coluna `entregadores.status` (texto) que ninguém zera. Resultado: o card "Em Rota" mente, e o gestor não sabe quem está realmente trabalhando agora.
 
-2. **Card verde "Comparativo Mensal por Produto"** dentro da aba **Produtos** — linhas 1250–1353
-   - De / Até (input month, independente do filtro global)
-   - Select Quantidade / Faturamento
-   - Atalhos próprios: Ano todo, Até hoje, Últimos 3/6/12, Ano anterior
-   - Chips dos meses selecionados (Jan/26, Fev/26…)
+Hoje a tela mistura 3 fontes (`entregadoresData` cru, `entsOp` do hook, e `dadosOp` da IA) sem regra única de verdade. Os KPIs `totalEmRota` / `totalDisponivel` usam `e.status` direto, ignorando `updated_at` e `rotas` ativas.
 
-3. **Aba "Produtos Vendidos"** (`ProdutosVendidosTab.tsx`) — linhas 261–360
-   - Repete Data Início / Data Fim
-   - Repete "Período rápido"
-   - Botão exportar XLSX
+## Solução — Presença derivada (single source of truth)
 
-Resultado: o usuário vê o mesmo filtro 2–3 vezes, com estados independentes que se contradizem. No mobile (384px) a tela fica cheia de cartões verdes/roxos com seletores de data repetidos.
-
----
-
-## Plano
-
-### 1. Barra de filtros única, fixa e enxuta (topo)
-
-Substituir o `Card "Filtros"` por uma **FilterBar** compacta, com dois níveis:
-
-**Linha 1 — sempre visível (1 só linha no mobile):**
+Calcular o status real no client a partir de 3 sinais objetivos, ignorando o campo `status` legado:
 
 ```text
-[ Período ▾ ]   [ Atualizar ⟳ ]   [ Mais filtros ▾ ]
+                 ┌─ tem rota 'em_andamento' + ping <5min  → EM ROTA (verde pulsando)
+ping GPS <2min ──┼─ sem rota ativa                        → ONLINE / DISPONÍVEL (azul)
+                 │
+ping 2-15min  ──── → INATIVO (amarelo, "GPS instável")
+ping >15min ou nunca → OFFLINE (cinza, "Não logado")
 ```
 
-- **Botão Período** abre um **Popover** com:
-  - Presets em chips: Mês atual · Últimos 3m · Últimos 6m · Últimos 12m · Ano atual · Ano anterior · Personalizado
-  - Quando "Personalizado" → mostra Data Início / Data Fim
-  - O período escolhido é **a única fonte da verdade** (estado `dataInicio`/`dataFim` global).
-- **Mais filtros** abre Popover com Status, Canal e (se matriz) o switch Consolidar.
-- Resumo do filtro ativo aparece como chips abaixo da barra: "Mai/2026 · Entregue · Loja" (com X para limpar individual).
+Regras:
+- "Em Rota" só conta se existir registro em `rotas` com `status='em_andamento'` E ping GPS recente (já temos `rotaIds` no hook).
+- KPIs e badges passam a usar `presenca` derivada, nunca mais `e.status` cru.
+- Entregador offline há mais de 24h fica oculto por padrão (toggle "Mostrar offline").
 
-### 2. Aba "Produtos" — remover filtros próprios do Comparativo Mensal
+## Plano de mudanças (somente frontend + 1 hook)
 
-- Eliminar os inputs De/Até e os 6 botões de atalho do header verde "Comparativo Mensal por Produto".
-- **O comparativo passa a usar o período global** (`dataInicio`/`dataFim`) e derivar os meses cobertos automaticamente. Os chips de meses selecionados continuam aparecendo, mas só como visualização (read-only).
-- Manter apenas o **Select "Quantidade / Faturamento"** dentro do card, pois é uma opção de **métrica**, não de período.
-- Remover `rangeIni` / `rangeFim` / `setRangeIni` / `setRangeFim` e a lista de presets do JSX. Os meses passam a ser calculados a partir do intervalo global (`startOfMonth(dataInicio)` → `endOfMonth(dataFim)`, limitado a, por exemplo, 24 meses para proteção).
-
-### 3. Aba "Produtos Vendidos" — remover filtros duplicados
-
-- Em `ProdutosVendidosTab.tsx`, remover o bloco de Data Início/Data Fim (linhas ~261) e o bloco "Período rápido" (linhas ~325).
-- Manter apenas: o agrupamento (dia/semana/mês), busca por produto e o botão Exportar XLSX.
-- A prop `onPeriodoChange` deixa de ser usada para alterar período (segue read-only via `dataInicio`/`dataFim` recebidos).
-
-### 4. Layout mobile (384px)
-
-- FilterBar fica **sticky no topo** da página (`sticky top-0 z-20`) com `backdrop-blur` para continuar legível ao rolar.
-- Popovers usam `ResponsiveDialog` (drawer no mobile) seguindo o padrão do projeto.
-- Chips de filtro ativo quebram em múltiplas linhas (`flex-wrap`).
-
-### 5. Detalhes técnicos / arquivos afetados
-
-- `src/pages/vendas/RelatorioVendas.tsx`
-  - Trocar o `<Card>` de Filtros pela nova `FilterBar` (componente local no mesmo arquivo ou em `src/components/vendas/FilterBarRelatorio.tsx`).
-  - Remover `rangeIni`, `rangeFim` e seus presets; derivar `periodosSelecionados` a partir de `dataInicio`/`dataFim` global.
-  - Remover a action do `VendaSectionHeader` do comparativo (deixar só o Select de métrica).
-- `src/pages/vendas/ProdutosVendidosTab.tsx`
-  - Apagar os dois blocos de filtro de período (Linhas 261–283 e 325–360 aprox), mantendo o restante intacto.
-- Sem mudanças em backend, RLS, queries ou rotas.
-
-### 6. Fora do escopo
-
-- Não mexer em `App.tsx`, providers, autenticação, dados ou RLS.
-- Não alterar gráficos, tabelas, exportações (PDF/XLSX) nem a lógica de vendas manuais — apenas a UI de filtros.
-
----
-
-## Resultado esperado
-
-```text
-ANTES                              DEPOIS
-─────────────                      ─────────────
-Filtros (5 inputs + 6 chips)       FilterBar (1 linha)
-  ↓                                 ↓ chips de filtro ativo
-Tabs                               Tabs
-  Produtos                          Produtos
-   └ Comparativo (De/Até + 6        └ Comparativo (só Qtd/Fat)
-     presets + chips)               (usa período global)
-  Produtos Vendidos                 Produtos Vendidos
-   └ Data Início/Fim + 6 presets    └ só agrupamento + busca
+### 1. Novo `src/hooks/useEntregadorPresenca.ts`
+Recebe `entregadores`, `pontosCache` e a lista de rotas ativas (vem do `useMapaOperacionalData`, já exposta), devolve para cada entregador:
+```ts
+{ presenca: 'em_rota' | 'online' | 'instavel' | 'offline',
+  ultimoPingMs: number, temRotaAtiva: boolean, pedidosAtivos: number }
 ```
 
-Um único lugar para escolher período/status/canal. As abas só mostram dados.
+### 2. Expor `rotasAtivas` em `useMapaOperacionalData.ts`
+Pequena adição: já buscamos as rotas em andamento, basta retornar `rotasAtivasPorEntregador: Record<string, string>`.
+
+### 3. Refactor `MapaOperacional.tsx`
+- Remover `entregadoresData` paralelo — usar só `entsOp` do hook (uma fonte).
+- KPIs reescritos a partir de `presenca`:
+  - **Em Rota** = `presenca==='em_rota'`
+  - **Online** = `presenca==='online'`
+  - **Offline / Não logado** = `presenca==='offline'` (novo card, substitui "Em Andamento" duplicado)
+  - **Pendentes** = pedidos sem entregador (mantém)
+- Lista lateral de entregadores:
+  - Bolinha colorida + texto da presença real ("Online há 12s", "Em rota · 3 entregas", "GPS instável há 7min", "Offline desde 14:30 de ontem").
+  - Badge "Em Rota" só aparece quando presença é `em_rota` (corrige o bug do Flavio).
+  - Toggle "Mostrar offline" (default off) no topo da lista.
+- Marker do entregador no mapa fica esmaecido (opacity 40%) quando `instavel`, e some quando `offline`.
+
+### 4. Foco em "monitoramento de produto" (entrega)
+Adicionar mini-painel `ProdutoEmTransito` no painel lateral (acima de "Entregadores"):
+- Lê `pedido_itens` dos pedidos em rota e agrega por produto: `P13 × 18 unidades · 4 entregadores`, `Água 20L × 6`.
+- Por entregador selecionado: mostra o que ele está carregando agora (vem dos itens do pedido `em_rota` dele).
+- Alerta visual quando entregador `em_rota` está parado há >10min com produto a bordo (já temos `dadosOp.paradas`).
+
+### 5. Card de teste/saúde (canto inferior do painel)
+"Saúde do rastreamento": % de entregadores ativos com ping <5min, último ping global, contagem de offline há >24h — para o gestor ver na hora se o app dos entregadores parou de enviar GPS.
+
+## Fora de escopo
+- Não mexer em `App.tsx`, providers, rotas, RLS ou backend.
+- Não alterar a coluna `entregadores.status` (continua existindo para retrocompatibilidade do app do entregador).
+- Não tocar no `DeliveryRoutesMap` em si — só nos dados que entram nele.
+
+## Arquivos afetados
+- `src/hooks/useMapaOperacionalData.ts` — expor rotas ativas
+- `src/hooks/useEntregadorPresenca.ts` — **novo**
+- `src/pages/operacional/MapaOperacional.tsx` — KPIs, lista, toggle offline
+- `src/components/operacional/mapa/PainelLateral.tsx` — adicionar bloco "Produto em trânsito" e "Saúde do rastreamento"
+

@@ -33,6 +33,7 @@ export interface PedidoOp {
   created_at: string;
   unidade_id?: string | null;
   clientes?: any;
+  pedido_itens?: any;
   localizacao?: { lat: number; lng: number } | null;
 }
 
@@ -50,6 +51,7 @@ export function useMapaOperacionalData({
   const [entregadores, setEntregadores] = useState<EntregadorOp[]>([]);
   const [pedidos, setPedidos] = useState<PedidoOp[]>([]);
   const [pontosCache, setPontosCache] = useState<Record<string, PontoGPS[]>>({});
+  const [rotasAtivasPorEntregador, setRotasAtivasPorEntregador] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const channelRef = useRef<any>(null);
 
@@ -71,7 +73,7 @@ export function useMapaOperacionalData({
       const hojeInicio = new Date(); hojeInicio.setHours(0, 0, 0, 0);
       let pq = supabase
         .from("pedidos")
-        .select("*, clientes(nome, bairro, endereco, telefone, latitude, longitude)")
+        .select("*, clientes(nome, bairro, endereco, telefone, latitude, longitude), pedido_itens(quantidade, produtos(nome))")
         .gte("created_at", hojeInicio.toISOString())
         .in("status", ["pendente", "confirmado", "em_rota", "saiu_entrega", "em_preparo"]);
       if (unidadeId) pq = pq.eq("unidade_id", unidadeId);
@@ -98,6 +100,7 @@ export function useMapaOperacionalData({
       // Pontos GPS via rotas em andamento
       const entIds = ents.map((e) => e.id);
       const novoCache: Record<string, PontoGPS[]> = {};
+      const rotasMap: Record<string, string> = {};
 
       if (entIds.length) {
         const { data: rotas } = await supabase
@@ -108,7 +111,10 @@ export function useMapaOperacionalData({
 
         const rotaIds = (rotas || []).map((r: any) => r.id);
         const rotaToEnt: Record<string, string> = {};
-        (rotas || []).forEach((r: any) => { rotaToEnt[r.id] = r.entregador_id; });
+        (rotas || []).forEach((r: any) => {
+          rotaToEnt[r.id] = r.entregador_id;
+          rotasMap[r.entregador_id] = r.id;
+        });
 
         if (rotaIds.length) {
           const { data: hist } = await supabase
@@ -131,6 +137,8 @@ export function useMapaOperacionalData({
           });
         }
       }
+
+      setRotasAtivasPorEntregador(rotasMap);
 
       setEntregadores(ents);
       setPedidos(peds2);
@@ -164,5 +172,5 @@ export function useMapaOperacionalData({
     return () => { supabase.removeChannel(ch); };
   }, [fetchAll]);
 
-  return { entregadores, pedidos, pontosCache, loading, refresh: fetchAll };
+  return { entregadores, pedidos, pontosCache, rotasAtivasPorEntregador, loading, refresh: fetchAll };
 }
