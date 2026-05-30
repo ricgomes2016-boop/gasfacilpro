@@ -1,4 +1,5 @@
 import { lazy } from "react";
+import { Navigate, useParams } from "react-router-dom";
 import { RouteConfig } from "./helpers";
 
 const CadastroClientes = lazy(() => import("@/pages/clientes/CadastroClientes"));
@@ -14,9 +15,16 @@ const ContratosRecorrentes = lazy(() => import("@/pages/clientes/ContratosRecorr
 const ProgramaIndicacao = lazy(() => import("@/pages/clientes/ProgramaIndicacao"));
 const AplicativoCliente = lazy(() => import("@/pages/clientes/AplicativoCliente"));
 
+// Compatibilidade: redireciona URLs antigas /clientes/:id -> /clientes/cadastro/:id
+function ClientePerfilRedirect() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/clientes/cadastro/${id}`} replace />;
+}
+
 export const clientesRoutes: RouteConfig[] = [
   { path: "/clientes/cadastro", component: CadastroClientes, roles: ["admin", "gestor", "operacional"] },
-  { path: "/clientes/:id", component: ClientePerfilPage, roles: ["admin", "gestor", "operacional"] },
+  { path: "/clientes/cadastro/:id", component: ClientePerfilPage, roles: ["admin", "gestor", "operacional"] },
+  { path: "/clientes/:id", component: ClientePerfilRedirect, roles: ["admin", "gestor", "operacional"] },
   { path: "/clientes/promocoes", component: PromocoesCupons, roles: ["admin", "gestor"] },
   { path: "/clientes/marketing", component: MarketingIA, roles: ["admin", "gestor"] },
   { path: "/clientes/campanhas", component: Campanhas, roles: ["admin", "gestor"] },

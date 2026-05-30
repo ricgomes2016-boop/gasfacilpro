@@ -631,7 +631,7 @@ export default function CentralAtendimento() {
                                   size="sm"
                                   variant="ghost"
                                   className="gap-1 text-xs h-7"
-                                  onClick={() => navigate(`/clientes/${chamada.cliente_id}`)}
+                                  onClick={() => navigate(`/clientes/cadastro/${chamada.cliente_id}`)}
                                 >
                                   <User className="h-3.5 w-3.5" />
                                 </Button>
