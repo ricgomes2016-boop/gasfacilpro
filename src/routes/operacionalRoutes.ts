@@ -1,10 +1,8 @@
 import { lazy } from "react";
 import { RouteConfig } from "./helpers";
 
-// CockpitGestor removed - unified into ConselhosIA (Central de Inteligência)
-const CentralIndicadores = lazy(() => import("@/pages/operacional/CentralIndicadores"));
+// Indicadores and alerts are unified into ConselhosIA (Central de Inteligência)
 const MapaOperacional = lazy(() => import("@/pages/operacional/MapaOperacional"));
-const AlertasInteligentes = lazy(() => import("@/pages/operacional/AlertasInteligentes"));
 const AnaliseConcorrencia = lazy(() => import("@/pages/operacional/AnaliseConcorrencia"));
 const ConselhosIA = lazy(() => import("@/pages/operacional/ConselhosIA"));
 const DashboardExecutivo = lazy(() => import("@/pages/operacional/DashboardExecutivo"));
@@ -33,11 +31,10 @@ const Declaracoes = lazy(() => import("@/pages/config/Declaracoes"));
 
 export const operacionalRoutes: RouteConfig[] = [
   { path: "/operacional/ia", component: ConselhosIA, roles: ["admin", "gestor"] },
-  { path: "/operacional/indicadores", component: CentralIndicadores, roles: ["admin", "gestor"] },
+  { path: "/operacional/indicadores", component: ConselhosIA, roles: ["admin", "gestor"] },
   { path: "/operacional/centro", component: MapaOperacional, roles: ["admin", "gestor", "operacional"] },
-  { path: "/operacional/alertas", component: AlertasInteligentes, roles: ["admin", "gestor"] },
+  { path: "/operacional/alertas", component: ConselhosIA, roles: ["admin", "gestor"] },
   { path: "/operacional/concorrencia", component: AnaliseConcorrencia, roles: ["admin", "gestor"] },
-  { path: "/operacional/ia", component: ConselhosIA, roles: ["admin", "gestor"] },
   { path: "/operacional/executivo", component: DashboardExecutivo, roles: ["admin", "gestor"] },
   { path: "/operacional/avancado", component: DashboardAvancado, roles: ["admin", "gestor"] },
   { path: "/operacional/trabalhista", component: DashboardTrabalhista, roles: ["admin", "gestor"] },
