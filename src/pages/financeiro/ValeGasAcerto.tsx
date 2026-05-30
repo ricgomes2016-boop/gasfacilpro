@@ -10,10 +10,14 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useValeGas } from "@/contexts/ValeGasContext";
+import { useUnidade } from "@/contexts/UnidadeContext";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   FileText, Banknote, Building2, CheckCircle2, Clock, AlertCircle, Plus,
 } from "lucide-react";
@@ -21,6 +25,14 @@ import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+
+const defaultVencAcerto = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 10);
+  return d.toISOString().split("T")[0];
+};
+
+const acertoMarker = (id: string) => `[acerto:${id}]`;
 
 export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {}) {
   const { parceiros, vales, acertos, gerarAcerto, registrarPagamentoAcerto } = useValeGas();
