@@ -30,8 +30,11 @@ import {
   Wallet, Search, Plus, AlertCircle, CheckCircle2, Clock, MoreHorizontal,
   Pencil, Trash2, DollarSign, Download, MapPin, User, Filter, X,
   CreditCard, Banknote, FileText, Handshake, Flame, Receipt, CheckSquare, RefreshCw,
+  CalendarRange, Zap, Tag, ChevronDown,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { isFormaAVista, getFormaCategoria, FORMA_LABELS, type FormaCategoria } from "@/lib/financeiro/formaPagamento";
 import { supabase } from "@/integrations/supabase/client";
 import { ConferenciaCartao } from "@/components/financeiro/ConferenciaCartao";
 import { toast } from "sonner";
