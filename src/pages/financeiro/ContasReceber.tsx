@@ -80,18 +80,22 @@ interface ContaReceber {
 
 const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque", "Vale Gás"];
 
-// Mapeamento de forma_pagamento para abas
-function getTabFromForma(forma: string | null): string {
-  if (!forma) return "outros";
-  const f = forma.toLowerCase();
-  if (f.includes("débito") || f.includes("debito") || f.includes("cartao_debito") || f.includes("crédito") || f.includes("credito") || f.includes("cartao_credito") || f === "cartão") return "cartoes";
-  if (f === "pix_maquininha" || f.includes("pix maquininha")) return "pix_maquininha";
-  if (f.includes("cheque")) return "cheques";
-  if (f.includes("fiado")) return "fiado";
-  if (f.includes("boleto")) return "boletos";
-  if (f.includes("vale") || f.includes("vale_gas")) return "vale_gas";
-  return "outros";
-}
+// Categorias de filtro disponíveis na barra unificada
+const FORMA_FILTER_OPTIONS: { value: FormaCategoria; label: string; grupo: "a_vista" | "a_prazo" | "outros" }[] = [
+  { value: "dinheiro", label: "Dinheiro", grupo: "a_vista" },
+  { value: "pix", label: "PIX", grupo: "a_vista" },
+  { value: "pix_maquininha", label: "PIX Maquininha", grupo: "a_prazo" },
+  { value: "cartao_debito", label: "Cartão Débito", grupo: "a_prazo" },
+  { value: "cartao_credito", label: "Cartão Crédito", grupo: "a_prazo" },
+  { value: "boleto", label: "Boleto", grupo: "a_prazo" },
+  { value: "fiado", label: "Fiado", grupo: "a_prazo" },
+  { value: "cheque", label: "Cheque", grupo: "a_prazo" },
+  { value: "vale_gas", label: "Vale Gás", grupo: "a_prazo" },
+  { value: "transferencia", label: "Transferência", grupo: "a_prazo" },
+  { value: "outros", label: "Outros", grupo: "outros" },
+];
+
+type StatusFiltro = "a_receber" | "vencida" | "recebida";
 
 function isBoletoForma(f: string | null | undefined): boolean {
   return !!f && f.toLowerCase().includes("boleto");
