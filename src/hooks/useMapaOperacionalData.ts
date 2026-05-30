@@ -73,7 +73,7 @@ export function useMapaOperacionalData({
       const hojeInicio = new Date(); hojeInicio.setHours(0, 0, 0, 0);
       let pq = supabase
         .from("pedidos")
-        .select("*, clientes(nome, bairro, endereco, telefone, latitude, longitude)")
+        .select("*, clientes(nome, bairro, endereco, telefone, latitude, longitude), pedido_itens(quantidade, produtos(nome))")
         .gte("created_at", hojeInicio.toISOString())
         .in("status", ["pendente", "confirmado", "em_rota", "saiu_entrega", "em_preparo"]);
       if (unidadeId) pq = pq.eq("unidade_id", unidadeId);
