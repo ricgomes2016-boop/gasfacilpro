@@ -192,5 +192,6 @@ export function AdminLayout({ children }: { children: ReactNode }) {
       </div>
       <SystemFooter portalKey="painel" />
     </div>
+    </SidebarProvider>
   );
 }
