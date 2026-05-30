@@ -17,10 +17,11 @@ export default function AuthErp() {
   const navigate = useNavigate();
   const { user, roles, loading, signOut } = useAuth();
   const form = useAuthForm();
+  const setLoginMethod = form.setLoginMethod;
 
   useEffect(() => {
-    form.setLoginMethod("email");
-  }, []);
+    setLoginMethod("email");
+  }, [setLoginMethod]);
   const [roleError, setRoleError] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
 
