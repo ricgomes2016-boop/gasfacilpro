@@ -171,8 +171,23 @@ export function Sidebar() {
   const navigate = useNavigate();
   const { collapsed, setCollapsed, toggle } = useSidebarContext();
   const { signOut, profile } = useAuth();
+  const { canAccessPath } = usePlanoAccess();
   const [openMenus, setOpenMenus] = useState<string[]>([]);
   const sidebarRef = useRef<HTMLElement | null>(null);
+
+  // Filtra menu items pelas regras de plano (fail-open: se nada cadastrado, mostra tudo)
+  const visibleMenuItems = useMemo(() => {
+    return menuItems
+      .map((item) => {
+        if (item.submenu) {
+          const sub = item.submenu.filter((s) => !s.path || canAccessPath(s.path));
+          if (sub.length === 0) return null;
+          return { ...item, submenu: sub };
+        }
+        return canAccessPath(item.path) ? item : null;
+      })
+      .filter(Boolean) as typeof menuItems;
+  }, [canAccessPath]);
 
   // Auto-open active submenu
   useEffect(() => {
