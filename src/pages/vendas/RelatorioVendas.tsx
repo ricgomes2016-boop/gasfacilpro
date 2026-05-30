@@ -127,8 +127,6 @@ export default function RelatorioVendas() {
   const scopeKey = consolidado ? `all:${empresa?.id || ""}` : (unidadeAtual?.id || "none");
 
   // Comparativo mensal (aba Produtos) — intervalo livre que pode cruzar anos
-  const anoAtual = hoje.getFullYear();
-  const mesAtual = hoje.getMonth();
   type PeriodoMes = { ano: number; mes: number }; // mes: 0-11
   // Comparativo Mensal usa o período global (dataInicio/dataFim) como fonte da verdade
   const rangeIni = useMemo<PeriodoMes>(() => {
