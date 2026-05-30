@@ -388,12 +388,16 @@ serve(async (req) => {
         quantidade,
         forma_pagamento,
         usar_desconto,
+        preco_unitario: precoUnitarioBody,
+        desconto_unitario: descontoUnitarioBody,
       } = body;
       const aplicarDesconto =
         usar_desconto === true ||
         usar_desconto === "true" ||
         usar_desconto === 1 ||
         usar_desconto === "1";
+      const precoNegociadoBody = Number(precoUnitarioBody);
+      const descontoNegociadoBody = Number(descontoUnitarioBody);
       let { endereco, numero, bairro, cep, referencia } = body;
 
       if (!produto) return err("Produto é obrigatório");
