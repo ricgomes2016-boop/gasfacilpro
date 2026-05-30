@@ -130,8 +130,15 @@ export default function RelatorioVendas() {
   const anoAtual = hoje.getFullYear();
   const mesAtual = hoje.getMonth();
   type PeriodoMes = { ano: number; mes: number }; // mes: 0-11
-  const [rangeIni, setRangeIni] = useState<PeriodoMes>({ ano: anoAtual, mes: 0 });
-  const [rangeFim, setRangeFim] = useState<PeriodoMes>({ ano: anoAtual, mes: mesAtual });
+  // Comparativo Mensal usa o período global (dataInicio/dataFim) como fonte da verdade
+  const rangeIni = useMemo<PeriodoMes>(() => {
+    const d = parseISO(dataInicio);
+    return { ano: d.getFullYear(), mes: d.getMonth() };
+  }, [dataInicio]);
+  const rangeFim = useMemo<PeriodoMes>(() => {
+    const d = parseISO(dataFim);
+    return { ano: d.getFullYear(), mes: d.getMonth() };
+  }, [dataFim]);
   const [metricaComparativo, setMetricaComparativo] = useState<"qtd" | "faturamento">("qtd");
 
   // Helpers de período
