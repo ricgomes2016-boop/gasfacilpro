@@ -786,10 +786,13 @@ serve(async (req) => {
         numero_pedido: pedido.numero_sequencial,
         produto: nomeProduto,
         quantidade: qty,
+        preco_unitario: precoUnitario,
+        preco_base: precoBase,
+        preco_negociado: precoFoiNegociado,
         valor_total: valorTotal,
         forma_pagamento: formaPgto,
         mensagem:
-          `Pedido #${pedido.numero_sequencial} criado com sucesso. ${qty}x ${nomeProduto}, total R$ ${valorTotal.toFixed(2)}, pagamento: ${pagamentoLabel}. ` +
+          `Pedido #${pedido.numero_sequencial} criado com sucesso. ${qty}x ${nomeProduto} a R$ ${precoUnitario.toFixed(2)}/un${precoFoiNegociado ? " (preço negociado)" : ""}, total R$ ${valorTotal.toFixed(2)}, pagamento: ${pagamentoLabel}. ` +
           `NÃO pergunte novamente a forma de pagamento — finalize a ligação confirmando o pedido e se despedindo do cliente.`,
       });
 
