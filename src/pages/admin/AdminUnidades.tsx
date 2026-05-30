@@ -75,7 +75,8 @@ export default function AdminUnidades() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const getEmpresaNome = (id: string) => empresas.find((e) => e.id === id)?.nome || "—";
+  const getEmpresa = (id: string) => empresas.find((e) => e.id === id);
+  const getEmpresaNome = (id: string) => getEmpresa(id)?.nome || "—";
 
   const handleSave = async () => {
     if (!nome.trim() || !empresaId) { toast.error("Nome e empresa são obrigatórios"); return; }
