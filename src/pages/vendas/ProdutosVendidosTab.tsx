@@ -56,7 +56,7 @@ const formatQtd = (v: number) =>
 const formatPct = (v: number) =>
   `${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 
-const ymd = (d: Date) => format(d, "yyyy-MM-dd");
+
 
 export function ProdutosVendidosTab({ pedidos, unidadeId, unidadeIds, consolidado, dataInicio, dataFim, onPeriodoChange }: Props) {
   const [clienteFiltro, setClienteFiltro] = useState("todos");
