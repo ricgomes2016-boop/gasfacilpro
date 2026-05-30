@@ -242,10 +242,16 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
   const [cupomDialogOpen, setCupomDialogOpen] = useState(false);
   const [modoEmissao, setModoEmissao] = useState<ModoEmissao>("automatico");
 
+  const defaultVencConta = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 10);
+    return d.toISOString().split("T")[0];
+  };
+
   const [formData, setFormData] = useState({
     parceiroId: "", quantidade: "", valorUnitario: "105", dataVencimento: "",
     observacao: "", descricao: "VALE GÁS", clienteId: "", produtoId: "",
-    gerarContaReceber: false, dataVencimentoConta: "",
+    dataVencimentoConta: defaultVencConta(),
     numeroInicialCustom: "", numeroFinalCustom: "",
     numeroManual: "",
   });
@@ -351,16 +357,17 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
         clienteNome: clienteSelecionado?.nome || undefined,
         produtoId: formData.produtoId || undefined,
         produtoNome: produtoSelecionado?.nome || undefined,
-        gerarContaReceber: formData.gerarContaReceber,
+        gerarContaReceber: false, // título é criado abaixo, sempre
         unidadeId: unidadeAtual?.id || null,
       });
 
-      if (formData.gerarContaReceber && parceiro) {
+      // Título financeiro do parceiro — SEMPRE gerado (regra fixa).
+      if (parceiro) {
         try {
-          const vencimento = formData.dataVencimentoConta || new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0];
-          await supabase.from("contas_receber").insert({
+          const vencimento = formData.dataVencimentoConta || defaultVencConta();
+          const { error: crErr } = await supabase.from("contas_receber").insert({
             cliente: parceiro.nome,
-            descricao: `${formData.descricao || "Vale Gás"} - Lote ${lote.numero_inicial}-${lote.numero_final}`,
+            descricao: `Vale Gás - Lote ${lote.numero_inicial}-${lote.numero_final} (${lote.quantidade} vales)`,
             valor: lote.valor_total,
             vencimento,
             status: "pendente",
@@ -368,10 +375,14 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
             vale_gas_parceiro_id: parceiro.id,
             origem: "vale_gas_lote",
             unidade_id: unidadeAtual?.id || null,
-            observacoes: `Lote de ${lote.quantidade} vales. Parceiro: ${parceiro.nome}`,
+            observacoes: `Lote de ${lote.quantidade} vales emitido para ${parceiro.nome}.`,
           });
-          toast.success("Conta a receber gerada!");
-        } catch { toast.error("Erro ao gerar conta a receber"); }
+          if (crErr) throw crErr;
+          toast.success("Conta a receber gerada para o parceiro!");
+        } catch (e: any) {
+          console.error("Erro ao gerar conta a receber do lote:", e);
+          toast.error("Lote emitido, mas falhou ao gerar a conta a receber. Gere manualmente.");
+        }
       }
 
       // Gerar cupons para impressão
@@ -399,7 +410,7 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
       setFormData({
         parceiroId: "", quantidade: "", valorUnitario: "105", dataVencimento: "",
         observacao: "", descricao: "VALE GÁS", clienteId: "", produtoId: "",
-        gerarContaReceber: false, dataVencimentoConta: "",
+        dataVencimentoConta: defaultVencConta(),
         numeroInicialCustom: "", numeroFinalCustom: "", numeroManual: "",
       });
     } catch (err: any) {
@@ -615,17 +626,22 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
                   </div>
                 )}
 
-                <div className="border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="gerarConta" checked={formData.gerarContaReceber} onCheckedChange={c => setFormData(p => ({ ...p, gerarContaReceber: c === true }))} />
-                    <Label htmlFor="gerarConta" className="flex items-center gap-2 cursor-pointer"><Receipt className="h-4 w-4" /> Gerar contas a receber</Label>
+                <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                  <Label className="flex items-center gap-2 font-semibold">
+                    <Receipt className="h-4 w-4" /> Conta a Receber do Parceiro
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Será criada automaticamente uma conta a receber para o parceiro com o valor total do lote.
+                    A venda paga com Vale Gás não gera cobrança — quem paga é o parceiro.
+                  </p>
+                  <div className="space-y-2">
+                    <Label>Vencimento do título</Label>
+                    <Input
+                      type="date"
+                      value={formData.dataVencimentoConta}
+                      onChange={e => setFormData(p => ({ ...p, dataVencimentoConta: e.target.value }))}
+                    />
                   </div>
-                  {formData.gerarContaReceber && (
-                    <div className="space-y-2 pl-6">
-                      <Label>Vencimento da Conta</Label>
-                      <Input type="date" value={formData.dataVencimentoConta} onChange={e => setFormData(p => ({ ...p, dataVencimentoConta: e.target.value }))} />
-                    </div>
-                  )}
                 </div>
 
                 <div className="space-y-2">
