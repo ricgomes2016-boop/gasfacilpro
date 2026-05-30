@@ -36,9 +36,11 @@ const acertoMarker = (id: string) => `[acerto:${id}]`;
 
 export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {}) {
   const { parceiros, vales, acertos, gerarAcerto, registrarPagamentoAcerto } = useValeGas();
+  const { unidadeAtual } = useUnidade();
   
   const [novoAcertoDialog, setNovoAcertoDialog] = useState(false);
   const [parceiroSelecionado, setParceiroSelecionado] = useState<string>("");
+  const [vencimentoAcerto, setVencimentoAcerto] = useState<string>(defaultVencAcerto());
   const [formaPagamento, setFormaPagamento] = useState<string>("");
   const [pagamentoAcertoId, setPagamentoAcertoId] = useState<string | null>(null);
 
