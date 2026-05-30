@@ -95,17 +95,24 @@ export default function WhatsAppCredenciais() {
       setLoadingCfg(true);
       const { data } = await supabase
         .from("integracoes_whatsapp")
-        .select("id, meta_access_token, meta_phone_number_id, meta_waba_id, meta_verify_token")
+        .select("id, meta_phone_number_id, meta_waba_id")
         .eq("unidade_id", unidadeId)
         .in("provedor", ["meta", "meta_coex"])
         .maybeSingle();
+      let secrets: { meta_access_token?: string | null; meta_verify_token?: string | null } | null = null;
+      if (data) {
+        const { data: s } = await supabase.rpc("get_whatsapp_integration_secrets", {
+          p_unidade_id: unidadeId,
+        });
+        secrets = Array.isArray(s) ? s[0] : s;
+      }
       setLoadingCfg(false);
       if (data) {
         setExistingId(data.id);
-        setToken(data.meta_access_token || "");
+        setToken(secrets?.meta_access_token || "");
         setPhoneId(data.meta_phone_number_id || "");
         setWabaId(data.meta_waba_id || "");
-        setVerifyToken(data.meta_verify_token || "gasfacil_meta_verify");
+        setVerifyToken(secrets?.meta_verify_token || "gasfacil_meta_verify");
       } else {
         setExistingId(null);
         setToken(""); setPhoneId(""); setWabaId("");

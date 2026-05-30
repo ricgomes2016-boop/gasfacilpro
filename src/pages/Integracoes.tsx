@@ -79,10 +79,31 @@ export default function Integracoes() {
   const loadMetaConfigs = async () => {
     const { data } = await supabase
       .from("integracoes_whatsapp")
-      .select("*, unidades(nome)")
+      .select(
+        "id, unidade_id, instance_id, nome_bot, ativo, created_at, updated_at, provedor, meta_phone_number_id, meta_waba_id, provedor_tipo, instancia_nome, instancia_url, numero_telefone, status_conexao, ultima_verificacao, qr_code_base64, qr_code_expira_em, loja_foto_url, loja_foto_atualizada_em, unidades(nome)"
+      )
       .in("provedor", ["meta", "meta_coex"])
       .order("created_at");
-    setMetaConfigs(data || []);
+    const base = (data as any[]) || [];
+    // Merge sensitive credential columns via admin-only RPC for each row.
+    const merged = await Promise.all(
+      base.map(async (cfg) => {
+        const { data: secrets } = await supabase.rpc(
+          "get_whatsapp_integration_secrets",
+          { p_unidade_id: cfg.unidade_id }
+        );
+        const s: any = Array.isArray(secrets) ? secrets[0] : secrets;
+        return {
+          ...cfg,
+          meta_access_token: s?.meta_access_token ?? "",
+          meta_verify_token: s?.meta_verify_token ?? "",
+          token: s?.token ?? "",
+          instancia_token: s?.instancia_token ?? "",
+          security_token: s?.security_token ?? "",
+        };
+      })
+    );
+    setMetaConfigs(merged);
   };
 
   const handleEmbeddedSignup = () => {

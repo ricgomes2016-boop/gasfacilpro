@@ -1,6 +1,7 @@
 import { useMemo, useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { UNIDADES_PUBLIC_COLUMNS } from "@/lib/db/sensitiveColumns";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
@@ -77,8 +78,8 @@ export function CertidoesEmpresaTab() {
     queryKey: ["unidade-full", unidadeAtual?.id],
     queryFn: async () => {
       if (!unidadeAtual?.id) return null;
-      const { data } = await supabase.from("unidades").select("*").eq("id", unidadeAtual.id).single();
-      return data;
+      const { data } = await supabase.from("unidades").select(UNIDADES_PUBLIC_COLUMNS).eq("id", unidadeAtual.id).single();
+      return data as any;
     },
     enabled: !!unidadeAtual?.id,
   });
