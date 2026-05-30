@@ -172,5 +172,5 @@ export function useMapaOperacionalData({
     return () => { supabase.removeChannel(ch); };
   }, [fetchAll]);
 
-  return { entregadores, pedidos, pontosCache, loading, refresh: fetchAll };
+  return { entregadores, pedidos, pontosCache, rotasAtivasPorEntregador, loading, refresh: fetchAll };
 }
