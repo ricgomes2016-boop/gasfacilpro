@@ -57,7 +57,7 @@ export function UnidadeProvider({ children }: { children: ReactNode }) {
         // Admin/gestor sees all active unidades of their empresa
         let query = supabase
           .from("unidades")
-          .select("*")
+          .select(UNIDADES_PUBLIC_COLUMNS)
           .eq("ativo", true)
           .order("tipo", { ascending: true })
           .order("nome");
