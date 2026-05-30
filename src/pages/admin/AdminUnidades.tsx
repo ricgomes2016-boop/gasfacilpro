@@ -20,7 +20,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Loader2, MapPin, Search, ArrowRightLeft, Building2, AlertTriangle } from "lucide-react";
+import { Plus, Loader2, MapPin, Search, ArrowRightLeft, Building2, AlertTriangle, Info } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Unidade {
   id: string;
@@ -33,7 +35,7 @@ interface Unidade {
   ativo: boolean;
 }
 
-interface EmpresaOption { id: string; nome: string; }
+interface EmpresaOption { id: string; nome: string; ativo: boolean; }
 
 export default function AdminUnidades() {
   const [unidades, setUnidades] = useState<Unidade[]>([]);
@@ -42,6 +44,7 @@ export default function AdminUnidades() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [onlyActiveEmpresas, setOnlyActiveEmpresas] = useState(true);
 
   // New unit form
   const [nome, setNome] = useState("");
@@ -63,16 +66,17 @@ export default function AdminUnidades() {
   const fetchData = async () => {
     const [unidadesRes, empresasRes] = await Promise.all([
       supabase.from("unidades").select("id, nome, tipo, empresa_id, endereco, cidade, estado, ativo").order("nome"),
-      supabase.from("empresas").select("id, nome").eq("ativo", true).order("nome"),
+      supabase.from("empresas").select("id, nome, ativo").order("nome"),
     ]);
     setUnidades(unidadesRes.data || []);
-    setEmpresas(empresasRes.data || []);
+    setEmpresas((empresasRes.data as EmpresaOption[]) || []);
     setLoading(false);
   };
 
   useEffect(() => { fetchData(); }, []);
 
-  const getEmpresaNome = (id: string) => empresas.find((e) => e.id === id)?.nome || "—";
+  const getEmpresa = (id: string) => empresas.find((e) => e.id === id);
+  const getEmpresaNome = (id: string) => getEmpresa(id)?.nome || "—";
 
   const handleSave = async () => {
     if (!nome.trim() || !empresaId) { toast.error("Nome e empresa são obrigatórios"); return; }
@@ -140,13 +144,22 @@ export default function AdminUnidades() {
     }
   };
 
-  const filtered = unidades.filter((u) =>
-    u.nome.toLowerCase().includes(search.toLowerCase()) ||
-    getEmpresaNome(u.empresa_id).toLowerCase().includes(search.toLowerCase())
-  );
+  const empresasAtivas = empresas.filter((e) => e.ativo);
+  const filtered = unidades.filter((u) => {
+    const emp = getEmpresa(u.empresa_id);
+    if (onlyActiveEmpresas && emp && !emp.ativo) return false;
+    if (onlyActiveEmpresas && !emp) return false;
+    const term = search.toLowerCase();
+    if (!term) return true;
+    return (
+      u.nome.toLowerCase().includes(term) ||
+      getEmpresaNome(u.empresa_id).toLowerCase().includes(term)
+    );
+  });
 
   return (
     <AdminLayout>
+      <TooltipProvider>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -154,8 +167,18 @@ export default function AdminUnidades() {
               <MapPin className="h-6 w-6 text-primary" />
               Unidades
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {unidades.length} unidades em {empresas.length} empresas.
+            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5 flex-wrap">
+              <span>{filtered.length} de {unidades.length} unidades · {empresasAtivas.length} empresas ativas ({empresas.length} no total).</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" className="inline-flex items-center text-muted-foreground hover:text-foreground">
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs">
+                  Toda nova empresa cadastrada no SaaS recebe automaticamente uma unidade "Matriz" criada pelo sistema. Por isso aparecem várias Matrizes de outras empresas — elas pertencem a outros tenants e ficam isoladas por RLS.
+                </TooltipContent>
+              </Tooltip>
             </p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -176,7 +199,7 @@ export default function AdminUnidades() {
                   <Select value={empresaId} onValueChange={setEmpresaId}>
                     <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
                     <SelectContent>
-                      {empresas.map((e) => (
+                      {empresasAtivas.map((e) => (
                         <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
                       ))}
                     </SelectContent>
@@ -221,10 +244,16 @@ export default function AdminUnidades() {
           </Dialog>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por nome ou empresa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-card/80" />
+        {/* Toolbar: search + filter */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="relative max-w-sm flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar por nome ou empresa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-card/80" />
+          </div>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground select-none">
+            <Switch checked={onlyActiveEmpresas} onCheckedChange={setOnlyActiveEmpresas} />
+            Mostrar apenas empresas ativas
+          </label>
         </div>
 
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
@@ -265,7 +294,19 @@ export default function AdminUnidades() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="text-xs">{getEmpresaNome(u.empresa_id)}</Badge>
+                        {(() => {
+                          const emp = getEmpresa(u.empresa_id);
+                          return (
+                            <div className="flex flex-col gap-0.5">
+                              <Badge variant="secondary" className="text-xs w-fit">
+                                {emp?.nome || "Empresa removida"}
+                              </Badge>
+                              {emp && !emp.ativo && (
+                                <span className="text-[10px] text-amber-600 dark:text-amber-400">Empresa inativa</span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="capitalize text-xs">{u.tipo}</Badge>
@@ -405,6 +446,7 @@ export default function AdminUnidades() {
           </div>
         </div>
       )}
+      </TooltipProvider>
     </AdminLayout>
   );
 }
