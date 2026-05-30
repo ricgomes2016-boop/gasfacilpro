@@ -44,6 +44,7 @@ export default function AdminUnidades() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [onlyActiveEmpresas, setOnlyActiveEmpresas] = useState(true);
 
   // New unit form
   const [nome, setNome] = useState("");
