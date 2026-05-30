@@ -10,10 +10,14 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useValeGas } from "@/contexts/ValeGasContext";
+import { useUnidade } from "@/contexts/UnidadeContext";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   FileText, Banknote, Building2, CheckCircle2, Clock, AlertCircle, Plus,
 } from "lucide-react";
@@ -22,11 +26,21 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
+const defaultVencAcerto = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 10);
+  return d.toISOString().split("T")[0];
+};
+
+const acertoMarker = (id: string) => `[acerto:${id}]`;
+
 export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {}) {
   const { parceiros, vales, acertos, gerarAcerto, registrarPagamentoAcerto } = useValeGas();
+  const { unidadeAtual } = useUnidade();
   
   const [novoAcertoDialog, setNovoAcertoDialog] = useState(false);
   const [parceiroSelecionado, setParceiroSelecionado] = useState<string>("");
+  const [vencimentoAcerto, setVencimentoAcerto] = useState<string>(defaultVencAcerto());
   const [formaPagamento, setFormaPagamento] = useState<string>("");
   const [pagamentoAcertoId, setPagamentoAcertoId] = useState<string | null>(null);
 
@@ -48,12 +62,34 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
 
   const handleGerarAcerto = async () => {
     if (!parceiroSelecionado) { toast.error("Selecione um parceiro"); return; }
+    const venc = vencimentoAcerto || defaultVencAcerto();
     try {
       const acerto = await gerarAcerto(parceiroSelecionado);
       if (acerto) {
+        const parceiro = parceiros.find(p => p.id === parceiroSelecionado);
+        // Gera o título financeiro do acerto em Contas a Receber
+        try {
+          const { error: crErr } = await supabase.from("contas_receber").insert({
+            cliente: acerto.parceiro_nome,
+            descricao: `Acerto Vale Gás - ${acerto.parceiro_nome} - ${acerto.quantidade} vales`,
+            valor: acerto.valor_total,
+            vencimento: venc,
+            status: "pendente",
+            forma_pagamento: "vale_gas",
+            vale_gas_parceiro_id: parceiro?.id,
+            origem: "vale_gas_acerto",
+            unidade_id: unidadeAtual?.id || null,
+            observacoes: `${acertoMarker(acerto.id)} Acerto de ${acerto.quantidade} vales utilizados.`,
+          });
+          if (crErr) throw crErr;
+        } catch (e: any) {
+          console.error("Erro ao gerar conta a receber do acerto:", e);
+          toast.error("Acerto gerado, mas falhou ao criar a conta a receber. Crie manualmente.");
+        }
         toast.success(`Acerto gerado! ${acerto.quantidade} vales - R$ ${Number(acerto.valor_total).toFixed(2)}`);
         setNovoAcertoDialog(false);
         setParceiroSelecionado("");
+        setVencimentoAcerto(defaultVencAcerto());
       } else {
         toast.error("Não há vales pendentes de acerto");
       }
@@ -65,6 +101,23 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
   const handleRegistrarPagamento = async () => {
     if (!pagamentoAcertoId || !formaPagamento) { toast.error("Selecione a forma de pagamento"); return; }
     await registrarPagamentoAcerto(pagamentoAcertoId, formaPagamento);
+    // Sincroniza a conta a receber correspondente
+    try {
+      const hoje = new Date().toISOString().split("T")[0];
+      const { error } = await supabase
+        .from("contas_receber")
+        .update({
+          status: "recebida",
+          data_pagamento: hoje,
+          forma_pagamento: formaPagamento,
+        })
+        .eq("origem", "vale_gas_acerto")
+        .eq("status", "pendente")
+        .ilike("observacoes", `%${acertoMarker(pagamentoAcertoId)}%`);
+      if (error) throw error;
+    } catch (e: any) {
+      console.error("Erro ao atualizar conta a receber do acerto:", e);
+    }
     toast.success("Pagamento registrado!");
     setPagamentoAcertoId(null);
     setFormaPagamento("");
@@ -101,6 +154,17 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
                     <div className="flex justify-between text-sm"><span>Valor total:</span><span className="font-bold text-green-600">R$ {valesPendentes[parceiroInfo.id].valor.toFixed(2)}</span></div>
                   </div>
                 )}
+                <div className="space-y-2">
+                  <Label>Vencimento do título (Contas a Receber)</Label>
+                  <Input
+                    type="date"
+                    value={vencimentoAcerto}
+                    onChange={e => setVencimentoAcerto(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Um título será criado em Contas a Receber para o parceiro consignado.
+                  </p>
+                </div>
                 <div className="flex gap-2 justify-end pt-4">
                   <Button variant="outline" onClick={() => setNovoAcertoDialog(false)}>Cancelar</Button>
                   <Button onClick={handleGerarAcerto}>Gerar Acerto</Button>
