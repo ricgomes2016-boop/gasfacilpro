@@ -100,6 +100,7 @@ export function useMapaOperacionalData({
       // Pontos GPS via rotas em andamento
       const entIds = ents.map((e) => e.id);
       const novoCache: Record<string, PontoGPS[]> = {};
+      const rotasMap: Record<string, string> = {};
 
       if (entIds.length) {
         const { data: rotas } = await supabase
@@ -110,7 +111,10 @@ export function useMapaOperacionalData({
 
         const rotaIds = (rotas || []).map((r: any) => r.id);
         const rotaToEnt: Record<string, string> = {};
-        (rotas || []).forEach((r: any) => { rotaToEnt[r.id] = r.entregador_id; });
+        (rotas || []).forEach((r: any) => {
+          rotaToEnt[r.id] = r.entregador_id;
+          rotasMap[r.entregador_id] = r.id;
+        });
 
         if (rotaIds.length) {
           const { data: hist } = await supabase
@@ -133,6 +137,8 @@ export function useMapaOperacionalData({
           });
         }
       }
+
+      setRotasAtivasPorEntregador(rotasMap);
 
       setEntregadores(ents);
       setPedidos(peds2);
