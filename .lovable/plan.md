@@ -1,71 +1,47 @@
-# Contas a Receber — Filtros Premium + Auto-baixa de Recebimentos à Vista
+# Vale Gás × Contas a Receber — Acerto do título do parceiro
 
-## Diagnóstico
+## Problema
 
-Hoje a tela tem **três camadas de filtros concorrentes** que confundem o usuário:
-1. Campo "Buscar nome" sempre visível
-2. Painel "Filtros" expansível (data inicial, data final, status)
-3. Abas por forma de pagamento (Cartões, PIX Maquininha, Cheques, Fiado, Boletos, Vale Gás, Outros)
+Hoje o fluxo financeiro do Vale Gás cobra duas vezes (ou nenhuma):
 
-Além disso, contas pagas em **cartão de débito/crédito, PIX e PIX Maquininha** entram como `pendente` — o que está errado: esses meios **liquidam na hora** (cartão D+1/D+30 vira recebível só pro adquirente, mas para o cliente já está pago). Boleto e fiado sim ficam pendentes.
+1. **Emissão do lote** (`ValeGasEmissao.tsx`) — só gera `contas_receber` se o operador marcar o checkbox opcional **"Gerar conta a receber"**. Se esquecer, o parceiro nunca aparece em Contas a Receber.
+2. **Venda paga com Vale Gás** (`paymentRoutingService.ts` → case `vale_gas`) — gera **um título por venda** vinculado ao parceiro, com vencimento = hoje. Isso é incorreto: quem deve é o parceiro pelo lote, não o cliente final pela venda. O resultado é que Contas a Receber enche de títulos pequenos do parceiro (um por vale consumido), além do título do lote.
 
-## Solução em duas frentes
+Regra correta: **o parceiro paga o lote**. A venda apenas consome o voucher.
 
-### Frente 1 — Barra de filtros unificada (premium)
+## Mudanças
 
-Substituir os três blocos por **uma barra sticky** no topo (mesmo padrão já adotado no Relatório de Vendas):
+### 1. Emissão do lote sempre gera Contas a Receber
+Arquivo: `src/pages/financeiro/ValeGasEmissao.tsx`
 
-```
-[Buscar cliente/descrição...]  [Período ▾]  [Status ▾]  [Forma ▾]  [Mais ▾]   [Limpar]
-└─ chips de filtros ativos ────────────────────────────────────────────────────┘
-```
+- Remover o checkbox **"Gerar conta a receber"** (o título passa a ser obrigatório).
+- Manter o campo **"Vencimento do título"** (default = hoje + 10 dias, editável).
+- Após `emitirLote`, sempre inserir em `contas_receber`:
+  - `cliente` = nome do parceiro, `vale_gas_parceiro_id` preenchido
+  - `descricao` = `"Vale Gás - Lote {numero_inicial}-{numero_final} ({qtd} vales)"`
+  - `valor` = `lote.valor_total`, `vencimento` = data escolhida
+  - `status = "pendente"`, `forma_pagamento = "vale_gas"`, `origem = "vale_gas_lote"`
+  - `unidade_id` da unidade atual
+- Se o `insert` falhar, reverter (ou alertar) — não deixar lote órfão de título.
+- Ajustar `formData` inicial e o reset para remover `gerarContaReceber`.
 
-- **Período (popover)**: presets "Hoje · 7 dias · Este mês · Mês passado · Últimos 30/90 dias · Este ano · Personalizado" + dois inputs de data. Default = "Este mês".
-- **Status (multi-select)**: `A Receber` (pendente futura), `Vencida`, `Recebida`, `Parcial`. Default = `A Receber + Vencida`.
-- **Forma (multi-select)**: substitui as abas. Opções agrupadas:
-  - **À vista (liquidam automático)**: Dinheiro, PIX, PIX Maquininha, Cartão Débito, Cartão Crédito
-  - **A prazo**: Boleto, Fiado, Cheque, Vale Gás, Transferência
-- **Mais filtros**: Canal de venda, faixa de valor (slider min/max), apenas com boleto pendente de emissão, apenas Asaas.
-- **Chips ativos** logo abaixo da barra: cada filtro vira um chip removível (ex.: `Período: Mai/2026 ×`, `Forma: PIX ×`).
-- **Botão "Limpar"** só aparece quando há filtro fora do default.
+### 2. Venda com Vale Gás deixa de criar Contas a Receber
+Arquivo: `src/services/paymentRoutingService.ts` (case `"vale_gas"`)
 
-KPIs do topo (Pendente / Vencido / Recebido / Total) passam a **respeitar a barra de filtros** — hoje eles ignoram tudo e mostram sempre o total geral, o que engana a leitura.
+- **Remover o `insertContasReceber`** desse case.
+- Manter: atualizar o registro `vale_gas` para `status="utilizado"`, gravar `data_utilizacao`, `venda_id`, `cliente_id`, `cliente_nome` (rastreabilidade).
+- Atualizar o comentário do header (linhas 124–130) para refletir que Vale Gás **não** gera `contas_receber` na venda — o título vive no lote.
 
-### Frente 2 — Auto-baixa de recebimentos à vista
-
-Definir uma regra única `isFormaAVista(forma)` que retorna `true` para:
-`dinheiro, pix, pix_maquininha, cartao_debito, cartao_credito, cartão` (qualquer variação case-insensitive).
-
-Aplicar em **três pontos**:
-
-1. **No insert (frontend, `salvar()` desta tela)**: se `forma_pagamento` é à vista, gravar `status='recebida'`, `data_recebimento = vencimento || hoje` automaticamente — sem precisar abrir o dialog "Liquidar".
-
-2. **Backfill** (one-shot via migration `UPDATE`): marcar como `recebida` todas as contas existentes que estão `pendente` com forma de pagamento à vista, usando `vencimento` como `data_recebimento`. Vou listar o impacto antes (`SELECT COUNT`) para o usuário aprovar.
-
-3. **Origem das vendas (`NovaVenda` / pedido → conta_receber)**: hoje cria sempre `status='pendente'`. Passar a respeitar a mesma regra na criação — vou ajustar o ponto onde a venda gera o `contas_receber` (preciso localizar o arquivo durante implementação, provavelmente `usePedidos` ou trigger no banco).
-
-**Indicador visual na linha**: badge azul "Auto-baixada" quando `recebida` veio da regra automática, para o gestor distinguir das baixas manuais.
-
-### Frente 3 — Melhorias premium de leitura
-
-- **Resumo por forma de pagamento** em mini-cards colapsáveis acima da tabela (ex.: "PIX: 142 contas · R$ 18.420 recebido este mês · 100% liquidação").
-- **Exportar** respeita os filtros ativos (hoje exporta tudo).
-- **Linha vencida** ganha barra vermelha lateral + tooltip "Vencida há X dias".
-- **Ordenação por coluna** (cliente, vencimento, valor) com indicador visual.
+### 3. Limpeza dos títulos antigos duplicados (opcional, a confirmar)
+Migration `UPDATE` (via tool `supabase--insert`) que marca como `cancelada` (ou deleta) os títulos legados com `origem = 'vale_gas'` (origem da venda, **não** `vale_gas_lote`) que ainda estejam `pendente`. Só rodar após confirmação do usuário, pois afeta dados existentes.
 
 ## Fora de escopo
-- Não mexer em `App.tsx`, rotas, providers.
-- Não alterar tabela `contas_receber` (só `UPDATE` de dados existentes).
-- Não tocar em RLS.
-- Cartão de crédito continua não gerando recebível do adquirente (essa é outra esteira, `PagamentosCartao.tsx`); aqui só estamos baixando a venda do cliente.
 
-## Arquivos afetados
-- `src/pages/financeiro/ContasReceber.tsx` — barra unificada, regra à vista, KPIs filtrados
-- `src/lib/financeiro/formaPagamento.ts` — **novo**, helper `isFormaAVista` + `getFormaCategoria` reutilizável
-- Migration de backfill (UPDATE em `contas_receber`)
-- Ponto de criação de conta a receber a partir de venda (a confirmar no momento da implementação)
+- Estrutura da tabela `contas_receber`, RLS, App.tsx, rotas e providers.
+- Lógica de Conferência de Cartão, Asaas, fluxo de boleto.
+- Tela `ContasReceber.tsx` (já refatorada na rodada anterior — os títulos do lote aparecerão naturalmente com `forma_pagamento = "vale_gas"`).
 
-## Pergunta antes de partir pra build
-Quero confirmar duas coisas:
-1. **Boleto** liquida só quando o Asaas confirma — mantenho como `pendente` até webhook, certo? (não entra no auto-baixa)
-2. **Cartão de crédito parcelado**: a venda para o cliente fica `recebida` na hora (ok auto-baixar), e os recebíveis do adquirente seguem em `PagamentosCartao`. Confirma?
+## Perguntas
+
+1. **Vencimento padrão do título do lote**: manter `hoje + 30 dias` (default atual) ou mudar para **10 dias** como no seu exemplo (20/05 → 30/05)?
+2. **Títulos antigos** gerados por venda com vale_gas (origem `vale_gas`, não `vale_gas_lote`) que estão `pendente` em Contas a Receber: deseja que eu rode uma limpeza marcando-os como `cancelada`, ou prefere manter o histórico e só ajustar daqui para frente?
