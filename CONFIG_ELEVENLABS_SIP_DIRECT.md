@@ -137,3 +137,22 @@ Quando a ligação SIP direta estiver estável por ~7 dias:
 | Bia atende mas não fala português ou usa contexto errado | Webhook initiation não está habilitado no agente |
 | `chamadas_recebidas` não atualiza após chamada | Webhook post-call não configurado ou URL errada |
 | Bia trata operadora como cliente | Lógica `OPERATOR_LAST10` em `elevenlabs-call-initiation/index.ts` precisa do número novo |
+
+---
+
+## ⚙️ Tool `criar_pedido` — Preço negociado (atualizado)
+
+A edge function `elevenlabs-bia-tools` agora aceita **preço negociado livre** na ação `criar_pedido`. Para a Bia usar, atualize **no painel do agente ElevenLabs**:
+
+### Schema do tool `criar_pedido` — adicionar propriedades opcionais
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `preco_unitario` | number | Preço final **por unidade** em reais, quando a Bia conceder qualquer desconto fora da tabela padrão (ex.: cliente pediu 120 e a tabela é 125). |
+| `desconto_unitario` | number | Alternativa: desconto em R$ por unidade (será subtraído do preço base). |
+
+Travas no servidor: o valor é limitado entre `preco_desconto` da tabela (piso) e `preco` cheio (teto). Se não houver `preco_desconto`, o piso é 50% do preço cheio.
+
+### Instrução para o prompt do agente
+
+> Sempre que você conceder qualquer desconto ou fechar um valor diferente do preço cheio (mesmo o `preco_desconto` da tabela), envie `preco_unitario` no `criar_pedido` com o valor final acordado em reais por unidade. **Não confie só em `usar_desconto`** — ele aplica apenas o preço de desconto fixo da tabela.
