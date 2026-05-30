@@ -357,16 +357,17 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
         clienteNome: clienteSelecionado?.nome || undefined,
         produtoId: formData.produtoId || undefined,
         produtoNome: produtoSelecionado?.nome || undefined,
-        gerarContaReceber: formData.gerarContaReceber,
+        gerarContaReceber: false, // título é criado abaixo, sempre
         unidadeId: unidadeAtual?.id || null,
       });
 
-      if (formData.gerarContaReceber && parceiro) {
+      // Título financeiro do parceiro — SEMPRE gerado (regra fixa).
+      if (parceiro) {
         try {
-          const vencimento = formData.dataVencimentoConta || new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0];
-          await supabase.from("contas_receber").insert({
+          const vencimento = formData.dataVencimentoConta || defaultVencConta();
+          const { error: crErr } = await supabase.from("contas_receber").insert({
             cliente: parceiro.nome,
-            descricao: `${formData.descricao || "Vale Gás"} - Lote ${lote.numero_inicial}-${lote.numero_final}`,
+            descricao: `Vale Gás - Lote ${lote.numero_inicial}-${lote.numero_final} (${lote.quantidade} vales)`,
             valor: lote.valor_total,
             vencimento,
             status: "pendente",
@@ -374,10 +375,14 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
             vale_gas_parceiro_id: parceiro.id,
             origem: "vale_gas_lote",
             unidade_id: unidadeAtual?.id || null,
-            observacoes: `Lote de ${lote.quantidade} vales. Parceiro: ${parceiro.nome}`,
+            observacoes: `Lote de ${lote.quantidade} vales emitido para ${parceiro.nome}.`,
           });
-          toast.success("Conta a receber gerada!");
-        } catch { toast.error("Erro ao gerar conta a receber"); }
+          if (crErr) throw crErr;
+          toast.success("Conta a receber gerada para o parceiro!");
+        } catch (e: any) {
+          console.error("Erro ao gerar conta a receber do lote:", e);
+          toast.error("Lote emitido, mas falhou ao gerar a conta a receber. Gere manualmente.");
+        }
       }
 
       // Gerar cupons para impressão
