@@ -1260,104 +1260,38 @@ export default function RelatorioVendas() {
                 icon={<CalendarDays className="h-5 w-5" />}
                 title="Comparativo Mensal por Produto"
                 action={
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <Label className="text-xs text-white/90 whitespace-nowrap">De</Label>
-                      <Input
-                        type="month"
-                        value={`${rangeIni.ano}-${String(rangeIni.mes + 1).padStart(2, "0")}`}
-                        onChange={(e) => {
-                          const parts = e.target.value.split("-").map(Number);
-                          const y = parts[0], m = parts[1];
-                          if (!y || !m) return;
-                          const novo = { ano: y, mes: m - 1 };
-                          setRangeIni(novo);
-                          if (cmpPeriodo(novo, rangeFim) > 0) setRangeFim(novo);
-                        }}
-                        className="h-9 w-[150px] bg-background"
-                      />
-                      <Label className="text-xs text-white/90 whitespace-nowrap">Até</Label>
-                      <Input
-                        type="month"
-                        value={`${rangeFim.ano}-${String(rangeFim.mes + 1).padStart(2, "0")}`}
-                        onChange={(e) => {
-                          const parts = e.target.value.split("-").map(Number);
-                          const y = parts[0], m = parts[1];
-                          if (!y || !m) return;
-                          const novo = { ano: y, mes: m - 1 };
-                          setRangeFim(novo);
-                          if (cmpPeriodo(rangeIni, novo) > 0) setRangeIni(novo);
-                        }}
-                        className="h-9 w-[150px] bg-background"
-                      />
-                    </div>
-                    <Select value={metricaComparativo} onValueChange={(v: "qtd" | "faturamento") => setMetricaComparativo(v)}>
-                      <SelectTrigger className="h-9 w-[150px] bg-background"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="qtd">Quantidade</SelectItem>
-                        <SelectItem value="faturamento">Faturamento</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Select value={metricaComparativo} onValueChange={(v: "qtd" | "faturamento") => setMetricaComparativo(v)}>
+                    <SelectTrigger className="h-9 w-[150px] bg-background"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="qtd">Quantidade</SelectItem>
+                      <SelectItem value="faturamento">Faturamento</SelectItem>
+                    </SelectContent>
+                  </Select>
                 }
               />
               <div className="px-4 pt-3 sm:px-5">
                 <p className="text-xs text-muted-foreground">
-                  Clique em qualquer célula de mês para lançar vendas históricas (sistema antigo). O total mostra <span className="text-primary font-medium">sistema + manual</span>.
+                  Mostra os meses cobertos pelo período selecionado no topo. Clique em qualquer célula para lançar vendas históricas — o total mostra <span className="text-primary font-medium">sistema + manual</span>.
                 </p>
               </div>
 
               <CardContent className="space-y-4">
-                {/* Atalhos de período */}
-                <div className="space-y-2">
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" onClick={() => {
-                      setRangeIni({ ano: anoAtual, mes: 0 });
-                      setRangeFim({ ano: anoAtual, mes: 11 });
-                    }}>Ano todo</Button>
-                    <Button size="sm" variant="outline" onClick={() => {
-                      setRangeIni({ ano: anoAtual, mes: 0 });
-                      setRangeFim({ ano: anoAtual, mes: mesAtual });
-                    }}>Até hoje</Button>
-                    <Button size="sm" variant="outline" onClick={() => {
-                      const fim = { ano: anoAtual, mes: mesAtual };
-                      const totalMeses = anoAtual * 12 + mesAtual - 2;
-                      setRangeIni({ ano: Math.floor(totalMeses / 12), mes: ((totalMeses % 12) + 12) % 12 });
-                      setRangeFim(fim);
-                    }}>Últimos 3 meses</Button>
-                    <Button size="sm" variant="outline" onClick={() => {
-                      const fim = { ano: anoAtual, mes: mesAtual };
-                      const totalMeses = anoAtual * 12 + mesAtual - 5;
-                      setRangeIni({ ano: Math.floor(totalMeses / 12), mes: ((totalMeses % 12) + 12) % 12 });
-                      setRangeFim(fim);
-                    }}>Últimos 6 meses</Button>
-                    <Button size="sm" variant="outline" onClick={() => {
-                      const fim = { ano: anoAtual, mes: mesAtual };
-                      const totalMeses = anoAtual * 12 + mesAtual - 11;
-                      setRangeIni({ ano: Math.floor(totalMeses / 12), mes: ((totalMeses % 12) + 12) % 12 });
-                      setRangeFim(fim);
-                    }}>Últimos 12 meses</Button>
-                    <Button size="sm" variant="outline" onClick={() => {
-                      setRangeIni({ ano: anoAtual - 1, mes: 0 });
-                      setRangeFim({ ano: anoAtual - 1, mes: 11 });
-                    }}>Ano anterior</Button>
-                  </div>
-                  {periodosSelecionados.length > 0 && (
-                    <div className="flex flex-wrap gap-2 rounded-xl border bg-muted/30 p-3">
-                      {periodosSelecionados.map((p) => (
-                        <span
-                          key={periodoKey(p)}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-primary bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium shadow-sm"
-                        >
-                          <span className="flex items-center justify-center size-4 rounded-full bg-primary-foreground text-primary">
-                            <Check className="size-3" strokeWidth={3} />
-                          </span>
-                          {formatPeriodoCurto(p)}
+                {periodosSelecionados.length > 0 && (
+                  <div className="flex flex-wrap gap-2 rounded-xl border bg-muted/30 p-3">
+                    {periodosSelecionados.map((p) => (
+                      <span
+                        key={periodoKey(p)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-primary bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium shadow-sm"
+                      >
+                        <span className="flex items-center justify-center size-4 rounded-full bg-primary-foreground text-primary">
+                          <Check className="size-3" strokeWidth={3} />
                         </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                        {formatPeriodoCurto(p)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
 
                 {/* Tabela comparativa */}
                 <div className="overflow-x-auto">
