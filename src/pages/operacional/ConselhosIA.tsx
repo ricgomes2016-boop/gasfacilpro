@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Sparkles, AlertTriangle, Lightbulb,
   Target, Users, Package, RefreshCw,
   TrendingUp, Clock, Zap, Shield,
-  DollarSign, Truck, Sun,
+  DollarSign, Truck, Sun, BarChart3, Bell,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -23,6 +24,8 @@ import { AiInsightsWidget } from "@/components/dashboard/AiInsightsWidget";
 import { ProdutividadeWidget } from "@/components/operacional/ProdutividadeWidget";
 import { PrevisaoDemandaWidget } from "@/components/operacional/PrevisaoDemandaWidget";
 import { getBrasiliaDate } from "@/lib/utils";
+import { CentralIndicadoresContent } from "./CentralIndicadores";
+import { AlertasInteligentesContent } from "./AlertasInteligentes";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -410,188 +413,216 @@ export default function ConselhosIA() {
 
   return (
     <MainLayout>
-      <Header title="Central de Inteligência" subtitle="Cockpit operacional + insights e agente IA em tempo real" />
+      <Header title="Central de Inteligência" subtitle="Cockpit operacional, indicadores e alertas em um só lugar" />
       <div className="p-3 sm:p-4 md:p-6 space-y-6">
+        <Tabs defaultValue="inteligencia" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+            <TabsTrigger value="inteligencia" className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">Inteligência</span>
+              <span className="sm:hidden">IA</span>
+            </TabsTrigger>
+            <TabsTrigger value="indicadores" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Indicadores</span>
+              <span className="sm:hidden">KPIs</span>
+            </TabsTrigger>
+            <TabsTrigger value="alertas" className="flex items-center gap-2">
+              <Bell className="h-4 w-4" />
+              <span>Alertas</span>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Hero Section */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/8 via-primary/4 to-transparent border border-primary/10 p-6"
-        >
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-          <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Sun className="h-8 w-8 text-chart-4 shrink-0" />
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <h2 className="text-lg font-bold">{greeting}, Gestor!</h2>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {insightsData.isLoading ? "Analisando dados..." : (
-                    altaPrioridade > 0
-                      ? `⚠️ ${altaPrioridade} alerta${altaPrioridade > 1 ? "s" : ""} urgente${altaPrioridade > 1 ? "s" : ""} requer${altaPrioridade === 1 ? "" : "em"} atenção.`
-                      : "✅ Tudo sob controle. Sem alertas críticos."
-                  )}
-                </p>
-              </div>
-            </div>
-            <Button onClick={refresh} disabled={insightsData.isLoading} variant="outline" size="sm" className="shrink-0">
-              <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${insightsData.isLoading ? "animate-spin" : ""}`} />
-              Atualizar
-            </Button>
-          </div>
-        </motion.div>
-
-        {/* KPIs do dia */}
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
-          {[
-            {
-              label: "Faturamento Hoje",
-              value: kpiLoading ? null : `R$ ${dados.faturamentoHoje.toLocaleString("pt-BR")}`,
-              sub: variacaoVendas !== 0 ? `${variacaoVendas > 0 ? "+" : ""}${variacaoVendas.toFixed(0)}% vs ontem` : null,
-              subColor: variacaoVendas >= 0 ? "text-chart-3" : "text-destructive",
-              icon: DollarSign,
-            },
-            {
-              label: "Vendas Hoje",
-              value: kpiLoading ? null : String(dados.vendasHoje),
-              sub: kpiLoading ? null : `Ticket: R$ ${dados.ticketMedio.toFixed(2)}`,
-              subColor: "text-muted-foreground",
-              icon: Package,
-            },
-            {
-              label: "Entregadores",
-              value: kpiLoading ? null : `${dados.entregadoresEmRota}/${dados.entregadoresAtivos}`,
-              sub: "em rota / total",
-              subColor: "text-muted-foreground",
-              icon: Truck,
-            },
-            {
-              label: "Pedidos Pendentes",
-              value: kpiLoading ? null : String(dados.pedidosPendentes),
-              sub: "aguardando ação",
-              subColor: "text-muted-foreground",
-              icon: Clock,
-            },
-          ].map((kpi, i) => (
-            <motion.div key={kpi.label} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }}>
-              <Card className="modern-status-card">
-                <CardContent className="pt-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">{kpi.label}</p>
-                      {kpi.value === null ? (
-                        <Skeleton className="h-7 w-24 mt-1" />
-                      ) : (
-                        <p className="text-2xl font-bold">{kpi.value}</p>
-                      )}
-                      {kpi.sub && !kpiLoading && (
-                        <p className={`text-xs mt-0.5 flex items-center gap-1 ${kpi.subColor}`}>
-                          {kpi.label === "Faturamento Hoje" && variacaoVendas !== 0 && <TrendingUp className="h-3 w-3" />}
-                          {kpi.sub}
-                        </p>
-                      )}
+          <TabsContent value="inteligencia" className="space-y-6">
+            {/* Hero Section */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/8 via-primary/4 to-transparent border border-primary/10 p-6"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+              <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Sun className="h-8 w-8 text-chart-4 shrink-0" />
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <h2 className="text-lg font-bold">{greeting}, Gestor!</h2>
                     </div>
-                    <kpi.icon className={i === 0 ? "h-8 w-8 text-success/45" : i === 1 ? "h-8 w-8 text-warning/45" : i === 2 ? "h-8 w-8 text-info/45" : "h-8 w-8 text-destructive/45"} />
+                    <p className="text-sm text-muted-foreground">
+                      {insightsData.isLoading ? "Analisando dados..." : (
+                        altaPrioridade > 0
+                          ? `⚠️ ${altaPrioridade} alerta${altaPrioridade > 1 ? "s" : ""} urgente${altaPrioridade > 1 ? "s" : ""} requer${altaPrioridade === 1 ? "" : "em"} atenção.`
+                          : "✅ Tudo sob controle. Sem alertas críticos."
+                      )}
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Meta mensal */}
-        <Card className="modern-panel">
-          <CardHeader className="section-header-finance">
-            <CardTitle className="flex items-center gap-2 text-sm text-success-foreground">
-              <TrendingUp className="h-4 w-4" />Meta Mensal de Faturamento
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                {kpiLoading ? <Skeleton className="h-4 w-32" /> : <span>R$ {dados.faturamentoMes.toLocaleString("pt-BR")}</span>}
-                <span className="font-medium text-muted-foreground">Meta: R$ {dados.metaMensal.toLocaleString("pt-BR")}</span>
-              </div>
-              <Progress value={kpiLoading ? 0 : progressoMeta} className="h-3" />
-              {!kpiLoading && <p className="text-xs text-muted-foreground text-center">{progressoMeta.toFixed(1)}% da meta atingida</p>}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Proactive Suggestions */}
-        <div>
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            💡 Sugestões para agora
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {suggestions.map((s, i) => (
-              <motion.button
-                key={s.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + i * 0.06 }}
-                className={`p-3 rounded-xl border text-left hover:shadow-md transition-all duration-200 group ${s.tone}`}
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent("agent-prompt", { detail: s.prompt }));
-                }}
-              >
-                <s.icon className="h-4 w-4 mb-1.5 group-hover:scale-110 transition-transform" />
-                <p className="text-xs font-medium">{s.label}</p>
-              </motion.button>
-            ))}
-          </div>
-        </div>
-
-        {/* Insights Grid */}
-        {insightsData.isLoading ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <Card key={i}>
-                <CardContent className="pt-5 space-y-3">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-3 w-2/3" />
-                  <Skeleton className="h-7 w-24 mt-2" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : insights.length === 0 ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <Card className="border-dashed">
-              <CardContent className="flex flex-col items-center justify-center py-16 text-center gap-3">
-                <div className="p-4 rounded-full bg-primary/5">
-                  <Sparkles className="h-10 w-10 text-primary" />
                 </div>
-                <p className="font-semibold text-lg">Tudo em ordem! 🎉</p>
-                <p className="text-sm text-muted-foreground max-w-sm">
-                  Nenhum alerta crítico. Estoque confortável, clientes ativos e contas em dia.
-                </p>
+                <Button onClick={refresh} disabled={insightsData.isLoading} variant="outline" size="sm" className="shrink-0">
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${insightsData.isLoading ? "animate-spin" : ""}`} />
+                  Atualizar
+                </Button>
+              </div>
+            </motion.div>
+
+            {/* KPIs do dia */}
+            <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+              {[
+                {
+                  label: "Faturamento Hoje",
+                  value: kpiLoading ? null : `R$ ${dados.faturamentoHoje.toLocaleString("pt-BR")}`,
+                  sub: variacaoVendas !== 0 ? `${variacaoVendas > 0 ? "+" : ""}${variacaoVendas.toFixed(0)}% vs ontem` : null,
+                  subColor: variacaoVendas >= 0 ? "text-chart-3" : "text-destructive",
+                  icon: DollarSign,
+                },
+                {
+                  label: "Vendas Hoje",
+                  value: kpiLoading ? null : String(dados.vendasHoje),
+                  sub: kpiLoading ? null : `Ticket: R$ ${dados.ticketMedio.toFixed(2)}`,
+                  subColor: "text-muted-foreground",
+                  icon: Package,
+                },
+                {
+                  label: "Entregadores",
+                  value: kpiLoading ? null : `${dados.entregadoresEmRota}/${dados.entregadoresAtivos}`,
+                  sub: "em rota / total",
+                  subColor: "text-muted-foreground",
+                  icon: Truck,
+                },
+                {
+                  label: "Pedidos Pendentes",
+                  value: kpiLoading ? null : String(dados.pedidosPendentes),
+                  sub: "aguardando ação",
+                  subColor: "text-muted-foreground",
+                  icon: Clock,
+                },
+              ].map((kpi, i) => (
+                <motion.div key={kpi.label} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }}>
+                  <Card className="modern-status-card">
+                    <CardContent className="pt-5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">{kpi.label}</p>
+                          {kpi.value === null ? (
+                            <Skeleton className="h-7 w-24 mt-1" />
+                          ) : (
+                            <p className="text-2xl font-bold">{kpi.value}</p>
+                          )}
+                          {kpi.sub && !kpiLoading && (
+                            <p className={`text-xs mt-0.5 flex items-center gap-1 ${kpi.subColor}`}>
+                              {kpi.label === "Faturamento Hoje" && variacaoVendas !== 0 && <TrendingUp className="h-3 w-3" />}
+                              {kpi.sub}
+                            </p>
+                          )}
+                        </div>
+                        <kpi.icon className={i === 0 ? "h-8 w-8 text-success/45" : i === 1 ? "h-8 w-8 text-warning/45" : i === 2 ? "h-8 w-8 text-info/45" : "h-8 w-8 text-destructive/45"} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Meta mensal */}
+            <Card className="modern-panel">
+              <CardHeader className="section-header-finance">
+                <CardTitle className="flex items-center gap-2 text-sm text-success-foreground">
+                  <TrendingUp className="h-4 w-4" />Meta Mensal de Faturamento
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    {kpiLoading ? <Skeleton className="h-4 w-32" /> : <span>R$ {dados.faturamentoMes.toLocaleString("pt-BR")}</span>}
+                    <span className="font-medium text-muted-foreground">Meta: R$ {dados.metaMensal.toLocaleString("pt-BR")}</span>
+                  </div>
+                  <Progress value={kpiLoading ? 0 : progressoMeta} className="h-3" />
+                  {!kpiLoading && <p className="text-xs text-muted-foreground text-center">{progressoMeta.toFixed(1)}% da meta atingida</p>}
+                </div>
               </CardContent>
             </Card>
-          </motion.div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <AnimatePresence>
-              {insights.map((insight, i) => (
-                <InsightCard key={insight.id} insight={insight} index={i} />
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
 
-        {/* Widgets: Produtividade + Previsão + Lembretes + IA */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          <ProdutividadeWidget />
-          <PrevisaoDemandaWidget />
-        </div>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <RemindersWidget />
-          <AiInsightsWidget />
-        </div>
+            {/* Proactive Suggestions */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                💡 Sugestões para agora
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {suggestions.map((s, i) => (
+                  <motion.button
+                    key={s.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 + i * 0.06 }}
+                    className={`p-3 rounded-xl border text-left hover:shadow-md transition-all duration-200 group ${s.tone}`}
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent("agent-prompt", { detail: s.prompt }));
+                    }}
+                  >
+                    <s.icon className="h-4 w-4 mb-1.5 group-hover:scale-110 transition-transform" />
+                    <p className="text-xs font-medium">{s.label}</p>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            {/* Insights Grid */}
+            {insightsData.isLoading ? (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <Card key={i}>
+                    <CardContent className="pt-5 space-y-3">
+                      <Skeleton className="h-5 w-3/4" />
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-2/3" />
+                      <Skeleton className="h-7 w-24 mt-2" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : insights.length === 0 ? (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <Card className="border-dashed">
+                  <CardContent className="flex flex-col items-center justify-center py-16 text-center gap-3">
+                    <div className="p-4 rounded-full bg-primary/5">
+                      <Sparkles className="h-10 w-10 text-primary" />
+                    </div>
+                    <p className="font-semibold text-lg">Tudo em ordem! 🎉</p>
+                    <p className="text-sm text-muted-foreground max-w-sm">
+                      Nenhum alerta crítico. Estoque confortável, clientes ativos e contas em dia.
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <AnimatePresence>
+                  {insights.map((insight, i) => (
+                    <InsightCard key={insight.id} insight={insight} index={i} />
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {/* Widgets: Produtividade + Previsão + Lembretes + IA */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <ProdutividadeWidget />
+              <PrevisaoDemandaWidget />
+            </div>
+            <div className="grid gap-6 lg:grid-cols-2">
+              <RemindersWidget />
+              <AiInsightsWidget />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="indicadores" className="space-y-6">
+            <CentralIndicadoresContent />
+          </TabsContent>
+
+          <TabsContent value="alertas" className="space-y-6">
+            <AlertasInteligentesContent />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Floating Agent */}
