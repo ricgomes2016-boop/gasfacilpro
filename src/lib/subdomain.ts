@@ -211,29 +211,31 @@ export function getSubdomainDefaultRoute(app: SubdomainApp): string {
 export function isRouteAllowedForSubdomain(app: SubdomainApp, pathname: string): boolean {
   if (!app) return true;
 
+  // Rotas públicas permitidas em qualquer subdomínio
+  if (pathname === "/auth" || pathname === "/reset-password") return true;
+
   switch (app) {
     case "cliente":
-      return matchesRouteSegment(pathname, "/cliente") || pathname === "/auth" || matchesRouteSegment(pathname, "/vale-gas");
+      return matchesRouteSegment(pathname, "/cliente") || matchesRouteSegment(pathname, "/vale-gas");
     case "entregador":
-      return matchesRouteSegment(pathname, "/entregador") || pathname === "/auth";
+      return matchesRouteSegment(pathname, "/entregador");
     case "parceiro":
-      return matchesRouteSegment(pathname, "/parceiro") || pathname === "/auth";
+      return matchesRouteSegment(pathname, "/parceiro");
     case "transportadora":
-      return matchesRouteSegment(pathname, "/transportadora") || pathname === "/auth";
+      return matchesRouteSegment(pathname, "/transportadora");
     case "erp":
-      return pathname === "/auth" || matchesRouteSegment(pathname, "/dashboard") || matchesRouteSegment(pathname, "/vendas")
+      return matchesRouteSegment(pathname, "/dashboard") || matchesRouteSegment(pathname, "/vendas")
         || matchesRouteSegment(pathname, "/caixa") || matchesRouteSegment(pathname, "/estoque") || matchesRouteSegment(pathname, "/cadastros")
         || matchesRouteSegment(pathname, "/clientes") || matchesRouteSegment(pathname, "/financeiro") || matchesRouteSegment(pathname, "/fiscal")
         || matchesRouteSegment(pathname, "/frota") || matchesRouteSegment(pathname, "/rh") || matchesRouteSegment(pathname, "/config")
         || matchesRouteSegment(pathname, "/operacional") || matchesRouteSegment(pathname, "/atendimento") || matchesRouteSegment(pathname, "/onboarding")
         || matchesRouteSegment(pathname, "/entregas") || matchesRouteSegment(pathname, "/marketing") || matchesRouteSegment(pathname, "/assistente") || matchesRouteSegment(pathname, "/assistente-ia") || matchesRouteSegment(pathname, "/meu-perfil") || matchesRouteSegment(pathname, "/configuracoes") || matchesRouteSegment(pathname, "/integracoes") || matchesRouteSegment(pathname, "/chat") || matchesRouteSegment(pathname, "/whatsapp") || matchesRouteSegment(pathname, "/centralgascp") || matchesRouteSegment(pathname, "/fortegas") || matchesRouteSegment(pathname, "/japagas");
     case "api":
-      // api.gasfacilpro.com.br — Hub de Integrações
-      return pathname === "/auth" || matchesRouteSegment(pathname, "/integracoes");
+      return matchesRouteSegment(pathname, "/integracoes");
     case "painel":
-      return pathname === "/auth" || pathname.startsWith("/admin");
+      return pathname.startsWith("/admin");
     case "contador":
-      return pathname === "/auth" || matchesRouteSegment(pathname, "/contador");
+      return matchesRouteSegment(pathname, "/contador");
     case "landing":
       return true;
     default:
