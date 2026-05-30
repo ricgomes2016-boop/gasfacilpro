@@ -527,19 +527,45 @@ serve(async (req) => {
 
       if (!prod) return err(`Produto ${nomeProduto} não cadastrado na unidade`);
 
-      // Preço: tabela das Regras da Bia > preco_telefone > preco
+      // Preço base: tabela das Regras da Bia > preco_telefone > preco
       // Se a Bia passar usar_desconto=true, usa o preco_desconto da tabela.
       let precoUnitario = 0;
       const chaveTab = chaveTabelaParaProduto(nomeProduto);
+      const linhaTab = chaveTab ? tabelaPrecos[chaveTab] : null;
       if (chaveTab) {
-        const linha = tabelaPrecos[chaveTab];
-        if (aplicarDesconto && Number(linha?.preco_desconto) > 0) {
-          precoUnitario = Number(linha.preco_desconto);
+        if (aplicarDesconto && Number(linhaTab?.preco_desconto) > 0) {
+          precoUnitario = Number(linhaTab!.preco_desconto);
         } else {
-          precoUnitario = Number(linha?.preco || 0);
+          precoUnitario = Number(linhaTab?.preco || 0);
         }
       }
       if (!precoUnitario) precoUnitario = Number(prod.preco_telefone || prod.preco || 0);
+
+      // === Preço negociado livre: se a Bia mandar preco_unitario ou desconto_unitario,
+      // aplica respeitando travas de segurança (não abaixo do preco_desconto da tabela,
+      // ou 50% do preço cheio quando não houver preco_desconto).
+      const precoBase = precoUnitario;
+      const precoCheio = Number(linhaTab?.preco || 0) || precoBase;
+      let candidatoNegociado: number | null = null;
+      if (Number.isFinite(precoNegociadoBody) && precoNegociadoBody > 0) {
+        candidatoNegociado = precoNegociadoBody;
+      } else if (Number.isFinite(descontoNegociadoBody) && descontoNegociadoBody > 0) {
+        candidatoNegociado = precoBase - descontoNegociadoBody;
+      }
+      let precoFoiNegociado = false;
+      if (candidatoNegociado !== null) {
+        const pisoMin = Number(linhaTab?.preco_desconto) > 0
+          ? Number(linhaTab!.preco_desconto)
+          : precoCheio * 0.5;
+        const tetoMax = precoCheio || precoBase;
+        const clamped = Math.min(Math.max(candidatoNegociado, pisoMin), tetoMax);
+        if (Math.abs(clamped - precoBase) >= 0.01) {
+          precoUnitario = Math.round(clamped * 100) / 100;
+          precoFoiNegociado = true;
+        }
+      }
+
+
 
       const qty = Math.max(1, Number(qtdInput) || 1);
 
