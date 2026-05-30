@@ -70,19 +70,18 @@ export default function OnboardingEmpresa() {
 
       if (profileError) throw profileError;
 
-      // 3. Create first unidade
+      // 3. Atualiza a unidade matriz que foi criada automaticamente pelo trigger
       if (nomeUnidade) {
         const { error: unidadeError } = await supabase
           .from("unidades")
-          .insert({
+          .update({
             nome: nomeUnidade,
-            tipo: "matriz",
-            empresa_id: empresa.id,
             endereco: enderecoUnidade || null,
             cidade: cidadeUnidade || null,
             estado: estadoUnidade || null,
-            ativo: true,
-          });
+          })
+          .eq("empresa_id", empresa.id)
+          .eq("tipo", "matriz");
 
         if (unidadeError) throw unidadeError;
       }
