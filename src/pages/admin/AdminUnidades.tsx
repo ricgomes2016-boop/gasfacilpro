@@ -35,7 +35,7 @@ interface Unidade {
   ativo: boolean;
 }
 
-interface EmpresaOption { id: string; nome: string; }
+interface EmpresaOption { id: string; nome: string; ativo: boolean; }
 
 export default function AdminUnidades() {
   const [unidades, setUnidades] = useState<Unidade[]>([]);
