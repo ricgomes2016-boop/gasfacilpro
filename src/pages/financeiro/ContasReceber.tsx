@@ -1060,94 +1060,204 @@ export default function ContasReceber() {
             <Button variant="outline" size="sm" onClick={exportToPDF} className="gap-1.5">
               <Download className="h-4 w-4" /><span className="hidden sm:inline">PDF</span>
             </Button>
-            <Button
-              variant={showFilters ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              className="gap-1.5"
-            >
-              <Filter className="h-4 w-4" />Filtros
-              {hasActiveFilters && <Badge variant="secondary" className="ml-1 h-5 w-5 p-0 text-[10px]">!</Badge>}
-            </Button>
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearAllFilters}><X className="h-3.5 w-3.5" /></Button>
-            )}
           </div>
         </div>
 
-        {/* Filters */}
-        {showFilters && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-3 rounded-lg bg-muted/30 border border-border">
-            <div>
-              <Label className="text-xs text-muted-foreground">Cliente</Label>
-              <Input placeholder="Buscar..." value={filtroNome} onChange={e => setFiltroNome(e.target.value)} className="mt-1" />
+        {/* Barra de filtros unificada (sticky) */}
+        <div className="sticky top-0 z-20 -mx-3 md:-mx-6 px-3 md:px-6 py-2 bg-background/85 backdrop-blur border-b border-border">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar cliente, descrição, vale…"
+                value={filtroNome}
+                onChange={e => setFiltroNome(e.target.value)}
+                className="h-9 pl-8 text-sm"
+              />
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">De</Label>
-              <Input type="date" value={dataInicial} onChange={e => setDataInicial(e.target.value)} className="mt-1" />
+
+            {/* Período */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                  <CalendarRange className="h-3.5 w-3.5" />
+                  {dataInicial || dataFinal
+                    ? `${dataInicial ? format(new Date(dataInicial + "T12:00:00"), "dd/MM") : "…"} → ${dataFinal ? format(new Date(dataFinal + "T12:00:00"), "dd/MM") : "…"}`
+                    : "Período"}
+                  <ChevronDown className="h-3 w-3 opacity-60" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 p-3" align="start">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Atalhos</p>
+                <div className="grid grid-cols-2 gap-1.5 mb-3">
+                  {[
+                    { k: "hoje", l: "Hoje" },
+                    { k: "7d", l: "Últimos 7 dias" },
+                    { k: "mes_atual", l: "Mês atual" },
+                    { k: "mes_passado", l: "Mês passado" },
+                    { k: "30d", l: "Últimos 30 dias" },
+                    { k: "90d", l: "Últimos 90 dias" },
+                    { k: "ano", l: "Este ano" },
+                    { k: "limpar", l: "Sem período" },
+                  ].map(p => (
+                    <Button key={p.k} variant="outline" size="sm" className="h-8 text-xs justify-start"
+                      onClick={() => aplicarPresetPeriodo(p.k as any)}>{p.l}</Button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground uppercase">De</Label>
+                    <Input type="date" value={dataInicial} onChange={e => setDataInicial(e.target.value)} className="h-8 text-xs mt-1" />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-muted-foreground uppercase">Até</Label>
+                    <Input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} className="h-8 text-xs mt-1" />
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Status (multi) */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                  <Tag className="h-3.5 w-3.5" />
+                  Status{filtroStatus.size > 0 && <span className="text-[10px] opacity-70">· {filtroStatus.size}</span>}
+                  <ChevronDown className="h-3 w-3 opacity-60" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-52 p-2" align="start">
+                {([
+                  { k: "a_receber", l: "A Receber", icon: Clock },
+                  { k: "vencida", l: "Vencidas", icon: AlertCircle },
+                  { k: "recebida", l: "Recebidas", icon: CheckCircle2 },
+                ] as const).map(s => {
+                  const checked = filtroStatus.has(s.k);
+                  const Icon = s.icon;
+                  return (
+                    <button key={s.k} type="button" onClick={() => toggleStatus(s.k)}
+                      className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-accent text-sm">
+                      <Checkbox checked={checked} className="pointer-events-none" />
+                      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                      {s.l}
+                    </button>
+                  );
+                })}
+              </PopoverContent>
+            </Popover>
+
+            {/* Forma de pagamento (multi) */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                  <CreditCard className="h-3.5 w-3.5" />
+                  Forma{filtroFormas.size > 0 && <span className="text-[10px] opacity-70">· {filtroFormas.size}</span>}
+                  <ChevronDown className="h-3 w-3 opacity-60" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-2" align="start">
+                <p className="text-[10px] uppercase font-semibold text-muted-foreground px-2 pt-1 pb-1 flex items-center gap-1">
+                  <Zap className="h-3 w-3" /> À vista (auto‑baixa)
+                </p>
+                {FORMA_FILTER_OPTIONS.filter(o => o.grupo === "a_vista").map(o => (
+                  <button key={o.value} type="button" onClick={() => toggleForma(o.value)}
+                    className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-accent text-sm">
+                    <Checkbox checked={filtroFormas.has(o.value)} className="pointer-events-none" />
+                    {o.label}
+                  </button>
+                ))}
+                <p className="text-[10px] uppercase font-semibold text-muted-foreground px-2 pt-2 pb-1">A prazo</p>
+                {FORMA_FILTER_OPTIONS.filter(o => o.grupo === "a_prazo").map(o => (
+                  <button key={o.value} type="button" onClick={() => toggleForma(o.value)}
+                    className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-accent text-sm">
+                    <Checkbox checked={filtroFormas.has(o.value)} className="pointer-events-none" />
+                    {o.label}
+                  </button>
+                ))}
+                <div className="border-t mt-1 pt-1">
+                  {FORMA_FILTER_OPTIONS.filter(o => o.grupo === "outros").map(o => (
+                    <button key={o.value} type="button" onClick={() => toggleForma(o.value)}
+                      className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-accent text-sm">
+                      <Checkbox checked={filtroFormas.has(o.value)} className="pointer-events-none" />
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Button variant="ghost" size="sm" onClick={() => setActiveTab(activeTab === "conferencia" ? "todos" : "conferencia")}
+              className={`h-9 gap-1.5 ${activeTab === "conferencia" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}>
+              <CreditCard className="h-3.5 w-3.5" /><span className="hidden sm:inline">Conferência</span>
+            </Button>
+
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearAllFilters} className="h-9 text-xs gap-1">
+                <X className="h-3.5 w-3.5" /> Limpar
+              </Button>
+            )}
+          </div>
+
+          {/* Chips de filtros ativos */}
+          {(filtroNome || dataInicial || dataFinal || filtroFormas.size > 0 || filtroStatus.size !== 2 || ![...filtroStatus].every(s => s === "a_receber" || s === "vencida")) && (
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              {filtroNome && (
+                <Badge variant="secondary" className="gap-1 pr-1">
+                  "{filtroNome}"
+                  <button onClick={() => setFiltroNome("")} className="hover:bg-background rounded p-0.5"><X className="h-3 w-3" /></button>
+                </Badge>
+              )}
+              {(dataInicial || dataFinal) && (
+                <Badge variant="secondary" className="gap-1 pr-1">
+                  {dataInicial && format(new Date(dataInicial + "T12:00:00"), "dd/MM/yy")} → {dataFinal && format(new Date(dataFinal + "T12:00:00"), "dd/MM/yy")}
+                  <button onClick={() => { setDataInicial(""); setDataFinal(""); }} className="hover:bg-background rounded p-0.5"><X className="h-3 w-3" /></button>
+                </Badge>
+              )}
+              {[...filtroStatus].map(s => (
+                <Badge key={s} variant="secondary" className="gap-1 pr-1">
+                  {s === "a_receber" ? "A Receber" : s === "vencida" ? "Vencidas" : "Recebidas"}
+                  <button onClick={() => toggleStatus(s)} className="hover:bg-background rounded p-0.5"><X className="h-3 w-3" /></button>
+                </Badge>
+              ))}
+              {[...filtroFormas].map(f => (
+                <Badge key={f} variant="outline" className="gap-1 pr-1">
+                  {FORMA_LABELS[f]}
+                  <button onClick={() => toggleForma(f)} className="hover:bg-background rounded p-0.5"><X className="h-3 w-3" /></button>
+                </Badge>
+              ))}
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Até</Label>
-              <Input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} className="mt-1" />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Status</Label>
-              <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="pendente">Pendentes</SelectItem>
-                  <SelectItem value="vencida">Vencidas</SelectItem>
-                  <SelectItem value="recebida">Recebidas</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          )}
+        </div>
+
+        {/* Resumo por forma (mini cards) */}
+        {resumoPorForma.length > 0 && activeTab !== "conferencia" && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {resumoPorForma.slice(0, 4).map(r => (
+              <button key={r.cat} type="button"
+                onClick={() => toggleForma(r.cat)}
+                className={`text-left p-2.5 rounded-lg border transition ${filtroFormas.has(r.cat) ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{FORMA_LABELS[r.cat]}</p>
+                <p className="text-sm font-semibold mt-0.5">R$ {r.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                <p className="text-[10px] text-muted-foreground">{r.count} título{r.count !== 1 ? "s" : ""} · R$ {r.recebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} recebido</p>
+              </button>
+            ))}
           </div>
         )}
 
-        {/* Tabs por tipo */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50">
-            <TabsTrigger value="todos" className="text-xs gap-1">
-              <Wallet className="h-3.5 w-3.5" /><span className="hidden sm:inline">Todos</span><span className="sm:hidden">All</span>
-            </TabsTrigger>
-            <TabsTrigger value="cartoes" className="text-xs gap-1">
-              <CreditCard className="h-3.5 w-3.5" /><span className="hidden sm:inline">Cartões</span>{renderTabBadge("cartoes")}
-            </TabsTrigger>
-            <TabsTrigger value="pix_maquininha" className="text-xs gap-1">
-              <Banknote className="h-3.5 w-3.5" /><span className="hidden sm:inline">PIX Maq.</span>{renderTabBadge("pix_maquininha")}
-            </TabsTrigger>
-            <TabsTrigger value="cheques" className="text-xs gap-1">
-              <FileText className="h-3.5 w-3.5" /><span className="hidden sm:inline">Cheques</span>{renderTabBadge("cheques")}
-            </TabsTrigger>
-            <TabsTrigger value="fiado" className="text-xs gap-1">
-              <Handshake className="h-3.5 w-3.5" /><span className="hidden sm:inline">Fiado</span>{renderTabBadge("fiado")}
-            </TabsTrigger>
-            <TabsTrigger value="boletos" className="text-xs gap-1">
-              <Receipt className="h-3.5 w-3.5" /><span className="hidden sm:inline">Boletos</span>{renderTabBadge("boletos")}
-            </TabsTrigger>
-            <TabsTrigger value="vale_gas" className="text-xs gap-1">
-              <Flame className="h-3.5 w-3.5" /><span className="hidden sm:inline">Vale Gás</span>{renderTabBadge("vale_gas")}
-            </TabsTrigger>
-            <TabsTrigger value="conferencia" className="text-xs gap-1">
-              <CreditCard className="h-3.5 w-3.5" /><span className="hidden sm:inline">Conferência</span>
-            </TabsTrigger>
-          </TabsList>
+        {/* Conteúdo: tabela única OU painel de conferência */}
+        {activeTab === "conferencia" ? (
+          <ConferenciaCartao />
+        ) : (
+          <Card>
+            <CardContent className="p-0 md:p-6 md:pt-4">
+              {renderTable()}
+            </CardContent>
+          </Card>
+        )}
 
-          {/* All data tabs share the same table */}
-          {["todos", "cartoes", "pix_maquininha", "cheques", "fiado", "boletos", "vale_gas"].map(tab => (
-            <TabsContent key={tab} value={tab} className="mt-4">
-              <Card>
-                <CardContent className="p-0 md:p-6 md:pt-4">
-                  {renderTable()}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          ))}
+        {/* placeholder removido para preservar o fechamento das tags abaixo */}
+        <div className="hidden">
 
-          <TabsContent value="conferencia" className="mt-4">
-            <ConferenciaCartao />
-          </TabsContent>
         </Tabs>
 
         {/* Dialog Receber */}
