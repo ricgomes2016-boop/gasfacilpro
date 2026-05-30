@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
+import { UNIDADES_PUBLIC_COLUMNS } from "@/lib/db/sensitiveColumns";
 import { assinarPdfRemoto } from "./digitalSignature/signPdfClient";
 import { toast } from "sonner";
 
