@@ -33,6 +33,7 @@ export interface PedidoOp {
   created_at: string;
   unidade_id?: string | null;
   clientes?: any;
+  pedido_itens?: any;
   localizacao?: { lat: number; lng: number } | null;
 }
 
