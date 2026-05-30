@@ -51,7 +51,7 @@ async function fetchFornecedor(empresa_id?: string | null, unidade_id?: string |
     empresa = data;
   }
   if (unidade_id) {
-    const { data } = await supabase.from("unidades").select("*").eq("id", unidade_id).maybeSingle();
+    const { data } = await supabase.from("unidades").select(UNIDADES_PUBLIC_COLUMNS).eq("id", unidade_id).maybeSingle();
     unidade = data;
   }
   const pick = (...vals: any[]) =>
