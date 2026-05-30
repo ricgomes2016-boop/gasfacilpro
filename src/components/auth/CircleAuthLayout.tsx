@@ -118,7 +118,7 @@ export function CircleAuthLayout({
                   </p>
                   <div className="mt-4 h-px w-16 bg-white/60" />
                   <p className="mt-3 text-xs uppercase tracking-widest opacity-80">
-                    GasFacil Pro
+                    GásFácil Pro
                   </p>
                 </div>
               )}
