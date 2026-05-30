@@ -78,8 +78,8 @@ export function CertidoesEmpresaTab() {
     queryKey: ["unidade-full", unidadeAtual?.id],
     queryFn: async () => {
       if (!unidadeAtual?.id) return null;
-      const { data } = await supabase.from("unidades").select("*").eq("id", unidadeAtual.id).single();
-      return data;
+      const { data } = await supabase.from("unidades").select(UNIDADES_PUBLIC_COLUMNS).eq("id", unidadeAtual.id).single();
+      return data as any;
     },
     enabled: !!unidadeAtual?.id,
   });
