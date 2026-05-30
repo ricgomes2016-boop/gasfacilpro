@@ -75,11 +75,11 @@ export function UnidadeProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const typedData = (data || []).map((u) => ({
+        const typedData = ((data as any[]) || []).map((u) => ({
           ...u,
           tipo: u.tipo as "matriz" | "filial",
           ativo: u.ativo ?? true,
-        }));
+        })) as Unidade[];
 
         setUnidades(typedData);
         selectDefault(typedData);
