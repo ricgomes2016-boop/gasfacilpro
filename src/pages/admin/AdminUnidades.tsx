@@ -244,10 +244,16 @@ export default function AdminUnidades() {
           </Dialog>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por nome ou empresa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-card/80" />
+        {/* Toolbar: search + filter */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="relative max-w-sm flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar por nome ou empresa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-card/80" />
+          </div>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground select-none">
+            <Switch checked={onlyActiveEmpresas} onCheckedChange={setOnlyActiveEmpresas} />
+            Mostrar apenas empresas ativas
+          </label>
         </div>
 
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
