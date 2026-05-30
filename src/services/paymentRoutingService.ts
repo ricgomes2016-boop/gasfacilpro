@@ -127,7 +127,7 @@ export async function criarMovimentacaoBancaria(params: {
  * - Cheque → movimentacoes_caixa + tabela cheques
  * - Fiado → contas_receber vinculada ao cliente
  * - Boleto → contas_receber
- * - Vale Gás → contas_receber (título vinculado ao parceiro)
+ * - Vale Gás → apenas baixa o voucher; o título do parceiro é gerado na emissão do lote (ValeGasEmissao)
  */
 export async function rotearPagamentosVenda(params: RotearPagamentosParams): Promise<void> {
   const { pedidoId, clienteId, clienteNome, pagamentos, unidadeId, entregadorId } = params;
