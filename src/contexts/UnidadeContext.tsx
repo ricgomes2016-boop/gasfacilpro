@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { UNIDADES_PUBLIC_COLUMNS } from "@/lib/db/sensitiveColumns";
 
 export interface Unidade {
   id: string;
