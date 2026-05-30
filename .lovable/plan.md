@@ -1,69 +1,71 @@
+# Contas a Receber — Filtros Premium + Auto-baixa de Recebimentos à Vista
 
-## Problema identificado
+## Diagnóstico
 
-Confirmei no banco: o entregador **Flavio Henrique** aparece como `em_rota` mas o `updated_at` é de **31 dias atrás** — sem GPS recente, sem rota ativa. O Mapa Operacional confia 100% na coluna `entregadores.status` (texto) que ninguém zera. Resultado: o card "Em Rota" mente, e o gestor não sabe quem está realmente trabalhando agora.
+Hoje a tela tem **três camadas de filtros concorrentes** que confundem o usuário:
+1. Campo "Buscar nome" sempre visível
+2. Painel "Filtros" expansível (data inicial, data final, status)
+3. Abas por forma de pagamento (Cartões, PIX Maquininha, Cheques, Fiado, Boletos, Vale Gás, Outros)
 
-Hoje a tela mistura 3 fontes (`entregadoresData` cru, `entsOp` do hook, e `dadosOp` da IA) sem regra única de verdade. Os KPIs `totalEmRota` / `totalDisponivel` usam `e.status` direto, ignorando `updated_at` e `rotas` ativas.
+Além disso, contas pagas em **cartão de débito/crédito, PIX e PIX Maquininha** entram como `pendente` — o que está errado: esses meios **liquidam na hora** (cartão D+1/D+30 vira recebível só pro adquirente, mas para o cliente já está pago). Boleto e fiado sim ficam pendentes.
 
-## Solução — Presença derivada (single source of truth)
+## Solução em duas frentes
 
-Calcular o status real no client a partir de 3 sinais objetivos, ignorando o campo `status` legado:
+### Frente 1 — Barra de filtros unificada (premium)
 
-```text
-                 ┌─ tem rota 'em_andamento' + ping <5min  → EM ROTA (verde pulsando)
-ping GPS <2min ──┼─ sem rota ativa                        → ONLINE / DISPONÍVEL (azul)
-                 │
-ping 2-15min  ──── → INATIVO (amarelo, "GPS instável")
-ping >15min ou nunca → OFFLINE (cinza, "Não logado")
+Substituir os três blocos por **uma barra sticky** no topo (mesmo padrão já adotado no Relatório de Vendas):
+
+```
+[Buscar cliente/descrição...]  [Período ▾]  [Status ▾]  [Forma ▾]  [Mais ▾]   [Limpar]
+└─ chips de filtros ativos ────────────────────────────────────────────────────┘
 ```
 
-Regras:
-- "Em Rota" só conta se existir registro em `rotas` com `status='em_andamento'` E ping GPS recente (já temos `rotaIds` no hook).
-- KPIs e badges passam a usar `presenca` derivada, nunca mais `e.status` cru.
-- Entregador offline há mais de 24h fica oculto por padrão (toggle "Mostrar offline").
+- **Período (popover)**: presets "Hoje · 7 dias · Este mês · Mês passado · Últimos 30/90 dias · Este ano · Personalizado" + dois inputs de data. Default = "Este mês".
+- **Status (multi-select)**: `A Receber` (pendente futura), `Vencida`, `Recebida`, `Parcial`. Default = `A Receber + Vencida`.
+- **Forma (multi-select)**: substitui as abas. Opções agrupadas:
+  - **À vista (liquidam automático)**: Dinheiro, PIX, PIX Maquininha, Cartão Débito, Cartão Crédito
+  - **A prazo**: Boleto, Fiado, Cheque, Vale Gás, Transferência
+- **Mais filtros**: Canal de venda, faixa de valor (slider min/max), apenas com boleto pendente de emissão, apenas Asaas.
+- **Chips ativos** logo abaixo da barra: cada filtro vira um chip removível (ex.: `Período: Mai/2026 ×`, `Forma: PIX ×`).
+- **Botão "Limpar"** só aparece quando há filtro fora do default.
 
-## Plano de mudanças (somente frontend + 1 hook)
+KPIs do topo (Pendente / Vencido / Recebido / Total) passam a **respeitar a barra de filtros** — hoje eles ignoram tudo e mostram sempre o total geral, o que engana a leitura.
 
-### 1. Novo `src/hooks/useEntregadorPresenca.ts`
-Recebe `entregadores`, `pontosCache` e a lista de rotas ativas (vem do `useMapaOperacionalData`, já exposta), devolve para cada entregador:
-```ts
-{ presenca: 'em_rota' | 'online' | 'instavel' | 'offline',
-  ultimoPingMs: number, temRotaAtiva: boolean, pedidosAtivos: number }
-```
+### Frente 2 — Auto-baixa de recebimentos à vista
 
-### 2. Expor `rotasAtivas` em `useMapaOperacionalData.ts`
-Pequena adição: já buscamos as rotas em andamento, basta retornar `rotasAtivasPorEntregador: Record<string, string>`.
+Definir uma regra única `isFormaAVista(forma)` que retorna `true` para:
+`dinheiro, pix, pix_maquininha, cartao_debito, cartao_credito, cartão` (qualquer variação case-insensitive).
 
-### 3. Refactor `MapaOperacional.tsx`
-- Remover `entregadoresData` paralelo — usar só `entsOp` do hook (uma fonte).
-- KPIs reescritos a partir de `presenca`:
-  - **Em Rota** = `presenca==='em_rota'`
-  - **Online** = `presenca==='online'`
-  - **Offline / Não logado** = `presenca==='offline'` (novo card, substitui "Em Andamento" duplicado)
-  - **Pendentes** = pedidos sem entregador (mantém)
-- Lista lateral de entregadores:
-  - Bolinha colorida + texto da presença real ("Online há 12s", "Em rota · 3 entregas", "GPS instável há 7min", "Offline desde 14:30 de ontem").
-  - Badge "Em Rota" só aparece quando presença é `em_rota` (corrige o bug do Flavio).
-  - Toggle "Mostrar offline" (default off) no topo da lista.
-- Marker do entregador no mapa fica esmaecido (opacity 40%) quando `instavel`, e some quando `offline`.
+Aplicar em **três pontos**:
 
-### 4. Foco em "monitoramento de produto" (entrega)
-Adicionar mini-painel `ProdutoEmTransito` no painel lateral (acima de "Entregadores"):
-- Lê `pedido_itens` dos pedidos em rota e agrega por produto: `P13 × 18 unidades · 4 entregadores`, `Água 20L × 6`.
-- Por entregador selecionado: mostra o que ele está carregando agora (vem dos itens do pedido `em_rota` dele).
-- Alerta visual quando entregador `em_rota` está parado há >10min com produto a bordo (já temos `dadosOp.paradas`).
+1. **No insert (frontend, `salvar()` desta tela)**: se `forma_pagamento` é à vista, gravar `status='recebida'`, `data_recebimento = vencimento || hoje` automaticamente — sem precisar abrir o dialog "Liquidar".
 
-### 5. Card de teste/saúde (canto inferior do painel)
-"Saúde do rastreamento": % de entregadores ativos com ping <5min, último ping global, contagem de offline há >24h — para o gestor ver na hora se o app dos entregadores parou de enviar GPS.
+2. **Backfill** (one-shot via migration `UPDATE`): marcar como `recebida` todas as contas existentes que estão `pendente` com forma de pagamento à vista, usando `vencimento` como `data_recebimento`. Vou listar o impacto antes (`SELECT COUNT`) para o usuário aprovar.
+
+3. **Origem das vendas (`NovaVenda` / pedido → conta_receber)**: hoje cria sempre `status='pendente'`. Passar a respeitar a mesma regra na criação — vou ajustar o ponto onde a venda gera o `contas_receber` (preciso localizar o arquivo durante implementação, provavelmente `usePedidos` ou trigger no banco).
+
+**Indicador visual na linha**: badge azul "Auto-baixada" quando `recebida` veio da regra automática, para o gestor distinguir das baixas manuais.
+
+### Frente 3 — Melhorias premium de leitura
+
+- **Resumo por forma de pagamento** em mini-cards colapsáveis acima da tabela (ex.: "PIX: 142 contas · R$ 18.420 recebido este mês · 100% liquidação").
+- **Exportar** respeita os filtros ativos (hoje exporta tudo).
+- **Linha vencida** ganha barra vermelha lateral + tooltip "Vencida há X dias".
+- **Ordenação por coluna** (cliente, vencimento, valor) com indicador visual.
 
 ## Fora de escopo
-- Não mexer em `App.tsx`, providers, rotas, RLS ou backend.
-- Não alterar a coluna `entregadores.status` (continua existindo para retrocompatibilidade do app do entregador).
-- Não tocar no `DeliveryRoutesMap` em si — só nos dados que entram nele.
+- Não mexer em `App.tsx`, rotas, providers.
+- Não alterar tabela `contas_receber` (só `UPDATE` de dados existentes).
+- Não tocar em RLS.
+- Cartão de crédito continua não gerando recebível do adquirente (essa é outra esteira, `PagamentosCartao.tsx`); aqui só estamos baixando a venda do cliente.
 
 ## Arquivos afetados
-- `src/hooks/useMapaOperacionalData.ts` — expor rotas ativas
-- `src/hooks/useEntregadorPresenca.ts` — **novo**
-- `src/pages/operacional/MapaOperacional.tsx` — KPIs, lista, toggle offline
-- `src/components/operacional/mapa/PainelLateral.tsx` — adicionar bloco "Produto em trânsito" e "Saúde do rastreamento"
+- `src/pages/financeiro/ContasReceber.tsx` — barra unificada, regra à vista, KPIs filtrados
+- `src/lib/financeiro/formaPagamento.ts` — **novo**, helper `isFormaAVista` + `getFormaCategoria` reutilizável
+- Migration de backfill (UPDATE em `contas_receber`)
+- Ponto de criação de conta a receber a partir de venda (a confirmar no momento da implementação)
 
+## Pergunta antes de partir pra build
+Quero confirmar duas coisas:
+1. **Boleto** liquida só quando o Asaas confirma — mantenho como `pendente` até webhook, certo? (não entra no auto-baixa)
+2. **Cartão de crédito parcelado**: a venda para o cliente fica `recebida` na hora (ok auto-baixar), e os recebíveis do adquirente seguem em `PagamentosCartao`. Confirma?
