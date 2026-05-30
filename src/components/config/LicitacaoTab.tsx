@@ -74,7 +74,7 @@ export function LicitacaoTab() {
     queryKey: ["unidade-full", unidadeAtual?.id],
     queryFn: async () => {
       if (!unidadeAtual?.id) return null;
-      const { data } = await supabase.from("unidades").select("*").eq("id", unidadeAtual.id).maybeSingle();
+      const { data } = await supabase.from("unidades").select(UNIDADES_PUBLIC_COLUMNS).eq("id", unidadeAtual.id).maybeSingle();
       return data;
     },
     enabled: !!unidadeAtual?.id,
