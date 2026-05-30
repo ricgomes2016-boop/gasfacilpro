@@ -284,27 +284,11 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
       }
 
       case "vale_gas": {
-        // Vale Gás NÃO entra no caixa físico — é um voucher do parceiro.
-        // Gera título em Contas a Receber vinculado ao parceiro.
+        // Vale Gás NÃO gera contas_receber na venda.
+        // O título financeiro vive no LOTE (vinculado ao parceiro), criado em ValeGasEmissao.
+        // Aqui apenas marcamos o voucher como utilizado para rastreabilidade.
         promises.push((async () => {
-          let parceiroNome = pag.vale_gas_parceiro_nome || "Parceiro Vale Gás";
-          let parceiroId = pag.vale_gas_parceiro_id || null;
-          let valeNumero = pag.vale_gas_numero || null;
-          let valeCodigo = pag.vale_gas_codigo || null;
-
           if (pag.vale_gas_id) {
-            const { data: vale } = await (supabase as any)
-              .from("vale_gas")
-              .select("id, numero, codigo, parceiro_id, valor, vale_gas_parceiros:parceiro_id(nome)")
-              .eq("id", pag.vale_gas_id)
-              .maybeSingle();
-            if (vale) {
-              parceiroId = vale.parceiro_id || parceiroId;
-              parceiroNome = vale.vale_gas_parceiros?.nome || parceiroNome;
-              valeNumero = vale.numero || valeNumero;
-              valeCodigo = vale.codigo || valeCodigo;
-            }
-
             await (supabase as any).from("vale_gas").update({
               status: "utilizado",
               data_utilizacao: new Date().toISOString(),
@@ -313,25 +297,6 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
               cliente_nome: clienteNome || null,
             }).eq("id", pag.vale_gas_id).neq("status", "utilizado");
           }
-
-          await insertContasReceber({
-            cliente: parceiroNome,
-            descricao: `Vale Gás${valeNumero ? ` nº ${valeNumero}` : ""} - Venda #${pedidoRef}`,
-            valor: pag.valor,
-            vencimento: hoje,
-            status: "pendente",
-            forma_pagamento: "vale_gas",
-            pedido_id: pedidoId,
-            unidade_id: unidadeId || null,
-            cliente_id: null,
-            vale_gas_id: pag.vale_gas_id || null,
-            vale_gas_parceiro_id: parceiroId,
-            origem: "vale_gas",
-            observacoes: [
-              valeCodigo ? `Código: ${valeCodigo}` : null,
-              parceiroNome ? `Parceiro: ${parceiroNome}` : null,
-            ].filter(Boolean).join(" | ") || null,
-          });
         })());
         break;
       }
