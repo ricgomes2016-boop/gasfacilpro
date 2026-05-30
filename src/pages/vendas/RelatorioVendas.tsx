@@ -21,7 +21,7 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
 import {
-  FileSpreadsheet, Download, Filter, TrendingUp, DollarSign, ShoppingCart, Calendar, RefreshCw, Users, Megaphone, Pencil, Upload,
+  FileSpreadsheet, Download, Filter, TrendingUp, DollarSign, ShoppingCart, Calendar, RefreshCw, Users, Megaphone, Pencil, Upload, X, SlidersHorizontal,
 } from "lucide-react";
 import { SmartImportButtons } from "@/components/import/SmartImportButtons";
 import { ImportReviewDialog } from "@/components/import/ImportReviewDialog";
@@ -127,11 +127,16 @@ export default function RelatorioVendas() {
   const scopeKey = consolidado ? `all:${empresa?.id || ""}` : (unidadeAtual?.id || "none");
 
   // Comparativo mensal (aba Produtos) — intervalo livre que pode cruzar anos
-  const anoAtual = hoje.getFullYear();
-  const mesAtual = hoje.getMonth();
   type PeriodoMes = { ano: number; mes: number }; // mes: 0-11
-  const [rangeIni, setRangeIni] = useState<PeriodoMes>({ ano: anoAtual, mes: 0 });
-  const [rangeFim, setRangeFim] = useState<PeriodoMes>({ ano: anoAtual, mes: mesAtual });
+  // Comparativo Mensal usa o período global (dataInicio/dataFim) como fonte da verdade
+  const rangeIni = useMemo<PeriodoMes>(() => {
+    const d = parseISO(dataInicio);
+    return { ano: d.getFullYear(), mes: d.getMonth() };
+  }, [dataInicio]);
+  const rangeFim = useMemo<PeriodoMes>(() => {
+    const d = parseISO(dataFim);
+    return { ano: d.getFullYear(), mes: d.getMonth() };
+  }, [dataFim]);
   const [metricaComparativo, setMetricaComparativo] = useState<"qtd" | "faturamento">("qtd");
 
   // Helpers de período
@@ -793,101 +798,154 @@ export default function RelatorioVendas() {
           </div>
         </div>
 
-        {/* Filtros */}
-        <Card className="venda-card">
-          <VendaSectionHeader
-            tone="muted"
-            icon={<Filter className="h-5 w-5" />}
-            title="Filtros"
-          />
+        {/* Barra de filtros unificada (sticky) */}
+        {(() => {
+          const presets = [
+            { label: "Mês atual", get: () => { const h = new Date(); return [startOfMonth(h), endOfMonth(h)] as const; } },
+            { label: "Últimos 3 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 2)), endOfMonth(h)] as const; } },
+            { label: "Últimos 6 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 5)), endOfMonth(h)] as const; } },
+            { label: "Últimos 12 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 11)), endOfMonth(h)] as const; } },
+            { label: "Ano atual", get: () => { const h = new Date(); return [startOfYear(h), endOfYear(h)] as const; } },
+            { label: "Ano anterior", get: () => { const h = new Date(); const ant = new Date(h.getFullYear() - 1, 0, 1); return [startOfYear(ant), endOfYear(ant)] as const; } },
+          ];
+          const labelPresetAtivo = presets.find(p => {
+            const [i, f] = p.get();
+            return dataInicio === format(i, "yyyy-MM-dd") && dataFim === format(f, "yyyy-MM-dd");
+          })?.label;
+          const labelPeriodo = labelPresetAtivo
+            ?? `${format(parseISO(dataInicio), "dd MMM yy", { locale: ptBR })} – ${format(parseISO(dataFim), "dd MMM yy", { locale: ptBR })}`;
+          const filtrosAtivos = (statusFiltro !== "todos" ? 1 : 0) + (canalFiltro !== "todos" ? 1 : 0) + (consolidado ? 1 : 0);
+          return (
+            <div className="sticky top-0 z-20 -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 py-2 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70 border-b border-border/60">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Período */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2 h-9">
+                      <CalendarDays className="h-4 w-4 text-primary" />
+                      <span className="truncate max-w-[200px] font-medium">{labelPeriodo}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-[320px] p-3 space-y-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Atalhos</Label>
+                      <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                        {presets.map((p) => {
+                          const [i, f] = p.get();
+                          const iStr = format(i, "yyyy-MM-dd");
+                          const fStr = format(f, "yyyy-MM-dd");
+                          const ativo = dataInicio === iStr && dataFim === fStr;
+                          return (
+                            <Button
+                              key={p.label}
+                              type="button"
+                              variant={ativo ? "default" : "outline"}
+                              size="sm"
+                              className="h-8 text-xs justify-start"
+                              onClick={() => { setDataInicio(iStr); setDataFim(fStr); }}
+                            >
+                              {p.label}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/60">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Início</Label>
+                        <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="h-9" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Fim</Label>
+                        <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="h-9" />
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
 
-          <CardContent>
-            <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
-              <div className="space-y-2">
-                <Label className="text-xs">Data Início</Label>
-                <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Data Fim</Label>
-                <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Status</Label>
-                <Select value={statusFiltro} onValueChange={setStatusFiltro}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="em_preparo">Em Preparo</SelectItem>
-                    <SelectItem value="em_rota">Em Rota</SelectItem>
-                    <SelectItem value="entregue">Entregue</SelectItem>
-                    <SelectItem value="cancelado">Cancelado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Canal</Label>
-                <Select value={canalFiltro} onValueChange={setCanalFiltro}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    {canaisVenda.map((c) => (
-                      <SelectItem key={c.id} value={c.nome}>{canalLabels[c.nome] || c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">&nbsp;</Label>
-                <Button variant="outline" className="w-full gap-2" onClick={() => refetch()} disabled={isLoading}>
-                  <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />Atualizar
+                {/* Mais filtros */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2 h-9">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      <span className="hidden sm:inline">Filtros</span>
+                      {filtrosAtivos > 0 && (
+                        <Badge variant="default" className="h-5 min-w-5 px-1.5 text-[10px]">{filtrosAtivos}</Badge>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-[280px] p-3 space-y-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Status</Label>
+                      <Select value={statusFiltro} onValueChange={setStatusFiltro}>
+                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="todos">Todos</SelectItem>
+                          <SelectItem value="pendente">Pendente</SelectItem>
+                          <SelectItem value="em_preparo">Em Preparo</SelectItem>
+                          <SelectItem value="em_rota">Em Rota</SelectItem>
+                          <SelectItem value="entregue">Entregue</SelectItem>
+                          <SelectItem value="cancelado">Cancelado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Canal</Label>
+                      <Select value={canalFiltro} onValueChange={setCanalFiltro}>
+                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="todos">Todos</SelectItem>
+                          {canaisVenda.map((c) => (
+                            <SelectItem key={c.id} value={c.nome}>{canalLabels[c.nome] || c.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {isMatriz && (
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
+                        <Label htmlFor="consolidado" className="text-sm cursor-pointer">
+                          Consolidar unidades
+                          <span className="block text-xs text-muted-foreground font-normal">{unidadeIds.length} {unidadeIds.length === 1 ? "unidade" : "unidades"}</span>
+                        </Label>
+                        <Switch id="consolidado" checked={consolidado} onCheckedChange={setConsolidado} />
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+
+                <Button variant="ghost" size="sm" className="h-9 gap-2 ml-auto" onClick={() => refetch()} disabled={isLoading}>
+                  <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                  <span className="hidden sm:inline">Atualizar</span>
                 </Button>
               </div>
+
+              {/* Chips de filtros ativos */}
+              {filtrosAtivos > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {statusFiltro !== "todos" && (
+                    <Badge variant="secondary" className="gap-1 pr-1">
+                      Status: {statusConfig[statusFiltro]?.label ?? statusFiltro}
+                      <button onClick={() => setStatusFiltro("todos")} className="ml-1 rounded-full hover:bg-background/60 p-0.5"><X className="h-3 w-3" /></button>
+                    </Badge>
+                  )}
+                  {canalFiltro !== "todos" && (
+                    <Badge variant="secondary" className="gap-1 pr-1">
+                      Canal: {canalLabels[canalFiltro] || canalFiltro}
+                      <button onClick={() => setCanalFiltro("todos")} className="ml-1 rounded-full hover:bg-background/60 p-0.5"><X className="h-3 w-3" /></button>
+                    </Badge>
+                  )}
+                  {consolidado && (
+                    <Badge variant="default" className="gap-1 pr-1">
+                      Consolidado · {unidadeIds.length}
+                      <button onClick={() => setConsolidado(false)} className="ml-1 rounded-full hover:bg-background/30 p-0.5"><X className="h-3 w-3" /></button>
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Label className="text-xs text-muted-foreground mr-1">Período rápido:</Label>
-              {[
-                { label: "Mês atual", get: () => { const h = new Date(); return [startOfMonth(h), endOfMonth(h)] as const; } },
-                { label: "Últimos 3 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 2)), endOfMonth(h)] as const; } },
-                { label: "Últimos 6 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 5)), endOfMonth(h)] as const; } },
-                { label: "Últimos 12 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 11)), endOfMonth(h)] as const; } },
-                { label: "Ano atual", get: () => { const h = new Date(); return [startOfYear(h), endOfYear(h)] as const; } },
-                { label: "Ano anterior", get: () => { const h = new Date(); const ant = new Date(h.getFullYear() - 1, 0, 1); return [startOfYear(ant), endOfYear(ant)] as const; } },
-              ].map((p) => {
-                const [ini, fim] = p.get();
-                const iniStr = format(ini, "yyyy-MM-dd");
-                const fimStr = format(fim, "yyyy-MM-dd");
-                const ativo = dataInicio === iniStr && dataFim === fimStr;
-                return (
-                  <Button
-                    key={p.label}
-                    type="button"
-                    variant={ativo ? "default" : "outline"}
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => { setDataInicio(iniStr); setDataFim(fimStr); }}
-                  >
-                    {p.label}
-                  </Button>
-                );
-              })}
-            </div>
-            {isMatriz && (
-              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
-                <Switch id="consolidado" checked={consolidado} onCheckedChange={setConsolidado} />
-                <Label htmlFor="consolidado" className="text-sm font-medium cursor-pointer">
-                  Consolidar todas as unidades
-                </Label>
-                <span className="text-xs text-muted-foreground">
-                  Soma vendas de {unidadeIds.length} {unidadeIds.length === 1 ? "unidade" : "unidades"} da empresa.
-                </span>
-                {consolidado && (
-                  <Badge variant="default" className="ml-auto">Consolidado · {unidadeIds.length} unidades</Badge>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          );
+        })()}
+
 
 
 
@@ -1253,104 +1311,38 @@ export default function RelatorioVendas() {
                 icon={<CalendarDays className="h-5 w-5" />}
                 title="Comparativo Mensal por Produto"
                 action={
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <Label className="text-xs text-white/90 whitespace-nowrap">De</Label>
-                      <Input
-                        type="month"
-                        value={`${rangeIni.ano}-${String(rangeIni.mes + 1).padStart(2, "0")}`}
-                        onChange={(e) => {
-                          const parts = e.target.value.split("-").map(Number);
-                          const y = parts[0], m = parts[1];
-                          if (!y || !m) return;
-                          const novo = { ano: y, mes: m - 1 };
-                          setRangeIni(novo);
-                          if (cmpPeriodo(novo, rangeFim) > 0) setRangeFim(novo);
-                        }}
-                        className="h-9 w-[150px] bg-background"
-                      />
-                      <Label className="text-xs text-white/90 whitespace-nowrap">Até</Label>
-                      <Input
-                        type="month"
-                        value={`${rangeFim.ano}-${String(rangeFim.mes + 1).padStart(2, "0")}`}
-                        onChange={(e) => {
-                          const parts = e.target.value.split("-").map(Number);
-                          const y = parts[0], m = parts[1];
-                          if (!y || !m) return;
-                          const novo = { ano: y, mes: m - 1 };
-                          setRangeFim(novo);
-                          if (cmpPeriodo(rangeIni, novo) > 0) setRangeIni(novo);
-                        }}
-                        className="h-9 w-[150px] bg-background"
-                      />
-                    </div>
-                    <Select value={metricaComparativo} onValueChange={(v: "qtd" | "faturamento") => setMetricaComparativo(v)}>
-                      <SelectTrigger className="h-9 w-[150px] bg-background"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="qtd">Quantidade</SelectItem>
-                        <SelectItem value="faturamento">Faturamento</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Select value={metricaComparativo} onValueChange={(v: "qtd" | "faturamento") => setMetricaComparativo(v)}>
+                    <SelectTrigger className="h-9 w-[150px] bg-background"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="qtd">Quantidade</SelectItem>
+                      <SelectItem value="faturamento">Faturamento</SelectItem>
+                    </SelectContent>
+                  </Select>
                 }
               />
               <div className="px-4 pt-3 sm:px-5">
                 <p className="text-xs text-muted-foreground">
-                  Clique em qualquer célula de mês para lançar vendas históricas (sistema antigo). O total mostra <span className="text-primary font-medium">sistema + manual</span>.
+                  Mostra os meses cobertos pelo período selecionado no topo. Clique em qualquer célula para lançar vendas históricas — o total mostra <span className="text-primary font-medium">sistema + manual</span>.
                 </p>
               </div>
 
               <CardContent className="space-y-4">
-                {/* Atalhos de período */}
-                <div className="space-y-2">
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" onClick={() => {
-                      setRangeIni({ ano: anoAtual, mes: 0 });
-                      setRangeFim({ ano: anoAtual, mes: 11 });
-                    }}>Ano todo</Button>
-                    <Button size="sm" variant="outline" onClick={() => {
-                      setRangeIni({ ano: anoAtual, mes: 0 });
-                      setRangeFim({ ano: anoAtual, mes: mesAtual });
-                    }}>Até hoje</Button>
-                    <Button size="sm" variant="outline" onClick={() => {
-                      const fim = { ano: anoAtual, mes: mesAtual };
-                      const totalMeses = anoAtual * 12 + mesAtual - 2;
-                      setRangeIni({ ano: Math.floor(totalMeses / 12), mes: ((totalMeses % 12) + 12) % 12 });
-                      setRangeFim(fim);
-                    }}>Últimos 3 meses</Button>
-                    <Button size="sm" variant="outline" onClick={() => {
-                      const fim = { ano: anoAtual, mes: mesAtual };
-                      const totalMeses = anoAtual * 12 + mesAtual - 5;
-                      setRangeIni({ ano: Math.floor(totalMeses / 12), mes: ((totalMeses % 12) + 12) % 12 });
-                      setRangeFim(fim);
-                    }}>Últimos 6 meses</Button>
-                    <Button size="sm" variant="outline" onClick={() => {
-                      const fim = { ano: anoAtual, mes: mesAtual };
-                      const totalMeses = anoAtual * 12 + mesAtual - 11;
-                      setRangeIni({ ano: Math.floor(totalMeses / 12), mes: ((totalMeses % 12) + 12) % 12 });
-                      setRangeFim(fim);
-                    }}>Últimos 12 meses</Button>
-                    <Button size="sm" variant="outline" onClick={() => {
-                      setRangeIni({ ano: anoAtual - 1, mes: 0 });
-                      setRangeFim({ ano: anoAtual - 1, mes: 11 });
-                    }}>Ano anterior</Button>
-                  </div>
-                  {periodosSelecionados.length > 0 && (
-                    <div className="flex flex-wrap gap-2 rounded-xl border bg-muted/30 p-3">
-                      {periodosSelecionados.map((p) => (
-                        <span
-                          key={periodoKey(p)}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-primary bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium shadow-sm"
-                        >
-                          <span className="flex items-center justify-center size-4 rounded-full bg-primary-foreground text-primary">
-                            <Check className="size-3" strokeWidth={3} />
-                          </span>
-                          {formatPeriodoCurto(p)}
+                {periodosSelecionados.length > 0 && (
+                  <div className="flex flex-wrap gap-2 rounded-xl border bg-muted/30 p-3">
+                    {periodosSelecionados.map((p) => (
+                      <span
+                        key={periodoKey(p)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-primary bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium shadow-sm"
+                      >
+                        <span className="flex items-center justify-center size-4 rounded-full bg-primary-foreground text-primary">
+                          <Check className="size-3" strokeWidth={3} />
                         </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                        {formatPeriodoCurto(p)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
 
                 {/* Tabela comparativa */}
                 <div className="overflow-x-auto">

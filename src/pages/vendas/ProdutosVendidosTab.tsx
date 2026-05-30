@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -17,7 +17,7 @@ import { VendaSectionHeader } from "@/components/vendas/VendaSectionHeader";
 import {
   PackageSearch, Download, Filter, TrendingUp, DollarSign, Percent,
 } from "lucide-react";
-import { format, parseISO, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from "xlsx";
 import { cn } from "@/lib/utils";
@@ -56,7 +56,7 @@ const formatQtd = (v: number) =>
 const formatPct = (v: number) =>
   `${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 
-const ymd = (d: Date) => format(d, "yyyy-MM-dd");
+
 
 export function ProdutosVendidosTab({ pedidos, unidadeId, unidadeIds, consolidado, dataInicio, dataFim, onPeriodoChange }: Props) {
   const [clienteFiltro, setClienteFiltro] = useState("todos");
@@ -258,26 +258,6 @@ export function ProdutosVendidosTab({ pedidos, unidadeId, unidadeIds, consolidad
       <Card className="venda-card">
         <VendaSectionHeader tone="muted" icon={<Filter className="h-5 w-5" />} title="Filtros" />
         <CardContent className="pt-4">
-          {onPeriodoChange && (
-            <div className="grid gap-3 sm:grid-cols-2 mb-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Data início</Label>
-                <Input
-                  type="date"
-                  value={dataInicio}
-                  onChange={(e) => onPeriodoChange(e.target.value, dataFim)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Data fim</Label>
-                <Input
-                  type="date"
-                  value={dataFim}
-                  onChange={(e) => onPeriodoChange(dataInicio, e.target.value)}
-                />
-              </div>
-            </div>
-          )}
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1">
               <Label className="text-xs">Cliente</Label>
@@ -322,34 +302,6 @@ export function ProdutosVendidosTab({ pedidos, unidadeId, unidadeIds, consolidad
             </div>
           </div>
 
-          {onPeriodoChange && (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Label className="text-xs text-muted-foreground mr-1">Período rápido:</Label>
-              {[
-                { label: "Mês atual", get: () => { const h = new Date(); return [startOfMonth(h), endOfMonth(h)] as const; } },
-                { label: "Últimos 3 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 2)), endOfMonth(h)] as const; } },
-                { label: "Últimos 6 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 5)), endOfMonth(h)] as const; } },
-                { label: "Últimos 12 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 11)), endOfMonth(h)] as const; } },
-                { label: "Ano atual", get: () => { const h = new Date(); return [startOfYear(h), endOfYear(h)] as const; } },
-                { label: "Ano anterior", get: () => { const h = new Date(); const ant = new Date(h.getFullYear() - 1, 0, 1); return [startOfYear(ant), endOfYear(ant)] as const; } },
-              ].map((p) => {
-                const [ini, fim] = p.get();
-                const ativo = dataInicio === ymd(ini) && dataFim === ymd(fim);
-                return (
-                  <Button
-                    key={p.label}
-                    type="button"
-                    variant={ativo ? "default" : "outline"}
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => onPeriodoChange(ymd(ini), ymd(fim))}
-                  >
-                    {p.label}
-                  </Button>
-                );
-              })}
-            </div>
-          )}
 
           <div className="mt-4 flex flex-wrap items-center gap-4">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
