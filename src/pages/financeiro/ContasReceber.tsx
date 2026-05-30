@@ -1255,10 +1255,8 @@ export default function ContasReceber() {
           </Card>
         )}
 
-        {/* placeholder removido para preservar o fechamento das tags abaixo */}
-        <div className="hidden">
 
-        </Tabs>
+
 
         {/* Dialog Receber */}
         <Dialog open={receberDialogOpen} onOpenChange={setReceberDialogOpen}>
