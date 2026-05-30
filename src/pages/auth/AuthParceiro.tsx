@@ -6,10 +6,18 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import iconParceiro from "@/assets/icons/icon-parceiro.png";
 import { CircleAuthLayout } from "@/components/auth/CircleAuthLayout";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -31,6 +39,9 @@ export default function AuthParceiro() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [roleError, setRoleError] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   useEffect(() => {
     document.title = "GásFácil Pro — Portal do Parceiro";
@@ -139,13 +150,15 @@ export default function AuthParceiro() {
       }
     >
       {roleError && (
-        <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
-          Esta conta não é de parceiro. Use o portal correto para o seu perfil.
+        <div className="flex items-start gap-2 p-3 mb-4 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+          <span>Esta conta não é de parceiro. Use o portal correto para o seu perfil.</span>
         </div>
       )}
       {errors.general && (
-        <div className="p-3 mb-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
-          {errors.general}
+        <div className="flex items-start gap-2 p-3 mb-4 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm font-medium">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+          <span>{errors.general}</span>
         </div>
       )}
 
@@ -164,7 +177,19 @@ export default function AuthParceiro() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="parceiro-password">Senha</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="parceiro-password">Senha</Label>
+            <button
+              type="button"
+              onClick={() => {
+                setForgotEmail(email);
+                setForgotOpen(true);
+              }}
+              className="text-xs text-primary hover:underline"
+            >
+              Esqueci minha senha
+            </button>
+          </div>
           <div className="relative">
             <Input
               id="parceiro-password"
@@ -199,6 +224,60 @@ export default function AuthParceiro() {
       <p className="text-center text-xs text-muted-foreground mt-4">
         Sua conta é criada pelo administrador da distribuidora
       </p>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Recuperar senha</DialogTitle>
+            <DialogDescription>
+              Informe seu email cadastrado. Enviaremos um link para você criar uma nova senha.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="forgot-email">Email</Label>
+            <Input
+              id="forgot-email"
+              type="email"
+              placeholder="seu@email.com"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              disabled={forgotLoading}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setForgotOpen(false)}
+              disabled={forgotLoading}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                const parsed = z.string().email().safeParse(forgotEmail);
+                if (!parsed.success) {
+                  toast.error("Informe um email válido");
+                  return;
+                }
+                setForgotLoading(true);
+                const { error: resetErr } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+                  redirectTo: `${window.location.origin}/reset-password`,
+                });
+                setForgotLoading(false);
+                if (resetErr) {
+                  toast.error(resetErr.message);
+                  return;
+                }
+                toast.success("Enviamos um link de redefinição para seu email.");
+                setForgotOpen(false);
+              }}
+              disabled={forgotLoading}
+            >
+              {forgotLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando...</> : "Enviar link"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </CircleAuthLayout>
   );
 }

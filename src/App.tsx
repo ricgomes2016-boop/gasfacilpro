@@ -43,6 +43,7 @@ import { marketingRoutes } from "@/routes/marketingRoutes";
 
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import { ContadorProvider } from "@/contexts/ContadorContext";
 import { PeriodoProvider } from "@/contexts/PeriodoContext";
 
@@ -101,6 +102,7 @@ const App = () => (
                           <Routes>
                             <Route path="/" element={<RootRedirect />} />
                             <Route path="/auth" element={<Auth />} />
+                            <Route path="/reset-password" element={<ResetPassword />} />
                             <Route path="/centralgascp" element={<CentralGasCP />} />
                             <Route path="/fortegas" element={<ForteGas />} />
                             <Route path="/japagas" element={<JapaGas />} />
