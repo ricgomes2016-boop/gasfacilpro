@@ -107,7 +107,7 @@ export function UnidadeProvider({ children }: { children: ReactNode }) {
 
         const { data, error } = await supabase
           .from("unidades")
-          .select("*")
+          .select(UNIDADES_PUBLIC_COLUMNS)
           .in("id", unidadeIds)
           .eq("ativo", true)
           .order("tipo", { ascending: true })
@@ -119,11 +119,11 @@ export function UnidadeProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const typedData = (data || []).map((u) => ({
+        const typedData = ((data as any[]) || []).map((u) => ({
           ...u,
           tipo: u.tipo as "matriz" | "filial",
           ativo: u.ativo ?? true,
-        }));
+        })) as Unidade[];
 
         setUnidades(typedData);
         selectDefault(typedData);
