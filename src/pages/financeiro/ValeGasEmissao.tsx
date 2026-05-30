@@ -629,23 +629,35 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
                   </div>
                 )}
 
-                <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-                  <Label className="flex items-center gap-2 font-semibold">
-                    <Receipt className="h-4 w-4" /> Conta a Receber do Parceiro
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Será criada automaticamente uma conta a receber para o parceiro com o valor total do lote.
-                    A venda paga com Vale Gás não gera cobrança — quem paga é o parceiro.
-                  </p>
-                  <div className="space-y-2">
-                    <Label>Vencimento do título</Label>
-                    <Input
-                      type="date"
-                      value={formData.dataVencimentoConta}
-                      onChange={e => setFormData(p => ({ ...p, dataVencimentoConta: e.target.value }))}
-                    />
+                {parceiro?.tipo === "prepago" ? (
+                  <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                    <Label className="flex items-center gap-2 font-semibold">
+                      <Receipt className="h-4 w-4" /> Conta a Receber do Parceiro
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Será criada automaticamente uma conta a receber para o parceiro com o valor total do lote.
+                      A venda paga com Vale Gás não gera cobrança — quem paga é o parceiro.
+                    </p>
+                    <div className="space-y-2">
+                      <Label>Vencimento do título</Label>
+                      <Input
+                        type="date"
+                        value={formData.dataVencimentoConta}
+                        onChange={e => setFormData(p => ({ ...p, dataVencimentoConta: e.target.value }))}
+                      />
+                    </div>
                   </div>
-                </div>
+                ) : parceiro ? (
+                  <div className="border rounded-lg p-4 space-y-2 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700">
+                    <Label className="flex items-center gap-2 font-semibold text-amber-700 dark:text-amber-300">
+                      <Receipt className="h-4 w-4" /> Parceiro Consignado
+                    </Label>
+                    <p className="text-xs text-amber-800 dark:text-amber-200">
+                      Este parceiro paga depois. <strong>Nenhuma conta a receber será criada agora</strong> — o título financeiro
+                      é gerado na tela <strong>Acerto</strong>, quando você apurar os vales utilizados na quinzena ou fechamento de mês.
+                    </p>
+                  </div>
+                ) : null}
 
                 <div className="space-y-2">
                   <Label>Observação</Label>
