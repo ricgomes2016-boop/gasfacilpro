@@ -20,7 +20,6 @@ import {
   Calendar,
   Receipt,
   Gauge,
-  Activity,
   Map,
   Bell,
   Route,
@@ -145,9 +144,7 @@ export const menuItems: MenuItem[] = [
     label: "Gestão Operacional",
     submenu: [
       { icon: Sparkles, label: "Central de Inteligência", path: "/operacional/ia" },
-      { icon: Activity, label: "Central de Indicadores", path: "/operacional/indicadores" },
       { icon: Map, label: "Mapa Operacional", path: "/operacional/centro" },
-      { icon: Bell, label: "Alertas Inteligentes", path: "/operacional/alertas" },
       { icon: Route, label: "Rotas de Entrega", path: "/operacional/rotas" },
       { icon: FileSpreadsheet, label: "Análise de Resultados", path: "/operacional/analise-resultados" },
       { icon: CalendarRange, label: "Planejamento", path: "/operacional/planejamento" },
