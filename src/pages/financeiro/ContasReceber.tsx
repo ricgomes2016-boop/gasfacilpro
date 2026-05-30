@@ -573,48 +573,107 @@ export default function ContasReceber() {
   };
 
 
-  // Filtragem base (nome, data, status) — por padrão mostra apenas pendentes/vencidas
-  const baseFiltered = contas.filter(c => {
+  // Filtragem unificada (busca + período + status + formas)
+  const baseFiltered = useMemo(() => {
     const termo = filtroNome.toLowerCase();
-    const matchNome = !filtroNome
-      || c.cliente.toLowerCase().includes(termo)
-      || (c.parceiro_nome || "").toLowerCase().includes(termo)
-      || String(c.vale_numero || "").includes(termo)
-      || (c.vale_codigo || "").toLowerCase().includes(termo);
-    const matchDataIni = !dataInicial || c.vencimento >= dataInicial;
-    const matchDataFim = !dataFinal || c.vencimento <= dataFinal;
-    const vencida = c.status === "pendente" && c.vencimento < hoje;
-    const statusAtual = c.status === "recebida" ? "recebida" : vencida ? "vencida" : "pendente";
-    const matchStatus = filtroStatus === "todos" || statusAtual === filtroStatus
-      || (filtroStatus === "pendente" && statusAtual === "vencida"); // pendente inclui vencidas
-    return matchNome && matchDataIni && matchDataFim && matchStatus;
-  });
+    return contas.filter(c => {
+      const matchNome = !filtroNome
+        || c.cliente.toLowerCase().includes(termo)
+        || (c.parceiro_nome || "").toLowerCase().includes(termo)
+        || (c.descricao || "").toLowerCase().includes(termo)
+        || String(c.vale_numero || "").includes(termo)
+        || (c.vale_codigo || "").toLowerCase().includes(termo);
+      const matchDataIni = !dataInicial || c.vencimento >= dataInicial;
+      const matchDataFim = !dataFinal || c.vencimento <= dataFinal;
 
-  // Filtragem por aba
+      const vencida = c.status === "pendente" && c.vencimento < hoje;
+      const statusAtual: StatusFiltro = c.status === "recebida"
+        ? "recebida"
+        : vencida ? "vencida" : "a_receber";
+      const matchStatus = filtroStatus.size === 0 || filtroStatus.has(statusAtual);
+
+      const matchForma = filtroFormas.size === 0
+        || filtroFormas.has(getFormaCategoria(c.forma_pagamento));
+
+      return matchNome && matchDataIni && matchDataFim && matchStatus && matchForma;
+    });
+  }, [contas, filtroNome, dataInicial, dataFinal, filtroStatus, filtroFormas, hoje]);
+
+  // Aba "Conferência" continua isolada; demais formas vêm pelo filtro de formas.
   const filtered = useMemo(() => {
-    if (activeTab === "todos") return baseFiltered;
-    if (activeTab === "conferencia") return []; // handled by ConferenciaCartao component
-    return baseFiltered.filter(c => getTabFromForma(c.forma_pagamento) === activeTab);
+    if (activeTab === "conferencia") return [];
+    return baseFiltered;
   }, [baseFiltered, activeTab]);
 
-  // Totais globais (independente da aba)
-  const totalPendente = contas.filter(c => c.status === "pendente" && c.vencimento >= hoje).reduce((a, c) => a + Number(c.valor), 0);
-  const totalVencido = contas.filter(c => c.status === "pendente" && c.vencimento < hoje).reduce((a, c) => a + Number(c.valor), 0);
-  const totalRecebido = contas.filter(c => c.status === "recebida").reduce((a, c) => a + Number(c.valor), 0);
+  // KPIs respeitam os filtros ativos
+  const totalPendente = useMemo(() => baseFiltered.filter(c => c.status === "pendente" && c.vencimento >= hoje).reduce((a, c) => a + Number(c.valor), 0), [baseFiltered, hoje]);
+  const totalVencido = useMemo(() => baseFiltered.filter(c => c.status === "pendente" && c.vencimento < hoje).reduce((a, c) => a + Number(c.valor), 0), [baseFiltered, hoje]);
+  const totalRecebido = useMemo(() => baseFiltered.filter(c => c.status === "recebida").reduce((a, c) => a + Number(c.valor), 0), [baseFiltered]);
 
-  // Contadores por aba
-  const countByTab = useMemo(() => {
-    const pendentes = contas.filter(c => c.status !== "recebida");
-    const counts: Record<string, number> = { cartoes: 0, pix_maquininha: 0, cheques: 0, fiado: 0, boletos: 0, vale_gas: 0, outros: 0 };
-    pendentes.forEach(c => {
-      const tab = getTabFromForma(c.forma_pagamento);
-      if (counts[tab] !== undefined) counts[tab]++;
+  // Resumo por forma (top 4 categorias com volume)
+  const resumoPorForma = useMemo(() => {
+    const map = new Map<FormaCategoria, { count: number; total: number; recebido: number }>();
+    baseFiltered.forEach(c => {
+      const cat = getFormaCategoria(c.forma_pagamento);
+      const cur = map.get(cat) || { count: 0, total: 0, recebido: 0 };
+      cur.count++;
+      cur.total += Number(c.valor);
+      if (c.status === "recebida") cur.recebido += Number(c.valor);
+      map.set(cat, cur);
     });
-    return counts;
-  }, [contas]);
+    return Array.from(map.entries())
+      .map(([cat, v]) => ({ cat, ...v }))
+      .sort((a, b) => b.total - a.total);
+  }, [baseFiltered]);
 
-  const hasActiveFilters = filtroNome || dataInicial || dataFinal || filtroStatus !== "pendente";
-  const clearAllFilters = () => { setFiltroNome(""); setDataInicial(""); setDataFinal(""); setFiltroStatus("pendente"); };
+  const defaultStatus: Set<StatusFiltro> = new Set(["a_receber", "vencida"]);
+  const hasActiveFilters =
+    !!filtroNome || !!dataInicial || !!dataFinal ||
+    filtroFormas.size > 0 ||
+    filtroStatus.size !== defaultStatus.size ||
+    [...filtroStatus].some(s => !defaultStatus.has(s));
+  const clearAllFilters = () => {
+    setFiltroNome(""); setDataInicial(""); setDataFinal("");
+    setFiltroStatus(new Set(["a_receber", "vencida"]));
+    setFiltroFormas(new Set());
+  };
+
+  const toggleStatus = (s: StatusFiltro) => setFiltroStatus(prev => {
+    const next = new Set(prev);
+    if (next.has(s)) next.delete(s); else next.add(s);
+    return next;
+  });
+  const toggleForma = (f: FormaCategoria) => setFiltroFormas(prev => {
+    const next = new Set(prev);
+    if (next.has(f)) next.delete(f); else next.add(f);
+    return next;
+  });
+
+  const aplicarPresetPeriodo = (preset: "hoje" | "7d" | "mes_atual" | "mes_passado" | "30d" | "90d" | "ano" | "limpar") => {
+    const d = new Date();
+    const iso = (date: Date) => date.toISOString().slice(0, 10);
+    if (preset === "limpar") { setDataInicial(""); setDataFinal(""); return; }
+    if (preset === "hoje") { const s = iso(d); setDataInicial(s); setDataFinal(s); return; }
+    if (preset === "7d") { const ini = new Date(d); ini.setDate(d.getDate() - 7); setDataInicial(iso(ini)); setDataFinal(iso(d)); return; }
+    if (preset === "30d") { const ini = new Date(d); ini.setDate(d.getDate() - 30); setDataInicial(iso(ini)); setDataFinal(iso(d)); return; }
+    if (preset === "90d") { const ini = new Date(d); ini.setDate(d.getDate() - 90); setDataInicial(iso(ini)); setDataFinal(iso(d)); return; }
+    if (preset === "mes_atual") {
+      setDataInicial(iso(new Date(d.getFullYear(), d.getMonth(), 1)));
+      setDataFinal(iso(new Date(d.getFullYear(), d.getMonth() + 1, 0)));
+      return;
+    }
+    if (preset === "mes_passado") {
+      setDataInicial(iso(new Date(d.getFullYear(), d.getMonth() - 1, 1)));
+      setDataFinal(iso(new Date(d.getFullYear(), d.getMonth(), 0)));
+      return;
+    }
+    if (preset === "ano") {
+      setDataInicial(iso(new Date(d.getFullYear(), 0, 1)));
+      setDataFinal(iso(new Date(d.getFullYear(), 11, 31)));
+      return;
+    }
+  };
+
 
   // Multi-select helpers
   const toggleSelect = (id: string) => {
