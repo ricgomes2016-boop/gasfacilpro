@@ -185,7 +185,7 @@ export function CallerIdPopup() {
 
   const handleVerPerfil = () => {
     if (chamada.cliente_id) {
-      navigate(`/clientes/${chamada.cliente_id}`);
+      navigate(`/clientes/cadastro/${chamada.cliente_id}`);
     }
     setChamada(null);
   };

@@ -190,7 +190,7 @@ export default function CRM() {
                     {etapa.clientes.slice(0, 8).map(c => (
                       <button
                         key={c.id}
-                        onClick={() => navigate(`/clientes/${c.id}`)}
+                        onClick={() => navigate(`/clientes/cadastro/${c.id}`)}
                         className="w-full text-left p-2 bg-background rounded-lg border hover:border-primary/50 transition-colors"
                       >
                         <p className="font-medium text-xs truncate">{c.nome}</p>
@@ -258,7 +258,7 @@ export default function CRM() {
                     {filtered.slice(0, 50).map((c, i) => {
                       const TierIcon = tierConfig[c.tier].icon;
                       return (
-                        <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/clientes/${c.id}`)}>
+                        <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => navigate(`/clientes/cadastro/${c.id}`)}>
                           <TableCell className="text-muted-foreground font-medium">{i + 1}</TableCell>
                           <TableCell>
                             <div>
