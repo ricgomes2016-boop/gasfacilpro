@@ -11757,12 +11757,30 @@ export type Database = {
           provedor_nfe_token: string
         }[]
       }
+      get_unidade_fiscal_credentials: {
+        Args: { p_unidade_id: string }
+        Returns: {
+          certificado_a1_senha: string
+          nfce_csc_token: string
+          provedor_nfe_token: string
+        }[]
+      }
       get_user_empresa_id: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_user_unidade_ids: { Args: { _user_id: string }; Returns: string[] }
+      get_whatsapp_integration_secrets: {
+        Args: { p_unidade_id: string }
+        Returns: {
+          instancia_token: string
+          meta_access_token: string
+          meta_verify_token: string
+          security_token: string
+          token: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
