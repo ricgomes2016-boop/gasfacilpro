@@ -154,6 +154,17 @@ export default function ValeGasAcerto({ embedded }: { embedded?: boolean } = {})
                     <div className="flex justify-between text-sm"><span>Valor total:</span><span className="font-bold text-green-600">R$ {valesPendentes[parceiroInfo.id].valor.toFixed(2)}</span></div>
                   </div>
                 )}
+                <div className="space-y-2">
+                  <Label>Vencimento do título (Contas a Receber)</Label>
+                  <Input
+                    type="date"
+                    value={vencimentoAcerto}
+                    onChange={e => setVencimentoAcerto(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Um título será criado em Contas a Receber para o parceiro consignado.
+                  </p>
+                </div>
                 <div className="flex gap-2 justify-end pt-4">
                   <Button variant="outline" onClick={() => setNovoAcertoDialog(false)}>Cancelar</Button>
                   <Button onClick={handleGerarAcerto}>Gerar Acerto</Button>
