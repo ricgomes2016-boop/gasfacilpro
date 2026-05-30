@@ -66,10 +66,10 @@ export default function AdminUnidades() {
   const fetchData = async () => {
     const [unidadesRes, empresasRes] = await Promise.all([
       supabase.from("unidades").select("id, nome, tipo, empresa_id, endereco, cidade, estado, ativo").order("nome"),
-      supabase.from("empresas").select("id, nome").eq("ativo", true).order("nome"),
+      supabase.from("empresas").select("id, nome, ativo").order("nome"),
     ]);
     setUnidades(unidadesRes.data || []);
-    setEmpresas(empresasRes.data || []);
+    setEmpresas((empresasRes.data as EmpresaOption[]) || []);
     setLoading(false);
   };
 
