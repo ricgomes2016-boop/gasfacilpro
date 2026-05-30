@@ -242,10 +242,16 @@ export default function ValeGasEmissao({ embedded }: { embedded?: boolean } = {}
   const [cupomDialogOpen, setCupomDialogOpen] = useState(false);
   const [modoEmissao, setModoEmissao] = useState<ModoEmissao>("automatico");
 
+  const defaultVencConta = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 10);
+    return d.toISOString().split("T")[0];
+  };
+
   const [formData, setFormData] = useState({
     parceiroId: "", quantidade: "", valorUnitario: "105", dataVencimento: "",
     observacao: "", descricao: "VALE GÁS", clienteId: "", produtoId: "",
-    gerarContaReceber: false, dataVencimentoConta: "",
+    dataVencimentoConta: defaultVencConta(),
     numeroInicialCustom: "", numeroFinalCustom: "",
     numeroManual: "",
   });
