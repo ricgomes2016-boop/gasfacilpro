@@ -17,7 +17,7 @@ import { VendaSectionHeader } from "@/components/vendas/VendaSectionHeader";
 import {
   PackageSearch, Download, Filter, TrendingUp, DollarSign, Percent,
 } from "lucide-react";
-import { format, parseISO, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import * as XLSX from "xlsx";
 import { cn } from "@/lib/utils";
