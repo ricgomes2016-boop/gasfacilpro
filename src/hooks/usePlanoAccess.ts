@@ -45,15 +45,16 @@ export function usePlanoAccess() {
     },
   });
 
-  const { data: modulos } = useQuery({
+  const { data: modulos, isError: modulosError } = useQuery({
     queryKey: ["plano-modulos-runtime"],
     enabled: !!user?.id && !isSuper,
     staleTime: 5 * 60_000,
+    retry: 2,
     queryFn: async (): Promise<PlanoModulo[]> => {
       const { data, error } = await supabase
         .from("plano_modulos" as any)
         .select("id, modulo_key, modulo_label, modulo_grupo, path, planos");
-      if (error) return [];
+      if (error) throw error;
       return (data || []) as unknown as PlanoModulo[];
     },
   });
