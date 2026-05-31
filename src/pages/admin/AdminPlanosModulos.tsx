@@ -35,7 +35,8 @@ export default function AdminPlanosModulos() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [closed, setClosed] = useState<Set<string>>(new Set());
-  const [dirty, setDirty] = useState(false);
+  const [dirtyIds, setDirtyIds] = useState<Set<string>>(new Set());
+  const dirty = dirtyIds.size > 0;
 
   const fetchData = async () => {
     setLoading(true);
@@ -46,55 +47,85 @@ export default function AdminPlanosModulos() {
       .order("modulo_label");
     if (error) toast.error("Erro ao carregar módulos: " + error.message);
     setModulos(((data || []) as unknown as Modulo[]));
-    setDirty(false);
+    setDirtyIds(new Set());
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      await fetchData();
+      if (cancelled) return;
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const markDirty = (ids: string[]) =>
+    setDirtyIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.add(id));
+      return next;
+    });
 
   const toggle = (id: string, plano: PlanoKey) => {
     setModulos((prev) =>
       prev.map((m) => {
         if (m.id !== id) return m;
         const has = m.planos.includes(plano);
-        return { ...m, planos: has ? m.planos.filter((p) => p !== plano) : [...m.planos, plano] };
+        const planos = has
+          ? m.planos.filter((p) => p !== plano)
+          : Array.from(new Set([...m.planos, plano]));
+        return { ...m, planos };
       })
     );
-    setDirty(true);
+    markDirty([id]);
   };
 
   const setColumn = (plano: PlanoKey, value: boolean, ids: string[]) => {
     const idSet = new Set(ids);
+    const changed: string[] = [];
     setModulos((prev) =>
       prev.map((m) => {
         if (!idSet.has(m.id)) return m;
         const has = m.planos.includes(plano);
-        if (value && !has) return { ...m, planos: [...m.planos, plano] };
-        if (!value && has) return { ...m, planos: m.planos.filter((p) => p !== plano) };
+        if (value && !has) {
+          changed.push(m.id);
+          return { ...m, planos: Array.from(new Set([...m.planos, plano])) };
+        }
+        if (!value && has) {
+          changed.push(m.id);
+          return { ...m, planos: m.planos.filter((p) => p !== plano) };
+        }
         return m;
       })
     );
-    setDirty(true);
+    if (changed.length) markDirty(changed);
   };
 
   const handleSave = async () => {
+    if (dirtyIds.size === 0) return;
     setSaving(true);
     try {
-      // Atualiza linha a linha em paralelo
-      const updates = await Promise.all(
-        modulos.map((m) =>
-          supabase
-            .from("plano_modulos" as any)
-            .update({ planos: m.planos, updated_at: new Date().toISOString() })
-            .eq("id", m.id)
-        )
-      );
-      const failed = updates.filter((r) => r.error);
-      if (failed.length > 0) {
-        toast.error(`Falha em ${failed.length} módulo(s)`);
+      const dirtyList = modulos.filter((m) => dirtyIds.has(m.id));
+      const BATCH = 20;
+      let failed = 0;
+      for (let i = 0; i < dirtyList.length; i += BATCH) {
+        const slice = dirtyList.slice(i, i + BATCH);
+        const results = await Promise.all(
+          slice.map((m) =>
+            supabase
+              .from("plano_modulos" as any)
+              .update({ planos: m.planos, updated_at: new Date().toISOString() })
+              .eq("id", m.id)
+          )
+        );
+        failed += results.filter((r) => r.error).length;
+      }
+      if (failed > 0) {
+        toast.error(`Falha em ${failed} módulo(s)`);
       } else {
-        toast.success("Mapeamento salvo!");
-        setDirty(false);
+        toast.success(`${dirtyList.length} módulo(s) salvo(s)!`);
+        setDirtyIds(new Set());
       }
     } catch (e: any) {
       toast.error("Erro ao salvar: " + e.message);
