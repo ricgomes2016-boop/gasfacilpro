@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmptyState } from "@/components/ui/empty-state";
 import { supabase } from "@/integrations/supabase/client";
 import { getBrasiliaDate } from "@/lib/utils";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -163,13 +164,12 @@ function chartValueFormatter(value: number | string) {
 
 function EmptyChart({ label }: { label: string }) {
   return (
-    <div className="flex h-[260px] items-center justify-center rounded-md border border-dashed bg-muted/20 text-center">
-      <div className="max-w-xs px-6">
-        <FileText className="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
-        <p className="text-sm font-medium text-foreground">Sem dados suficientes</p>
-        <p className="mt-1 text-xs text-muted-foreground">{label}</p>
-      </div>
-    </div>
+    <EmptyState
+      className="h-[260px]"
+      icon={FileText}
+      title="Sem dados suficientes"
+      description={label}
+    />
   );
 }
 
@@ -709,17 +709,16 @@ export default function RelatorioGerencial() {
                     </div>
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-dashed bg-muted/20 p-8 text-center">
-                    <FileText className="mx-auto mb-4 h-12 w-12 text-primary/40" />
-                    <p className="text-lg font-semibold">Pronto para gerar uma leitura executiva</p>
-                    <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">
-                      Gere o relatório para transformar os dados do período em resumo, alertas e próximas ações.
-                    </p>
-                    <Button onClick={gerarRelatorioIA} disabled={gerandoIA} className="mt-5">
-                      <Brain className="mr-2 h-4 w-4" />
-                      Gerar Relatório {periodoIA === "semanal" ? "Semanal" : "Mensal"}
-                    </Button>
-                  </div>
+                  <EmptyState
+                    icon={Brain}
+                    title="Pronto para gerar uma leitura executiva"
+                    description="Gere o relatório para transformar os dados do período em resumo, alertas e próximas ações."
+                    action={{
+                      label: `Gerar Relatório ${periodoIA === "semanal" ? "Semanal" : "Mensal"}`,
+                      onClick: gerarRelatorioIA,
+                      icon: Brain,
+                    }}
+                  />
                 )}
               </CardContent>
             </Card>
