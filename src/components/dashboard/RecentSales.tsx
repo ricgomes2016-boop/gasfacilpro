@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ShoppingCart } from "lucide-react";
 
 const statusConfig = {
   entregue: { label: "Entregue", variant: "success" as const },
@@ -71,7 +73,12 @@ export function RecentSales() {
             {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
           </div>
         ) : sales.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">Nenhuma venda hoje</p>
+          <EmptyState
+            compact
+            icon={ShoppingCart}
+            title="Nenhuma venda hoje"
+            description="As vendas registradas no dia aparecem aqui em tempo real."
+          />
         ) : (
           <div className="space-y-4">
             {sales.map((sale) => (
