@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -410,7 +411,12 @@ export default function ControleCheques() {
         <Card>
           <CardContent className="pt-6">
             {isLoading ? <p className="text-center py-6 text-muted-foreground">Carregando...</p> : cheques.length === 0 ? (
-              <p className="text-center py-6 text-muted-foreground">Nenhum cheque encontrado</p>
+              <EmptyState
+                icon={FileText}
+                title="Nenhum cheque encontrado"
+                description="Cadastre cheques recebidos para acompanhar vencimentos, compensações e devoluções."
+                action={{ label: "Cadastrar cheque", onClick: openNew, icon: Plus }}
+              />
             ) : (
               <div className="overflow-x-auto">
                 <Table>

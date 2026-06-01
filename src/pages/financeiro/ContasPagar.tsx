@@ -3,6 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -261,7 +262,12 @@ export default function ContasPagar() {
                 {cp.loading ? (
                   <p className="text-center py-8 text-muted-foreground">Carregando...</p>
                 ) : cp.filtered.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">Nenhuma conta encontrada</p>
+                  <EmptyState
+                    icon={CreditCard}
+                    title="Nenhuma conta encontrada"
+                    description="Ajuste os filtros ou registre uma nova conta a pagar para controlar seus compromissos."
+                    action={{ label: "Nova conta", onClick: () => cp.setDialogOpen(true), icon: Plus }}
+                  />
                 ) : (
                   <>
                     {/* Desktop table */}

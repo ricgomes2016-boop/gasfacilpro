@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -761,7 +762,12 @@ export default function ContasReceber() {
       {loading ? (
         <p className="text-center py-8 text-muted-foreground">Carregando...</p>
       ) : filtered.length === 0 ? (
-        <p className="text-center py-8 text-muted-foreground">Nenhum recebível nesta categoria</p>
+        <EmptyState
+          icon={Wallet}
+          title="Nenhum recebível encontrado"
+          description="Ajuste os filtros ou cadastre um novo recebível para acompanhar cobranças e vencimentos."
+          action={{ label: "Novo recebível", onClick: () => setDialogOpen(true), icon: Plus }}
+        />
       ) : (
         <>
           {/* Mobile cards */}

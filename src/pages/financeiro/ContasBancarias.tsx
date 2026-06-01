@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -296,7 +297,12 @@ export default function ContasBancarias() {
             <Card>
               <CardContent className="pt-6">
                 {isLoading ? <p className="text-center py-6 text-muted-foreground">Carregando...</p> : contas.length === 0 ? (
-                  <p className="text-center py-6 text-muted-foreground">Nenhuma conta cadastrada para esta unidade</p>
+                  <EmptyState
+                    icon={Landmark}
+                    title="Nenhuma conta cadastrada"
+                    description="Cadastre contas bancárias para registrar saldos, extratos e transferências por unidade."
+                    action={{ label: "Nova conta", onClick: () => setDialogOpen(true), icon: Plus }}
+                  />
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>
@@ -344,7 +350,12 @@ export default function ContasBancarias() {
             <Card>
               <CardContent className="pt-6">
                 {transferencias.length === 0 ? (
-                  <p className="text-center py-6 text-muted-foreground">Nenhuma transferência registrada</p>
+                  <EmptyState
+                    icon={ArrowRightLeft}
+                    title="Nenhuma transferência registrada"
+                    description="As transferências entre contas aparecerão aqui após o primeiro lançamento."
+                    action={{ label: "Nova transferência", onClick: () => setTransferOpen(true), icon: ArrowRightLeft }}
+                  />
                 ) : (
                   <div className="overflow-x-auto">
                     <Table>

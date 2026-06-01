@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -212,7 +213,19 @@ export default function EmissaoBoleto({ embedded }: { embedded?: boolean } = {})
                         </TableRow>
                       );
                     })}
-                    {filtrados.length === 0 && <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum boleto encontrado</TableCell></TableRow>}
+                    {filtrados.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="p-4">
+                          <EmptyState
+                            compact
+                            icon={Barcode}
+                            title="Nenhum boleto encontrado"
+                            description="Ajuste a busca ou emita um novo boleto para acompanhar cobranças."
+                            action={{ label: "Emitir boleto", onClick: () => setTab("emitir"), icon: Plus }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               )}
