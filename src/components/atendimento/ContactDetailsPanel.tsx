@@ -209,7 +209,11 @@ export function ContactDetailsPanel({
               </button>
               <button
                 className="flex-1 flex flex-col items-center gap-1 py-2 rounded-lg hover:bg-[#f5f6f6] text-[#008069]"
-                onClick={() => { onOpenChange(false); cliente ? onEditCliente() : onLinkCliente(); }}
+                onClick={() => {
+                  onOpenChange(false);
+                  if (cliente) onEditCliente();
+                  else onLinkCliente();
+                }}
               >
                 {cliente ? <UserCog className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />}
                 <span className="text-xs">{cliente ? "Editar" : "Vincular"}</span>

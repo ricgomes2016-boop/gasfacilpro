@@ -10,11 +10,11 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import forge from "npm:node-forge@1.3.1";
 import { Buffer } from "node:buffer";
 import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
-// @ts-ignore - sem tipos
+// @ts-expect-error sem tipos
 import { SignPdf } from "npm:@signpdf/signpdf@3.2.4";
-// @ts-ignore
+// @ts-expect-error sem tipos
 import { P12Signer } from "npm:@signpdf/signer-p12@3.2.4";
-// @ts-ignore
+// @ts-expect-error sem tipos
 import { pdflibAddPlaceholder } from "npm:@signpdf/placeholder-pdf-lib@3.2.4";
 
 const json = (body: unknown, status = 200) =>

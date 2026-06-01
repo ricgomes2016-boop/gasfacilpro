@@ -68,7 +68,6 @@ export function useNovoPedidoNotifier() {
                   renotify: true,
                   requireInteraction: true,
                   data: { url: "/vendas/pedidos", pedidoId: p.id },
-                  // @ts-ignore vibrate suportado em Android Chrome
                   vibrate: [300, 100, 300],
                 } as NotificationOptions);
               } else {
