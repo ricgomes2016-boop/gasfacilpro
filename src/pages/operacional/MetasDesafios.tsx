@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -199,7 +200,14 @@ export default function MetasDesafios() {
           <CardHeader><CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" />Metas ({metas.length})</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {metas.length === 0 && <p className="text-center text-muted-foreground py-8">Nenhuma meta cadastrada. Clique em "Nova Meta" para começar.</p>}
+              {metas.length === 0 && (
+                <EmptyState
+                  icon={Target}
+                  title="Nenhuma meta cadastrada"
+                  description="Crie metas por unidade para acompanhar vendas, desafios e progresso da equipe."
+                  action={{ label: "Nova Meta", onClick: openNew, icon: Plus }}
+                />
+              )}
               {metas.map((meta: any) => {
                 const progresso = Number(meta.valor_objetivo) > 0 ? (Number(meta.valor_atual) / Number(meta.valor_objetivo)) * 100 : 0;
                 const unidadeNome = (meta.unidades as any)?.nome || "—";

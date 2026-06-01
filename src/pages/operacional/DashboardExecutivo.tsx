@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   TrendingUp,
   TrendingDown,
@@ -243,7 +244,12 @@ export default function DashboardExecutivo() {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-center text-muted-foreground py-8">Sem dados de produtos</p>
+                <EmptyState
+                  compact
+                  icon={Package}
+                  title="Sem produtos vendidos"
+                  description="Os produtos mais vendidos aparecerão aqui quando houver itens em pedidos."
+                />
               )}
             </CardContent>
           </Card>

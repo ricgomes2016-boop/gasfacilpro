@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { DollarSign, Package, Users, Target, Calendar, Loader2 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,7 +106,14 @@ export default function ExecutivoContent() {
                   {produtosVendidos.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                 </Pie><Tooltip /></PieChart>
               </ResponsiveContainer>
-            ) : <p className="text-center text-muted-foreground py-8">Sem dados de produtos</p>}
+            ) : (
+              <EmptyState
+                compact
+                icon={Package}
+                title="Sem produtos vendidos"
+                description="Os produtos mais vendidos aparecerão aqui quando houver itens em pedidos."
+              />
+            )}
           </CardContent>
         </Card>
       </div>

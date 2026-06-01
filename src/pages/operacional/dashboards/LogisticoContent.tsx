@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Truck, MapPin, Clock, Package, TrendingUp, Route, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,7 +64,14 @@ export default function LogisticoContent() {
           <CardHeader><CardTitle className="flex items-center gap-2"><Truck className="h-5 w-5" />Status dos Entregadores</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {entregadores.length === 0 && <p className="text-muted-foreground text-center py-4">Nenhum entregador ativo hoje</p>}
+              {entregadores.length === 0 && (
+                <EmptyState
+                  compact
+                  icon={Truck}
+                  title="Nenhum entregador ativo hoje"
+                  description="Quando houver entregas ou rotas em andamento, os entregadores aparecerão aqui."
+                />
+              )}
               {entregadores.map((e) => (
                 <div key={e.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div className="flex items-center gap-3">
@@ -89,7 +97,14 @@ export default function LogisticoContent() {
                   <Bar dataKey="entregas" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            ) : <p className="text-muted-foreground text-center py-8">Sem dados de entregas por bairro</p>}
+            ) : (
+              <EmptyState
+                compact
+                icon={MapPin}
+                title="Sem entregas por bairro"
+                description="As entregas concluídas do mês formarão este ranking por região."
+              />
+            )}
           </CardContent>
         </Card>
       </div>
