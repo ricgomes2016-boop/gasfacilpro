@@ -28,11 +28,17 @@ export default defineConfig(({ mode }) => {
         overlay: false,
       },
     },
+    build: {
+      chunkSizeWarningLimit: 2000,
+    },
     plugins: [
       react(),
       mode === "development" && componentTagger(),
       VitePWA({
         strategies: "injectManifest",
+        injectManifest: {
+          rollupFormat: "iife",
+        },
         srcDir: "src",
         filename: "sw.js",
         registerType: "autoUpdate",

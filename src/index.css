@@ -376,13 +376,6 @@
     fill: currentColor !important;
   }
 
-  svg.text-white,
-  svg[class*="text-white"],
-  .lucide.text-white,
-  .lucide[class*="text-white"] {
-    color: inherit !important;
-  }
-
   /* Prevent iOS/Android auto-zoom on input focus by forcing >=16px font on mobile */
   @media (max-width: 767px) {
     input:not([type="checkbox"]):not([type="radio"]),
@@ -945,15 +938,10 @@
   :where(.bg-info) :where(.text-white,.text-primary-foreground,.text-info-foreground) { color: hsl(var(--info-foreground)) !important; }
   :where(.bg-destructive):where(.text-white,.text-primary-foreground,.text-destructive-foreground),
   :where(.bg-destructive) :where(.text-white,.text-primary-foreground,.text-destructive-foreground) { color: hsl(var(--destructive-foreground)) !important; }
-  :where(.text-white) > svg,
   :where(.text-white) .lucide,
-  :where(.text-white\/50) > svg,
   :where(.text-white\/50) .lucide,
-  :where(.text-white\/70) > svg,
   :where(.text-white\/70) .lucide,
-  :where(.text-white\/80) > svg,
   :where(.text-white\/80) .lucide,
-  :where(.text-white\/90) > svg,
   :where(.text-white\/90) .lucide {
     color: currentColor !important;
     stroke: currentColor !important;
