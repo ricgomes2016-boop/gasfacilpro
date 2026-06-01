@@ -50,10 +50,10 @@ export default function TrabalhistaContent() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-end">
-        <Button><FileText className="h-4 w-4 mr-2" />Gerar Relatório</Button>
+        <Button className="w-full sm:w-auto"><FileText className="h-4 w-4 mr-2" />Gerar Relatório</Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><Users className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">{totalFuncionarios}</p><p className="text-sm text-muted-foreground">Funcionários</p></div></div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-chart-2/10"><Clock className="h-6 w-6 text-chart-2" /></div><div><p className="text-2xl font-bold">{totalFuncionarios * 44}h</p><p className="text-sm text-muted-foreground">Horas Previstas</p></div></div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-chart-4/10"><AlertTriangle className="h-6 w-6 text-chart-4" /></div><div><p className="text-2xl font-bold">{alertasAtivos}</p><p className="text-sm text-muted-foreground">Alertas Ativos</p></div></div></CardContent></Card>
@@ -66,7 +66,7 @@ export default function TrabalhistaContent() {
           <CardContent>
             <div className="space-y-3">
               {alertas.map((a: any) => (
-                <div key={a.id} className="flex items-center justify-between p-3 rounded-lg bg-chart-4/10">
+                <div key={a.id} className="flex flex-col gap-3 rounded-lg bg-chart-4/10 p-3 sm:flex-row sm:items-center sm:justify-between">
                   <div><p className="font-medium">{(a.funcionarios as any)?.nome} - {a.tipo}</p><p className="text-sm text-muted-foreground">{a.descricao}</p></div>
                   <Badge variant={a.nivel === "alto" ? "destructive" : "default"}>{a.nivel}</Badge>
                 </div>

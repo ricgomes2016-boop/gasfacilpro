@@ -66,14 +66,14 @@ export default function AvancadoContent() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="financeiro" className="space-y-6">
-        <TabsList>
+        <TabsList className="intelligence-tabs grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
           <TabsTrigger value="vendas">Vendas</TabsTrigger>
           <TabsTrigger value="operacional">Operacional</TabsTrigger>
         </TabsList>
 
         <TabsContent value="financeiro" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-chart-3/10"><TrendingUp className="h-6 w-6 text-chart-3" /></div><div><p className="text-2xl font-bold">R$ {(metricas.faturamento / 1000).toFixed(1)}k</p><p className="text-sm text-muted-foreground">Faturamento (6 meses)</p></div></div></CardContent></Card>
             <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-destructive/10"><BarChart3 className="h-6 w-6 text-destructive" /></div><div><p className="text-2xl font-bold">R$ {(metricas.despesas / 1000).toFixed(1)}k</p><p className="text-sm text-muted-foreground">Despesas (6 meses)</p></div></div></CardContent></Card>
             <Card><CardContent className="pt-6"><div className="flex items-center gap-4"><div className="p-3 rounded-lg bg-primary/10"><PieChart className="h-6 w-6 text-primary" /></div><div><p className="text-2xl font-bold">R$ {(metricas.lucro / 1000).toFixed(1)}k</p><p className="text-sm text-muted-foreground">Lucro Líquido</p></div></div></CardContent></Card>
@@ -135,7 +135,7 @@ export default function AvancadoContent() {
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5" />Métricas Operacionais</CardTitle></CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="p-4 rounded-lg border"><p className="text-sm text-muted-foreground">Taxa de Conclusão</p><p className="text-2xl font-bold">{metricas.taxaConclusao.toFixed(1)}%</p></div>
                 <div className="p-4 rounded-lg border"><p className="text-sm text-muted-foreground">Entregas por Entregador/Mês</p><p className="text-2xl font-bold">{metricas.entregasPorEntregador.toFixed(1)}</p></div>
                 <div className="p-4 rounded-lg border"><p className="text-sm text-muted-foreground">Custo por Entrega</p><p className="text-2xl font-bold">R$ {metricas.custoPorEntrega.toFixed(2)}</p></div>

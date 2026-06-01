@@ -77,7 +77,7 @@ export default function ExecutivoContent() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Faturamento Mensal</p><p className="text-2xl font-bold">R$ {faturamento.toLocaleString("pt-BR")}</p></div><div className="p-3 rounded-lg bg-primary/10"><DollarSign className="h-6 w-6 text-primary" /></div></div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Vendas Realizadas</p><p className="text-2xl font-bold">{totalVendas}</p></div><div className="p-3 rounded-lg bg-chart-2/10"><Package className="h-6 w-6 text-chart-2" /></div></div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Clientes Ativos</p><p className="text-2xl font-bold">{clientesAtivos}</p></div><div className="p-3 rounded-lg bg-chart-3/10"><Users className="h-6 w-6 text-chart-3" /></div></div></CardContent></Card>

@@ -466,7 +466,7 @@ export default function ConselhosIA() {
             </motion.div>
 
             {/* KPIs do dia */}
-            <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
               {[
                 {
                   label: "Faturamento Hoje",
@@ -547,7 +547,7 @@ export default function ConselhosIA() {
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                 💡 Sugestões para agora
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4">
                 {suggestions.map((s, i) => (
                   <motion.button
                     key={s.id}

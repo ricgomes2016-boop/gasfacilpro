@@ -754,6 +754,10 @@
     @apply border border-border/45 bg-card/90 p-1 shadow-md shadow-foreground/5 backdrop-blur;
   }
 
+  .intelligence-tabs [role="tab"] {
+    @apply min-w-0 justify-center whitespace-nowrap px-2 text-xs sm:px-3 sm:text-sm;
+  }
+
   .intelligence-tabs [data-state="active"] {
     @apply bg-primary text-primary-foreground shadow-md shadow-primary/20;
   }
@@ -837,6 +841,34 @@
     border: 1px solid hsl(var(--border) / 0.55) !important;
     border-radius: 0.75rem !important;
     box-shadow: 0 18px 45px hsl(var(--foreground) / 0.10) !important;
+  }
+
+  .intelligence-workspace .recharts-wrapper,
+  .intelligence-workspace .recharts-responsive-container {
+    max-width: 100%;
+  }
+
+  @media (max-width: 640px) {
+    .intelligence-workspace {
+      border-radius: 1rem;
+    }
+
+    .intelligence-workspace .grid > .rounded-2xl,
+    .intelligence-workspace .modern-status-card,
+    .intelligence-summary-card {
+      min-height: auto;
+    }
+
+    .intelligence-workspace .grid > .rounded-2xl .text-2xl,
+    .intelligence-workspace .modern-status-card .text-2xl,
+    .intelligence-summary-card .summary-value {
+      font-size: 1.375rem;
+      line-height: 1.2;
+    }
+
+    .intelligence-workspace .recharts-legend-wrapper {
+      font-size: 0.75rem;
+    }
   }
 
   :where(.bg-green-50,.bg-green-100,.bg-green-500\/5,.bg-green-500\/10,.bg-emerald-50,.bg-emerald-100,.bg-emerald-500\/5,.bg-emerald-500\/10) { background-color: hsl(var(--success) / 0.12) !important; }
