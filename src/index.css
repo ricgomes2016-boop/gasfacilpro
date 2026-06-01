@@ -244,13 +244,14 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--brand-font, 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
     font-optical-sizing: auto;
+    font-weight: 450;
     font-synthesis: none;
     letter-spacing: 0;
     text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: subpixel-antialiased;
-    -moz-osx-font-smoothing: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
     max-width: 100vw;
     background:
@@ -270,7 +271,25 @@
     color: hsl(var(--foreground));
     text-wrap: balance;
     text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: subpixel-antialiased;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-weight: 700;
+    line-height: 1.15;
+  }
+
+  h4,
+  h5,
+  h6 {
+    font-weight: 650;
+    line-height: 1.2;
+  }
+
+  p {
+    line-height: 1.55;
   }
 
   p,
@@ -284,8 +303,8 @@
   th {
     font-family: inherit;
     text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: subpixel-antialiased;
-    -moz-osx-font-smoothing: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   table {
@@ -297,11 +316,20 @@
     line-height: 1.35;
   }
 
+  th {
+    font-weight: 700;
+  }
+
+  td {
+    font-weight: 450;
+  }
+
   button,
   input,
   textarea,
   select {
     line-height: 1.25;
+    font-weight: 500;
   }
 
   button:focus-visible,
