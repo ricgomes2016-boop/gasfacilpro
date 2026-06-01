@@ -1,65 +1,72 @@
-## Controle de acesso por plano (Básico / Starter / Enterprise)
+## Objetivo
 
-Nova área no admin para mapear cada página/módulo do sistema a um ou mais planos do SaaS, usando checkboxes. O plano da empresa (`empresas.plano`) já existe — vamos usar a mesma chave (`basico`, `starter`, `enterprise`).
+Substituir a tela atual `/financeiro/fluxo-caixa` (cards + gráfico) por uma visualização tipo "extrato bancário" como no Gas Expert da imagem: seletor de conta, intervalo de datas, saldo do período em destaque, e uma tabela linha-a-linha com saldo corrido.
 
-### 1. Banco de dados (migration)
-
-Criar tabela `public.plano_modulos` para guardar a matriz de acesso:
+## Layout da nova tela
 
 ```
-plano_modulos
-- id (uuid, pk)
-- modulo_key (text, ex: "vendas.pdv")  -- identificador único da página/submenu
-- modulo_label (text, ex: "PDV")
-- modulo_grupo (text, ex: "Vendas")    -- para agrupar na UI
-- path (text, nullable)                 -- rota usada para gate em runtime
-- planos (text[])                       -- ex: {'starter','enterprise'}
-- updated_at, updated_by
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Fluxo de Caixa                                            [+ Nova Mov.]  │
+├──────────────────────────────────────────────────────────────────────────┤
+│  Caixas / Bancos         Período                                         │
+│  [ BANCO ITAÚ        ▼]  [30/05/2026] até [31/05/2026]   [Aplicar]       │
+│  [ Faça uma busca...  ]                              ┌─ Saldo Atual ──┐  │
+│                                                      │ BANCO ITAÚ     │  │
+│                                                      │   R$ 12.430,00 │  │
+│                                                      └────────────────┘  │
+├──────────────────────────────────────────────────────────────────────────┤
+│ Data       │ Histórico                 │ Entrada │ Saída │ A Receber │Saldo│
+│ 30/05/2026 │ SALDO INICIAL             │         │       │           │ 0,00│
+│ 30/05/2026 │ Venda Pedido #1234        │  150,00 │       │           │150,0│
+│ 30/05/2026 │ Pagto Fornecedor X        │         │ 80,00 │           │ 70,0│
+│ 31/05/2026 │ Boleto a vencer Cliente Y │         │       │   200,00  │ 70,0│
+├──────────────────────────────────────────────────────────────────────────┤
+│ TOTAL GERAL                            │  150,00 │ 80,00 │   200,00  │ 70,0│
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Índices: `unique(modulo_key)`, `gin(planos)`.
-- GRANTs: `SELECT` para `authenticated` (todo usuário logado precisa ler para o sidebar/guard); `ALL` para `service_role`; INSERT/UPDATE/DELETE só via política de super_admin.
-- RLS:
-  - SELECT: `authenticated` (público interno, sem dados sensíveis).
-  - INSERT/UPDATE/DELETE: `has_role(auth.uid(),'super_admin')`.
-- Seed inicial: popular com **todos os itens** de `src/components/layout/menuItems.ts` (cada submenu vira uma linha) + páginas do `/admin/*` ficam de fora (admin não é gated por plano). Default: todos os módulos liberados para `{'basico','starter','enterprise'}` para não quebrar nada na largada.
+## Componentes da tela
 
-### 2. Nova página admin: `/admin/planos-modulos`
+1. **Barra de filtros (topo)**
+   - `Select` "Caixa / Banco": lista todas as `contas_bancarias` ativas da unidade + opção fixa **"Caixa da Loja"** (= `movimentacoes_caixa` sem conta).
+   - `Input` de busca para filtrar histórico por texto (client-side).
+   - Dois `DatePicker` (data inicial / data final), padrão = primeiro e último dia do mês corrente.
+   - Botão **Aplicar**.
 
-- Adicionar item "Planos & Módulos" no `AdminLayout` (ícone `Lock`/`Package`).
-- Layout: tabela agrupada por `modulo_grupo` com:
-  - Coluna "Módulo" (label + path em cinza).
-  - 3 colunas de checkbox: **Básico**, **Starter**, **Enterprise**.
-  - Checkbox no header de cada plano para marcar/desmarcar a coluna inteira.
-- Toolbar: busca por nome, filtro por grupo, botão "Salvar alterações" (faz upsert em batch).
-- Edição puramente client-side até clicar em salvar (evita ruído com toggles individuais).
-- Toast de sucesso/erro e `fetchData()` após salvar.
+2. **Card "Saldo Atual"** (canto direito, igual à imagem)
+   - Mostra o nome da conta selecionada e o saldo até a data final do filtro.
 
-### 3. Runtime: aplicar o gate
+3. **Tabela de movimentações** (corpo principal)
+   - Colunas: **Data**, **Histórico**, **Entrada (R$)**, **Saída (R$)**, **A Receber (R$)**, **Saldo Atual (R$)**.
+   - Primeira linha sempre **"SALDO INICIAL"** com saldo até o dia anterior à data inicial.
+   - Linhas ordenadas por data ascendente; coluna **Saldo Atual** = saldo corrido (saldo_inicial + Σ entradas − Σ saídas até a linha). "A Receber" **não** entra no saldo corrente (é projeção).
+   - Última linha **TOTAL GERAL** somando Entradas / Saídas / A Receber do período.
+   - Tipografia tabular (`font-variant-numeric: tabular-nums`), zebra rows, valores negativos em `text-destructive`.
 
-Criar `src/hooks/usePlanoAccess.ts`:
-- Busca `empresas.plano` da empresa do usuário (cache via React Query).
-- Busca `plano_modulos` (cache 5 min) e expõe:
-  - `canAccess(moduloKey | path): boolean`
-  - `planoAtual: 'basico' | 'starter' | 'enterprise'`
-  - Super_admin sempre `true`.
+4. **Botão "Nova Movimentação"** mantido (reaproveita o Dialog atual).
 
-Pontos de integração (mínimos, sem refatorar):
-1. **Sidebar (`menuItems.ts` + `Sidebar.tsx`)**: filtrar submenu items cujo `path` não esteja liberado para o plano atual. Itens de grupo cujos submenus ficam todos bloqueados são ocultados.
-2. **Rotas**: criar `<PlanoGuard>` wrapper leve usado em `App.tsx` apenas como fallback — se o usuário acessar uma URL direta de módulo não liberado, mostra tela "Módulo não incluído no seu plano — faça upgrade" com CTA para WhatsApp/contato. **Não vamos refatorar App.tsx**: o guard é opt-in, aplicado só onde quisermos depois; o filtro do sidebar já cobre 99% dos casos.
+## Fonte de dados por seleção
 
-### 4. O que NÃO muda agora
+- **Conta bancária selecionada (UUID)**: 
+  - Lançados: `movimentacoes_bancarias` filtrando `conta_bancaria_id` + `data` no intervalo.
+  - Saldo inicial: soma de `saldo_inicial` da conta + movimentações **anteriores** à data inicial.
+  - A Receber: `contas_receber` com `status='pendente'` e `vencimento` dentro do intervalo, somente quando uma forma de pagamento ligada à conta existir — para a v1, listar A Receber só quando "Caixa da Loja" estiver selecionado **ou** "Todas".
+- **"Caixa da Loja"**: `movimentacoes_caixa` (`unidade_id` atual, `status='aprovada'`) + `contas_receber` pendentes no intervalo.
+- **"Todas as contas"** (opção extra): união de ambas, sem coluna saldo corrente confiável → nesta opção, ocultar coluna Saldo Atual e mostrar apenas totais.
 
-- `App.tsx`, providers e rotas existentes permanecem intactos.
-- Páginas do `/admin/*`, `/contador/*`, `/cliente/*`, `/entregador/*`, `/transportadora/*` não entram no controle (são portais separados).
-- Não mexemos em RLS de outras tabelas — o gate é só de UI/rota.
-- Nada bloqueia retroativamente: seed começa com todo mundo liberado em todos os planos.
+## Implementação técnica (resumo)
 
-### 5. Ordem de execução
+- Reescrever `src/pages/financeiro/FluxoCaixa.tsx` mantendo o `embedded` prop e o Dialog "Nova Movimentação".
+- Novo hook local `useExtratoConta(contaId, dataIni, dataFim, unidadeId)` que retorna `{ saldoInicial, linhas[], totais }`.
+- Usar `useQuery` (TanStack) com `queryKey` parametrizado para cache automático.
+- Componente de tabela usando `Table` do shadcn (`@/components/ui/table`).
+- Datas no padrão BR via `date-fns/format` e `getBrasiliaDate()`.
+- Sem alterações em banco, edge functions, rotas ou outras telas.
 
-1. Migration: tabela + RLS + GRANTs + seed completo dos módulos.
-2. Página `/admin/planos-modulos` + item no `AdminLayout`.
-3. Hook `usePlanoAccess` + filtro no `Sidebar`.
-4. Componente `PlanoGuard` (sem aplicar em rotas ainda — fica disponível).
+## Arquivos afetados
 
-Quer que eu siga assim? Posso ajustar a granularidade (ex: marcar página inteira vs. submenu individual) ou trocar o default do seed (liberar tudo só no enterprise, por ex.) antes de começar.
+- `src/pages/financeiro/FluxoCaixa.tsx` — reescrita completa do conteúdo da página.
+
+## Fora de escopo
+
+- Edição inline de lançamentos, impressão/exportação PDF, conciliação bancária, gráfico (removido — a tela vira extrato puro).
