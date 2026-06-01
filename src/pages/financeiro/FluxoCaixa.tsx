@@ -14,6 +14,7 @@ import {
 import {
   Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Plus, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -316,7 +317,17 @@ export default function FluxoCaixa({ embedded }: { embedded?: boolean } = {}) {
                 )}
 
                 {!isLoading && linhasComSaldo.length === 0 && (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">Sem movimentações no período</TableCell></TableRow>
+                  <TableRow>
+                    <TableCell colSpan={6} className="p-4">
+                      <EmptyState
+                        compact
+                        icon={Wallet}
+                        title="Sem movimentações no período"
+                        description="Ajuste o intervalo, selecione outra conta ou registre uma nova movimentação."
+                        action={{ label: "Nova movimentação", onClick: () => setDialogOpen(true), icon: Plus }}
+                      />
+                    </TableCell>
+                  </TableRow>
                 )}
 
                 {linhasComSaldo.map((l, i) => (

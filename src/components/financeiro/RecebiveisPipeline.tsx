@@ -12,6 +12,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -442,7 +443,12 @@ export function RecebiveisPipeline() {
           {loading ? (
             <p className="text-center py-8 text-muted-foreground">Carregando...</p>
           ) : filtered.length === 0 ? (
-            <p className="text-center py-8 text-muted-foreground">Nenhum recebível encontrado</p>
+            <EmptyState
+              icon={Banknote}
+              title="Nenhum recebível encontrado"
+              description="Ajuste o filtro de etapa ou aguarde novas vendas por cartão e PIX maquininha."
+              action={{ label: "Atualizar", onClick: fetchData, icon: RefreshCw }}
+            />
           ) : (
             <div className="overflow-x-auto">
               <Table>
