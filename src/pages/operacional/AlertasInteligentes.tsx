@@ -130,7 +130,7 @@ export function AlertasInteligentesContent() {
   );
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="intelligence-workspace space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
         <Button onClick={analisar}><AlertTriangle className="h-4 w-4 mr-2" />Reanalisar</Button>
       </div>

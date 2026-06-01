@@ -414,9 +414,9 @@ export default function ConselhosIA() {
   return (
     <MainLayout>
       <Header title="Central de Inteligência" subtitle="Cockpit operacional, indicadores e alertas em um só lugar" />
-      <div className="p-3 sm:p-4 md:p-6 space-y-6">
+      <div className="intelligence-workspace p-3 sm:p-4 md:p-6 space-y-6">
         <Tabs defaultValue="inteligencia" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+          <TabsList className="intelligence-tabs grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
             <TabsTrigger value="inteligencia" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
               <span className="hidden sm:inline">Inteligência</span>
