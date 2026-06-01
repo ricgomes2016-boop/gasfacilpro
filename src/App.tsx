@@ -63,7 +63,10 @@ const queryClient = new QueryClient();
 
 function RootRedirect() {
   const app = detectSubdomainApp();
-  if (app === "landing" || app === null) {
+  if (app === "landing") {
+    return <Navigate to="/auth" replace />;
+  }
+  if (app === null) {
     return <Navigate to="/dashboard" replace />;
   }
   const defaultRoute = getSubdomainDefaultRoute(app);
