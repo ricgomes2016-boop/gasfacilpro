@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
@@ -7,10 +7,19 @@ import { VitePWA } from "vite-plugin-pwa";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const buildVersion = new Date().toISOString();
+  const env = loadEnv(mode, process.cwd(), "");
+  const supabaseUrl = env.VITE_SUPABASE_URL || "https://scqenurznkatvrqxqjmt.supabase.co";
+  const supabasePublishableKey =
+    env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjcWVudXJ6bmthdHZycXhxam10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzNzIxMDMsImV4cCI6MjA4NTk0ODEwM30.JfjppsJiUB4AbL4NqImbvZtp65taUQmeQ3Ikzkz6mGk";
+  const supabaseProjectId = env.VITE_SUPABASE_PROJECT_ID || "scqenurznkatvrqxqjmt";
 
   return {
     define: {
       __APP_BUILD_ID__: JSON.stringify(buildVersion),
+      "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(supabaseUrl),
+      "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(supabasePublishableKey),
+      "import.meta.env.VITE_SUPABASE_PROJECT_ID": JSON.stringify(supabaseProjectId),
     },
     server: {
       host: "::",
