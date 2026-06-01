@@ -3,7 +3,7 @@ import { RouteConfig } from "./helpers";
 
 const DashboardFinanceiro = lazy(() => import("@/pages/financeiro/DashboardFinanceiro"));
 const AgingReport = lazy(() => import("@/pages/financeiro/AgingReport"));
-const FluxoCaixaProjetado = lazy(() => import("@/pages/financeiro/FluxoCaixaProjetado"));
+const FluxoCaixaConsolidado = lazy(() => import("@/pages/financeiro/FluxoCaixaConsolidado"));
 const ContasPagar = lazy(() => import("@/pages/financeiro/ContasPagar"));
 const ContasReceber = lazy(() => import("@/pages/financeiro/ContasReceber"));
 const AprovarDespesas = lazy(() => import("@/pages/financeiro/AprovarDespesas"));
@@ -34,7 +34,8 @@ const CONTADOR_ROLES: ("admin" | "gestor" | "financeiro" | "contador")[] = ["adm
 export const financeiroRoutes: RouteConfig[] = [
   { path: "/financeiro", component: DashboardFinanceiro, roles: FINANCE_ROLES },
   { path: "/financeiro/aging", component: AgingReport, roles: FINANCE_ROLES },
-  { path: "/financeiro/fluxo", component: FluxoCaixaProjetado, roles: FINANCE_ROLES },
+  { path: "/financeiro/fluxo", component: FluxoCaixaConsolidado, roles: FINANCE_ROLES },
+  { path: "/financeiro/fluxo-caixa", component: FluxoCaixaConsolidado, roles: FINANCE_ROLES },
   { path: "/financeiro/pagar", component: ContasPagar, roles: FINANCE_ROLES },
   { path: "/financeiro/receber", component: ContasReceber, roles: FINANCE_ROLES },
   { path: "/financeiro/aprovar", component: AprovarDespesas, roles: ["admin", "gestor"] },
