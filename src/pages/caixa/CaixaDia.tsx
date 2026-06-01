@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
@@ -424,6 +424,18 @@ export default function CaixaDia() {
   const totalEntradas = movs.filter(m => m.tipo === "entrada").reduce((a, m) => a + Number(m.valor), 0);
   const totalSaidas = movs.filter(m => m.tipo === "saida").reduce((a, m) => a + Number(m.valor), 0);
   const saldo = totalEntradas - totalSaidas;
+  const movimentacoesExtrato = useMemo(() => {
+    let total = 0;
+    return [...movs]
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .map((mov) => {
+        const valor = Number(mov.valor || 0);
+        const entrada = mov.tipo === "entrada" ? valor : 0;
+        const saida = mov.tipo === "saida" ? valor : 0;
+        total += entrada - saida;
+        return { ...mov, entrada, saida, total };
+      });
+  }, [movs]);
   const totalVendas = pedidos.reduce((a, p) => a + Number(p.valor_total || 0), 0);
   const qtdPedidos = pedidos.length;
   const dataFormatada = format(dataSelecionada, "dd/MM/yyyy");
@@ -511,15 +523,16 @@ export default function CaixaDia() {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumoData), "Resumo");
 
     // Movimentações
-    if (movs.length > 0) {
-      const movsSheet = [["Hora", "Tipo", "Descrição", "Categoria", "Valor"]];
-      movs.forEach(m => movsSheet.push([
-        new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
-        m.tipo === "entrada" ? "Entrada" : "Saída",
-        m.descricao,
-        m.categoria || "—",
-        String(Number(m.valor).toFixed(2)),
+    if (movimentacoesExtrato.length > 0) {
+      const movsSheet = [["Data", "Histórico/Descrição", "Entrada", "Saída", "Total"]];
+      movimentacoesExtrato.forEach(m => movsSheet.push([
+        `${new Date(m.created_at).toLocaleDateString("pt-BR")} ${new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`,
+        `${m.descricao}${m.categoria ? ` (${m.categoria})` : ""}`,
+        m.entrada ? String(m.entrada.toFixed(2)) : "",
+        m.saida ? String(m.saida.toFixed(2)) : "",
+        String(m.total.toFixed(2)),
       ]));
+      movsSheet.push(["", "TOTAL GERAL", String(totalEntradas.toFixed(2)), String(totalSaidas.toFixed(2)), String(saldo.toFixed(2))]);
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(movsSheet), "Movimentações");
     }
 
@@ -795,32 +808,50 @@ export default function CaixaDia() {
                   <p className="text-center py-8 text-muted-foreground">Nenhuma movimentação</p>
                 ) : (
                   <div className="overflow-x-auto">
-                    <Table className="min-w-[480px]">
+                    <Table className="min-w-[720px]">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-14">Hora</TableHead>
-                          <TableHead className="w-20">Tipo</TableHead>
-                          <TableHead>Descrição</TableHead>
-                          <TableHead className="hidden sm:table-cell">Categoria</TableHead>
-                          <TableHead className="text-right">Valor</TableHead>
+                          <TableHead className="w-[120px]">Data</TableHead>
+                          <TableHead>Histórico/Descrição</TableHead>
+                          <TableHead className="w-[130px] text-right">Entrada</TableHead>
+                          <TableHead className="w-[130px] text-right">Saída</TableHead>
+                          <TableHead className="w-[140px] text-right">Total</TableHead>
                         </TableRow>
                       </TableHeader>
-                      <TableBody>
-                        {movs.map(mov => (
+                      <TableBody className="tabular-nums">
+                        {movimentacoesExtrato.map(mov => (
                           <TableRow key={mov.id}>
-                            <TableCell className="text-muted-foreground text-xs">{new Date(mov.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</TableCell>
-                            <TableCell><Badge variant={mov.tipo === "entrada" ? "default" : "destructive"} className="text-xs whitespace-nowrap">{mov.tipo === "entrada" ? "Entrada" : "Saída"}</Badge></TableCell>
-                            <TableCell className="text-sm">
-                              <div>{mov.descricao}</div>
-                              <div className="sm:hidden text-xs text-muted-foreground mt-0.5">{mov.categoria || "—"}</div>
+                            <TableCell className="text-muted-foreground text-xs">
+                              <div>{new Date(mov.created_at).toLocaleDateString("pt-BR")}</div>
+                              <div>{new Date(mov.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div>
                             </TableCell>
-                            <TableCell className="hidden sm:table-cell"><Badge variant="outline" className="text-xs">{mov.categoria || "—"}</Badge></TableCell>
-                            <TableCell className={`text-right font-medium whitespace-nowrap ${mov.tipo === "entrada" ? "text-success" : "text-destructive"}`}>
-                              {mov.tipo === "entrada" ? "+" : "-"} R$ {Number(mov.valor).toFixed(2)}
+                            <TableCell className="text-sm">
+                              <div className="font-medium">{mov.descricao}</div>
+                              <div className="mt-1 flex flex-wrap items-center gap-2">
+                                <Badge variant={mov.tipo === "entrada" ? "default" : "destructive"} className="text-[10px] whitespace-nowrap">{mov.tipo === "entrada" ? "Entrada" : "Saída"}</Badge>
+                                <Badge variant="outline" className="text-[10px]">{mov.categoria || "—"}</Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right font-medium text-success whitespace-nowrap">
+                              {mov.entrada > 0 ? `R$ ${mov.entrada.toFixed(2)}` : "—"}
+                            </TableCell>
+                            <TableCell className="text-right font-medium text-destructive whitespace-nowrap">
+                              {mov.saida > 0 ? `R$ ${mov.saida.toFixed(2)}` : "—"}
+                            </TableCell>
+                            <TableCell className={cn("text-right font-semibold whitespace-nowrap", mov.total < 0 && "text-destructive")}>
+                              R$ {mov.total.toFixed(2)}
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
+                      <TableFooter>
+                        <TableRow className="bg-muted/60 font-semibold tabular-nums">
+                          <TableCell colSpan={2}>TOTAL GERAL</TableCell>
+                          <TableCell className="text-right text-success whitespace-nowrap">R$ {totalEntradas.toFixed(2)}</TableCell>
+                          <TableCell className="text-right text-destructive whitespace-nowrap">R$ {totalSaidas.toFixed(2)}</TableCell>
+                          <TableCell className={cn("text-right whitespace-nowrap", saldo < 0 && "text-destructive")}>R$ {saldo.toFixed(2)}</TableCell>
+                        </TableRow>
+                      </TableFooter>
                     </Table>
                   </div>
                 )}
