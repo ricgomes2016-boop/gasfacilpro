@@ -136,9 +136,9 @@ export function AlertasInteligentesContent() {
       </div>
 
       <div className="grid gap-3 grid-cols-3">
-        <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-destructive">{criticos.length}</p><p className="text-xs text-muted-foreground">Críticos</p></CardContent></Card>
-        <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-chart-4">{atencao.length}</p><p className="text-xs text-muted-foreground">Atenção</p></CardContent></Card>
-        <Card><CardContent className="py-3 text-center"><p className="text-2xl font-bold text-primary">{info.length}</p><p className="text-xs text-muted-foreground">Informativos</p></CardContent></Card>
+        <Card className="intelligence-summary-card border-l-4 border-l-destructive bg-destructive/5"><CardContent className="py-4"><p className="summary-value text-destructive">{criticos.length}</p><p className="summary-label">Críticos</p></CardContent></Card>
+        <Card className="intelligence-summary-card border-l-4 border-l-warning bg-warning/10"><CardContent className="py-4"><p className="summary-value text-warning">{atencao.length}</p><p className="summary-label">Atenção</p></CardContent></Card>
+        <Card className="intelligence-summary-card border-l-4 border-l-primary bg-primary/5"><CardContent className="py-4"><p className="summary-value text-primary">{info.length}</p><p className="summary-label">Informativos</p></CardContent></Card>
       </div>
 
       {criticos.length > 0 && <div className="space-y-3">{criticos.map(renderAlerta)}</div>}

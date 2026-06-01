@@ -74,7 +74,7 @@ export default function LogisticoContent() {
                 />
               )}
               {entregadores.map((e) => (
-                <div key={e.id} className="flex items-center justify-between p-3 rounded-lg border">
+                <div key={e.id} className="intelligence-list-item flex items-center justify-between p-3">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center"><Truck className="h-5 w-5 text-primary" /></div>
                     <p className="font-medium">{e.nome}</p>

@@ -561,7 +561,7 @@
   }
 
   .grid > .rounded-lg.border {
-    @apply min-w-0;
+    min-width: 0;
   }
 
   .rounded-lg.border [class*="CardContent"],
@@ -776,6 +776,53 @@
 
   .intelligence-workspace .grid > .rounded-2xl:nth-child(5n+5) {
     @apply border-l-4 border-l-secondary bg-gradient-to-br from-secondary/10 to-card shadow-secondary/10;
+  }
+
+  .intelligence-workspace .grid > .rounded-2xl {
+    @apply min-h-28;
+  }
+
+  .intelligence-workspace .grid > .rounded-2xl .text-2xl {
+    @apply leading-tight tracking-normal;
+  }
+
+  .intelligence-workspace .grid > .rounded-2xl [class*="rounded-lg"][class*="p-3"] {
+    border-width: 1px;
+    border-color: currentColor;
+    box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 0.05);
+    opacity: 0.96;
+  }
+
+  .intelligence-summary-card {
+    @apply modern-status-card min-h-24 text-center;
+  }
+
+  .intelligence-summary-card .summary-value {
+    @apply text-3xl font-bold leading-none;
+  }
+
+  .intelligence-summary-card .summary-label {
+    @apply mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground;
+  }
+
+  .intelligence-metric-tile {
+    @apply rounded-xl border border-border/45 bg-gradient-to-br from-card to-muted/35 p-4 shadow-sm shadow-foreground/5;
+  }
+
+  .intelligence-list-item {
+    @apply rounded-xl border border-border/45 bg-card/80 shadow-sm shadow-foreground/5 transition-colors hover:bg-muted/35;
+  }
+
+  .intelligence-workspace .rounded-lg.border {
+    @apply border-border/45 bg-gradient-to-br from-card to-muted/35 shadow-sm shadow-foreground/5;
+  }
+
+  .intelligence-workspace .rounded-lg.border .text-2xl {
+    @apply text-primary;
+  }
+
+  .intelligence-workspace .rounded-2xl > [class*="border-b"] {
+    @apply bg-muted/25;
   }
 
   .intelligence-workspace .recharts-cartesian-grid line {
