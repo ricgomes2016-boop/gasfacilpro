@@ -40,6 +40,8 @@ export function SubdomainGuard({ children }: SubdomainGuardProps) {
       return;
     }
 
+    if (subdomainApp === "landing") return;
+
     // Root "/" → redirect to subdomain default
     if (pathname === "/" || pathname === "") {
       const defaultRoute = getSubdomainDefaultRoute(subdomainApp);

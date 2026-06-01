@@ -51,6 +51,7 @@ const CentralGasCP = lazy(() => import("./pages/publico/CentralGasCP"));
 const ForteGas = lazy(() => import("./pages/publico/ForteGas"));
 const JapaGas = lazy(() => import("./pages/publico/JapaGas"));
 const DiagnosticoFontes = lazy(() => import("./pages/DiagnosticoFontes"));
+const LandingPage = lazy(() => import("./pages/LandingPage"));
 
 const ContadorDashboard = lazy(() => import("./pages/contador/ContadorDashboard"));
 const ContadorXML = lazy(() => import("./pages/contador/ContadorXML"));
@@ -64,7 +65,7 @@ const queryClient = new QueryClient();
 function RootRedirect() {
   const app = detectSubdomainApp();
   if (app === "landing") {
-    return <Navigate to="/auth" replace />;
+    return <LandingPage />;
   }
   if (app === null) {
     return <Navigate to="/dashboard" replace />;
