@@ -3,6 +3,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageSectionLoader } from "@/components/ui/page-loader";
 import {
   TrendingUp,
   TrendingDown,
@@ -11,7 +12,6 @@ import {
   Users,
   Target,
   Calendar,
-  Loader2,
 } from "lucide-react";
 import {
   LineChart,
@@ -127,9 +127,7 @@ export default function DashboardExecutivo() {
     return (
       <MainLayout>
         <Header title="Dashboard Executivo" subtitle="Visão geral do negócio" />
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
+        <PageSectionLoader label="Carregando dashboard executivo..." />
       </MainLayout>
     );
   }

@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, XCircle, Clock, Shield, Plus, Loader2, Settings2, AlertTriangle } from "lucide-react";
+import { PageSectionLoader } from "@/components/ui/page-loader";
+import { CheckCircle, XCircle, Clock, Shield, Plus, Settings2, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
@@ -111,7 +112,7 @@ export default function WorkflowAprovacoes() {
           </div>
 
           <TabsContent value="pendentes">
-            {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div> : (
+            {isLoading ? <PageSectionLoader label="Carregando aprovações..." className="min-h-48" /> : (
               <Card>
                 <CardContent className="p-0">
                   <Table>

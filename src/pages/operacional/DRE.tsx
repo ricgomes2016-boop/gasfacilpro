@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, FileDown, Printer, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { PageSectionLoader } from "@/components/ui/page-loader";
+import { FileDown, Printer, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { exportDREtoPdf, handlePrint } from "@/services/reportPdfService";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine, Area, AreaChart } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
@@ -154,7 +155,7 @@ export default function DRE({ embedded = false }: { embedded?: boolean }) {
   };
 
   if (loading) {
-    const loader = <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+    const loader = <PageSectionLoader label="Carregando DRE..." />;
     if (embedded) return loader;
     return (
       <MainLayout>

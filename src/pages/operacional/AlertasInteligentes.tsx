@@ -4,7 +4,8 @@ import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Package, DollarSign, Users, Truck, Clock, CheckCircle, Loader2, Bell, TrendingDown, ShieldAlert } from "lucide-react";
+import { PageSectionLoader } from "@/components/ui/page-loader";
+import { AlertTriangle, Package, DollarSign, Users, Truck, Clock, CheckCircle, Bell, TrendingDown, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { getBrasiliaDate, getBrasiliaDateString } from "@/lib/utils";
@@ -108,7 +109,7 @@ export function AlertasInteligentesContent() {
   const info = alertas.filter(a => a.tipo === "info");
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+    <PageSectionLoader label="Carregando alertas..." />
   );
 
   const renderAlerta = (alerta: Alerta) => (

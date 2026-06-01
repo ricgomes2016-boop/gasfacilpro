@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { PageSectionLoader } from "@/components/ui/page-loader";
 import { Target, Trophy, Star, TrendingUp, Plus, Loader2, Pencil, Trash2, Store } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -166,7 +167,7 @@ export default function MetasDesafios() {
     return (
       <MainLayout>
         <Header title="Metas e Desafios" subtitle="Gerencie metas por unidade" />
-        <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+        <PageSectionLoader label="Carregando metas e desafios..." />
       </MainLayout>
     );
   }

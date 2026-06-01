@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Loader2, Settings2, FileDown, Printer } from "lucide-react";
+import { PageSectionLoader } from "@/components/ui/page-loader";
+import { AlertTriangle, Settings2, FileDown, Printer } from "lucide-react";
 import { exportROtoPdf, handlePrint } from "@/services/reportPdfService";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -269,7 +270,7 @@ export default function ResultadoOperacional({ embedded = false }: { embedded?: 
   const fmt = (v: number) => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   if (loading) {
-    const loader = <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+    const loader = <PageSectionLoader label="Carregando resultado operacional..." />;
     if (embedded) return loader;
     return (
       <MainLayout>

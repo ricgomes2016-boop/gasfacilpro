@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { DollarSign, Package, Users, Target, Calendar, Loader2 } from "lucide-react";
+import { PageSectionLoader } from "@/components/ui/page-loader";
+import { DollarSign, Package, Users, Target, Calendar } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -64,7 +65,7 @@ export default function ExecutivoContent() {
     } catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+  if (loading) return <PageSectionLoader label="Carregando visão executiva..." />;
 
   return (
     <div className="space-y-6">

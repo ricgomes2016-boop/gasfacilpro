@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PageSectionLoader } from "@/components/ui/page-loader";
 import {
   Trophy, Star, Medal, Crown, Flame, Package, Target, Users,
-  Loader2, Zap, TrendingUp, CheckCircle, Award, BarChart3
+  Zap, TrendingUp, CheckCircle, Award, BarChart3
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -126,7 +127,7 @@ export default function GamificacaoEntregadores() {
     return (
       <MainLayout>
         <Header title="Gamificação" subtitle="Ranking e conquistas dos entregadores" />
-        <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+        <PageSectionLoader label="Carregando gamificação..." />
       </MainLayout>
     );
   }

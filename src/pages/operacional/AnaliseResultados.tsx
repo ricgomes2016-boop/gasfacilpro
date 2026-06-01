@@ -5,8 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageSectionLoader } from "@/components/ui/page-loader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart3, FileText, Calculator, TrendingUp, TrendingDown, DollarSign, Target, Loader2, ArrowUpRight, ArrowDownRight, Percent, Activity } from "lucide-react";
+import { BarChart3, FileText, Calculator, TrendingUp, TrendingDown, DollarSign, Target, ArrowUpRight, ArrowDownRight, Percent, Activity } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
@@ -241,9 +242,7 @@ export default function AnaliseResultados() {
 
         {/* Overview KPIs */}
         {loading ? (
-          <div className="flex items-center justify-center h-48">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
+          <PageSectionLoader label="Carregando análise..." className="min-h-48" />
         ) : overview && (
           <>
             <div className="grid gap-3 grid-cols-2 lg:grid-cols-5 w-full min-w-0">
