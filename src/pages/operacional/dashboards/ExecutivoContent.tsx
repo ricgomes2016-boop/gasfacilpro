@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageSectionLoader } from "@/components/ui/page-loader";
 import { DollarSign, Package, Users, Target, Calendar } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
@@ -89,11 +89,16 @@ export default function ExecutivoContent() {
           <CardHeader><CardTitle>Vendas da Semana</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={vendasSemana}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="dia" /><YAxis />
-                <Tooltip formatter={(value) => [`R$ ${Number(value).toLocaleString("pt-BR")}`, "Vendas"]} />
-                <Line type="monotone" dataKey="valor" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ fill: "hsl(var(--primary))" }} />
+              <LineChart data={vendasSemana} margin={{ top: 12, right: 18, left: 0, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="4 8" vertical={false} stroke="hsl(var(--border) / 0.5)" />
+                <XAxis dataKey="dia" axisLine={false} tickLine={false} tickMargin={10} />
+                <YAxis axisLine={false} tickLine={false} tickMargin={10} width={58} tickFormatter={(value) => `R$ ${(Number(value) / 1000).toFixed(0)}k`} />
+                <Tooltip
+                  cursor={{ stroke: "hsl(var(--success))", strokeWidth: 1, strokeDasharray: "4 4" }}
+                  contentStyle={{ borderRadius: 12, borderColor: "hsl(var(--border) / 0.55)", boxShadow: "0 18px 45px hsl(var(--foreground) / 0.10)" }}
+                  formatter={(value) => [`R$ ${Number(value).toLocaleString("pt-BR")}`, "Vendas"]}
+                />
+                <Line type="monotone" dataKey="valor" stroke="hsl(var(--success))" strokeWidth={3} dot={{ fill: "hsl(var(--success))", strokeWidth: 2, r: 4 }} activeDot={{ r: 7 }} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -103,9 +108,16 @@ export default function ExecutivoContent() {
           <CardContent>
             {produtosVendidos.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-                <PieChart><Pie data={produtosVendidos} cx="50%" cy="50%" labelLine={false} label={({ nome, valor }) => `${nome}: ${valor}%`} outerRadius={100} dataKey="valor">
+                <PieChart>
+                  <Pie data={produtosVendidos} cx="50%" cy="48%" innerRadius={58} outerRadius={96} paddingAngle={3} label={false} dataKey="valor">
                   {produtosVendidos.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie><Tooltip /></PieChart>
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ borderRadius: 12, borderColor: "hsl(var(--border) / 0.55)", boxShadow: "0 18px 45px hsl(var(--foreground) / 0.10)" }}
+                    formatter={(value, name, item) => [`${value}%`, item.payload.nome]}
+                  />
+                  <Legend iconType="circle" verticalAlign="bottom" height={42} formatter={(value) => <span className="text-xs text-muted-foreground">{value}</span>} />
+                </PieChart>
               </ResponsiveContainer>
             ) : (
               <EmptyState

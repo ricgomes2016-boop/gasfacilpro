@@ -93,9 +93,16 @@ export default function LogisticoContent() {
           <CardContent>
             {entregasPorBairro.length > 0 ? (
               <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={entregasPorBairro} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" /><XAxis type="number" /><YAxis dataKey="bairro" type="category" width={80} /><Tooltip />
-                  <Bar dataKey="entregas" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                <BarChart data={entregasPorBairro} layout="vertical" margin={{ top: 10, right: 22, left: 8, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="4 8" horizontal={false} stroke="hsl(var(--border) / 0.5)" />
+                  <XAxis type="number" axisLine={false} tickLine={false} allowDecimals={false} />
+                  <YAxis dataKey="bairro" type="category" width={92} axisLine={false} tickLine={false} tickMargin={8} />
+                  <Tooltip
+                    cursor={{ fill: "hsl(var(--info) / 0.08)" }}
+                    contentStyle={{ borderRadius: 12, borderColor: "hsl(var(--border) / 0.55)", boxShadow: "0 18px 45px hsl(var(--foreground) / 0.10)" }}
+                    formatter={(value) => [value, "Entregas"]}
+                  />
+                  <Bar dataKey="entregas" fill="hsl(var(--info))" radius={[0, 8, 8, 0]} barSize={18} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (

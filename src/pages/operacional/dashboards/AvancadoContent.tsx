@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, Legend } from "recharts";
 import { PageSectionLoader } from "@/components/ui/page-loader";
 import { TrendingUp, BarChart3, PieChart, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,11 +82,28 @@ export default function AvancadoContent() {
             <CardHeader><CardTitle>Evolução Financeira</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={350}>
-                <AreaChart data={dadosMensais}>
-                  <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="mes" /><YAxis />
-                  <Tooltip formatter={(value) => `R$ ${Number(value).toLocaleString("pt-BR")}`} />
-                  <Area type="monotone" dataKey="vendas" stackId="1" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} name="Vendas" />
-                  <Area type="monotone" dataKey="lucro" stackId="2" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.3} name="Lucro" />
+                <AreaChart data={dadosMensais} margin={{ top: 14, right: 20, left: 0, bottom: 4 }}>
+                  <defs>
+                    <linearGradient id="vendasGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.32} />
+                      <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0.03} />
+                    </linearGradient>
+                    <linearGradient id="lucroGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--info))" stopOpacity={0.28} />
+                      <stop offset="95%" stopColor="hsl(var(--info))" stopOpacity={0.03} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="4 8" vertical={false} stroke="hsl(var(--border) / 0.5)" />
+                  <XAxis dataKey="mes" axisLine={false} tickLine={false} tickMargin={10} />
+                  <YAxis axisLine={false} tickLine={false} tickMargin={10} width={58} tickFormatter={(value) => `R$ ${(Number(value) / 1000).toFixed(0)}k`} />
+                  <Tooltip
+                    cursor={{ stroke: "hsl(var(--primary))", strokeWidth: 1, strokeDasharray: "4 4" }}
+                    contentStyle={{ borderRadius: 12, borderColor: "hsl(var(--border) / 0.55)", boxShadow: "0 18px 45px hsl(var(--foreground) / 0.10)" }}
+                    formatter={(value) => `R$ ${Number(value).toLocaleString("pt-BR")}`}
+                  />
+                  <Legend iconType="circle" verticalAlign="top" align="right" height={32} />
+                  <Area type="monotone" dataKey="vendas" stroke="hsl(var(--success))" strokeWidth={3} fill="url(#vendasGradient)" name="Vendas" />
+                  <Area type="monotone" dataKey="lucro" stroke="hsl(var(--info))" strokeWidth={3} fill="url(#lucroGradient)" name="Lucro" />
                 </AreaChart>
               </ResponsiveContainer>
             </CardContent>
@@ -98,9 +115,16 @@ export default function AvancadoContent() {
             <CardHeader><CardTitle>Vendas por Hora do Dia (Hoje)</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={vendasPorHora}>
-                  <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="hora" /><YAxis /><Tooltip />
-                  <Bar dataKey="vendas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <BarChart data={vendasPorHora} margin={{ top: 14, right: 18, left: 0, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="4 8" vertical={false} stroke="hsl(var(--border) / 0.5)" />
+                  <XAxis dataKey="hora" axisLine={false} tickLine={false} tickMargin={10} />
+                  <YAxis axisLine={false} tickLine={false} tickMargin={10} width={36} allowDecimals={false} />
+                  <Tooltip
+                    cursor={{ fill: "hsl(var(--primary) / 0.08)" }}
+                    contentStyle={{ borderRadius: 12, borderColor: "hsl(var(--border) / 0.55)", boxShadow: "0 18px 45px hsl(var(--foreground) / 0.10)" }}
+                    formatter={(value) => [value, "Vendas"]}
+                  />
+                  <Bar dataKey="vendas" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} barSize={22} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
