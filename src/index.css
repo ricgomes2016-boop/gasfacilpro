@@ -470,7 +470,7 @@
   .section-header-finance,
   .section-header-critical,
   .section-header-muted {
-    @apply border-b px-4 py-4 md:px-5;
+    @apply border-b px-4 py-4 text-foreground md:px-5;
   }
 
   .section-header-title {
@@ -498,51 +498,59 @@
   }
 
   .section-header-primary {
-    @apply border-primary/30 bg-primary text-primary-foreground;
+    @apply border-primary/25 bg-gradient-to-r from-primary/10 via-primary/5 to-card;
   }
 
   .section-header-primary .section-header-icon-frame {
-    @apply bg-primary-foreground/15 text-primary-foreground ring-primary-foreground/25;
+    @apply bg-primary/10 text-primary ring-primary/20;
   }
 
   .section-header-catalog {
-    @apply border-secondary/30 bg-secondary text-secondary-foreground;
+    @apply border-secondary/25 bg-gradient-to-r from-secondary/10 via-secondary/5 to-card;
   }
 
   .section-header-catalog .section-header-icon-frame {
-    @apply bg-secondary-foreground/15 text-secondary-foreground ring-secondary-foreground/25;
+    @apply bg-secondary/10 text-secondary ring-secondary/20;
   }
 
   .section-header-stock {
-    @apply border-warning/40 bg-warning text-warning-foreground;
+    @apply border-warning/30 bg-gradient-to-r from-warning/10 via-warning/5 to-card;
   }
 
   .section-header-stock .section-header-icon-frame {
-    @apply bg-warning-foreground/10 text-warning-foreground ring-warning-foreground/20;
+    @apply bg-warning/10 text-warning ring-warning/25;
   }
 
   .section-header-finance {
-    @apply border-success/30 bg-success text-success-foreground;
+    @apply border-success/25 bg-gradient-to-r from-success/10 via-success/5 to-card;
   }
 
   .section-header-finance .section-header-icon-frame {
-    @apply bg-success-foreground/15 text-success-foreground ring-success-foreground/25;
+    @apply bg-success/10 text-success ring-success/20;
   }
 
   .section-header-critical {
-    @apply border-destructive/30 bg-destructive text-destructive-foreground;
+    @apply border-destructive/25 bg-gradient-to-r from-destructive/10 via-destructive/5 to-card;
   }
 
   .section-header-critical .section-header-icon-frame {
-    @apply bg-destructive-foreground/15 text-destructive-foreground ring-destructive-foreground/25;
+    @apply bg-destructive/10 text-destructive ring-destructive/20;
   }
 
   .section-header-muted {
-    @apply border-border/70 bg-muted text-foreground;
+    @apply border-border/70 bg-gradient-to-r from-muted/70 via-muted/35 to-card;
   }
 
   .section-header-muted .section-header-icon-frame {
     @apply bg-card text-foreground ring-border;
+  }
+
+  .section-header-primary :where(.text-primary-foreground, .text-primary-foreground\/80),
+  .section-header-catalog :where(.text-secondary-foreground, .text-secondary-foreground\/80),
+  .section-header-stock :where(.text-warning-foreground, .text-warning-foreground\/80),
+  .section-header-finance :where(.text-success-foreground, .text-success-foreground\/80),
+  .section-header-critical :where(.text-destructive-foreground, .text-destructive-foreground\/80) {
+    color: hsl(var(--muted-foreground)) !important;
   }
 
   .status-card-icon {
@@ -607,16 +615,48 @@
     @apply border border-primary/25 bg-primary/10 text-primary shadow-sm shadow-primary/10 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/45 hover:bg-primary hover:text-primary-foreground hover:shadow-md hover:shadow-primary/25 active:translate-y-0 active:scale-[0.98];
   }
 
+  .app-card {
+    @apply relative bg-gradient-to-br from-card via-card to-muted/25;
+  }
+
+  .app-card::before,
+  .modern-panel::before,
+  .modern-status-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    pointer-events: none;
+    background: linear-gradient(90deg, hsl(var(--primary) / 0.45), hsl(var(--secondary) / 0.28), transparent);
+  }
+
+  .app-card-header {
+    @apply bg-gradient-to-r from-muted/45 via-card to-card;
+  }
+
+  .app-card-title {
+    @apply text-foreground;
+  }
+
+  .app-card-title:is(.text-primary, .text-secondary, .text-success, .text-warning, .text-info, .text-destructive, .text-muted-foreground) {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .app-card-title :where(svg),
+  .app-card-header :where(svg) {
+    @apply text-primary;
+  }
+
   .modern-panel {
-    @apply rounded-2xl border border-border/45 bg-card shadow-md shadow-foreground/5;
+    @apply relative overflow-hidden rounded-2xl border border-border/45 bg-gradient-to-br from-card via-card to-muted/25 shadow-md shadow-foreground/5;
   }
 
   .modern-soft-panel {
-    @apply rounded-2xl border border-border/40 bg-card shadow-sm shadow-foreground/5;
+    @apply rounded-2xl border border-border/40 bg-gradient-to-br from-card via-card to-muted/20 shadow-sm shadow-foreground/5;
   }
 
   .modern-status-card {
-    @apply overflow-hidden rounded-2xl border border-border/45 bg-card shadow-md shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/10;
+    @apply relative overflow-hidden rounded-2xl border border-border/45 bg-gradient-to-br from-card via-card to-muted/25 shadow-md shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/10;
   }
 
   .dashboard-shell {
@@ -689,7 +729,7 @@
   .saas-table-scope thead tr { @apply saas-table-header; }
 
   .kpi-card {
-    @apply modern-status-card bg-card text-card-foreground;
+    @apply modern-status-card text-card-foreground;
   }
 
   .kpi-card-content {
@@ -706,12 +746,12 @@
     opacity: 0.82;
   }
 
-  .kpi-card-primary { @apply border-l-4 border-l-primary bg-card text-card-foreground shadow-primary/10; }
-  .kpi-card-info { @apply border-l-4 border-l-info bg-card text-card-foreground shadow-info/10; }
-  .kpi-card-success { @apply border-l-4 border-l-success bg-card text-card-foreground shadow-success/10; }
-  .kpi-card-warning { @apply border-l-4 border-l-warning bg-card text-card-foreground shadow-warning/10; }
-  .kpi-card-destructive { @apply border-l-4 border-l-destructive bg-card text-card-foreground shadow-destructive/10; }
-  .kpi-card-muted { @apply border-border/70 bg-card; }
+  .kpi-card-primary { @apply border-l-4 border-l-primary bg-gradient-to-br from-primary/10 via-card to-muted/20 text-card-foreground shadow-primary/10; }
+  .kpi-card-info { @apply border-l-4 border-l-info bg-gradient-to-br from-info/10 via-card to-muted/20 text-card-foreground shadow-info/10; }
+  .kpi-card-success { @apply border-l-4 border-l-success bg-gradient-to-br from-success/10 via-card to-muted/20 text-card-foreground shadow-success/10; }
+  .kpi-card-warning { @apply border-l-4 border-l-warning bg-gradient-to-br from-warning/10 via-card to-muted/20 text-card-foreground shadow-warning/10; }
+  .kpi-card-destructive { @apply border-l-4 border-l-destructive bg-gradient-to-br from-destructive/10 via-card to-muted/20 text-card-foreground shadow-destructive/10; }
+  .kpi-card-muted { @apply border-border/70 bg-gradient-to-br from-muted/50 via-card to-card; }
 
   .semantic-filter-panel {
     @apply rounded-xl border border-border/70 bg-muted/30 p-3 shadow-sm shadow-foreground/5 sm:p-4;
@@ -850,6 +890,45 @@
   }
 
   @media (max-width: 640px) {
+    .app-card,
+    .modern-panel,
+    .modern-soft-panel,
+    .modern-status-card {
+      @apply rounded-xl;
+    }
+
+    .app-card-header,
+    .section-header-primary,
+    .section-header-catalog,
+    .section-header-stock,
+    .section-header-finance,
+    .section-header-critical,
+    .section-header-muted {
+      @apply rounded-t-xl px-3 py-3;
+    }
+
+    .app-card-content {
+      @apply p-3;
+    }
+
+    .app-card-title,
+    .section-header-title {
+      @apply text-base leading-snug;
+    }
+
+    .status-card-icon,
+    .section-header-icon-frame {
+      @apply h-9 w-9 rounded-xl;
+    }
+
+    .kpi-card-content {
+      @apply min-h-20 gap-2.5 p-3;
+    }
+
+    .kpi-value {
+      @apply text-xl;
+    }
+
     .intelligence-workspace {
       border-radius: 1rem;
     }
