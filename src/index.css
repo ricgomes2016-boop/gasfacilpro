@@ -817,6 +817,14 @@
     @apply rounded-xl border border-border/45 bg-card/80 shadow-sm shadow-foreground/5 transition-colors hover:bg-muted/35;
   }
 
+  .intelligence-alert-item {
+    @apply shadow-sm shadow-foreground/5 transition-colors;
+  }
+
+  .intelligence-alert-item:hover {
+    @apply bg-card/80;
+  }
+
   .intelligence-workspace .rounded-lg.border {
     @apply border-border/45 bg-gradient-to-br from-card to-muted/35 shadow-sm shadow-foreground/5;
   }
