@@ -451,7 +451,6 @@ export default function CadastroClientesCad() {
       endereco: suggestion.endereco || prev.endereco,
       bairro: suggestion.bairro || prev.bairro,
       cidade: suggestion.cidade || prev.cidade,
-      cep: suggestion.cep || prev.cep,
     }));
     setClienteLatLng({ lat: suggestion.latitude, lng: suggestion.longitude });
     setShowSuggestions(false);
@@ -464,7 +463,6 @@ export default function CadastroClientesCad() {
       endereco: result.endereco || prev.endereco,
       bairro: result.bairro || prev.bairro,
       cidade: result.cidade || prev.cidade,
-      cep: result.cep || prev.cep,
     }));
     setClienteLatLng({ lat: result.latitude, lng: result.longitude });
   };
