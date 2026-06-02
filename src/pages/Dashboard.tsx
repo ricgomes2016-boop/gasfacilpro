@@ -258,20 +258,13 @@ export default function Dashboard() {
           <div className="min-w-0 space-y-4 md:space-y-6">
             <SalesChart />
             <RecentSales />
+            <DeliveriesMap />
           </div>
           <div className="min-w-0 space-y-4 md:space-y-6">
             <AiInsightsWidget />
             <DailySalesGoal />
             <DeliveryDriverStatus />
-          </div>
-        </div>
-
-        <div className="grid w-full min-w-0 grid-cols-1 gap-4 md:gap-6 xl:grid-cols-2">
-          <div className="min-w-0">
             <StockOverview />
-          </div>
-          <div className="min-w-0">
-            <DeliveriesMap />
           </div>
         </div>
       </div>
