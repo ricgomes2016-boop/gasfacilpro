@@ -274,7 +274,7 @@ export default function ContasPagar() {
                     <div className="hidden sm:block">
                       <Table className="border-separate border-spacing-y-2">
                         <TableHeader>
-                          <TableRow className="border-success bg-success hover:bg-success [&_th]:text-success-foreground">
+                          <TableRow className="bg-muted/65 hover:bg-muted/65 [&_th]:text-foreground">
                             <TableHead className="w-10"><Checkbox checked={cp.todasPagaveisSelecionadas} onCheckedChange={cp.toggleAllPagamentoSelection} aria-label="Selecionar contas" /></TableHead><TableHead>Fornecedor</TableHead><TableHead>Descrição</TableHead>
                             <TableHead>Categoria</TableHead><TableHead>Vencimento</TableHead>
                             <TableHead>Valor</TableHead><TableHead>Status</TableHead>

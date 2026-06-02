@@ -719,11 +719,27 @@
 
   .saas-table thead tr,
   .saas-table-header {
-    @apply bg-muted text-foreground shadow-sm;
+    @apply bg-muted/65 text-foreground shadow-sm;
   }
 
   .saas-table th {
-    @apply border-0 px-4 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground first:rounded-l-2xl last:rounded-r-2xl;
+    @apply border-0 px-4 py-3 text-xs font-bold uppercase tracking-wide text-foreground first:rounded-l-2xl last:rounded-r-2xl;
+  }
+
+  .system-surface :where(table thead tr) {
+    background-color: hsl(var(--muted) / 0.65) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .system-surface :where(table thead th) {
+    color: hsl(var(--foreground)) !important;
+    font-weight: 800;
+    opacity: 1;
+  }
+
+  .system-surface :where(table thead th .lucide, table thead th svg) {
+    color: hsl(var(--foreground)) !important;
+    stroke: hsl(var(--foreground)) !important;
   }
 
   .saas-table tbody tr {
