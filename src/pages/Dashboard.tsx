@@ -141,7 +141,7 @@ export default function Dashboard() {
   const greeting = getGreeting();
   const todayFormatted = format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
-  const { themeClass, isGasmaisDashboard } = useDashboardTheme();
+  const { themeClass } = useDashboardTheme();
 
   return (
     <MainLayout>
@@ -172,9 +172,8 @@ export default function Dashboard() {
             <VoiceAssistant userName={greeting.text} />
           </div>
 
-          {/* KPIs embutidos no hero (apenas tema GásMais) */}
-          {isGasmaisDashboard && (
-            <div className="relative z-10 mt-6 grid w-full min-w-0 auto-rows-fr grid-cols-1 items-stretch gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {/* KPIs embutidos no hero */}
+          <div className="relative z-10 mt-6 grid w-full min-w-0 auto-rows-fr grid-cols-1 items-stretch gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               <StatCard
                 title={`Vendas ${periodLabel}`}
                 value={`R$ ${(stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
@@ -228,8 +227,7 @@ export default function Dashboard() {
                   />
                 </>
               )}
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Briefing IA do dia */}
@@ -251,76 +249,6 @@ export default function Dashboard() {
 
         {/* Alertas de estoque crítico */}
         <StockAlerts />
-
-        {/* Cards com comparativo e Ticket Médio */}
-        <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7">
-          <StatCard
-            title={`Vendas ${periodLabel}`}
-            value={`R$ ${(stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            icon={DollarSign}
-            variant="primary"
-            trend={stats?.trendVendas}
-          />
-          <StatCard
-            title="Pedidos"
-            value={stats?.totalPedidos ?? 0}
-            icon={ShoppingCart}
-            trend={stats?.trendPedidos}
-          />
-          <StatCard title="Pendentes" value={stats?.pendentes ?? 0} icon={Truck} variant="warning" />
-          <StatCard title="Clientes Ativos" value={stats?.clientesAtivos ?? 0} icon={Users} />
-          <StatCard
-            title="Ticket Médio"
-            value={`R$ ${(stats?.ticketMedio ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            icon={TrendingUp}
-            variant="info"
-          />
-          {period === "hoje" && (
-            <>
-              <StatCard
-                title={`Vendas ${periodLabel}`}
-                value={`R$ ${(stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                icon={DollarSign}
-                variant="primary"
-                trend={stats?.trendVendas}
-              />
-              <StatCard
-                title="Pedidos"
-                value={stats?.totalPedidos ?? 0}
-                icon={ShoppingCart}
-                trend={stats?.trendPedidos}
-              />
-              <StatCard title="Pendentes" value={stats?.pendentes ?? 0} icon={Truck} variant="warning" />
-              <StatCard title="Clientes Ativos" value={stats?.clientesAtivos ?? 0} icon={Users} />
-            </>
-          )}
-          {!isGasmaisDashboard && (
-            <>
-              <StatCard
-                title="Ticket Médio"
-                value={`R$ ${(stats?.ticketMedio ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                icon={TrendingUp}
-                variant="info"
-              />
-              {period === "hoje" && (
-                <>
-                  <StatCard
-                    title="Entradas Caixa"
-                    value={`R$ ${(caixaDiario?.total_entradas_caixa ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                    icon={DollarSign}
-                    variant="success"
-                  />
-                  <StatCard
-                    title="Diferença Caixa"
-                    value={`R$ ${(caixaDiario?.diferenca_calculada ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                    icon={Flame}
-                    variant={(caixaDiario?.diferenca_calculada ?? 0) !== 0 ? "warning" : "default"}
-                  />
-                </>
-              )}
-            </>
-          )}
-        </div>
 
         {/* Atalhos rápidos */}
         <QuickActions />
