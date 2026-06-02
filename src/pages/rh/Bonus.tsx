@@ -28,7 +28,7 @@ export default function Bonus() {
   const { data: empresaConfig } = useQuery({
     queryKey: ["empresa-config"],
     queryFn: async () => {
-      const { data } = await supabase.from("configuracoes_empresa").select("*").limit(1).single();
+      const { data } = await supabase.from("configuracoes_empresa").select("id, nome_empresa, cnpj, telefone, endereco, mensagem_cupom, created_at, updated_at, empresa_id, regras_bia, regras_cadastro, asaas_sandbox").limit(1).single();
       return data;
     },
   });

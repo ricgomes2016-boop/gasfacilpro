@@ -46,7 +46,7 @@ export default function RedesSociais() {
     queryFn: async () => {
       const { data } = await supabase
         .from("social_accounts")
-        .select("*")
+        .select("id, empresa_id, unidade_id, plataforma, nome_conta, username, token_expires_at, avatar_url, ativo, created_at, updated_at, page_id, ig_business_id, scopes, conectado_via, profile_picture_url, external_id")
         .eq("empresa_id", empresaId!)
         .order("created_at", { ascending: false });
       return data || [];

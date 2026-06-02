@@ -204,7 +204,7 @@ export default function Configuracoes() {
     try {
       const { data, error } = await supabase
         .from("configuracoes_empresa")
-        .select("*")
+        .select("id, nome_empresa, cnpj, telefone, endereco, mensagem_cupom, created_at, updated_at, empresa_id, regras_bia, regras_cadastro, asaas_sandbox")
         .limit(1)
         .single();
 
