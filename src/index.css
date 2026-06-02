@@ -11,13 +11,13 @@
 @layer base {
   :root {
     --background: 225 24% 97%;
-    --foreground: 0 0% 18%;
+    --foreground: 222 22% 13%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 18%;
+    --card-foreground: 222 22% 13%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 18%;
+    --popover-foreground: 222 22% 13%;
 
     --primary: 174 61% 47%;
     --primary-foreground: 0 0% 100%;
@@ -26,7 +26,7 @@
     --secondary-foreground: 0 0% 100%;
 
     --muted: 225 24% 94%;
-    --muted-foreground: 231 10% 59%;
+    --muted-foreground: 225 12% 45%;
 
     --accent: 31 100% 63%;
     --accent-foreground: 0 0% 100%;
@@ -43,8 +43,8 @@
     --info: 216 100% 62%;
     --info-foreground: 0 0% 100%;
 
-    --border: 225 20% 91%;
-    --input: 225 20% 91%;
+    --border: 225 18% 87%;
+    --input: 225 18% 87%;
     --ring: 174 61% 47%;
 
     --radius: 1rem;
@@ -65,9 +65,9 @@
     --gradient-dark: linear-gradient(135deg, hsl(var(--sidebar-gradient-from)) 0%, hsl(var(--sidebar-gradient-to)) 100%);
 
     /* Shadows */
-    --shadow-sm: 0 4px 14px hsl(231 20% 30% / 0.05);
-    --shadow-md: 0 16px 42px -30px hsl(231 20% 30% / 0.22), 0 8px 20px -18px hsl(231 20% 30% / 0.13);
-    --shadow-lg: 0 26px 66px -38px hsl(231 20% 30% / 0.28), 0 16px 34px -26px hsl(231 20% 30% / 0.15);
+    --shadow-sm: 0 1px 2px hsl(222 28% 14% / 0.06), 0 8px 18px -16px hsl(222 28% 14% / 0.18);
+    --shadow-md: 0 1px 2px hsl(222 28% 14% / 0.07), 0 14px 30px -24px hsl(222 28% 14% / 0.28);
+    --shadow-lg: 0 2px 4px hsl(222 28% 14% / 0.08), 0 22px 48px -30px hsl(222 28% 14% / 0.34);
     --shadow-glow: 0 0 22px hsl(var(--primary) / 0.22);
   }
 
@@ -243,10 +243,10 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: var(--brand-font, 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+    font-family: var(--brand-font, 'Inter', 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
     font-optical-sizing: auto;
-    font-weight: 450;
+    font-weight: 400;
     font-synthesis: none;
     letter-spacing: 0;
     text-rendering: optimizeLegibility;
@@ -258,6 +258,11 @@
       radial-gradient(circle at top right, hsl(var(--secondary) / 0.06), transparent 30rem),
       linear-gradient(180deg, hsl(var(--background)) 0%, hsl(225 24% 98%) 100%);
     background-attachment: fixed;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.18);
+    color: hsl(var(--foreground));
   }
 
   h1,
@@ -318,10 +323,12 @@
 
   th {
     font-weight: 700;
+    color: hsl(var(--foreground));
   }
 
   td {
-    font-weight: 450;
+    font-weight: 400;
+    color: hsl(var(--foreground));
   }
 
   button,
@@ -330,6 +337,17 @@
   select {
     line-height: 1.25;
     font-weight: 500;
+  }
+
+  input,
+  textarea,
+  select {
+    color: hsl(var(--foreground));
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: hsl(var(--muted-foreground) / 0.78);
   }
 
   button:focus-visible,
@@ -617,6 +635,7 @@
 
   .app-card {
     @apply relative bg-gradient-to-br from-card via-card to-muted/25;
+    box-shadow: var(--shadow-md);
   }
 
   .app-card::before,
@@ -649,14 +668,17 @@
 
   .modern-panel {
     @apply relative overflow-hidden rounded-2xl border border-border/45 bg-gradient-to-br from-card via-card to-muted/25 shadow-md shadow-foreground/5;
+    box-shadow: var(--shadow-md);
   }
 
   .modern-soft-panel {
     @apply rounded-2xl border border-border/40 bg-gradient-to-br from-card via-card to-muted/20 shadow-sm shadow-foreground/5;
+    box-shadow: var(--shadow-sm);
   }
 
   .modern-status-card {
     @apply relative overflow-hidden rounded-2xl border border-border/45 bg-gradient-to-br from-card via-card to-muted/25 shadow-md shadow-foreground/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-foreground/10;
+    box-shadow: var(--shadow-md);
   }
 
   .dashboard-shell {
@@ -887,6 +909,97 @@
   .intelligence-workspace .recharts-wrapper,
   .intelligence-workspace .recharts-responsive-container {
     max-width: 100%;
+  }
+
+  @media (min-width: 768px) {
+    body {
+      background:
+        radial-gradient(circle at top right, hsl(var(--secondary) / 0.045), transparent 32rem),
+        linear-gradient(180deg, hsl(225 26% 98%) 0%, hsl(var(--background)) 100%);
+    }
+
+    :where(.text-muted-foreground) {
+      color: hsl(var(--muted-foreground)) !important;
+    }
+
+    .app-card,
+    .modern-panel,
+    .modern-status-card {
+      border-color: hsl(var(--border) / 0.72);
+      background:
+        linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card)) 56%, hsl(var(--muted) / 0.22) 100%);
+      box-shadow: var(--shadow-md);
+    }
+
+    .app-card:hover,
+    .modern-panel:hover,
+    .modern-status-card:hover {
+      border-color: hsl(var(--primary) / 0.24);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .app-card::before,
+    .modern-panel::before,
+    .modern-status-card::before {
+      height: 2px;
+      opacity: 0.78;
+    }
+
+    .app-card-header,
+    .section-header-primary,
+    .section-header-catalog,
+    .section-header-stock,
+    .section-header-finance,
+    .section-header-critical,
+    .section-header-muted {
+      border-color: hsl(var(--border) / 0.62);
+      background:
+        linear-gradient(90deg, hsl(var(--muted) / 0.52), hsl(var(--card)) 72%);
+    }
+
+    .app-card-title,
+    .section-header-title,
+    .saas-table th {
+      color: hsl(var(--foreground)) !important;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .app-card-content,
+    .modern-panel,
+    .modern-status-card,
+    .saas-table tbody td {
+      color: hsl(var(--foreground));
+    }
+
+    .saas-table th {
+      background: hsl(var(--muted) / 0.62);
+      color: hsl(var(--foreground)) !important;
+    }
+
+    .saas-table tbody td {
+      border-color: hsl(var(--border) / 0.58);
+      background: hsl(var(--card));
+      box-shadow: 0 1px 2px hsl(222 28% 14% / 0.035);
+    }
+
+    .saas-table tbody tr:hover td {
+      background: hsl(var(--muted) / 0.42);
+    }
+
+    input,
+    textarea,
+    select,
+    [role="combobox"] {
+      border-color: hsl(var(--border) / 0.82);
+      background-color: hsl(var(--card));
+      color: hsl(var(--foreground));
+      box-shadow: inset 0 1px 0 hsl(var(--card) / 0.75);
+    }
+
+    .status-card-icon {
+      box-shadow: inset 0 1px 0 hsl(var(--card) / 0.72);
+    }
   }
 
   @media (max-width: 640px) {

@@ -1,5 +1,5 @@
 .brand-theme-gasfacil {
-  --brand-font: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --brand-font: 'Inter', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --primary: 174 61% 47%;
   --primary-foreground: 0 0% 100%;
   --secondary: 243 100% 69%;
@@ -17,13 +17,13 @@
 }
 
 .brand-theme-saas {
-  --brand-font: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --brand-font: 'Inter', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --background: 225 24% 97%;
-  --foreground: 0 0% 18%;
+  --foreground: 222 22% 13%;
   --card: 0 0% 100%;
-  --card-foreground: 0 0% 18%;
+  --card-foreground: 222 22% 13%;
   --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 18%;
+  --popover-foreground: 222 22% 13%;
   --primary: 174 61% 47%;
   --primary-foreground: 0 0% 100%;
   --secondary: 243 100% 69%;
@@ -31,15 +31,15 @@
   --accent: 31 100% 63%;
   --accent-foreground: 0 0% 100%;
   --muted: 225 24% 94%;
-  --muted-foreground: 231 10% 59%;
+  --muted-foreground: 225 12% 45%;
   --success: 122 39% 49%;
   --success-foreground: 0 0% 100%;
   --warning: 45 100% 51%;
   --warning-foreground: 0 0% 18%;
   --info: 216 100% 62%;
   --info-foreground: 0 0% 100%;
-  --border: 225 20% 91%;
-  --input: 225 20% 91%;
+  --border: 225 18% 87%;
+  --input: 225 18% 87%;
   --ring: 174 61% 47%;
   --radius: 1rem;
   --sidebar-background: 174 61% 47%;
@@ -54,7 +54,7 @@
 }
 
 .brand-theme-pastel-dashboard {
-  --brand-font: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --brand-font: 'Inter', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --background: 220 11% 96%;
   --foreground: 240 10% 9%;
   --card: 0 0% 100%;
@@ -91,7 +91,7 @@
 }
 
 .brand-theme-signature {
-  --brand-font: 'Outfit', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --brand-font: 'Inter', 'Outfit', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --primary: 174 61% 47%;
   --primary-foreground: 0 0% 100%;
   --secondary: 243 100% 69%;
@@ -109,11 +109,11 @@
 }
 
 .brand-theme-gasmais {
-  --brand-font: 'Manrope', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --brand-font: 'Inter', 'Manrope', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
 .brand-theme-executive {
-  --brand-font: 'IBM Plex Sans', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --brand-font: 'Inter', 'IBM Plex Sans', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
   --primary: 207 66% 24%;
   --primary-foreground: 0 0% 100%;
   --secondary: 170 50% 36%;
