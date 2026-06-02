@@ -156,7 +156,7 @@ export default function ContasPagar() {
                         {cp.resumoPorFornecedor.map(item => {
                           const percent = cp.totalAberto > 0 ? (item.total / cp.totalAberto) * 100 : 0;
                           return (
-                            <button key={item.fornecedor} className="w-full text-left" onClick={() => { cp.setFiltroFornecedor(item.fornecedor); cp.setFiltroStatus("todos"); cp.setResumoOpen(false); }}>
+                            <button key={item.fornecedor} className="w-full text-left" onClick={() => { cp.setFiltroFornecedor(item.fornecedor); cp.setFiltroStatus("abertas"); cp.setResumoOpen(false); }}>
                               <div className="flex items-center justify-between mb-1">
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm font-medium">{item.fornecedor}</span>
@@ -210,6 +210,7 @@ export default function ContasPagar() {
                       <Select value={cp.filtroStatus} onValueChange={cp.setFiltroStatus}>
                         <SelectTrigger className="w-full sm:w-[140px]"><SelectValue /></SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="abertas">A vencer / vencidas</SelectItem>
                           <SelectItem value="todos">Todos</SelectItem>
                           <SelectItem value="pendente">Pendentes</SelectItem>
                           <SelectItem value="vencida">Vencidas</SelectItem>
@@ -242,7 +243,7 @@ export default function ContasPagar() {
                       <Filter className="h-3 w-3" /><span>{cp.filtered.length} de {cp.contas.length} contas</span>
                       {cp.filtroFornecedor !== "todos" && <Badge variant="secondary" className="text-xs gap-1 py-0">{cp.filtroFornecedor}<button onClick={() => cp.setFiltroFornecedor("todos")}><X className="h-3 w-3" /></button></Badge>}
                       {cp.filtroCategoria !== "todos" && <Badge variant="secondary" className="text-xs gap-1 py-0">{cp.filtroCategoria}<button onClick={() => cp.setFiltroCategoria("todos")}><X className="h-3 w-3" /></button></Badge>}
-                      {cp.filtroStatus !== "todos" && <Badge variant="secondary" className="text-xs gap-1 py-0">{cp.filtroStatus}<button onClick={() => cp.setFiltroStatus("todos")}><X className="h-3 w-3" /></button></Badge>}
+                      {cp.filtroStatus !== "abertas" && <Badge variant="secondary" className="text-xs gap-1 py-0">{cp.filtroStatus}<button onClick={() => cp.setFiltroStatus("abertas")}><X className="h-3 w-3" /></button></Badge>}
                     </div>
                   )}
                   {cp.selecionadasPagamentoIds.size > 0 && (

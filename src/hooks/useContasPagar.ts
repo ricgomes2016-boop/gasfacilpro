@@ -61,7 +61,7 @@ export function useContasPagar() {
   // ------- Filters -------
   const [dataInicial, setDataInicial] = useState("");
   const [dataFinal, setDataFinal] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [filtroStatus, setFiltroStatus] = useState("abertas");
   const [filtroFornecedor, setFiltroFornecedor] = useState("todos");
   const [filtroCategoria, setFiltroCategoria] = useState("todos");
 
@@ -150,7 +150,10 @@ export function useContasPagar() {
     const matchDataFim = !dataFinal || c.vencimento <= dataFinal;
     const isVencida = (c.status === "pendente" || c.status === "vencida") && c.vencimento < hoje;
     const statusAtual = c.status === "paga" ? "paga" : isVencida ? "vencida" : c.status;
-    const matchStatus = filtroStatus === "todos" || statusAtual === filtroStatus;
+    const matchStatus =
+      filtroStatus === "todos" ||
+      (filtroStatus === "abertas" && statusAtual !== "paga") ||
+      statusAtual === filtroStatus;
     const matchFornecedor = filtroFornecedor === "todos" || c.fornecedor === filtroFornecedor;
     const matchCategoria = filtroCategoria === "todos" || (c.categoria || "") === filtroCategoria;
     return matchSearch && matchDataIni && matchDataFim && matchStatus && matchFornecedor && matchCategoria;
@@ -161,7 +164,7 @@ export function useContasPagar() {
   const totalPago = filtered.filter(c => c.status === "paga").reduce((a, c) => a + Number(c.valor), 0);
   const totalAberto = totalPendente + totalVencido;
 
-  const hasActiveFilters = !!(dataInicial || dataFinal || filtroStatus !== "todos" || filtroFornecedor !== "todos" || filtroCategoria !== "todos");
+  const hasActiveFilters = !!(dataInicial || dataFinal || filtroStatus !== "abertas" || filtroFornecedor !== "todos" || filtroCategoria !== "todos");
 
   const resumoPorFornecedor = (() => {
     const pendentes = contas.filter(c => c.status !== "paga");
@@ -372,7 +375,7 @@ export function useContasPagar() {
   // ===================== FILTERS =====================
 
   const clearAllFilters = () => {
-    setDataInicial(""); setDataFinal(""); setFiltroStatus("todos");
+    setDataInicial(""); setDataFinal(""); setFiltroStatus("abertas");
     setFiltroFornecedor("todos"); setFiltroCategoria("todos");
   };
 
