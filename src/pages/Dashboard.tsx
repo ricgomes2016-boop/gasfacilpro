@@ -174,59 +174,59 @@ export default function Dashboard() {
 
           {/* KPIs embutidos no hero */}
           <div className="relative z-10 mt-6 grid w-full min-w-0 auto-rows-fr grid-cols-1 items-stretch gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              <StatCard
-                title={`Vendas ${periodLabel}`}
-                value={`R$ ${(stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                icon={DollarSign}
-                subtitle={`${stats?.totalPedidos ?? 0} pedidos`}
-                onHero
-              />
-              <StatCard
-                title="Pedidos"
-                value={stats?.totalPedidos ?? 0}
-                icon={ShoppingCart}
-                subtitle={periodLabel}
-                onHero
-              />
-              <StatCard
-                title="Pendentes"
-                value={stats?.pendentes ?? 0}
-                icon={Truck}
-                subtitle="em aberto"
-                onHero
-              />
-              <StatCard
-                title="Clientes Ativos"
-                value={stats?.clientesAtivos ?? 0}
-                icon={Users}
-                subtitle="cadastrados"
-                onHero
-              />
-              <StatCard
-                title="Ticket Médio"
-                value={`R$ ${(stats?.ticketMedio ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                icon={TrendingUp}
-                subtitle="por pedido"
-                onHero
-              />
-              {period === "hoje" && (
-                <>
-                  <StatCard
-                    title="Entradas Caixa"
-                    value={`R$ ${(caixaDiario?.total_entradas_caixa ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                    icon={DollarSign}
-                    subtitle="hoje"
-                    onHero
-                  />
-                  <StatCard
-                    title="Diferença Caixa"
-                    value={`R$ ${(caixaDiario?.diferenca_calculada ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                    icon={Flame}
-                    subtitle={(caixaDiario?.diferenca_calculada ?? 0) !== 0 ? "atenção" : "ok"}
-                    onHero
-                  />
-                </>
-              )}
+            <StatCard
+              title={`Vendas ${periodLabel}`}
+              value={`R$ ${(stats?.vendasPeriodo ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+              icon={DollarSign}
+              subtitle={`${stats?.totalPedidos ?? 0} pedidos`}
+              onHero
+            />
+            <StatCard
+              title="Pedidos"
+              value={stats?.totalPedidos ?? 0}
+              icon={ShoppingCart}
+              subtitle={periodLabel}
+              onHero
+            />
+            <StatCard
+              title="Pendentes"
+              value={stats?.pendentes ?? 0}
+              icon={Truck}
+              subtitle="em aberto"
+              onHero
+            />
+            <StatCard
+              title="Clientes Ativos"
+              value={stats?.clientesAtivos ?? 0}
+              icon={Users}
+              subtitle="cadastrados"
+              onHero
+            />
+            <StatCard
+              title="Ticket Médio"
+              value={`R$ ${(stats?.ticketMedio ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+              icon={TrendingUp}
+              subtitle="por pedido"
+              onHero
+            />
+            {period === "hoje" && (
+              <>
+                <StatCard
+                  title="Entradas Caixa"
+                  value={`R$ ${(caixaDiario?.total_entradas_caixa ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                  icon={DollarSign}
+                  subtitle="hoje"
+                  onHero
+                />
+                <StatCard
+                  title="Diferença Caixa"
+                  value={`R$ ${(caixaDiario?.diferenca_calculada ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                  icon={Flame}
+                  subtitle={(caixaDiario?.diferenca_calculada ?? 0) !== 0 ? "atenção" : "ok"}
+                  onHero
+                />
+              </>
+            )}
           </div>
         </div>
 
@@ -253,22 +253,16 @@ export default function Dashboard() {
         {/* Atalhos rápidos */}
         <QuickActions />
 
-        {/* Gráfico vendas/hora + Meta diária */}
-        <div className="grid w-full min-w-0 grid-cols-1 gap-4 md:gap-6 xl:grid-cols-3">
-          <div className="min-w-0 xl:col-span-2">
+        {/* Operação do dia */}
+        <div className="grid w-full min-w-0 grid-cols-1 items-start gap-4 md:gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+          <div className="min-w-0 space-y-4 md:space-y-6">
             <SalesChart />
+            <RecentSales />
           </div>
           <div className="min-w-0 space-y-4 md:space-y-6">
             <AiInsightsWidget />
             <DailySalesGoal />
             <DeliveryDriverStatus />
-          </div>
-        </div>
-
-        {/* Vendas recentes */}
-        <div className="grid w-full min-w-0 grid-cols-1 gap-4 md:gap-6">
-          <div className="min-w-0">
-            <RecentSales />
           </div>
         </div>
 
