@@ -10,11 +10,11 @@ interface MobileBottomBarProps {
 
 export function MobileBottomBar({ onOpenAi, onOpenChat, onOpenCalc, chatUnread = 0 }: MobileBottomBarProps) {
   return (
-    <div className="fixed bottom-0 right-0 left-0 z-40 flex min-h-[52px] border-t border-sidebar-border bg-sidebar pb-[env(safe-area-inset-bottom)] shadow-2xl md:hidden">
+    <div className="mobile-bottom-bar fixed bottom-0 right-0 left-0 z-40 flex min-h-[56px] border-t pb-[env(safe-area-inset-bottom)] shadow-2xl md:hidden">
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={onOpenChat}
-        className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-1 py-2 text-sidebar-foreground hover:text-primary transition-colors relative group"
+        className="group relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-muted-foreground transition-colors hover:text-primary"
       >
         <div className="relative">
           <MessageCircle className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
@@ -28,25 +28,25 @@ export function MobileBottomBar({ onOpenAi, onOpenChat, onOpenCalc, chatUnread =
             </motion.span>
           )}
         </div>
-        <span className="text-[10px] font-bold tracking-wide leading-none">Chat</span>
+        <span className="text-[10px] font-bold leading-none">Chat</span>
       </motion.button>
-      <div className="w-px bg-sidebar-border my-2" />
+      <div className="my-2 w-px bg-border/70" />
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={onOpenAi}
-        className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-1 py-2 text-sidebar-foreground hover:text-primary transition-colors group"
+        className="group flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-muted-foreground transition-colors hover:text-primary"
       >
         <Bot className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
-        <span className="text-[10px] font-bold tracking-wide leading-none">IA</span>
+        <span className="text-[10px] font-bold leading-none">IA</span>
       </motion.button>
-      <div className="w-px bg-sidebar-border my-2" />
+      <div className="my-2 w-px bg-border/70" />
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={onOpenCalc}
-        className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 px-1 py-2 text-sidebar-foreground hover:text-primary transition-colors group"
+        className="group flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-2 text-muted-foreground transition-colors hover:text-primary"
       >
         <Calculator className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
-        <span className="text-[10px] font-bold tracking-wide leading-none">Calc</span>
+        <span className="text-[10px] font-bold leading-none">Calc</span>
       </motion.button>
     </div>
   );

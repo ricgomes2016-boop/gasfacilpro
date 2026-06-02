@@ -1,4 +1,4 @@
-import { User, LogOut, Settings, UserCircle, Moon, Sun, RefreshCw } from "lucide-react";
+import { User, LogOut, Settings, UserCircle, RefreshCw } from "lucide-react";
 import { CommandPalette } from "./CommandPalette";
 import { NotificationCenter } from "./NotificationCenter";
 import { BaseChatPanel } from "@/components/chat/BaseChatPanel";
@@ -19,7 +19,6 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { MobileNav } from "./MobileNav";
 import { UnidadeSelector } from "./UnidadeSelector";
-import { useTheme } from "@/hooks/useTheme";
 import { forceAppUpdate } from "@/lib/force-app-update";
 import { BuildVersionBadge } from "@/components/shared/BuildVersionBadge";
 import { CalculatorPopover } from "@/components/shared/CalculatorPopover";
@@ -36,7 +35,6 @@ export function Header({ title, subtitle }: HeaderProps) {
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
   const { collapsed } = useSidebarContext();
-  const { resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -122,16 +120,6 @@ export function Header({ title, subtitle }: HeaderProps) {
           <div className="hidden min-[360px]:block">
             <CalculatorPopover />
           </div>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hidden h-9 w-9 shrink-0 text-primary hover:bg-primary/10 hover:text-primary xl:inline-flex"
-            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-            title={resolvedTheme === "dark" ? "Modo claro" : "Modo escuro"}
-          >
-            {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
