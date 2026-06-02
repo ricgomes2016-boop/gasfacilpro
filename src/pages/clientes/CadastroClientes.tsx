@@ -1194,7 +1194,7 @@ export default function CadastroClientesCad() {
                 <div className="space-y-3 md:hidden">
                   {filteredClientes.map((cliente) => (
                     <div key={cliente.id} className="semantic-mobile-card">
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2">
                         <Checkbox
                           checked={selectedMergeIds.has(cliente.id)}
                           onCheckedChange={() => toggleMergeId(cliente.id)}
@@ -1202,11 +1202,13 @@ export default function CadastroClientesCad() {
                           aria-label="Selecionar para mesclar"
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex min-w-0 items-start gap-2">
                             {cliente.codigo_cliente && (
-                              <span className="font-mono text-[10px] text-muted-foreground shrink-0">#{cliente.codigo_cliente}</span>
+                              <span className="shrink-0 rounded-full border border-border/60 bg-muted/45 px-1.5 py-0.5 font-mono text-[10px] leading-none text-muted-foreground">
+                                #{cliente.codigo_cliente}
+                              </span>
                             )}
-                            <p className="font-semibold text-sm truncate">{cliente.nome}</p>
+                            <p className="line-clamp-2 min-w-0 break-words text-base font-semibold leading-snug text-foreground">{cliente.nome}</p>
                           </div>
                           <div className="flex flex-wrap gap-1 mt-1">
                             <Badge variant={cliente.ativo ? "default" : "destructive"} className="text-[10px] h-5">
@@ -1222,7 +1224,7 @@ export default function CadastroClientesCad() {
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-1 shrink-0">
+                        <div className="hidden">
                           <Button variant="ghost" size="icon" className="h-8 w-8" title="Lançar venda" onClick={() => navigate(`/vendas/nova?cliente_id=${cliente.id}`)}>
                             <ShoppingCart className="h-4 w-4" />
                           </Button>
@@ -1250,11 +1252,63 @@ export default function CadastroClientesCad() {
                         {(cliente.endereco || cliente.bairro) && (
                           <div className="flex items-center gap-2">
                             <MapPin className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">
+                            <span className="line-clamp-2 min-w-0 break-words">
                               {[cliente.endereco, cliente.numero, cliente.bairro].filter(Boolean).join(", ")}
                             </span>
                           </div>
                         )}
+                      </div>
+                      <div className="mt-2 grid grid-cols-5 gap-1 border-t border-border/45 pt-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-full"
+                          title="Lançar venda"
+                          aria-label={`Lançar venda para ${cliente.nome}`}
+                          onClick={() => navigate(`/vendas/nova?cliente_id=${cliente.id}`)}
+                        >
+                          <ShoppingCart className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-full"
+                          title="Histórico"
+                          aria-label={`Abrir histórico de ${cliente.nome}`}
+                          onClick={() => { setHistoricoCliente({ id: cliente.id, nome: cliente.nome }); setHistoricoOpen(true); }}
+                        >
+                          <History className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-full"
+                          title="Unidades"
+                          aria-label={`Abrir unidades de ${cliente.nome}`}
+                          onClick={() => { setUnidadesClienteId(cliente.id); setUnidadesClienteNome(cliente.nome); setUnidadesDialogOpen(true); }}
+                        >
+                          <Building2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-full"
+                          title="Editar"
+                          aria-label={`Editar ${cliente.nome}`}
+                          onClick={() => openEditModal(cliente)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-9 w-full"
+                          title={cliente.ativo ? "Inativar" : "Ativar"}
+                          aria-label={`${cliente.ativo ? "Inativar" : "Ativar"} ${cliente.nome}`}
+                          onClick={() => handleToggleStatus(cliente)}
+                        >
+                          {cliente.ativo ? <X className="h-4 w-4 text-destructive" /> : <Check className="h-4 w-4 text-success" />}
+                        </Button>
                       </div>
                     </div>
                   ))}
