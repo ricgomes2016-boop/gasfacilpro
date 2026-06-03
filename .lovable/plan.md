@@ -1,72 +1,75 @@
-## Objetivo
+# Refatoração da tela /vendas/relatorio
 
-Substituir a tela atual `/financeiro/fluxo-caixa` (cards + gráfico) por uma visualização tipo "extrato bancário" como no Gas Expert da imagem: seletor de conta, intervalo de datas, saldo do período em destaque, e uma tabela linha-a-linha com saldo corrido.
+Refatorar **apenas a UI** de `src/pages/vendas/RelatorioVendas.tsx` para um painel executivo moderno, limpo e responsivo. Sem nova rota, sem nova página, sem mudança em queries existentes nem regras de negócio.
 
-## Layout da nova tela
+## Escopo
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│ Fluxo de Caixa                                            [+ Nova Mov.]  │
-├──────────────────────────────────────────────────────────────────────────┤
-│  Caixas / Bancos         Período                                         │
-│  [ BANCO ITAÚ        ▼]  [30/05/2026] até [31/05/2026]   [Aplicar]       │
-│  [ Faça uma busca...  ]                              ┌─ Saldo Atual ──┐  │
-│                                                      │ BANCO ITAÚ     │  │
-│                                                      │   R$ 12.430,00 │  │
-│                                                      └────────────────┘  │
-├──────────────────────────────────────────────────────────────────────────┤
-│ Data       │ Histórico                 │ Entrada │ Saída │ A Receber │Saldo│
-│ 30/05/2026 │ SALDO INICIAL             │         │       │           │ 0,00│
-│ 30/05/2026 │ Venda Pedido #1234        │  150,00 │       │           │150,0│
-│ 30/05/2026 │ Pagto Fornecedor X        │         │ 80,00 │           │ 70,0│
-│ 31/05/2026 │ Boleto a vencer Cliente Y │         │       │   200,00  │ 70,0│
-├──────────────────────────────────────────────────────────────────────────┤
-│ TOTAL GERAL                            │  150,00 │ 80,00 │   200,00  │ 70,0│
-└──────────────────────────────────────────────────────────────────────────┘
-```
+**Arquivo único alterado:** `src/pages/vendas/RelatorioVendas.tsx`
 
-## Componentes da tela
+**Mantido intacto:**
+- Rota `/vendas/relatorio` e permissões (`admin`, `gestor`, `financeiro`).
+- Hooks de query atuais (`useQuery` em `pedidos` + `pedido_itens` + `entregadores` + `produtos`).
+- Funções de exportação Excel/PDF (reaproveitar lógica existente).
+- Componentes auxiliares já importados (`ProdutosVendidosTab`, `CelulaMesEditavel`, etc. continuam disponíveis mesmo que removidos do novo layout — não serão deletados).
 
-1. **Barra de filtros (topo)**
-   - `Select` "Caixa / Banco": lista todas as `contas_bancarias` ativas da unidade + opção fixa **"Caixa da Loja"** (= `movimentacoes_caixa` sem conta).
-   - `Input` de busca para filtrar histórico por texto (client-side).
-   - Dois `DatePicker` (data inicial / data final), padrão = primeiro e último dia do mês corrente.
-   - Botão **Aplicar**.
+## Novo layout
 
-2. **Card "Saldo Atual"** (canto direito, igual à imagem)
-   - Mostra o nome da conta selecionada e o saldo até a data final do filtro.
+### 1. Cabeçalho
+- `Header` com título **"Relatório de Vendas"** e subtítulo **"Acompanhe vendas por produto, entregador e canal."**.
+- Barra de ações à direita (desktop) / abaixo (mobile): `Exportar Excel`, `Exportar PDF`, `Atualizar` (refetch).
 
-3. **Tabela de movimentações** (corpo principal)
-   - Colunas: **Data**, **Histórico**, **Entrada (R$)**, **Saída (R$)**, **A Receber (R$)**, **Saldo Atual (R$)**.
-   - Primeira linha sempre **"SALDO INICIAL"** com saldo até o dia anterior à data inicial.
-   - Linhas ordenadas por data ascendente; coluna **Saldo Atual** = saldo corrido (saldo_inicial + Σ entradas − Σ saídas até a linha). "A Receber" **não** entra no saldo corrente (é projeção).
-   - Última linha **TOTAL GERAL** somando Entradas / Saídas / A Receber do período.
-   - Tipografia tabular (`font-variant-numeric: tabular-nums`), zebra rows, valores negativos em `text-destructive`.
+### 2. Filtros (somente 5)
+- Data Inicial, Data Final, Entregador, Canal de Venda, Produto (busca/typeahead).
+- Layout:
+  - Desktop: `grid grid-cols-5 gap-3`.
+  - Mobile: `grid grid-cols-1 gap-2` (um por linha).
+- Demais filtros do arquivo atual (status, forma de pagamento, importação, etc.) ficam **fora deste painel** — código removido do render, mas as queries permanecem.
 
-4. **Botão "Nova Movimentação"** mantido (reaproveita o Dialog atual).
+### 3. Cards KPI (4)
+Grid: `grid-cols-2 md:grid-cols-4 gap-3`.
+1. **Faturamento Total** — soma de `valor_total` dos pedidos filtrados.
+2. **Itens Vendidos** — soma de `quantidade` em `pedido_itens`.
+3. **Preço Médio de Venda** — faturamento ÷ itens.
+4. **Total de Pedidos** — count de pedidos filtrados.
 
-## Fonte de dados por seleção
+Visual: card com ícone à esquerda em tom suave, label `text-xs text-muted-foreground`, valor `text-2xl font-bold`, borda sutil, hover leve.
 
-- **Conta bancária selecionada (UUID)**: 
-  - Lançados: `movimentacoes_bancarias` filtrando `conta_bancaria_id` + `data` no intervalo.
-  - Saldo inicial: soma de `saldo_inicial` da conta + movimentações **anteriores** à data inicial.
-  - A Receber: `contas_receber` com `status='pendente'` e `vencimento` dentro do intervalo, somente quando uma forma de pagamento ligada à conta existir — para a v1, listar A Receber só quando "Caixa da Loja" estiver selecionado **ou** "Todas".
-- **"Caixa da Loja"**: `movimentacoes_caixa` (`unidade_id` atual, `status='aprovada'`) + `contas_receber` pendentes no intervalo.
-- **"Todas as contas"** (opção extra): união de ambas, sem coluna saldo corrente confiável → nesta opção, ocultar coluna Saldo Atual e mostrar apenas totais.
+### 4. Abas
+`Tabs` com 3 entradas: **Por Produto**, **Por Entregador**, **Por Canal**.
 
-## Implementação técnica (resumo)
+#### Aba Produto
+- Campo de busca acima da tabela.
+- Tabela: Produto | Qtd Vendida | Preço Médio | Total Vendido.
+- Ordenação padrão: Total DESC.
+- Linha de **Total** no rodapé (soma qtd e total; preço médio = total/qtd).
 
-- Reescrever `src/pages/financeiro/FluxoCaixa.tsx` mantendo o `embedded` prop e o Dialog "Nova Movimentação".
-- Novo hook local `useExtratoConta(contaId, dataIni, dataFim, unidadeId)` que retorna `{ saldoInicial, linhas[], totais }`.
-- Usar `useQuery` (TanStack) com `queryKey` parametrizado para cache automático.
-- Componente de tabela usando `Table` do shadcn (`@/components/ui/table`).
-- Datas no padrão BR via `date-fns/format` e `getBrasiliaDate()`.
-- Sem alterações em banco, edge functions, rotas ou outras telas.
+#### Aba Entregador (cards, não tabela)
+- Grid `grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3`.
+- Cada card: Nome (destaque), 4 métricas em linha (Itens, Faturamento, Lucro, Margem %), botão **Ver Detalhes**.
+- **Lucro** = Σ `(preco_unitario − produtos.preco_custo) × quantidade` (usando `preco_custo` já existente em `produtos`; quando ausente, considerar 0 e exibir margem como `—`).
+- **Margem %** = lucro / faturamento × 100.
+- Ao clicar em **Ver Detalhes**: expandir o próprio card (estado local `expandedId`) mostrando mini-tabela: Produto | Qtd | Preço Médio | Total, com linha de total do entregador.
 
-## Arquivos afetados
+#### Aba Canal
+- Tabela: Canal | Qtd | Preço Médio | Total, ordenada por Total DESC.
+- Linha de Total no rodapé.
+- Usar `canalLabels` existente para nomes amigáveis (WhatsApp, Telefone, Balcão, App Cliente, Entregador, Parceiro).
 
-- `src/pages/financeiro/FluxoCaixa.tsx` — reescrita completa do conteúdo da página.
+## Responsividade
+- Container: `p-3 sm:p-6 space-y-4 sm:space-y-6`, `w-full min-w-0 max-w-full`.
+- Tabelas envoltas em `overflow-x-auto` com `min-w-[420px]`.
+- Inputs com `h-10` e `text-base` no mobile (evita zoom iOS).
+- Botões de ação: `flex-col sm:flex-row` no header.
+
+## Detalhes técnicos
+
+- Estado adicional: `produtoBusca`, `entregadorFiltro`, `canalFiltro`, `produtoFiltro`, `expandedEntregadorId`.
+- Memoização: `useMemo` para `kpis`, `porProduto`, `porEntregador` (com detalhamento por produto interno), `porCanal`, derivados a partir de `pedidosFiltrados`.
+- A query atual em `pedidos` será estendida no `select` para incluir `produtos(nome, preco_custo)` (apenas adicionar campo — sem alterar filtros nem regras).
+- Exportação Excel/PDF: reaproveitar funções existentes, ajustando para exportar os 3 datasets agregados (Produto, Entregador, Canal) usando os mesmos memos.
+- Tokens semânticos do design system (`bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`, `text-primary`) — nenhum hex novo.
 
 ## Fora de escopo
-
-- Edição inline de lançamentos, impressão/exportação PDF, conciliação bancária, gráfico (removido — a tela vira extrato puro).
+- Não criar novas rotas/páginas/componentes externos.
+- Não alterar RLS, permissões, edge functions, schema.
+- Não tocar em outras telas de vendas.
