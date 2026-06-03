@@ -70,6 +70,12 @@ const custoPadrao = (produto: string) => {
 const money = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const pct = (v: number) => `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 
+const dataPedido = (pedido: PedidoRelatorio) => {
+  if (pedido.data_entrega) return pedido.data_entrega.slice(0, 10);
+  if (pedido.created_at) return pedido.created_at.slice(0, 10);
+  return "";
+};
+
 export default function RelatorioDetalhadoVendas() {
   const { unidadeAtual } = useUnidade();
   const { toast } = useToast();
@@ -85,6 +91,11 @@ export default function RelatorioDetalhadoVendas() {
     queryKey: ["relatorio-detalhado-vendas", unidadeAtual?.id, dataInicio, dataFim],
     enabled: !!unidadeAtual?.id,
     queryFn: async () => {
+      const inicioCriacao = `${dataInicio}T00:00:00`;
+      const fimCriacao = `${dataFim}T23:59:59`;
+
+      // Busca por data_entrega OU created_at. Isso corrige vendas antigas/retroativas
+      // que aparecem no relatório normal, mas não tinham data_entrega preenchida.
       const { data, error } = await supabase
         .from("pedidos")
         .select(`
@@ -93,12 +104,16 @@ export default function RelatorioDetalhadoVendas() {
           pedido_itens (quantidade, preco_unitario, produtos (nome, custo_medio, preco_custo, custo))
         `)
         .eq("unidade_id", unidadeAtual!.id)
-        .gte("data_entrega", dataInicio)
-        .lte("data_entrega", dataFim)
         .neq("status", "cancelado")
-        .order("data_entrega", { ascending: false });
+        .or(`and(data_entrega.gte.${dataInicio},data_entrega.lte.${dataFim}),and(created_at.gte.${inicioCriacao},created_at.lte.${fimCriacao})`)
+        .order("created_at", { ascending: false });
+
       if (error) throw error;
-      return (data || []) as PedidoRelatorio[];
+
+      return ((data || []) as PedidoRelatorio[]).filter((pedido) => {
+        const d = dataPedido(pedido);
+        return d >= dataInicio && d <= dataFim;
+      });
     },
   });
 
@@ -114,7 +129,18 @@ export default function RelatorioDetalhadoVendas() {
         const vendaUnit = Number(item.preco_unitario) || 0;
         const custoUnit = Number(item.produtos?.custo_medio ?? item.produtos?.preco_custo ?? item.produtos?.custo ?? custoPadrao(produto)) || 0;
         const key = `${entregador}|||${produto}|||${canal}`;
-        const atual = map.get(key) || { entregador, produto, canal, qtd: 0, custoMedio: 0, vendaMedia: 0, totalCusto: 0, totalVenda: 0, lucro: 0, margem: 0 };
+        const atual = map.get(key) || {
+          entregador,
+          produto,
+          canal,
+          qtd: 0,
+          custoMedio: 0,
+          vendaMedia: 0,
+          totalCusto: 0,
+          totalVenda: 0,
+          lucro: 0,
+          margem: 0,
+        };
         atual.qtd += qtd;
         atual.totalVenda += qtd * vendaUnit;
         atual.totalCusto += qtd * custoUnit;
@@ -158,7 +184,18 @@ export default function RelatorioDetalhadoVendas() {
     const map = new Map<string, LinhaDetalhe>();
     filtradas.forEach(l => {
       const nome = l[campo];
-      const atual = map.get(nome) || { entregador: nome, produto: nome, canal: nome, qtd: 0, custoMedio: 0, vendaMedia: 0, totalCusto: 0, totalVenda: 0, lucro: 0, margem: 0 };
+      const atual = map.get(nome) || {
+        entregador: campo === "entregador" ? nome : "",
+        produto: campo === "produto" ? nome : "",
+        canal: campo === "canal" ? nome : "",
+        qtd: 0,
+        custoMedio: 0,
+        vendaMedia: 0,
+        totalCusto: 0,
+        totalVenda: 0,
+        lucro: 0,
+        margem: 0,
+      };
       atual.qtd += l.qtd;
       atual.totalVenda += l.totalVenda;
       atual.totalCusto += l.totalCusto;
@@ -185,21 +222,53 @@ export default function RelatorioDetalhadoVendas() {
 
   const exportarExcel = () => {
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filtradas.map(l => ({ Entregador: l.entregador, Produto: l.produto, Canal: l.canal, Quantidade: l.qtd, "Custo Médio": l.custoMedio, "Preço Médio Venda": l.vendaMedia, "Total Custo": l.totalCusto, "Total Venda": l.totalVenda, Lucro: l.lucro, "Margem %": l.margem }))), "Detalhado");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filtradas.map(l => ({
+      Entregador: l.entregador,
+      Produto: l.produto,
+      Canal: l.canal,
+      Quantidade: l.qtd,
+      "Custo Médio": l.custoMedio,
+      "Preço Médio Venda": l.vendaMedia,
+      "Total Custo": l.totalCusto,
+      "Total Venda": l.totalVenda,
+      Lucro: l.lucro,
+      "Margem %": l.margem,
+    }))), "Detalhado");
     XLSX.writeFile(wb, `relatorio-detalhado-vendas-${dataInicio}-${dataFim}.xlsx`);
     toast({ title: "Relatório detalhado exportado" });
   };
 
-  const Tabela = ({ rows, titulo, nomeCampo }: { rows: LinhaDetalhe[]; titulo: string; nomeCampo: string }) => (
+  const TabelaDetalhada = () => (
+    <Card>
+      <CardHeader className="pb-3"><CardTitle className="text-base">Entregador x Produto x Canal</CardTitle></CardHeader>
+      <CardContent className="p-0 sm:p-6 sm:pt-0">
+        {isLoading ? <div className="space-y-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-10" /><Skeleton className="h-10" /></div> : filtradas.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">Sem dados para os filtros selecionados.</p> : (
+          <div className="overflow-x-auto">
+            <Table className="min-w-[980px]">
+              <TableHeader><TableRow><TableHead>Entregador</TableHead><TableHead>Produto</TableHead><TableHead>Canal</TableHead><TableHead className="text-right">Qt</TableHead><TableHead className="text-right">Custo médio</TableHead><TableHead className="text-right">Preço médio</TableHead><TableHead className="text-right">Total venda</TableHead><TableHead className="text-right">Lucro</TableHead><TableHead className="text-right">Margem</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {filtradas.map((l, i) => <TableRow key={`det-${i}`}><TableCell className="font-medium whitespace-nowrap">{l.entregador}</TableCell><TableCell className="font-medium max-w-[220px] truncate">{l.produto}</TableCell><TableCell>{l.canal}</TableCell><TableCell className="text-right">{l.qtd.toLocaleString("pt-BR")}</TableCell><TableCell className="text-right whitespace-nowrap">{money(l.custoMedio)}</TableCell><TableCell className="text-right whitespace-nowrap">{money(l.vendaMedia)}</TableCell><TableCell className="text-right font-semibold whitespace-nowrap">{money(l.totalVenda)}</TableCell><TableCell className="text-right whitespace-nowrap text-emerald-700">{money(l.lucro)}</TableCell><TableCell className="text-right"><Badge variant={l.margem < 20 ? "destructive" : "secondary"}>{pct(l.margem)}</Badge></TableCell></TableRow>)}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const TabelaResumo = ({ rows, titulo, campo }: { rows: LinhaDetalhe[]; titulo: string; campo: "entregador" | "produto" | "canal" }) => (
     <Card>
       <CardHeader className="pb-3"><CardTitle className="text-base">{titulo}</CardTitle></CardHeader>
       <CardContent className="p-0 sm:p-6 sm:pt-0">
         {isLoading ? <div className="space-y-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-10" /><Skeleton className="h-10" /></div> : rows.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">Sem dados para os filtros selecionados.</p> : (
           <div className="overflow-x-auto">
             <Table className="min-w-[780px]">
-              <TableHeader><TableRow><TableHead>{nomeCampo}</TableHead><TableHead className="text-right">Qt</TableHead><TableHead className="text-right">Custo médio</TableHead><TableHead className="text-right">Preço médio</TableHead><TableHead className="text-right">Total venda</TableHead><TableHead className="text-right">Lucro</TableHead><TableHead className="text-right">Margem</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>{campo === "entregador" ? "Entregador" : campo === "produto" ? "Produto" : "Canal"}</TableHead><TableHead className="text-right">Qt</TableHead><TableHead className="text-right">Custo médio</TableHead><TableHead className="text-right">Preço médio</TableHead><TableHead className="text-right">Total venda</TableHead><TableHead className="text-right">Lucro</TableHead><TableHead className="text-right">Margem</TableHead></TableRow></TableHeader>
               <TableBody>
-                {rows.map((l, i) => <TableRow key={`${nomeCampo}-${i}`}><TableCell className="font-medium max-w-[220px] truncate">{nomeCampo === "Entregador" ? l.entregador : nomeCampo === "Produto" ? l.produto : l.canal}</TableCell><TableCell className="text-right">{l.qtd.toLocaleString("pt-BR")}</TableCell><TableCell className="text-right whitespace-nowrap">{money(l.custoMedio)}</TableCell><TableCell className="text-right whitespace-nowrap">{money(l.vendaMedia)}</TableCell><TableCell className="text-right font-semibold whitespace-nowrap">{money(l.totalVenda)}</TableCell><TableCell className="text-right whitespace-nowrap text-emerald-700">{money(l.lucro)}</TableCell><TableCell className="text-right"><Badge variant={l.margem < 20 ? "destructive" : "secondary"}>{pct(l.margem)}</Badge></TableCell></TableRow>)}
+                {rows.map((l, i) => {
+                  const nome = campo === "entregador" ? l.entregador : campo === "produto" ? l.produto : l.canal;
+                  return <TableRow key={`${campo}-${i}`}><TableCell className="font-medium max-w-[220px] truncate">{nome}</TableCell><TableCell className="text-right">{l.qtd.toLocaleString("pt-BR")}</TableCell><TableCell className="text-right whitespace-nowrap">{money(l.custoMedio)}</TableCell><TableCell className="text-right whitespace-nowrap">{money(l.vendaMedia)}</TableCell><TableCell className="text-right font-semibold whitespace-nowrap">{money(l.totalVenda)}</TableCell><TableCell className="text-right whitespace-nowrap text-emerald-700">{money(l.lucro)}</TableCell><TableCell className="text-right"><Badge variant={l.margem < 20 ? "destructive" : "secondary"}>{pct(l.margem)}</Badge></TableCell></TableRow>;
+                })}
               </TableBody>
             </Table>
           </div>
@@ -239,10 +308,10 @@ export default function RelatorioDetalhadoVendas() {
 
         <Tabs defaultValue="detalhado" className="space-y-3">
           <TabsList className="grid grid-cols-4 w-full h-auto p-1 overflow-x-auto"><TabsTrigger value="detalhado">Detalhado</TabsTrigger><TabsTrigger value="entregador">Entregador</TabsTrigger><TabsTrigger value="produto">Produto</TabsTrigger><TabsTrigger value="canal">Canal</TabsTrigger></TabsList>
-          <TabsContent value="detalhado"><Tabela rows={filtradas} titulo="Entregador x Produto x Canal" nomeCampo="Produto" /></TabsContent>
-          <TabsContent value="entregador"><Tabela rows={agregado("entregador")} titulo="Resumo por Entregador" nomeCampo="Entregador" /></TabsContent>
-          <TabsContent value="produto"><Tabela rows={agregado("produto")} titulo="Resumo por Produto" nomeCampo="Produto" /></TabsContent>
-          <TabsContent value="canal"><Tabela rows={agregado("canal")} titulo="Resumo por Canal" nomeCampo="Canal" /></TabsContent>
+          <TabsContent value="detalhado"><TabelaDetalhada /></TabsContent>
+          <TabsContent value="entregador"><TabelaResumo rows={agregado("entregador")} titulo="Resumo por Entregador" campo="entregador" /></TabsContent>
+          <TabsContent value="produto"><TabelaResumo rows={agregado("produto")} titulo="Resumo por Produto" campo="produto" /></TabsContent>
+          <TabsContent value="canal"><TabelaResumo rows={agregado("canal")} titulo="Resumo por Canal" campo="canal" /></TabsContent>
         </Tabs>
       </div>
     </MainLayout>
