@@ -128,7 +128,6 @@ export const menuItems: MenuItem[] = [
       { icon: ClipboardList, label: "Pedidos", path: "/vendas/pedidos" },
       { icon: RotateCcw, label: "Devoluções / Trocas", path: "/vendas/devolucoes" },
       { icon: BarChart3, label: "Relatório de Vendas", path: "/vendas/relatorio" },
-      { icon: FileSpreadsheet, label: "Relatório Detalhado", path: "/vendas/relatorio-detalhado" },
     ],
   },
   {
