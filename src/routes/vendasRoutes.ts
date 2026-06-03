@@ -7,6 +7,7 @@ const Pedidos = lazy(() => import("@/pages/vendas/Pedidos"));
 const EditarPedido = lazy(() => import("@/pages/vendas/EditarPedido"));
 const PDV = lazy(() => import("@/pages/vendas/PDV"));
 const RelatorioVendas = lazy(() => import("@/pages/vendas/RelatorioVendas"));
+const RelatorioDetalhadoVendas = lazy(() => import("@/pages/vendas/RelatorioDetalhadoVendas"));
 const Devolucoes = lazy(() => import("@/pages/vendas/Devolucoes"));
 
 export const vendasRoutes: RouteConfig[] = [
@@ -16,5 +17,6 @@ export const vendasRoutes: RouteConfig[] = [
   { path: "/vendas/pedidos/:id/editar", component: EditarPedido, roles: ["admin", "gestor", "operacional"] },
   { path: "/vendas/pdv", component: PDV, roles: ["admin", "gestor", "operacional"] },
   { path: "/vendas/relatorio", component: RelatorioVendas, roles: ["admin", "gestor", "financeiro"] },
+  { path: "/vendas/relatorio-detalhado", component: RelatorioDetalhadoVendas, roles: ["admin", "gestor", "financeiro"] },
   { path: "/vendas/devolucoes", component: Devolucoes, roles: ["admin", "gestor", "operacional"] },
 ];
