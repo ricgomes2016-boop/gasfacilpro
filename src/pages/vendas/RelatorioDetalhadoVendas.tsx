@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfMonth, endOfMonth } from "date-fns";
-import { Brain, Download, Filter, RefreshCw, Search, TrendingUp } from "lucide-react";
+import { Brain, Download, Filter, RefreshCw, Search, TrendingUp, X } from "lucide-react";
 import * as XLSX from "xlsx";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
@@ -10,10 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useToast } from "@/hooks/use-toast";
@@ -29,7 +29,7 @@ interface PedidoRelatorio {
   pedido_itens: Array<{
     quantidade: number;
     preco_unitario: number;
-    produtos: { nome: string; custo_medio?: number | null; preco_custo?: number | null; custo?: number | null } | null;
+    produtos: { nome: string } | null;
   }>;
 }
 
@@ -69,12 +69,59 @@ const custoPadrao = (produto: string) => {
 
 const money = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const pct = (v: number) => `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+const dataPedido = (pedido: PedidoRelatorio) => pedido.data_entrega?.slice(0, 10) || pedido.created_at?.slice(0, 10) || "";
 
-const dataPedido = (pedido: PedidoRelatorio) => {
-  if (pedido.data_entrega) return pedido.data_entrega.slice(0, 10);
-  if (pedido.created_at) return pedido.created_at.slice(0, 10);
-  return "";
-};
+function MultiSelectFiltro({
+  titulo,
+  opcoes,
+  selecionados,
+  onChange,
+}: {
+  titulo: string;
+  opcoes: string[];
+  selecionados: string[];
+  onChange: (value: string[]) => void;
+}) {
+  const toggle = (opcao: string) => {
+    onChange(selecionados.includes(opcao) ? selecionados.filter((v) => v !== opcao) : [...selecionados, opcao]);
+  };
+
+  const label = selecionados.length === 0 ? "Todos" : selecionados.length === 1 ? selecionados[0] : `${selecionados.length} selecionados`;
+
+  return (
+    <div className="space-y-1 min-w-0">
+      <Label className="text-xs">{titulo}</Label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="w-full h-10 justify-between font-normal min-w-0">
+            <span className="truncate">{label}</span>
+            {selecionados.length > 0 && <Badge variant="secondary" className="ml-2 shrink-0">{selecionados.length}</Badge>}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[280px] p-2" align="start">
+          <div className="flex items-center justify-between gap-2 px-1 pb-2 border-b">
+            <span className="text-sm font-medium">{titulo}</span>
+            {selecionados.length > 0 && (
+              <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => onChange([])}>
+                Limpar
+              </Button>
+            )}
+          </div>
+          <div className="max-h-64 overflow-y-auto py-1 space-y-1">
+            {opcoes.length === 0 ? (
+              <p className="text-sm text-muted-foreground px-2 py-3">Sem opções</p>
+            ) : opcoes.map((opcao) => (
+              <label key={opcao} className="flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted cursor-pointer">
+                <input type="checkbox" checked={selecionados.includes(opcao)} onChange={() => toggle(opcao)} className="h-4 w-4" />
+                <span className="truncate">{opcao}</span>
+              </label>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
 
 export default function RelatorioDetalhadoVendas() {
   const { unidadeAtual } = useUnidade();
@@ -82,26 +129,24 @@ export default function RelatorioDetalhadoVendas() {
   const hoje = new Date();
   const [dataInicio, setDataInicio] = useState(format(startOfMonth(hoje), "yyyy-MM-dd"));
   const [dataFim, setDataFim] = useState(format(endOfMonth(hoje), "yyyy-MM-dd"));
-  const [entregadorFiltro, setEntregadorFiltro] = useState("todos");
-  const [canalFiltro, setCanalFiltro] = useState("todos");
-  const [produtoFiltro, setProdutoFiltro] = useState("todos");
+  const [entregadoresSelecionados, setEntregadoresSelecionados] = useState<string[]>([]);
+  const [canaisSelecionados, setCanaisSelecionados] = useState<string[]>([]);
+  const [produtosSelecionados, setProdutosSelecionados] = useState<string[]>([]);
   const [busca, setBusca] = useState("");
 
   const { data: pedidos = [], isLoading, refetch } = useQuery({
-    queryKey: ["relatorio-detalhado-vendas", unidadeAtual?.id, dataInicio, dataFim],
+    queryKey: ["relatorio-vendas-unificado", unidadeAtual?.id, dataInicio, dataFim],
     enabled: !!unidadeAtual?.id,
     queryFn: async () => {
       const inicioCriacao = `${dataInicio}T00:00:00`;
       const fimCriacao = `${dataFim}T23:59:59`;
 
-      // Busca por data_entrega OU created_at. Isso corrige vendas antigas/retroativas
-      // que aparecem no relatório normal, mas não tinham data_entrega preenchida.
       const { data, error } = await supabase
         .from("pedidos")
         .select(`
           id, data_entrega, created_at, valor_total, status, canal_venda,
           entregadores (nome),
-          pedido_itens (quantidade, preco_unitario, produtos (nome, custo_medio, preco_custo, custo))
+          pedido_itens (quantidade, preco_unitario, produtos (nome))
         `)
         .eq("unidade_id", unidadeAtual!.id)
         .neq("status", "cancelado")
@@ -119,28 +164,20 @@ export default function RelatorioDetalhadoVendas() {
 
   const linhas = useMemo<LinhaDetalhe[]>(() => {
     const map = new Map<string, LinhaDetalhe>();
+
     pedidos.forEach((pedido) => {
       const entregador = pedido.entregadores?.nome || "Sem entregador";
       const canalKey = pedido.canal_venda || "outros";
       const canal = canalLabels[canalKey] || canalKey;
+
       pedido.pedido_itens?.forEach((item) => {
         const produto = item.produtos?.nome || "Produto sem nome";
         const qtd = Number(item.quantidade) || 0;
         const vendaUnit = Number(item.preco_unitario) || 0;
-        const custoUnit = Number(item.produtos?.custo_medio ?? item.produtos?.preco_custo ?? item.produtos?.custo ?? custoPadrao(produto)) || 0;
+        const custoUnit = custoPadrao(produto);
         const key = `${entregador}|||${produto}|||${canal}`;
-        const atual = map.get(key) || {
-          entregador,
-          produto,
-          canal,
-          qtd: 0,
-          custoMedio: 0,
-          vendaMedia: 0,
-          totalCusto: 0,
-          totalVenda: 0,
-          lucro: 0,
-          margem: 0,
-        };
+        const atual = map.get(key) || { entregador, produto, canal, qtd: 0, custoMedio: 0, vendaMedia: 0, totalCusto: 0, totalVenda: 0, lucro: 0, margem: 0 };
+
         atual.qtd += qtd;
         atual.totalVenda += qtd * vendaUnit;
         atual.totalCusto += qtd * custoUnit;
@@ -165,12 +202,12 @@ export default function RelatorioDetalhadoVendas() {
   const opcoesCanal = useMemo(() => Array.from(new Set(linhas.map(l => l.canal))).sort(), [linhas]);
 
   const filtradas = useMemo(() => linhas.filter(l => {
-    if (entregadorFiltro !== "todos" && l.entregador !== entregadorFiltro) return false;
-    if (canalFiltro !== "todos" && l.canal !== canalFiltro) return false;
-    if (produtoFiltro !== "todos" && l.produto !== produtoFiltro) return false;
+    if (entregadoresSelecionados.length > 0 && !entregadoresSelecionados.includes(l.entregador)) return false;
+    if (canaisSelecionados.length > 0 && !canaisSelecionados.includes(l.canal)) return false;
+    if (produtosSelecionados.length > 0 && !produtosSelecionados.includes(l.produto)) return false;
     if (busca && !`${l.entregador} ${l.produto} ${l.canal}`.toLowerCase().includes(busca.toLowerCase())) return false;
     return true;
-  }), [linhas, entregadorFiltro, canalFiltro, produtoFiltro, busca]);
+  }), [linhas, entregadoresSelecionados, canaisSelecionados, produtosSelecionados, busca]);
 
   const resumo = useMemo(() => {
     const qtd = filtradas.reduce((s, l) => s + l.qtd, 0);
@@ -184,18 +221,7 @@ export default function RelatorioDetalhadoVendas() {
     const map = new Map<string, LinhaDetalhe>();
     filtradas.forEach(l => {
       const nome = l[campo];
-      const atual = map.get(nome) || {
-        entregador: campo === "entregador" ? nome : "",
-        produto: campo === "produto" ? nome : "",
-        canal: campo === "canal" ? nome : "",
-        qtd: 0,
-        custoMedio: 0,
-        vendaMedia: 0,
-        totalCusto: 0,
-        totalVenda: 0,
-        lucro: 0,
-        margem: 0,
-      };
+      const atual = map.get(nome) || { entregador: nome, produto: nome, canal: nome, qtd: 0, custoMedio: 0, vendaMedia: 0, totalCusto: 0, totalVenda: 0, lucro: 0, margem: 0 };
       atual.qtd += l.qtd;
       atual.totalVenda += l.totalVenda;
       atual.totalCusto += l.totalCusto;
@@ -207,16 +233,28 @@ export default function RelatorioDetalhadoVendas() {
     }).sort((a, b) => b.totalVenda - a.totalVenda);
   };
 
+  const limparFiltros = () => {
+    setEntregadoresSelecionados([]);
+    setCanaisSelecionados([]);
+    setProdutosSelecionados([]);
+    setBusca("");
+  };
+
+  const filtrosAtivos = entregadoresSelecionados.length + canaisSelecionados.length + produtosSelecionados.length + (busca ? 1 : 0);
+
   const insights = useMemo(() => {
-    const topEnt = agregado("entregador")[0];
-    const topProd = agregado("produto")[0];
-    const topCanal = agregado("canal")[0];
-    const baixaMargem = filtradas.filter(l => l.totalVenda > 0 && l.margem < 20).slice(0, 2);
+    const porEntregador = agregado("entregador");
+    const porProduto = agregado("produto");
+    const porCanal = agregado("canal");
+    const topEnt = porEntregador[0];
+    const topProd = porProduto[0];
+    const topCanal = porCanal[0];
+    const baixaMargem = filtradas.filter(l => l.totalVenda > 0 && l.margem < 20).slice(0, 3);
     return [
       topProd ? `Produto destaque: ${topProd.produto} com ${topProd.qtd.toLocaleString("pt-BR")} unidades e ${money(topProd.totalVenda)}.` : null,
       topEnt ? `Entregador destaque: ${topEnt.entregador} faturou ${money(topEnt.totalVenda)} com margem de ${pct(topEnt.margem)}.` : null,
       topCanal ? `Canal destaque: ${topCanal.canal} representa ${pct(resumo.totalVenda ? topCanal.totalVenda / resumo.totalVenda * 100 : 0)} do faturamento filtrado.` : null,
-      baixaMargem.length ? `Atenção: ${baixaMargem.map(l => `${l.produto}/${l.entregador}`).join(" e ")} com margem abaixo de 20%.` : null,
+      baixaMargem.length ? `Atenção: ${baixaMargem.map(l => `${l.produto}/${l.entregador}/${l.canal}`).join("; ")} com margem abaixo de 20%.` : null,
     ].filter(Boolean) as string[];
   }, [filtradas, resumo.totalVenda]);
 
@@ -234,8 +272,11 @@ export default function RelatorioDetalhadoVendas() {
       Lucro: l.lucro,
       "Margem %": l.margem,
     }))), "Detalhado");
-    XLSX.writeFile(wb, `relatorio-detalhado-vendas-${dataInicio}-${dataFim}.xlsx`);
-    toast({ title: "Relatório detalhado exportado" });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(agregado("produto").map(l => ({ Produto: l.produto, Quantidade: l.qtd, "Preço Médio": l.vendaMedia, Total: l.totalVenda, Lucro: l.lucro, Margem: l.margem }))), "Produtos");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(agregado("entregador").map(l => ({ Entregador: l.entregador, Quantidade: l.qtd, "Preço Médio": l.vendaMedia, Total: l.totalVenda, Lucro: l.lucro, Margem: l.margem }))), "Entregadores");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(agregado("canal").map(l => ({ Canal: l.canal, Quantidade: l.qtd, "Preço Médio": l.vendaMedia, Total: l.totalVenda, Lucro: l.lucro, Margem: l.margem }))), "Canais");
+    XLSX.writeFile(wb, `relatorio-vendas-${dataInicio}-${dataFim}.xlsx`);
+    toast({ title: "Relatório exportado" });
   };
 
   const TabelaDetalhada = () => (
@@ -279,17 +320,20 @@ export default function RelatorioDetalhadoVendas() {
 
   return (
     <MainLayout>
-      <Header title="Relatório Detalhado" subtitle="Análise inteligente por entregador, produto, canal, custo e lucro" />
+      <Header title="Relatório de Vendas" subtitle="Resumo e detalhamento inteligente em uma única tela" />
       <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 min-w-0">
         <Card><CardContent className="p-3 sm:p-4 space-y-3">
-          <div className="flex items-center gap-2 text-sm font-medium"><Filter className="h-4 w-4 text-primary" />Filtros detalhados</div>
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-2 sm:gap-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 text-sm font-medium"><Filter className="h-4 w-4 text-primary" />Filtros inteligentes</div>
+            {filtrosAtivos > 0 && <Button size="sm" variant="ghost" onClick={limparFiltros}><X className="h-4 w-4 mr-1" />Limpar filtros</Button>}
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-7 gap-2 sm:gap-3">
             <div className="space-y-1"><Label className="text-xs">Início</Label><Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} /></div>
             <div className="space-y-1"><Label className="text-xs">Fim</Label><Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} /></div>
-            <div className="space-y-1"><Label className="text-xs">Entregador</Label><Select value={entregadorFiltro} onValueChange={setEntregadorFiltro}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos</SelectItem>{opcoesEntregador.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-1"><Label className="text-xs">Canal</Label><Select value={canalFiltro} onValueChange={setCanalFiltro}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos</SelectItem>{opcoesCanal.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-1"><Label className="text-xs">Produto</Label><Select value={produtoFiltro} onValueChange={setProdutoFiltro}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos</SelectItem>{opcoesProduto.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div>
-            <div className="flex items-end gap-2"><Button variant="outline" className="w-full" onClick={() => refetch()} disabled={isLoading}><RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? "animate-spin" : ""}`} />Atualizar</Button></div>
+            <div className="lg:col-span-1 col-span-2"><MultiSelectFiltro titulo="Entregadores" opcoes={opcoesEntregador} selecionados={entregadoresSelecionados} onChange={setEntregadoresSelecionados} /></div>
+            <div className="lg:col-span-1 col-span-2"><MultiSelectFiltro titulo="Produtos" opcoes={opcoesProduto} selecionados={produtosSelecionados} onChange={setProdutosSelecionados} /></div>
+            <div className="lg:col-span-1 col-span-2"><MultiSelectFiltro titulo="Canais" opcoes={opcoesCanal} selecionados={canaisSelecionados} onChange={setCanaisSelecionados} /></div>
+            <div className="col-span-2 lg:col-span-1 flex items-end"><Button variant="outline" className="w-full" onClick={() => refetch()} disabled={isLoading}><RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? "animate-spin" : ""}`} />Atualizar</Button></div>
           </div>
           <div className="relative max-w-xl"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input className="pl-9" placeholder="Buscar entregador, produto ou canal..." value={busca} onChange={e => setBusca(e.target.value)} /></div>
         </CardContent></Card>
@@ -302,16 +346,31 @@ export default function RelatorioDetalhadoVendas() {
           <Card className="col-span-2 lg:col-span-1"><CardContent className="p-3"><p className="text-xs text-muted-foreground">Margem média</p><p className="text-xl font-bold">{pct(resumo.margem)}</p></CardContent></Card>
         </div>
 
-        <Card className="border-primary/20 bg-primary/5"><CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Brain className="h-5 w-5 text-primary" />Insights automáticos</CardTitle></CardHeader><CardContent className="space-y-2">{insights.length ? insights.map((i, idx) => <div key={idx} className="text-sm flex gap-2"><TrendingUp className="h-4 w-4 text-primary mt-0.5" /><span>{i}</span></div>) : <p className="text-sm text-muted-foreground">Sem dados suficientes para gerar insights.</p>}</CardContent></Card>
-
         <div className="flex justify-end"><Button onClick={exportarExcel}><Download className="h-4 w-4 mr-2" />Exportar Excel</Button></div>
 
-        <Tabs defaultValue="detalhado" className="space-y-3">
-          <TabsList className="grid grid-cols-4 w-full h-auto p-1 overflow-x-auto"><TabsTrigger value="detalhado">Detalhado</TabsTrigger><TabsTrigger value="entregador">Entregador</TabsTrigger><TabsTrigger value="produto">Produto</TabsTrigger><TabsTrigger value="canal">Canal</TabsTrigger></TabsList>
-          <TabsContent value="detalhado"><TabelaDetalhada /></TabsContent>
-          <TabsContent value="entregador"><TabelaResumo rows={agregado("entregador")} titulo="Resumo por Entregador" campo="entregador" /></TabsContent>
+        <Tabs defaultValue="geral" className="space-y-3">
+          <TabsList className="w-full h-auto p-1 grid grid-cols-3 md:grid-cols-6">
+            <TabsTrigger value="geral">Geral</TabsTrigger>
+            <TabsTrigger value="produto">Produtos</TabsTrigger>
+            <TabsTrigger value="entregador">Entregadores</TabsTrigger>
+            <TabsTrigger value="canal">Canais</TabsTrigger>
+            <TabsTrigger value="detalhado">Detalhado</TabsTrigger>
+            <TabsTrigger value="ia">Inteligência</TabsTrigger>
+          </TabsList>
+          <TabsContent value="geral" className="space-y-3">
+            <div className="grid gap-3 lg:grid-cols-3">
+              <TabelaResumo rows={agregado("produto").slice(0, 10)} titulo="Top produtos" campo="produto" />
+              <TabelaResumo rows={agregado("entregador").slice(0, 10)} titulo="Top entregadores" campo="entregador" />
+              <TabelaResumo rows={agregado("canal").slice(0, 10)} titulo="Top canais" campo="canal" />
+            </div>
+          </TabsContent>
           <TabsContent value="produto"><TabelaResumo rows={agregado("produto")} titulo="Resumo por Produto" campo="produto" /></TabsContent>
+          <TabsContent value="entregador"><TabelaResumo rows={agregado("entregador")} titulo="Resumo por Entregador" campo="entregador" /></TabsContent>
           <TabsContent value="canal"><TabelaResumo rows={agregado("canal")} titulo="Resumo por Canal" campo="canal" /></TabsContent>
+          <TabsContent value="detalhado"><TabelaDetalhada /></TabsContent>
+          <TabsContent value="ia">
+            <Card className="border-primary/20 bg-primary/5"><CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Brain className="h-5 w-5 text-primary" />Insights automáticos</CardTitle></CardHeader><CardContent className="space-y-2">{insights.length ? insights.map((i, idx) => <div key={idx} className="text-sm flex gap-2"><TrendingUp className="h-4 w-4 text-primary mt-0.5" /><span>{i}</span></div>) : <p className="text-sm text-muted-foreground">Sem dados suficientes para gerar insights.</p>}</CardContent></Card>
+          </TabsContent>
         </Tabs>
       </div>
     </MainLayout>
