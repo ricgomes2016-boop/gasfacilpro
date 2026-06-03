@@ -128,6 +128,7 @@ export const menuItems: MenuItem[] = [
       { icon: ClipboardList, label: "Pedidos", path: "/vendas/pedidos" },
       { icon: RotateCcw, label: "Devoluções / Trocas", path: "/vendas/devolucoes" },
       { icon: BarChart3, label: "Relatório de Vendas", path: "/vendas/relatorio" },
+      { icon: FileSpreadsheet, label: "Relatório Detalhado", path: "/vendas/relatorio-detalhado" },
     ],
   },
   {
@@ -234,7 +235,6 @@ export const menuItems: MenuItem[] = [
       { icon: Car, label: "Veículos", path: "/cadastros/veiculos" },
       { icon: Fuel, label: "Controle de Combustível", path: "/frota/combustivel" },
       { icon: Wrench, label: "Manutenção", path: "/frota/manutencao" },
-      
       { icon: ClipboardCheck, label: "Checklist de Saída", path: "/frota/checklist" },
       { icon: FileWarning, label: "Multas", path: "/frota/multas" },
       { icon: BarChart3, label: "Relatórios", path: "/frota/relatorios" },
