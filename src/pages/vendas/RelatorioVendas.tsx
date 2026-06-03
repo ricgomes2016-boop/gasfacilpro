@@ -100,7 +100,7 @@ interface PedidoRelatorio {
     quantidade: number;
     preco_unitario: number;
     produto_id: string | null;
-    produtos: { nome: string } | null;
+    produtos: { nome: string; preco_custo?: number | null } | null;
   }>;
 }
 
