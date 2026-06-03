@@ -198,7 +198,7 @@ export default function RelatorioVendas() {
         .select(`
           id, created_at, data_entrega, valor_total, status, forma_pagamento, canal_venda,
           clientes (nome), entregadores (nome),
-          pedido_itens (quantidade, preco_unitario, produto_id, produtos (nome))
+          pedido_itens (quantidade, preco_unitario, produto_id, produtos (nome, preco_custo))
         `)
         .gte("data_entrega", dataInicio)
         .lte("data_entrega", dataFim)
