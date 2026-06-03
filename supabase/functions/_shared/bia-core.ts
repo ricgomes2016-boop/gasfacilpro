@@ -1051,6 +1051,13 @@ export async function upsertConversation(supabase: any, conversationId: string, 
     updated_at: new Date().toISOString(),
   };
   if (telefone) payload.telefone = telefone;
+  if (unidadeId) {
+    payload.unidade_id = unidadeId;
+    try {
+      const { data: unidade } = await supabase.from("unidades").select("empresa_id").eq("id", unidadeId).maybeSingle();
+      if (unidade?.empresa_id) payload.empresa_id = unidade.empresa_id;
+    } catch {}
+  }
   await supabase.from("ai_conversas").upsert(payload, { onConflict: "id" });
 }
 

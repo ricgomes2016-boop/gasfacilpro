@@ -325,7 +325,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     try {
       const conv = conversas.find((c) => c.id === selectedId);
       const { data, error } = await supabase.functions.invoke("whatsapp-send", {
-        body: { conversa_id: selectedId, content: newMsg.trim(), unidade_id: conv?.unidade_id || null },
+        body: { conversa_id: selectedId, content: newMsg.trim(), unidade_id: conv?.unidade_id || unidadeAtual?.id || null },
       });
       if (error) {
         toast({ title: "Erro ao enviar", description: error.message, variant: "destructive" });
@@ -375,7 +375,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
       const { data, error } = await supabase.functions.invoke("whatsapp-send", {
         body: {
           conversa_id: selectedId,
-          unidade_id: conv.unidade_id || null,
+          unidade_id: conv.unidade_id || unidadeAtual?.id || null,
           media_url: mediaUrl,
           media_type: mediaType,
           mime_type: mimeType,
