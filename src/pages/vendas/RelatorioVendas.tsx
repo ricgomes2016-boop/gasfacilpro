@@ -775,801 +775,459 @@ export default function RelatorioVendas() {
     }
   };
 
+  // ---------------- Novo painel executivo (UI) ----------------
+  const [entregadorFiltroUI, setEntregadorFiltroUI] = useState<string>("todos");
+  const [canalFiltroUI, setCanalFiltroUI] = useState<string>("todos");
+  const [produtoFiltroUI, setProdutoFiltroUI] = useState<string>("todos");
+  const [produtoBuscaUI, setProdutoBuscaUI] = useState<string>("");
+  const [abaUI, setAbaUI] = useState<"produto" | "entregador" | "canal">("produto");
+  const [expandedEntregadorId, setExpandedEntregadorId] = useState<string | null>(null);
+
+  const entregadoresOpcoes = useMemo(() => {
+    const set = new Set<string>();
+    pedidos.forEach(p => set.add(p.entregadores?.nome || "Sem entregador"));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [pedidos]);
+
+  const canaisOpcoes = useMemo(() => {
+    const set = new Set<string>();
+    pedidos.forEach(p => set.add(p.canal_venda || "outros"));
+    return Array.from(set).sort();
+  }, [pedidos]);
+
+  const produtosOpcoes = useMemo(() => {
+    const set = new Set<string>();
+    pedidos.forEach(p => (p.pedido_itens || []).forEach(it => set.add(it.produtos?.nome || "Sem nome")));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [pedidos]);
+
+  const pedidosUI = useMemo(() => {
+    return pedidos
+      .filter(p => p.status !== "cancelado")
+      .filter(p => {
+        if (entregadorFiltroUI !== "todos" && (p.entregadores?.nome || "Sem entregador") !== entregadorFiltroUI) return false;
+        if (canalFiltroUI !== "todos" && (p.canal_venda || "outros") !== canalFiltroUI) return false;
+        if (produtoFiltroUI !== "todos") {
+          const tem = (p.pedido_itens || []).some(it => (it.produtos?.nome || "Sem nome") === produtoFiltroUI);
+          if (!tem) return false;
+        }
+        return true;
+      });
+  }, [pedidos, entregadorFiltroUI, canalFiltroUI, produtoFiltroUI]);
+
+  const kpisUI = useMemo(() => {
+    let itens = 0;
+    let faturamento = 0;
+    pedidosUI.forEach(p => {
+      faturamento += Number(p.valor_total) || 0;
+      (p.pedido_itens || []).forEach(it => { itens += Number(it.quantidade) || 0; });
+    });
+    return {
+      faturamento,
+      itens,
+      precoMedio: itens > 0 ? faturamento / itens : 0,
+      pedidos: pedidosUI.length,
+    };
+  }, [pedidosUI]);
+
+  const porProdutoUI = useMemo(() => {
+    const map = new Map<string, { nome: string; qtd: number; total: number }>();
+    pedidosUI.forEach(p => (p.pedido_itens || []).forEach(it => {
+      const nome = it.produtos?.nome || "Sem nome";
+      const cur = map.get(nome) || { nome, qtd: 0, total: 0 };
+      const q = Number(it.quantidade) || 0;
+      const pu = Number(it.preco_unitario) || 0;
+      cur.qtd += q;
+      cur.total += q * pu;
+      map.set(nome, cur);
+    }));
+    const termo = produtoBuscaUI.trim().toLowerCase();
+    return Array.from(map.values())
+      .map(r => ({ ...r, precoMedio: r.qtd > 0 ? r.total / r.qtd : 0 }))
+      .filter(r => !termo || r.nome.toLowerCase().includes(termo))
+      .sort((a, b) => b.total - a.total);
+  }, [pedidosUI, produtoBuscaUI]);
+
+  const porEntregadorUI = useMemo(() => {
+    type Det = { nome: string; qtd: number; total: number };
+    type Linha = {
+      id: string;
+      nome: string;
+      qtd: number;
+      faturamento: number;
+      lucro: number;
+      temCusto: boolean;
+      detalhes: Det[];
+    };
+    const map = new Map<string, Linha & { _det: Map<string, Det> }>();
+    pedidosUI.forEach(p => {
+      const nome = p.entregadores?.nome || "Sem entregador";
+      const cur = map.get(nome) || { id: nome, nome, qtd: 0, faturamento: 0, lucro: 0, temCusto: false, detalhes: [], _det: new Map() };
+      (p.pedido_itens || []).forEach(it => {
+        const q = Number(it.quantidade) || 0;
+        const pu = Number(it.preco_unitario) || 0;
+        const pc = it.produtos?.preco_custo;
+        cur.qtd += q;
+        cur.faturamento += q * pu;
+        if (pc !== null && pc !== undefined) {
+          cur.temCusto = true;
+          cur.lucro += q * (pu - Number(pc));
+        }
+        const dnome = it.produtos?.nome || "Sem nome";
+        const d = cur._det.get(dnome) || { nome: dnome, qtd: 0, total: 0 };
+        d.qtd += q;
+        d.total += q * pu;
+        cur._det.set(dnome, d);
+      });
+      map.set(nome, cur);
+    });
+    return Array.from(map.values()).map(l => ({
+      ...l,
+      detalhes: Array.from(l._det.values()).sort((a, b) => b.total - a.total),
+    })).sort((a, b) => b.faturamento - a.faturamento);
+  }, [pedidosUI]);
+
+  const porCanalUI = useMemo(() => {
+    const map = new Map<string, { canal: string; nome: string; qtd: number; total: number }>();
+    pedidosUI.forEach(p => {
+      const canal = p.canal_venda || "outros";
+      const nome = canalLabels[canal] || canal.charAt(0).toUpperCase() + canal.slice(1);
+      const cur = map.get(canal) || { canal, nome, qtd: 0, total: 0 };
+      const qtdItens = (p.pedido_itens || []).reduce((s, it) => s + (Number(it.quantidade) || 0), 0);
+      cur.qtd += qtdItens;
+      cur.total += Number(p.valor_total) || 0;
+      map.set(canal, cur);
+    });
+    return Array.from(map.values())
+      .map(r => ({ ...r, precoMedio: r.qtd > 0 ? r.total / r.qtd : 0 }))
+      .sort((a, b) => b.total - a.total);
+  }, [pedidosUI]);
+
+  const fmtBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const fmtInt = (v: number) => v.toLocaleString("pt-BR");
+
   return (
     <MainLayout>
-      <Header title="Relatório de Vendas" subtitle="Análise detalhada das vendas" />
-      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
-        {/* Header */}
-         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex flex-wrap gap-2 items-center">
-            <Button variant="outline" className="gap-2" onClick={exportarPDF}>
-              <Download className="h-4 w-4" />PDF
-            </Button>
-            <Button className="gap-2" onClick={exportarExcel}>
-              <FileSpreadsheet className="h-4 w-4" />Excel
-            </Button>
-            <div className="flex items-center gap-2 border-l pl-2 ml-1">
-              <span className="text-xs text-muted-foreground hidden sm:inline">Importar legado:</span>
-              <SmartImportButtons
-                edgeFunctionName="parse-orders-history"
-                onDataExtracted={handleImportData}
-              />
-            </div>
-          </div>
+      <Header title="Relatório de Vendas" subtitle="Acompanhe vendas por produto, entregador e canal." />
+      <div className="w-full min-w-0 max-w-full p-3 sm:p-6 space-y-4 sm:space-y-6">
+        {/* Ações */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2">
+          <Button variant="outline" size="sm" className="h-10 sm:h-9 gap-2" onClick={exportarExcel}>
+            <FileSpreadsheet className="h-4 w-4" />Exportar Excel
+          </Button>
+          <Button variant="outline" size="sm" className="h-10 sm:h-9 gap-2" onClick={exportarPDF}>
+            <Download className="h-4 w-4" />Exportar PDF
+          </Button>
+          <Button size="sm" className="h-10 sm:h-9 gap-2" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4" />Atualizar
+          </Button>
         </div>
 
-        {/* Barra de filtros unificada (sticky) */}
-        {(() => {
-          const presets = [
-            { label: "Mês atual", get: () => { const h = new Date(); return [startOfMonth(h), endOfMonth(h)] as const; } },
-            { label: "Últimos 3 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 2)), endOfMonth(h)] as const; } },
-            { label: "Últimos 6 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 5)), endOfMonth(h)] as const; } },
-            { label: "Últimos 12 meses", get: () => { const h = new Date(); return [startOfMonth(subMonths(h, 11)), endOfMonth(h)] as const; } },
-            { label: "Ano atual", get: () => { const h = new Date(); return [startOfYear(h), endOfYear(h)] as const; } },
-            { label: "Ano anterior", get: () => { const h = new Date(); const ant = new Date(h.getFullYear() - 1, 0, 1); return [startOfYear(ant), endOfYear(ant)] as const; } },
-          ];
-          const labelPresetAtivo = presets.find(p => {
-            const [i, f] = p.get();
-            return dataInicio === format(i, "yyyy-MM-dd") && dataFim === format(f, "yyyy-MM-dd");
-          })?.label;
-          const labelPeriodo = labelPresetAtivo
-            ?? `${format(parseISO(dataInicio), "dd MMM yy", { locale: ptBR })} – ${format(parseISO(dataFim), "dd MMM yy", { locale: ptBR })}`;
-          const filtrosAtivos = (statusFiltro !== "todos" ? 1 : 0) + (canalFiltro !== "todos" ? 1 : 0) + (consolidado ? 1 : 0);
-          return (
-            <div className="sticky top-0 z-20 -mx-3 sm:-mx-4 md:-mx-6 px-3 sm:px-4 md:px-6 py-2 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70 border-b border-border/60">
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Período */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2 h-9">
-                      <CalendarDays className="h-4 w-4 text-primary" />
-                      <span className="truncate max-w-[200px] font-medium">{labelPeriodo}</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-[320px] p-3 space-y-3">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Atalhos</Label>
-                      <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-                        {presets.map((p) => {
-                          const [i, f] = p.get();
-                          const iStr = format(i, "yyyy-MM-dd");
-                          const fStr = format(f, "yyyy-MM-dd");
-                          const ativo = dataInicio === iStr && dataFim === fStr;
-                          return (
-                            <Button
-                              key={p.label}
-                              type="button"
-                              variant={ativo ? "default" : "outline"}
-                              size="sm"
-                              className="h-8 text-xs justify-start"
-                              onClick={() => { setDataInicio(iStr); setDataFim(fStr); }}
-                            >
-                              {p.label}
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/60">
-                      <div className="space-y-1">
-                        <Label className="text-xs">Início</Label>
-                        <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="h-9" />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">Fim</Label>
-                        <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="h-9" />
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-
-                {/* Mais filtros */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2 h-9">
-                      <SlidersHorizontal className="h-4 w-4" />
-                      <span className="hidden sm:inline">Filtros</span>
-                      {filtrosAtivos > 0 && (
-                        <Badge variant="default" className="h-5 min-w-5 px-1.5 text-[10px]">{filtrosAtivos}</Badge>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-[280px] p-3 space-y-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Status</Label>
-                      <Select value={statusFiltro} onValueChange={setStatusFiltro}>
-                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="todos">Todos</SelectItem>
-                          <SelectItem value="pendente">Pendente</SelectItem>
-                          <SelectItem value="em_preparo">Em Preparo</SelectItem>
-                          <SelectItem value="em_rota">Em Rota</SelectItem>
-                          <SelectItem value="entregue">Entregue</SelectItem>
-                          <SelectItem value="cancelado">Cancelado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Canal</Label>
-                      <Select value={canalFiltro} onValueChange={setCanalFiltro}>
-                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="todos">Todos</SelectItem>
-                          {canaisVenda.map((c) => (
-                            <SelectItem key={c.id} value={c.nome}>{canalLabels[c.nome] || c.nome}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {isMatriz && (
-                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
-                        <Label htmlFor="consolidado" className="text-sm cursor-pointer">
-                          Consolidar unidades
-                          <span className="block text-xs text-muted-foreground font-normal">{unidadeIds.length} {unidadeIds.length === 1 ? "unidade" : "unidades"}</span>
-                        </Label>
-                        <Switch id="consolidado" checked={consolidado} onCheckedChange={setConsolidado} />
-                      </div>
-                    )}
-                  </PopoverContent>
-                </Popover>
-
-                <Button variant="ghost" size="sm" className="h-9 gap-2 ml-auto" onClick={() => refetch()} disabled={isLoading}>
-                  <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-                  <span className="hidden sm:inline">Atualizar</span>
-                </Button>
+        {/* Filtros */}
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 mb-3 text-sm font-medium text-muted-foreground">
+              <Filter className="h-4 w-4 text-primary" />Filtros
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Data Inicial</Label>
+                <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="h-10" />
               </div>
-
-              {/* Chips de filtros ativos */}
-              {filtrosAtivos > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {statusFiltro !== "todos" && (
-                    <Badge variant="secondary" className="gap-1 pr-1">
-                      Status: {statusConfig[statusFiltro]?.label ?? statusFiltro}
-                      <button onClick={() => setStatusFiltro("todos")} className="ml-1 rounded-full hover:bg-background/60 p-0.5"><X className="h-3 w-3" /></button>
-                    </Badge>
-                  )}
-                  {canalFiltro !== "todos" && (
-                    <Badge variant="secondary" className="gap-1 pr-1">
-                      Canal: {canalLabels[canalFiltro] || canalFiltro}
-                      <button onClick={() => setCanalFiltro("todos")} className="ml-1 rounded-full hover:bg-background/60 p-0.5"><X className="h-3 w-3" /></button>
-                    </Badge>
-                  )}
-                  {consolidado && (
-                    <Badge variant="default" className="gap-1 pr-1">
-                      Consolidado · {unidadeIds.length}
-                      <button onClick={() => setConsolidado(false)} className="ml-1 rounded-full hover:bg-background/30 p-0.5"><X className="h-3 w-3" /></button>
-                    </Badge>
-                  )}
-                </div>
-              )}
+              <div className="space-y-1">
+                <Label className="text-xs">Data Final</Label>
+                <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="h-10" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Entregador</Label>
+                <Select value={entregadorFiltroUI} onValueChange={setEntregadorFiltroUI}>
+                  <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {entregadoresOpcoes.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Canal de Venda</Label>
+                <Select value={canalFiltroUI} onValueChange={setCanalFiltroUI}>
+                  <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {canaisOpcoes.map(c => <SelectItem key={c} value={c}>{canalLabels[c] || c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Produto</Label>
+                <Select value={produtoFiltroUI} onValueChange={setProdutoFiltroUI}>
+                  <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {produtosOpcoes.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          );
-        })()}
+          </CardContent>
+        </Card>
 
-
-
-
-        {/* Métricas */}
-        <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-5">
-          <Card><CardContent className="flex items-center gap-3 p-3 md:p-4"><div className="status-card-icon status-card-icon-primary"><DollarSign /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Total Vendas</p><p className="text-lg font-bold truncate">{formatCurrency(metricas.totalVendas)}</p></div></CardContent></Card>
-          <Card><CardContent className="flex items-center gap-3 p-3 md:p-4"><div className="status-card-icon status-card-icon-info"><ShoppingCart /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Total Pedidos</p><p className="text-lg font-bold">{metricas.totalPedidos}</p></div></CardContent></Card>
-          <Card><CardContent className="flex items-center gap-3 p-3 md:p-4"><div className="status-card-icon status-card-icon-success"><TrendingUp /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Entregues</p><p className="text-lg font-bold text-success">{metricas.pedidosEntregues}</p></div></CardContent></Card>
-          <Card><CardContent className="flex items-center gap-3 p-3 md:p-4"><div className="status-card-icon status-card-icon-destructive"><Calendar /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Cancelados</p><p className="text-lg font-bold text-destructive">{metricas.pedidosCancelados}</p></div></CardContent></Card>
-          <Card><CardContent className="flex items-center gap-3 p-3 md:p-4"><div className="status-card-icon status-card-icon-warning"><Download /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Ticket Médio</p><p className="text-lg font-bold truncate">{formatCurrency(metricas.ticketMedio)}</p></div></CardContent></Card>
+        {/* KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card className="hover:border-primary/40 transition-colors">
+            <CardContent className="p-4 flex items-start gap-3">
+              <div className="rounded-xl bg-primary/10 p-2.5 text-primary"><DollarSign className="h-5 w-5" /></div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground">Faturamento Total</p>
+                <p className="text-lg sm:text-2xl font-bold mt-0.5 truncate">{fmtBRL(kpisUI.faturamento)}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:border-primary/40 transition-colors">
+            <CardContent className="p-4 flex items-start gap-3">
+              <div className="rounded-xl bg-primary/10 p-2.5 text-primary"><Package className="h-5 w-5" /></div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground">Itens Vendidos</p>
+                <p className="text-lg sm:text-2xl font-bold mt-0.5">{fmtInt(kpisUI.itens)}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:border-primary/40 transition-colors">
+            <CardContent className="p-4 flex items-start gap-3">
+              <div className="rounded-xl bg-primary/10 p-2.5 text-primary"><TrendingUp className="h-5 w-5" /></div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground">Preço Médio</p>
+                <p className="text-lg sm:text-2xl font-bold mt-0.5 truncate">{fmtBRL(kpisUI.precoMedio)}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:border-primary/40 transition-colors">
+            <CardContent className="p-4 flex items-start gap-3">
+              <div className="rounded-xl bg-primary/10 p-2.5 text-primary"><ShoppingCart className="h-5 w-5" /></div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground">Total de Pedidos</p>
+                <p className="text-lg sm:text-2xl font-bold mt-0.5">{fmtInt(kpisUI.pedidos)}</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Tabs: Pedidos / Entregador / Canal */}
-        <Tabs defaultValue="pedidos" className="space-y-4">
-          <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted/60 p-1">
-            <TabsTrigger value="pedidos" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden xs:inline">Pedidos</span><span className="xs:hidden">Ped.</span></TabsTrigger>
-            <TabsTrigger value="produtos" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Produtos</span><span className="sm:hidden">Prod.</span></TabsTrigger>
-            <TabsTrigger value="entregador" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Por Entregador</span><span className="sm:hidden">Entreg.</span></TabsTrigger>
-            <TabsTrigger value="entregador-canal" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><FileSpreadsheet className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Entregador x Canal</span><span className="sm:hidden">E×C</span></TabsTrigger>
-            <TabsTrigger value="canal" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><Megaphone className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Por Canal</span><span className="sm:hidden">Canal</span></TabsTrigger>
-            <TabsTrigger value="pagamento" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Pagamento</span><span className="sm:hidden">Pgto.</span></TabsTrigger>
-            <TabsTrigger value="dia" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Evolução</span><span className="sm:hidden">Dia</span></TabsTrigger>
-            <TabsTrigger value="produtos-vendidos" className="flex-1 min-w-[80px] gap-1 sm:gap-2 text-xs sm:text-sm font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><PackageSearch className="h-3.5 w-3.5 sm:h-4 sm:w-4" /><span className="hidden sm:inline">Produtos Vendidos</span><span className="sm:hidden">Vendidos</span></TabsTrigger>
+        {/* Abas */}
+        <Tabs value={abaUI} onValueChange={(v) => setAbaUI(v as any)} className="space-y-3">
+          <TabsList className="grid grid-cols-3 w-full h-auto p-1">
+            <TabsTrigger value="produto" className="gap-1.5 text-xs sm:text-sm py-2">
+              <Package className="h-4 w-4" />Por Produto
+            </TabsTrigger>
+            <TabsTrigger value="entregador" className="gap-1.5 text-xs sm:text-sm py-2">
+              <Users className="h-4 w-4" />Por Entregador
+            </TabsTrigger>
+            <TabsTrigger value="canal" className="gap-1.5 text-xs sm:text-sm py-2">
+              <Megaphone className="h-4 w-4" />Por Canal
+            </TabsTrigger>
           </TabsList>
 
-          {/* Tab Pedidos */}
-          <TabsContent value="pedidos">
+          {/* Aba Produto */}
+          <TabsContent value="produto" className="space-y-3">
+            <Input
+              placeholder="Buscar produto..."
+              value={produtoBuscaUI}
+              onChange={e => setProdutoBuscaUI(e.target.value)}
+              className="h-10 max-w-sm"
+            />
             <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center justify-between flex-wrap gap-2">
-                  <span>Pedidos do Período</span>
-                  <Badge variant="secondary">{pedidosFiltrados.length} registros</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0 sm:p-6 sm:pt-0">
+              <CardContent className="p-0">
                 {isLoading ? (
-                  <div className="space-y-3 p-4">{[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
-                ) : pedidosFiltrados.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">Nenhum pedido encontrado no período.</div>
+                  <div className="p-4 space-y-2">
+                    <Skeleton className="h-10" /><Skeleton className="h-10" /><Skeleton className="h-10" />
+                  </div>
+                ) : porProdutoUI.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-10">Sem vendas no período.</p>
                 ) : (
                   <div className="overflow-x-auto">
-                    <Table className="min-w-[480px]">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-20">Data</TableHead>
-                          <TableHead>Cliente</TableHead>
-                          <TableHead className="hidden sm:table-cell">Entregador</TableHead>
-                          <TableHead className="hidden md:table-cell">Canal</TableHead>
-                          <TableHead className="text-right">Valor</TableHead>
-                          <TableHead className="hidden sm:table-cell">Pgto</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {pedidosFiltrados.slice(0, 50).map((pedido) => (
-                          <TableRow key={pedido.id}>
-                            <TableCell className="text-xs">{pedido.data_entrega ? format(parseISO(`${pedido.data_entrega}T12:00:00`), "dd/MM", { locale: ptBR }) : format(parseISO(pedido.created_at), "dd/MM HH:mm", { locale: ptBR })}</TableCell>
-                            <TableCell className="text-sm">
-                              <div className="font-medium">{pedido.clientes?.nome || "Não identificado"}</div>
-                              <div className="sm:hidden text-xs text-muted-foreground mt-0.5">{pedido.entregadores?.nome || "—"}</div>
-                            </TableCell>
-                            <TableCell className="hidden sm:table-cell text-xs">{pedido.entregadores?.nome || "-"}</TableCell>
-                            <TableCell className="hidden md:table-cell text-xs">
-                              <Popover open={!consolidado && editandoCanalId === pedido.id} onOpenChange={(open) => !consolidado && setEditandoCanalId(open ? pedido.id : null)}>
-                                <PopoverTrigger asChild>
-                                  <button
-                                    disabled={consolidado}
-                                    title={consolidado ? "Selecione uma unidade específica para editar" : undefined}
-                                    className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
-                                  >
-                                    <Badge variant="outline" className="text-xs">{canalLabels[pedido.canal_venda || ""] || pedido.canal_venda || "-"}</Badge>
-                                    {!consolidado && <Pencil className="h-3 w-3 text-muted-foreground" />}
-                                  </button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-48 p-2 bg-popover border border-border shadow-lg z-50" align="start">
-                                  <div className="space-y-1">
-                                    <p className="text-xs font-medium text-muted-foreground px-1 mb-2">Trocar canal:</p>
-                                    {canaisVenda.map((c) => (
-                                      <button
-                                        key={c.id}
-                                        className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors ${pedido.canal_venda === c.nome ? "bg-accent font-medium" : ""}`}
-                                        onClick={() => alterarCanalVenda(pedido.id, c.nome)}
-                                      >
-                                        {canalLabels[c.nome] || c.nome}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </PopoverContent>
-                              </Popover>
-                            </TableCell>
-                            <TableCell className="font-semibold text-xs text-right whitespace-nowrap">{formatCurrency(pedido.valor_total || 0)}</TableCell>
-                            <TableCell className="hidden sm:table-cell"><Badge variant="outline" className="text-xs">{pedido.forma_pagamento || "-"}</Badge></TableCell>
-                            <TableCell><Badge variant={statusConfig[pedido.status || "pendente"]?.variant || "secondary"} className="text-xs whitespace-nowrap">{statusConfig[pedido.status || "pendente"]?.label || pedido.status}</Badge></TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-                {pedidosFiltrados.length > 50 && (
-                  <p className="text-center text-sm text-muted-foreground mt-4 pb-4">Mostrando 50 de {pedidosFiltrados.length} registros. Exporte para ver todos.</p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Tab Por Entregador */}
-          <TabsContent value="entregador">
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Card>
-                <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Users className="h-5 w-5" />Faturamento por Entregador</CardTitle></CardHeader>
-                <CardContent>
-                  {dadosPorEntregador.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={280}>
-                      <BarChart data={dadosPorEntregador.slice(0, 10)} layout="vertical" margin={{ left: 10, right: 20, top: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                        <XAxis type="number" tickFormatter={(v) => `R$${(v / 1000).toFixed(1)}k`} className="text-xs" />
-                        <YAxis type="category" dataKey="nome" width={90} className="text-xs" tick={{ fontSize: 11 }} />
-                        <Tooltip formatter={(v: number) => formatCurrency(v)} labelStyle={{ fontWeight: "bold" }} />
-                        <Bar dataKey="total" name="Faturamento" radius={[0, 4, 4, 0]}>
-                          {dadosPorEntregador.slice(0, 10).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3"><CardTitle className="text-base">Detalhamento por Entregador</CardTitle></CardHeader>
-                <CardContent className="p-0 sm:p-6 sm:pt-0">
-                  <div className="overflow-x-auto">
-                    <Table className="min-w-[320px]">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Entregador</TableHead>
-                          <TableHead className="text-right w-14">Qtd</TableHead>
-                          <TableHead className="text-right">Faturamento</TableHead>
-                          <TableHead className="text-right hidden sm:table-cell">Ticket Médio</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {dadosPorEntregador.map((e, i) => (
-                          <TableRow key={i}>
-                            <TableCell className="font-medium text-sm">{e.nome}</TableCell>
-                            <TableCell className="text-right">{e.qtd}</TableCell>
-                            <TableCell className="text-right font-semibold whitespace-nowrap">{formatCurrency(e.total)}</TableCell>
-                            <TableCell className="text-right hidden sm:table-cell whitespace-nowrap">{formatCurrency(e.qtd > 0 ? e.total / e.qtd : 0)}</TableCell>
-                          </TableRow>
-                        ))}
-                        {dadosPorEntregador.length > 0 && (
-                          <TableRow className="bg-muted/50 font-bold">
-                            <TableCell>Total</TableCell>
-                            <TableCell className="text-right">{dadosPorEntregador.reduce((s, e) => s + e.qtd, 0)}</TableCell>
-                            <TableCell className="text-right whitespace-nowrap">{formatCurrency(dadosPorEntregador.reduce((s, e) => s + e.total, 0))}</TableCell>
-                            <TableCell className="hidden sm:table-cell text-right">—</TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Tab Entregador x Canal */}
-          <TabsContent value="entregador-canal">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <FileSpreadsheet className="h-5 w-5" />Quantidade por Entregador e Canal de Venda
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0 sm:p-6 sm:pt-0">
-                {dadosEntregadorCanal.entregadores.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table className="min-w-[400px]">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="sticky left-0 bg-background z-10 min-w-[120px]">Entregador</TableHead>
-                          {dadosEntregadorCanal.canais.map(canal => (
-                            <TableHead key={canal} className="text-center whitespace-nowrap">{canalLabels[canal] || canal}</TableHead>
-                          ))}
-                          <TableHead className="text-center font-bold whitespace-nowrap">Total Qtd</TableHead>
-                          <TableHead className="text-right font-bold whitespace-nowrap">Total R$</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {dadosEntregadorCanal.entregadores.map((ent, i) => (
-                          <TableRow key={i}>
-                            <TableCell className="font-medium sticky left-0 bg-background z-10 text-sm">{ent.nome}</TableCell>
-                            {dadosEntregadorCanal.canais.map(canal => (
-                              <TableCell key={canal} className="text-center">{ent.canais[canal]?.qtd || 0}</TableCell>
-                            ))}
-                            <TableCell className="text-center font-bold">{ent.totalQtd}</TableCell>
-                            <TableCell className="text-right font-semibold whitespace-nowrap">{formatCurrency(ent.totalValor)}</TableCell>
-                          </TableRow>
-                        ))}
-                        <TableRow className="bg-muted/50 font-bold">
-                          <TableCell className="sticky left-0 bg-muted/50 z-10">Total</TableCell>
-                          {dadosEntregadorCanal.canais.map(canal => {
-                            const totalCanal = dadosEntregadorCanal.entregadores.reduce((s, e) => s + (e.canais[canal]?.qtd || 0), 0);
-                            return <TableCell key={canal} className="text-center">{totalCanal}</TableCell>;
-                          })}
-                          <TableCell className="text-center">{dadosEntregadorCanal.entregadores.reduce((s, e) => s + e.totalQtd, 0)}</TableCell>
-                          <TableCell className="text-right whitespace-nowrap">{formatCurrency(dadosEntregadorCanal.entregadores.reduce((s, e) => s + e.totalValor, 0))}</TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Tab Por Canal */}
-          <TabsContent value="canal">
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Card>
-                <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Megaphone className="h-5 w-5" />Distribuição por Canal</CardTitle></CardHeader>
-                <CardContent>
-                  {dadosPorCanal.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={280}>
-                      <PieChart>
-                        <Pie data={dadosPorCanal} dataKey="total" nameKey="label" cx="50%" cy="50%" outerRadius={90} label={({ label, percent }) => `${label} ${(percent * 100).toFixed(0)}%`}>
-                          {dadosPorCanal.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                        </Pie>
-                        <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-3"><CardTitle className="text-base">Detalhamento por Canal</CardTitle></CardHeader>
-                <CardContent className="p-0 sm:p-6 sm:pt-0">
-                  <div className="overflow-x-auto">
-                    <Table className="min-w-[320px]">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Canal</TableHead>
-                          <TableHead className="text-right w-14">Qtd</TableHead>
-                          <TableHead className="text-right">Faturamento</TableHead>
-                          <TableHead className="text-right hidden sm:table-cell">Ticket</TableHead>
-                          <TableHead className="text-right hidden sm:table-cell">%</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {dadosPorCanal.map((c, i) => {
-                          const totalGeral = dadosPorCanal.reduce((s, x) => s + x.total, 0);
-                          return (
-                            <TableRow key={i}>
-                              <TableCell className="font-medium text-sm">{c.label}</TableCell>
-                              <TableCell className="text-right">{c.qtd}</TableCell>
-                              <TableCell className="text-right font-semibold whitespace-nowrap">{formatCurrency(c.total)}</TableCell>
-                              <TableCell className="text-right hidden sm:table-cell whitespace-nowrap">{formatCurrency(c.qtd > 0 ? c.total / c.qtd : 0)}</TableCell>
-                              <TableCell className="text-right hidden sm:table-cell">{totalGeral > 0 ? ((c.total / totalGeral) * 100).toFixed(1) : 0}%</TableCell>
-                            </TableRow>
-                          );
-                        })}
-                        {dadosPorCanal.length > 0 && (
-                          <TableRow className="bg-muted/50 font-bold">
-                            <TableCell>Total</TableCell>
-                            <TableCell className="text-right">{dadosPorCanal.reduce((s, c) => s + c.qtd, 0)}</TableCell>
-                            <TableCell className="text-right whitespace-nowrap">{formatCurrency(dadosPorCanal.reduce((s, c) => s + c.total, 0))}</TableCell>
-                            <TableCell className="hidden sm:table-cell text-right">—</TableCell>
-                            <TableCell className="hidden sm:table-cell text-right">100%</TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Tab Produtos */}
-          <TabsContent value="produtos">
-            <div className="grid gap-3 grid-cols-2 md:grid-cols-3 mb-4">
-              <Card><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-primary"><Package /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Unidades vendidas</p><p className="text-lg font-bold">{dadosPorProduto.reduce((s, p) => s + p.qtd, 0)}</p></div></CardContent></Card>
-              <Card><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-info"><FileSpreadsheet /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Mix de produtos</p><p className="text-lg font-bold">{dadosPorProduto.length}</p></div></CardContent></Card>
-              <Card className="col-span-2 md:col-span-1"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-success"><DollarSign /></div><div className="min-w-0"><p className="text-xs text-muted-foreground">Faturamento</p><p className="text-lg font-bold truncate">{formatCurrency(dadosPorProduto.reduce((s, p) => s + p.faturamento, 0))}</p></div></CardContent></Card>
-            </div>
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Card className="venda-card">
-                <VendaSectionHeader tone="info" icon={<Package className="h-5 w-5" />} title="Top 10 — Quantidade" />
-                <CardContent>
-                  {dadosPorProduto.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={320}>
-                      <BarChart data={dadosPorProduto.slice(0, 10)} layout="vertical" margin={{ left: 10, right: 20, top: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                        <XAxis type="number" className="text-xs" />
-                        <YAxis type="category" dataKey="nome" width={110} className="text-xs" tick={{ fontSize: 11 }} />
-                        <Tooltip formatter={(v: number, n) => n === "qtd" ? [`${v} un.`, "Quantidade"] : formatCurrency(v)} />
-                        <Bar dataKey="qtd" name="Quantidade" radius={[0, 4, 4, 0]}>
-                          {dadosPorProduto.slice(0, 10).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="venda-card">
-                <VendaSectionHeader tone="primary" icon={<FileSpreadsheet className="h-5 w-5" />} title="Detalhamento por Produto" />
-                <CardContent className="p-0 sm:p-6 sm:pt-0">
-                  <div className="overflow-x-auto">
-                    <Table className="min-w-[360px]">
+                    <Table className="min-w-[520px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead>Produto</TableHead>
-                          <TableHead className="text-right w-16">Qtd</TableHead>
-                          <TableHead className="text-right hidden sm:table-cell">Pedidos</TableHead>
-                          <TableHead className="text-right">Faturamento</TableHead>
-                          <TableHead className="text-right hidden sm:table-cell">%</TableHead>
+                          <TableHead className="text-right">Qtd Vendida</TableHead>
+                          <TableHead className="text-right">Preço Médio</TableHead>
+                          <TableHead className="text-right">Total Vendido</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {dadosPorProduto.map((p, i) => {
-                          const totalFat = dadosPorProduto.reduce((s, x) => s + x.faturamento, 0);
-                          return (
-                            <TableRow key={i}>
-                              <TableCell className="font-medium text-sm">{p.nome}</TableCell>
-                              <TableCell className="text-right font-semibold">{p.qtd}</TableCell>
-                              <TableCell className="text-right hidden sm:table-cell">{p.pedidosCount}</TableCell>
-                              <TableCell className="text-right whitespace-nowrap">{formatCurrency(p.faturamento)}</TableCell>
-                              <TableCell className="text-right hidden sm:table-cell">{totalFat > 0 ? ((p.faturamento / totalFat) * 100).toFixed(1) : 0}%</TableCell>
-                            </TableRow>
-                          );
-                        })}
-                        {dadosPorProduto.length > 0 && (
-                          <TableRow className="bg-muted/50 font-bold">
-                            <TableCell>Total</TableCell>
-                            <TableCell className="text-right">{dadosPorProduto.reduce((s, p) => s + p.qtd, 0)}</TableCell>
-                            <TableCell className="hidden sm:table-cell text-right">—</TableCell>
-                            <TableCell className="text-right whitespace-nowrap">{formatCurrency(dadosPorProduto.reduce((s, p) => s + p.faturamento, 0))}</TableCell>
-                            <TableCell className="hidden sm:table-cell text-right">100%</TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Comparativo Mensal */}
-            <Card className="venda-card mt-4">
-              <VendaSectionHeader
-                tone="success"
-                icon={<CalendarDays className="h-5 w-5" />}
-                title="Comparativo Mensal por Produto"
-                action={
-                  <Select value={metricaComparativo} onValueChange={(v: "qtd" | "faturamento") => setMetricaComparativo(v)}>
-                    <SelectTrigger className="h-9 w-[150px] bg-background"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="qtd">Quantidade</SelectItem>
-                      <SelectItem value="faturamento">Faturamento</SelectItem>
-                    </SelectContent>
-                  </Select>
-                }
-              />
-              <div className="px-4 pt-3 sm:px-5">
-                <p className="text-xs text-muted-foreground">
-                  Mostra os meses cobertos pelo período selecionado no topo. Clique em qualquer célula para lançar vendas históricas — o total mostra <span className="text-primary font-medium">sistema + manual</span>.
-                </p>
-              </div>
-
-              <CardContent className="space-y-4">
-                {periodosSelecionados.length > 0 && (
-                  <div className="flex flex-wrap gap-2 rounded-xl border bg-muted/30 p-3">
-                    {periodosSelecionados.map((p) => (
-                      <span
-                        key={periodoKey(p)}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-primary bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium shadow-sm"
-                      >
-                        <span className="flex items-center justify-center size-4 rounded-full bg-primary-foreground text-primary">
-                          <Check className="size-3" strokeWidth={3} />
-                        </span>
-                        {formatPeriodoCurto(p)}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-
-                {/* Tabela comparativa */}
-                <div className="overflow-x-auto">
-                  {dadosComparativoMensal.linhas.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">Sem dados no período selecionado.</p>
-                  ) : periodosSelecionados.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">Selecione um período válido.</p>
-                  ) : (
-                    <Table className="min-w-[640px] tabular-nums [&_th]:text-center [&_td]:text-center border-collapse">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="min-w-[160px] max-w-[220px] text-center bg-muted/50 font-semibold">Produto</TableHead>
-                          {periodosSelecionados.map((p, idx) => (
-                            <TableHead
-                              key={periodoKey(p)}
-                              className={cn(
-                                "whitespace-nowrap w-[92px] font-semibold",
-                                idx % 2 === 0 ? "bg-primary/10 text-primary" : "bg-muted/40"
-                              )}
-                            >
-                              {formatPeriodoCurto(p)}
-                            </TableHead>
-                          ))}
-                          <TableHead className="whitespace-nowrap w-[110px] border-l border-border/60 bg-accent/30 font-semibold">Média</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {dadosComparativoMensal.linhas.map((l, i) => (
-                          <TableRow key={l.produto_id || `n-${i}`}>
-                            <TableCell className="font-medium text-sm truncate max-w-[220px] text-center bg-muted/20">{l.nome}</TableCell>
-                            {periodosSelecionados.map((p, idx) => (
-                              <TableCell
-                                key={periodoKey(p)}
-                                className={cn(
-                                  "whitespace-nowrap w-[92px] px-2 py-2",
-                                  idx % 2 === 0 ? "bg-primary/5" : ""
-                                )}
-                              >
-                                <CelulaMesEditavel
-                                  valor={l.valores[idx]}
-                                  manual={l.manual[idx]}
-                                  metrica={metricaComparativo}
-                                  editavel={!!l.produto_id && !consolidado}
-                                  onSalvar={(novo) => l.produto_id && salvarVendaManual(l.produto_id, idx, novo)}
-                                />
-                              </TableCell>
-                            ))}
-                            <TableCell className="font-semibold text-primary whitespace-nowrap w-[110px] border-l border-border/60 bg-accent/20">
-                              {metricaComparativo === "qtd"
-                                ? l.media.toLocaleString("pt-BR", { maximumFractionDigits: 1 })
-                                : formatCurrency(l.media)}
-                            </TableCell>
+                        {porProdutoUI.map(r => (
+                          <TableRow key={r.nome}>
+                            <TableCell className="font-medium max-w-[220px] truncate" title={r.nome}>{r.nome}</TableCell>
+                            <TableCell className="text-right">{fmtInt(r.qtd)}</TableCell>
+                            <TableCell className="text-right whitespace-nowrap">{fmtBRL(r.precoMedio)}</TableCell>
+                            <TableCell className="text-right font-semibold whitespace-nowrap">{fmtBRL(r.total)}</TableCell>
                           </TableRow>
                         ))}
-                        <TableRow className="font-bold">
-                          <TableCell className="bg-muted/70 font-bold text-center">Total</TableCell>
-                          {periodosSelecionados.map((p, idx) => (
-                            <TableCell
-                              key={periodoKey(p)}
-                              className={cn(
-                                "whitespace-nowrap w-[92px] font-bold",
-                                idx % 2 === 0 ? "bg-primary/15" : "bg-muted/60"
-                              )}
-                            >
-                              {metricaComparativo === "qtd"
-                                ? Math.round(dadosComparativoMensal.totaisPorPeriodo[idx]).toLocaleString("pt-BR")
-                                : formatCurrency(dadosComparativoMensal.totaisPorPeriodo[idx])}
-                            </TableCell>
-                          ))}
-                          <TableCell className="text-primary whitespace-nowrap w-[110px] border-l border-border/60 bg-accent/40 font-bold">
-                            {metricaComparativo === "qtd"
-                              ? dadosComparativoMensal.mediaTotal.toLocaleString("pt-BR", { maximumFractionDigits: 1 })
-                              : formatCurrency(dadosComparativoMensal.mediaTotal)}
+                        <TableRow className="bg-muted/50 font-bold">
+                          <TableCell>Total</TableCell>
+                          <TableCell className="text-right">
+                            {fmtInt(porProdutoUI.reduce((s, r) => s + r.qtd, 0))}
+                          </TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            {fmtBRL(
+                              porProdutoUI.reduce((s, r) => s + r.qtd, 0) > 0
+                                ? porProdutoUI.reduce((s, r) => s + r.total, 0) / porProdutoUI.reduce((s, r) => s + r.qtd, 0)
+                                : 0
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            {fmtBRL(porProdutoUI.reduce((s, r) => s + r.total, 0))}
                           </TableCell>
                         </TableRow>
                       </TableBody>
                     </Table>
-                  )}
-                </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="pagamento">
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Card>
-                <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><CreditCard className="h-5 w-5" />Distribuição por Forma de Pagamento</CardTitle></CardHeader>
-                <CardContent>
-                  {dadosPorFormaPagamento.length === 0 ? (
-                    <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={280}>
-                      <PieChart>
-                        <Pie data={dadosPorFormaPagamento} dataKey="total" nameKey="label" cx="50%" cy="50%" outerRadius={90} label={({ label, percent }) => `${label} ${(percent * 100).toFixed(0)}%`}>
-                          {dadosPorFormaPagamento.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                        </Pie>
-                        <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  )}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-3"><CardTitle className="text-base">Detalhamento por Forma</CardTitle></CardHeader>
-                <CardContent className="p-0 sm:p-6 sm:pt-0">
+          {/* Aba Entregador */}
+          <TabsContent value="entregador" className="space-y-3">
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                <Skeleton className="h-40" /><Skeleton className="h-40" /><Skeleton className="h-40" />
+              </div>
+            ) : porEntregadorUI.length === 0 ? (
+              <Card><CardContent className="p-10 text-center text-sm text-muted-foreground">Sem vendas no período.</CardContent></Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {porEntregadorUI.map(l => {
+                  const expanded = expandedEntregadorId === l.id;
+                  const margem = l.temCusto && l.faturamento > 0 ? (l.lucro / l.faturamento) * 100 : null;
+                  return (
+                    <Card key={l.id} className="hover:border-primary/40 transition-colors">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="font-bold text-base truncate uppercase tracking-wide" title={l.nome}>{l.nome}</h3>
+                          <Badge variant="secondary" className="shrink-0">{fmtInt(l.qtd)} itens</Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div className="rounded-lg bg-muted/40 px-2.5 py-2">
+                            <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Faturamento</p>
+                            <p className="font-semibold truncate">{fmtBRL(l.faturamento)}</p>
+                          </div>
+                          <div className="rounded-lg bg-muted/40 px-2.5 py-2">
+                            <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Lucro</p>
+                            <p className={cn("font-semibold truncate", l.temCusto ? (l.lucro >= 0 ? "text-emerald-500" : "text-destructive") : "text-muted-foreground")}>
+                              {l.temCusto ? fmtBRL(l.lucro) : "—"}
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-muted/40 px-2.5 py-2">
+                            <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Margem</p>
+                            <p className={cn("font-semibold", margem !== null ? (margem >= 0 ? "text-emerald-500" : "text-destructive") : "text-muted-foreground")}>
+                              {margem !== null ? `${margem.toFixed(2)}%` : "—"}
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-muted/40 px-2.5 py-2">
+                            <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Itens</p>
+                            <p className="font-semibold">{fmtInt(l.qtd)}</p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full h-9"
+                          onClick={() => setExpandedEntregadorId(expanded ? null : l.id)}
+                        >
+                          {expanded ? "Ocultar Detalhes" : "Ver Detalhes"}
+                        </Button>
+                        {expanded && (
+                          <div className="border-t pt-3 -mx-1">
+                            <div className="overflow-x-auto">
+                              <Table className="min-w-[320px]">
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="h-8">Produto</TableHead>
+                                    <TableHead className="h-8 text-right">Qtd</TableHead>
+                                    <TableHead className="h-8 text-right">Preço Médio</TableHead>
+                                    <TableHead className="h-8 text-right">Total</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {l.detalhes.map(d => (
+                                    <TableRow key={d.nome}>
+                                      <TableCell className="py-1.5 font-medium max-w-[140px] truncate" title={d.nome}>{d.nome}</TableCell>
+                                      <TableCell className="py-1.5 text-right">{fmtInt(d.qtd)}</TableCell>
+                                      <TableCell className="py-1.5 text-right whitespace-nowrap">{fmtBRL(d.qtd > 0 ? d.total / d.qtd : 0)}</TableCell>
+                                      <TableCell className="py-1.5 text-right font-semibold whitespace-nowrap">{fmtBRL(d.total)}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                  <TableRow className="bg-muted/50 font-bold">
+                                    <TableCell className="py-1.5">Total</TableCell>
+                                    <TableCell className="py-1.5 text-right">{fmtInt(l.qtd)}</TableCell>
+                                    <TableCell className="py-1.5 text-right whitespace-nowrap">{fmtBRL(l.qtd > 0 ? l.faturamento / l.qtd : 0)}</TableCell>
+                                    <TableCell className="py-1.5 text-right whitespace-nowrap">{fmtBRL(l.faturamento)}</TableCell>
+                                  </TableRow>
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Aba Canal */}
+          <TabsContent value="canal" className="space-y-3">
+            <Card>
+              <CardContent className="p-0">
+                {isLoading ? (
+                  <div className="p-4 space-y-2">
+                    <Skeleton className="h-10" /><Skeleton className="h-10" /><Skeleton className="h-10" />
+                  </div>
+                ) : porCanalUI.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-10">Sem vendas no período.</p>
+                ) : (
                   <div className="overflow-x-auto">
-                    <Table className="min-w-[320px]">
+                    <Table className="min-w-[460px]">
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Forma</TableHead>
-                          <TableHead className="text-right w-14">Qtd</TableHead>
-                          <TableHead className="text-right">Faturamento</TableHead>
-                          <TableHead className="text-right hidden sm:table-cell">Ticket</TableHead>
-                          <TableHead className="text-right hidden sm:table-cell">%</TableHead>
+                          <TableHead>Canal</TableHead>
+                          <TableHead className="text-right">Quantidade</TableHead>
+                          <TableHead className="text-right">Preço Médio</TableHead>
+                          <TableHead className="text-right">Total</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {dadosPorFormaPagamento.map((f, i) => {
-                          const totalGeral = dadosPorFormaPagamento.reduce((s, x) => s + x.total, 0);
-                          return (
-                            <TableRow key={i}>
-                              <TableCell className="font-medium text-sm">{f.label}</TableCell>
-                              <TableCell className="text-right">{f.qtd}</TableCell>
-                              <TableCell className="text-right font-semibold whitespace-nowrap">{formatCurrency(f.total)}</TableCell>
-                              <TableCell className="text-right hidden sm:table-cell whitespace-nowrap">{formatCurrency(f.qtd > 0 ? f.total / f.qtd : 0)}</TableCell>
-                              <TableCell className="text-right hidden sm:table-cell">{totalGeral > 0 ? ((f.total / totalGeral) * 100).toFixed(1) : 0}%</TableCell>
-                            </TableRow>
-                          );
-                        })}
-                        {dadosPorFormaPagamento.length > 0 && (
-                          <TableRow className="bg-muted/50 font-bold">
-                            <TableCell>Total</TableCell>
-                            <TableCell className="text-right">{dadosPorFormaPagamento.reduce((s, c) => s + c.qtd, 0)}</TableCell>
-                            <TableCell className="text-right whitespace-nowrap">{formatCurrency(dadosPorFormaPagamento.reduce((s, c) => s + c.total, 0))}</TableCell>
-                            <TableCell className="hidden sm:table-cell text-right">—</TableCell>
-                            <TableCell className="hidden sm:table-cell text-right">100%</TableCell>
+                        {porCanalUI.map(r => (
+                          <TableRow key={r.canal}>
+                            <TableCell className="font-medium">{r.nome}</TableCell>
+                            <TableCell className="text-right">{fmtInt(r.qtd)}</TableCell>
+                            <TableCell className="text-right whitespace-nowrap">{fmtBRL(r.precoMedio)}</TableCell>
+                            <TableCell className="text-right font-semibold whitespace-nowrap">{fmtBRL(r.total)}</TableCell>
                           </TableRow>
-                        )}
+                        ))}
+                        <TableRow className="bg-muted/50 font-bold">
+                          <TableCell>Total</TableCell>
+                          <TableCell className="text-right">{fmtInt(porCanalUI.reduce((s, r) => s + r.qtd, 0))}</TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            {fmtBRL(
+                              porCanalUI.reduce((s, r) => s + r.qtd, 0) > 0
+                                ? porCanalUI.reduce((s, r) => s + r.total, 0) / porCanalUI.reduce((s, r) => s + r.qtd, 0)
+                                : 0
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right whitespace-nowrap">{fmtBRL(porCanalUI.reduce((s, r) => s + r.total, 0))}</TableCell>
+                        </TableRow>
                       </TableBody>
                     </Table>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Tab Evolução Diária */}
-          <TabsContent value="dia">
-            {(() => {
-              const totalDias = dadosPorDia.length;
-              const totalFat = dadosPorDia.reduce((s, d) => s + d.total, 0);
-              const media = totalDias > 0 ? totalFat / totalDias : 0;
-              const melhor = [...dadosPorDia].sort((a, b) => b.total - a.total)[0];
-              const pior = [...dadosPorDia].filter(d => d.total > 0).sort((a, b) => a.total - b.total)[0];
-              return (
-                <>
-                  <div className="grid gap-3 grid-cols-2 md:grid-cols-3 mb-4">
-                    <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Média diária</p><p className="text-lg font-bold truncate">{formatCurrency(media)}</p></CardContent></Card>
-                    <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Melhor dia</p><p className="text-lg font-bold text-success truncate">{melhor ? `${melhor.label} — ${formatCurrency(melhor.total)}` : "—"}</p></CardContent></Card>
-                    <Card className="col-span-2 md:col-span-1"><CardContent className="p-3"><p className="text-xs text-muted-foreground">Pior dia</p><p className="text-lg font-bold text-destructive truncate">{pior ? `${pior.label} — ${formatCurrency(pior.total)}` : "—"}</p></CardContent></Card>
-                  </div>
-                  <Card>
-                    <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><CalendarDays className="h-5 w-5" />Evolução de Vendas no Período</CardTitle></CardHeader>
-                    <CardContent>
-                      {dadosPorDia.length === 0 ? (
-                        <p className="text-center py-8 text-muted-foreground">Sem dados no período.</p>
-                      ) : (
-                        <ResponsiveContainer width="100%" height={320}>
-                          <LineChart data={dadosPorDia}>
-                            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                            <XAxis dataKey="label" className="text-xs" />
-                            <YAxis className="text-xs" tickFormatter={(v) => `R$${(v / 1000).toFixed(1)}k`} />
-                            <Tooltip formatter={(v: number, n) => n === "total" ? formatCurrency(v) : [`${v} pedidos`, "Pedidos"]} />
-                            <Legend />
-                            <Line type="monotone" dataKey="total" name="Faturamento" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
-                            <Line type="monotone" dataKey="qtd" name="Pedidos" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ r: 3 }} yAxisId="right" />
-                            <YAxis yAxisId="right" orientation="right" className="text-xs" />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      )}
-                    </CardContent>
-                  </Card>
-                </>
-              );
-            })()}
-          </TabsContent>
-
-          {/* Tab Produtos Vendidos */}
-          <TabsContent value="produtos-vendidos">
-            <ProdutosVendidosTab
-              pedidos={pedidos}
-              unidadeId={unidadeAtual?.id}
-              unidadeIds={unidadeIds}
-              consolidado={consolidado}
-              dataInicio={dataInicio}
-              dataFim={dataFim}
-              onPeriodoChange={(ini, fim) => { setDataInicio(ini); setDataFim(fim); }}
-            />
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
-
-        {/* Import Review Dialog */}
-        <ImportReviewDialog
-          open={importDialogOpen}
-          onOpenChange={setImportDialogOpen}
-          title="Revisar Pedidos Importados"
-          description="Revise e corrija os dados extraídos antes de importar para o sistema."
-          items={importItems}
-          columns={[
-            { key: "data", label: "Data", type: "date", width: "120px" },
-            { key: "cliente_nome", label: "Cliente", width: "150px" },
-            { key: "itens_desc", label: "Itens", width: "180px" },
-            { key: "valor_total", label: "Valor (R$)", type: "number", width: "100px" },
-            { key: "forma_pagamento", label: "Pagamento", width: "120px" },
-            { key: "observacoes", label: "Obs", width: "120px" },
-          ]}
-          onUpdateItem={(index, field, value) => {
-            setImportItems(prev => prev.map((it, i) => i === index ? { ...it, [field]: value } : it));
-          }}
-          onRemoveItem={(index) => {
-            setImportItems(prev => prev.filter((_, i) => i !== index));
-          }}
-          onConfirm={salvarImportacao}
-          saving={savingImport}
-        />
       </div>
     </MainLayout>
   );
 }
+
