@@ -79,6 +79,11 @@ export function useNotifications() {
         notification.onclick = () => {
           window.focus();
           notification.close();
+          const targetUrl =
+            data && typeof data === "object" && "url" in data
+              ? String((data as { url?: unknown }).url || "")
+              : "";
+          if (targetUrl) window.location.href = targetUrl;
         };
 
         return notification;

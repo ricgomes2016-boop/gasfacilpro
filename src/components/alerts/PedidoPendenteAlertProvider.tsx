@@ -6,6 +6,24 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { PedidoPendenteModal } from "./PedidoPendenteModal";
 
 const SOM_KEY = "erp_alerta_som_ativo";
+const VISUALIZADO_MINUTOS = 24 * 60;
+
+async function closeOrderNotifications(pedidoIds: string[]) {
+  if (!("serviceWorker" in navigator) || pedidoIds.length === 0) return;
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const notifications = await registration.getNotifications();
+    const tags = new Set(
+      pedidoIds.flatMap((id) => [`novo-pedido-${id}`, `pedido-pendente-${id}`])
+    );
+    notifications.forEach((notification) => {
+      if (tags.has(notification.tag)) notification.close();
+    });
+  } catch {
+    // O fechamento da notificacao nativa e complementar ao reconhecimento no sistema.
+  }
+}
 
 export function PedidoPendenteAlertProvider() {
   const { pendentes, snoozePedido } = usePedidosPendentesAlert();
@@ -46,6 +64,7 @@ export function PedidoPendenteAlertProvider() {
         title: "⏰ Pedido aguardando atendimento",
         body: `${p.cliente_nome} · R$ ${p.valor_total.toFixed(2)} · ${p.itens_resumo}`,
         tag: `pedido-pendente-${p.id}`,
+        data: { url: "/vendas/pedidos", pedidoId: p.id },
       });
     });
   }, [pendentes, sendNotification]);
@@ -96,15 +115,26 @@ export function PedidoPendenteAlertProvider() {
   }, [stopAlarm]);
 
   const handleAceitar = (id: string) => {
-    snoozePedido(id, 60); // remove dos pendentes por 1h (até atendente mudar status)
+    snoozePedido(id, VISUALIZADO_MINUTOS);
     stopAlarm();
+    void closeOrderNotifications([id]);
     if (!location.pathname.startsWith("/vendas/pedidos")) {
       navigate("/vendas/pedidos");
     }
   };
 
-  // Não mostra modal nas páginas de pedidos (já está lá vendo)
   const ocultarModal = location.pathname.startsWith("/vendas/pedidos");
+
+  useEffect(() => {
+    if (!ocultarModal || pendentes.length === 0) return;
+
+    const ids = pendentes.map((pedidoPendente) => pedidoPendente.id);
+    ids.forEach((id) => snoozePedido(id, VISUALIZADO_MINUTOS));
+    stopAlarm();
+    void closeOrderNotifications(ids);
+  }, [ocultarModal, pendentes, snoozePedido, stopAlarm]);
+
+  // Não mostra modal nas páginas de pedidos (já está lá vendo)
   const pedido = pendentes[0];
 
   if (!pedido || ocultarModal) return null;

@@ -21,14 +21,14 @@ const SNOOZE_KEY = "pedidos_pendentes_snooze";
 
 function getSnoozeMap(): Record<string, number> {
   try {
-    return JSON.parse(sessionStorage.getItem(SNOOZE_KEY) || "{}");
+    return JSON.parse(localStorage.getItem(SNOOZE_KEY) || "{}");
   } catch {
     return {};
   }
 }
 
 function setSnoozeMap(map: Record<string, number>) {
-  sessionStorage.setItem(SNOOZE_KEY, JSON.stringify(map));
+  localStorage.setItem(SNOOZE_KEY, JSON.stringify(map));
 }
 
 export function usePedidosPendentesAlert() {
@@ -104,6 +104,14 @@ export function usePedidosPendentesAlert() {
     fetchPendentes();
     const interval = setInterval(fetchPendentes, 10000);
     return () => clearInterval(interval);
+  }, [fetchPendentes]);
+
+  useEffect(() => {
+    const syncVisualizados = (event: StorageEvent) => {
+      if (event.key === SNOOZE_KEY) void fetchPendentes();
+    };
+    window.addEventListener("storage", syncVisualizados);
+    return () => window.removeEventListener("storage", syncVisualizados);
   }, [fetchPendentes]);
 
   // Realtime
