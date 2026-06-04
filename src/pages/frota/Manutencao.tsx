@@ -256,7 +256,7 @@ export default function Manutencao() {
         if (error) throw error;
         toast.success("Manutenção atualizada!");
       } else {
-        const { error } = await supabase.from("manutencoes").insert(payload);
+        const { error } = await supabase.from("manutencoes").insert(payload as any);
         if (error) throw error;
         toast.success("Manutenção registrada!");
       }

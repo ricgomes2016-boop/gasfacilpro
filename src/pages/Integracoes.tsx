@@ -182,7 +182,7 @@ export default function Integracoes() {
           unidade_id: savedUnidadeId,
           nome_bot: "BIA",
           status_conexao: "aguardando",
-        });
+        } as any);
       }
       await loadMetaConfigs();
       toast.success("WhatsApp autorizado com sucesso! Agora escaneie o QR Code.", { id: "meta-oauth" });
