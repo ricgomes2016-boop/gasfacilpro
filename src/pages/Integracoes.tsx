@@ -175,14 +175,14 @@ export default function Integracoes() {
         updated_at: new Date().toISOString(),
       };
       if (existing) {
-        await supabase.from("integracoes_whatsapp").update(payload).eq("id", existing.id);
+        await supabase.from("integracoes_whatsapp").update(payload as any).eq("id", existing.id);
       } else {
         await supabase.from("integracoes_whatsapp").insert({
           ...payload,
           unidade_id: savedUnidadeId,
           nome_bot: "BIA",
           status_conexao: "aguardando",
-        });
+        } as any);
       }
       await loadMetaConfigs();
       toast.success("WhatsApp autorizado com sucesso! Agora escaneie o QR Code.", { id: "meta-oauth" });

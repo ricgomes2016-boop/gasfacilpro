@@ -648,7 +648,7 @@ export default function CadastroClientesCad() {
         // Update
         const { error } = await supabase
           .from("clientes")
-          .update(clienteData)
+          .update(clienteData as any)
           .eq("id", editingCliente.id);
 
         if (error) throw error;

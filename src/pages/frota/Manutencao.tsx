@@ -252,11 +252,11 @@ export default function Manutencao() {
       };
 
       if (editId) {
-        const { error } = await supabase.from("manutencoes").update(payload).eq("id", editId);
+        const { error } = await supabase.from("manutencoes").update(payload as any).eq("id", editId);
         if (error) throw error;
         toast.success("Manutenção atualizada!");
       } else {
-        const { error } = await supabase.from("manutencoes").insert(payload);
+        const { error } = await supabase.from("manutencoes").insert(payload as any);
         if (error) throw error;
         toast.success("Manutenção registrada!");
       }

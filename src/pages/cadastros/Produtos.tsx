@@ -298,7 +298,7 @@ export default function Produtos() {
           ativo: true,
           unidade_id: unidadeAtual?.id || null,
           ...fiscalPayload,
-        })
+        } as any)
         .select()
         .single();
 
@@ -318,7 +318,7 @@ export default function Produtos() {
             botijao_par_id: produtoCheio.id,
             ativo: true,
             unidade_id: unidadeAtual?.id || null,
-          })
+          } as any)
           .select()
           .single();
 
@@ -369,7 +369,7 @@ export default function Produtos() {
           image_url: dados.image_url || null,
           estoque_unico: dados.estoque_unico,
           ...buildFiscalPayload(dados),
-        })
+        } as any)
         .eq("id", id)
         .select()
         .single();

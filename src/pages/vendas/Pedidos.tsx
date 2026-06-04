@@ -195,7 +195,7 @@ export default function Pedidos() {
           data_entrega: p.data || undefined,
           created_at: p.data ? new Date(p.data + "T12:00:00-03:00").toISOString() : undefined,
           unidade_id: unidadeAtual?.id || null
-        }).select("id").single();
+        } as any).select("id").single();
         if (error) {console.error(error);continue;}
         if (pedido && p._itens?.length > 0) {
           await supabase.from("pedido_itens").insert(
@@ -285,7 +285,7 @@ export default function Pedidos() {
 
   const alterarDataEntrega = async (pedido: PedidoFormatado, novaData: string) => {
     if (!podeAlterarDataEntrega || !novaData || novaData === dataPedidoParaInput(pedido.data)) return;
-    const { error } = await supabase.from("pedidos").update({ data_entrega: novaData } as Record<string, unknown>).eq("id", pedido.id);
+    const { error } = await supabase.from("pedidos").update({ data_entrega: novaData } as any).eq("id", pedido.id);
     if (error) {
       toast({ title: "Erro ao alterar data", description: error.message, variant: "destructive" });
       return;

@@ -86,7 +86,7 @@ export function NotesWidget({ className }: { className?: string }) {
     mutationFn: async ({ id, field, value }: { id: string; field: string; value: boolean }) => {
       const { error } = await supabase
         .from("anotacoes")
-        .update({ [field]: value })
+        .update({ [field]: value } as any)
         .eq("id", id);
       if (error) throw error;
     },

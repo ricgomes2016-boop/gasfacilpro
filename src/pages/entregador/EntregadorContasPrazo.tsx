@@ -70,7 +70,7 @@ export default function EntregadorContasPrazo() {
         observacoes: observacoes
           ? `${selectedConta.observacoes || ""}\n[Recebido R$${valor.toFixed(2)} via ${formaPagamento} pelo entregador em ${format(new Date(), "dd/MM/yy HH:mm")}] ${observacoes}`.trim()
           : `${selectedConta.observacoes || ""}\n[Recebido R$${valor.toFixed(2)} via ${formaPagamento} pelo entregador em ${format(new Date(), "dd/MM/yy HH:mm")}]`.trim(),
-      })
+      } as any)
       .eq("id", selectedConta.id);
 
     if (error) {
