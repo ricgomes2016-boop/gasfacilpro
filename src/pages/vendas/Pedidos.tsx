@@ -29,7 +29,7 @@ import {
   User, RefreshCw, MoreHorizontal, Edit, ArrowRightLeft, Printer,
   Share2, DollarSign, Trash2, Lock, MessageCircle, CreditCard,
   ChevronLeft, ChevronRight, CheckSquare, Building2, Pencil, MoveRight, Map as MapIcon,
-  Download } from
+  Download, Package } from
 "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
@@ -86,6 +86,12 @@ interface Entregador {
   status: string | null;
 }
 
+interface ResumoProduto {
+  nome: string;
+  quantidade: number;
+  total: number;
+}
+
 const ITEMS_PER_PAGE = 20;
 
 export default function Pedidos() {
@@ -106,6 +112,7 @@ export default function Pedidos() {
   const queryClient = useQueryClient();
   const { hasAnyRole } = useAuth();
   const podeAlterarDataEntrega = hasAnyRole(["admin", "gestor"]);
+  const podeAlterarCanalFinalizado = hasAnyRole(["admin", "gestor"]);
 
   // Batch selection (#7)
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
@@ -239,12 +246,24 @@ export default function Pedidos() {
     );
   };
 
+  const podeEditarCanalPedido = (pedido: PedidoFormatado) => {
+    if (pedido.status === "cancelado") return false;
+    if (pedido.status === "entregue" || pedido.status === "finalizado") return podeAlterarCanalFinalizado;
+    return true;
+  };
+
   const alterarCanalVenda = async (pedidoId: string, novoCanal: string) => {
+    const pedido = pedidos.find((p) => p.id === pedidoId);
+    if (!pedido || !podeEditarCanalPedido(pedido)) {
+      toast({ title: "Alteração não permitida", description: "Somente Admin ou Gestor pode alterar o canal de pedidos já entregues ou finalizados.", variant: "destructive" });
+      setEditandoCanalId(null);
+      return;
+    }
     const { error } = await supabase.from("pedidos").update({ canal_venda: novoCanal }).eq("id", pedidoId);
     if (error) {
       toast({ title: "Erro ao alterar canal", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Canal de venda atualizado!" });
+      toast({ title: "Canal de venda atualizado!", description: `${pedido.canal_venda || "Não informado"} → ${novoCanal}` });
       queryClient.invalidateQueries({ queryKey: ["pedidos"] });
     }
     setEditandoCanalId(null);
@@ -464,6 +483,25 @@ export default function Pedidos() {
       return matchStatus && matchEntregador && matchBusca;
     });
   }, [pedidos, filtroStatus, filtroEntregador, busca]);
+
+  const resumoProdutos = useMemo<ResumoProduto[]>(() => {
+    const produtos = new Map<string, ResumoProduto>();
+    pedidosFiltrados
+      .filter((pedido) => pedido.status !== "cancelado")
+      .forEach((pedido) => {
+        pedido.itens.forEach((item) => {
+          const nome = item.produto?.nome || "Produto não identificado";
+          const atual = produtos.get(nome) || { nome, quantidade: 0, total: 0 };
+          const quantidade = Number(item.quantidade) || 0;
+          atual.quantidade += quantidade;
+          atual.total += quantidade * (Number(item.preco_unitario) || 0);
+          produtos.set(nome, atual);
+        });
+      });
+    return Array.from(produtos.values()).sort((a, b) => b.quantidade - a.quantidade);
+  }, [pedidosFiltrados]);
+
+  const totalItensVendidos = useMemo(() => resumoProdutos.reduce((acc, produto) => acc + produto.quantidade, 0), [resumoProdutos]);
 
   // #4 - Pagination
   const totalPages = Math.max(1, Math.ceil(pedidosFiltrados.length / ITEMS_PER_PAGE));
@@ -761,6 +799,30 @@ export default function Pedidos() {
           </Card>
         </div>
 
+        {/* Product sold summary: follows current period/status/driver/search filters and ignores cancelled orders */}
+        {resumoProdutos.length > 0 &&
+        <Card className="modern-panel">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-base flex items-center gap-2"><Package className="h-4 w-4 text-primary" />Produtos Vendidos</CardTitle>
+              <Badge variant="secondary">{totalItensVendidos.toLocaleString("pt-BR")} itens</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">Quantidade por produto considerando os filtros aplicados.</p>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+              {resumoProdutos.map((produto) =>
+              <div key={produto.nome} className="rounded-xl border bg-background px-3 py-2 min-w-0 sm:min-w-[150px]">
+                <p className="text-xs text-muted-foreground truncate" title={produto.nome}>{produto.nome}</p>
+                <p className="text-lg font-bold leading-tight">{produto.quantidade.toLocaleString("pt-BR")}</p>
+                <p className="text-[11px] text-muted-foreground truncate">R$ {produto.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+              </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        }
+
         {/* #5 - Payment method breakdown */}
         {pagamentoContadores.length > 0 &&
         <div className="flex flex-wrap gap-2">
@@ -876,6 +938,19 @@ export default function Pedidos() {
                       </div>
                       <span className="font-bold text-sm shrink-0">R$ {pedido.valor.toFixed(2)}</span>
                     </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-muted-foreground">Canal de venda</label>
+                      {podeEditarCanalPedido(pedido) ?
+                      <Select value={pedido.canal_venda || undefined} onValueChange={(novoCanal) => alterarCanalVenda(pedido.id, novoCanal)}>
+                        <SelectTrigger className="h-8 text-[11px] w-full">
+                          <SelectValue placeholder="Selecionar canal" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {canaisVenda.map((c) => <SelectItem key={c.id} value={c.nome}>{c.nome}</SelectItem>)}
+                        </SelectContent>
+                      </Select> :
+                      <Badge variant="outline" className="text-[10px]">{pedido.canal_venda || "Canal não informado"}</Badge>}
+                    </div>
                     {podeAlterarDataEntrega ?
                     <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-8 text-[11px]" /> :
                     <p className="text-[10px] text-muted-foreground truncate">{pedido.data}</p>}
@@ -936,6 +1011,7 @@ export default function Pedidos() {
                         <span className="text-muted-foreground text-xs">-</span>}
                         </TableCell>
                         <TableCell className="text-xs">
+                          {podeEditarCanalPedido(pedido) ?
                           <Popover open={editandoCanalId === pedido.id} onOpenChange={(open) => setEditandoCanalId(open ? pedido.id : null)}>
                             <PopoverTrigger asChild>
                               <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity">
@@ -956,7 +1032,8 @@ export default function Pedidos() {
                               )}
                               </div>
                             </PopoverContent>
-                          </Popover>
+                          </Popover> :
+                          <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>}
                         </TableCell>
                         <TableCell className="font-medium text-sm">R$ {pedido.valor.toFixed(2)}</TableCell>
                         <TableCell>
