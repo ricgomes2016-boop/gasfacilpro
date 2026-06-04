@@ -1002,7 +1002,7 @@ export default function Pedidos() {
                         </TableCell>
                         <TableCell className="font-medium text-sm max-w-[120px] truncate">{pedido.cliente}</TableCell>
                         <TableCell className="max-w-[200px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
-                        <TableCell className="max-w-[130px] truncate text-xs">{pedido.produtos}</TableCell>
+                        <TableCell className="max-w-[180px] truncate text-xs" title={formatarItensComQtd(pedido)}>{formatarItensComQtd(pedido)}</TableCell>
                         <TableCell>
                           {pedido.entregador ?
                         <Badge variant="outline" className="cursor-pointer hover:bg-accent text-xs" onClick={() => abrirTransferencia(pedido)}>
