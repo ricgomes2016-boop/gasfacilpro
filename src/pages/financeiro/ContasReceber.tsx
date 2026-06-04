@@ -239,7 +239,7 @@ export default function ContasReceber() {
           status: "recebida",
           data_recebimento: charge.paymentDate || charge.clientPaymentDate || getBrasiliaDateString(),
         };
-        const { error: upErr } = await supabase.from("contas_receber").update(update).eq("id", conta.id);
+        const { error: upErr } = await supabase.from("contas_receber").update(update as any).eq("id", conta.id);
         if (upErr) throw upErr;
         toast.success("Pagamento confirmado e baixado!");
         fetchContas();
