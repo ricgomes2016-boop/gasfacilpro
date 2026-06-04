@@ -7759,6 +7759,32 @@ export type Database = {
           },
         ]
       }
+      pedido_sequencias_unidade: {
+        Row: {
+          ultimo_numero: number
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          ultimo_numero?: number
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          ultimo_numero?: number
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_sequencias_unidade_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: true
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedidos: {
         Row: {
           agendado: boolean
@@ -11843,6 +11869,10 @@ export type Database = {
         Returns: undefined
       }
       proximo_numero_pedido: { Args: { _empresa_id: string }; Returns: number }
+      proximo_numero_pedido_unidade: {
+        Args: { _unidade_id: string }
+        Returns: number
+      }
       registrar_pagamento_conta_pagar: {
         Args: { p_conta_id: string; p_pagamentos: Json; p_quitar?: boolean }
         Returns: Json
