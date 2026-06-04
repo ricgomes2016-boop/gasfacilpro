@@ -94,6 +94,15 @@ interface ResumoProduto {
 
 const ITEMS_PER_PAGE = 20;
 
+function formatarItensComQtd(pedido: PedidoFormatado): string {
+  if (pedido.itens && pedido.itens.length > 0) {
+    return pedido.itens
+      .map((it) => `${Number(it.quantidade) || 0}x ${it.produto?.nome || "Produto"}`)
+      .join(" · ");
+  }
+  return pedido.produtos || "";
+}
+
 export default function Pedidos() {
   const navigate = useNavigate();
   const hoje = (() => {const d = getBrasiliaDate();return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;})();
@@ -930,7 +939,7 @@ export default function Pedidos() {
                       </DropdownMenu>
                     </div>
                     <p className="text-xs text-muted-foreground truncate">{pedido.endereco}</p>
-                    <p className="text-xs truncate">{pedido.produtos}</p>
+                    <p className="text-xs truncate" title={formatarItensComQtd(pedido)}>{formatarItensComQtd(pedido)}</p>
                     <div className="flex items-center justify-between gap-2 flex-wrap w-full min-w-0">
                       <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap">
                         <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
@@ -993,7 +1002,7 @@ export default function Pedidos() {
                         </TableCell>
                         <TableCell className="font-medium text-sm max-w-[120px] truncate">{pedido.cliente}</TableCell>
                         <TableCell className="max-w-[200px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
-                        <TableCell className="max-w-[130px] truncate text-xs">{pedido.produtos}</TableCell>
+                        <TableCell className="max-w-[180px] truncate text-xs" title={formatarItensComQtd(pedido)}>{formatarItensComQtd(pedido)}</TableCell>
                         <TableCell>
                           {pedido.entregador ?
                         <Badge variant="outline" className="cursor-pointer hover:bg-accent text-xs" onClick={() => abrirTransferencia(pedido)}>
