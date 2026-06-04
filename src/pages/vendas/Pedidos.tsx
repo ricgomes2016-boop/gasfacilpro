@@ -94,6 +94,15 @@ interface ResumoProduto {
 
 const ITEMS_PER_PAGE = 20;
 
+function formatarItensComQtd(pedido: PedidoFormatado): string {
+  if (pedido.itens && pedido.itens.length > 0) {
+    return pedido.itens
+      .map((it) => `${Number(it.quantidade) || 0}x ${it.produto?.nome || "Produto"}`)
+      .join(" · ");
+  }
+  return pedido.produtos || "";
+}
+
 export default function Pedidos() {
   const navigate = useNavigate();
   const hoje = (() => {const d = getBrasiliaDate();return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;})();
