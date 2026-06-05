@@ -1,0 +1,1 @@
+ALTER TABLE public.contas_receber ADD COLUMN IF NOT EXISTS seu_numero text;

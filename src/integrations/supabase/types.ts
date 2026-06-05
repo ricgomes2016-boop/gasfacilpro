@@ -3414,6 +3414,7 @@ export type Database = {
           pix_copia_cola: string | null
           pix_qrcode: string | null
           plano_contas_id: string | null
+          seu_numero: string | null
           status: string
           taxa_percentual: number | null
           total_parcelas: number | null
@@ -3447,6 +3448,7 @@ export type Database = {
           pix_copia_cola?: string | null
           pix_qrcode?: string | null
           plano_contas_id?: string | null
+          seu_numero?: string | null
           status?: string
           taxa_percentual?: number | null
           total_parcelas?: number | null
@@ -3480,6 +3482,7 @@ export type Database = {
           pix_copia_cola?: string | null
           pix_qrcode?: string | null
           plano_contas_id?: string | null
+          seu_numero?: string | null
           status?: string
           taxa_percentual?: number | null
           total_parcelas?: number | null
