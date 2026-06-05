@@ -1390,7 +1390,20 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           {boletoAsaasConta && (
             <p className="text-xs text-primary">Em seguida abriremos a emissão do boleto Asaas.</p>
           )}
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex flex-wrap justify-end gap-2 pt-2">
+            {boletoAsaasConta && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setBoletoAsaasConta(null);
+                  setPrintDialogOpen(false);
+                  setPendingReceiptData(null);
+                  if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
+                }}
+              >
+                Pular emissão do boleto
+              </Button>
+            )}
             <Button variant="outline" onClick={() => {
               setPrintDialogOpen(false);
               setPendingReceiptData(null);
