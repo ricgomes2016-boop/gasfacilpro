@@ -1010,7 +1010,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       // #5.1 - Se houver boleto, buscar a conta_receber criada para abrir o Asaas
       const temBoleto = pagamentos.some((p) => p.forma === "boleto");
       let contaBoletoAsaas: any = null;
-      if (temBoleto && !entregador.id) {
+      if (temBoleto) {
         const { data: cr } = await supabase
           .from("contas_receber")
           .select("id, cliente, descricao, valor, vencimento, pedido_id, asaas_charge_id, linha_digitavel, boleto_url, pix_copia_cola")
