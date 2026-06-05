@@ -23,6 +23,7 @@ interface Props {
     boleto_url?: string | null;
     pix_qrcode?: string | null;
     pix_copia_cola?: string | null;
+    seu_numero?: string | null;
   };
   onSuccess?: () => void;
 }
