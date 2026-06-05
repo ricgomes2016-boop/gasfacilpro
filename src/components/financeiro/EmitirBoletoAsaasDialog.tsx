@@ -99,6 +99,7 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
     if (!open) return;
     setCustomerIdState(null);
     setNome(conta.cliente || "");
+    setSeuNumero(conta.seu_numero || "");
     setResult(
       conta.linha_digitavel || conta.boleto_url
         ? {
@@ -110,12 +111,15 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
         : null
     );
 
-    // Pré-carrega CPF/email do cliente do pedido
+    // Pré-carrega CPF/email do cliente e número do pedido
     (async () => {
-      if (!conta.pedido_id) return;
+      if (!conta.pedido_id) {
+        if (!conta.seu_numero) setSeuNumero(conta.id.slice(0, 8).toUpperCase());
+        return;
+      }
       const { data } = await supabase
         .from("pedidos")
-        .select("clientes(cpf, email, telefone, nome)")
+        .select("numero_sequencial, clientes(cpf, email, telefone, nome)")
         .eq("id", conta.pedido_id)
         .maybeSingle();
       const c = (data as any)?.clientes;
@@ -124,6 +128,10 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
         if (c.email) setEmail(c.email);
         if (c.telefone) setTelefone(c.telefone);
         if (c.nome && !nome) setNome(c.nome);
+      }
+      const numPed = (data as any)?.numero_sequencial;
+      if (!conta.seu_numero) {
+        setSeuNumero(numPed ? String(numPed) : conta.id.slice(0, 8).toUpperCase());
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
