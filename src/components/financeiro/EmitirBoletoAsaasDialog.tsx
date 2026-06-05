@@ -308,8 +308,18 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
               <div className="space-y-1.5">
                 <Label>Telefone</Label>
                 <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+              <div className="space-y-1.5 col-span-2">
+                <Label>Seu Número (aparece impresso no boleto)</Label>
+                <Input
+                  value={seuNumero}
+                  onChange={(e) => setSeuNumero(e.target.value.slice(0, 25))}
+                  placeholder="Ex.: nº do pedido ou da NF"
+                  maxLength={25}
+                />
+                <p className="text-xs text-muted-foreground">Identificador interno enviado ao Asaas como referência externa.</p>
               </div>
             </div>
+          </div>
           </div>
         ) : (
           <div className="space-y-3">
