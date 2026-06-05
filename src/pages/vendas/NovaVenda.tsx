@@ -1010,7 +1010,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       // #5.1 - Se houver boleto, buscar a conta_receber criada para abrir o Asaas
       const temBoleto = pagamentos.some((p) => p.forma === "boleto");
       let contaBoletoAsaas: any = null;
-      if (temBoleto && !entregador.id) {
+      if (temBoleto) {
         const { data: cr } = await supabase
           .from("contas_receber")
           .select("id, cliente, descricao, valor, vencimento, pedido_id, asaas_charge_id, linha_digitavel, boleto_url, pix_copia_cola")
@@ -1390,7 +1390,20 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           {boletoAsaasConta && (
             <p className="text-xs text-primary">Em seguida abriremos a emissão do boleto Asaas.</p>
           )}
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex flex-wrap justify-end gap-2 pt-2">
+            {boletoAsaasConta && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setBoletoAsaasConta(null);
+                  setPrintDialogOpen(false);
+                  setPendingReceiptData(null);
+                  if (embedded && onClose) { onClose(); } else { navigate("/vendas/pedidos"); }
+                }}
+              >
+                Pular emissão do boleto
+              </Button>
+            )}
             <Button variant="outline" onClick={() => {
               setPrintDialogOpen(false);
               setPendingReceiptData(null);

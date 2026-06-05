@@ -23,6 +23,7 @@ interface Props {
     boleto_url?: string | null;
     pix_qrcode?: string | null;
     pix_copia_cola?: string | null;
+    seu_numero?: string | null;
   };
   onSuccess?: () => void;
 }
@@ -39,6 +40,7 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
   const [nome, setNome] = useState(conta.cliente || "");
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [seuNumero, setSeuNumero] = useState<string>(conta.seu_numero || "");
   const [result, setResult] = useState<{
     linha_digitavel?: string;
     boleto_url?: string;
@@ -97,6 +99,7 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
     if (!open) return;
     setCustomerIdState(null);
     setNome(conta.cliente || "");
+    setSeuNumero(conta.seu_numero || "");
     setResult(
       conta.linha_digitavel || conta.boleto_url
         ? {
@@ -108,12 +111,15 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
         : null
     );
 
-    // Pré-carrega CPF/email do cliente do pedido
+    // Pré-carrega CPF/email do cliente e número do pedido
     (async () => {
-      if (!conta.pedido_id) return;
+      if (!conta.pedido_id) {
+        if (!conta.seu_numero) setSeuNumero(conta.id.slice(0, 8).toUpperCase());
+        return;
+      }
       const { data } = await supabase
         .from("pedidos")
-        .select("clientes(cpf, email, telefone, nome)")
+        .select("numero_sequencial, clientes(cpf, email, telefone, nome)")
         .eq("id", conta.pedido_id)
         .maybeSingle();
       const c = (data as any)?.clientes;
@@ -122,6 +128,10 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
         if (c.email) setEmail(c.email);
         if (c.telefone) setTelefone(c.telefone);
         if (c.nome && !nome) setNome(c.nome);
+      }
+      const numPed = (data as any)?.numero_sequencial;
+      if (!conta.seu_numero) {
+        setSeuNumero(numPed ? String(numPed) : conta.id.slice(0, 8).toUpperCase());
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -181,6 +191,7 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
       setCustomerIdState(customerId);
 
       // 2) Criar cobrança
+      const refExterna = (seuNumero || "").trim().slice(0, 25) || conta.id;
       const { data: chargeData, error: chargeErr } = await supabase.functions.invoke("asaas-api", {
         body: {
           action: "create_charge",
@@ -189,7 +200,7 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
           value: Number(conta.valor),
           dueDate: conta.vencimento,
           description: conta.descricao,
-          externalReference: conta.id,
+          externalReference: refExterna,
         },
       });
       if (chargeErr) throw chargeErr;
@@ -203,6 +214,7 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
         asaas_customer_id: customerId,
         boleto_url: charge.bankSlipUrl || charge.invoiceUrl || null,
         nosso_numero: charge.nossoNumero || null,
+        seu_numero: refExterna,
       };
 
       // 3) Dados específicos (linha digitável / PIX QR)
@@ -296,8 +308,18 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
               <div className="space-y-1.5">
                 <Label>Telefone</Label>
                 <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+              <div className="space-y-1.5 col-span-2">
+                <Label>Seu Número (aparece impresso no boleto)</Label>
+                <Input
+                  value={seuNumero}
+                  onChange={(e) => setSeuNumero(e.target.value.slice(0, 25))}
+                  placeholder="Ex.: nº do pedido ou da NF"
+                  maxLength={25}
+                />
+                <p className="text-xs text-muted-foreground">Identificador interno enviado ao Asaas como referência externa.</p>
               </div>
             </div>
+          </div>
           </div>
         ) : (
           <div className="space-y-3">
