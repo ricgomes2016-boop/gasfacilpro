@@ -47,6 +47,7 @@ import { ImportReviewDialog } from "@/components/import/ImportReviewDialog";
 import { criarMovimentacaoBancaria } from "@/services/paymentRoutingService";
 import { useAuth } from "@/contexts/AuthContext";
 import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsaasDialog";
+import { ClienteAutocompleteInput } from "@/components/clientes/ClienteAutocompleteInput";
 
 interface ContaReceber {
   id: string;
