@@ -40,6 +40,7 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
   const [nome, setNome] = useState(conta.cliente || "");
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [seuNumero, setSeuNumero] = useState<string>(conta.seu_numero || "");
   const [result, setResult] = useState<{
     linha_digitavel?: string;
     boleto_url?: string;
