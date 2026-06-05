@@ -1034,7 +1034,13 @@ export default function ContasReceber() {
               <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle>{editId ? "Editar Recebível" : "Novo Recebível"}</DialogTitle></DialogHeader>
                 <div className="space-y-4 pt-4">
-                  <div><Label>Cliente *</Label><Input value={form.cliente} onChange={e => setForm({ ...form, cliente: e.target.value })} /></div>
+                  <div>
+                    <Label>Cliente *</Label>
+                    <ClienteAutocompleteInput
+                      value={form.cliente}
+                      onChange={(nome) => setForm({ ...form, cliente: nome })}
+                    />
+                  </div>
                   <div><Label>Descrição *</Label><Input value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} /></div>
                   <div className="grid grid-cols-2 gap-4">
                     <div><Label>Valor *</Label><Input type="number" step="0.01" value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} /></div>
