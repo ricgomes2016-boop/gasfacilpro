@@ -191,6 +191,7 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
       setCustomerIdState(customerId);
 
       // 2) Criar cobrança
+      const refExterna = (seuNumero || "").trim().slice(0, 25) || conta.id;
       const { data: chargeData, error: chargeErr } = await supabase.functions.invoke("asaas-api", {
         body: {
           action: "create_charge",
@@ -199,7 +200,7 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
           value: Number(conta.valor),
           dueDate: conta.vencimento,
           description: conta.descricao,
-          externalReference: conta.id,
+          externalReference: refExterna,
         },
       });
       if (chargeErr) throw chargeErr;
@@ -213,6 +214,7 @@ export function EmitirBoletoAsaasDialog({ open, onOpenChange, conta, onSuccess }
         asaas_customer_id: customerId,
         boleto_url: charge.bankSlipUrl || charge.invoiceUrl || null,
         nosso_numero: charge.nossoNumero || null,
+        seu_numero: refExterna,
       };
 
       // 3) Dados específicos (linha digitável / PIX QR)
