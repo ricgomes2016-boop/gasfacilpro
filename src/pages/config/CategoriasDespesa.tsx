@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Trash2, Loader2, Search, FolderTree } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Search, FolderTree, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { toast } from "sonner";
@@ -31,6 +31,9 @@ interface Categoria {
 
 const grupoLabels: Record<string, string> = {
   custos_fixos: "Custos Fixos",
+  compras_mercadorias: "Compras e Custo Direto",
+  frota_entrega: "Frota e Entrega",
+  ocupacao_estrutura: "Ocupacao e Estrutura",
   pessoal: "Despesas com Pessoal",
   operacional: "Despesas Operacionais",
   comercial: "Despesas Comerciais",
@@ -42,6 +45,9 @@ const grupoLabels: Record<string, string> = {
 
 const grupoColors: Record<string, string> = {
   custos_fixos: "bg-primary/10 text-primary border-primary/20",
+  compras_mercadorias: "bg-emerald-500/10 text-emerald-700 border-emerald-200",
+  frota_entrega: "bg-amber-500/10 text-amber-700 border-amber-200",
+  ocupacao_estrutura: "bg-sky-500/10 text-sky-700 border-sky-200",
   pessoal: "bg-info/10 text-info border-info/20",
   operacional: "bg-warning/10 text-warning border-warning/20",
   comercial: "bg-success/10 text-success border-success/20",
@@ -88,6 +94,7 @@ export default function CategoriasDespesa() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [seeding, setSeeding] = useState(false);
   const [novoGrupo, setNovoGrupo] = useState("");
 
   useEffect(() => { if (!unidadeLoading) fetchCategorias(); }, [unidadeAtual?.id, unidadeLoading]);
@@ -207,6 +214,31 @@ export default function CategoriasDespesa() {
     fetchCategorias();
   };
 
+  const handleSeedDefaults = async () => {
+    if (!unidadeAtual?.id) {
+      toast.error("Selecione uma unidade para completar as categorias");
+      return;
+    }
+
+    setSeeding(true);
+    const { data, error } = await supabase.rpc("seed_categorias_despesa_gas" as never, {
+      _unidade_id: unidadeAtual.id,
+    } as never);
+    setSeeding(false);
+
+    if (error) {
+      console.error(error);
+      toast.error(error.message || "Erro ao criar categorias padrão");
+      return;
+    }
+
+    const criadas = Number(data || 0);
+    toast.success(criadas > 0
+      ? `${criadas} categorias padrão criadas com códigos contábeis`
+      : "Categorias padrão já estavam completas");
+    fetchCategorias();
+  };
+
   const filtered = categorias.filter(c => {
     const matchSearch = c.nome.toLowerCase().includes(search.toLowerCase()) ||
       (c.codigo_contabil || "").includes(search) ||
@@ -302,6 +334,10 @@ export default function CategoriasDespesa() {
           </Select>
           <Button onClick={() => handleOpen()}>
             <Plus className="h-4 w-4 mr-2" /> Nova Categoria
+          </Button>
+          <Button variant="outline" onClick={handleSeedDefaults} disabled={seeding || !unidadeAtual?.id}>
+            {seeding ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+            Completar padrão
           </Button>
         </div>
 
