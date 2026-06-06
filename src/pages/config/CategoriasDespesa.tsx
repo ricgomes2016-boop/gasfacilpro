@@ -29,6 +29,56 @@ interface Categoria {
   unidade_id?: string | null;
 }
 
+type CategoriaPadrao = Pick<Categoria, "nome" | "grupo" | "tipo" | "codigo_contabil" | "descricao" | "ordem">;
+
+const categoriasPadraoGas: CategoriaPadrao[] = [
+  { nome: "Compra de GLP P13", grupo: "compras_mercadorias", tipo: "variavel", codigo_contabil: "3.1.01.001", descricao: "Botijoes P13 para revenda", ordem: 10 },
+  { nome: "Compra de GLP P20", grupo: "compras_mercadorias", tipo: "variavel", codigo_contabil: "3.1.01.002", descricao: "Cilindros P20 para revenda", ordem: 11 },
+  { nome: "Compra de GLP P45", grupo: "compras_mercadorias", tipo: "variavel", codigo_contabil: "3.1.01.003", descricao: "Cilindros P45 para revenda", ordem: 12 },
+  { nome: "Compra de Agua Mineral", grupo: "compras_mercadorias", tipo: "variavel", codigo_contabil: "3.1.01.004", descricao: "Aguas e retornaveis para revenda", ordem: 13 },
+  { nome: "Frete de Compra", grupo: "compras_mercadorias", tipo: "variavel", codigo_contabil: "3.1.02.001", descricao: "Frete sobre compras de mercadorias", ordem: 14 },
+  { nome: "Perdas e Avarias de Estoque", grupo: "compras_mercadorias", tipo: "variavel", codigo_contabil: "3.1.03.001", descricao: "Quebras, avarias e perdas operacionais de estoque", ordem: 15 },
+  { nome: "Combustivel da Frota", grupo: "frota_entrega", tipo: "variavel", codigo_contabil: "4.3.01.001", descricao: "Gasolina, etanol, diesel e lubrificantes", ordem: 20 },
+  { nome: "Manutencao de Veiculos", grupo: "frota_entrega", tipo: "variavel", codigo_contabil: "4.3.01.002", descricao: "Mecanica, revisoes, pneus e pecas", ordem: 21 },
+  { nome: "Documentacao de Veiculos", grupo: "frota_entrega", tipo: "fixo", codigo_contabil: "4.3.01.003", descricao: "IPVA, licenciamento, despachante e taxas", ordem: 22 },
+  { nome: "Seguro da Frota", grupo: "frota_entrega", tipo: "fixo", codigo_contabil: "4.3.01.004", descricao: "Seguro de motos, carros e caminhoes", ordem: 23 },
+  { nome: "Pedagios e Estacionamentos", grupo: "frota_entrega", tipo: "variavel", codigo_contabil: "4.3.01.005", descricao: "Pedagios, zona azul e estacionamentos", ordem: 24 },
+  { nome: "Rastreamento e Telemetria", grupo: "frota_entrega", tipo: "fixo", codigo_contabil: "4.3.01.006", descricao: "Rastreador, monitoramento e telemetria da frota", ordem: 25 },
+  { nome: "Salarios e Ordenados", grupo: "pessoal", tipo: "fixo", codigo_contabil: "4.2.01.001", descricao: "Folha de pagamento dos colaboradores", ordem: 30 },
+  { nome: "Encargos Trabalhistas", grupo: "pessoal", tipo: "fixo", codigo_contabil: "4.2.01.002", descricao: "INSS, FGTS e encargos sobre folha", ordem: 31 },
+  { nome: "Pro-Labore", grupo: "pessoal", tipo: "fixo", codigo_contabil: "4.2.01.003", descricao: "Retirada dos socios administradores", ordem: 32 },
+  { nome: "Vale Transporte", grupo: "pessoal", tipo: "fixo", codigo_contabil: "4.2.01.004", descricao: "Beneficio de transporte", ordem: 33 },
+  { nome: "Vale Alimentacao e Refeicao", grupo: "pessoal", tipo: "fixo", codigo_contabil: "4.2.01.005", descricao: "VR, VA e refeicoes de equipe", ordem: 34 },
+  { nome: "Comissoes de Vendas e Entregas", grupo: "pessoal", tipo: "variavel", codigo_contabil: "4.2.01.006", descricao: "Comissoes e premiacoes variaveis", ordem: 35 },
+  { nome: "Treinamentos e Uniformes", grupo: "pessoal", tipo: "variavel", codigo_contabil: "4.2.01.007", descricao: "Uniformes, EPIs e treinamentos", ordem: 36 },
+  { nome: "Aluguel do Imovel", grupo: "ocupacao_estrutura", tipo: "fixo", codigo_contabil: "4.1.01.001", descricao: "Aluguel da loja, deposito ou escritorio", ordem: 40 },
+  { nome: "Energia Eletrica", grupo: "ocupacao_estrutura", tipo: "fixo", codigo_contabil: "4.1.01.002", descricao: "Conta de energia eletrica", ordem: 41 },
+  { nome: "Agua e Esgoto", grupo: "ocupacao_estrutura", tipo: "fixo", codigo_contabil: "4.1.01.003", descricao: "Conta de agua e esgoto", ordem: 42 },
+  { nome: "Internet e Telefonia", grupo: "ocupacao_estrutura", tipo: "fixo", codigo_contabil: "4.1.01.004", descricao: "Internet, telefonia fixa e movel", ordem: 43 },
+  { nome: "Limpeza e Conservacao", grupo: "ocupacao_estrutura", tipo: "variavel", codigo_contabil: "4.1.01.005", descricao: "Limpeza, higiene e conservacao predial", ordem: 44 },
+  { nome: "Seguranca e Monitoramento", grupo: "ocupacao_estrutura", tipo: "fixo", codigo_contabil: "4.1.01.006", descricao: "Alarme, cameras e vigilancia", ordem: 45 },
+  { nome: "Manutencao Predial", grupo: "ocupacao_estrutura", tipo: "variavel", codigo_contabil: "4.1.01.007", descricao: "Reparos e manutencao da estrutura fisica", ordem: 46 },
+  { nome: "Honorarios Contabeis", grupo: "administrativo", tipo: "fixo", codigo_contabil: "4.4.01.001", descricao: "Contabilidade e assessoria fiscal", ordem: 50 },
+  { nome: "Sistemas e Softwares", grupo: "administrativo", tipo: "fixo", codigo_contabil: "4.4.01.002", descricao: "ERP, aplicativos, licencas e assinaturas", ordem: 51 },
+  { nome: "Material de Escritorio", grupo: "administrativo", tipo: "variavel", codigo_contabil: "4.4.01.003", descricao: "Papelaria e suprimentos administrativos", ordem: 52 },
+  { nome: "Despesas Juridicas e Cartorio", grupo: "administrativo", tipo: "variavel", codigo_contabil: "4.4.01.004", descricao: "Advocacia, cartorio e taxas legais", ordem: 53 },
+  { nome: "Certificados Digitais", grupo: "administrativo", tipo: "fixo", codigo_contabil: "4.4.01.005", descricao: "Certificados digitais e renovacoes", ordem: 54 },
+  { nome: "Marketing e Publicidade", grupo: "comercial", tipo: "variavel", codigo_contabil: "4.5.01.001", descricao: "Anuncios, artes, trafego pago e divulgacao", ordem: 60 },
+  { nome: "Taxas de Cartao e Maquininha", grupo: "comercial", tipo: "variavel", codigo_contabil: "4.5.01.002", descricao: "Taxas de adquirentes, Pix intermediado e aluguel POS", ordem: 61 },
+  { nome: "Plataformas de Venda e Delivery", grupo: "comercial", tipo: "variavel", codigo_contabil: "4.5.01.003", descricao: "Marketplaces, aplicativos e integradores de venda", ordem: 62 },
+  { nome: "Brindes e Promocoes", grupo: "comercial", tipo: "variavel", codigo_contabil: "4.5.01.004", descricao: "Cupons, brindes e acoes promocionais", ordem: 63 },
+  { nome: "Tarifas Bancarias", grupo: "financeiro", tipo: "fixo", codigo_contabil: "4.6.01.001", descricao: "Pacotes, TED, DOC, Pix pago e tarifas de conta", ordem: 70 },
+  { nome: "Juros e Multas Pagas", grupo: "financeiro", tipo: "variavel", codigo_contabil: "4.6.01.002", descricao: "Juros, multas e encargos por atraso", ordem: 71 },
+  { nome: "Emprestimos e Financiamentos", grupo: "financeiro", tipo: "fixo", codigo_contabil: "4.6.01.003", descricao: "Parcelas e encargos de credito contratado", ordem: 72 },
+  { nome: "IOF e Encargos Financeiros", grupo: "financeiro", tipo: "variavel", codigo_contabil: "4.6.01.004", descricao: "IOF e demais despesas financeiras", ordem: 73 },
+  { nome: "Simples Nacional DAS", grupo: "impostos", tipo: "variavel", codigo_contabil: "4.7.01.001", descricao: "Guia DAS do Simples Nacional", ordem: 80 },
+  { nome: "ICMS", grupo: "impostos", tipo: "variavel", codigo_contabil: "4.7.01.002", descricao: "ICMS e substituicao tributaria quando aplicavel", ordem: 81 },
+  { nome: "ISS", grupo: "impostos", tipo: "variavel", codigo_contabil: "4.7.01.003", descricao: "Imposto sobre servicos", ordem: 82 },
+  { nome: "Taxas Municipais e Alvaras", grupo: "impostos", tipo: "fixo", codigo_contabil: "4.7.01.004", descricao: "Alvaras, taxas municipais e licencas", ordem: 83 },
+  { nome: "Doacoes e Contribuicoes", grupo: "diversos", tipo: "variavel", codigo_contabil: "4.9.01.001", descricao: "Contribuicoes, doacoes e apoios locais", ordem: 90 },
+  { nome: "Despesas Diversas", grupo: "diversos", tipo: "variavel", codigo_contabil: "4.9.01.999", descricao: "Despesas eventuais nao classificadas", ordem: 99 },
+];
+
 const grupoLabels: Record<string, string> = {
   custos_fixos: "Custos Fixos",
   compras_mercadorias: "Compras e Custo Direto",
@@ -72,6 +122,13 @@ const humanizeGrupo = (value: string) =>
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ") || "Sem grupo";
+
+const normalizeNome = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 
 const emptyForm: Omit<Categoria, "id"> = {
   nome: "",
@@ -221,20 +278,60 @@ export default function CategoriasDespesa() {
     }
 
     setSeeding(true);
-    const { data, error } = await supabase.rpc("seed_categorias_despesa_gas" as never, {
-      _unidade_id: unidadeAtual.id,
-    } as never);
-    setSeeding(false);
+    const { data, error } = await supabase
+      .from("categorias_despesa")
+      .select("*")
+      .eq("unidade_id", unidadeAtual.id);
 
     if (error) {
       console.error(error);
-      toast.error(error.message || "Erro ao criar categorias padrão");
+      toast.error(error.message || "Erro ao verificar categorias padrão");
+      setSeeding(false);
       return;
     }
 
-    const criadas = Number(data || 0);
-    toast.success(criadas > 0
-      ? `${criadas} categorias padrão criadas com códigos contábeis`
+    const atuais = (data || []) as Categoria[];
+    const porNome = new Map(atuais.map(cat => [normalizeNome(cat.nome), cat]));
+    const updates = categoriasPadraoGas
+      .map(padrao => ({ padrao, atual: porNome.get(normalizeNome(padrao.nome)) }))
+      .filter(({ atual }) => atual && (!atual.codigo_contabil || !atual.descricao || !atual.grupo || !atual.tipo));
+    const novas = categoriasPadraoGas
+      .filter(padrao => !porNome.has(normalizeNome(padrao.nome)))
+      .map(padrao => ({
+        ...padrao,
+        valor_padrao: 0,
+        ativo: true,
+        unidade_id: unidadeAtual.id,
+      }));
+
+    for (const { padrao, atual } of updates) {
+      await supabase
+        .from("categorias_despesa")
+        .update({
+          codigo_contabil: atual?.codigo_contabil || padrao.codigo_contabil,
+          descricao: atual?.descricao || padrao.descricao,
+          grupo: atual?.grupo || padrao.grupo,
+          tipo: atual?.tipo || padrao.tipo,
+          ordem: atual?.ordem || padrao.ordem,
+        })
+        .eq("id", atual!.id);
+    }
+
+    let criadas = 0;
+    if (novas.length > 0) {
+      const { error: insertError } = await supabase.from("categorias_despesa").insert(novas);
+      if (insertError) {
+        console.error(insertError);
+        toast.error(insertError.message || "Erro ao criar categorias padrão");
+        setSeeding(false);
+        return;
+      }
+      criadas = novas.length;
+    }
+
+    setSeeding(false);
+    toast.success(criadas > 0 || updates.length > 0
+      ? `${criadas} categorias criadas e ${updates.length} atualizadas com códigos contábeis`
       : "Categorias padrão já estavam completas");
     fetchCategorias();
   };
