@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,6 +30,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const auth = await requireAuth(req, corsHeaders);
+    if (!auth.ok) return auth.response;
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -42,6 +46,33 @@ Deno.serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Tenant ownership check (unless service_role)
+    if (!auth.isServiceRole) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("empresa_id")
+        .eq("user_id", auth.userId)
+        .maybeSingle();
+      if (!profile || profile.empresa_id !== empresa_id) {
+        return new Response(JSON.stringify({ error: "Acesso negado a esta empresa" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: unidade } = await supabase
+        .from("unidades")
+        .select("id")
+        .eq("id", unidade_id)
+        .eq("empresa_id", empresa_id)
+        .maybeSingle();
+      if (!unidade) {
+        return new Response(JSON.stringify({ error: "Unidade não pertence à empresa" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const BATCH = 500;
