@@ -112,11 +112,7 @@ export const menuItems: MenuItem[] = [
     label: "Atendimento",
     submenu: [
       { icon: Phone, label: "Central de Atendimento", path: "/atendimento" },
-      { icon: MessageCircle, label: "WhatsApp Web", path: "/whatsapp/web/login" },
       { icon: Smartphone, label: "Inbox WhatsApp", path: "/chat" },
-      { icon: Smartphone, label: "Config WhatsApp", path: "/integracoes?open=whatsapp" },
-      { icon: MessageCircle, label: "Credenciais Meta", path: "/whatsapp/credenciais" },
-      { icon: Send, label: "Teste de Envio", path: "/whatsapp/teste-envio" },
     ],
   },
   {
