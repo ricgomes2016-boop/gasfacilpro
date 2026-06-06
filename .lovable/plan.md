@@ -1,55 +1,51 @@
 ## Objetivo
 
-1. Adicionar campo **"Seu Número"** (referência interna que aparece impressa no boleto) no diálogo de emissão Asaas.
-2. Garantir que, ao finalizar pedido com forma **Boleto**, o atendente possa emitir o boleto na hora — inclusive quando há entregador.
+Aplicar o novo visual de Fluxo de Caixa (4 cards de resumo, filtros por tipo, tabela limpa em desktop e lista de cartões em mobile) na página existente `/financeiro/fluxo-caixa`, **preservando**:
 
----
+- A integração real com o banco (`movimentacoes_caixa`, `contas_bancarias`, contas a pagar/receber)
+- A aba "Previsão" do `FluxoCaixaConsolidado`
+- O sidebar, header global e bottom nav já existentes (não recriar — usar `MainLayout`)
+- Tokens semânticos HSL + Plus Jakarta Sans (não usar Inter/#0d6efd direto)
 
-## 1. Campo "Seu Número" no boleto
+## O que muda
 
-Arquivo: `src/components/financeiro/EmitirBoletoAsaasDialog.tsx`
+### `src/pages/financeiro/FluxoCaixa.tsx` (redesign visual)
 
-- Novo state `seuNumero` (string).
-- Pré-preenche com o número do pedido (`pedidos.numero_sequencial`) quando `conta.pedido_id` existir; cai para últimos 8 caracteres do `id` da conta como fallback.
-- Novo `<Input>` "Seu Número (aparece impresso no boleto)" — opcional, max 25 caracteres (limite Asaas).
-- Ao chamar `action: "create_charge"` no edge `asaas-api`, enviar:
-  - `externalReference`: o `seuNumero` informado (em vez do `conta.id`).
-  - Manter `description` como está.
-- Persistir o valor em `contas_receber` numa coluna nova `seu_numero text`.
+1. **Cabeçalho da página**
+   - Título "Fluxo de Caixa" + subtítulo "Acompanhe entradas, saídas e saldo"
+   - Ações à direita (desktop): seletor de período (datas), botão Filtros, botão Exportar, botão "Nova movimentação"
+   - Em mobile: ações colapsadas atrás de um botão "Filtros" (Sheet) e FAB já existente
 
-### Migração
+2. **4 cards de resumo** (`grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4`)
+   - Saldo Inicial (neutro)
+   - Entradas (verde — `text-emerald-600`/token `--success`)
+   - Saídas (vermelho — `--destructive`)
+   - Saldo Final (azul/primary)
+   - Calculados a partir do `extrato` já carregado (somar `entrada`, `saida`, aplicar saldo inicial)
 
-```sql
-ALTER TABLE public.contas_receber
-  ADD COLUMN IF NOT EXISTS seu_numero text;
-```
+3. **Tabela / Lista**
+   - Tabs no topo: Todos · Entradas · Saídas (filtro client-side sobre `extrato`)
+   - Input de busca à direita (filtra por `historico`)
+   - Desktop (`hidden md:table`): colunas Data, Descrição, Categoria, Tipo (badge), Forma Pgto, Valor (verde/vermelho), Saldo acumulado, Ações (menu ⋮ com Editar/Excluir já existentes)
+   - Mobile (`md:hidden`): cards empilhados com descrição + valor em destaque, linha secundária "data • tipo • forma"
+   - Linha de total no rodapé (mantém `TableFooter` atual)
 
-(coluna simples, sem alterar RLS/grants existentes).
+4. **Dialog "Nova movimentação"** — manter exatamente como está (apenas estilizar trigger).
 
-### Edge function `asaas-api`
+### `src/pages/financeiro/FluxoCaixaConsolidado.tsx`
 
-Sem mudança estrutural — `externalReference` já é repassado ao Asaas; apenas o cliente passará o novo valor.
+- Sem mudanças estruturais. Apenas conferir que a aba "Fluxo Atual" renderiza o novo visual com `embedded`.
 
----
+## Detalhes técnicos
 
-## 2. Emissão na finalização da venda
+- Reusar componentes shadcn: `Card`, `Tabs`, `Table`, `Badge`, `Input`, `Button`, `Sheet` (filtros mobile).
+- Cores via tokens existentes: `text-primary`, `text-destructive`, `text-emerald-600` (já presente no projeto) ou novo token `--success` se ainda não houver — usar HSL.
+- Cálculos derivados via `useMemo` sobre `extrato` (regra de performance da memória).
+- Mantém RLS/`unidade_id` automaticamente — nenhuma query nova.
+- Nada de mexer em `App.tsx`, rotas ou providers.
 
-Arquivo: `src/pages/vendas/NovaVenda.tsx`
+## Fora de escopo
 
-Hoje a busca da `conta_receber` para abrir o Asaas só roda quando `temBoleto && !entregador.id`. Resultado: se o pedido tem entregador, o atendente nunca vê a opção.
-
-Mudanças:
-
-- Remover a condição `!entregador.id` — sempre que `temBoleto`, buscar a `conta_receber` e setar `boletoAsaasConta`.
-- No `printDialog`, manter o texto "Em seguida abriremos a emissão do boleto Asaas." **e** adicionar um botão secundário **"Pular emissão"** que limpa `boletoAsaasConta` antes de navegar, para o atendente decidir.
-- Sem mudanças no fluxo de impressão nem na lógica de criação de `contas_receber`.
-
----
-
-## Resumo de arquivos
-
-- `supabase/migrations/<novo>.sql` — adiciona `contas_receber.seu_numero`.
-- `src/components/financeiro/EmitirBoletoAsaasDialog.tsx` — campo "Seu Número", envio como `externalReference`, persistência.
-- `src/pages/vendas/NovaVenda.tsx` — remove restrição de entregador, adiciona botão "Pular emissão".
-
-Sem mexer em `App.tsx`, rotas, providers ou em outras telas.
+- Não criar nova rota.
+- Não alterar schema do banco.
+- Não tocar em `FluxoCaixaProjetado` / `PrevisaoCaixa`.
