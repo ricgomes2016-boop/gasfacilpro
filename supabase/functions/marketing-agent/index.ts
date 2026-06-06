@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,27 +18,37 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase config missing");
 
-    const authHeader = req.headers.get("authorization");
+    // Require authenticated admin/gestor (business metrics)
+    const auth = await requireAuth(req, corsHeaders);
+    if (!auth.ok) return auth.response;
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Get user from auth token
     let empresaId: string | null = null;
     let unidadeId: string | null = null;
     let cidadeUnidade = "";
     let estadoUnidade = "";
 
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const anonClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY") || "");
-      const { data: { user } } = await anonClient.auth.getUser(token);
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("empresa_id")
-          .eq("user_id", user.id)
-          .single();
-        empresaId = profile?.empresa_id || null;
+    if (!auth.isServiceRole && auth.userId) {
+      // Check role
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", auth.userId);
+      const allowed = (roles || []).some((r: any) =>
+        ["admin", "gestor", "super_admin"].includes(r.role)
+      );
+      if (!allowed) {
+        return new Response(JSON.stringify({ error: "Acesso negado" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("empresa_id")
+        .eq("user_id", auth.userId)
+        .single();
+      empresaId = profile?.empresa_id || null;
     }
 
     const body = await req.json();
