@@ -1017,10 +1017,11 @@ export default function ContasReceber() {
           </div>
         )}
 
-        {/* Actions bar */}
+        {/* Painel operacional */}
         <div className="rounded-xl border bg-card/90 p-3 shadow-sm">
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditId(null); resetForm(); } }}>
               <DialogTrigger asChild>
                 <Button className="h-10 gap-2"><Plus className="h-4 w-4" />Novo recebivel</Button>
@@ -1060,20 +1061,17 @@ export default function ContasReceber() {
             </Dialog>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Button variant="outline" onClick={exportToExcel} className="h-10 gap-1.5">
-              <Download className="h-4 w-4" /><span className="hidden sm:inline">Excel</span>
-            </Button>
-            <Button variant="outline" onClick={exportToPDF} className="h-10 gap-1.5">
-              <Download className="h-4 w-4" /><span className="hidden sm:inline">PDF</span>
-            </Button>
-          </div>
-          </div>
-        </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Button variant="outline" onClick={exportToExcel} className="h-10 gap-1.5">
+                  <Download className="h-4 w-4" /><span className="hidden sm:inline">Excel</span>
+                </Button>
+                <Button variant="outline" onClick={exportToPDF} className="h-10 gap-1.5">
+                  <Download className="h-4 w-4" /><span className="hidden sm:inline">PDF</span>
+                </Button>
+              </div>
+            </div>
 
-        {/* Barra de filtros unificada (sticky) */}
-        <div className="rounded-xl border bg-card/90 p-3 shadow-sm">
-          <div className="grid gap-2 lg:grid-cols-[minmax(220px,1fr)_auto_auto_auto_auto_auto] lg:items-center">
+          <div className="grid gap-2 border-t pt-3 lg:grid-cols-[minmax(220px,1fr)_auto_auto_auto_auto_auto] lg:items-center">
             <div className="relative min-w-0">
               <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -1235,6 +1233,7 @@ export default function ContasReceber() {
               ))}
             </div>
           )}
+          </div>
         </div>
 
         {/* Conteúdo: tabela única OU painel de conferência */}
@@ -1242,7 +1241,7 @@ export default function ContasReceber() {
           <ConferenciaCartao />
         ) : (
           <Card>
-            <CardContent className="p-0 md:p-6 md:pt-4">
+            <CardContent className="p-0 md:p-4">
               {renderTable()}
             </CardContent>
           </Card>
