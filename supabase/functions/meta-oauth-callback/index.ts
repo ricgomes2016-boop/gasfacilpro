@@ -5,6 +5,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function escHtml(s: string | null | undefined): string {
+  if (s == null) return "";
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -16,7 +26,7 @@ Deno.serve(async (req) => {
   const errorDescription = url.searchParams.get("error_description");
 
   const renderHtml = (title: string, message: string, ok: boolean, errorCode?: string) => `<!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><title>${title}</title>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>${escHtml(title)}</title>
 <style>
 body{font-family:system-ui,-apple-system,sans-serif;background:#0f172a;color:#f1f5f9;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;text-align:center}
 .card{max-width:520px;background:#1e293b;padding:32px;border-radius:16px;border:1px solid #334155}
@@ -25,8 +35,8 @@ p{margin:0 0 16px;color:#cbd5e1;line-height:1.5}
 .code{font-family:monospace;background:#0f172a;padding:8px 12px;border-radius:6px;font-size:12px;color:#94a3b8;margin:8px 0}
 button{background:#3b82f6;color:#fff;border:0;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;margin:4px}
 </style></head><body><div class="card">
-<h1>${ok ? "✅" : "⚠️"} ${title}</h1><p>${message}</p>
-${errorCode ? `<div class="code">${errorCode}</div>` : ""}
+<h1>${ok ? "✅" : "⚠️"} ${escHtml(title)}</h1><p>${escHtml(message)}</p>
+${errorCode ? `<div class="code">${escHtml(errorCode)}</div>` : ""}
 <button onclick="window.close()">Fechar janela</button>
 </div>
 <script>setTimeout(()=>{try{window.opener&&window.opener.postMessage({type:'meta-oauth',ok:${ok},error:${JSON.stringify(errorCode || null)}},'*');}catch(e){}}, 100);</script>
