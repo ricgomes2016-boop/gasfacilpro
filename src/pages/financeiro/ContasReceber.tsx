@@ -731,6 +731,13 @@ export default function ContasReceber() {
   // (renderTabBadge removido — abas por forma foram substituídas pelo filtro unificado)
 
 
+  const getReceberRowClass = (displayStatus: string) => {
+    const base = "group border-0 transition-all duration-200 hover:-translate-y-0.5 [&>td]:border-y [&>td]:border-border/60 [&>td]:bg-card [&>td]:py-3 [&>td]:shadow-sm [&>td]:shadow-foreground/5 [&>td:first-child]:rounded-l-lg [&>td:first-child]:border-l [&>td:first-child]:border-l-4 [&>td:last-child]:rounded-r-lg [&>td:last-child]:border-r hover:[&>td]:shadow-md hover:[&>td]:shadow-foreground/10";
+    if (displayStatus === "Recebida") return `${base} [&>td:first-child]:border-l-success hover:[&>td]:bg-success/5`;
+    if (displayStatus === "Vencida") return `${base} [&>td:first-child]:border-l-destructive hover:[&>td]:bg-destructive/5`;
+    return `${base} [&>td:first-child]:border-l-warning hover:[&>td]:bg-warning/5`;
+  };
+
   const renderTable = () => (
     <>
       {/* Bulk action bar */}
@@ -777,7 +784,7 @@ export default function ContasReceber() {
               const vencida = conta.status === "pendente" && conta.vencimento < hoje;
               const displayStatus = vencida ? "Vencida" : conta.status === "recebida" ? "Recebida" : "Pendente";
               return (
-                <div key={conta.id} className="border rounded-lg p-3" data-state={selectedIds.has(conta.id) ? "selected" : undefined}>
+                <div key={conta.id} className="rounded-xl border bg-card p-3 shadow-sm data-[state=selected]:border-primary/50 data-[state=selected]:bg-primary/5" data-state={selectedIds.has(conta.id) ? "selected" : undefined}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <Checkbox checked={selectedIds.has(conta.id)} onCheckedChange={() => toggleSelect(conta.id)} />
@@ -851,10 +858,10 @@ export default function ContasReceber() {
           </div>
 
           {/* Desktop table */}
-          <div className="overflow-x-auto hidden md:block">
-            <Table>
+          <div className="hidden overflow-x-auto md:block">
+            <Table className="border-separate border-spacing-y-2">
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-slate-900 hover:bg-slate-900 [&_th]:h-11 [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-white">
                   <TableHead className="w-10">
                     <Checkbox
                       checked={filtered.length > 0 && selectedIds.size === filtered.length}
@@ -876,7 +883,7 @@ export default function ContasReceber() {
                   const vencida = conta.status === "pendente" && conta.vencimento < hoje;
                   const displayStatus = vencida ? "Vencida" : conta.status === "recebida" ? "Recebida" : "Pendente";
                   return (
-                    <TableRow key={conta.id} data-state={selectedIds.has(conta.id) ? "selected" : undefined}>
+                    <TableRow key={conta.id} className={getReceberRowClass(displayStatus)} data-state={selectedIds.has(conta.id) ? "selected" : undefined}>
                       <TableCell>
                         <Checkbox checked={selectedIds.has(conta.id)} onCheckedChange={() => toggleSelect(conta.id)} />
                       </TableCell>
@@ -978,38 +985,41 @@ export default function ContasReceber() {
       <div className="p-3 md:p-6 space-y-4 md:space-y-6">
 
         {/* Dashboard resumo estilo PagBank */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-          <Card className="bg-primary/5 border-primary/20">
-            <CardHeader className="pb-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 md:gap-4">
+          <Card className="kpi-card kpi-card-primary">
+            <CardHeader className="sr-only">
               <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">💰 O que vendi (a receber)</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-xl sm:text-2xl font-bold">
                 R$ {(totalPendente + totalVencido).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Total em aberto</p>
+              <p className="kpi-label mt-1">Em aberto</p>
+              <p className="text-[11px] text-muted-foreground">A receber e vencidos</p>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
+          <Card className="kpi-card kpi-card-warning">
+            <CardHeader className="sr-only">
               <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">⏳ O que vou receber</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-xl sm:text-2xl font-bold text-warning">
                 R$ {totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Pendente (a vencer)</p>
+              <p className="kpi-label mt-1">A vencer</p>
+              <p className="text-[11px] text-muted-foreground">Dentro do prazo</p>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
+          <Card className="kpi-card kpi-card-success">
+            <CardHeader className="sr-only">
               <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">✅ O que recebi</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-xl sm:text-2xl font-bold text-success">
                 R$ {totalRecebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
-              <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">Liquidado</p>
+              <p className="kpi-label mt-1">Recebido</p>
+              <p className="text-[11px] text-muted-foreground">Liquidado</p>
             </CardContent>
           </Card>
         </div>
@@ -1024,11 +1034,12 @@ export default function ContasReceber() {
         )}
 
         {/* Actions bar */}
-        <div className="flex items-center gap-2 justify-between flex-wrap">
-          <div className="flex items-center gap-2">
+        <div className="rounded-xl border bg-card/90 p-3 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditId(null); resetForm(); } }}>
               <DialogTrigger asChild>
-                <Button size="sm" className="gap-2"><Plus className="h-4 w-4" />Novo</Button>
+                <Button className="h-10 gap-2"><Plus className="h-4 w-4" />Novo recebivel</Button>
               </DialogTrigger>
               <SmartImportButtons edgeFunctionName="parse-receivables-import" onDataExtracted={handleImportData} />
               <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -1065,33 +1076,34 @@ export default function ContasReceber() {
             </Dialog>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={exportToExcel} className="gap-1.5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Button variant="outline" onClick={exportToExcel} className="h-10 gap-1.5">
               <Download className="h-4 w-4" /><span className="hidden sm:inline">Excel</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={exportToPDF} className="gap-1.5">
+            <Button variant="outline" onClick={exportToPDF} className="h-10 gap-1.5">
               <Download className="h-4 w-4" /><span className="hidden sm:inline">PDF</span>
             </Button>
+          </div>
           </div>
         </div>
 
         {/* Barra de filtros unificada (sticky) */}
-        <div className="sticky top-0 z-20 -mx-3 md:-mx-6 px-3 md:px-6 py-2 bg-background/85 backdrop-blur border-b border-border">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative flex-1 min-w-[180px]">
+        <div className="rounded-xl border bg-card/90 p-3 shadow-sm">
+          <div className="grid gap-2 lg:grid-cols-[minmax(220px,1fr)_auto_auto_auto_auto_auto] lg:items-center">
+            <div className="relative min-w-0">
               <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar cliente, descrição, vale…"
                 value={filtroNome}
                 onChange={e => setFiltroNome(e.target.value)}
-                className="h-9 pl-8 text-sm"
+                className="h-10 pl-8 text-sm"
               />
             </div>
 
             {/* Período */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                <Button variant="outline" className="h-10 w-full gap-1.5 lg:w-auto">
                   <CalendarRange className="h-3.5 w-3.5" />
                   {dataInicial || dataFinal
                     ? `${dataInicial ? format(new Date(dataInicial + "T12:00:00"), "dd/MM") : "…"} → ${dataFinal ? format(new Date(dataFinal + "T12:00:00"), "dd/MM") : "…"}`
@@ -1132,7 +1144,7 @@ export default function ContasReceber() {
             {/* Status (multi) */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                <Button variant="outline" className="h-10 w-full gap-1.5 lg:w-auto">
                   <Tag className="h-3.5 w-3.5" />
                   Status{filtroStatus.size > 0 && <span className="text-[10px] opacity-70">· {filtroStatus.size}</span>}
                   <ChevronDown className="h-3 w-3 opacity-60" />
@@ -1161,7 +1173,7 @@ export default function ContasReceber() {
             {/* Forma de pagamento (multi) */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                <Button variant="outline" className="h-10 w-full gap-1.5 lg:w-auto">
                   <CreditCard className="h-3.5 w-3.5" />
                   Forma{filtroFormas.size > 0 && <span className="text-[10px] opacity-70">· {filtroFormas.size}</span>}
                   <ChevronDown className="h-3 w-3 opacity-60" />
@@ -1198,13 +1210,13 @@ export default function ContasReceber() {
               </PopoverContent>
             </Popover>
 
-            <Button variant="ghost" size="sm" onClick={() => setActiveTab(activeTab === "conferencia" ? "todos" : "conferencia")}
-              className={`h-9 gap-1.5 ${activeTab === "conferencia" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}>
+            <Button variant="ghost" onClick={() => setActiveTab(activeTab === "conferencia" ? "todos" : "conferencia")}
+              className={`h-10 w-full gap-1.5 lg:w-auto ${activeTab === "conferencia" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}>
               <CreditCard className="h-3.5 w-3.5" /><span className="hidden sm:inline">Conferência</span>
             </Button>
 
             {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearAllFilters} className="h-9 text-xs gap-1">
+              <Button variant="ghost" onClick={clearAllFilters} className="h-10 w-full gap-1 text-xs lg:w-auto">
                 <X className="h-3.5 w-3.5" /> Limpar
               </Button>
             )}
