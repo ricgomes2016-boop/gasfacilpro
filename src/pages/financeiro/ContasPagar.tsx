@@ -44,6 +44,7 @@ export default function ContasPagar() {
   const [futureRange, setFutureRange] = useState("30");
   const [valorMinimo, setValorMinimo] = useState("");
   const [valorMaximo, setValorMaximo] = useState("");
+  const [selectedSummaryKey, setSelectedSummaryKey] = useState<string | null>(null);
   const visibleContas = cp.filtered.filter(c => {
     const valor = Number(c.valor);
     const min = valorMinimo ? Number(valorMinimo) : null;
@@ -57,6 +58,64 @@ export default function ContasPagar() {
   const totalVenceHoje = visibleContas
     .filter(c => c.status !== "paga" && c.vencimento === cp.hoje)
     .reduce((sum, c) => sum + Number(c.valor), 0);
+  const summaryCards = [
+    {
+      key: "abertas",
+      title: "Em aberto",
+      subtitle: "Contas pendentes e vencidas",
+      total: totalAbertoVisivel,
+      contas: visibleContas.filter(c => c.status !== "paga"),
+      icon: CreditCard,
+      cardClass: "kpi-card-primary",
+      iconClass: "status-card-icon-primary",
+      valueClass: "",
+    },
+    {
+      key: "a-vencer",
+      title: "A vencer",
+      subtitle: "Ainda dentro do prazo",
+      total: totalPendenteVisivel,
+      contas: visibleContas.filter(c => c.status === "pendente" && c.vencimento >= cp.hoje),
+      icon: Clock,
+      cardClass: "kpi-card-warning",
+      iconClass: "status-card-icon-warning",
+      valueClass: "text-warning",
+    },
+    {
+      key: "vencidas",
+      title: "Vencidas",
+      subtitle: "Exigem prioridade",
+      total: totalVencidoVisivel,
+      contas: visibleContas.filter(c => (c.status === "pendente" || c.status === "vencida") && c.vencimento < cp.hoje),
+      icon: AlertCircle,
+      cardClass: "kpi-card-destructive",
+      iconClass: "status-card-icon-destructive",
+      valueClass: "text-destructive",
+    },
+    {
+      key: "vence-hoje",
+      title: "Vencem hoje",
+      subtitle: "Compromissos do dia",
+      total: totalVenceHoje,
+      contas: visibleContas.filter(c => c.status !== "paga" && c.vencimento === cp.hoje),
+      icon: CalendarRange,
+      cardClass: "kpi-card-warning",
+      iconClass: "status-card-icon-warning",
+      valueClass: "text-warning",
+    },
+    {
+      key: "pagas",
+      title: "Pagas",
+      subtitle: "Quitadas no filtro atual",
+      total: totalPagoVisivel,
+      contas: visibleContas.filter(c => c.status === "paga"),
+      icon: CheckCircle2,
+      cardClass: "kpi-card-success",
+      iconClass: "status-card-icon-success",
+      valueClass: "text-success",
+    },
+  ];
+  const selectedSummary = summaryCards.find(card => card.key === selectedSummaryKey);
   const groupedVisible = (() => {
     if (!cp.agrupar) return null;
     const groups: Record<string, typeof visibleContas> = {};
@@ -91,6 +150,12 @@ export default function ContasPagar() {
     return `${base} [&>td:first-child]:border-l-warning hover:[&>td]:bg-warning/5`;
   };
 
+  const runSummaryAction = (action: () => void) => {
+    setSelectedSummaryKey(null);
+    action();
+  };
+  const SelectedSummaryIcon = selectedSummary?.icon;
+
   return (
     <MainLayout>
       <Header title="Contas a Pagar" subtitle="Gerencie todas as contas, parcelamentos e empréstimos" />
@@ -104,11 +169,33 @@ export default function ContasPagar() {
         <div className="space-y-4 md:space-y-6">
             {/* KPI Cards */}
             <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-              <Card className="kpi-card kpi-card-primary"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-primary h-10 w-10"><CreditCard /></div><div className="min-w-0"><div className="text-lg font-bold leading-tight">R$ {totalAbertoVisivel.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Em aberto</p></div></CardContent></Card>
-              <Card className="kpi-card kpi-card-warning"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-warning h-10 w-10"><Clock /></div><div className="min-w-0"><div className="text-lg font-bold leading-tight text-warning">R$ {totalPendenteVisivel.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">A vencer</p></div></CardContent></Card>
-              <Card className="kpi-card kpi-card-destructive"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-destructive h-10 w-10"><AlertCircle /></div><div className="min-w-0"><div className="text-lg font-bold leading-tight text-destructive">R$ {totalVencidoVisivel.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Vencidas</p></div></CardContent></Card>
-              <Card className="kpi-card kpi-card-warning"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-warning h-10 w-10"><CalendarRange /></div><div className="min-w-0"><div className="text-lg font-bold leading-tight text-warning">R$ {totalVenceHoje.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Vencem hoje</p></div></CardContent></Card>
-              <Card className="kpi-card kpi-card-success col-span-2 md:col-span-1"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-success h-10 w-10"><CheckCircle2 /></div><div className="min-w-0"><div className="text-lg font-bold leading-tight text-success">R$ {totalPagoVisivel.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Pagas</p></div></CardContent></Card>
+              {summaryCards.map(card => {
+                const Icon = card.icon;
+                return (
+                  <button
+                    key={card.key}
+                    type="button"
+                    onClick={() => setSelectedSummaryKey(card.key)}
+                    className={`rounded-xl text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${card.key === "pagas" ? "col-span-2 md:col-span-1" : ""}`}
+                    aria-label={`Abrir detalhes de ${card.title}`}
+                  >
+                    <Card className={`kpi-card ${card.cardClass} h-full transition hover:-translate-y-0.5 hover:shadow-lg`}>
+                      <CardContent className="flex items-center gap-3 p-3">
+                        <div className={`status-card-icon ${card.iconClass} h-10 w-10`}>
+                          <Icon />
+                        </div>
+                        <div className="min-w-0">
+                          <div className={`text-lg font-bold leading-tight ${card.valueClass}`}>
+                            R$ {card.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </div>
+                          <p className="kpi-label">{card.title}</p>
+                          <p className="truncate text-[11px] text-muted-foreground">{card.contas.length} conta{card.contas.length === 1 ? "" : "s"}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Action Toolbar */}
@@ -310,6 +397,106 @@ export default function ContasPagar() {
                     <Button onClick={() => setAdvancedSearchOpen(false)}><Search className="h-4 w-4 mr-2" />Aplicar busca</Button>
                   </div>
                 </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={!!selectedSummary} onOpenChange={(open) => !open && setSelectedSummaryKey(null)}>
+              <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-4xl">
+                {selectedSummary && SelectedSummaryIcon && (
+                  <>
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <SelectedSummaryIcon className="h-5 w-5 text-primary" />
+                        {selectedSummary.title}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-2">
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <Card className={`kpi-card ${selectedSummary.cardClass}`}>
+                          <CardContent className="p-4">
+                            <p className="text-xs font-medium uppercase text-muted-foreground">Total</p>
+                            <p className={`mt-1 text-2xl font-bold ${selectedSummary.valueClass}`}>
+                              R$ {selectedSummary.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card className="kpi-card">
+                          <CardContent className="p-4">
+                            <p className="text-xs font-medium uppercase text-muted-foreground">Quantidade</p>
+                            <p className="mt-1 text-2xl font-bold">{selectedSummary.contas.length}</p>
+                          </CardContent>
+                        </Card>
+                        <Card className="kpi-card">
+                          <CardContent className="p-4">
+                            <p className="text-xs font-medium uppercase text-muted-foreground">Contexto</p>
+                            <p className="mt-2 text-sm text-muted-foreground">{selectedSummary.subtitle}</p>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {selectedSummary.contas.length === 0 ? (
+                        <EmptyState
+                          icon={selectedSummary.icon}
+                          title="Nenhuma conta neste resumo"
+                          description="Quando houver contas neste status, elas aparecem aqui com informacoes e acoes rapidas."
+                        />
+                      ) : (
+                        <div className="space-y-2">
+                          {selectedSummary.contas.map(conta => {
+                            const { label, variant } = getStatus(conta);
+                            return (
+                              <div key={conta.id} className="rounded-xl border bg-card p-3 shadow-sm">
+                                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                  <div className="min-w-0 space-y-2">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <Badge variant={variant}>{label}</Badge>
+                                      {conta.categoria && <Badge variant="outline">{conta.categoria}</Badge>}
+                                      <span className="text-xs text-muted-foreground">
+                                        Venc. {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <p className="font-semibold leading-snug">{conta.descricao}</p>
+                                      <p className="text-sm text-muted-foreground">{conta.fornecedor}</p>
+                                    </div>
+                                    {conta.observacoes && (
+                                      <p className="rounded-lg bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                                        {conta.observacoes}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-col gap-3 lg:items-end">
+                                    <p className="text-xl font-bold">
+                                      R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                      {conta.status !== "paga" && (
+                                        <Button size="sm" className="gap-2" onClick={() => runSummaryAction(() => cp.openPagarDialog(conta))}>
+                                          <DollarSign className="h-4 w-4" />Pagar
+                                        </Button>
+                                      )}
+                                      <Button size="sm" variant="outline" className="gap-2" onClick={() => runSummaryAction(() => cp.handleEdit(conta))}>
+                                        <Pencil className="h-4 w-4" />Editar
+                                      </Button>
+                                      {(conta.boleto_url || conta.boleto_linha_digitavel) && (
+                                        <Button size="sm" variant="outline" className="gap-2" onClick={() => runSummaryAction(() => cp.handleViewBoleto(conta))}>
+                                          <Eye className="h-4 w-4" />Boleto
+                                        </Button>
+                                      )}
+                                      <Button size="sm" variant="outline" className="gap-2 text-destructive hover:text-destructive" onClick={() => runSummaryAction(() => cp.setDeleteId(conta.id))}>
+                                        <Trash2 className="h-4 w-4" />Excluir
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </DialogContent>
             </Dialog>
 
