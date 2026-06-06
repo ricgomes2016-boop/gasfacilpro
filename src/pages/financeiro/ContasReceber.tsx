@@ -26,12 +26,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Wallet, Search, Plus, AlertCircle, CheckCircle2, Clock, MoreHorizontal,
-  Pencil, Trash2, DollarSign, Download, MapPin, User, Filter, X,
-  CreditCard, Banknote, FileText, Handshake, Flame, Receipt, CheckSquare, RefreshCw,
-  CalendarRange, Zap, Tag, ChevronDown,
+  Pencil, Trash2, DollarSign, Download, X,
+  Banknote, CheckSquare, RefreshCw,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { isFormaAVista, getFormaCategoria, FORMA_LABELS, type FormaCategoria } from "@/lib/financeiro/formaPagamento";
 import { supabase } from "@/integrations/supabase/client";
 import { ConferenciaCartao } from "@/components/financeiro/ConferenciaCartao";
@@ -119,6 +117,7 @@ export default function ContasReceber() {
   const [filtroStatus, setFiltroStatus] = useState<Set<StatusFiltro>>(new Set(["a_receber", "vencida"]));
   const [filtroFormas, setFiltroFormas] = useState<Set<FormaCategoria>>(new Set());
   const [activeTab, setActiveTab] = useState("todos"); // mantido só pra aba Conferência
+  const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { unidadeAtual } = useUnidade();
 
@@ -1022,12 +1021,11 @@ export default function ContasReceber() {
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditId(null); resetForm(); } }}>
-              <DialogTrigger asChild>
-                <Button className="h-10 gap-2"><Plus className="h-4 w-4" />Novo recebivel</Button>
-              </DialogTrigger>
-              <SmartImportButtons edgeFunctionName="parse-receivables-import" onDataExtracted={handleImportData} />
-              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditId(null); resetForm(); } }}>
+                  <DialogTrigger asChild>
+                    <Button className="h-10 gap-2"><Plus className="h-4 w-4" />Novo recebivel</Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle>{editId ? "Editar Recebível" : "Novo Recebível"}</DialogTitle></DialogHeader>
                 <div className="space-y-4 pt-4">
                   <div>
@@ -1058,154 +1056,143 @@ export default function ContasReceber() {
                   </div>
                 </div>
               </DialogContent>
-            </Dialog>
-          </div>
+                </Dialog>
 
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <Button variant="outline" onClick={exportToExcel} className="h-10 gap-1.5">
-                  <Download className="h-4 w-4" /><span className="hidden sm:inline">Excel</span>
+                <Button variant="outline" className="h-10 gap-2" onClick={() => setAdvancedSearchOpen(true)}>
+                  <Search className="h-4 w-4" />Busca avancada
                 </Button>
-                <Button variant="outline" onClick={exportToPDF} className="h-10 gap-1.5">
-                  <Download className="h-4 w-4" /><span className="hidden sm:inline">PDF</span>
-                </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="h-10 gap-2">
+                      <MoreHorizontal className="h-4 w-4" />Mais acoes
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-64">
+                    <div className="px-2 py-2">
+                      <p className="mb-2 text-xs font-medium text-muted-foreground">Importar com IA</p>
+                      <SmartImportButtons edgeFunctionName="parse-receivables-import" onDataExtracted={handleImportData} />
+                    </div>
+                    <DropdownMenuItem onClick={exportToExcel}><Download className="h-4 w-4 mr-2" />Exportar Excel</DropdownMenuItem>
+                    <DropdownMenuItem onClick={exportToPDF}><Download className="h-4 w-4 mr-2" />Exportar PDF</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                {filtered.length} registro{filtered.length !== 1 ? "s" : ""} no filtro atual
+                {hasActiveFilters && (
+                  <Button variant="ghost" onClick={clearAllFilters} className="h-8 gap-1 px-2 text-xs">
+                    <X className="h-3.5 w-3.5" /> Limpar filtros
+                  </Button>
+                )}
               </div>
             </div>
 
-          <div className="grid gap-2 border-t pt-3 lg:grid-cols-[minmax(220px,1fr)_auto_auto_auto_auto_auto] lg:items-center">
-            <div className="relative min-w-0">
-              <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar cliente, descrição, vale…"
-                value={filtroNome}
-                onChange={e => setFiltroNome(e.target.value)}
-                className="h-10 pl-8 text-sm"
-              />
-            </div>
-
-            {/* Período */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="h-10 w-full gap-1.5 lg:w-auto">
-                  <CalendarRange className="h-3.5 w-3.5" />
-                  {dataInicial || dataFinal
-                    ? `${dataInicial ? format(new Date(dataInicial + "T12:00:00"), "dd/MM") : "…"} → ${dataFinal ? format(new Date(dataFinal + "T12:00:00"), "dd/MM") : "…"}`
-                    : "Período"}
-                  <ChevronDown className="h-3 w-3 opacity-60" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-72 p-3" align="start">
-                <p className="text-xs font-semibold text-muted-foreground mb-2">Atalhos</p>
-                <div className="grid grid-cols-2 gap-1.5 mb-3">
-                  {[
-                    { k: "hoje", l: "Hoje" },
-                    { k: "7d", l: "Últimos 7 dias" },
-                    { k: "mes_atual", l: "Mês atual" },
-                    { k: "mes_passado", l: "Mês passado" },
-                    { k: "30d", l: "Últimos 30 dias" },
-                    { k: "90d", l: "Últimos 90 dias" },
-                    { k: "ano", l: "Este ano" },
-                    { k: "limpar", l: "Sem período" },
-                  ].map(p => (
-                    <Button key={p.k} variant="outline" size="sm" className="h-8 text-xs justify-start"
-                      onClick={() => aplicarPresetPeriodo(p.k as any)}>{p.l}</Button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground uppercase">De</Label>
-                    <Input type="date" value={dataInicial} onChange={e => setDataInicial(e.target.value)} className="h-8 text-xs mt-1" />
+            <Dialog open={advancedSearchOpen} onOpenChange={setAdvancedSearchOpen}>
+              <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+                <DialogHeader><DialogTitle>Busca avancada</DialogTitle></DialogHeader>
+                <div className="space-y-4 pt-2">
+                  <div className="space-y-2">
+                    <Label>Busca geral</Label>
+                    <div className="relative">
+                      <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar cliente, descricao, vale..."
+                        value={filtroNome}
+                        onChange={e => setFiltroNome(e.target.value)}
+                        className="pl-8"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground uppercase">Até</Label>
-                    <Input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} className="h-8 text-xs mt-1" />
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Vencimento inicial</Label>
+                      <Input type="date" value={dataInicial} onChange={e => setDataInicial(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Vencimento final</Label>
+                      <Input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Atalhos de periodo</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { k: "hoje", l: "Hoje" },
+                        { k: "7d", l: "Ultimos 7 dias" },
+                        { k: "mes_atual", l: "Mes atual" },
+                        { k: "mes_passado", l: "Mes passado" },
+                        { k: "30d", l: "Ultimos 30 dias" },
+                        { k: "90d", l: "Ultimos 90 dias" },
+                        { k: "ano", l: "Este ano" },
+                        { k: "limpar", l: "Sem periodo" },
+                      ].map(p => (
+                        <Button key={p.k} variant="outline" size="sm" type="button" onClick={() => aplicarPresetPeriodo(p.k as any)}>{p.l}</Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <div className="rounded-lg border p-2">
+                        {([
+                          { k: "a_receber", l: "A receber", icon: Clock },
+                          { k: "vencida", l: "Vencidas", icon: AlertCircle },
+                          { k: "recebida", l: "Recebidas", icon: CheckCircle2 },
+                        ] as const).map(s => {
+                          const Icon = s.icon;
+                          return (
+                            <button key={s.k} type="button" onClick={() => toggleStatus(s.k)}
+                              className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-accent">
+                              <Checkbox checked={filtroStatus.has(s.k)} className="pointer-events-none" />
+                              <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                              {s.l}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Forma de pagamento</Label>
+                      <div className="max-h-52 overflow-y-auto rounded-lg border p-2">
+                        {FORMA_FILTER_OPTIONS.map(o => (
+                          <button key={o.value} type="button" onClick={() => toggleForma(o.value)}
+                            className="flex w-full items-center gap-2 rounded px-2 py-2 text-sm hover:bg-accent">
+                            <Checkbox checked={filtroFormas.has(o.value)} className="pointer-events-none" />
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border bg-muted/30 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <Label className="text-sm font-medium">Conferencia de cartao</Label>
+                        <p className="text-xs text-muted-foreground">Abre o painel de conferencia sem deixar a acao fixa na tela.</p>
+                      </div>
+                      <Button variant={activeTab === "conferencia" ? "default" : "outline"} onClick={() => setActiveTab(activeTab === "conferencia" ? "todos" : "conferencia")}>
+                        {activeTab === "conferencia" ? "Ocultar" : "Abrir"}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button variant="outline" onClick={clearAllFilters}>Limpar</Button>
+                    <Button onClick={() => setAdvancedSearchOpen(false)}><Search className="h-4 w-4 mr-2" />Aplicar busca</Button>
                   </div>
                 </div>
-              </PopoverContent>
-            </Popover>
+              </DialogContent>
+            </Dialog>
 
-            {/* Status (multi) */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="h-10 w-full gap-1.5 lg:w-auto">
-                  <Tag className="h-3.5 w-3.5" />
-                  Status{filtroStatus.size > 0 && <span className="text-[10px] opacity-70">· {filtroStatus.size}</span>}
-                  <ChevronDown className="h-3 w-3 opacity-60" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-52 p-2" align="start">
-                {([
-                  { k: "a_receber", l: "A Receber", icon: Clock },
-                  { k: "vencida", l: "Vencidas", icon: AlertCircle },
-                  { k: "recebida", l: "Recebidas", icon: CheckCircle2 },
-                ] as const).map(s => {
-                  const checked = filtroStatus.has(s.k);
-                  const Icon = s.icon;
-                  return (
-                    <button key={s.k} type="button" onClick={() => toggleStatus(s.k)}
-                      className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-accent text-sm">
-                      <Checkbox checked={checked} className="pointer-events-none" />
-                      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
-                      {s.l}
-                    </button>
-                  );
-                })}
-              </PopoverContent>
-            </Popover>
-
-            {/* Forma de pagamento (multi) */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="h-10 w-full gap-1.5 lg:w-auto">
-                  <CreditCard className="h-3.5 w-3.5" />
-                  Forma{filtroFormas.size > 0 && <span className="text-[10px] opacity-70">· {filtroFormas.size}</span>}
-                  <ChevronDown className="h-3 w-3 opacity-60" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-2" align="start">
-                <p className="text-[10px] uppercase font-semibold text-muted-foreground px-2 pt-1 pb-1 flex items-center gap-1">
-                  <Zap className="h-3 w-3" /> À vista (auto‑baixa)
-                </p>
-                {FORMA_FILTER_OPTIONS.filter(o => o.grupo === "a_vista").map(o => (
-                  <button key={o.value} type="button" onClick={() => toggleForma(o.value)}
-                    className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-accent text-sm">
-                    <Checkbox checked={filtroFormas.has(o.value)} className="pointer-events-none" />
-                    {o.label}
-                  </button>
-                ))}
-                <p className="text-[10px] uppercase font-semibold text-muted-foreground px-2 pt-2 pb-1">A prazo</p>
-                {FORMA_FILTER_OPTIONS.filter(o => o.grupo === "a_prazo").map(o => (
-                  <button key={o.value} type="button" onClick={() => toggleForma(o.value)}
-                    className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-accent text-sm">
-                    <Checkbox checked={filtroFormas.has(o.value)} className="pointer-events-none" />
-                    {o.label}
-                  </button>
-                ))}
-                <div className="border-t mt-1 pt-1">
-                  {FORMA_FILTER_OPTIONS.filter(o => o.grupo === "outros").map(o => (
-                    <button key={o.value} type="button" onClick={() => toggleForma(o.value)}
-                      className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-accent text-sm">
-                      <Checkbox checked={filtroFormas.has(o.value)} className="pointer-events-none" />
-                      {o.label}
-                    </button>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <Button variant="ghost" onClick={() => setActiveTab(activeTab === "conferencia" ? "todos" : "conferencia")}
-              className={`h-10 w-full gap-1.5 lg:w-auto ${activeTab === "conferencia" ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}>
-              <CreditCard className="h-3.5 w-3.5" /><span className="hidden sm:inline">Conferência</span>
-            </Button>
-
-            {hasActiveFilters && (
-              <Button variant="ghost" onClick={clearAllFilters} className="h-10 w-full gap-1 text-xs lg:w-auto">
-                <X className="h-3.5 w-3.5" /> Limpar
-              </Button>
-            )}
-          </div>
-
-          {/* Chips de filtros ativos */}
-          {(filtroNome || dataInicial || dataFinal || filtroFormas.size > 0 || filtroStatus.size !== 2 || ![...filtroStatus].every(s => s === "a_receber" || s === "vencida")) && (
+            {/* Chips de filtros ativos */}
+            {(filtroNome || dataInicial || dataFinal || filtroFormas.size > 0 || filtroStatus.size !== 2 || ![...filtroStatus].every(s => s === "a_receber" || s === "vencida")) && (
             <div className="flex flex-wrap items-center gap-1.5 mt-2">
               {filtroNome && (
                 <Badge variant="secondary" className="gap-1 pr-1">
