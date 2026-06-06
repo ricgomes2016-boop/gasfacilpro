@@ -25,26 +25,56 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   CreditCard, Search, Plus, AlertCircle, CheckCircle2, Clock, MoreHorizontal,
-  Pencil, Trash2, DollarSign, Download, Camera, Loader2, Layers, ChevronRight,
+  Pencil, Trash2, DollarSign, Download, Camera, Loader2, Layers,
   Building2, Filter, X, Mic, MicOff, AudioLines, FileText, Eye, FileUp, CalendarRange,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ParcelamentoDialog } from "@/components/financeiro/ParcelamentoDialog";
 import { CompromissosFuturos } from "@/components/financeiro/CompromissosFuturos";
-import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
 import { useContasPagar, FORMAS_PAGAMENTO } from "@/hooks/useContasPagar";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
 
 export default function ContasPagar() {
   const cp = useContasPagar();
   const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false);
-  const totalVenceHoje = cp.filtered
+  const [showFutureCommitments, setShowFutureCommitments] = useState(false);
+  const [futureRange, setFutureRange] = useState("30");
+  const [valorMinimo, setValorMinimo] = useState("");
+  const [valorMaximo, setValorMaximo] = useState("");
+  const visibleContas = cp.filtered.filter(c => {
+    const valor = Number(c.valor);
+    const min = valorMinimo ? Number(valorMinimo) : null;
+    const max = valorMaximo ? Number(valorMaximo) : null;
+    return (min === null || valor >= min) && (max === null || valor <= max);
+  });
+  const totalPendenteVisivel = visibleContas.filter(c => c.status === "pendente" && c.vencimento >= cp.hoje).reduce((a, c) => a + Number(c.valor), 0);
+  const totalVencidoVisivel = visibleContas.filter(c => (c.status === "pendente" || c.status === "vencida") && c.vencimento < cp.hoje).reduce((a, c) => a + Number(c.valor), 0);
+  const totalPagoVisivel = visibleContas.filter(c => c.status === "paga").reduce((a, c) => a + Number(c.valor), 0);
+  const totalAbertoVisivel = totalPendenteVisivel + totalVencidoVisivel;
+  const totalVenceHoje = visibleContas
     .filter(c => c.status !== "paga" && c.vencimento === cp.hoje)
     .reduce((sum, c) => sum + Number(c.valor), 0);
+  const groupedVisible = (() => {
+    if (!cp.agrupar) return null;
+    const groups: Record<string, typeof visibleContas> = {};
+    visibleContas.forEach(c => {
+      if (!groups[c.fornecedor]) groups[c.fornecedor] = [];
+      groups[c.fornecedor].push(c);
+    });
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  })();
+  const hasVisibleFilters = cp.hasActiveFilters || !!cp.search || !!valorMinimo || !!valorMaximo;
+
+  const applyDateShortcut = (days: number) => {
+    const start = new Date(`${cp.hoje}T12:00:00`);
+    const end = new Date(start);
+    end.setDate(start.getDate() + days);
+    cp.setDataInicial(cp.hoje);
+    cp.setDataFinal(end.toISOString().split("T")[0]);
+  };
 
   // Helper: determine display status label / variant
   const getStatus = (conta: ReturnType<typeof useContasPagar>["contas"][0]) => {
@@ -71,19 +101,33 @@ export default function ContasPagar() {
         <input ref={cp.boletoInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => cp.handleBoletoCapture(e, false)} />
         <input ref={cp.boletoPdfInputRef} type="file" accept="application/pdf" className="hidden" onChange={(e) => cp.handleBoletoCapture(e, true)} />
 
-        <Tabs defaultValue="contas">
-          <TabsList>
-            <TabsTrigger value="contas"><CreditCard className="h-4 w-4 mr-1" />Contas</TabsTrigger>
-            <TabsTrigger value="compromissos"><CalendarRange className="h-4 w-4 mr-1" />Compromissos Futuros</TabsTrigger>
-          </TabsList>
+        <div className="space-y-4 md:space-y-6">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+              <Card className="kpi-card kpi-card-primary"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-primary h-10 w-10"><CreditCard /></div><div className="min-w-0"><div className="text-lg font-bold leading-tight">R$ {totalAbertoVisivel.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Em aberto</p></div></CardContent></Card>
+              <Card className="kpi-card kpi-card-warning"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-warning h-10 w-10"><Clock /></div><div className="min-w-0"><div className="text-lg font-bold leading-tight text-warning">R$ {totalPendenteVisivel.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">A vencer</p></div></CardContent></Card>
+              <Card className="kpi-card kpi-card-destructive"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-destructive h-10 w-10"><AlertCircle /></div><div className="min-w-0"><div className="text-lg font-bold leading-tight text-destructive">R$ {totalVencidoVisivel.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Vencidas</p></div></CardContent></Card>
+              <Card className="kpi-card kpi-card-warning"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-warning h-10 w-10"><CalendarRange /></div><div className="min-w-0"><div className="text-lg font-bold leading-tight text-warning">R$ {totalVenceHoje.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Vencem hoje</p></div></CardContent></Card>
+              <Card className="kpi-card kpi-card-success col-span-2 md:col-span-1"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-success h-10 w-10"><CheckCircle2 /></div><div className="min-w-0"><div className="text-lg font-bold leading-tight text-success">R$ {totalPagoVisivel.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Pagas</p></div></CardContent></Card>
+            </div>
 
-          <TabsContent value="contas" className="mt-4 space-y-4 md:space-y-6">
             {/* Action Toolbar */}
             <div className="flex flex-col gap-3 rounded-xl border bg-card/90 p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-2">
+                <div className="w-full sm:w-auto">
+                  <Label className="text-xs text-muted-foreground">Vencimento inicial</Label>
+                  <Input type="date" className="h-10 sm:w-[155px]" value={cp.dataInicial} onChange={e => cp.setDataInicial(e.target.value)} />
+                </div>
+                <div className="w-full sm:w-auto">
+                  <Label className="text-xs text-muted-foreground">Vencimento final</Label>
+                  <Input type="date" className="h-10 sm:w-[155px]" value={cp.dataFinal} onChange={e => cp.setDataFinal(e.target.value)} />
+                </div>
+                <Button variant="secondary" className="gap-2 self-end" onClick={() => setAdvancedSearchOpen(false)}>
+                  <Filter className="h-4 w-4" />Filtrar
+                </Button>
               <Dialog open={cp.dialogOpen} onOpenChange={(open) => { cp.setDialogOpen(open); if (!open) { cp.setEditId(null); cp.resetForm(); } }}>
                 <DialogTrigger asChild>
-                  <Button className="gap-2"><Plus className="h-4 w-4" />Nova Conta</Button>
+                  <Button className="gap-2 sm:order-last"><Plus className="h-4 w-4" />Nova Conta</Button>
                 </DialogTrigger>
                 <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-4xl">
                   <DialogHeader><DialogTitle>{cp.editId ? "Editar Conta" : "Informacoes da conta"}</DialogTitle></DialogHeader>
@@ -165,10 +209,6 @@ export default function ContasPagar() {
                 </DropdownMenuContent>
               </DropdownMenu>
               </div>
-              <div className="relative w-full sm:max-w-xs">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
-                <Input placeholder="Buscar conta..." className="pl-10" value={cp.search} onChange={e => cp.setSearch(e.target.value)} />
-              </div>
             </div>
 
             <Dialog open={advancedSearchOpen} onOpenChange={setAdvancedSearchOpen}>
@@ -215,6 +255,14 @@ export default function ContasPagar() {
                       <Label>Vencimento final</Label>
                       <Input type="date" value={cp.dataFinal} onChange={e => cp.setDataFinal(e.target.value)} />
                     </div>
+                    <div className="space-y-2">
+                      <Label>Valor minimo</Label>
+                      <Input type="number" step="0.01" placeholder="0,00" value={valorMinimo} onChange={e => setValorMinimo(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Valor maximo</Label>
+                      <Input type="number" step="0.01" placeholder="0,00" value={valorMaximo} onChange={e => setValorMaximo(e.target.value)} />
+                    </div>
                     <div className="flex items-end">
                       <div className="flex h-10 items-center gap-2">
                         <Checkbox id="agrupar-avancado" checked={cp.agrupar} onCheckedChange={(v) => cp.setAgrupar(!!v)} />
@@ -222,64 +270,48 @@ export default function ContasPagar() {
                       </div>
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label>Atalhos de periodo</Label>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={() => { cp.setDataInicial(cp.hoje); cp.setDataFinal(cp.hoje); }}>Hoje</Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => applyDateShortcut(7)}>Proximos 7 dias</Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => applyDateShortcut(15)}>Proximos 15 dias</Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => applyDateShortcut(30)}>Proximos 30 dias</Button>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border bg-muted/30 p-3 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <Label className="text-sm font-medium">Mostrar compromissos futuros</Label>
+                        <p className="text-xs text-muted-foreground">Consulta a previsao de compromissos sem transformar isso em aba principal.</p>
+                      </div>
+                      <Switch checked={showFutureCommitments} onCheckedChange={setShowFutureCommitments} />
+                    </div>
+                    {showFutureCommitments && (
+                      <div className="space-y-3">
+                        <Select value={futureRange} onValueChange={setFutureRange}>
+                          <SelectTrigger><SelectValue placeholder="Periodo" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="7">Proximos 7 dias</SelectItem>
+                            <SelectItem value="15">Proximos 15 dias</SelectItem>
+                            <SelectItem value="30">Proximos 30 dias</SelectItem>
+                            <SelectItem value="60">Proximos 60 dias</SelectItem>
+                            <SelectItem value="personalizado">Personalizado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <div className="max-h-[360px] overflow-y-auto rounded-lg border bg-background">
+                          <CompromissosFuturos />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex justify-end gap-2 pt-2">
-                    <Button variant="outline" onClick={() => { cp.clearAllFilters(); cp.setSearch(""); }}>Limpar</Button>
+                    <Button variant="outline" onClick={() => { cp.clearAllFilters(); cp.setSearch(""); setValorMinimo(""); setValorMaximo(""); }}>Limpar</Button>
                     <Button onClick={() => setAdvancedSearchOpen(false)}><Search className="h-4 w-4 mr-2" />Aplicar busca</Button>
                   </div>
                 </div>
               </DialogContent>
             </Dialog>
-
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-              <Card className="kpi-card kpi-card-primary"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-primary h-10 w-10"><CreditCard /></div><div className="min-w-0"><div className="text-lg font-bold leading-tight">R$ {cp.totalAberto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Em aberto</p></div></CardContent></Card>
-              <Card className="kpi-card kpi-card-warning"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-warning h-10 w-10"><Clock /></div><div className="min-w-0"><div className="text-lg font-bold leading-tight text-warning">R$ {cp.totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">A vencer</p></div></CardContent></Card>
-              <Card className="kpi-card kpi-card-destructive"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-destructive h-10 w-10"><AlertCircle /></div><div className="min-w-0"><div className="text-lg font-bold leading-tight text-destructive">R$ {cp.totalVencido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Vencidas</p></div></CardContent></Card>
-              <Card className="kpi-card kpi-card-warning"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-warning h-10 w-10"><CalendarRange /></div><div className="min-w-0"><div className="text-lg font-bold leading-tight text-warning">R$ {totalVenceHoje.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Vencem hoje</p></div></CardContent></Card>
-              <Card className="kpi-card kpi-card-success col-span-2 md:col-span-1"><CardContent className="flex items-center gap-3 p-3"><div className="status-card-icon status-card-icon-success h-10 w-10"><CheckCircle2 /></div><div className="min-w-0"><div className="text-lg font-bold leading-tight text-success">R$ {cp.totalPago.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><p className="kpi-label">Pagas</p></div></CardContent></Card>
-            </div>
-
-            {/* Resumo por Fornecedor */}
-            {cp.resumoPorFornecedor.length > 0 && (
-              <Collapsible open={cp.resumoOpen} onOpenChange={cp.setResumoOpen}>
-                <Card>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                          <CardTitle className="text-sm">Resumo por Fornecedor</CardTitle>
-                          <Badge variant="secondary" className="text-xs">{cp.resumoPorFornecedor.length}</Badge>
-                        </div>
-                        <ChevronRight className={`h-4 w-4 text-muted-foreground transition-transform ${cp.resumoOpen ? "rotate-90" : ""}`} />
-                      </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent className="pt-0">
-                      <div className="space-y-3">
-                        {cp.resumoPorFornecedor.slice(0, 3).map(item => {
-                          const percent = cp.totalAberto > 0 ? (item.total / cp.totalAberto) * 100 : 0;
-                          return (
-                            <button key={item.fornecedor} className="w-full text-left" onClick={() => { cp.setFiltroFornecedor(item.fornecedor); cp.setFiltroStatus("abertas"); cp.setResumoOpen(false); }}>
-                              <div className="flex items-center justify-between mb-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-medium">{item.fornecedor}</span>
-                                  <span className="text-xs text-muted-foreground">{item.count} conta{item.count > 1 ? "s" : ""}</span>
-                                  {item.vencidas > 0 && <Badge variant="destructive" className="text-xs py-0">{item.vencidas} vencida{item.vencidas > 1 ? "s" : ""}</Badge>}
-                                </div>
-                                <span className="text-sm font-bold">R$ {item.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-                              </div>
-                              <Progress value={percent} className="h-1.5" />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
-            )}
 
             {/* Main table/card list */}
               <Card className="modern-panel">
@@ -290,14 +322,17 @@ export default function ContasPagar() {
                       <CreditCard className="h-5 w-5 shrink-0" />
                       <span className="truncate">Lista de Contas</span>
                     </CardTitle>
-                    <span className="text-sm font-medium text-success-foreground/85">{cp.filtered.length} conta{cp.filtered.length === 1 ? "" : "s"}</span>
+                    <span className="text-sm font-medium text-success-foreground/85">{visibleContas.length} conta{visibleContas.length === 1 ? "" : "s"}</span>
                   </div>
-                  {cp.hasActiveFilters && (
+                  {hasVisibleFilters && (
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <Filter className="h-3 w-3" /><span>{cp.filtered.length} de {cp.contas.length} contas</span>
+                      <Filter className="h-3 w-3" /><span>{visibleContas.length} de {cp.contas.length} contas</span>
                       {cp.filtroFornecedor !== "todos" && <Badge variant="secondary" className="text-xs gap-1 py-0">{cp.filtroFornecedor}<button onClick={() => cp.setFiltroFornecedor("todos")}><X className="h-3 w-3" /></button></Badge>}
                       {cp.filtroCategoria !== "todos" && <Badge variant="secondary" className="text-xs gap-1 py-0">{cp.filtroCategoria}<button onClick={() => cp.setFiltroCategoria("todos")}><X className="h-3 w-3" /></button></Badge>}
                       {cp.filtroStatus !== "abertas" && <Badge variant="secondary" className="text-xs gap-1 py-0">{cp.filtroStatus}<button onClick={() => cp.setFiltroStatus("abertas")}><X className="h-3 w-3" /></button></Badge>}
+                      {cp.search && <Badge variant="secondary" className="text-xs gap-1 py-0">Busca: {cp.search}<button onClick={() => cp.setSearch("")}><X className="h-3 w-3" /></button></Badge>}
+                      {valorMinimo && <Badge variant="secondary" className="text-xs gap-1 py-0">Min: R$ {valorMinimo}<button onClick={() => setValorMinimo("")}><X className="h-3 w-3" /></button></Badge>}
+                      {valorMaximo && <Badge variant="secondary" className="text-xs gap-1 py-0">Max: R$ {valorMaximo}<button onClick={() => setValorMaximo("")}><X className="h-3 w-3" /></button></Badge>}
                     </div>
                   )}
                   {cp.selecionadasPagamentoIds.size > 0 && (
@@ -316,7 +351,7 @@ export default function ContasPagar() {
               <CardContent className="px-3 sm:px-6">
                 {cp.loading ? (
                   <p className="text-center py-8 text-muted-foreground">Carregando...</p>
-                ) : cp.filtered.length === 0 ? (
+                ) : visibleContas.length === 0 ? (
                   <EmptyState
                     icon={CreditCard}
                     title="Nenhuma conta encontrada"
@@ -337,7 +372,7 @@ export default function ContasPagar() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {(cp.agrupar && cp.groupedFiltered ? cp.groupedFiltered.flatMap(([fornecedor, items]) => {
+                          {(cp.agrupar && groupedVisible ? groupedVisible.flatMap(([fornecedor, items]) => {
                             const groupTotal = items.reduce((s, c) => s + Number(c.valor), 0);
                             return [
                               <TableRow key={`grp-${fornecedor}`} className="border-0 [&>td]:border-y [&>td]:border-success/25 [&>td]:bg-success/10 [&>td:first-child]:rounded-l-lg [&>td:first-child]:border-l [&>td:last-child]:rounded-r-lg [&>td:last-child]:border-r">
@@ -371,7 +406,7 @@ export default function ContasPagar() {
                                 );
                               })
                             ];
-                          }) : cp.filtered).map((conta: any) => {
+                          }) : visibleContas).map((conta: any) => {
                             if (!conta.id) return conta; // group header row already rendered
                             const { label, variant } = getStatus(conta);
                             return (
@@ -403,7 +438,7 @@ export default function ContasPagar() {
 
                     {/* Mobile cards */}
                     <div className="sm:hidden space-y-3">
-                      {cp.filtered.map(conta => {
+                      {visibleContas.map(conta => {
                         const { label, variant } = getStatus(conta);
                         return (
                           <div key={conta.id} className="border rounded-lg p-3">
@@ -439,12 +474,7 @@ export default function ContasPagar() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="compromissos" className="mt-4">
-            <CompromissosFuturos />
-          </TabsContent>
-        </Tabs>
+        </div>
 
         {/* ===== DIALOGS ===== */}
 
