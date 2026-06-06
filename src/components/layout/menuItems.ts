@@ -291,6 +291,10 @@ export const menuItems: MenuItem[] = [
       { icon: Brain, label: "Regras da Bia", path: "/config/regras-bia" },
       { icon: Megaphone, label: "Site Institucional", path: "/config/site-institucional" },
       { icon: Plug, label: "Integrações / Hub", path: "/integracoes" },
+      { icon: MessageCircle, label: "WhatsApp Web", path: "/whatsapp/web/login" },
+      { icon: Smartphone, label: "Config WhatsApp", path: "/integracoes?open=whatsapp" },
+      { icon: MessageCircle, label: "Credenciais Meta", path: "/whatsapp/credenciais" },
+      { icon: Send, label: "Teste de Envio", path: "/whatsapp/teste-envio" },
     ],
   },
 ];
