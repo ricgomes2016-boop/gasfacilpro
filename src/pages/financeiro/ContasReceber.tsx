@@ -134,6 +134,7 @@ export default function ContasReceber() {
   const [editDataRecConta, setEditDataRecConta] = useState<ContaReceber | null>(null);
   const [asaasDialogOpen, setAsaasDialogOpen] = useState(false);
   const [asaasConta, setAsaasConta] = useState<ContaReceber | null>(null);
+  const [detalheConta, setDetalheConta] = useState<ContaReceber | null>(null);
   const [editDataRecValue, setEditDataRecValue] = useState("");
   const [editDataRecSaving, setEditDataRecSaving] = useState(false);
 
@@ -767,10 +768,19 @@ export default function ContasReceber() {
               const vencida = conta.status === "pendente" && conta.vencimento < hoje;
               const displayStatus = vencida ? "Vencida" : conta.status === "recebida" ? "Recebida" : "Pendente";
               return (
-                <div key={conta.id} className="rounded-xl border bg-card p-3 shadow-sm data-[state=selected]:border-primary/50 data-[state=selected]:bg-primary/5" data-state={selectedIds.has(conta.id) ? "selected" : undefined}>
+                <div
+                  key={conta.id}
+                  className="rounded-xl border bg-card p-3 shadow-sm transition hover:border-primary/40 hover:shadow-md data-[state=selected]:border-primary/50 data-[state=selected]:bg-primary/5"
+                  data-state={selectedIds.has(conta.id) ? "selected" : undefined}
+                  onClick={() => setDetalheConta(conta)}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <Checkbox checked={selectedIds.has(conta.id)} onCheckedChange={() => toggleSelect(conta.id)} />
+                      <Checkbox
+                        checked={selectedIds.has(conta.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        onCheckedChange={() => toggleSelect(conta.id)}
+                      />
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">{conta.parceiro_nome || conta.cliente}</p>
                         {conta.endereco_cliente && (
@@ -784,9 +794,9 @@ export default function ContasReceber() {
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={(e) => e.stopPropagation()}><MoreHorizontal className="h-4 w-4" /></Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50">
+                      <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50" onClick={(e) => e.stopPropagation()}>
                         {conta.status !== "recebida" && <DropdownMenuItem onClick={() => openReceberDialog(conta)}><DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber</DropdownMenuItem>}
                         {conta.status !== "recebida" && (
                           <DropdownMenuItem onClick={() => { setAsaasConta(conta); setAsaasDialogOpen(true); }}>
@@ -843,7 +853,7 @@ export default function ContasReceber() {
           {/* Desktop table */}
           <div className="hidden overflow-x-auto md:block">
             <Table className="border-separate border-spacing-y-2">
-              <TableHeader>
+              <TableHeader className="sticky top-0 z-10">
                 <TableRow className="bg-slate-900 hover:bg-slate-900 [&_th]:h-11 [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-white">
                   <TableHead className="w-10">
                     <Checkbox
@@ -866,12 +876,17 @@ export default function ContasReceber() {
                   const vencida = conta.status === "pendente" && conta.vencimento < hoje;
                   const displayStatus = vencida ? "Vencida" : conta.status === "recebida" ? "Recebida" : "Pendente";
                   return (
-                    <TableRow key={conta.id} className={getReceberRowClass(displayStatus)} data-state={selectedIds.has(conta.id) ? "selected" : undefined}>
-                      <TableCell>
+                    <TableRow
+                      key={conta.id}
+                      className={`${getReceberRowClass(displayStatus)} cursor-pointer`}
+                      data-state={selectedIds.has(conta.id) ? "selected" : undefined}
+                      onClick={() => setDetalheConta(conta)}
+                    >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <Checkbox checked={selectedIds.has(conta.id)} onCheckedChange={() => toggleSelect(conta.id)} />
                       </TableCell>
                       <TableCell>
-                        <p className="font-medium text-sm">{conta.parceiro_nome || conta.cliente}</p>
+                        <p className="text-sm font-semibold text-foreground">{conta.parceiro_nome || conta.cliente}</p>
                         {conta.endereco_cliente && (
                           <p className="text-xs text-muted-foreground">
                             {conta.endereco_cliente}{conta.bairro_cliente ? ` — ${conta.bairro_cliente}` : ""}
@@ -879,7 +894,7 @@ export default function ContasReceber() {
                         )}
                         {conta.vale_numero && <p className="text-xs text-muted-foreground">Vale nº {conta.vale_numero} · {conta.vale_codigo}</p>}
                       </TableCell>
-                      <TableCell className="text-sm">{conta.descricao}</TableCell>
+                      <TableCell className="text-sm font-medium">{conta.descricao}</TableCell>
                       <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
                         {conta.data_venda ? format(new Date(conta.data_venda), "dd/MM/yyyy") : "—"}
                       </TableCell>
@@ -898,7 +913,7 @@ export default function ContasReceber() {
                         <div>{format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</div>
                         {(() => { const a = agingLabel(conta); return a ? <div className={`text-[10px] ${a.cls}`}>{a.text}</div> : null; })()}
                       </TableCell>
-                      <TableCell className="font-medium text-sm whitespace-nowrap">
+                      <TableCell className="text-base font-semibold whitespace-nowrap text-foreground">
                         R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell>
@@ -906,7 +921,7 @@ export default function ContasReceber() {
                           {displayStatus}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
@@ -981,16 +996,16 @@ export default function ContasReceber() {
               <p className="text-[11px] text-muted-foreground">A receber e vencidos</p>
             </CardContent>
           </Card>
-          <Card className="kpi-card kpi-card-warning">
+          <Card className="kpi-card kpi-card-destructive">
             <CardHeader className="sr-only">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">⏳ O que vou receber</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Recebíveis vencidos</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xl sm:text-2xl font-bold text-warning">
-                R$ {totalPendente.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              <p className="text-xl sm:text-2xl font-bold text-destructive">
+                R$ {totalVencido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
-              <p className="kpi-label mt-1">A vencer</p>
-              <p className="text-[11px] text-muted-foreground">Dentro do prazo</p>
+              <p className="kpi-label mt-1">Vencidas</p>
+              <p className="text-[11px] text-muted-foreground">Exigem cobrança</p>
             </CardContent>
           </Card>
           <Card className="kpi-card kpi-card-success">
@@ -1073,6 +1088,25 @@ export default function ContasReceber() {
                       <p className="mb-2 text-xs font-medium text-muted-foreground">Importar com IA</p>
                       <SmartImportButtons edgeFunctionName="parse-receivables-import" onDataExtracted={handleImportData} />
                     </div>
+                    <div className="my-1 border-t" />
+                    <DropdownMenuItem onClick={() => setActiveTab(activeTab === "conferencia" ? "todos" : "conferencia")}>
+                      <CheckSquare className="h-4 w-4 mr-2" />
+                      {activeTab === "conferencia" ? "Ocultar conferencia" : "Conferencia de cartao"}
+                    </DropdownMenuItem>
+                    {canBulkReceber && (
+                      <DropdownMenuItem onClick={() => {
+                        if (selectedContas.length === 1) {
+                          openReceberDialog(selectedContas[0]);
+                        } else {
+                          setBulkFormaPagamento("");
+                          setBulkDataRecebimento(getBrasiliaDateString());
+                          setBulkDialogOpen(true);
+                        }
+                      }}>
+                        <DollarSign className="h-4 w-4 mr-2" />Liquidar selecionados
+                      </DropdownMenuItem>
+                    )}
+                    <div className="my-1 border-t" />
                     <DropdownMenuItem onClick={exportToExcel}><Download className="h-4 w-4 mr-2" />Exportar Excel</DropdownMenuItem>
                     <DropdownMenuItem onClick={exportToPDF}><Download className="h-4 w-4 mr-2" />Exportar PDF</DropdownMenuItem>
                   </DropdownMenuContent>
@@ -1171,18 +1205,6 @@ export default function ContasReceber() {
                     </div>
                   </div>
 
-                  <div className="rounded-xl border bg-muted/30 p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <Label className="text-sm font-medium">Conferencia de cartao</Label>
-                        <p className="text-xs text-muted-foreground">Abre o painel de conferencia sem deixar a acao fixa na tela.</p>
-                      </div>
-                      <Button variant={activeTab === "conferencia" ? "default" : "outline"} onClick={() => setActiveTab(activeTab === "conferencia" ? "todos" : "conferencia")}>
-                        {activeTab === "conferencia" ? "Ocultar" : "Abrir"}
-                      </Button>
-                    </div>
-                  </div>
-
                   <div className="flex justify-end gap-2 pt-2">
                     <Button variant="outline" onClick={clearAllFilters}>Limpar</Button>
                     <Button onClick={() => setAdvancedSearchOpen(false)}><Search className="h-4 w-4 mr-2" />Aplicar busca</Button>
@@ -1234,7 +1256,102 @@ export default function ContasReceber() {
           </Card>
         )}
 
+        <Dialog open={!!detalheConta} onOpenChange={(open) => !open && setDetalheConta(null)}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+            {detalheConta && (() => {
+              const vencida = detalheConta.status === "pendente" && detalheConta.vencimento < hoje;
+              const displayStatus = vencida ? "Vencida" : detalheConta.status === "recebida" ? "Recebida" : "Pendente";
+              const boletoStatus = getBoletoEmissaoStatus(detalheConta);
+              return (
+                <>
+                  <DialogHeader>
+                    <DialogTitle>Detalhes do recebivel</DialogTitle>
+                  </DialogHeader>
 
+                  <div className="space-y-4 pt-2">
+                    <div className="rounded-xl border bg-muted/30 p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <p className="text-sm text-muted-foreground">Cliente</p>
+                          <p className="truncate text-lg font-semibold">{detalheConta.parceiro_nome || detalheConta.cliente}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{detalheConta.descricao}</p>
+                        </div>
+                        <div className="text-left sm:text-right">
+                          <p className="text-2xl font-bold">R$ {Number(detalheConta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                          <Badge variant={displayStatus === "Recebida" ? "default" : displayStatus === "Vencida" ? "destructive" : "secondary"}>{displayStatus}</Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                      <div className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground">Vencimento</p>
+                        <p className="font-medium">{format(new Date(detalheConta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</p>
+                        {(() => { const a = agingLabel(detalheConta); return a ? <p className={`text-xs ${a.cls}`}>{a.text}</p> : null; })()}
+                      </div>
+                      <div className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground">Forma</p>
+                        <p className="font-medium">{detalheConta.forma_pagamento || "-"}</p>
+                        {boletoStatus === "pendente_emissao" && <Badge variant="warning" className="mt-1 text-[10px]">Pendente de emissao</Badge>}
+                        {boletoStatus === "emitido" && <Badge variant="info" className="mt-1 text-[10px]">Boleto emitido</Badge>}
+                      </div>
+                      <div className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground">Data da venda</p>
+                        <p className="font-medium">{detalheConta.data_venda ? format(new Date(detalheConta.data_venda), "dd/MM/yyyy") : "-"}</p>
+                      </div>
+                      <div className="rounded-lg border p-3">
+                        <p className="text-xs text-muted-foreground">Referencia</p>
+                        <p className="font-medium">{detalheConta.vale_numero ? `Vale ${detalheConta.vale_numero}` : detalheConta.pedido_id ? `Pedido ${detalheConta.pedido_id}` : "-"}</p>
+                      </div>
+                    </div>
+
+                    {detalheConta.endereco_cliente && (
+                      <div className="rounded-lg border p-3 text-sm">
+                        <p className="text-xs text-muted-foreground">Endereco</p>
+                        <p>{detalheConta.endereco_cliente}{detalheConta.bairro_cliente ? ` - ${detalheConta.bairro_cliente}` : ""}</p>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {detalheConta.status !== "recebida" && (
+                        <Button onClick={() => { const conta = detalheConta; setDetalheConta(null); openReceberDialog(conta); }}>
+                          <DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber
+                        </Button>
+                      )}
+                      {detalheConta.status !== "recebida" && (
+                        <Button variant="outline" onClick={() => { setAsaasConta(detalheConta); setDetalheConta(null); setAsaasDialogOpen(true); }}>
+                          <Banknote className="h-4 w-4 mr-2" />
+                          {detalheConta.asaas_charge_id ? "Ver boleto / PIX" : "Emitir boleto / PIX"}
+                        </Button>
+                      )}
+                      {detalheConta.asaas_charge_id && detalheConta.boleto_url && (
+                        <Button variant="outline" onClick={() => window.open(detalheConta.boleto_url!, "_blank", "noopener,noreferrer")}>
+                          <Download className="h-4 w-4 mr-2" />Baixar 2a via
+                        </Button>
+                      )}
+                      {detalheConta.asaas_charge_id && detalheConta.status !== "recebida" && (
+                        <Button variant="outline" disabled={syncingId === detalheConta.id} onClick={() => sincronizarAsaas(detalheConta)}>
+                          <RefreshCw className={`h-4 w-4 mr-2 ${syncingId === detalheConta.id ? "animate-spin" : ""}`} />Sincronizar Asaas
+                        </Button>
+                      )}
+                      {detalheConta.status === "recebida" && podeEditarDataRecebimento && (
+                        <Button variant="outline" onClick={() => { const conta = detalheConta; setDetalheConta(null); openEditDataRecDialog(conta); }}>
+                          <Pencil className="h-4 w-4 mr-2" />Editar data
+                        </Button>
+                      )}
+                      <Button variant="outline" onClick={() => { const conta = detalheConta; setDetalheConta(null); handleEdit(conta); }}>
+                        <Pencil className="h-4 w-4 mr-2" />Editar
+                      </Button>
+                      <Button variant="destructive" onClick={() => { setDeleteId(detalheConta.id); setDetalheConta(null); }}>
+                        <Trash2 className="h-4 w-4 mr-2" />Excluir
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </DialogContent>
+        </Dialog>
 
 
         {/* Dialog Receber */}
