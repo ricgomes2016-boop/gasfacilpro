@@ -69,7 +69,7 @@ export function Header({ title, subtitle }: HeaderProps) {
     <>
       <header
         className={cn(
-          "app-header-premium fixed left-0 right-0 top-0 z-30 flex w-auto max-w-full flex-col items-stretch justify-center gap-1.5 overflow-hidden border-b px-2.5 py-2 shadow-sm backdrop-blur-xl transition-[left] duration-300 sm:min-h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-2 md:min-h-[4.75rem] md:px-4 xl:px-6",
+          "app-header-premium fixed left-0 right-0 top-0 z-30 flex w-auto max-w-full flex-col items-stretch justify-center gap-1.5 overflow-visible border-b px-2.5 py-2 shadow-sm backdrop-blur-xl transition-[left] duration-300 sm:min-h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-2 md:min-h-[4.75rem] md:px-4 xl:px-6",
           collapsed ? "xl:left-16" : "xl:left-[260px]",
         )}
       >
@@ -104,7 +104,7 @@ export function Header({ title, subtitle }: HeaderProps) {
           </div>
         </div>
 
-        <div className="header-actions flex h-11 min-w-0 shrink-0 items-center justify-between gap-0.5 px-0 py-1 sm:h-12 sm:justify-end sm:gap-1 md:h-14 xl:gap-2">
+        <div className="header-actions flex h-11 w-full min-w-0 shrink-0 items-center justify-between gap-0.5 px-0 py-1 sm:h-12 sm:w-auto sm:justify-end sm:gap-1 md:h-14 xl:gap-2">
           <UnidadeSelector />
 
           <div className="hidden shrink-0 xl:block">

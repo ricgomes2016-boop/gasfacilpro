@@ -16,19 +16,29 @@ export function UnidadeSelector() {
   const { unidades, unidadeAtual, loading, setUnidadeAtual } = useUnidade();
 
   if (loading) {
-    return <Skeleton className="h-9 w-24 md:w-28 shrink-0" />;
+    return <Skeleton className="h-9 w-32 shrink-0 sm:w-36 xl:w-44" />;
   }
 
   if (unidades.length === 0) {
-    return null;
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        disabled
+        className="header-unit-selector h-9 min-w-[128px] max-w-[46vw] shrink-0 gap-1 px-2 text-xs font-semibold sm:min-w-[144px] sm:max-w-[180px] xl:max-w-[220px]"
+      >
+        <Building2 className="h-4 w-4 shrink-0" />
+        <span className="min-w-0 truncate">Sem loja</span>
+      </Button>
+    );
   }
 
   // If only one unidade, just show it without dropdown
   if (unidades.length === 1) {
     return (
-      <div className="header-unit-selector flex h-9 items-center gap-1.5 min-w-0 max-w-[120px] md:max-w-[150px] xl:max-w-[220px] shrink-0 px-2 xl:px-3 py-1.5 rounded-md border shadow-sm">
+      <div className="header-unit-selector flex h-9 min-w-[128px] max-w-[46vw] shrink-0 items-center gap-1.5 rounded-md border px-2 py-1.5 shadow-sm sm:min-w-[144px] sm:max-w-[180px] xl:max-w-[240px] xl:px-3">
         <Building2 className="h-4 w-4 shrink-0" />
-        <span className="text-xs md:text-sm font-semibold truncate min-w-0">
+        <span className="min-w-0 truncate text-xs font-semibold sm:text-sm">
           {unidadeAtual?.nome}
         </span>
         <Badge variant="outline" className="text-xs capitalize hidden xl:inline-flex border-primary/20 bg-primary/10 text-primary shrink-0">
@@ -41,9 +51,9 @@ export function UnidadeSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="default" size="sm" className="header-unit-selector gap-1 h-9 px-2 xl:px-3 min-w-0 max-w-[112px] sm:max-w-[130px] lg:max-w-[150px] xl:max-w-[220px] shrink-0">
+        <Button variant="default" size="sm" className="header-unit-selector h-9 min-w-[128px] max-w-[46vw] shrink-0 gap-1 px-2 sm:min-w-[144px] sm:max-w-[180px] xl:max-w-[240px] xl:px-3">
           <Building2 className="h-4 w-4 shrink-0" />
-          <span className="truncate min-w-0 font-semibold text-xs sm:text-sm">
+          <span className="min-w-0 truncate text-xs font-semibold sm:text-sm">
             {unidadeAtual?.nome || "Selecionar"}
           </span>
           <Badge variant="outline" className="text-xs capitalize hidden xl:inline-flex border-primary/20 bg-primary/10 text-primary shrink-0">
