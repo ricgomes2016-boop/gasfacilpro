@@ -199,22 +199,25 @@ export default function ContasPagar() {
             </div>
 
             {/* Action Toolbar */}
-            <div className="flex flex-col gap-3 rounded-xl border bg-card/90 p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="w-full sm:w-auto">
-                  <Label className="text-xs text-muted-foreground">Vencimento inicial</Label>
-                  <Input type="date" className="h-10 sm:w-[155px]" value={cp.dataInicial} onChange={e => cp.setDataInicial(e.target.value)} />
+            <div className="rounded-xl border bg-card/90 p-3 shadow-sm">
+              <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end md:justify-between">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-[155px_155px_auto] sm:items-end">
+                  <div className="w-full space-y-1">
+                    <Label className="text-xs text-muted-foreground">Vencimento inicial</Label>
+                    <Input type="date" className="h-10 w-full" value={cp.dataInicial} onChange={e => cp.setDataInicial(e.target.value)} />
+                  </div>
+                  <div className="w-full space-y-1">
+                    <Label className="text-xs text-muted-foreground">Vencimento final</Label>
+                    <Input type="date" className="h-10 w-full" value={cp.dataFinal} onChange={e => cp.setDataFinal(e.target.value)} />
+                  </div>
+                  <Button variant="secondary" className="h-10 gap-2" onClick={() => setAdvancedSearchOpen(false)}>
+                    <Filter className="h-4 w-4" />Filtrar
+                  </Button>
                 </div>
-                <div className="w-full sm:w-auto">
-                  <Label className="text-xs text-muted-foreground">Vencimento final</Label>
-                  <Input type="date" className="h-10 sm:w-[155px]" value={cp.dataFinal} onChange={e => cp.setDataFinal(e.target.value)} />
-                </div>
-                <Button variant="secondary" className="gap-2 self-end" onClick={() => setAdvancedSearchOpen(false)}>
-                  <Filter className="h-4 w-4" />Filtrar
-                </Button>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-end">
               <Dialog open={cp.dialogOpen} onOpenChange={(open) => { cp.setDialogOpen(open); if (!open) { cp.setEditId(null); cp.resetForm(); } }}>
                 <DialogTrigger asChild>
-                  <Button className="gap-2 sm:order-last"><Plus className="h-4 w-4" />Nova Conta</Button>
+                  <Button className="order-last h-10 w-full gap-2 sm:w-auto"><Plus className="h-4 w-4" />Nova Conta</Button>
                 </DialogTrigger>
                 <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-4xl">
                   <DialogHeader><DialogTitle>{cp.editId ? "Editar Conta" : "Informacoes da conta"}</DialogTitle></DialogHeader>
@@ -275,12 +278,12 @@ export default function ContasPagar() {
                 </DialogContent>
               </Dialog>
 
-              <Button variant="outline" className="gap-2" onClick={() => setAdvancedSearchOpen(true)}>
+              <Button variant="outline" className="h-10 w-full gap-2 sm:w-auto" onClick={() => setAdvancedSearchOpen(true)}>
                 <Search className="h-4 w-4" />Busca avancada
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2">
+                  <Button variant="outline" className="h-10 w-full gap-2 sm:w-auto">
                     <MoreHorizontal className="h-4 w-4" />Mais acoes
                   </Button>
                 </DropdownMenuTrigger>
@@ -296,6 +299,7 @@ export default function ContasPagar() {
                 </DropdownMenuContent>
               </DropdownMenu>
               </div>
+            </div>
             </div>
 
             <Dialog open={advancedSearchOpen} onOpenChange={setAdvancedSearchOpen}>
