@@ -12,10 +12,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Building2, Plus, Search, Edit, Trash2, Phone, Mail } from "lucide-react";
+import { Building2, Plus, Search, Edit, Trash2, Phone, Mail, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { toast } from "sonner";
+import { formatCEP, formatCNPJ, formatPhone, validateCNPJ } from "@/hooks/useInputMasks";
 
 interface Fornecedor {
   id: string;
@@ -68,6 +69,7 @@ export default function Fornecedores() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [form, setForm] = useState(emptyForm);
+  const [buscandoCnpj, setBuscandoCnpj] = useState(false);
 
   const fetchFornecedores = async () => {
     setLoading(true);
@@ -120,6 +122,63 @@ export default function Fornecedores() {
     setOpen(true);
   };
 
+  const buscarCnpj = async () => {
+    const cnpjClean = onlyDigits(form.cnpj);
+    if (cnpjClean.length !== 14) {
+      toast.error("Digite um CNPJ completo (14 digitos)");
+      return;
+    }
+    if (!validateCNPJ(cnpjClean)) {
+      toast.error("CNPJ invalido");
+      return;
+    }
+
+    const fornecedorExistente = fornecedores.find(f => f.id !== editingId && onlyDigits(f.cnpj) === cnpjClean);
+    if (fornecedorExistente) {
+      toast.error(`Fornecedor ja cadastrado: ${fornecedorExistente.razao_social}`);
+      return;
+    }
+
+    setBuscandoCnpj(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("consulta-cnpj", {
+        body: { cnpj: cnpjClean },
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      const enderecoCompleto = [
+        data?.endereco,
+        data?.numero ? `n. ${data.numero}` : "",
+        data?.complemento,
+        data?.bairro,
+      ].filter(Boolean).join(", ");
+
+      setForm(prev => ({
+        ...prev,
+        cnpj: formatCNPJ(cnpjClean),
+        razao_social: data?.razao_social || prev.razao_social,
+        nome_fantasia: data?.nome_fantasia || prev.nome_fantasia,
+        telefone: data?.telefone ? formatPhone(data.telefone) : prev.telefone,
+        email: data?.email || prev.email,
+        endereco: enderecoCompleto || prev.endereco,
+        cidade: data?.cidade || prev.cidade,
+        estado: data?.estado || prev.estado,
+        cep: data?.cep ? formatCEP(data.cep) : prev.cep,
+        inscricao_estadual: data?.inscricao_estadual || prev.inscricao_estadual,
+      }));
+      toast.success("CNPJ encontrado! Dados do fornecedor preenchidos.");
+    } catch (error) {
+      console.error("Erro ao buscar CNPJ:", error);
+      toast.error("Erro ao consultar CNPJ. Tente novamente.");
+    } finally {
+      setBuscandoCnpj(false);
+    }
+  };
+
   const handleSave = async () => {
     const razaoSocial = form.razao_social.trim();
     if (!razaoSocial) { toast.error("Razao Social e obrigatoria"); return; }
@@ -140,14 +199,14 @@ export default function Fornecedores() {
     const payload = {
       razao_social: razaoSocial,
       nome_fantasia: form.nome_fantasia || null,
-      cnpj: form.cnpj || null,
+      cnpj: form.cnpj ? formatCNPJ(form.cnpj) : null,
       tipo: form.tipo || null,
-      telefone: form.telefone || null,
+      telefone: form.telefone ? formatPhone(form.telefone) : null,
       email: form.email || null,
       endereco: form.endereco || null,
       cidade: form.cidade || null,
       estado: form.estado || null,
-      cep: form.cep || null,
+      cep: form.cep ? formatCEP(form.cep) : null,
       inscricao_estadual: form.inscricao_estadual || null,
       contato_nome: form.contato_nome || null,
       contato_cargo: form.contato_cargo || null,
@@ -210,7 +269,24 @@ export default function Fornecedores() {
               </div>
               <div className="space-y-2">
                 <Label>CNPJ</Label>
-                <Input value={form.cnpj} onChange={e => setForm({...form, cnpj: e.target.value})} placeholder="00.000.000/0000-00" />
+                <div className="flex gap-2">
+                  <Input
+                    value={form.cnpj}
+                    onChange={e => setForm({...form, cnpj: formatCNPJ(e.target.value)})}
+                    placeholder="00.000.000/0000-00"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="shrink-0 gap-2"
+                    disabled={buscandoCnpj || onlyDigits(form.cnpj).length !== 14}
+                    onClick={buscarCnpj}
+                    title="Buscar dados pelo CNPJ"
+                  >
+                    {buscandoCnpj ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    <span className="hidden sm:inline">Buscar</span>
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Tipo</Label>
@@ -218,7 +294,7 @@ export default function Fornecedores() {
               </div>
               <div className="space-y-2">
                 <Label>Telefone</Label>
-                <Input value={form.telefone} onChange={e => setForm({...form, telefone: e.target.value})} placeholder="(00) 0000-0000" />
+                <Input value={form.telefone} onChange={e => setForm({...form, telefone: formatPhone(e.target.value)})} placeholder="(00) 0000-0000" />
               </div>
               <div className="space-y-2">
                 <Label>E-mail</Label>
@@ -246,7 +322,7 @@ export default function Fornecedores() {
               </div>
               <div className="space-y-2">
                 <Label>CEP</Label>
-                <Input value={form.cep} onChange={e => setForm({...form, cep: e.target.value})} placeholder="00000-000" />
+                <Input value={form.cep} onChange={e => setForm({...form, cep: formatCEP(e.target.value)})} placeholder="00000-000" />
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label>Endereco</Label>
