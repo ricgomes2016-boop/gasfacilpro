@@ -537,19 +537,26 @@ ${TABLES_SCHEMA}`,
 
           // Validate
           if (sqlQuery !== "NO_SQL" && sqlQuery.trim().toUpperCase().startsWith("SELECT")) {
-            try {
-              const { data, error } = await supabase.rpc("execute_readonly_query", { query_text: sqlQuery });
-              if (error) {
-                queryError = error.message;
-              } else {
-                queryData = data;
+            // SECURITY: enforce tenant scoping — the AI-generated SQL MUST reference
+            // the validated unidade_id (which we already confirmed belongs to user's empresa).
+            // This prevents prompt-injection from leaking cross-tenant data.
+            if (!unidade_id || !sqlQuery.includes(String(unidade_id))) {
+              queryError = "Consulta rejeitada: filtro de unidade obrigatório.";
+            } else {
+              try {
+                const { data, error } = await supabase.rpc("execute_readonly_query", { query_text: sqlQuery });
+                if (error) {
+                  queryError = error.message;
+                } else {
+                  queryData = data;
+                }
+              } catch (e) {
+                queryError = e instanceof Error ? e.message : "Erro ao executar consulta";
               }
-            } catch (e) {
-              queryError = e instanceof Error ? e.message : "Erro ao executar consulta";
-            }
 
-            if (queryData && chartType !== "none" && Array.isArray(queryData) && queryData.length > 0) {
-              queryDescription += `\n\n[CHART_META]${JSON.stringify({ type: chartType, data: queryData })}[/CHART_META]`;
+              if (queryData && chartType !== "none" && Array.isArray(queryData) && queryData.length > 0) {
+                queryDescription += `\n\n[CHART_META]${JSON.stringify({ type: chartType, data: queryData })}[/CHART_META]`;
+              }
             }
           }
         } else {
