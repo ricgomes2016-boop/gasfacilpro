@@ -504,12 +504,11 @@ export default function ContasPagar() {
               <Card className="modern-panel">
               <CardHeader className="px-3 sm:px-6">
                 <div className="flex flex-col gap-3">
-                  <div className="flex flex-col gap-2 rounded-lg bg-success px-3 py-3 text-success-foreground shadow-sm shadow-success/20 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-                    <CardTitle className="flex min-w-0 items-center gap-2 text-base text-success-foreground sm:text-lg">
-                      <CreditCard className="h-5 w-5 shrink-0" />
-                      <span className="truncate">Lista de Contas</span>
-                    </CardTitle>
-                    <span className="text-sm font-medium text-success-foreground/85">{visibleContas.length} conta{visibleContas.length === 1 ? "" : "s"}</span>
+                  <div className="flex flex-col gap-2 border-b pb-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                    <span>{visibleContas.length} conta{visibleContas.length === 1 ? "" : "s"} no filtro atual</span>
+                    <span className="font-semibold text-foreground">
+                      Total em aberto: R$ {totalAbertoVisivel.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </span>
                   </div>
                   {hasVisibleFilters && (
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
