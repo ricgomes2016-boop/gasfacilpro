@@ -854,8 +854,8 @@ export default function ContasReceber() {
           <div className="hidden overflow-x-auto md:block">
             <Table className="border-separate border-spacing-y-2">
               <TableHeader className="sticky top-0 z-10">
-                <TableRow className="bg-slate-900 hover:bg-slate-900 [&_th]:h-11 [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-white">
-                  <TableHead className="w-10">
+                <TableRow className="rounded-xl border-0 bg-muted/60 hover:bg-muted/60 [&_th]:h-11 [&_th]:border-0 [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-foreground">
+                  <TableHead className="w-10 rounded-l-xl">
                     <Checkbox
                       checked={filtered.length > 0 && selectedIds.size === filtered.length}
                       onCheckedChange={toggleSelectAll}
@@ -868,7 +868,7 @@ export default function ContasReceber() {
                   <TableHead>Vencimento</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right w-12">Ações</TableHead>
+                  <TableHead className="w-12 rounded-r-xl text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1038,7 +1038,7 @@ export default function ContasReceber() {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditId(null); resetForm(); } }}>
                   <DialogTrigger asChild>
-                    <Button className="h-10 gap-2"><Plus className="h-4 w-4" />Novo recebivel</Button>
+                    <Button className="h-10 gap-2"><Plus className="h-4 w-4" />Novo recebível</Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle>{editId ? "Editar Recebível" : "Novo Recebível"}</DialogTitle></DialogHeader>
@@ -1074,13 +1074,13 @@ export default function ContasReceber() {
                 </Dialog>
 
                 <Button variant="outline" className="h-10 gap-2" onClick={() => setAdvancedSearchOpen(true)}>
-                  <Search className="h-4 w-4" />Busca avancada
+                  <Search className="h-4 w-4" />Busca avançada
                 </Button>
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="h-10 gap-2">
-                      <MoreHorizontal className="h-4 w-4" />Mais acoes
+                      <MoreHorizontal className="h-4 w-4" />Mais ações
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-64">
@@ -1091,7 +1091,7 @@ export default function ContasReceber() {
                     <div className="my-1 border-t" />
                     <DropdownMenuItem onClick={() => setActiveTab(activeTab === "conferencia" ? "todos" : "conferencia")}>
                       <CheckSquare className="h-4 w-4 mr-2" />
-                      {activeTab === "conferencia" ? "Ocultar conferencia" : "Conferencia de cartao"}
+                      {activeTab === "conferencia" ? "Ocultar conferência" : "Conferência de cartão"}
                     </DropdownMenuItem>
                     {canBulkReceber && (
                       <DropdownMenuItem onClick={() => {
@@ -1125,14 +1125,14 @@ export default function ContasReceber() {
 
             <Dialog open={advancedSearchOpen} onOpenChange={setAdvancedSearchOpen}>
               <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-                <DialogHeader><DialogTitle>Busca avancada</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>Busca avançada</DialogTitle></DialogHeader>
                 <div className="space-y-4 pt-2">
                   <div className="space-y-2">
                     <Label>Busca geral</Label>
                     <div className="relative">
                       <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                       <Input
-                        placeholder="Buscar cliente, descricao, vale..."
+                        placeholder="Buscar cliente, descrição, vale..."
                         value={filtroNome}
                         onChange={e => setFiltroNome(e.target.value)}
                         className="pl-8"
@@ -1152,15 +1152,15 @@ export default function ContasReceber() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Atalhos de periodo</Label>
+                    <Label>Atalhos de período</Label>
                     <div className="flex flex-wrap gap-2">
                       {[
                         { k: "hoje", l: "Hoje" },
-                        { k: "7d", l: "Ultimos 7 dias" },
-                        { k: "mes_atual", l: "Mes atual" },
+                        { k: "7d", l: "Últimos 7 dias" },
+                        { k: "mes_atual", l: "Mês atual" },
                         { k: "mes_passado", l: "Mes passado" },
-                        { k: "30d", l: "Ultimos 30 dias" },
-                        { k: "90d", l: "Ultimos 90 dias" },
+                        { k: "30d", l: "Últimos 30 dias" },
+                        { k: "90d", l: "Últimos 90 dias" },
                         { k: "ano", l: "Este ano" },
                         { k: "limpar", l: "Sem periodo" },
                       ].map(p => (

@@ -55,13 +55,11 @@ export default function ContasPagar() {
   const totalVencidoVisivel = visibleContas.filter(c => (c.status === "pendente" || c.status === "vencida") && c.vencimento < cp.hoje).reduce((a, c) => a + Number(c.valor), 0);
   const totalPagoVisivel = visibleContas.filter(c => c.status === "paga").reduce((a, c) => a + Number(c.valor), 0);
   const totalAbertoVisivel = totalPendenteVisivel + totalVencidoVisivel;
-  const totalVenceHoje = visibleContas
-    .filter(c => c.status !== "paga" && c.vencimento === cp.hoje)
-    .reduce((sum, c) => sum + Number(c.valor), 0);
+  const contasVencemHoje = visibleContas.filter(c => c.status !== "paga" && c.vencimento === cp.hoje);
   const summaryCards = [
     {
       key: "abertas",
-      title: "Em aberto",
+      title: "Total a pagar",
       subtitle: "Contas pendentes e vencidas",
       total: totalAbertoVisivel,
       contas: visibleContas.filter(c => c.status !== "paga"),
@@ -73,7 +71,7 @@ export default function ContasPagar() {
     {
       key: "a-vencer",
       title: "A vencer",
-      subtitle: "Ainda dentro do prazo",
+      subtitle: contasVencemHoje.length > 0 ? `${contasVencemHoje.length} vence${contasVencemHoje.length === 1 ? "" : "m"} hoje` : "Ainda dentro do prazo",
       total: totalPendenteVisivel,
       contas: visibleContas.filter(c => c.status === "pendente" && c.vencimento >= cp.hoje),
       icon: Clock,
@@ -91,17 +89,6 @@ export default function ContasPagar() {
       cardClass: "kpi-card-destructive",
       iconClass: "status-card-icon-destructive",
       valueClass: "text-destructive",
-    },
-    {
-      key: "vence-hoje",
-      title: "Vencem hoje",
-      subtitle: "Compromissos do dia",
-      total: totalVenceHoje,
-      contas: visibleContas.filter(c => c.status !== "paga" && c.vencimento === cp.hoje),
-      icon: CalendarRange,
-      cardClass: "kpi-card-warning",
-      iconClass: "status-card-icon-warning",
-      valueClass: "text-warning",
     },
     {
       key: "pagas",
@@ -168,7 +155,7 @@ export default function ContasPagar() {
 
         <div className="space-y-4 md:space-y-6">
             {/* KPI Cards */}
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {summaryCards.map(card => {
                 const Icon = card.icon;
                 return (
@@ -176,7 +163,7 @@ export default function ContasPagar() {
                     key={card.key}
                     type="button"
                     onClick={() => setSelectedSummaryKey(card.key)}
-                    className={`rounded-xl text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${card.key === "pagas" ? "col-span-2 md:col-span-1" : ""}`}
+                    className="rounded-xl text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                     aria-label={`Abrir detalhes de ${card.title}`}
                   >
                     <Card className={`kpi-card ${card.cardClass} h-full transition hover:-translate-y-0.5 hover:shadow-lg`}>
@@ -200,21 +187,26 @@ export default function ContasPagar() {
 
             {/* Action Toolbar */}
             <div className="rounded-xl border bg-card/90 p-3 shadow-sm">
-              <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end md:justify-between">
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-[155px_155px_auto] sm:items-end">
-                  <div className="w-full space-y-1">
-                    <Label className="text-xs text-muted-foreground">Vencimento inicial</Label>
-                    <Input type="date" className="h-10 w-full" value={cp.dataInicial} onChange={e => cp.setDataInicial(e.target.value)} />
-                  </div>
-                  <div className="w-full space-y-1">
-                    <Label className="text-xs text-muted-foreground">Vencimento final</Label>
-                    <Input type="date" className="h-10 w-full" value={cp.dataFinal} onChange={e => cp.setDataFinal(e.target.value)} />
-                  </div>
-                  <Button variant="secondary" className="h-10 gap-2" onClick={() => setAdvancedSearchOpen(false)}>
-                    <Filter className="h-4 w-4" />Filtrar
-                  </Button>
+              <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">{visibleContas.length}</span>
+                  conta{visibleContas.length === 1 ? "" : "s"} no filtro atual
+                  {contasVencemHoje.length > 0 && (
+                    <Badge variant="outline" className="border-warning/30 bg-warning/10 text-warning">
+                      {contasVencemHoje.length} vence{contasVencemHoje.length === 1 ? "" : "m"} hoje
+                    </Badge>
+                  )}
+                  {hasVisibleFilters && (
+                    <Button
+                      variant="ghost"
+                      onClick={() => { cp.clearAllFilters(); cp.setSearch(""); setValorMinimo(""); setValorMaximo(""); }}
+                      className="h-8 gap-1 px-2 text-xs"
+                    >
+                      <X className="h-3.5 w-3.5" /> Limpar filtros
+                    </Button>
+                  )}
                 </div>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-end">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
               <Dialog open={cp.dialogOpen} onOpenChange={(open) => { cp.setDialogOpen(open); if (!open) { cp.setEditId(null); cp.resetForm(); } }}>
                 <DialogTrigger asChild>
                   <Button className="order-last h-10 w-full gap-2 sm:w-auto"><Plus className="h-4 w-4" />Nova Conta</Button>
@@ -279,20 +271,20 @@ export default function ContasPagar() {
               </Dialog>
 
               <Button variant="outline" className="h-10 w-full gap-2 sm:w-auto" onClick={() => setAdvancedSearchOpen(true)}>
-                <Search className="h-4 w-4" />Busca avancada
+                <Search className="h-4 w-4" />Busca avançada
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="h-10 w-full gap-2 sm:w-auto">
-                    <MoreHorizontal className="h-4 w-4" />Mais acoes
+                    <MoreHorizontal className="h-4 w-4" />Mais ações
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
                   <DropdownMenuItem onClick={() => cp.fileInputRef.current?.click()}><Camera className="h-4 w-4 mr-2" />Foto com IA</DropdownMenuItem>
-                  <DropdownMenuItem onClick={cp.voiceListening ? cp.stopVoiceListening : cp.startVoiceListening}>{cp.voiceListening ? <MicOff className="h-4 w-4 mr-2" /> : <Mic className="h-4 w-4 mr-2" />}{cp.voiceListening ? "Parar voz" : "Lancamento por voz"}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={cp.voiceListening ? cp.stopVoiceListening : cp.startVoiceListening}>{cp.voiceListening ? <MicOff className="h-4 w-4 mr-2" /> : <Mic className="h-4 w-4 mr-2" />}{cp.voiceListening ? "Parar voz" : "Lançamento por voz"}</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => cp.boletoInputRef.current?.click()}><FileText className="h-4 w-4 mr-2" />Ler boleto</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => cp.boletoPdfInputRef.current?.click()}><FileUp className="h-4 w-4 mr-2" />Importar PDF</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => cp.setParcelamentoOpen(true)}><CalendarRange className="h-4 w-4 mr-2" />Parcelar / Emprestimo</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => cp.setParcelamentoOpen(true)}><CalendarRange className="h-4 w-4 mr-2" />Parcelar / Empréstimo</DropdownMenuItem>
                   {cp.fornecedoresComMultiplas.length > 0 && <DropdownMenuItem onClick={cp.openUnificarDialog}><Layers className="h-4 w-4 mr-2" />Unificar fornecedor</DropdownMenuItem>}
                   <DropdownMenuItem onClick={cp.exportToExcel}><Download className="h-4 w-4 mr-2" />Exportar Excel</DropdownMenuItem>
                   <DropdownMenuItem onClick={cp.exportToPDF}><Download className="h-4 w-4 mr-2" />Exportar PDF</DropdownMenuItem>
@@ -304,7 +296,7 @@ export default function ContasPagar() {
 
             <Dialog open={advancedSearchOpen} onOpenChange={setAdvancedSearchOpen}>
               <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
-                <DialogHeader><DialogTitle>Busca avancada</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>Busca avançada</DialogTitle></DialogHeader>
                 <div className="space-y-4 pt-2">
                   <div className="space-y-2">
                     <Label>Busca geral</Label>
@@ -554,11 +546,11 @@ export default function ContasPagar() {
                     <div className="hidden sm:block">
                       <Table className="border-separate border-spacing-y-2">
                         <TableHeader>
-                          <TableRow className="bg-slate-900 hover:bg-slate-900 [&_th]:h-11 [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-white">
-                            <TableHead className="w-10"><Checkbox checked={cp.todasPagaveisSelecionadas} onCheckedChange={cp.toggleAllPagamentoSelection} aria-label="Selecionar contas" /></TableHead><TableHead>Fornecedor</TableHead><TableHead>Descrição</TableHead>
+                          <TableRow className="rounded-xl border-0 bg-muted/60 hover:bg-muted/60 [&_th]:h-11 [&_th]:border-0 [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-foreground">
+                            <TableHead className="w-10 rounded-l-xl"><Checkbox checked={cp.todasPagaveisSelecionadas} onCheckedChange={cp.toggleAllPagamentoSelection} aria-label="Selecionar contas" /></TableHead><TableHead>Fornecedor</TableHead><TableHead>Descrição</TableHead>
                             <TableHead>Categoria</TableHead><TableHead>Vencimento</TableHead>
                             <TableHead>Valor</TableHead><TableHead>Status</TableHead>
-                            <TableHead className="text-right">Ações</TableHead>
+                            <TableHead className="rounded-r-xl text-right">Ações</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
