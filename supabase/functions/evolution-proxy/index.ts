@@ -15,32 +15,37 @@ serve(async (req) => {
     if (!auth.ok) return auth.response;
 
     const fullBody = await req.json();
-    const { action, instance_id, base_url: bodyBaseUrl, api_key: bodyApiKey } = fullBody;
-    
-    // Get instance config from integracoes_whatsapp if not provided in body
-    let baseUrl = (bodyBaseUrl || "").replace(/\/$/, "");
-    let apiKey = bodyApiKey;
+    const { action, instance_id } = fullBody;
 
-    if (!baseUrl || !apiKey) {
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-      );
-
-      const { data: config } = await supabase
-        .from("integracoes_whatsapp")
-        .select("*")
-        .eq("instance_id", instance_id)
-        .eq("provedor", "evolution")
-        .maybeSingle();
-
-      if (config) {
-        if (!baseUrl) baseUrl = (config.base_url || "").replace(/\/$/, "");
-        if (!apiKey) apiKey = config.token;
-      }
+    if (!instance_id || typeof instance_id !== "string") {
+      return new Response(JSON.stringify({ error: "instance_id obrigatório" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Fallback to global secrets if still missing
+    // SECURITY: base_url and api_key are NEVER taken from request body (SSRF risk).
+    // Always derived from DB config or environment.
+    let baseUrl = "";
+    let apiKey = "";
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: config } = await supabase
+      .from("integracoes_whatsapp")
+      .select("*")
+      .eq("instance_id", instance_id)
+      .eq("provedor", "evolution")
+      .maybeSingle();
+
+    if (config) {
+      baseUrl = (config.base_url || "").replace(/\/$/, "");
+      apiKey = config.token || "";
+    }
+
+    // Fallback to global secrets
     if (!baseUrl) {
       baseUrl = (Deno.env.get("EVOLUTION_BASE_URL") || "").replace(/\/$/, "");
     }
@@ -50,6 +55,13 @@ serve(async (req) => {
 
     if (!baseUrl) {
       return new Response(JSON.stringify({ error: "base_url não configurada. Configure o secret EVOLUTION_BASE_URL." }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Enforce https/http scheme only (block file://, gopher://, etc.)
+    if (!/^https?:\/\//i.test(baseUrl)) {
+      return new Response(JSON.stringify({ error: "base_url inválida" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
