@@ -611,22 +611,6 @@ export default function ContasReceber() {
   const totalVencido = useMemo(() => baseFiltered.filter(c => c.status === "pendente" && c.vencimento < hoje).reduce((a, c) => a + Number(c.valor), 0), [baseFiltered, hoje]);
   const totalRecebido = useMemo(() => baseFiltered.filter(c => c.status === "recebida").reduce((a, c) => a + Number(c.valor), 0), [baseFiltered]);
 
-  // Resumo por forma (top 4 categorias com volume)
-  const resumoPorForma = useMemo(() => {
-    const map = new Map<FormaCategoria, { count: number; total: number; recebido: number }>();
-    baseFiltered.forEach(c => {
-      const cat = getFormaCategoria(c.forma_pagamento);
-      const cur = map.get(cat) || { count: 0, total: 0, recebido: 0 };
-      cur.count++;
-      cur.total += Number(c.valor);
-      if (c.status === "recebida") cur.recebido += Number(c.valor);
-      map.set(cat, cur);
-    });
-    return Array.from(map.entries())
-      .map(([cat, v]) => ({ cat, ...v }))
-      .sort((a, b) => b.total - a.total);
-  }, [baseFiltered]);
-
   const defaultStatus: Set<StatusFiltro> = new Set(["a_receber", "vencida"]);
   const hasActiveFilters =
     !!filtroNome || !!dataInicial || !!dataFinal ||
@@ -1252,21 +1236,6 @@ export default function ContasReceber() {
             </div>
           )}
         </div>
-
-        {/* Resumo por forma (mini cards) */}
-        {resumoPorForma.length > 0 && activeTab !== "conferencia" && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {resumoPorForma.slice(0, 4).map(r => (
-              <button key={r.cat} type="button"
-                onClick={() => toggleForma(r.cat)}
-                className={`text-left p-2.5 rounded-lg border transition ${filtroFormas.has(r.cat) ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{FORMA_LABELS[r.cat]}</p>
-                <p className="text-sm font-semibold mt-0.5">R$ {r.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-                <p className="text-[10px] text-muted-foreground">{r.count} título{r.count !== 1 ? "s" : ""} · R$ {r.recebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} recebido</p>
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Conteúdo: tabela única OU painel de conferência */}
         {activeTab === "conferencia" ? (
