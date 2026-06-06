@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -27,7 +27,7 @@ import {
 import {
   Wallet, Search, Plus, AlertCircle, CheckCircle2, Clock, MoreHorizontal,
   Pencil, Trash2, DollarSign, Download, X,
-  Banknote, CheckSquare, RefreshCw,
+  Banknote, CheckSquare, RefreshCw, Eye, SlidersHorizontal,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { isFormaAVista, getFormaCategoria, FORMA_LABELS, type FormaCategoria } from "@/lib/financeiro/formaPagamento";
@@ -116,7 +116,7 @@ export default function ContasReceber() {
   const [dataFinal, setDataFinal] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<Set<StatusFiltro>>(new Set(["a_receber", "vencida"]));
   const [filtroFormas, setFiltroFormas] = useState<Set<FormaCategoria>>(new Set());
-  const [activeTab, setActiveTab] = useState("todos"); // mantido só pra aba Conferência
+  const [conferenciaDialogOpen, setConferenciaDialogOpen] = useState(false);
   const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { unidadeAtual } = useUnidade();
@@ -600,16 +600,17 @@ export default function ContasReceber() {
     });
   }, [contas, filtroNome, dataInicial, dataFinal, filtroStatus, filtroFormas, hoje]);
 
-  // Aba "Conferência" continua isolada; demais formas vêm pelo filtro de formas.
-  const filtered = useMemo(() => {
-    if (activeTab === "conferencia") return [];
-    return baseFiltered;
-  }, [baseFiltered, activeTab]);
+  const filtered = baseFiltered;
 
   // KPIs respeitam os filtros ativos
   const totalPendente = useMemo(() => baseFiltered.filter(c => c.status === "pendente" && c.vencimento >= hoje).reduce((a, c) => a + Number(c.valor), 0), [baseFiltered, hoje]);
   const totalVencido = useMemo(() => baseFiltered.filter(c => c.status === "pendente" && c.vencimento < hoje).reduce((a, c) => a + Number(c.valor), 0), [baseFiltered, hoje]);
   const totalRecebido = useMemo(() => baseFiltered.filter(c => c.status === "recebida").reduce((a, c) => a + Number(c.valor), 0), [baseFiltered]);
+  const totalAberto = totalPendente + totalVencido;
+  const countAberto = baseFiltered.filter(c => c.status !== "recebida").length;
+  const countVencido = baseFiltered.filter(c => c.status === "pendente" && c.vencimento < hoje).length;
+  const countPendente = baseFiltered.filter(c => c.status === "pendente" && c.vencimento >= hoje).length;
+  const countRecebido = baseFiltered.filter(c => c.status === "recebida").length;
 
   const defaultStatus: Set<StatusFiltro> = new Set(["a_receber", "vencida"]);
   const hasActiveFilters =
@@ -716,10 +717,44 @@ export default function ContasReceber() {
 
 
   const getReceberRowClass = (displayStatus: string) => {
-    const base = "group border-0 transition-all duration-200 hover:-translate-y-0.5 [&>td]:border-y [&>td]:border-border/60 [&>td]:bg-card [&>td]:py-3 [&>td]:shadow-sm [&>td]:shadow-foreground/5 [&>td:first-child]:rounded-l-lg [&>td:first-child]:border-l [&>td:first-child]:border-l-4 [&>td:last-child]:rounded-r-lg [&>td:last-child]:border-r hover:[&>td]:shadow-md hover:[&>td]:shadow-foreground/10";
-    if (displayStatus === "Recebida") return `${base} [&>td:first-child]:border-l-success hover:[&>td]:bg-success/5`;
-    if (displayStatus === "Vencida") return `${base} [&>td:first-child]:border-l-destructive hover:[&>td]:bg-destructive/5`;
-    return `${base} [&>td:first-child]:border-l-warning hover:[&>td]:bg-warning/5`;
+    const base = "group border-b border-border/60 transition-colors hover:bg-muted/40 data-[state=selected]:bg-primary/5 [&>td]:h-14 [&>td]:py-2.5";
+    if (displayStatus === "Recebida") return `${base} [&>td:first-child]:border-l-4 [&>td:first-child]:border-l-success`;
+    if (displayStatus === "Vencida") return `${base} [&>td:first-child]:border-l-4 [&>td:first-child]:border-l-destructive`;
+    return `${base} [&>td:first-child]:border-l-4 [&>td:first-child]:border-l-success`;
+  };
+
+  const quickStatusValue = (() => {
+    if (filtroStatus.size === 0) return "todos";
+    if (filtroStatus.size === defaultStatus.size && [...filtroStatus].every(s => defaultStatus.has(s))) return "abertas";
+    if (filtroStatus.size === 1) return [...filtroStatus][0];
+    return "personalizado";
+  })();
+
+  const quickPeriodValue = (() => {
+    if (!dataInicial && !dataFinal) return "todos";
+    if (dataInicial === hoje && dataFinal === hoje) return "hoje";
+    return "personalizado";
+  })();
+
+  const handleQuickStatusChange = (value: string) => {
+    if (value === "todos") setFiltroStatus(new Set(["a_receber", "vencida", "recebida"]));
+    else if (value === "abertas") setFiltroStatus(new Set(["a_receber", "vencida"]));
+    else if (value === "personalizado") setAdvancedSearchOpen(true);
+    else setFiltroStatus(new Set([value as StatusFiltro]));
+  };
+
+  const handleQuickPeriodChange = (value: string) => {
+    if (value === "todos") { setDataInicial(""); setDataFinal(""); return; }
+    if (value === "hoje") { aplicarPresetPeriodo("hoje"); return; }
+    if (value === "7d") { aplicarPresetPeriodo("7d"); return; }
+    if (value === "mes_atual") { aplicarPresetPeriodo("mes_atual"); return; }
+    setAdvancedSearchOpen(true);
+  };
+
+  const getTituloRecebivel = (conta: ContaReceber) => {
+    if (conta.vale_numero) return `V${String(conta.vale_numero).padStart(5, "0")}`;
+    if (conta.pedido_id) return `P${String(conta.pedido_id).slice(-6)}`;
+    return conta.id.slice(0, 8).toUpperCase();
   };
 
   const renderTable = () => (
@@ -851,30 +886,29 @@ export default function ContasReceber() {
           </div>
 
           {/* Desktop table */}
-          <div className="hidden overflow-x-auto md:block">
-            <Table className="border-separate border-spacing-y-2">
+          <div className="hidden overflow-x-auto rounded-xl border bg-card md:block">
+            <Table>
               <TableHeader className="sticky top-0 z-10">
-                <TableRow className="rounded-xl border-0 bg-muted/60 hover:bg-muted/60 [&_th]:h-11 [&_th]:border-0 [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-foreground">
-                  <TableHead className="w-10 rounded-l-xl">
+                <TableRow className="border-b bg-muted/40 hover:bg-muted/40 [&_th]:h-11 [&_th]:border-0 [&_th]:text-[11px] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
+                  <TableHead className="w-10">
                     <Checkbox
                       checked={filtered.length > 0 && selectedIds.size === filtered.length}
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
+                  <TableHead className="w-[120px]">Nº Título</TableHead>
                   <TableHead>Cliente</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Data Venda</TableHead>
-                  <TableHead>Forma</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-12 rounded-r-xl text-right">Ações</TableHead>
+                  <TableHead className="w-[150px]">Vencimento</TableHead>
+                  <TableHead className="w-[140px]">Valor</TableHead>
+                  <TableHead className="w-[130px]">Situação</TableHead>
+                  <TableHead className="w-[170px]">Forma de Pagamento</TableHead>
+                  <TableHead className="w-[92px] text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map(conta => {
                   const vencida = conta.status === "pendente" && conta.vencimento < hoje;
-                  const displayStatus = vencida ? "Vencida" : conta.status === "recebida" ? "Recebida" : "Pendente";
+                  const displayStatus = vencida ? "Vencida" : conta.status === "recebida" ? "Recebida" : "A vencer";
                   return (
                     <TableRow
                       key={conta.id}
@@ -886,90 +920,101 @@ export default function ContasReceber() {
                         <Checkbox checked={selectedIds.has(conta.id)} onCheckedChange={() => toggleSelect(conta.id)} />
                       </TableCell>
                       <TableCell>
-                        <p className="text-sm font-semibold text-foreground">{conta.parceiro_nome || conta.cliente}</p>
-                        {conta.endereco_cliente && (
-                          <p className="text-xs text-muted-foreground">
-                            {conta.endereco_cliente}{conta.bairro_cliente ? ` — ${conta.bairro_cliente}` : ""}
-                          </p>
-                        )}
-                        {conta.vale_numero && <p className="text-xs text-muted-foreground">Vale nº {conta.vale_numero} · {conta.vale_codigo}</p>}
+                        <button
+                          type="button"
+                          className="font-semibold text-primary hover:underline"
+                          onClick={(e) => { e.stopPropagation(); setDetalheConta(conta); }}
+                        >
+                          {getTituloRecebivel(conta)}
+                        </button>
                       </TableCell>
-                      <TableCell className="text-sm font-medium">{conta.descricao}</TableCell>
-                      <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
-                        {conta.data_venda ? format(new Date(conta.data_venda), "dd/MM/yyyy") : "—"}
+                      <TableCell>
+                        <p className="text-sm font-semibold text-foreground">{conta.parceiro_nome || conta.cliente}</p>
+                        <p className="max-w-[260px] truncate text-xs text-muted-foreground">
+                          {conta.descricao || conta.endereco_cliente || "Sem descrição"}
+                        </p>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        <div>{format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</div>
+                        {(() => { const a = agingLabel(conta); return a ? <div className={`text-[10px] ${a.cls}`}>{a.text}</div> : null; })()}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm font-semibold text-foreground">
+                        R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={displayStatus === "Recebida" ? "default" : displayStatus === "Vencida" ? "destructive" : "secondary"}
+                          className={`text-xs ${displayStatus === "A vencer" ? "bg-success/10 text-success hover:bg-success/10" : ""}`}
+                        >
+                          {displayStatus}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col gap-1">
-                          <Badge variant="outline" className="text-xs w-fit">{conta.forma_pagamento || "—"}</Badge>
+                          <span className="text-sm">{conta.forma_pagamento || "—"}</span>
                           {(() => {
                             const be = getBoletoEmissaoStatus(conta);
-                            if (be === "pendente_emissao") return <Badge variant="warning" className="text-[10px] w-fit"><Clock className="h-2.5 w-2.5" />Pendente de emissão</Badge>;
-                            if (be === "emitido") return <Badge variant="info" className="text-[10px] w-fit"><CheckCircle2 className="h-2.5 w-2.5" />Emitido</Badge>;
+                            if (be === "pendente_emissao") return <span className="text-[10px] text-warning">Boleto pendente</span>;
+                            if (be === "emitido") return <span className="text-[10px] text-primary">Boleto emitido</span>;
                             return null;
                           })()}
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm whitespace-nowrap">
-                        <div>{format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</div>
-                        {(() => { const a = agingLabel(conta); return a ? <div className={`text-[10px] ${a.cls}`}>{a.text}</div> : null; })()}
-                      </TableCell>
-                      <TableCell className="text-base font-semibold whitespace-nowrap text-foreground">
-                        R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={displayStatus === "Recebida" ? "default" : displayStatus === "Vencida" ? "destructive" : "secondary"} className="text-xs">
-                          {displayStatus}
-                        </Badge>
-                      </TableCell>
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50">
-                            {conta.status !== "recebida" && (
-                              <DropdownMenuItem onClick={() => openReceberDialog(conta)}>
-                                <DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDetalheConta(conta)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-popover border border-border shadow-lg z-50">
+                              {conta.status !== "recebida" && (
+                                <DropdownMenuItem onClick={() => openReceberDialog(conta)}>
+                                  <DollarSign className="h-4 w-4 mr-2" />Liquidar / Receber
+                                </DropdownMenuItem>
+                              )}
+                              {conta.status !== "recebida" && (
+                                <DropdownMenuItem onClick={() => { setAsaasConta(conta); setAsaasDialogOpen(true); }}>
+                                  <Banknote className="h-4 w-4 mr-2" />
+                                  {conta.asaas_charge_id ? "Ver boleto / PIX (Asaas)" : "Emitir boleto / PIX (Asaas)"}
+                                </DropdownMenuItem>
+                              )}
+                              {conta.asaas_charge_id && conta.boleto_url && (
+                                <DropdownMenuItem onClick={() => window.open(conta.boleto_url!, "_blank", "noopener,noreferrer")}>
+                                  <Download className="h-4 w-4 mr-2" />Baixar 2ª via do boleto
+                                </DropdownMenuItem>
+                              )}
+                              {conta.asaas_charge_id && conta.status !== "recebida" && (
+                                <DropdownMenuItem disabled={syncingId === conta.id} onClick={() => sincronizarAsaas(conta)}>
+                                  <RefreshCw className={`h-4 w-4 mr-2 ${syncingId === conta.id ? "animate-spin" : ""}`} />
+                                  Sincronizar com Asaas
+                                </DropdownMenuItem>
+                              )}
+                              {conta.status === "recebida" && podeEditarDataRecebimento && (
+                                <DropdownMenuItem onClick={() => openEditDataRecDialog(conta)}>
+                                  <Pencil className="h-4 w-4 mr-2" />Editar data de recebimento
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => handleEdit(conta)}>
+                                <Pencil className="h-4 w-4 mr-2" />Editar
                               </DropdownMenuItem>
-                            )}
-                            {conta.status !== "recebida" && (
-                              <DropdownMenuItem onClick={() => { setAsaasConta(conta); setAsaasDialogOpen(true); }}>
-                                <Banknote className="h-4 w-4 mr-2" />
-                                {conta.asaas_charge_id ? "Ver boleto / PIX (Asaas)" : "Emitir boleto / PIX (Asaas)"}
+                              <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(conta.id)}>
+                                <Trash2 className="h-4 w-4 mr-2" />Excluir
                               </DropdownMenuItem>
-                            )}
-                            {conta.asaas_charge_id && conta.boleto_url && (
-                              <DropdownMenuItem onClick={() => window.open(conta.boleto_url!, "_blank", "noopener,noreferrer")}>
-                                <Download className="h-4 w-4 mr-2" />Baixar 2ª via do boleto
-                              </DropdownMenuItem>
-                            )}
-                            {conta.asaas_charge_id && conta.status !== "recebida" && (
-                              <DropdownMenuItem disabled={syncingId === conta.id} onClick={() => sincronizarAsaas(conta)}>
-                                <RefreshCw className={`h-4 w-4 mr-2 ${syncingId === conta.id ? "animate-spin" : ""}`} />
-                                Sincronizar com Asaas
-                              </DropdownMenuItem>
-                            )}
-                            {conta.status === "recebida" && podeEditarDataRecebimento && (
-                              <DropdownMenuItem onClick={() => openEditDataRecDialog(conta)}>
-                                <Pencil className="h-4 w-4 mr-2" />Editar data de recebimento
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => handleEdit(conta)}>
-                              <Pencil className="h-4 w-4 mr-2" />Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(conta.id)}>
-                              <Trash2 className="h-4 w-4 mr-2" />Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
-            <div className="px-3 py-2 text-xs text-muted-foreground border-t">
-              {filtered.length} registro{filtered.length !== 1 ? "s" : ""}
+            <div className="flex items-center justify-between border-t px-4 py-3 text-xs text-muted-foreground">
+              <span>Mostrando {filtered.length} registro{filtered.length !== 1 ? "s" : ""}</span>
+              <span>{hasActiveFilters ? "Filtros aplicados" : "Sem filtros ativos"}</span>
             </div>
           </div>
         </>
@@ -982,44 +1027,33 @@ export default function ContasReceber() {
       <Header title="Contas a Receber" subtitle="Recebíveis unificados por categoria" />
       <div className="p-3 md:p-6 space-y-4 md:space-y-6">
 
-        {/* Dashboard resumo estilo PagBank */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 md:gap-4">
-          <Card className="kpi-card kpi-card-primary">
-            <CardHeader className="sr-only">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">💰 O que vendi (a receber)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xl sm:text-2xl font-bold">
-                R$ {(totalPendente + totalVencido).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </p>
-              <p className="kpi-label mt-1">Em aberto</p>
-              <p className="text-[11px] text-muted-foreground">A receber e vencidos</p>
-            </CardContent>
-          </Card>
-          <Card className="kpi-card kpi-card-destructive">
-            <CardHeader className="sr-only">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Recebíveis vencidos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xl sm:text-2xl font-bold text-destructive">
-                R$ {totalVencido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </p>
-              <p className="kpi-label mt-1">Vencidas</p>
-              <p className="text-[11px] text-muted-foreground">Exigem cobrança</p>
-            </CardContent>
-          </Card>
-          <Card className="kpi-card kpi-card-success">
-            <CardHeader className="sr-only">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">✅ O que recebi</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xl sm:text-2xl font-bold text-success">
-                R$ {totalRecebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </p>
-              <p className="kpi-label mt-1">Recebido</p>
-              <p className="text-[11px] text-muted-foreground">Liquidado</p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            { title: "A Receber (Total)", value: totalAberto, count: countAberto, tone: "primary", icon: Wallet, detail: "Total em aberto" },
+            { title: "Vencidas", value: totalVencido, count: countVencido, tone: "destructive", icon: AlertCircle, detail: "Exigem cobrança" },
+            { title: "A Vencer", value: totalPendente, count: countPendente, tone: "success", icon: Clock, detail: "Dentro do prazo" },
+            { title: "Recebidos (Mês)", value: totalRecebido, count: countRecebido, tone: "info", icon: CheckCircle2, detail: "Liquidado no filtro" },
+          ].map((card) => {
+            const Icon = card.icon;
+            const valueClass = card.tone === "destructive" ? "text-destructive" : card.tone === "success" ? "text-success" : "";
+            const iconClass = card.tone === "destructive" ? "status-card-icon-destructive" : card.tone === "success" ? "status-card-icon-success" : "status-card-icon-primary";
+            return (
+              <Card key={card.title} className="kpi-card">
+                <CardContent className="flex items-center justify-between gap-3 p-4">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{card.title}</p>
+                    <p className={`mt-2 text-xl font-bold sm:text-2xl ${valueClass}`}>
+                      R$ {card.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">{card.count} título{card.count === 1 ? "" : "s"} · {card.detail}</p>
+                  </div>
+                  <div className={`status-card-icon ${iconClass} h-10 w-10 shrink-0`}>
+                    <Icon />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {totalVencido > 0 && (
@@ -1034,8 +1068,11 @@ export default function ContasReceber() {
         {/* Painel operacional */}
         <div className="rounded-xl border bg-card/90 p-3 shadow-sm">
           <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                <Button variant="outline" className="h-10 gap-2" onClick={() => setConferenciaDialogOpen(true)}>
+                  <CheckSquare className="h-4 w-4" />Conferência de cartão
+                </Button>
                 <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setEditId(null); resetForm(); } }}>
                   <DialogTrigger asChild>
                     <Button className="h-10 gap-2"><Plus className="h-4 w-4" />Novo recebível</Button>
@@ -1043,6 +1080,17 @@ export default function ContasReceber() {
                   <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader><DialogTitle>{editId ? "Editar Recebível" : "Novo Recebível"}</DialogTitle></DialogHeader>
                 <div className="space-y-4 pt-4">
+                  {!editId && (
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold">Importar com IA</p>
+                          <p className="text-xs text-muted-foreground">Leia um arquivo ou imagem e revise os recebíveis encontrados.</p>
+                        </div>
+                      </div>
+                      <SmartImportButtons edgeFunctionName="parse-receivables-import" onDataExtracted={handleImportData} />
+                    </div>
+                  )}
                   <div>
                     <Label>Cliente *</Label>
                     <ClienteAutocompleteInput
@@ -1072,49 +1120,62 @@ export default function ContasReceber() {
                 </div>
               </DialogContent>
                 </Dialog>
+              </div>
 
-                <Button variant="outline" className="h-10 gap-2" onClick={() => setAdvancedSearchOpen(true)}>
-                  <Search className="h-4 w-4" />Busca avançada
-                </Button>
-
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="h-10 gap-2">
-                      <MoreHorizontal className="h-4 w-4" />Mais ações
+                      <Download className="h-4 w-4" />Exportar
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-64">
-                    <div className="px-2 py-2">
-                      <p className="mb-2 text-xs font-medium text-muted-foreground">Importar com IA</p>
-                      <SmartImportButtons edgeFunctionName="parse-receivables-import" onDataExtracted={handleImportData} />
-                    </div>
-                    <div className="my-1 border-t" />
-                    <DropdownMenuItem onClick={() => setActiveTab(activeTab === "conferencia" ? "todos" : "conferencia")}>
-                      <CheckSquare className="h-4 w-4 mr-2" />
-                      {activeTab === "conferencia" ? "Ocultar conferência" : "Conferência de cartão"}
-                    </DropdownMenuItem>
-                    {canBulkReceber && (
-                      <DropdownMenuItem onClick={() => {
-                        if (selectedContas.length === 1) {
-                          openReceberDialog(selectedContas[0]);
-                        } else {
-                          setBulkFormaPagamento("");
-                          setBulkDataRecebimento(getBrasiliaDateString());
-                          setBulkDialogOpen(true);
-                        }
-                      }}>
-                        <DollarSign className="h-4 w-4 mr-2" />Liquidar selecionados
-                      </DropdownMenuItem>
-                    )}
-                    <div className="my-1 border-t" />
+                  <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem onClick={exportToExcel}><Download className="h-4 w-4 mr-2" />Exportar Excel</DropdownMenuItem>
                     <DropdownMenuItem onClick={exportToPDF}><Download className="h-4 w-4 mr-2" />Exportar PDF</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+            </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                {filtered.length} registro{filtered.length !== 1 ? "s" : ""} no filtro atual
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(240px,1fr)_180px_190px_auto] md:items-center">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="h-10 pl-9"
+                  placeholder="Buscar cliente, título, pedido ou descrição..."
+                  value={filtroNome}
+                  onChange={(e) => setFiltroNome(e.target.value)}
+                />
+              </div>
+              <Select value={quickStatusValue} onValueChange={handleQuickStatusChange}>
+                <SelectTrigger className="h-10"><SelectValue placeholder="Situação" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="abertas">Situação: abertas</SelectItem>
+                  <SelectItem value="todos">Situação: todas</SelectItem>
+                  <SelectItem value="vencida">Vencidas</SelectItem>
+                  <SelectItem value="a_receber">A vencer</SelectItem>
+                  <SelectItem value="recebida">Recebidas</SelectItem>
+                  <SelectItem value="personalizado">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={quickPeriodValue} onValueChange={handleQuickPeriodChange}>
+                <SelectTrigger className="h-10"><SelectValue placeholder="Vencimento" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Vencimento: todos</SelectItem>
+                  <SelectItem value="hoje">Hoje</SelectItem>
+                  <SelectItem value="7d">Últimos 7 dias</SelectItem>
+                  <SelectItem value="mes_atual">Mês atual</SelectItem>
+                  <SelectItem value="personalizado">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" className="h-10 gap-2" onClick={() => setAdvancedSearchOpen(true)}>
+                <SlidersHorizontal className="h-4 w-4" />Filtros
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span>{filtered.length} registro{filtered.length !== 1 ? "s" : ""} no filtro atual</span>
+              <div className="flex items-center gap-2">
                 {hasActiveFilters && (
                   <Button variant="ghost" onClick={clearAllFilters} className="h-8 gap-1 px-2 text-xs">
                     <X className="h-3.5 w-3.5" /> Limpar filtros
@@ -1245,16 +1306,20 @@ export default function ContasReceber() {
           </div>
         </div>
 
-        {/* Conteúdo: tabela única OU painel de conferência */}
-        {activeTab === "conferencia" ? (
-          <ConferenciaCartao />
-        ) : (
-          <Card>
-            <CardContent className="p-0 md:p-4">
-              {renderTable()}
-            </CardContent>
-          </Card>
-        )}
+        <Card>
+          <CardContent className="p-0 md:p-4">
+            {renderTable()}
+          </CardContent>
+        </Card>
+
+        <Dialog open={conferenciaDialogOpen} onOpenChange={setConferenciaDialogOpen}>
+          <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-6xl">
+            <DialogHeader>
+              <DialogTitle>Conferência de cartão</DialogTitle>
+            </DialogHeader>
+            <ConferenciaCartao />
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={!!detalheConta} onOpenChange={(open) => !open && setDetalheConta(null)}>
           <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
