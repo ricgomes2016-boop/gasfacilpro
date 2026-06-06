@@ -30,6 +30,15 @@ export interface CategoriaDesp {
   ativo: boolean;
 }
 
+export interface FornecedorCadastro {
+  id: string;
+  razao_social: string;
+  nome_fantasia: string | null;
+  cnpj: string | null;
+  tipo: string | null;
+  ativo: boolean | null;
+}
+
 export const FORMAS_PAGAMENTO = ["Boleto", "PIX", "Transferência", "Dinheiro", "Cartão", "Cheque"];
 export const CATEGORIAS_FALLBACK = ["Fornecedores", "Frota", "Infraestrutura", "Utilidades", "RH", "Compras", "Outros"];
 
@@ -43,6 +52,7 @@ export function useContasPagar() {
   const [contas, setContas] = useState<ContaPagar[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoriasDB, setCategoriasDB] = useState<CategoriaDesp[]>([]);
+  const [fornecedoresCadastro, setFornecedoresCadastro] = useState<FornecedorCadastro[]>([]);
 
   // ------- UI / dialog state -------
   const [search, setSearch] = useState("");
@@ -131,7 +141,20 @@ export function useContasPagar() {
     setContasBancarias((data as any) || []);
   };
 
-  useEffect(() => { fetchContas(); fetchCategorias(); fetchContasBancarias(); }, [unidadeAtual]);
+  const fetchFornecedores = async () => {
+    const { data, error } = await supabase
+      .from("fornecedores")
+      .select("id,razao_social,nome_fantasia,cnpj,tipo,ativo")
+      .eq("ativo", true)
+      .order("razao_social");
+    if (error) {
+      console.error(error);
+      return;
+    }
+    setFornecedoresCadastro((data as FornecedorCadastro[]) || []);
+  };
+
+  useEffect(() => { fetchContas(); fetchCategorias(); fetchContasBancarias(); fetchFornecedores(); }, [unidadeAtual]);
 
 
   // ===================== COMPUTED (derived state) =====================
@@ -140,7 +163,10 @@ export function useContasPagar() {
     ? categoriasDB.filter(c => c.ativo).map(c => c.nome)
     : CATEGORIAS_FALLBACK;
 
-  const fornecedoresUnicos = [...new Set(contas.map(c => c.fornecedor))].sort();
+  const fornecedoresUnicos = [...new Set([
+    ...fornecedoresCadastro.map(f => f.razao_social),
+    ...contas.map(c => c.fornecedor),
+  ])].sort();
   const categoriasUnicas = [...new Set(contas.map(c => c.categoria).filter(Boolean))].sort() as string[];
 
   const filtered = contas.filter(c => {
@@ -631,7 +657,7 @@ export function useContasPagar() {
 
   return {
     // data
-    contas, loading, categoriasNomes, hoje,
+    contas, loading, categoriasNomes, fornecedoresCadastro, hoje,
     // computed
     filtered, totalPendente, totalVencido, totalPago, totalAberto,
     resumoPorFornecedor, fornecedoresComMultiplas, groupedFiltered,

@@ -36,6 +36,7 @@ import { CompromissosFuturos } from "@/components/financeiro/CompromissosFuturos
 import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
 import { useContasPagar, FORMAS_PAGAMENTO } from "@/hooks/useContasPagar";
+import { Link } from "react-router-dom";
 
 export default function ContasPagar() {
   const cp = useContasPagar();
@@ -81,7 +82,30 @@ export default function ContasPagar() {
                 <DialogContent>
                   <DialogHeader><DialogTitle>{cp.editId ? "Editar Conta" : "Nova Conta a Pagar"}</DialogTitle></DialogHeader>
                   <div className="space-y-4 pt-4">
-                    <div><Label>Fornecedor *</Label><Input value={cp.form.fornecedor} onChange={e => cp.setForm({ ...cp.form, fornecedor: e.target.value })} /></div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <Label>Fornecedor *</Label>
+                        <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                          <Link to="/operacional/fornecedores">Cadastrar</Link>
+                        </Button>
+                      </div>
+                      <Select value={cp.form.fornecedor} onValueChange={v => cp.setForm({ ...cp.form, fornecedor: v })}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={cp.fornecedoresCadastro.length > 0 ? "Selecione um fornecedor" : "Cadastre um fornecedor primeiro"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cp.fornecedoresCadastro.length === 0 && (
+                            <SelectItem value="sem-fornecedor" disabled>Nenhum fornecedor ativo</SelectItem>
+                          )}
+                          {cp.fornecedoresCadastro.map(f => (
+                            <SelectItem key={f.id} value={f.razao_social}>
+                              {f.razao_social}{f.nome_fantasia ? ` - ${f.nome_fantasia}` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">Use o cadastro unico para evitar fornecedores duplicados.</p>
+                    </div>
                     <div><Label>Descrição *</Label><Input value={cp.form.descricao} onChange={e => cp.setForm({ ...cp.form, descricao: e.target.value })} /></div>
                     <div className="grid grid-cols-2 gap-4">
                       <div><Label>Valor *</Label><Input type="number" step="0.01" value={cp.form.valor} onChange={e => cp.setForm({ ...cp.form, valor: e.target.value })} /></div>

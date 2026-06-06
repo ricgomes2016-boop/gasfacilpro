@@ -28,6 +28,7 @@ const Licitacoes = lazy(() => import("@/pages/operacional/Licitacoes"));
 const RelatorioGerencial = lazy(() => import("@/pages/operacional/RelatorioGerencial"));
 const CategoriasDespesa = lazy(() => import("@/pages/config/CategoriasDespesa"));
 const Declaracoes = lazy(() => import("@/pages/config/Declaracoes"));
+const Fornecedores = lazy(() => import("@/pages/cadastros/Fornecedores"));
 
 export const operacionalRoutes: RouteConfig[] = [
   { path: "/operacional/ia", component: ConselhosIA, roles: ["admin", "gestor"] },
@@ -47,6 +48,7 @@ export const operacionalRoutes: RouteConfig[] = [
   { path: "/operacional/planejamento", component: Planejamento, roles: ["admin", "gestor"] },
   { path: "/operacional/analise-resultados", component: AnaliseResultados, roles: ["admin", "gestor", "financeiro"] },
   { path: "/operacional/canais-venda", component: CanaisVenda, roles: ["admin", "gestor", "operacional"] },
+  { path: "/operacional/fornecedores", component: Fornecedores, roles: ["admin", "gestor"] },
   { path: "/config/canais-venda", component: CanaisVenda, roles: ["admin", "gestor", "operacional"] },
   { path: "/operacional/aprovacoes", component: WorkflowAprovacoes, roles: ["admin", "gestor"] },
   { path: "/operacional/sla", component: SlaEntregas, roles: ["admin", "gestor", "operacional"] },
