@@ -32,25 +32,24 @@ serve(async (req) => {
     const body = await req.json();
     const { messages = [], unidadeSlug = "fortegas" } = body;
 
-    const empresaSlug = SLUG_TO_EMPRESA[unidadeSlug] ?? unidadeSlug;
+    // SECURITY: enforce strict slug allowlist. Public endpoint must not allow
+    // arbitrary tenant enumeration via guessed slugs.
+    if (!Object.prototype.hasOwnProperty.call(SLUG_TO_EMPRESA, unidadeSlug)) {
+      return new Response(
+        JSON.stringify({ error: "Slug não autorizado" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const empresaSlug = SLUG_TO_EMPRESA[unidadeSlug];
     const nomeLoja = NOME_LOJA[unidadeSlug] ?? "nossa loja";
 
     // Resolve empresa + unidade
-    let { data: empresa } = await supabase
+    const { data: empresa } = await supabase
       .from("empresas")
       .select("id, nome")
       .eq("slug", empresaSlug)
       .maybeSingle();
-
-    // fallback: tenta achar por nome aproximado
-    if (!empresa) {
-      const { data: alt } = await supabase
-        .from("empresas")
-        .select("id, nome")
-        .ilike("nome", `%${nomeLoja}%`)
-        .maybeSingle();
-      empresa = alt;
-    }
 
     if (!empresa) {
       return new Response(
