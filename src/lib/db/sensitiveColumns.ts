@@ -4,13 +4,16 @@
 // `.select("*")` on these tables now fails with a permission error.
 // Always use these constants instead of "*" when querying the affected tables.
 
+// NOTE: `certificado_a1_path` and `certificado_a1_senha` are restricted to
+// `service_role` (SELECT revoked from anon/authenticated). NEVER include them
+// here — Edge Functions read them with the service-role key.
 export const UNIDADES_PUBLIC_COLUMNS =
   "id, nome, tipo, cnpj, telefone, email, endereco, bairro, cidade, estado, cep, " +
   "ativo, created_at, updated_at, latitude, longitude, chave_pix, empresa_id, " +
   "bairros_atendidos, horario_abertura, horario_fechamento, " +
   "razao_social, nome_fantasia, inscricao_estadual, inscricao_estadual_st, " +
   "inscricao_municipal, cnae_principal, regime_tributario, " +
-  "certificado_a1_path, certificado_a1_validade, certificado_a1_titular, " +
+  "certificado_a1_validade, certificado_a1_titular, " +
   "nfe_ambiente, nfe_serie, nfe_proximo_numero, " +
   "nfce_serie, nfce_proximo_numero, nfce_csc_id, " +
   "cte_serie, cte_proximo_numero, " +
@@ -18,6 +21,7 @@ export const UNIDADES_PUBLIC_COLUMNS =
   "aliquota_icms_padrao, aliquota_pis_padrao, aliquota_cofins_padrao, cst_csosn_padrao, " +
   "contador_nome, contador_cpf_cnpj, contador_crc, contador_email, contador_telefone, " +
   "provedor_nfe, provedor_nfe_url";
+
 
 export const INTEGRACOES_WHATSAPP_PUBLIC_COLUMNS =
   "id, unidade_id, instance_id, nome_bot, ativo, created_at, updated_at, " +
