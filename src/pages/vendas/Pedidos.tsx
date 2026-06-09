@@ -1089,6 +1089,7 @@ export default function Pedidos() {
                               <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
                               {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
                             <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
+                            {pedido.agendado && pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => abrirEditarAgendamento(pedido)}><Calendar className="h-4 w-4 mr-2" />Editar agendamento</DropdownMenuItem>}
                             }
                               {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
                             <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>
