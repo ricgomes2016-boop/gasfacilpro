@@ -919,16 +919,6 @@ async function executeAction(supabase: any, action: string, params: any, unidade
             }
           }
         }
-
-            }
-            if (target) {
-              const y = target.getFullYear();
-              const m = String(target.getMonth() + 1).padStart(2, "0");
-              const d = String(target.getDate()).padStart(2, "0");
-              data_entrega = `${y}-${m}-${d}`;
-            }
-          }
-        }
         if (!hora_entrega) {
           const msg = (lastUserMessage || "").toLowerCase();
           const horaM = msg.match(/\b(\d{1,2})(?::|h)\s*(\d{2})?\b/);
