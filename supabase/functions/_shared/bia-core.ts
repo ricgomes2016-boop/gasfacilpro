@@ -1285,7 +1285,7 @@ export async function transcribeAudio(audioBase64: string, mimeType: string): Pr
       ? "https://ai.gateway.lovable.dev/v1/chat/completions"
       : "https://api.openai.com/v1/chat/completions";
 
-    const model = LOVABLE_API_KEY ? "google/gemini-2.0-flash-exp" : "gpt-4o-audio-preview";
+    const model = LOVABLE_API_KEY ? "google/gemini-2.5-flash" : "gpt-4o-audio-preview";
 
     const resp = await fetch(baseUrl, {
       method: "POST",
