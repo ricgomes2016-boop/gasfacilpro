@@ -240,11 +240,21 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
     let assistantSoFar = "";
 
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) {
+        const errMsg: Msg = { role: "assistant", content: "❌ Sessão expirada. Faça login novamente para usar o Assistente IA." };
+        setMessages((prev) => [...prev, errMsg]);
+        if (activeConversa) saveMessage(errMsg, activeConversa);
+        setIsLoading(false);
+        return;
+      }
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${accessToken}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify({
           messages: updatedMessages,
