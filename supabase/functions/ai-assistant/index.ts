@@ -242,27 +242,30 @@ const ACTION_TOOLS = [
     type: "function",
     function: {
       name: "criar_pedido",
-      description: "Cria um novo pedido de venda",
+      description: "Cria um novo pedido de venda. Pode ser imediato ou agendado para data/hora futura (use data_entrega e hora_entrega). Sempre tente localizar o cliente cadastrado pelo nome ou telefone informado.",
       parameters: {
         type: "object",
         properties: {
-          cliente_nome: { type: "string", description: "Nome do cliente" },
-          cliente_telefone: { type: "string", description: "Telefone do cliente" },
+          cliente_id: { type: "string", description: "UUID do cliente já identificado (opcional)" },
+          cliente_nome: { type: "string", description: "Nome do cliente (usado para busca se cliente_id ausente)" },
+          cliente_telefone: { type: "string", description: "Telefone do cliente (usado para busca)" },
           itens: {
             type: "array",
             items: {
               type: "object",
               properties: {
-                produto_nome: { type: "string", description: "Nome do produto" },
+                produto_nome: { type: "string", description: "Nome do produto (ex: 'Gás P13', 'Gás P20', 'Água 20L')" },
                 quantidade: { type: "number" },
               },
               required: ["produto_nome", "quantidade"],
             },
           },
-          forma_pagamento: { type: "string", enum: ["dinheiro", "pix", "cartao_credito", "cartao_debito", "fiado"], description: "Forma de pagamento" },
-          endereco_entrega: { type: "string", description: "Endereço de entrega" },
-          observacoes: { type: "string", description: "Observações do pedido" },
-          troco_para: { type: "number", description: "Troco para (se dinheiro)" },
+          forma_pagamento: { type: "string", enum: ["dinheiro", "pix", "cartao_credito", "cartao_debito", "fiado"] },
+          endereco_entrega: { type: "string", description: "Endereço de entrega (se vazio, usa endereço cadastrado do cliente)" },
+          data_entrega: { type: "string", description: "Data agendada da entrega no formato YYYY-MM-DD (opcional). Use sempre que o usuário pedir 'amanhã', 'dia X', 'sexta', etc." },
+          hora_entrega: { type: "string", description: "Hora agendada no formato HH:MM (opcional, default 08:00)" },
+          observacoes: { type: "string" },
+          troco_para: { type: "number" },
         },
         required: ["itens"],
         additionalProperties: false,
