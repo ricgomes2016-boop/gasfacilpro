@@ -50,7 +50,16 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       <TransferenciaPendentePopup />
       <PedidoPendenteAlertProvider />
       <MobileBottomBar
-        onOpenAi={() => { if (!isAiPage) setAiOpen(true); }}
+        onOpenAi={() => {
+          if (isAiPage) {
+            const input = document.querySelector<HTMLInputElement>('input[data-ai-chat-input], textarea[data-ai-chat-input]')
+              || document.querySelector<HTMLInputElement>('main input[type="text"], main textarea');
+            input?.focus();
+            window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+          } else {
+            setAiOpen(true);
+          }
+        }}
         onOpenChat={() => setChatOpen(true)}
         onOpenCalc={() => setCalcOpen(true)}
         chatUnread={chatUnread}
