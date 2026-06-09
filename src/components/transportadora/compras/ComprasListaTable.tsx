@@ -391,12 +391,28 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                         {c.pago && <Check className="h-3 w-3" />}
                       </button>
                     </td>
+                    <td className="px-3 py-2">
+                      <button
+                        onClick={() =>
+                          setExcluindo({
+                            id: c.id,
+                            nf: c.numero_nf || undefined,
+                            fornecedor: c.fornecedor || undefined,
+                            escopo: c.numero_nf ? "nf" : "linha",
+                          })
+                        }
+                        className="inline-flex items-center justify-center h-6 w-6 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        title="Excluir esta NF"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
               {display.length === 0 && (
                 <tr>
-                  <td colSpan={13} className="text-center py-8 text-muted-foreground">Nenhuma compra encontrada</td>
+                  <td colSpan={14} className="text-center py-8 text-muted-foreground">Nenhuma compra encontrada</td>
                 </tr>
               )}
             </tbody>
