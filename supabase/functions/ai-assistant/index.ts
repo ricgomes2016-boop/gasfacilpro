@@ -906,6 +906,20 @@ async function executeAction(supabase: any, action: string, params: any, unidade
                   }
                 }
               }
+              // Fallback: usuário pediu "agenda" sem especificar data → assume amanhã
+              if (!target && /\bagend[ae]/.test(msg)) {
+                target = new Date(now); target.setDate(target.getDate() + 1);
+              }
+            }
+            if (target) {
+              const y = target.getFullYear();
+              const m = String(target.getMonth() + 1).padStart(2, "0");
+              const d = String(target.getDate()).padStart(2, "0");
+              data_entrega = `${y}-${m}-${d}`;
+            }
+          }
+        }
+
             }
             if (target) {
               const y = target.getFullYear();
