@@ -1358,6 +1358,13 @@ export default function Pedidos() {
           }
         </DialogContent>
       </Dialog>
+
+      <EditarAgendamentoDialog
+        pedido={pedidoAgendamento}
+        open={agendamentoDialogAberto}
+        onOpenChange={setAgendamentoDialogAberto}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["pedidos"] })}
+      />
     </MainLayout>);
 
 }
