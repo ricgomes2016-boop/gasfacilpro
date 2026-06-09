@@ -1186,10 +1186,12 @@ export async function callAI(messages: any[]): Promise<string> {
     const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "google/gemini-2.0-flash-exp", messages }),
+      body: JSON.stringify({ model: "google/gemini-2.5-flash", messages }),
     });
 
     if (!resp.ok) {
+      const errBody = await resp.text().catch(() => "");
+      console.error(`Lovable AI Gateway error ${resp.status}:`, errBody.substring(0, 300));
       if (resp.status === 429) throw new Error("RATE_LIMIT");
       if (resp.status === 402) throw new Error("CREDITS_EXHAUSTED");
       throw new Error(`AI_ERROR_${resp.status}`);
