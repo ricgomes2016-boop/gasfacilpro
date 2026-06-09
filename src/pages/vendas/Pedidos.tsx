@@ -38,6 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import { gerarComprovanteEntregaPdf } from "@/lib/comprovanteEntregaPdf";
 import { PedidoViewDialog } from "@/components/pedidos/PedidoViewDialog";
 import { StatusDropdown } from "@/components/pedidos/StatusDropdown";
+import { EditarAgendamentoDialog } from "@/components/pedidos/EditarAgendamentoDialog";
 import { usePedidos } from "@/hooks/usePedidos";
 import { PedidoFormatado, PedidoStatus } from "@/types/pedido";
 import { supabase } from "@/integrations/supabase/client";
