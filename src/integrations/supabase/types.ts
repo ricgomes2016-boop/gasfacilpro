@@ -7814,6 +7814,7 @@ export type Database = {
           forma_pagamento: string | null
           id: string
           latitude: number | null
+          lembrete_enviado_em: string | null
           longitude: number | null
           numero_entrega: string | null
           numero_sequencial: number | null
@@ -7853,6 +7854,7 @@ export type Database = {
           forma_pagamento?: string | null
           id?: string
           latitude?: number | null
+          lembrete_enviado_em?: string | null
           longitude?: number | null
           numero_entrega?: string | null
           numero_sequencial?: number | null
@@ -7892,6 +7894,7 @@ export type Database = {
           forma_pagamento?: string | null
           id?: string
           latitude?: number | null
+          lembrete_enviado_em?: string | null
           longitude?: number | null
           numero_entrega?: string | null
           numero_sequencial?: number | null
