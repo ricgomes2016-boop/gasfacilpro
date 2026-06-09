@@ -50,12 +50,12 @@ export function VoiceAssistant({ userName = "Gestor" }: VoiceAssistantProps) {
   }, []);
 
   const stopSpeaking = useCallback(() => {
-    synthRef.current.cancel();
+    synthRef.current?.cancel();
     setSpeaking(false);
   }, []);
 
   const speak = useCallback((text: string) => {
-    // Strip markdown for speech
+    if (!synthRef.current) return;
     const clean = text
       .replace(/[#*_`~\[\]()>|]/g, "")
       .replace(/\n+/g, ". ")
@@ -73,7 +73,6 @@ export function VoiceAssistant({ userName = "Gestor" }: VoiceAssistantProps) {
     utterance.onend = () => setSpeaking(false);
     utterance.onerror = () => setSpeaking(false);
 
-    // Pick a PT-BR voice if available
     const voices = synthRef.current.getVoices();
     const ptVoice = voices.find((v: SpeechSynthesisVoice) => v.lang.startsWith("pt"));
     if (ptVoice) utterance.voice = ptVoice;
