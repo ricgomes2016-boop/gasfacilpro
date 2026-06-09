@@ -867,25 +867,44 @@ async function executeAction(supabase: any, action: string, params: any, unidade
       }
 
       case "criar_pedido": {
-        const { cliente_nome, cliente_telefone, itens, forma_pagamento, endereco_entrega, observacoes, troco_para } = params;
+        const { cliente_id, cliente_nome, cliente_telefone, itens, forma_pagamento, endereco_entrega, observacoes, troco_para, data_entrega, hora_entrega } = params;
 
-        // Find or create client
-        let clienteId = null;
-        if (cliente_nome) {
-          const { data: cli } = await supabase.from("clientes").select("id").ilike("nome", `%${cliente_nome}%`).limit(1).single();
-          clienteId = cli?.id || null;
+        // Resolve client: id > telefone > nome
+        let cliente: any = null;
+        if (cliente_id) {
+          const { data } = await supabase.from("clientes")
+            .select("id, nome, telefone, endereco, numero, bairro")
+            .eq("id", cliente_id).maybeSingle();
+          cliente = data;
+        }
+        if (!cliente && cliente_telefone) {
+          const tel = String(cliente_telefone).replace(/\D/g, "");
+          if (tel.length >= 8) {
+            const { data } = await supabase.from("clientes")
+              .select("id, nome, telefone, endereco, numero, bairro")
+              .ilike("telefone", `%${tel.slice(-8)}%`)
+              .limit(1).maybeSingle();
+            cliente = data;
+          }
+        }
+        if (!cliente && cliente_nome) {
+          const { data } = await supabase.from("clientes")
+            .select("id, nome, telefone, endereco, numero, bairro")
+            .ilike("nome", `%${cliente_nome}%`)
+            .limit(1).maybeSingle();
+          cliente = data;
         }
 
         // Resolve products and calculate total
         let valorTotal = 0;
-        const pedidoItens = [];
+        const pedidoItens: any[] = [];
         for (const item of itens || []) {
           const { data: prod } = await supabase.from("produtos")
             .select("id, nome, preco")
             .ilike("nome", `%${item.produto_nome}%`)
             .eq("unidade_id", unidade_id)
             .limit(1)
-            .single();
+            .maybeSingle();
           const preco = prod?.preco || 0;
           pedidoItens.push({
             produto_id: prod?.id || null,
@@ -896,31 +915,58 @@ async function executeAction(supabase: any, action: string, params: any, unidade
           valorTotal += item.quantidade * preco;
         }
 
-        const { data: pedido, error: pedidoErr } = await supabase.from("pedidos").insert({
-          cliente_id: clienteId,
+        // Endereço: usa o passado, senão monta do cliente
+        let enderecoFinal = endereco_entrega || null;
+        if (!enderecoFinal && cliente) {
+          const partes = [cliente.endereco, cliente.numero, cliente.bairro].filter(Boolean);
+          if (partes.length) enderecoFinal = partes.join(", ");
+        }
+
+        // Agendamento
+        const agendado = !!data_entrega;
+        let dataAgendamentoIso: string | null = null;
+        if (agendado) {
+          const hora = (hora_entrega && /^\d{1,2}:\d{2}$/.test(hora_entrega)) ? hora_entrega : "08:00";
+          // Brasil = UTC-3, salvamos em UTC somando 3h
+          const local = new Date(`${data_entrega}T${hora.padStart(5, "0")}:00-03:00`);
+          if (!isNaN(local.getTime())) dataAgendamentoIso = local.toISOString();
+        }
+
+        const insertPayload: any = {
+          cliente_id: cliente?.id || null,
           valor_total: valorTotal,
           forma_pagamento: forma_pagamento || "dinheiro",
           status: "pendente",
           canal_venda: "assistente",
-          endereco_entrega: endereco_entrega || null,
-          observacoes: observacoes || `Pedido via Assistente IA${cliente_nome ? ` - ${cliente_nome}` : ""}${cliente_telefone ? ` (${cliente_telefone})` : ""}`,
+          endereco_entrega: enderecoFinal,
+          observacoes: observacoes || `Pedido via Assistente IA${cliente?.nome ? ` - ${cliente.nome}` : (cliente_nome ? ` - ${cliente_nome}` : "")}${cliente_telefone ? ` (${cliente_telefone})` : ""}`,
           troco_para: troco_para || null,
           unidade_id,
-        }).select("id").single();
+          agendado,
+          data_agendamento: dataAgendamentoIso,
+          data_entrega: data_entrega || null,
+        };
+
+        const { data: pedido, error: pedidoErr } = await supabase.from("pedidos").insert(insertPayload).select("id").single();
         if (pedidoErr) throw pedidoErr;
 
         for (const item of pedidoItens) {
-          await supabase.from("pedido_itens").insert({
+          const { error: itemErr } = await supabase.from("pedido_itens").insert({
             pedido_id: pedido.id,
             produto_id: item.produto_id,
-            produto_nome: item.produto_nome,
             quantidade: item.quantidade,
             preco_unitario: item.preco_unitario,
           });
+          if (itemErr) {
+            await supabase.from("pedidos").delete().eq("id", pedido.id);
+            throw itemErr;
+          }
         }
 
         const itensStr = pedidoItens.map(i => `${i.quantidade}x ${i.produto_nome}`).join(", ");
-        return `✅ Pedido criado (#${pedido.id.substring(0, 8)}): ${itensStr}. Total: R$ ${valorTotal.toFixed(2)}. Status: Pendente.`;
+        const clienteStr = cliente?.nome ? ` para ${cliente.nome}` : (cliente_nome ? ` para ${cliente_nome} (não cadastrado)` : "");
+        const agendaStr = agendado ? ` 📅 AGENDADO para ${data_entrega} às ${hora_entrega || "08:00"}` : "";
+        return `✅ Pedido criado (#${pedido.id.substring(0, 8)})${clienteStr}: ${itensStr}. Total: R$ ${valorTotal.toFixed(2)}.${agendaStr}`;
       }
 
       case "atualizar_status_pedido": {
