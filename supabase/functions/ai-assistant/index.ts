@@ -906,6 +906,10 @@ async function executeAction(supabase: any, action: string, params: any, unidade
                   }
                 }
               }
+              // Fallback: usuário pediu "agenda" sem especificar data → assume amanhã
+              if (!target && /\bagend[ae]/.test(msg)) {
+                target = new Date(now); target.setDate(target.getDate() + 1);
+              }
             }
             if (target) {
               const y = target.getFullYear();
