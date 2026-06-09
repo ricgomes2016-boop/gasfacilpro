@@ -245,6 +245,17 @@ export default function Pedidos() {
 
   // Reset page when filters change
   useEffect(() => {setPaginaAtual(1);}, [filtroStatus, filtroEntregador, busca, dataInicio, dataFim]);
+  // Quando filtrar agendados, ampliar a data para os próximos 90 dias
+  useEffect(() => {
+    if (filtroStatus === "agendado") {
+      const d = getBrasiliaDate();
+      const fim = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 90);
+      const iso = `${fim.getFullYear()}-${String(fim.getMonth() + 1).padStart(2, "0")}-${String(fim.getDate()).padStart(2, "0")}`;
+      setDataInicio(hoje);
+      setDataFim(iso);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtroStatus]);
   // Clear selection when data changes
   useEffect(() => {setSelecionados(new Set());}, [pedidos]);
 
