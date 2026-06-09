@@ -131,6 +131,27 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const excluirMut = useMutation({
+    mutationFn: async (alvo: { id: string; nf?: string; fornecedor?: string; escopo: "linha" | "nf" }) => {
+      const q: any = supabase.from("transp_compras").delete();
+      if (alvo.escopo === "nf" && alvo.nf) {
+        let del = q.eq("numero_nf", alvo.nf);
+        if (alvo.fornecedor) del = del.eq("fornecedor", alvo.fornecedor);
+        const { error } = await del;
+        if (error) throw error;
+      } else {
+        const { error } = await q.eq("id", alvo.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["transp-compras"] });
+      toast.success("Compra excluída");
+      setExcluindo(null);
+    },
+    onError: (e: any) => toast.error("Erro ao excluir", { description: e.message }),
+  });
+
   const togglePago = (c: any) => {
     const novo = !c.pago;
     updateField.mutate({
