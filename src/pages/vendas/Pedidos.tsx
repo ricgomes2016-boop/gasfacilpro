@@ -936,6 +936,7 @@ export default function Pedidos() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
                           {pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>}
+                          {pedido.agendado && pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => abrirEditarAgendamento(pedido)}><Calendar className="h-4 w-4 mr-2" />Editar agendamento</DropdownMenuItem>}
                           {pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>}
                           {pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria (Retirada)</DropdownMenuItem>}
                           {unidades.length > 1 && <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}><MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial</DropdownMenuItem>}
