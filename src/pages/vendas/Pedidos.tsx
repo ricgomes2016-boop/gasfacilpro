@@ -29,7 +29,7 @@ import {
   User, RefreshCw, MoreHorizontal, Edit, ArrowRightLeft, Printer,
   Share2, DollarSign, Trash2, Lock, MessageCircle, CreditCard,
   ChevronLeft, ChevronRight, CheckSquare, Building2, Pencil, MoveRight, Map as MapIcon,
-  Download, Package } from
+  Download, Package, Calendar } from
 "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
@@ -38,6 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import { gerarComprovanteEntregaPdf } from "@/lib/comprovanteEntregaPdf";
 import { PedidoViewDialog } from "@/components/pedidos/PedidoViewDialog";
 import { StatusDropdown } from "@/components/pedidos/StatusDropdown";
+import { EditarAgendamentoDialog } from "@/components/pedidos/EditarAgendamentoDialog";
 import { usePedidos } from "@/hooks/usePedidos";
 import { PedidoFormatado, PedidoStatus } from "@/types/pedido";
 import { supabase } from "@/integrations/supabase/client";
@@ -147,6 +148,14 @@ export default function Pedidos() {
   const [senhaExclusao, setSenhaExclusao] = useState("");
   const [senhaErro, setSenhaErro] = useState("");
 
+  // Editar agendamento
+  const [agendamentoDialogAberto, setAgendamentoDialogAberto] = useState(false);
+  const [pedidoAgendamento, setPedidoAgendamento] = useState<PedidoFormatado | null>(null);
+  const abrirEditarAgendamento = (p: PedidoFormatado) => {
+    setPedidoAgendamento(p);
+    setAgendamentoDialogAberto(true);
+  };
+
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
 
@@ -236,6 +245,17 @@ export default function Pedidos() {
 
   // Reset page when filters change
   useEffect(() => {setPaginaAtual(1);}, [filtroStatus, filtroEntregador, busca, dataInicio, dataFim]);
+  // Quando filtrar agendados, ampliar a data para os próximos 90 dias
+  useEffect(() => {
+    if (filtroStatus === "agendado") {
+      const d = getBrasiliaDate();
+      const fim = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 90);
+      const iso = `${fim.getFullYear()}-${String(fim.getMonth() + 1).padStart(2, "0")}-${String(fim.getDate()).padStart(2, "0")}`;
+      setDataInicio(hoje);
+      setDataFim(iso);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtroStatus]);
   // Clear selection when data changes
   useEffect(() => {setSelecionados(new Set());}, [pedidos]);
 
@@ -480,7 +500,12 @@ export default function Pedidos() {
     const buscaLower = busca.toLowerCase().trim();
     const buscaDigits = buscaLower.replace(/\D/g, "");
     return pedidos.filter((p) => {
-      const matchStatus = filtroStatus === "todos" || p.status === filtroStatus;
+      const matchStatus =
+        filtroStatus === "todos"
+          ? true
+          : filtroStatus === "agendado"
+            ? !!p.agendado && p.status !== "cancelado" && p.status !== "entregue" && p.status !== "finalizado"
+            : p.status === filtroStatus;
       const matchEntregador = filtroEntregador === "todos" || (
       filtroEntregador === "sem_entregador" ? !p.entregador : p.entregador === filtroEntregador);
       const matchBusca = busca === "" ||
@@ -744,6 +769,7 @@ export default function Pedidos() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos Status</SelectItem>
+                    <SelectItem value="agendado">📅 Agendados</SelectItem>
                     <SelectItem value="pendente">Pendente</SelectItem>
                     <SelectItem value="em_rota">Em Rota</SelectItem>
                     <SelectItem value="entregue">Entregue</SelectItem>
@@ -901,6 +927,12 @@ export default function Pedidos() {
                             #{getNumExib(pedido)}
                           </Button>
                           <p className="text-sm font-medium truncate">{pedido.cliente}</p>
+                          {pedido.agendado && pedido.data_agendamento && (
+                            <Badge variant="secondary" className="mt-1 text-[10px] gap-1 bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(pedido.data_agendamento).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       <DropdownMenu>
@@ -910,6 +942,7 @@ export default function Pedidos() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
                           {pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>}
+                          {pedido.agendado && pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => abrirEditarAgendamento(pedido)}><Calendar className="h-4 w-4 mr-2" />Editar agendamento</DropdownMenuItem>}
                           {pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>}
                           {pedido.status !== "cancelado" && pedido.status !== "entregue" && <DropdownMenuItem onClick={() => marcarPortariaHandler(pedido.id)}><Building2 className="h-4 w-4 mr-2" />Portaria (Retirada)</DropdownMenuItem>}
                           {unidades.length > 1 && <DropdownMenuItem onClick={() => abrirTransferenciaFilial(pedido)}><MoveRight className="h-4 w-4 mr-2" />Transferir p/ Filial</DropdownMenuItem>}
@@ -1062,6 +1095,9 @@ export default function Pedidos() {
                               <DropdownMenuItem onClick={() => abrirVisualizacao(pedido)}><Eye className="h-4 w-4 mr-2" />Visualizar</DropdownMenuItem>
                               {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
                             <DropdownMenuItem onClick={() => editarPedido(pedido.id)}><Edit className="h-4 w-4 mr-2" />Editar</DropdownMenuItem>
+                            }
+                              {pedido.agendado && pedido.status !== "cancelado" && pedido.status !== "entregue" &&
+                            <DropdownMenuItem onClick={() => abrirEditarAgendamento(pedido)}><Calendar className="h-4 w-4 mr-2" />Editar agendamento</DropdownMenuItem>
                             }
                               {pedido.status !== "cancelado" && pedido.status !== "entregue" &&
                             <DropdownMenuItem onClick={() => abrirTransferencia(pedido)}><ArrowRightLeft className="h-4 w-4 mr-2" />{pedido.entregador ? "Transferir" : "Atribuir"} Entregador</DropdownMenuItem>
@@ -1322,6 +1358,13 @@ export default function Pedidos() {
           }
         </DialogContent>
       </Dialog>
+
+      <EditarAgendamentoDialog
+        pedido={pedidoAgendamento}
+        open={agendamentoDialogAberto}
+        onOpenChange={setAgendamentoDialogAberto}
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ["pedidos"] })}
+      />
     </MainLayout>);
 
 }

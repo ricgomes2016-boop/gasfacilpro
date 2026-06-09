@@ -95,6 +95,9 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
             observacoes: pedido.observacoes || undefined,
             forma_pagamento: pedido.forma_pagamento || undefined,
             canal_venda: pedido.canal_venda || undefined,
+            agendado: (pedido as any).agendado || false,
+            data_agendamento: (pedido as any).data_agendamento || null,
+            data_entrega: (pedido as any).data_entrega || null,
           };
         })
       );

@@ -870,7 +870,63 @@ async function executeAction(supabase: any, action: string, params: any, unidade
       }
 
       case "criar_pedido": {
-        const { cliente_id, cliente_nome, cliente_telefone, itens, forma_pagamento, endereco_entrega, observacoes, troco_para, data_entrega, hora_entrega } = params;
+        let { cliente_id, cliente_nome, cliente_telefone, itens, forma_pagamento, endereco_entrega, observacoes, troco_para, data_entrega, hora_entrega } = params;
+
+        // Fallback determinístico: se LLM não preencheu data/hora mas o usuário pediu agendamento, extrair da mensagem
+        if (!data_entrega) {
+          const msg = (lastUserMessage || "").toLowerCase();
+          const isAgendaIntent = /\b(agend[ae]|amanh[ãa]|depois de amanh[ãa]|hoje|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|domingo|dia\s+\d{1,2}|\d{1,2}\/\d{1,2})\b/.test(msg);
+          if (isAgendaIntent) {
+            const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+            let target: Date | null = null;
+            if (/depois de amanh[ãa]/.test(msg)) {
+              target = new Date(now); target.setDate(target.getDate() + 2);
+            } else if (/amanh[ãa]/.test(msg)) {
+              target = new Date(now); target.setDate(target.getDate() + 1);
+            } else if (/\bhoje\b/.test(msg)) {
+              target = new Date(now);
+            } else {
+              const weekdays: Record<string, number> = { domingo: 0, segunda: 1, "terça": 2, terca: 2, quarta: 3, quinta: 4, sexta: 5, sábado: 6, sabado: 6 };
+              for (const [k, v] of Object.entries(weekdays)) {
+                if (new RegExp(`\\b${k}\\b`).test(msg)) {
+                  target = new Date(now);
+                  const diff = (v - target.getDay() + 7) % 7 || 7;
+                  target.setDate(target.getDate() + diff);
+                  break;
+                }
+              }
+              if (!target) {
+                const m = msg.match(/\b(?:dia\s+)?(\d{1,2})(?:\/(\d{1,2}))?\b/);
+                if (m) {
+                  const d = parseInt(m[1], 10);
+                  const mo = m[2] ? parseInt(m[2], 10) - 1 : now.getMonth();
+                  if (d >= 1 && d <= 31) {
+                    target = new Date(now.getFullYear(), mo, d);
+                    if (target < now) target.setFullYear(target.getFullYear() + 1);
+                  }
+                }
+              }
+            }
+            if (target) {
+              const y = target.getFullYear();
+              const m = String(target.getMonth() + 1).padStart(2, "0");
+              const d = String(target.getDate()).padStart(2, "0");
+              data_entrega = `${y}-${m}-${d}`;
+            }
+          }
+        }
+        if (!hora_entrega) {
+          const msg = (lastUserMessage || "").toLowerCase();
+          const horaM = msg.match(/\b(\d{1,2})(?::|h)\s*(\d{2})?\b/);
+          if (horaM) {
+            const hh = String(Math.min(23, parseInt(horaM[1], 10))).padStart(2, "0");
+            const mm = String(horaM[2] ? Math.min(59, parseInt(horaM[2], 10)) : 0).padStart(2, "0");
+            hora_entrega = `${hh}:${mm}`;
+          } else if (/manh[ãa]/.test(msg)) hora_entrega = "09:00";
+          else if (/tarde/.test(msg)) hora_entrega = "14:00";
+          else if (/noite/.test(msg)) hora_entrega = "18:00";
+        }
+        console.log("[criar_pedido] agendamento", { data_entrega, hora_entrega });
 
         // Resolve client: id > telefone > nome
         let cliente: any = null;
