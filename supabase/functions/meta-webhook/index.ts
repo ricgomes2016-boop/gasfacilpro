@@ -321,9 +321,11 @@ serve(async (req) => {
               { role: "user", content: finalMessageText },
             ]);
           } catch (e: any) {
+            console.error("Meta webhook callAI failed:", e?.message || e);
             const fallback = e.message === "RATE_LIMIT"
               ? "Desculpe, estamos com muitas mensagens. Tente novamente! 😊"
               : "Desculpe, tive um problema técnico. Ligue para nós! 📞";
+            await saveMessage(supabase, conversationId, "assistant", fallback, { source: "meta-webhook", ai_error: e?.message || "unknown" });
             await sendMessage(config, phone, fallback);
             continue;
           }
