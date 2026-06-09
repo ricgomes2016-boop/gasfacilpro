@@ -927,6 +927,12 @@ export default function Pedidos() {
                             #{getNumExib(pedido)}
                           </Button>
                           <p className="text-sm font-medium truncate">{pedido.cliente}</p>
+                          {pedido.agendado && pedido.data_agendamento && (
+                            <Badge variant="secondary" className="mt-1 text-[10px] gap-1 bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(pedido.data_agendamento).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       <DropdownMenu>
