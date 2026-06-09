@@ -14,7 +14,7 @@ export const atendimentoRoutes: RouteConfig[] = [
   { path: "/atendimento", component: CentralAtendimento, roles: ["admin", "gestor", "operacional"] },
   { path: "/atendimento/bina", component: AppBina, roles: ["admin", "gestor", "operacional"] },
   { path: "/chat", component: CaixaDeEntrada, roles: ["admin", "gestor", "operacional"] },
-  { path: "/assistente-ia", component: AssistenteIA, roles: ["admin", "gestor"] },
+  { path: "/assistente-ia", component: AssistenteIA, roles: ["admin", "gestor", "super_admin"] },
   { path: "/whatsapp", component: WhatsappDashboard, roles: ["admin", "gestor", "operacional"] },
   { path: "/whatsapp/admin", component: WhatsappAdmin, roles: ["admin"] },
   { path: "/whatsapp/web/login", component: WhatsAppWebLogin, roles: ["admin", "gestor", "operacional"] },

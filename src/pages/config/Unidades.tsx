@@ -84,9 +84,10 @@ export default function UnidadesConfig() {
     const errs: string[] = [];
     const has = (v: any) => v !== null && v !== undefined && String(v).trim() !== "";
 
-    const certAny = has(u.certificado_a1_path) || has(u.certificado_a1_senha) || has(u.certificado_a1_validade) || has(u.certificado_a1_titular);
+    const certConfigured = Boolean(u.certificado_a1_configurado || u.certificado_a1_path);
+    const certAny = certConfigured || has(u.certificado_a1_senha) || has(u.certificado_a1_validade) || has(u.certificado_a1_titular);
     if (certAny) {
-      if (!has(u.certificado_a1_path)) errs.push("Certificado A1: envie o arquivo .pfx ou .p12.");
+      if (!certConfigured) errs.push("Certificado A1: envie o arquivo .pfx ou .p12.");
       if (!has(u.certificado_a1_senha)) errs.push("Certificado A1: informe a senha.");
       if (!has(u.certificado_a1_validade)) errs.push("Certificado A1: informe a data de validade.");
       else {
@@ -112,7 +113,7 @@ export default function UnidadesConfig() {
     }
 
     if (u.nfe_ambiente === "producao") {
-      if (!has(u.certificado_a1_path) || !has(u.certificado_a1_senha)) {
+      if (!certConfigured || !has(u.certificado_a1_senha)) {
         errs.push("Ambiente Produção exige Certificado A1 e senha cadastrados.");
       }
       if (!has(u.cnpj)) errs.push("Ambiente Produção exige CNPJ da unidade.");
@@ -176,8 +177,7 @@ export default function UnidadesConfig() {
         bairros_atendidos: u.bairros_atendidos || null,
         horario_abertura: u.horario_abertura || "07:00",
         horario_fechamento: u.horario_fechamento || "18:00",
-        // Certificado (senha tratada via RPC)
-        certificado_a1_path: u.certificado_a1_path || null,
+        // Certificado (path e senha tratados de forma restrita)
         certificado_a1_validade: u.certificado_a1_validade || null,
         certificado_a1_titular: u.certificado_a1_titular || null,
         // NFe / NFC-e / CT-e (tokens tratados via RPC)
@@ -205,6 +205,9 @@ export default function UnidadesConfig() {
         provedor_nfe: u.provedor_nfe || null,
         provedor_nfe_url: u.provedor_nfe_url || null,
       };
+      if (u.certificado_a1_path) {
+        payload.certificado_a1_path = u.certificado_a1_path;
+      }
 
       const { error } = await supabase.from("unidades").update(payload).eq("id", u.id);
       if (error) throw error;
@@ -260,6 +263,7 @@ export default function UnidadesConfig() {
         .upload(path, file, { upsert: true, contentType: "application/x-pkcs12" });
       if (error) throw error;
       setField("certificado_a1_path", path);
+      setField("certificado_a1_configurado", true);
       toast({ title: "Certificado enviado", description: "Arquivo armazenado com segurança." });
     } catch (e: any) {
       toast({ title: "Falha no upload", description: e.message, variant: "destructive" });
@@ -300,7 +304,7 @@ export default function UnidadesConfig() {
                       </Badge>
                       <Button size="icon" variant="ghost" onClick={async () => {
                         setActiveTab("geral");
-                        const { data: cred } = await supabase.rpc("get_unidade_credenciais", { _unidade_id: unidade.id });
+                        const { data: cred } = await (supabase as any).rpc("get_unidade_credenciais", { _unidade_id: unidade.id });
                         const c = Array.isArray(cred) ? cred[0] : cred;
                         setEditingUnidade({
                           ...unidade,
@@ -309,6 +313,7 @@ export default function UnidadesConfig() {
                           nfce_csc_token: c?.nfce_csc_token ?? "",
                           contador_email: c?.contador_email ?? "",
                           contador_cpf_cnpj: c?.contador_cpf_cnpj ?? "",
+                          certificado_a1_configurado: Boolean(c?.certificado_a1_configurado),
                         });
                       }}>
                         <Edit className="h-4 w-4" />
@@ -344,7 +349,7 @@ export default function UnidadesConfig() {
                     </div>
                   )}
                   <div className="flex flex-wrap gap-1 pt-1">
-                    {unidade.certificado_a1_path && (
+                    {unidade.certificado_a1_validade && (
                       <Badge variant="outline" className="gap-1">
                         <ShieldCheck className="h-3 w-3" /> Certificado A1
                       </Badge>
@@ -528,9 +533,10 @@ export default function UnidadesConfig() {
                           />
                           {uploadingCert && <Loader2 className="h-5 w-5 animate-spin self-center" />}
                         </div>
-                        {editingUnidade.certificado_a1_path && (
+                        {(editingUnidade.certificado_a1_configurado || editingUnidade.certificado_a1_path) && (
                           <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Upload className="h-3 w-3" /> {editingUnidade.certificado_a1_path}
+                            <Upload className="h-3 w-3" />
+                            {editingUnidade.certificado_a1_path ? "Novo certificado pronto para salvar" : "Certificado A1 configurado"}
                           </p>
                         )}
                       </div>

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Bot, Send, Trash2, MessageSquarePlus, History, ChevronLeft } from "lucide-react";
+import { AlertTriangle, Bot, CheckCircle2, Send, Trash2, MessageSquarePlus, History, ChevronLeft, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ import { VoiceInputButton, TtsButton } from "./VoiceButton";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Conversa = { id: string; titulo: string; created_at: string };
+type PendingAction = { action: string; params: Record<string, unknown>; preview: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assistant`;
 
@@ -103,6 +104,20 @@ function parseChartMeta(content: string): { text: string; chart: { type: string;
     return { text, chart };
   } catch {
     return { text: content, chart: null };
+  }
+}
+
+function parsePendingActions(content: string): { text: string; pendingActions: PendingAction[] } {
+  const match = content.match(/\[PENDING_ACTIONS\](.*?)\[\/PENDING_ACTIONS\]/s);
+  if (!match) return { text: content, pendingActions: [] };
+  try {
+    const pendingActions = JSON.parse(match[1]);
+    return {
+      text: content.replace(/\[PENDING_ACTIONS\].*?\[\/PENDING_ACTIONS\]/s, "").trim(),
+      pendingActions: Array.isArray(pendingActions) ? pendingActions : [],
+    };
+  } catch {
+    return { text: content.replace(/\[PENDING_ACTIONS\].*?\[\/PENDING_ACTIONS\]/s, "").trim(), pendingActions: [] };
   }
 }
 
@@ -220,12 +235,13 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
     setShowHistory(false);
   };
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
-    const userMsg: Msg = { role: "user", content: input.trim() };
+  const sendMessage = async (options?: { content?: string; pendingActions?: PendingAction[]; actionConfirmation?: "confirm" | "cancel" }) => {
+    const content = options?.content ?? input.trim();
+    if (!content.trim() || isLoading) return;
+    const userMsg: Msg = { role: "user", content: content.trim() };
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
-    setInput("");
+    if (!options?.content) setInput("");
     setIsLoading(true);
 
     // Persist
@@ -249,6 +265,15 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
         setIsLoading(false);
         return;
       }
+
+      if (!unidadeAtual?.id) {
+        const errMsg: Msg = { role: "assistant", content: "Selecione uma unidade no topo do sistema antes de usar o Assistente IA." };
+        setMessages((prev) => [...prev, errMsg]);
+        if (activeConversa) saveMessage(errMsg, activeConversa);
+        setIsLoading(false);
+        return;
+      }
+
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
@@ -258,7 +283,9 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
         },
         body: JSON.stringify({
           messages: updatedMessages,
-          unidade_id: unidadeAtual?.id || null,
+          unidade_id: unidadeAtual.id,
+          pending_actions: options?.pendingActions,
+          action_confirmation: options?.actionConfirmation,
         }),
       });
 
@@ -356,6 +383,18 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
     }
   };
 
+  const confirmPendingActions = (pendingActions: PendingAction[]) => {
+    void sendMessage({
+      content: "Confirmo. Pode executar.",
+      pendingActions,
+      actionConfirmation: "confirm",
+    });
+  };
+
+  const cancelPendingActions = () => {
+    setMessages((prev) => [...prev, { role: "user", content: "Cancelar ação." }, { role: "assistant", content: "Ação cancelada. Nada foi alterado no sistema." }]);
+  };
+
   const suggestions = getDynamicSuggestions();
 
   // History sidebar
@@ -427,7 +466,8 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
         )}
 
         {messages.map((msg, i) => {
-          const { text, chart } = msg.role === "assistant" ? parseChartMeta(msg.content) : { text: msg.content, chart: null };
+          const parsedPending = msg.role === "assistant" ? parsePendingActions(msg.content) : { text: msg.content, pendingActions: [] };
+          const { text, chart } = msg.role === "assistant" ? parseChartMeta(parsedPending.text) : { text: msg.content, chart: null };
           return (
             <div key={i} className={cn("flex", msg.role === "user" ? "justify-end" : "justify-start")}>
               <div
@@ -444,6 +484,33 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
                       <ReactMarkdown>{text}</ReactMarkdown>
                     </div>
                     {chart && <ChartRenderer chartMeta={chart} />}
+                    {parsedPending.pendingActions.length > 0 && (
+                      <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-950 shadow-sm">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold">Confirmação necessária</p>
+                            <div className="mt-2 space-y-1">
+                              {parsedPending.pendingActions.map((action, idx) => (
+                                <p key={`${action.action}-${idx}`} className="break-words text-xs">
+                                  {action.preview || action.action}
+                                </p>
+                              ))}
+                            </div>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <Button size="sm" onClick={() => confirmPendingActions(parsedPending.pendingActions)} disabled={isLoading}>
+                                <CheckCircle2 className="mr-1.5 h-4 w-4" />
+                                Confirmar
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={cancelPendingActions} disabled={isLoading}>
+                                <XCircle className="mr-1.5 h-4 w-4" />
+                                Cancelar
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     {enableVoice && text.length > 10 && (
                       <div className="flex justify-end mt-1">
                         <TtsButton text={text} />
@@ -494,7 +561,7 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && void sendMessage()}
           placeholder="Pergunte algo ou peça uma ação..."
           disabled={isLoading}
           className="flex-1"
@@ -505,7 +572,7 @@ export function AiAssistantChat({ fullPage = false, enableVoice = false }: { ful
             disabled={isLoading}
           />
         )}
-        <Button size="icon" onClick={sendMessage} disabled={isLoading || !input.trim()}>
+        <Button size="icon" onClick={() => void sendMessage()} disabled={isLoading || !input.trim()}>
           <Send className="h-4 w-4" />
         </Button>
       </div>

@@ -23,40 +23,41 @@ export function useAssinaturaDigital() {
   });
   const [ativo, setAtivoState] = useState(false);
 
-  // Carrega status do certificado da unidade ativa
   useEffect(() => {
     let cancelado = false;
     if (!unidadeAtual?.id) {
       setStatus({ carregando: false, cadastrado: false, vencido: false, titular: null, validade: null });
       return;
     }
+
     setStatus((s) => ({ ...s, carregando: true }));
-    supabase
-      .from("unidades")
-      .select("certificado_a1_path, certificado_a1_validade, certificado_a1_titular")
-      .eq("id", unidadeAtual.id)
-      .maybeSingle()
-      .then(({ data }) => {
+    (supabase as any)
+      .rpc("get_unidade_certificado_status", { _unidade_id: unidadeAtual.id })
+      .then(({ data }: { data: any }) => {
         if (cancelado) return;
-        // certificado_a1_senha não é mais legível pelo cliente; basta verificar path/validade.
-        const cadastrado = Boolean(data?.certificado_a1_path);
+        const row = Array.isArray(data) ? data[0] : data;
+        const cadastrado = Boolean(row?.certificado_a1_configurado);
         const vencido = Boolean(
-          data?.certificado_a1_validade && new Date(data.certificado_a1_validade) < new Date(),
+          row?.certificado_a1_validade && new Date(row.certificado_a1_validade) < new Date(),
         );
         setStatus({
           carregando: false,
           cadastrado,
           vencido,
-          titular: data?.certificado_a1_titular || null,
-          validade: data?.certificado_a1_validade || null,
+          titular: row?.certificado_a1_titular || null,
+          validade: row?.certificado_a1_validade || null,
         });
+      })
+      .catch(() => {
+        if (cancelado) return;
+        setStatus({ carregando: false, cadastrado: false, vencido: false, titular: null, validade: null });
       });
+
     return () => {
       cancelado = true;
     };
   }, [unidadeAtual?.id]);
 
-  // Carrega preferência salva por unidade
   useEffect(() => {
     if (!unidadeAtual?.id) return;
     try {
