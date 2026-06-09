@@ -489,7 +489,12 @@ export default function Pedidos() {
     const buscaLower = busca.toLowerCase().trim();
     const buscaDigits = buscaLower.replace(/\D/g, "");
     return pedidos.filter((p) => {
-      const matchStatus = filtroStatus === "todos" || p.status === filtroStatus;
+      const matchStatus =
+        filtroStatus === "todos"
+          ? true
+          : filtroStatus === "agendado"
+            ? !!p.agendado && p.status !== "cancelado" && p.status !== "entregue" && p.status !== "finalizado"
+            : p.status === filtroStatus;
       const matchEntregador = filtroEntregador === "todos" || (
       filtroEntregador === "sem_entregador" ? !p.entregador : p.entregador === filtroEntregador);
       const matchBusca = busca === "" ||
