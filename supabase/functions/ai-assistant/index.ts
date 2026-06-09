@@ -242,27 +242,30 @@ const ACTION_TOOLS = [
     type: "function",
     function: {
       name: "criar_pedido",
-      description: "Cria um novo pedido de venda",
+      description: "Cria um novo pedido de venda. Pode ser imediato ou agendado para data/hora futura (use data_entrega e hora_entrega). Sempre tente localizar o cliente cadastrado pelo nome ou telefone informado.",
       parameters: {
         type: "object",
         properties: {
-          cliente_nome: { type: "string", description: "Nome do cliente" },
-          cliente_telefone: { type: "string", description: "Telefone do cliente" },
+          cliente_id: { type: "string", description: "UUID do cliente já identificado (opcional)" },
+          cliente_nome: { type: "string", description: "Nome do cliente (usado para busca se cliente_id ausente)" },
+          cliente_telefone: { type: "string", description: "Telefone do cliente (usado para busca)" },
           itens: {
             type: "array",
             items: {
               type: "object",
               properties: {
-                produto_nome: { type: "string", description: "Nome do produto" },
+                produto_nome: { type: "string", description: "Nome do produto (ex: 'Gás P13', 'Gás P20', 'Água 20L')" },
                 quantidade: { type: "number" },
               },
               required: ["produto_nome", "quantidade"],
             },
           },
-          forma_pagamento: { type: "string", enum: ["dinheiro", "pix", "cartao_credito", "cartao_debito", "fiado"], description: "Forma de pagamento" },
-          endereco_entrega: { type: "string", description: "Endereço de entrega" },
-          observacoes: { type: "string", description: "Observações do pedido" },
-          troco_para: { type: "number", description: "Troco para (se dinheiro)" },
+          forma_pagamento: { type: "string", enum: ["dinheiro", "pix", "cartao_credito", "cartao_debito", "fiado"] },
+          endereco_entrega: { type: "string", description: "Endereço de entrega (se vazio, usa endereço cadastrado do cliente)" },
+          data_entrega: { type: "string", description: "Data agendada da entrega no formato YYYY-MM-DD (opcional). Use sempre que o usuário pedir 'amanhã', 'dia X', 'sexta', etc." },
+          hora_entrega: { type: "string", description: "Hora agendada no formato HH:MM (opcional, default 08:00)" },
+          observacoes: { type: "string" },
+          troco_para: { type: "number" },
         },
         required: ["itens"],
         additionalProperties: false,
@@ -623,6 +626,9 @@ Formatação:
 - Formate valores como R$ X.XXX,XX.
 - Se não houver dados, informe de forma clara.
 - Ao executar ações, confirme o que foi feito.
+- Para criar pedidos: SEMPRE chame a tool criar_pedido. Quando o usuário disser "amanhã", "sexta", "dia X", "às 8h", calcule a data exata (data_entrega = YYYY-MM-DD) e hora (hora_entrega = HH:MM) e passe nos parâmetros — não invente que está agendado sem usar a tool.
+- Sempre tente identificar o cliente pelo nome OU telefone informado. Se não houver cadastro, crie o pedido mesmo assim (a tool aceita cliente não-cadastrado).
+- Interprete nomes de produtos com flexibilidade: "p13"/"P13" = Gás P13, "p20" = Gás P20, "p45" = Gás P45, "água" = Água 20L.
 - Mantenha o bloco [CHART_META]...[/CHART_META] na resposta quando presente.
 
 Contexto: Hoje é ${dayOfWeek}, ${now.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}. ${timeContext}${sundayContext}
@@ -864,25 +870,44 @@ async function executeAction(supabase: any, action: string, params: any, unidade
       }
 
       case "criar_pedido": {
-        const { cliente_nome, cliente_telefone, itens, forma_pagamento, endereco_entrega, observacoes, troco_para } = params;
+        const { cliente_id, cliente_nome, cliente_telefone, itens, forma_pagamento, endereco_entrega, observacoes, troco_para, data_entrega, hora_entrega } = params;
 
-        // Find or create client
-        let clienteId = null;
-        if (cliente_nome) {
-          const { data: cli } = await supabase.from("clientes").select("id").ilike("nome", `%${cliente_nome}%`).limit(1).single();
-          clienteId = cli?.id || null;
+        // Resolve client: id > telefone > nome
+        let cliente: any = null;
+        if (cliente_id) {
+          const { data } = await supabase.from("clientes")
+            .select("id, nome, telefone, endereco, numero, bairro")
+            .eq("id", cliente_id).maybeSingle();
+          cliente = data;
+        }
+        if (!cliente && cliente_telefone) {
+          const tel = String(cliente_telefone).replace(/\D/g, "");
+          if (tel.length >= 8) {
+            const { data } = await supabase.from("clientes")
+              .select("id, nome, telefone, endereco, numero, bairro")
+              .ilike("telefone", `%${tel.slice(-8)}%`)
+              .limit(1).maybeSingle();
+            cliente = data;
+          }
+        }
+        if (!cliente && cliente_nome) {
+          const { data } = await supabase.from("clientes")
+            .select("id, nome, telefone, endereco, numero, bairro")
+            .ilike("nome", `%${cliente_nome}%`)
+            .limit(1).maybeSingle();
+          cliente = data;
         }
 
         // Resolve products and calculate total
         let valorTotal = 0;
-        const pedidoItens = [];
+        const pedidoItens: any[] = [];
         for (const item of itens || []) {
           const { data: prod } = await supabase.from("produtos")
             .select("id, nome, preco")
             .ilike("nome", `%${item.produto_nome}%`)
             .eq("unidade_id", unidade_id)
             .limit(1)
-            .single();
+            .maybeSingle();
           const preco = prod?.preco || 0;
           pedidoItens.push({
             produto_id: prod?.id || null,
@@ -893,31 +918,58 @@ async function executeAction(supabase: any, action: string, params: any, unidade
           valorTotal += item.quantidade * preco;
         }
 
-        const { data: pedido, error: pedidoErr } = await supabase.from("pedidos").insert({
-          cliente_id: clienteId,
+        // Endereço: usa o passado, senão monta do cliente
+        let enderecoFinal = endereco_entrega || null;
+        if (!enderecoFinal && cliente) {
+          const partes = [cliente.endereco, cliente.numero, cliente.bairro].filter(Boolean);
+          if (partes.length) enderecoFinal = partes.join(", ");
+        }
+
+        // Agendamento
+        const agendado = !!data_entrega;
+        let dataAgendamentoIso: string | null = null;
+        if (agendado) {
+          const hora = (hora_entrega && /^\d{1,2}:\d{2}$/.test(hora_entrega)) ? hora_entrega : "08:00";
+          // Brasil = UTC-3, salvamos em UTC somando 3h
+          const local = new Date(`${data_entrega}T${hora.padStart(5, "0")}:00-03:00`);
+          if (!isNaN(local.getTime())) dataAgendamentoIso = local.toISOString();
+        }
+
+        const insertPayload: any = {
+          cliente_id: cliente?.id || null,
           valor_total: valorTotal,
           forma_pagamento: forma_pagamento || "dinheiro",
           status: "pendente",
           canal_venda: "assistente",
-          endereco_entrega: endereco_entrega || null,
-          observacoes: observacoes || `Pedido via Assistente IA${cliente_nome ? ` - ${cliente_nome}` : ""}${cliente_telefone ? ` (${cliente_telefone})` : ""}`,
+          endereco_entrega: enderecoFinal,
+          observacoes: observacoes || `Pedido via Assistente IA${cliente?.nome ? ` - ${cliente.nome}` : (cliente_nome ? ` - ${cliente_nome}` : "")}${cliente_telefone ? ` (${cliente_telefone})` : ""}`,
           troco_para: troco_para || null,
           unidade_id,
-        }).select("id").single();
+          agendado,
+          data_agendamento: dataAgendamentoIso,
+          data_entrega: data_entrega || null,
+        };
+
+        const { data: pedido, error: pedidoErr } = await supabase.from("pedidos").insert(insertPayload).select("id").single();
         if (pedidoErr) throw pedidoErr;
 
         for (const item of pedidoItens) {
-          await supabase.from("pedido_itens").insert({
+          const { error: itemErr } = await supabase.from("pedido_itens").insert({
             pedido_id: pedido.id,
             produto_id: item.produto_id,
-            produto_nome: item.produto_nome,
             quantidade: item.quantidade,
             preco_unitario: item.preco_unitario,
           });
+          if (itemErr) {
+            await supabase.from("pedidos").delete().eq("id", pedido.id);
+            throw itemErr;
+          }
         }
 
         const itensStr = pedidoItens.map(i => `${i.quantidade}x ${i.produto_nome}`).join(", ");
-        return `✅ Pedido criado (#${pedido.id.substring(0, 8)}): ${itensStr}. Total: R$ ${valorTotal.toFixed(2)}. Status: Pendente.`;
+        const clienteStr = cliente?.nome ? ` para ${cliente.nome}` : (cliente_nome ? ` para ${cliente_nome} (não cadastrado)` : "");
+        const agendaStr = agendado ? ` 📅 AGENDADO para ${data_entrega} às ${hora_entrega || "08:00"}` : "";
+        return `✅ Pedido criado (#${pedido.id.substring(0, 8)})${clienteStr}: ${itensStr}. Total: R$ ${valorTotal.toFixed(2)}.${agendaStr}`;
       }
 
       case "atualizar_status_pedido": {
