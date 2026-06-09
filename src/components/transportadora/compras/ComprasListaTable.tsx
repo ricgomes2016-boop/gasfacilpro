@@ -45,6 +45,7 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
   const [editingVenc, setEditingVenc] = useState<Record<string, string>>({});
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>("todos");
   const [filtroConf, setFiltroConf] = useState<"todos" | "conferidas" | "nao_conferidas">("todos");
+  const [excluindo, setExcluindo] = useState<{ id: string; nf?: string; fornecedor?: string; escopo: "linha" | "nf" } | null>(null);
 
   const dupNFs = useMemo(() => {
     // Considera duplicado apenas quando NF + fornecedor + produto + quantidade + valor coincidem
