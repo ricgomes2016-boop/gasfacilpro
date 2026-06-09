@@ -626,6 +626,9 @@ Formatação:
 - Formate valores como R$ X.XXX,XX.
 - Se não houver dados, informe de forma clara.
 - Ao executar ações, confirme o que foi feito.
+- Para criar pedidos: SEMPRE chame a tool criar_pedido. Quando o usuário disser "amanhã", "sexta", "dia X", "às 8h", calcule a data exata (data_entrega = YYYY-MM-DD) e hora (hora_entrega = HH:MM) e passe nos parâmetros — não invente que está agendado sem usar a tool.
+- Sempre tente identificar o cliente pelo nome OU telefone informado. Se não houver cadastro, crie o pedido mesmo assim (a tool aceita cliente não-cadastrado).
+- Interprete nomes de produtos com flexibilidade: "p13"/"P13" = Gás P13, "p20" = Gás P20, "p45" = Gás P45, "água" = Água 20L.
 - Mantenha o bloco [CHART_META]...[/CHART_META] na resposta quando presente.
 
 Contexto: Hoje é ${dayOfWeek}, ${now.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}. ${timeContext}${sundayContext}
