@@ -424,7 +424,7 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
                   <td className="px-3 py-2.5"></td>
                   <td className="px-3 py-2.5 text-success">{totaisFiltrados.desconto > 0 ? formatCurrency(totaisFiltrados.desconto) : "—"}</td>
                   <td className="px-3 py-2.5 text-foreground font-bold">{formatCurrency(totaisFiltrados.total)}</td>
-                  <td colSpan={2}></td>
+                  <td colSpan={3}></td>
                 </tr>
               </tfoot>
             )}
