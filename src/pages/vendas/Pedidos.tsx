@@ -148,6 +148,14 @@ export default function Pedidos() {
   const [senhaExclusao, setSenhaExclusao] = useState("");
   const [senhaErro, setSenhaErro] = useState("");
 
+  // Editar agendamento
+  const [agendamentoDialogAberto, setAgendamentoDialogAberto] = useState(false);
+  const [pedidoAgendamento, setPedidoAgendamento] = useState<PedidoFormatado | null>(null);
+  const abrirEditarAgendamento = (p: PedidoFormatado) => {
+    setPedidoAgendamento(p);
+    setAgendamentoDialogAberto(true);
+  };
+
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
 
