@@ -440,6 +440,28 @@ export function ComprasListaTable({ compras, unidadesMap }: Props) {
           </div>
         )}
       </CardContent>
+
+      <AlertDialog open={!!excluindo} onOpenChange={(o) => !o && setExcluindo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir esta nota fiscal?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {excluindo?.escopo === "nf"
+                ? `Todos os itens da NF ${excluindo?.nf} (${excluindo?.fornecedor || "—"}) serão removidos permanentemente.`
+                : "Este registro será removido permanentemente. Esta ação não pode ser desfeita."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => excluindo && excluirMut.mutate(excluindo)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {excluirMut.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
