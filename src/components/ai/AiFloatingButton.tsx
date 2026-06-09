@@ -10,6 +10,9 @@ interface AiFloatingButtonProps {
   externalOpen?: boolean;
   onExternalClose?: () => void;
 }
+  externalOpen?: boolean;
+  onExternalClose?: () => void;
+}
 
 export function AiFloatingButton({ externalOpen, onExternalClose }: AiFloatingButtonProps) {
   const [open, setOpen] = useState(false);
