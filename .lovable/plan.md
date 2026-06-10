@@ -1,26 +1,46 @@
-# Corrigir Assistente IA abrindo escondido
-
 ## Problema
 
-Quando o usuário abre o assistente flutuante (no canto inferior direito), o painel aparece ancorado à esquerda e com a maior parte do conteúdo cortada abaixo da área visível — só dá para ler o cabeçalho e o "Olá. Como posso ajudar?".
+Em `/config/unidades` aparecem várias "Matriz" vazias — são unidades de OUTRAS empresas (outros tenants) vazando para o usuário atual.
 
-Causas no `AiFloatingButton.tsx`:
+## Causa
 
-1. O painel usa `left-0 right-0` (full-width) no mobile e só passa para `md:left-auto md:right-6 md:w-[380px]` a partir de 768px. Em viewports estreitos (~390px) o painel ocupa a tela toda, mas como `bottom-[52px]` coloca o topo logo acima da barra inferior, sobra pouca altura visível.
-2. `h-[calc(80vh-52px)]` usa `vh`, que em mobile inclui a UI do navegador — o painel acaba “entrando” na barra de endereço/teclado e fica recortado.
-3. No mobile não há ancoragem à direita visível porque o botão flutuante está escondido (`hidden md:flex`), então o painel é aberto pela barra inferior, mas continua se abrindo da base da viewport sem espaço suficiente.
+A tabela `unidades` tem uma política RLS permissiva sem filtro de tenant:
 
-## Mudanças (apenas `src/components/ai/AiFloatingButton.tsx`)
+```
+"Admin/Gestor can manage unidades"
+FOR ALL TO authenticated
+USING (has_role(admin) OR has_role(gestor))
+```
 
-1. Trocar `h-[calc(80vh-52px)]` por uma altura baseada em `svh` (small viewport height) com teto seguro: `h-[70svh] max-h-[calc(100svh-120px)]`. Isso evita o corte pela UI do navegador mobile.
-2. Aumentar o offset inferior no mobile de `bottom-[52px]` para `bottom-[64px]` para dar respiro acima da bottom-nav.
-3. Adicionar `inset-x-2` no mobile (em vez de `left-0 right-0`) para o painel não colar nas bordas e mostrar a sombra/borda.
-4. Manter desktop intacto: `md:bottom-16 xl:bottom-[136px] md:right-6 md:left-auto md:inset-x-auto md:w-[380px] md:h-[520px] md:max-h-[calc(100vh-6rem)]`.
-5. Adicionar `rounded-2xl` no mobile (hoje só arredonda topo) para o painel ter cantos arredondados nos quatro lados quando flutuando.
+Como políticas PERMISSIVE são combinadas com OR, qualquer admin/gestor enxerga unidades de TODAS as empresas, ignorando `empresa_id`. Os cards vazios "Matriz" são as matrizes-padrão das demais empresas do banco (CNPJ nulo).
 
-## Resultado esperado
+As demais políticas já cobrem o caso correto:
+- `tenant_isolation_unidades` — super_admin OU mesma empresa OU contador autorizado
+- `Admins can update/delete/insert unidades` — exigem `empresa_id = get_user_empresa_id()`
+- `Staff can view empresa unidades` — mesma empresa
 
-- Mobile: painel flutua acima da barra inferior, com margem nas laterais, altura ~70% da viewport visível, conteúdo totalmente legível.
-- Desktop: comportamento atual preservado (canto inferior direito, 380×520).
+## Correção
 
-Nenhuma mudança em lógica, rotas ou no `AiAssistantChat`.
+Migração única que substitui a política vazada por uma versão com escopo de empresa:
+
+```sql
+DROP POLICY "Admin/Gestor can manage unidades" ON public.unidades;
+
+CREATE POLICY "Admin/Gestor can manage own empresa unidades"
+  ON public.unidades
+  FOR ALL TO authenticated
+  USING (
+    empresa_id = get_user_empresa_id()
+    AND (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'gestor'))
+  )
+  WITH CHECK (
+    empresa_id = get_user_empresa_id()
+    AND (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'gestor'))
+  );
+```
+
+Super admin continua vendo tudo pelas políticas dedicadas; contadores continuam com `contador_has_empresa`.
+
+## Verificação
+
+Após a migração, recarregar `/config/unidades`: deve listar apenas as unidades da empresa "Central Gas" (Matriz + filiais Japa Gás, Temgas, Sertaneja, ABMF, Forte Gás, Morumbi Gás). Nenhum card "Matriz" vazio de outras empresas.
