@@ -513,6 +513,43 @@ export default function UnidadesConfig() {
                       placeholder="Centro, Jardim América, Vila Nova"
                     />
                   </div>
+
+                  {/* Gás do Povo */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Receipt className="h-4 w-4 text-primary" /> Gás do Povo (forma de pagamento)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <input
+                          id="gas_do_povo_habilitado"
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-input accent-primary"
+                          checked={!!editingUnidade.gas_do_povo_habilitado}
+                          onChange={(e) => setField("gas_do_povo_habilitado", e.target.checked)}
+                        />
+                        <Label htmlFor="gas_do_povo_habilitado" className="cursor-pointer">
+                          Habilitar Gás do Povo no PDV (recebível D+2, taxa 0%)
+                        </Label>
+                      </div>
+                      <div className="grid gap-2 max-w-xs">
+                        <Label>Valor unitário (R$)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={editingUnidade.gas_do_povo_valor ?? 101.08}
+                          onChange={(e) => setField("gas_do_povo_valor", e.target.value)}
+                          disabled={!editingUnidade.gas_do_povo_habilitado}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Valor definido pelo governo estadual (ex: PR R$ 101,08). Aceito apenas para 1× Gás P13.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
 
                 {/* FISCAL */}
