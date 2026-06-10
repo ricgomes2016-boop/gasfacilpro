@@ -1098,10 +1098,20 @@ export default function Pedidos() {
                           {podeEditarCanalPedido(pedido) ?
                           <Popover open={editandoCanalId === pedido.id} onOpenChange={(open) => setEditandoCanalId(open ? pedido.id : null)}>
                             <PopoverTrigger asChild>
-                              <button className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity">
+                              <span
+                                role="button"
+                                tabIndex={0}
+                                className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    setEditandoCanalId(pedido.id);
+                                  }
+                                }}
+                              >
                                 <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>
                                 <Pencil className="h-3 w-3 text-muted-foreground" />
-                              </button>
+                              </span>
                             </PopoverTrigger>
                             <PopoverContent className="w-72 p-0 bg-popover border border-border shadow-lg z-50" align="start">
                               {renderCanalCommand(pedido.id, pedido.canal_venda)}
