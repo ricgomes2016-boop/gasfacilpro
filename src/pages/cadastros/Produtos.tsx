@@ -446,7 +446,7 @@ export default function Produtos() {
       codigo_anp: produto.codigo_anp || "",
       descricao_anp: produto.descricao_anp || "",
       unidade_tributavel: produto.unidade_tributavel || "KG",
-      cfop_saida: produto.cfop_saida || "",
+      cfop_saida: (produto as any).cfop_saida_padrao || produto.cfop_saida || "",
       cfop_entrada_padrao: produto.cfop_entrada_padrao || "",
       cst_icms: produto.cst_icms || "",
       csosn_icms: produto.csosn_icms || "",
