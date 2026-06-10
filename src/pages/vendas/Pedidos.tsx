@@ -1011,7 +1011,7 @@ export default function Pedidos() {
                           onCheckedChange={toggleSelecionarTodos} />
                       </TableHead>
                       <TableHead>Pedido</TableHead>
-                      <TableHead>Cliente</TableHead>
+                      <TableHead className="min-w-[200px]">Cliente</TableHead>
                       <TableHead>Endereço</TableHead>
                       <TableHead>Produtos</TableHead>
                       <TableHead>Entregador</TableHead>
