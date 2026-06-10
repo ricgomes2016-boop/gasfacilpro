@@ -26,7 +26,7 @@ import { rotearPagamentosVenda } from "@/services/paymentRoutingService";
 
 import { BarcodeScanner } from "@/components/pdv/BarcodeScanner";
 import { PDVProductList, PDVItem } from "@/components/pdv/PDVProductList";
-import { PDVPayment } from "@/components/pdv/PDVPayment";
+import { PDVPayment, PDVPagamento } from "@/components/pdv/PDVPayment";
 import { PDVQuickProducts } from "@/components/pdv/PDVQuickProducts";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
