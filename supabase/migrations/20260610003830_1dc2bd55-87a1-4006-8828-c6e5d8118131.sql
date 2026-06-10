@@ -1,20 +1,81 @@
 
 -- 1) Hide sensitive credential columns from client reads (anon + authenticated)
---    service_role still has full access via GRANT ALL.
-REVOKE SELECT (asaas_api_key, asaas_webhook_token)
-  ON public.configuracoes_empresa FROM authenticated, anon;
+--    service_role still has full access via GRANT ALL. Some environments may
+--    not have every credential column yet, so revoke only existing columns.
+DO $$
+DECLARE
+  sensitive_columns text;
+BEGIN
+  SELECT string_agg(quote_ident(column_name), ', ')
+    INTO sensitive_columns
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+    AND table_name = 'configuracoes_empresa'
+    AND column_name IN ('asaas_api_key', 'asaas_webhook_token');
 
-REVOKE SELECT (token, security_token, meta_access_token, meta_verify_token, instancia_token)
-  ON public.integracoes_whatsapp FROM authenticated, anon;
+  IF sensitive_columns IS NOT NULL THEN
+    EXECUTE format(
+      'REVOKE SELECT (%s) ON public.configuracoes_empresa FROM authenticated, anon',
+      sensitive_columns
+    );
+  END IF;
 
-REVOKE SELECT (token, refresh_token, access_token)
-  ON public.social_accounts FROM authenticated, anon;
+  SELECT string_agg(quote_ident(column_name), ', ')
+    INTO sensitive_columns
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+    AND table_name = 'integracoes_whatsapp'
+    AND column_name IN ('token', 'security_token', 'meta_access_token', 'meta_verify_token', 'instancia_token');
 
-REVOKE SELECT (microsoft_refresh_token)
-  ON public.transp_outlook_config FROM authenticated, anon;
+  IF sensitive_columns IS NOT NULL THEN
+    EXECUTE format(
+      'REVOKE SELECT (%s) ON public.integracoes_whatsapp FROM authenticated, anon',
+      sensitive_columns
+    );
+  END IF;
 
-REVOKE SELECT (certificado_a1_senha, certificado_a1_path, nfce_csc_token, nfce_csc_id, provedor_nfe_token)
-  ON public.unidades FROM authenticated, anon;
+  SELECT string_agg(quote_ident(column_name), ', ')
+    INTO sensitive_columns
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+    AND table_name = 'social_accounts'
+    AND column_name IN ('token', 'refresh_token', 'access_token');
+
+  IF sensitive_columns IS NOT NULL THEN
+    EXECUTE format(
+      'REVOKE SELECT (%s) ON public.social_accounts FROM authenticated, anon',
+      sensitive_columns
+    );
+  END IF;
+
+  SELECT string_agg(quote_ident(column_name), ', ')
+    INTO sensitive_columns
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+    AND table_name = 'transp_outlook_config'
+    AND column_name IN ('microsoft_refresh_token');
+
+  IF sensitive_columns IS NOT NULL THEN
+    EXECUTE format(
+      'REVOKE SELECT (%s) ON public.transp_outlook_config FROM authenticated, anon',
+      sensitive_columns
+    );
+  END IF;
+
+  SELECT string_agg(quote_ident(column_name), ', ')
+    INTO sensitive_columns
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+    AND table_name = 'unidades'
+    AND column_name IN ('certificado_a1_senha', 'certificado_a1_path', 'nfce_csc_token', 'nfce_csc_id', 'provedor_nfe_token');
+
+  IF sensitive_columns IS NOT NULL THEN
+    EXECUTE format(
+      'REVOKE SELECT (%s) ON public.unidades FROM authenticated, anon',
+      sensitive_columns
+    );
+  END IF;
+END $$;
 
 -- 2) Scope policies TO authenticated (drop+recreate on public role)
 
@@ -64,37 +125,47 @@ CREATE POLICY "tenant_isolation_integracoes_whatsapp" ON public.integracoes_what
   WITH CHECK (has_role(auth.uid(), 'super_admin'::app_role) OR unidade_belongs_to_user_empresa(unidade_id));
 
 -- transp_outlook_config
-DROP POLICY IF EXISTS "Admin/Gestor delete outlook config" ON public.transp_outlook_config;
-CREATE POLICY "Admin/Gestor delete outlook config" ON public.transp_outlook_config
-  FOR DELETE TO authenticated
-  USING (user_belongs_to_empresa(auth.uid(), empresa_id) AND (has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'gestor'::app_role) OR has_role(auth.uid(), 'super_admin'::app_role)));
+DO $$
+BEGIN
+  IF to_regclass('public.transp_outlook_config') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Admin/Gestor delete outlook config" ON public.transp_outlook_config';
+    EXECUTE 'CREATE POLICY "Admin/Gestor delete outlook config" ON public.transp_outlook_config
+      FOR DELETE TO authenticated
+      USING (user_belongs_to_empresa(auth.uid(), empresa_id) AND (has_role(auth.uid(), ''admin''::app_role) OR has_role(auth.uid(), ''gestor''::app_role) OR has_role(auth.uid(), ''super_admin''::app_role)))';
 
-DROP POLICY IF EXISTS "Admin/Gestor insert outlook config" ON public.transp_outlook_config;
-CREATE POLICY "Admin/Gestor insert outlook config" ON public.transp_outlook_config
-  FOR INSERT TO authenticated
-  WITH CHECK (user_belongs_to_empresa(auth.uid(), empresa_id) AND (has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'gestor'::app_role) OR has_role(auth.uid(), 'super_admin'::app_role)));
+    EXECUTE 'DROP POLICY IF EXISTS "Admin/Gestor insert outlook config" ON public.transp_outlook_config';
+    EXECUTE 'CREATE POLICY "Admin/Gestor insert outlook config" ON public.transp_outlook_config
+      FOR INSERT TO authenticated
+      WITH CHECK (user_belongs_to_empresa(auth.uid(), empresa_id) AND (has_role(auth.uid(), ''admin''::app_role) OR has_role(auth.uid(), ''gestor''::app_role) OR has_role(auth.uid(), ''super_admin''::app_role)))';
 
-DROP POLICY IF EXISTS "Admin/Gestor update outlook config" ON public.transp_outlook_config;
-CREATE POLICY "Admin/Gestor update outlook config" ON public.transp_outlook_config
-  FOR UPDATE TO authenticated
-  USING (user_belongs_to_empresa(auth.uid(), empresa_id) AND (has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'gestor'::app_role) OR has_role(auth.uid(), 'super_admin'::app_role)));
+    EXECUTE 'DROP POLICY IF EXISTS "Admin/Gestor update outlook config" ON public.transp_outlook_config';
+    EXECUTE 'CREATE POLICY "Admin/Gestor update outlook config" ON public.transp_outlook_config
+      FOR UPDATE TO authenticated
+      USING (user_belongs_to_empresa(auth.uid(), empresa_id) AND (has_role(auth.uid(), ''admin''::app_role) OR has_role(auth.uid(), ''gestor''::app_role) OR has_role(auth.uid(), ''super_admin''::app_role)))';
 
-DROP POLICY IF EXISTS "Admin/Gestor view outlook config" ON public.transp_outlook_config;
-CREATE POLICY "Admin/Gestor view outlook config" ON public.transp_outlook_config
-  FOR SELECT TO authenticated
-  USING (user_belongs_to_empresa(auth.uid(), empresa_id) AND (has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'gestor'::app_role) OR has_role(auth.uid(), 'super_admin'::app_role)));
+    EXECUTE 'DROP POLICY IF EXISTS "Admin/Gestor view outlook config" ON public.transp_outlook_config';
+    EXECUTE 'CREATE POLICY "Admin/Gestor view outlook config" ON public.transp_outlook_config
+      FOR SELECT TO authenticated
+      USING (user_belongs_to_empresa(auth.uid(), empresa_id) AND (has_role(auth.uid(), ''admin''::app_role) OR has_role(auth.uid(), ''gestor''::app_role) OR has_role(auth.uid(), ''super_admin''::app_role)))';
+  END IF;
+END $$;
 
 -- whatsapp_gateway_instances
-DROP POLICY IF EXISTS "Admin/Gestor manage whatsapp gateway instances" ON public.whatsapp_gateway_instances;
-CREATE POLICY "Admin/Gestor manage whatsapp gateway instances" ON public.whatsapp_gateway_instances
-  FOR ALL TO authenticated
-  USING (((empresa_id = get_user_empresa_id()) OR has_role(auth.uid(), 'super_admin'::app_role)) AND (has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'gestor'::app_role) OR has_role(auth.uid(), 'super_admin'::app_role)))
-  WITH CHECK (((empresa_id = get_user_empresa_id()) OR has_role(auth.uid(), 'super_admin'::app_role)) AND (has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'gestor'::app_role) OR has_role(auth.uid(), 'super_admin'::app_role)));
+DO $$
+BEGIN
+  IF to_regclass('public.whatsapp_gateway_instances') IS NOT NULL THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Admin/Gestor manage whatsapp gateway instances" ON public.whatsapp_gateway_instances';
+    EXECUTE 'CREATE POLICY "Admin/Gestor manage whatsapp gateway instances" ON public.whatsapp_gateway_instances
+      FOR ALL TO authenticated
+      USING (((empresa_id = get_user_empresa_id()) OR has_role(auth.uid(), ''super_admin''::app_role)) AND (has_role(auth.uid(), ''admin''::app_role) OR has_role(auth.uid(), ''gestor''::app_role) OR has_role(auth.uid(), ''super_admin''::app_role)))
+      WITH CHECK (((empresa_id = get_user_empresa_id()) OR has_role(auth.uid(), ''super_admin''::app_role)) AND (has_role(auth.uid(), ''admin''::app_role) OR has_role(auth.uid(), ''gestor''::app_role) OR has_role(auth.uid(), ''super_admin''::app_role)))';
 
-DROP POLICY IF EXISTS "Admin/Gestor view whatsapp gateway instances" ON public.whatsapp_gateway_instances;
-CREATE POLICY "Admin/Gestor view whatsapp gateway instances" ON public.whatsapp_gateway_instances
-  FOR SELECT TO authenticated
-  USING (((empresa_id = get_user_empresa_id()) OR has_role(auth.uid(), 'super_admin'::app_role)) AND (has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'gestor'::app_role) OR has_role(auth.uid(), 'super_admin'::app_role)));
+    EXECUTE 'DROP POLICY IF EXISTS "Admin/Gestor view whatsapp gateway instances" ON public.whatsapp_gateway_instances';
+    EXECUTE 'CREATE POLICY "Admin/Gestor view whatsapp gateway instances" ON public.whatsapp_gateway_instances
+      FOR SELECT TO authenticated
+      USING (((empresa_id = get_user_empresa_id()) OR has_role(auth.uid(), ''super_admin''::app_role)) AND (has_role(auth.uid(), ''admin''::app_role) OR has_role(auth.uid(), ''gestor''::app_role) OR has_role(auth.uid(), ''super_admin''::app_role)))';
+  END IF;
+END $$;
 
 -- cliente_enderecos: scope public→authenticated and allow cliente_id IS NULL for own rows
 DROP POLICY IF EXISTS "Users can delete own addresses" ON public.cliente_enderecos;
