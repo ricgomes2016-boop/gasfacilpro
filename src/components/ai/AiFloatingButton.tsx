@@ -42,7 +42,7 @@ export function AiFloatingButton({ externalOpen, onExternalClose }: AiFloatingBu
       {open && (
         <Card className={cn(
           "fixed z-50 shadow-2xl border flex flex-col overflow-hidden",
-          "bottom-[52px] left-0 right-0 h-[calc(80vh-52px)] rounded-t-2xl rounded-b-none md:bottom-16 xl:bottom-[136px] md:right-6 md:left-auto md:w-[380px] md:h-[520px] md:max-h-[calc(100vh-6rem)] md:rounded-lg"
+          "bottom-[64px] inset-x-2 h-[70svh] max-h-[calc(100svh-120px)] rounded-2xl md:bottom-16 xl:bottom-[136px] md:right-6 md:left-auto md:inset-x-auto md:w-[380px] md:h-[520px] md:max-h-[calc(100vh-6rem)] md:rounded-lg"
         )}>
           <div className="flex items-center justify-between px-4 py-3 border-b bg-primary/5 rounded-t-2xl md:rounded-t-lg">
             <div className="flex items-center gap-2">
