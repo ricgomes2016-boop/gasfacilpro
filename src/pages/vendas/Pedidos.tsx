@@ -1022,14 +1022,17 @@ export default function Pedidos() {
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground">Canal de venda</label>
                       {podeEditarCanalPedido(pedido) ?
-                      <Select value={pedido.canal_venda || undefined} onValueChange={(novoCanal) => alterarCanalVenda(pedido.id, novoCanal)}>
-                        <SelectTrigger className="h-8 text-[11px] w-full">
-                          <SelectValue placeholder="Selecionar canal" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {canaisVenda.map((c) => <SelectItem key={c.id} value={c.nome}>{c.nome}</SelectItem>)}
-                        </SelectContent>
-                      </Select> :
+                      <Popover open={editandoCanalId === pedido.id} onOpenChange={(open) => setEditandoCanalId(open ? pedido.id : null)}>
+                        <PopoverTrigger asChild>
+                          <button className="h-8 text-[11px] w-full inline-flex items-center justify-between gap-2 rounded-md border border-input bg-background px-2 hover:bg-accent transition-colors">
+                            <span className="truncate">{pedido.canal_venda || "Selecionar canal"}</span>
+                            <Pencil className="h-3 w-3 text-muted-foreground shrink-0" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-72 p-0 bg-popover border border-border shadow-lg z-50" align="start">
+                          {renderCanalCommand(pedido.id, pedido.canal_venda)}
+                        </PopoverContent>
+                      </Popover> :
                       <Badge variant="outline" className="text-[10px]">{pedido.canal_venda || "Canal não informado"}</Badge>}
                     </div>
                     {podeAlterarDataEntrega ?
@@ -1100,18 +1103,8 @@ export default function Pedidos() {
                                 <Pencil className="h-3 w-3 text-muted-foreground" />
                               </button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-48 p-2 bg-popover border border-border shadow-lg z-50" align="start">
-                              <div className="space-y-1">
-                                <p className="text-xs font-medium text-muted-foreground px-1 mb-2">Trocar canal:</p>
-                                {canaisVenda.map((c) =>
-                              <button
-                                key={c.id}
-                                className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors ${pedido.canal_venda === c.nome ? "bg-accent font-medium" : ""}`}
-                                onClick={() => alterarCanalVenda(pedido.id, c.nome)}>
-                                    {c.nome}
-                                  </button>
-                              )}
-                              </div>
+                            <PopoverContent className="w-72 p-0 bg-popover border border-border shadow-lg z-50" align="start">
+                              {renderCanalCommand(pedido.id, pedido.canal_venda)}
                             </PopoverContent>
                           </Popover> :
                           <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>}
