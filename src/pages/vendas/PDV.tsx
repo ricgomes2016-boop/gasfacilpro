@@ -569,6 +569,7 @@ export default function PDV() {
           total={total}
           onConfirm={finalizeSale}
           isLoading={isLoading}
+          itens={itens.map((i) => ({ nome: i.nome, quantidade: i.quantidade }))}
         />
       </div>
     </MainLayout>

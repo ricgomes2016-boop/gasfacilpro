@@ -20,7 +20,8 @@ export const UNIDADES_PUBLIC_COLUMNS =
   "cfop_padrao_venda, cfop_padrao_devolucao, natureza_operacao_padrao, " +
   "aliquota_icms_padrao, aliquota_pis_padrao, aliquota_cofins_padrao, cst_csosn_padrao, " +
   "contador_nome, contador_crc, contador_telefone, " +
-  "provedor_nfe, provedor_nfe_url";
+  "provedor_nfe, provedor_nfe_url, " +
+  "gas_do_povo_habilitado, gas_do_povo_valor";
 
 
 export const INTEGRACOES_WHATSAPP_PUBLIC_COLUMNS =

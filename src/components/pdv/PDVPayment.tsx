@@ -8,10 +8,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Banknote, CreditCard, Smartphone, Receipt, Plus, Trash2 } from "lucide-react";
+import { Banknote, CreditCard, Smartphone, Receipt, Plus, Trash2, Flame } from "lucide-react";
 import { PixKeySelectorModal } from "@/components/pagamento/PixKeySelectorModal";
 import { CardOperatorSelectorModal } from "@/components/pagamento/CardOperatorSelectorModal";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useToast } from "@/hooks/use-toast";
 
 export interface PDVPagamento {
   id: string;
@@ -28,9 +29,10 @@ interface PDVPaymentProps {
   total: number;
   onConfirm: (pagamentos: PDVPagamento[], valorRecebidoDinheiro: number) => void;
   isLoading: boolean;
+  itens?: Array<{ nome: string; quantidade: number }>;
 }
 
-const formasPagamento = [
+const formasPagamentoBase = [
   { value: "dinheiro", label: "Dinheiro", icon: Banknote },
   { value: "pix", label: "PIX", icon: Smartphone },
   { value: "pix_maquininha", label: "PIX Maquininha", icon: Smartphone },
@@ -40,7 +42,9 @@ const formasPagamento = [
   { value: "cheque", label: "Cheque", icon: Receipt },
 ];
 
-export function PDVPayment({ open, onClose, total, onConfirm, isLoading }: PDVPaymentProps) {
+const GAS_DO_POVO_OPTION = { value: "gas_do_povo", label: "Gás do Povo", icon: Flame };
+
+export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens = [] }: PDVPaymentProps) {
   const [pagamentos, setPagamentos] = useState<PDVPagamento[]>([]);
   const [formaPagamento, setFormaPagamento] = useState("dinheiro");
   const [valorParcial, setValorParcial] = useState("");
@@ -48,6 +52,21 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading }: PDVPa
   const [cardModalOpen, setCardModalOpen] = useState(false);
   const [pendingExtras, setPendingExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string; info?: string } | null>(null);
   const { unidadeAtual } = useUnidade();
+  const { toast } = useToast();
+
+  const gasDoPovoHabilitado = !!(unidadeAtual as any)?.gas_do_povo_habilitado;
+  const gasDoPovoValor = Number((unidadeAtual as any)?.gas_do_povo_valor ?? 101.08);
+  const formasPagamento = gasDoPovoHabilitado
+    ? [...formasPagamentoBase, GAS_DO_POVO_OPTION]
+    : formasPagamentoBase;
+
+  // Carrinho elegível: exatamente 1× Gás P13 (e somente esse item)
+  const cartoElegivelGasDoPovo = (() => {
+    if (itens.length !== 1) return false;
+    const it = itens[0];
+    if (it.quantidade !== 1) return false;
+    return /g[áa]s\s*p13/i.test(it.nome);
+  })();
 
   const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
   const restante = Math.max(0, total - totalPago);
@@ -82,6 +101,20 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading }: PDVPa
   const podeFinalizar = totalPago >= total && pagamentos.length > 0;
 
   const handleSelectForma = (value: string) => {
+    if (value === "gas_do_povo") {
+      if (!cartoElegivelGasDoPovo) {
+        toast({
+          title: "Gás do Povo indisponível",
+          description: "Aceito apenas para venda de exatamente 1× Gás P13.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setFormaPagamento(value);
+      setPendingExtras({ info: `Programa Gás do Povo — R$ ${gasDoPovoValor.toFixed(2)} (D+2)` });
+      setValorParcial(gasDoPovoValor.toFixed(2).replace(".", ","));
+      return;
+    }
     setFormaPagamento(value);
     setPendingExtras(null);
     if (value === "pix") {
@@ -102,6 +135,24 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading }: PDVPa
     if (needsPix && !pendingExtras?.conta_bancaria_id) {
       setPixModalOpen(true);
       return;
+    }
+    if (formaPagamento === "gas_do_povo") {
+      if (!cartoElegivelGasDoPovo) {
+        toast({
+          title: "Carrinho inválido",
+          description: "Gás do Povo aceito apenas para 1× Gás P13.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (Math.abs(valorParcialNum - gasDoPovoValor) > 0.01) {
+        toast({
+          title: "Valor incorreto",
+          description: `O valor do Gás do Povo é fixo em R$ ${gasDoPovoValor.toFixed(2)}.`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
     setPagamentos((prev) => [
       ...prev,

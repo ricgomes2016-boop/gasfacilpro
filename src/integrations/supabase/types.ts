@@ -10249,6 +10249,8 @@ export type Database = {
           empresa_id: string | null
           endereco: string | null
           estado: string | null
+          gas_do_povo_habilitado: boolean
+          gas_do_povo_valor: number
           horario_abertura: string | null
           horario_fechamento: string | null
           id: string
@@ -10307,6 +10309,8 @@ export type Database = {
           empresa_id?: string | null
           endereco?: string | null
           estado?: string | null
+          gas_do_povo_habilitado?: boolean
+          gas_do_povo_valor?: number
           horario_abertura?: string | null
           horario_fechamento?: string | null
           id?: string
@@ -10365,6 +10369,8 @@ export type Database = {
           empresa_id?: string | null
           endereco?: string | null
           estado?: string | null
+          gas_do_povo_habilitado?: boolean
+          gas_do_povo_valor?: number
           horario_abertura?: string | null
           horario_fechamento?: string | null
           id?: string
