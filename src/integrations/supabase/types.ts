@@ -11803,6 +11803,7 @@ export type Database = {
           total_unidades: number
         }[]
       }
+      get_current_user_cliente_ids: { Args: never; Returns: string[] }
       get_empresa_by_slug: {
         Args: { _slug: string }
         Returns: {
