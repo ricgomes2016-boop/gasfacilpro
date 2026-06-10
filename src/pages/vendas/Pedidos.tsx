@@ -1011,7 +1011,7 @@ export default function Pedidos() {
                           onCheckedChange={toggleSelecionarTodos} />
                       </TableHead>
                       <TableHead>Pedido</TableHead>
-                      <TableHead>Cliente</TableHead>
+                      <TableHead className="min-w-[200px]">Cliente</TableHead>
                       <TableHead>Endereço</TableHead>
                       <TableHead>Produtos</TableHead>
                       <TableHead>Entregador</TableHead>
@@ -1033,8 +1033,8 @@ export default function Pedidos() {
                             #{getNumExib(pedido)}
                           </Button>
                         </TableCell>
-                        <TableCell className="font-medium text-sm max-w-[120px] truncate">{pedido.cliente}</TableCell>
-                        <TableCell className="max-w-[200px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
+                        <TableCell className="font-medium text-sm min-w-[200px] max-w-[260px] truncate" title={pedido.cliente}>{pedido.cliente}</TableCell>
+                        <TableCell className="max-w-[180px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
                         <TableCell className="max-w-[180px] truncate text-xs" title={formatarItensComQtd(pedido)}>{formatarItensComQtd(pedido)}</TableCell>
                         <TableCell>
                           {pedido.entregador ?
