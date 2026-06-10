@@ -3,6 +3,7 @@ import { getBrasiliaDateString } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -46,6 +47,7 @@ const EMPTY_FORM = { fornecedor: "", descricao: "", valor: "", vencimento: "", c
 
 export function useContasPagar() {
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
   const hoje = getBrasiliaDateString();
 
   // ------- Core data -------
@@ -488,12 +490,12 @@ export function useContasPagar() {
     if (!boletoData?.fornecedor || !boletoData?.valor) { toast.error("Fornecedor e valor são obrigatórios"); return; }
     let boletoUrl: string | null = null;
     if (boletoFile) {
+      if (!empresa?.id) { toast.error("Empresa não identificada para salvar o boleto"); return; }
       const ext = boletoFile.name.split(".").pop() || "pdf";
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+      const fileName = `${empresa.id}/boletos/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
       const { error: uploadError } = await supabase.storage.from("boletos").upload(fileName, boletoFile);
       if (!uploadError) {
-        const { data: urlData } = supabase.storage.from("boletos").getPublicUrl(fileName);
-        boletoUrl = urlData.publicUrl;
+        boletoUrl = fileName;
       }
     }
     const { error } = await supabase.from("contas_pagar").insert({
@@ -514,8 +516,9 @@ export function useContasPagar() {
     setViewBoletoConta(conta);
     if (conta.boleto_url) {
       const urlParts = conta.boleto_url.split("/boletos/");
-      if (urlParts.length > 1) {
-        const { data } = await supabase.storage.from("boletos").createSignedUrl(urlParts[1], 3600);
+      const storagePath = urlParts.length > 1 ? decodeURIComponent(urlParts[1]) : conta.boleto_url;
+      if (!/^https?:\/\//i.test(storagePath)) {
+        const { data } = await supabase.storage.from("boletos").createSignedUrl(storagePath, 3600);
         setViewBoletoUrl(data?.signedUrl || conta.boleto_url);
       } else { setViewBoletoUrl(conta.boleto_url); }
     }

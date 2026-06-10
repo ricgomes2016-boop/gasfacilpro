@@ -95,6 +95,7 @@ export default function FinalizarEntrega() {
   const [chequeNumero, setChequeNumero] = useState("");
   const [chequeBanco, setChequeBanco] = useState("");
   const [chequeFotoUrl, setChequeFotoUrl] = useState<string | null>(null);
+  const [chequeFotoPreviewUrl, setChequeFotoPreviewUrl] = useState<string | null>(null);
   const [isUploadingCheque, setIsUploadingCheque] = useState(false);
   // Fiado fields
   const [dataVencimentoFiado, setDataVencimentoFiado] = useState("");
@@ -111,6 +112,7 @@ export default function FinalizarEntrega() {
   const comprovantePhotoRef = useRef<HTMLInputElement>(null);
   const comprovanteCameraRef = useRef<HTMLInputElement>(null);
   const [comprovanteUrl, setComprovanteUrl] = useState<string | null>(null);
+  const [comprovantePreviewUrl, setComprovantePreviewUrl] = useState<string | null>(null);
   const [isUploadingComprovante, setIsUploadingComprovante] = useState(false);
   const [codigoVoucherGasPovo, setCodigoVoucherGasPovo] = useState("");
   const [assinatura, setAssinatura] = useState<AssinaturaPayload | null>(null);
@@ -209,8 +211,10 @@ export default function FinalizarEntrega() {
       setChequeNumero("");
       setChequeBanco("");
       setChequeFotoUrl(null);
+      setChequeFotoPreviewUrl(null);
       setDataVencimentoFiado("");
       setComprovanteUrl(null);
+      setComprovantePreviewUrl(null);
       setCodigoVoucherGasPovo("");
       setDialogPagamentoAberto(false);
     }
@@ -219,13 +223,15 @@ export default function FinalizarEntrega() {
   const handleComprovanteFoto = async (file: File) => {
     setIsUploadingComprovante(true);
     try {
+      if (!empresaId || !id) throw new Error("Empresa ou pedido não identificado para o upload");
       const compressed = await compressImage(file);
       const blob = await (await fetch(compressed)).blob();
-      const fileName = `comprovantes/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
-      const { error } = await supabase.storage.from("product-images").upload(fileName, blob, { cacheControl: "3600" });
+      const fileName = `${empresaId}/${id}/pagamentos/comprovantes/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+      const { error } = await supabase.storage.from("comprovantes-entrega").upload(fileName, blob, { contentType: "image/jpeg", upsert: false });
       if (error) throw error;
-      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
-      setComprovanteUrl(urlData.publicUrl);
+      const { data: signed } = await supabase.storage.from("comprovantes-entrega").createSignedUrl(fileName, 60 * 60);
+      setComprovanteUrl(`storage://comprovantes-entrega/${fileName}`);
+      setComprovantePreviewUrl(signed?.signedUrl || compressed);
       sonnerToast.success("Foto do comprovante enviada!");
     } catch (err: any) {
       sonnerToast.error(err?.message || "Erro ao enviar foto");
@@ -260,19 +266,21 @@ export default function FinalizarEntrega() {
   const handleChequeFoto = async (file: File) => {
     setIsUploadingCheque(true);
     try {
+      if (!empresaId || !id) throw new Error("Empresa ou pedido não identificado para o upload");
       const compressed = await compressImage(file);
       const blob = await (await fetch(compressed)).blob();
-      const fileName = `cheques/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
-      const { error } = await supabase.storage.from("product-images").upload(fileName, blob, { cacheControl: "3600" });
+      const fileName = `${empresaId}/${id}/pagamentos/cheques/${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+      const { error } = await supabase.storage.from("comprovantes-entrega").upload(fileName, blob, { contentType: "image/jpeg", upsert: false });
       if (error) throw error;
-      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
-      setChequeFotoUrl(urlData.publicUrl);
+      const { data: urlData } = await supabase.storage.from("comprovantes-entrega").createSignedUrl(fileName, 60 * 60);
+      setChequeFotoUrl(`storage://comprovantes-entrega/${fileName}`);
+      setChequeFotoPreviewUrl(urlData?.signedUrl || compressed);
       sonnerToast.success("Foto enviada! Extraindo dados...");
 
       // OCR auto-fill
       try {
         const { data: ocrData, error: ocrError } = await supabase.functions.invoke("parse-cheque-photo", {
-          body: { image_url: urlData.publicUrl },
+          body: { image_url: urlData?.signedUrl },
         });
         if (!ocrError && ocrData?.success && ocrData.data) {
           const d = ocrData.data;
@@ -394,8 +402,7 @@ export default function FinalizarEntrega() {
               .from("comprovantes-entrega")
               .upload(path, blob, { contentType: "image/png", upsert: true });
             if (upErr) throw upErr;
-            const { data: pub } = supabase.storage.from("comprovantes-entrega").getPublicUrl(path);
-            assinaturaUrl = pub.publicUrl;
+            assinaturaUrl = `storage://comprovantes-entrega/${path}`;
           }
 
           await (supabase as any).from("comprovantes_entrega").insert({
@@ -721,7 +728,7 @@ export default function FinalizarEntrega() {
                               <Button type="button" variant="photo" size="sm" className="text-xs" onClick={() => chequeCameraRef.current?.click()} disabled={isUploadingCheque}>
                                 <Camera className="h-4 w-4" />Câmera
                              </Button>
-                             {chequeFotoUrl && <img src={chequeFotoUrl} alt="Cheque" className="h-8 w-12 rounded border object-cover" />}
+                             {chequeFotoPreviewUrl && <img src={chequeFotoPreviewUrl} alt="Cheque" className="h-8 w-12 rounded border object-cover" />}
                              <input ref={chequePhotoRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleChequeFoto(f); e.target.value = ""; }} />
                              <input ref={chequeCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleChequeFoto(f); e.target.value = ""; }} />
                            </div>
@@ -740,7 +747,7 @@ export default function FinalizarEntrega() {
                               <Button type="button" variant="photo" size="sm" className="text-xs" onClick={() => comprovanteCameraRef.current?.click()} disabled={isUploadingComprovante}>
                                 <Camera className="h-4 w-4" />Tirar Foto
                              </Button>
-                             {comprovanteUrl && <img src={comprovanteUrl} alt="Comprovante" className="h-10 w-14 rounded border object-cover" />}
+                             {comprovantePreviewUrl && <img src={comprovantePreviewUrl} alt="Comprovante" className="h-10 w-14 rounded border object-cover" />}
                              {comprovanteUrl && <CheckCircle className="h-4 w-4 text-success" />}
                              <input ref={comprovantePhotoRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleComprovanteFoto(f); e.target.value = ""; }} />
                              <input ref={comprovanteCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleComprovanteFoto(f); e.target.value = ""; }} />
