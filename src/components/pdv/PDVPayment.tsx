@@ -29,9 +29,10 @@ interface PDVPaymentProps {
   total: number;
   onConfirm: (pagamentos: PDVPagamento[], valorRecebidoDinheiro: number) => void;
   isLoading: boolean;
+  itens?: Array<{ nome: string; quantidade: number }>;
 }
 
-const formasPagamento = [
+const formasPagamentoBase = [
   { value: "dinheiro", label: "Dinheiro", icon: Banknote },
   { value: "pix", label: "PIX", icon: Smartphone },
   { value: "pix_maquininha", label: "PIX Maquininha", icon: Smartphone },
@@ -40,6 +41,8 @@ const formasPagamento = [
   { value: "vale_gas", label: "Vale Gás", icon: Receipt },
   { value: "cheque", label: "Cheque", icon: Receipt },
 ];
+
+const GAS_DO_POVO_OPTION = { value: "gas_do_povo", label: "Gás do Povo", icon: Flame };
 
 export function PDVPayment({ open, onClose, total, onConfirm, isLoading }: PDVPaymentProps) {
   const [pagamentos, setPagamentos] = useState<PDVPagamento[]>([]);
