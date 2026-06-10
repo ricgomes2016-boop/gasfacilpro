@@ -59,7 +59,7 @@ export default function UnidadesConfig() {
       const { data, error } = await supabase
         .from("unidades")
         .select(
-          "id, nome, tipo, ativo, razao_social, nome_fantasia, cnpj, inscricao_estadual, inscricao_estadual_st, inscricao_municipal, cnae_principal, regime_tributario, telefone, email, endereco, bairro, cidade, estado, cep, chave_pix, bairros_atendidos, horario_abertura, horario_fechamento, certificado_a1_validade, certificado_a1_titular, nfe_ambiente, nfe_serie, nfe_proximo_numero, nfce_serie, nfce_proximo_numero, nfce_csc_id, cte_serie, cte_proximo_numero, cfop_padrao_venda, cfop_padrao_devolucao, natureza_operacao_padrao, aliquota_icms_padrao, aliquota_pis_padrao, aliquota_cofins_padrao, cst_csosn_padrao, contador_nome, contador_crc, contador_telefone, provedor_nfe, provedor_nfe_url, empresa_id, created_at, updated_at"
+          "id, nome, tipo, ativo, razao_social, nome_fantasia, cnpj, inscricao_estadual, inscricao_estadual_st, inscricao_municipal, cnae_principal, regime_tributario, telefone, email, endereco, bairro, cidade, estado, cep, chave_pix, bairros_atendidos, horario_abertura, horario_fechamento, certificado_a1_validade, certificado_a1_titular, nfe_ambiente, nfe_serie, nfe_proximo_numero, nfce_serie, nfce_proximo_numero, nfce_csc_id, cte_serie, cte_proximo_numero, cfop_padrao_venda, cfop_padrao_devolucao, natureza_operacao_padrao, aliquota_icms_padrao, aliquota_pis_padrao, aliquota_cofins_padrao, cst_csosn_padrao, contador_nome, contador_crc, contador_telefone, provedor_nfe, provedor_nfe_url, empresa_id, created_at, updated_at, gas_do_povo_habilitado, gas_do_povo_valor"
         )
         .eq("ativo", true)
         .order("tipo")
