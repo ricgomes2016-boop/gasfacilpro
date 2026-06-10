@@ -85,12 +85,14 @@ export default function UnidadesConfig() {
     const has = (v: any) => v !== null && v !== undefined && String(v).trim() !== "";
 
     const certConfigured = Boolean(u.certificado_a1_configurado || u.certificado_a1_path);
-    const certAny = certConfigured || has(u.certificado_a1_senha) || has(u.certificado_a1_validade) || has(u.certificado_a1_titular);
+    // Só valida certificado quando o usuário está efetivamente configurando agora
+    // (enviou arquivo novo ou digitou senha). Apenas validade/titular preenchidos
+    // não devem disparar exigência — são metadados informativos.
+    const certAny = Boolean(u.certificado_a1_path) || has(u.certificado_a1_senha);
     if (certAny) {
       if (!certConfigured) errs.push("Certificado A1: envie o arquivo .pfx ou .p12.");
       if (!has(u.certificado_a1_senha)) errs.push("Certificado A1: informe a senha.");
-      if (!has(u.certificado_a1_validade)) errs.push("Certificado A1: informe a data de validade.");
-      else {
+      if (has(u.certificado_a1_validade)) {
         const d = new Date(u.certificado_a1_validade);
         if (isNaN(d.getTime())) errs.push("Certificado A1: data de validade inválida.");
         else if (d < new Date(new Date().toDateString())) errs.push("Certificado A1 está vencido — substitua antes de emitir notas.");
