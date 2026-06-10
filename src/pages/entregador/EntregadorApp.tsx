@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { MapPin, CheckCircle } from "lucide-react";
 import { aplicarModoEntregador, vibrar } from "@/utils/mobileApp";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Pedido {
   id: string;
@@ -13,20 +14,29 @@ interface Pedido {
 
 export default function EntregadorApp() {
   const [entregas, setEntregas] = useState<Pedido[]>([]);
+  const [entregadorId, setEntregadorId] = useState<string | null>(null);
+  const [unidadeId, setUnidadeId] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
+    if (!user?.id) return;
+
     aplicarModoEntregador();
     carregarPedidos();
 
     const channel = supabase
-      .channel("pedidos-realtime")
+      .channel(`pedidos-entregador-app-${user.id}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "pedidos" },
         (payload) => {
           const novo: any = payload.new;
 
-          if (novo.status === "pendente") {
+          const pertenceAoEntregador =
+            novo.entregador_id === entregadorId ||
+            (!novo.entregador_id && novo.unidade_id === unidadeId);
+
+          if (novo.status === "pendente" && pertenceAoEntregador) {
             vibrar(300);
 
             setEntregas((prev) => [
@@ -45,13 +55,30 @@ export default function EntregadorApp() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user?.id, entregadorId, unidadeId]);
 
   const carregarPedidos = async () => {
+    if (!user?.id) return;
+
+    const { data: entregador } = await supabase
+      .from("entregadores")
+      .select("id, unidade_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!entregador) {
+      setEntregas([]);
+      return;
+    }
+
+    setEntregadorId(entregador.id);
+    setUnidadeId(entregador.unidade_id);
+
     const { data, error } = await supabase
       .from("pedidos")
       .select("id, endereco_entrega, clientes(nome)")
       .eq("status", "pendente")
+      .or(`entregador_id.eq.${entregador.id},and(entregador_id.is.null,unidade_id.eq.${entregador.unidade_id})`)
       .limit(20);
 
     if (error) return;

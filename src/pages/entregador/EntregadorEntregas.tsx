@@ -108,12 +108,14 @@ export default function EntregadorEntregas() {
 
   // Realtime
   useEffect(() => {
+    if (!user?.id) return;
+
     const channel = supabase
-      .channel("pedidos-entregador")
+      .channel(`pedidos-entregador-${entregadorId || user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => fetchEntregas())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [fetchEntregas]);
+  }, [fetchEntregas, entregadorId, user?.id]);
 
   const aceitarEntrega = async (pedidoId: string) => {
     stopAlarm(); // Stop alarm when driver interacts

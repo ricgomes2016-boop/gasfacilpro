@@ -171,8 +171,10 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
 
   // Realtime listener for new incoming messages
   useEffect(() => {
+    if (!empresaId) return;
+
     const channel = supabase
-      .channel("wa-global-notifications")
+      .channel(`wa-notifications-${empresaId}-${unidadeId || "all"}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "ai_mensagens" },
@@ -223,7 +225,7 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [conversaNoEscopo]);
+  }, [conversaNoEscopo, empresaId, unidadeId]);
 
   const markAsRead = useCallback((conversaId: string) => {
     localStorage.setItem(LS_PREFIX + conversaId, new Date().toISOString());

@@ -130,8 +130,10 @@ export default function EntregadorRotas() {
 
   // Realtime
   useEffect(() => {
+    if (!user?.id) return;
+
     const channel = supabase
-      .channel("rota-entregador")
+      .channel(`rota-entregador-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "carregamentos_rota" }, () => fetchRotaAtiva())
       .on("postgres_changes", { event: "*", schema: "public", table: "carregamento_rota_itens" }, () => fetchRotaAtiva())
       .subscribe();
@@ -139,7 +141,7 @@ export default function EntregadorRotas() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchRotaAtiva]);
+  }, [fetchRotaAtiva, user?.id]);
 
   const totalSaida = rotaAtiva?.itens.reduce((acc, i) => acc + i.quantidade_saida, 0) || 0;
   const totalVendido = rotaAtiva?.itens.reduce((acc, i) => acc + i.quantidade_vendida, 0) || 0;

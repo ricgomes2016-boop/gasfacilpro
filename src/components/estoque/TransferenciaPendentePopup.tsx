@@ -74,7 +74,7 @@ export function TransferenciaPendentePopup() {
   useEffect(() => {
     if (!unidadeAtual?.id) return;
     const channel = supabase
-      .channel("transf-pendente")
+      .channel(`transf-pendente-${unidadeAtual.id}`)
       .on(
         "postgres_changes",
         {

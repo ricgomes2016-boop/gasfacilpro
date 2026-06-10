@@ -218,9 +218,16 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     setLoading(true);
     fetchConversas();
 
+    if (!empresa?.id) return;
+
     const channel = supabase
-      .channel("inbox-conversas-shared")
-      .on("postgres_changes", { event: "*", schema: "public", table: "ai_conversas" }, () => {
+      .channel(`inbox-conversas-${empresa.id}-${unidadeAtual?.id || "all"}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "ai_conversas",
+        filter: `empresa_id=eq.${empresa.id}`,
+      }, () => {
         fetchConversas();
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "ai_mensagens" }, () => {
@@ -301,7 +308,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
     }
 
     const channel = supabase
-      .channel(`inbox-msgs-shared-${selectedId}`)
+      .channel(`inbox-msgs-${selectedId}`)
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",

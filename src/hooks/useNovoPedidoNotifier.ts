@@ -6,6 +6,7 @@ import {
   wasOrderNotified,
   isPushPrefEnabled,
 } from "@/lib/novoPedidoDedupe";
+import { useUnidade } from "@/contexts/UnidadeContext";
 
 /**
  * Listener único e centralizado para INSERT em `pedidos`.
@@ -18,7 +19,12 @@ import {
  * Deve ser montado UMA única vez (em App.tsx) abaixo do AuthProvider.
  */
 export function useNovoPedidoNotifier() {
+  const { unidadeAtual } = useUnidade();
+  const unidadeId = unidadeAtual?.id ?? null;
+
   useEffect(() => {
+    if (!unidadeId) return;
+
     // Solicita permissão silenciosamente uma vez (sem assustar o usuário com modal).
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
       // Não chamamos requestPermission aqui — exige gesto do usuário em Safari/Chrome.
@@ -26,10 +32,10 @@ export function useNovoPedidoNotifier() {
     }
 
     const channel = supabase
-      .channel("novo-pedido-notifier")
+      .channel(`novo-pedido-notifier-${unidadeId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "pedidos" },
+        { event: "INSERT", schema: "public", table: "pedidos", filter: `unidade_id=eq.${unidadeId}` },
         async (payload) => {
           const p = payload.new as any;
           if (!p?.id || wasOrderNotified(p.id)) return;
@@ -100,5 +106,5 @@ export function useNovoPedidoNotifier() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [unidadeId]);
 }

@@ -124,8 +124,10 @@ export default function EntregadorEstoque() {
 
   // Realtime: listen for changes on carregamento_rota_itens and pedidos
   useEffect(() => {
+    if (!user?.id) return;
+
     const channel = supabase
-      .channel("estoque-entregador")
+      .channel(`estoque-entregador-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "carregamentos_rota" }, () => fetchEstoque())
       .on("postgres_changes", { event: "*", schema: "public", table: "carregamento_rota_itens" }, () => fetchEstoque())
       .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => fetchEstoque())
@@ -134,7 +136,7 @@ export default function EntregadorEstoque() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchEstoque]);
+  }, [fetchEstoque, user?.id]);
 
   const totalSaida = itens.reduce((acc, i) => acc + i.quantidade_saida, 0);
   const totalVendido = itens.reduce((acc, i) => acc + i.quantidade_vendida, 0);

@@ -213,10 +213,22 @@ export default function CentralAtendimento() {
     fetchPedidosFila();
     fetchEntregadores();
 
+    if (!unidadeAtual?.id) return;
+
     const channel = supabase
-      .channel("central-atendimento-v2")
-      .on("postgres_changes", { event: "*", schema: "public", table: "chamadas_recebidas" }, () => fetchChamadas())
-      .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => fetchPedidosFila())
+      .channel(`central-atendimento-${unidadeAtual.id}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "chamadas_recebidas",
+        filter: `unidade_id=eq.${unidadeAtual.id}`,
+      }, () => fetchChamadas())
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "pedidos",
+        filter: `unidade_id=eq.${unidadeAtual.id}`,
+      }, () => fetchPedidosFila())
       .subscribe();
 
     const refreshInterval = setInterval(() => {

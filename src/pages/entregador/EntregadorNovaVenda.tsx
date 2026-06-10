@@ -129,7 +129,7 @@ export default function EntregadorNovaVenda() {
   useEffect(() => {
     if (!empresa?.id) return;
     const channel = supabase
-      .channel("clientes-entregador")
+      .channel(`clientes-entregador-${empresa.id}`)
       .on("postgres_changes", {
         event: "INSERT",
         schema: "public",

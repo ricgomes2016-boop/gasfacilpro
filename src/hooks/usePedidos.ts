@@ -123,11 +123,13 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
   }, [pedidos]);
 
   useEffect(() => {
+    if (!unidadeAtual?.id) return;
+
     const channel = supabase
-      .channel("pedidos-realtime")
+      .channel(`pedidos-realtime-${unidadeAtual.id}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "pedidos" },
+        { event: "INSERT", schema: "public", table: "pedidos", filter: `unidade_id=eq.${unidadeAtual.id}` },
         () => {
           // Notificação visual/sonora centralizada em useNovoPedidoNotifier.
           // Aqui apenas atualizamos a lista.
@@ -136,7 +138,7 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "pedidos" },
+        { event: "UPDATE", schema: "public", table: "pedidos", filter: `unidade_id=eq.${unidadeAtual.id}` },
         (payload) => {
           const p = payload.new as any;
           const prevStatus = knownPedidosRef.current.get(p.id);
@@ -156,7 +158,7 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
       )
       .on(
         "postgres_changes",
-        { event: "DELETE", schema: "public", table: "pedidos" },
+        { event: "DELETE", schema: "public", table: "pedidos", filter: `unidade_id=eq.${unidadeAtual.id}` },
         () => {
           queryClient.invalidateQueries({ queryKey: ["pedidos"] });
         }
@@ -166,7 +168,7 @@ export function usePedidos(filtros?: { dataInicio?: string; dataFim?: string }) 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, unidadeAtual?.id]);
 
   const atualizarStatusMutation = useMutation({
     mutationFn: async ({ pedidoId, novoStatus }: { pedidoId: string; novoStatus: PedidoStatus }) => {

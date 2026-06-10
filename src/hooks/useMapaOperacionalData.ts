@@ -159,18 +159,34 @@ export function useMapaOperacionalData({
 
   // Realtime incremental
   useEffect(() => {
+    if (!unidadeId) return;
+
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
     }
     const ch = supabase
-      .channel("mapa-op-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "pedidos" }, () => fetchAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "entregadores" }, () => fetchAll())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "rota_historico" }, () => fetchAll())
+      .channel(`mapa-op-${unidadeId}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "pedidos",
+        filter: `unidade_id=eq.${unidadeId}`,
+      }, () => fetchAll())
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "entregadores",
+        filter: `unidade_id=eq.${unidadeId}`,
+      }, () => fetchAll())
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "rota_historico",
+      }, () => fetchAll())
       .subscribe();
     channelRef.current = ch;
     return () => { supabase.removeChannel(ch); };
-  }, [fetchAll]);
+  }, [fetchAll, unidadeId]);
 
   return { entregadores, pedidos, pontosCache, rotasAtivasPorEntregador, loading, refresh: fetchAll };
 }
