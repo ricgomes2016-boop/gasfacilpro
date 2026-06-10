@@ -59,7 +59,7 @@ export default function UnidadesConfig() {
       const { data, error } = await supabase
         .from("unidades")
         .select(
-          "id, nome, tipo, ativo, razao_social, nome_fantasia, cnpj, inscricao_estadual, inscricao_estadual_st, inscricao_municipal, cnae_principal, regime_tributario, telefone, email, endereco, bairro, cidade, estado, cep, chave_pix, bairros_atendidos, horario_abertura, horario_fechamento, certificado_a1_validade, certificado_a1_titular, nfe_ambiente, nfe_serie, nfe_proximo_numero, nfce_serie, nfce_proximo_numero, nfce_csc_id, cte_serie, cte_proximo_numero, cfop_padrao_venda, cfop_padrao_devolucao, natureza_operacao_padrao, aliquota_icms_padrao, aliquota_pis_padrao, aliquota_cofins_padrao, cst_csosn_padrao, contador_nome, contador_crc, contador_telefone, provedor_nfe, provedor_nfe_url, empresa_id, created_at, updated_at"
+          "id, nome, tipo, ativo, razao_social, nome_fantasia, cnpj, inscricao_estadual, inscricao_estadual_st, inscricao_municipal, cnae_principal, regime_tributario, telefone, email, endereco, bairro, cidade, estado, cep, chave_pix, bairros_atendidos, horario_abertura, horario_fechamento, certificado_a1_validade, certificado_a1_titular, nfe_ambiente, nfe_serie, nfe_proximo_numero, nfce_serie, nfce_proximo_numero, nfce_csc_id, cte_serie, cte_proximo_numero, cfop_padrao_venda, cfop_padrao_devolucao, natureza_operacao_padrao, aliquota_icms_padrao, aliquota_pis_padrao, aliquota_cofins_padrao, cst_csosn_padrao, contador_nome, contador_crc, contador_telefone, provedor_nfe, provedor_nfe_url, empresa_id, created_at, updated_at, gas_do_povo_habilitado, gas_do_povo_valor"
         )
         .eq("ativo", true)
         .order("tipo")
@@ -85,12 +85,14 @@ export default function UnidadesConfig() {
     const has = (v: any) => v !== null && v !== undefined && String(v).trim() !== "";
 
     const certConfigured = Boolean(u.certificado_a1_configurado || u.certificado_a1_path);
-    const certAny = certConfigured || has(u.certificado_a1_senha) || has(u.certificado_a1_validade) || has(u.certificado_a1_titular);
+    // Só valida certificado quando o usuário está efetivamente configurando agora
+    // (enviou arquivo novo ou digitou senha). Apenas validade/titular preenchidos
+    // não devem disparar exigência — são metadados informativos.
+    const certAny = Boolean(u.certificado_a1_path) || has(u.certificado_a1_senha);
     if (certAny) {
       if (!certConfigured) errs.push("Certificado A1: envie o arquivo .pfx ou .p12.");
       if (!has(u.certificado_a1_senha)) errs.push("Certificado A1: informe a senha.");
-      if (!has(u.certificado_a1_validade)) errs.push("Certificado A1: informe a data de validade.");
-      else {
+      if (has(u.certificado_a1_validade)) {
         const d = new Date(u.certificado_a1_validade);
         if (isNaN(d.getTime())) errs.push("Certificado A1: data de validade inválida.");
         else if (d < new Date(new Date().toDateString())) errs.push("Certificado A1 está vencido — substitua antes de emitir notas.");
@@ -204,6 +206,9 @@ export default function UnidadesConfig() {
         // Provedor (token tratado via RPC)
         provedor_nfe: u.provedor_nfe || null,
         provedor_nfe_url: u.provedor_nfe_url || null,
+        // Gás do Povo
+        gas_do_povo_habilitado: !!u.gas_do_povo_habilitado,
+        gas_do_povo_valor: numOrNull(u.gas_do_povo_valor) ?? 101.08,
       };
       if (u.certificado_a1_path) {
         payload.certificado_a1_path = u.certificado_a1_path;
@@ -510,6 +515,43 @@ export default function UnidadesConfig() {
                       placeholder="Centro, Jardim América, Vila Nova"
                     />
                   </div>
+
+                  {/* Gás do Povo */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Receipt className="h-4 w-4 text-primary" /> Gás do Povo (forma de pagamento)
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <input
+                          id="gas_do_povo_habilitado"
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-input accent-primary"
+                          checked={!!editingUnidade.gas_do_povo_habilitado}
+                          onChange={(e) => setField("gas_do_povo_habilitado", e.target.checked)}
+                        />
+                        <Label htmlFor="gas_do_povo_habilitado" className="cursor-pointer">
+                          Habilitar Gás do Povo no PDV (recebível D+2, taxa 0%)
+                        </Label>
+                      </div>
+                      <div className="grid gap-2 max-w-xs">
+                        <Label>Valor unitário (R$)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={editingUnidade.gas_do_povo_valor ?? 101.08}
+                          onChange={(e) => setField("gas_do_povo_valor", e.target.value)}
+                          disabled={!editingUnidade.gas_do_povo_habilitado}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Valor definido pelo governo estadual (ex: PR R$ 101,08). Aceito apenas para 1× Gás P13.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
 
                 {/* FISCAL */}

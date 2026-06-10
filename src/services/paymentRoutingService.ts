@@ -301,6 +301,27 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
         break;
       }
 
+      case "gas_do_povo": {
+        // Programa Gás do Povo (governo): recebível D+2, taxa 0%.
+        // Tratado como recebível tipo cartão para aparecer na Conciliação Cartão.
+        promises.push(insertContasReceber({
+          cliente: "Programa Gás do Povo",
+          descricao: `Gás do Povo - Venda #${pedidoRef}`,
+          valor: pag.valor,
+          vencimento: format(addDays(new Date(), 2), "yyyy-MM-dd"),
+          status: "pendente",
+          forma_pagamento: "gas_do_povo",
+          pedido_id: pedidoId,
+          unidade_id: unidadeId || null,
+          taxa_percentual: 0,
+          valor_taxa: 0,
+          valor_liquido: pag.valor,
+          cliente_id: clienteId || null,
+        }));
+        break;
+      }
+
+
     }
   }
 
