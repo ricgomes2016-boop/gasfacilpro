@@ -1,16 +1,14 @@
-## Problema
+## Publicar alterações
 
-Erro ao salvar produto:
-> Could not find the 'cfop_saida' column of 'produtos' in the schema cache
+As correções de segurança (política restritiva em `comprovantes_entrega` + binding `authenticated` nas storage policies) são **mudanças de backend** (migration SQL), então elas já estão ativas em produção automaticamente — não precisam de publish.
 
-A coluna real no banco é `cfop_saida_padrao`, mas o código em `src/pages/cadastros/Produtos.tsx` envia `cfop_saida`. Isso quebra o `update`/`insert` do PostgREST.
+O botão **Publish** só envia mudanças de **frontend** (UI/código React). Como nas últimas mensagens só houve migration, o Lovable provavelmente está mostrando "nada para publicar" / botão desabilitado.
 
-## Correção
+### O que vou fazer ao aprovar
+1. Rodar `preview_ui--publish` para forçar um novo deploy do frontend atual (mesmo sem mudanças visuais), garantindo que o build mais recente vá ao ar em `gasfacilpro.lovable.app` e domínios customizados.
+2. Confirmar a URL publicada.
 
-Em `src/pages/cadastros/Produtos.tsx`, renomear todas as 8 referências de `cfop_saida` para `cfop_saida_padrao` (interface, estado do form, defaults, payload de save, carregamento do produto, autopreenchimento por categoria e o `<Input>` do campo "CFOP Saída").
+### Se o problema for outro
+Se ao clicar Publish aparece **erro específico** (mensagem em vermelho, build failure, timeout), me envie o print/texto exato — aí investigo o build em vez de só republicar.
 
-Nenhuma migração necessária — a coluna já existe no banco com o nome correto.
-
-## Validação
-
-Abrir um produto, alterar o CFOP Saída e clicar em "Salvar Alterações" — deve persistir sem erro.
+Quer que eu siga com o republish?
