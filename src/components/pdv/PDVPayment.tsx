@@ -44,7 +44,7 @@ const formasPagamentoBase = [
 
 const GAS_DO_POVO_OPTION = { value: "gas_do_povo", label: "Gás do Povo", icon: Flame };
 
-export function PDVPayment({ open, onClose, total, onConfirm, isLoading }: PDVPaymentProps) {
+export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens = [] }: PDVPaymentProps) {
   const [pagamentos, setPagamentos] = useState<PDVPagamento[]>([]);
   const [formaPagamento, setFormaPagamento] = useState("dinheiro");
   const [valorParcial, setValorParcial] = useState("");
@@ -52,6 +52,21 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading }: PDVPa
   const [cardModalOpen, setCardModalOpen] = useState(false);
   const [pendingExtras, setPendingExtras] = useState<{ operadora_id?: string; conta_bancaria_id?: string; info?: string } | null>(null);
   const { unidadeAtual } = useUnidade();
+  const { toast } = useToast();
+
+  const gasDoPovoHabilitado = !!(unidadeAtual as any)?.gas_do_povo_habilitado;
+  const gasDoPovoValor = Number((unidadeAtual as any)?.gas_do_povo_valor ?? 101.08);
+  const formasPagamento = gasDoPovoHabilitado
+    ? [...formasPagamentoBase, GAS_DO_POVO_OPTION]
+    : formasPagamentoBase;
+
+  // Carrinho elegível: exatamente 1× Gás P13 (e somente esse item)
+  const cartoElegivelGasDoPovo = (() => {
+    if (itens.length !== 1) return false;
+    const it = itens[0];
+    if (it.quantidade !== 1) return false;
+    return /g[áa]s\s*p13/i.test(it.nome);
+  })();
 
   const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
   const restante = Math.max(0, total - totalPago);
