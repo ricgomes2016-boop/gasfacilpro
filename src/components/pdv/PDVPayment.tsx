@@ -101,6 +101,20 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
   const podeFinalizar = totalPago >= total && pagamentos.length > 0;
 
   const handleSelectForma = (value: string) => {
+    if (value === "gas_do_povo") {
+      if (!cartoElegivelGasDoPovo) {
+        toast({
+          title: "Gás do Povo indisponível",
+          description: "Aceito apenas para venda de exatamente 1× Gás P13.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setFormaPagamento(value);
+      setPendingExtras({ info: `Programa Gás do Povo — R$ ${gasDoPovoValor.toFixed(2)} (D+2)` });
+      setValorParcial(gasDoPovoValor.toFixed(2).replace(".", ","));
+      return;
+    }
     setFormaPagamento(value);
     setPendingExtras(null);
     if (value === "pix") {
@@ -121,6 +135,24 @@ export function PDVPayment({ open, onClose, total, onConfirm, isLoading, itens =
     if (needsPix && !pendingExtras?.conta_bancaria_id) {
       setPixModalOpen(true);
       return;
+    }
+    if (formaPagamento === "gas_do_povo") {
+      if (!cartoElegivelGasDoPovo) {
+        toast({
+          title: "Carrinho inválido",
+          description: "Gás do Povo aceito apenas para 1× Gás P13.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (Math.abs(valorParcialNum - gasDoPovoValor) > 0.01) {
+        toast({
+          title: "Valor incorreto",
+          description: `O valor do Gás do Povo é fixo em R$ ${gasDoPovoValor.toFixed(2)}.`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
     setPagamentos((prev) => [
       ...prev,
