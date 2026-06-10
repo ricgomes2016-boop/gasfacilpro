@@ -23,6 +23,8 @@ export interface Unidade {
   horario_abertura: string | null;
   horario_fechamento: string | null;
   bairros_atendidos: string | null;
+  gas_do_povo_habilitado?: boolean | null;
+  gas_do_povo_valor?: number | null;
 }
 
 interface UnidadeContextType {
