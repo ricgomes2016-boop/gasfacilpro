@@ -189,7 +189,7 @@ export default function Pedidos() {
         {canaisFixos.length > 0 && (
           <CommandGroup heading="Canais da unidade">
             {canaisFixos.map((c: any) => (
-              <CommandItem key={c.id} value={c.nome} onSelect={() => alterarCanalVenda(pedidoId, c.nome)}>
+              <CommandItem key={c.id} value={c.nome} onSelect={() => { alterarCanalVenda(pedidoId, c.nome); setEditandoCanalId(null); }}>
                 {c.nome}
                 {canalAtual === c.nome && <span className="ml-auto text-xs text-primary">✓</span>}
               </CommandItem>
@@ -199,7 +199,7 @@ export default function Pedidos() {
         {canaisParceiros.length > 0 && (
           <CommandGroup heading="Parceiros Vale Gás">
             {canaisParceiros.map((c: any) => (
-              <CommandItem key={c.id} value={c.nome} onSelect={() => alterarCanalVenda(pedidoId, c.nome)}>
+              <CommandItem key={c.id} value={c.nome} onSelect={() => { alterarCanalVenda(pedidoId, c.nome); setEditandoCanalId(null); }}>
                 {c.nome}
                 {canalAtual === c.nome && <span className="ml-auto text-xs text-primary">✓</span>}
               </CommandItem>
