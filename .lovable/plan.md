@@ -1,37 +1,31 @@
-## Objetivo
-Na tela **Vendas > Pedidos**, melhorar a coluna **Canal de venda** (desktop e mobile) para:
-1. Ter um **campo de busca** ao clicar no canal.
-2. **Lista rolável** quando houver muitos canais.
-3. **Filtrar por unidade**: cada unidade enxerga apenas seus canais "fixos" + **todos os canais do tipo `parceiro_vale_gas` ativos da empresa** (independente de qual unidade cadastrou), para permitir resgate cruzado de vale gás entre unidades da mesma empresa.
+# Corrigir popover do canal de venda em Pedidos
 
-## Mudanças
+## Problema
 
-### 1. `src/pages/vendas/Pedidos.tsx`
-- **Query `canais-venda-empresa`**: trocar o filtro para trazer:
-  - canais ativos onde `unidade_id = unidadeAtual.id` (canais fixos da unidade), **OU**
-  - canais ativos onde `tipo = 'parceiro_vale_gas'` (parceiros visíveis para toda a empresa).
-  - Incluir `unidadeAtual?.id` na `queryKey` para refetch ao trocar de unidade.
-  - Ordenar: fixos primeiro, parceiros depois, ambos alfabéticos.
+Na tabela **desktop** de `/vendas/pedidos`, ao clicar no lápis para editar o canal de venda, o popover não abre.
 
-- **Desktop (Popover, ~linha 1057–1077)**: trocar a lista simples por um **Command** (`@/components/ui/command`) com `CommandInput` (busca), `CommandList` rolável (`max-h-[260px]`), `CommandEmpty`, e dois `CommandGroup`: "Canais da unidade" e "Parceiros Vale Gás". Largura do popover ~`w-72`.
+## Causa
 
-- **Mobile (Select, ~linha 986–992)**: substituir o `Select` por um botão que abre o mesmo componente `Command` dentro de um `Popover` (mesmo padrão do desktop), para ter busca e rolagem também no mobile.
+O gatilho do popover (`PopoverTrigger asChild`) é um `<button>` que contém um `<Badge>`. O componente `Badge` é renderizado como `<div>` (em `src/components/ui/badge.tsx` linha 29). Como o HTML não permite um `<div>` (elemento de bloco) dentro de `<button>`, o navegador "conserta" a marcação movendo o `<div>` para fora do `<button>`. Isso quebra a referência do Radix `PopoverTrigger` e o clique no badge não dispara mais o popover.
 
-### 2. (Opcional, sem alterar regra) `src/pages/operacional/CanaisVenda.tsx`
-- Não muda comportamento. Apenas confirmar que canais fixos já são gravados com `unidade_id = unidadeAtual.id` (já está assim) e parceiros podem ser cadastrados em qualquer unidade.
+A versão **mobile** funciona porque o gatilho ali é um `<button>` que contém apenas `<span>` + ícone, sem nenhum `<div>` aninhado.
 
-## Detalhes técnicos
-- Filtro Supabase:
-  ```ts
-  supabase.from("canais_venda")
-    .select("id, nome, tipo, unidade_id")
-    .eq("ativo", true)
-    .or(`unidade_id.eq.${unidadeAtual.id},tipo.eq.parceiro_vale_gas`)
-  ```
-  Se `unidadeAtual` não existir, cai apenas em `tipo.eq.parceiro_vale_gas`.
-- O valor salvo em `pedidos.canal_venda` continua sendo o `nome` (sem mudança de schema).
-- Não mexer em `App.tsx`, rotas, providers, nem em outras telas.
+## Correção
 
-## Fora de escopo
-- Schema do banco, RLS, edge functions.
-- Outras telas que listam canais (PDV, Nova Venda) — só alterar Pedidos como pedido.
+Arquivo único: `src/pages/vendas/Pedidos.tsx` (linhas ~1098-1109, coluna "Canal de venda" da tabela desktop).
+
+Trocar o `<button>` do `PopoverTrigger` por um `<span role="button" tabIndex={0}>` (elemento inline, HTML válido com `Badge`/`div` dentro). Manter as classes visuais existentes e adicionar foco acessível.
+
+Sem alterações em:
+- versão mobile (já funciona corretamente);
+- query `canais-venda-empresa`, agrupamentos `canaisFixos`/`canaisParceiros` e `renderCanalCommand`;
+- regras de `podeEditarCanalPedido` ou `alterarCanalVenda`;
+- backend / RLS / edge functions.
+
+## Verificação
+
+1. Abrir `/vendas/pedidos` em largura desktop (≥ md).
+2. Clicar no lápis ao lado do canal de venda em um pedido editável.
+3. O popover deve abrir com o `CommandInput` de busca e os grupos "Canais da unidade" e "Parceiros Vale Gás", roláveis.
+4. Selecionar um canal deve atualizar o pedido e fechar o popover.
+5. Confirmar que a versão mobile (cards) continua funcionando.
