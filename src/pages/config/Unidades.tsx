@@ -204,6 +204,9 @@ export default function UnidadesConfig() {
         // Provedor (token tratado via RPC)
         provedor_nfe: u.provedor_nfe || null,
         provedor_nfe_url: u.provedor_nfe_url || null,
+        // Gás do Povo
+        gas_do_povo_habilitado: !!u.gas_do_povo_habilitado,
+        gas_do_povo_valor: numOrNull(u.gas_do_povo_valor) ?? 101.08,
       };
       if (u.certificado_a1_path) {
         payload.certificado_a1_path = u.certificado_a1_path;
