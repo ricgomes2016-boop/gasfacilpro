@@ -51,6 +51,7 @@ import { ImportReviewDialog } from "@/components/import/ImportReviewDialog";
 import { toast as sonnerToast } from "sonner";
 import { getBrasiliaDate } from "@/lib/utils";
 import { format as fnsFormat } from "date-fns";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 function getNumeroExibicao(p: { numero_sequencial?: number | null; id: string }) {
   return p.numero_sequencial != null ? String(p.numero_sequencial) : p.id.substring(0, 8).toUpperCase();
@@ -162,14 +163,52 @@ export default function Pedidos() {
   // Canal de venda
   const [editandoCanalId, setEditandoCanalId] = useState<string | null>(null);
   const { data: canaisVenda = [] } = useQuery({
-    queryKey: ["canais-venda-empresa"],
+    queryKey: ["canais-venda-empresa", unidadeAtual?.id],
     queryFn: async () => {
-      let query = supabase.from("canais_venda").select("id, nome").eq("ativo", true);
-      // Buscar canais de TODAS as unidades da empresa (vale gás pode ser retirado em qualquer unidade)
-      const { data } = await query;
+      // Canais fixos da unidade atual + parceiros vale gás de toda a empresa
+      const filtro = unidadeAtual?.id
+        ? `unidade_id.eq.${unidadeAtual.id},tipo.eq.parceiro_vale_gas`
+        : `tipo.eq.parceiro_vale_gas`;
+      const { data } = await supabase
+        .from("canais_venda")
+        .select("id, nome, tipo, unidade_id")
+        .eq("ativo", true)
+        .or(filtro)
+        .order("nome");
       return data || [];
     }
   });
+  const canaisFixos = useMemo(() => canaisVenda.filter((c: any) => c.tipo !== "parceiro_vale_gas"), [canaisVenda]);
+  const canaisParceiros = useMemo(() => canaisVenda.filter((c: any) => c.tipo === "parceiro_vale_gas"), [canaisVenda]);
+
+  const renderCanalCommand = (pedidoId: string, canalAtual: string | null | undefined) => (
+    <Command>
+      <CommandInput placeholder="Buscar canal..." className="h-9" />
+      <CommandList className="max-h-[260px]">
+        <CommandEmpty>Nenhum canal encontrado.</CommandEmpty>
+        {canaisFixos.length > 0 && (
+          <CommandGroup heading="Canais da unidade">
+            {canaisFixos.map((c: any) => (
+              <CommandItem key={c.id} value={c.nome} onSelect={() => { alterarCanalVenda(pedidoId, c.nome); setEditandoCanalId(null); }}>
+                {c.nome}
+                {canalAtual === c.nome && <span className="ml-auto text-xs text-primary">✓</span>}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+        {canaisParceiros.length > 0 && (
+          <CommandGroup heading="Parceiros Vale Gás">
+            {canaisParceiros.map((c: any) => (
+              <CommandItem key={c.id} value={c.nome} onSelect={() => { alterarCanalVenda(pedidoId, c.nome); setEditandoCanalId(null); }}>
+                {c.nome}
+                {canalAtual === c.nome && <span className="ml-auto text-xs text-primary">✓</span>}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+      </CommandList>
+    </Command>
+  );
 
   // Import history states
   const [importItems, setImportItems] = useState<Array<{
@@ -983,14 +1022,17 @@ export default function Pedidos() {
                     <div className="space-y-1">
                       <label className="text-[10px] text-muted-foreground">Canal de venda</label>
                       {podeEditarCanalPedido(pedido) ?
-                      <Select value={pedido.canal_venda || undefined} onValueChange={(novoCanal) => alterarCanalVenda(pedido.id, novoCanal)}>
-                        <SelectTrigger className="h-8 text-[11px] w-full">
-                          <SelectValue placeholder="Selecionar canal" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {canaisVenda.map((c) => <SelectItem key={c.id} value={c.nome}>{c.nome}</SelectItem>)}
-                        </SelectContent>
-                      </Select> :
+                      <Popover open={editandoCanalId === pedido.id} onOpenChange={(open) => setEditandoCanalId(open ? pedido.id : null)}>
+                        <PopoverTrigger asChild>
+                          <button className="h-8 text-[11px] w-full inline-flex items-center justify-between gap-2 rounded-md border border-input bg-background px-2 hover:bg-accent transition-colors">
+                            <span className="truncate">{pedido.canal_venda || "Selecionar canal"}</span>
+                            <Pencil className="h-3 w-3 text-muted-foreground shrink-0" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-72 p-0 bg-popover border border-border shadow-lg z-50" align="start">
+                          {renderCanalCommand(pedido.id, pedido.canal_venda)}
+                        </PopoverContent>
+                      </Popover> :
                       <Badge variant="outline" className="text-[10px]">{pedido.canal_venda || "Canal não informado"}</Badge>}
                     </div>
                     {podeAlterarDataEntrega ?
@@ -1061,18 +1103,8 @@ export default function Pedidos() {
                                 <Pencil className="h-3 w-3 text-muted-foreground" />
                               </button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-48 p-2 bg-popover border border-border shadow-lg z-50" align="start">
-                              <div className="space-y-1">
-                                <p className="text-xs font-medium text-muted-foreground px-1 mb-2">Trocar canal:</p>
-                                {canaisVenda.map((c) =>
-                              <button
-                                key={c.id}
-                                className={`w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors ${pedido.canal_venda === c.nome ? "bg-accent font-medium" : ""}`}
-                                onClick={() => alterarCanalVenda(pedido.id, c.nome)}>
-                                    {c.nome}
-                                  </button>
-                              )}
-                              </div>
+                            <PopoverContent className="w-72 p-0 bg-popover border border-border shadow-lg z-50" align="start">
+                              {renderCanalCommand(pedido.id, pedido.canal_venda)}
                             </PopoverContent>
                           </Popover> :
                           <Badge variant="outline" className="text-xs">{pedido.canal_venda || "-"}</Badge>}
