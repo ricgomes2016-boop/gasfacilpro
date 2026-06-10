@@ -1,26 +1,14 @@
 ## Problema
-No canto inferior direito do ERP, dois botões flutuantes ocupam a mesma posição e se sobrepõem:
-- **Assistente IA** (roxo) — `AiFloatingButton.tsx` em `bottom-6 right-6`, visível em `md+`
-- **WhatsApp Chat** (verde) — `WhatsAppFloatingChat.tsx` em `bottom-4 right-4`, visível em `xl+`
+Na tabela de Pedidos (desktop), a coluna "Cliente" está limitada a `max-w-[120px] truncate` (linha 1036 de `src/pages/vendas/Pedidos.tsx`), cortando nomes como "COMIDA C..." enquanto outras colunas (Endereço 200px, Produtos 180px) ficam mais largas. No mobile o layout já está correto (cards) e não será alterado.
 
-Em telas `xl+` os dois aparecem no mesmo ponto.
+## Mudança
+Em `src/pages/vendas/Pedidos.tsx`:
 
-## Solução
-Empilhar verticalmente, mantendo o WhatsApp como botão inferior (mais usado) e subindo o Assistente IA acima dele.
+1. **Linha 1036** — célula do Cliente: trocar `max-w-[120px] truncate` por `min-w-[200px] max-w-[260px] truncate` e adicionar `title={pedido.cliente}` para tooltip ao passar o mouse.
+2. **Linha 1014** — `<TableHead>Cliente</TableHead>`: adicionar `className="min-w-[200px]"` para reservar o espaço no cabeçalho.
+3. Opcional de polimento: reduzir Endereço de `max-w-[200px]` para `max-w-[180px]` para equilibrar a largura total da tabela e evitar scroll horizontal extra.
 
-### Alterações
-1. **`src/components/atendimento/WhatsAppFloatingChat.tsx`**
-   - Manter posição atual: `bottom-4 right-4` (xl+).
+Nenhuma alteração no card mobile (linhas 909–999).
 
-2. **`src/components/ai/AiFloatingButton.tsx`**
-   - Alterar botão de `bottom-6 right-6` para:
-     - `bottom-6 right-6` em `md` até `lg` (sem WhatsApp visível → sem conflito)
-     - `xl:bottom-24` (sobe ~72px acima do WhatsApp) quando o WhatsApp aparece
-   - Resultado: `className="hidden md:flex fixed bottom-6 right-6 xl:bottom-24 z-40 h-14 w-14 ..."`
-   - Ajustar também o painel aberto (`md:bottom-16`) para `xl:bottom-[136px]` para não cobrir o botão do WhatsApp quando o chat IA está aberto.
-
-### Resultado
-- `md`–`lg`: apenas botão IA no canto (sem mudança visível).
-- `xl+`: WhatsApp embaixo, Assistente IA empilhado acima, sem sobreposição.
-
-Sem mudanças em lógica, rotas ou backend — apenas posicionamento CSS.
+## Resultado esperado
+No desktop, nomes de cliente passam a aparecer por completo até ~260px, com truncamento + tooltip apenas para nomes muito longos. Mobile permanece igual.
