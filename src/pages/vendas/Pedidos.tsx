@@ -51,6 +51,7 @@ import { ImportReviewDialog } from "@/components/import/ImportReviewDialog";
 import { toast as sonnerToast } from "sonner";
 import { getBrasiliaDate } from "@/lib/utils";
 import { format as fnsFormat } from "date-fns";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 function getNumeroExibicao(p: { numero_sequencial?: number | null; id: string }) {
   return p.numero_sequencial != null ? String(p.numero_sequencial) : p.id.substring(0, 8).toUpperCase();
@@ -162,14 +163,52 @@ export default function Pedidos() {
   // Canal de venda
   const [editandoCanalId, setEditandoCanalId] = useState<string | null>(null);
   const { data: canaisVenda = [] } = useQuery({
-    queryKey: ["canais-venda-empresa"],
+    queryKey: ["canais-venda-empresa", unidadeAtual?.id],
     queryFn: async () => {
-      let query = supabase.from("canais_venda").select("id, nome").eq("ativo", true);
-      // Buscar canais de TODAS as unidades da empresa (vale gás pode ser retirado em qualquer unidade)
-      const { data } = await query;
+      // Canais fixos da unidade atual + parceiros vale gás de toda a empresa
+      const filtro = unidadeAtual?.id
+        ? `unidade_id.eq.${unidadeAtual.id},tipo.eq.parceiro_vale_gas`
+        : `tipo.eq.parceiro_vale_gas`;
+      const { data } = await supabase
+        .from("canais_venda")
+        .select("id, nome, tipo, unidade_id")
+        .eq("ativo", true)
+        .or(filtro)
+        .order("nome");
       return data || [];
     }
   });
+  const canaisFixos = useMemo(() => canaisVenda.filter((c: any) => c.tipo !== "parceiro_vale_gas"), [canaisVenda]);
+  const canaisParceiros = useMemo(() => canaisVenda.filter((c: any) => c.tipo === "parceiro_vale_gas"), [canaisVenda]);
+
+  const renderCanalCommand = (pedidoId: string, canalAtual: string | null | undefined) => (
+    <Command>
+      <CommandInput placeholder="Buscar canal..." className="h-9" />
+      <CommandList className="max-h-[260px]">
+        <CommandEmpty>Nenhum canal encontrado.</CommandEmpty>
+        {canaisFixos.length > 0 && (
+          <CommandGroup heading="Canais da unidade">
+            {canaisFixos.map((c: any) => (
+              <CommandItem key={c.id} value={c.nome} onSelect={() => alterarCanalVenda(pedidoId, c.nome)}>
+                {c.nome}
+                {canalAtual === c.nome && <span className="ml-auto text-xs text-primary">✓</span>}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+        {canaisParceiros.length > 0 && (
+          <CommandGroup heading="Parceiros Vale Gás">
+            {canaisParceiros.map((c: any) => (
+              <CommandItem key={c.id} value={c.nome} onSelect={() => alterarCanalVenda(pedidoId, c.nome)}>
+                {c.nome}
+                {canalAtual === c.nome && <span className="ml-auto text-xs text-primary">✓</span>}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+      </CommandList>
+    </Command>
+  );
 
   // Import history states
   const [importItems, setImportItems] = useState<Array<{
