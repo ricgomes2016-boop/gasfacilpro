@@ -53,6 +53,35 @@ Deno.serve(async (req) => {
       });
     }
 
+    const [{ data: profile }, { data: rolesData }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("empresa_id")
+        .eq("user_id", user.id)
+        .single(),
+      supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id),
+    ]);
+
+    const roles = (rolesData || []).map((r: any) => r.role);
+    const isSuperAdmin = roles.includes("super_admin");
+    const allowedRoles = ["admin", "gestor", "operacional", "financeiro", "entregador"];
+    if (!isSuperAdmin && !roles.some((role: string) => allowedRoles.includes(role))) {
+      return new Response(JSON.stringify({ error: "Usuário sem permissão para iniciar pagamento" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!isSuperAdmin && !profile?.empresa_id) {
+      return new Response(JSON.stringify({ error: "Usuário sem empresa vinculada" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Get pedido info for loja_id and empresa_id
     const { data: pedido, error: pedidoError } = await supabase
       .from("pedidos")
@@ -67,12 +96,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get empresa_id from user profile
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("empresa_id")
-      .eq("user_id", user.id)
-      .single();
+    if (!isSuperAdmin) {
+      const { data: unidade } = await supabase
+        .from("unidades")
+        .select("id, empresa_id")
+        .eq("id", pedido.unidade_id)
+        .maybeSingle();
+
+      if (!unidade || unidade.empresa_id !== profile?.empresa_id) {
+        return new Response(JSON.stringify({ error: "Pedido pertence a outra empresa" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // Generate unique transaction_id
     const transaction_id = `TXN_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
