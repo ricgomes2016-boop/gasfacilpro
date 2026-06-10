@@ -80,7 +80,11 @@ serve(async (req) => {
       );
     }
   } else {
-    console.warn("[EL-POSTCALL] ELEVENLABS_WEBHOOK_SECRET not set — skipping signature check");
+    console.error("[EL-POSTCALL] ELEVENLABS_WEBHOOK_SECRET not set — rejecting request");
+    return new Response(
+      JSON.stringify({ ok: false, error: "webhook_secret_not_configured" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 
   let payload: any = {};

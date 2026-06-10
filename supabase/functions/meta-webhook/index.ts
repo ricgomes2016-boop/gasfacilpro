@@ -84,7 +84,10 @@ serve(async (req) => {
         });
       }
     } else {
-      console.warn("Meta webhook: META_APP_SECRET not configured — skipping signature verification");
+      console.error("Meta webhook: META_APP_SECRET not configured — rejecting request");
+      return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const body = JSON.parse(rawBody);
