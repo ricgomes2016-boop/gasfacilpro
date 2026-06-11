@@ -247,7 +247,7 @@ export function CallerIdPopup() {
             <div className="bg-muted/50 rounded-lg p-3 border border-border/50 space-y-2">
               <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                 <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> Detalhes do Pedido</span>
-                <span>{format(new Date(ultimoPedido.created_at), "HH:mm", { locale: ptBR })}</span>
+                <span>{format(new Date(ultimoPedido.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
               </div>
               
               <div className="space-y-1">

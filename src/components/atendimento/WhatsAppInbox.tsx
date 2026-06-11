@@ -87,6 +87,31 @@ function ChatAvatar({ url, name, size = "md" }: { url?: string | null; name: str
   );
 }
 
+function formatSidebarTime(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  const todayKey = format(new Date(), "yyyy-MM-dd");
+  const dateKey = format(date, "yyyy-MM-dd");
+  if (dateKey === todayKey) return format(date, "HH:mm");
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (dateKey === format(yesterday, "yyyy-MM-dd")) return "Ontem";
+
+  const sameYear = format(date, "yyyy") === format(new Date(), "yyyy");
+  return format(date, sameYear ? "dd/MM" : "dd/MM/yy");
+}
+
+function formatChatDateTime(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  const todayKey = format(new Date(), "yyyy-MM-dd");
+  const dateKey = format(date, "yyyy-MM-dd");
+  return dateKey === todayKey
+    ? `Hoje ${format(date, "HH:mm")}`
+    : format(date, "dd/MM/yyyy HH:mm");
+}
+
 export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
   const [conversas, setConversas] = useState<Conversa[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -864,12 +889,17 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                         "text-[11px] flex-shrink-0 tabular-nums",
                         unread > 0 ? "text-[#00a884] font-semibold" : "text-[#667781]"
                       )}>
-                        {format(new Date(c.last_message_at ?? c.updated_at), "HH:mm")}
+                        {formatSidebarTime(c.last_message_at ?? c.updated_at)}
                       </span>
                     </div>
 
                     {c.telefone && (
                       <p className="text-[11px] text-[#8696a0] truncate leading-tight">{c.telefone}</p>
+                    )}
+                    {(c.last_message_at || c.updated_at) && (
+                      <p className="text-[10.5px] text-[#8696a0] truncate leading-tight">
+                        Atualizado: {formatChatDateTime(c.last_message_at ?? c.updated_at)}
+                      </p>
                     )}
 
                     <div className="flex items-center justify-between gap-2 mt-0.5">
@@ -1010,6 +1040,11 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                   <div className="flex items-center gap-2 text-[11.5px] mt-0.5">
                     {selectedConversa?.telefone && (
                       <span className="text-[#54656f] font-medium tabular-nums">{selectedConversa.telefone}</span>
+                    )}
+                    {selectedConversa?.last_message_at && (
+                      <span className="hidden md:inline text-[#667781]">
+                        Última mensagem: {formatChatDateTime(selectedConversa.last_message_at)}
+                      </span>
                     )}
                     <span className={cn(
                       "inline-flex items-center gap-1",
@@ -1190,7 +1225,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
                             {/* Timestamp */}
                             <div className="flex items-center justify-end gap-1 -mb-0.5 mt-0.5">
                               <span className="text-[11px] text-[#667781]">
-                                {format(new Date(msg.created_at), "HH:mm")}
+                                {formatChatDateTime(msg.created_at)}
                               </span>
                               {outgoing && (() => {
                                 const s = msg.status || "sent";

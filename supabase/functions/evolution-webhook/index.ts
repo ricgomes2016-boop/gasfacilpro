@@ -130,14 +130,15 @@ serve(async (req) => {
       getOrderStatus(supabase, cliente.id, normalized),
     ]);
 
-    // Save inbound
+    // Keep the conversation scoped before the message insert so realtime
+    // notification triggers can resolve empresa/unidade on the first message.
+    await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
     await saveMessage(supabase, conversationId, "user", messageText, { 
       source: "evolution-webhook", 
       message_id: messageKey,
       instance: instanceName,
       tipo_contato: contact.tipo, contato_id: contact.id || null,
     });
-    await upsertConversation(supabase, conversationId, `WhatsApp: ${cliente.nome || senderName || normalized}`, normalized);
     // Hard block: off-hours → fixed message, no AI
     if (bh.isOffHours) {
       const reply = getOffHoursMessage(cliente.nome, bh.horarioInfo);
