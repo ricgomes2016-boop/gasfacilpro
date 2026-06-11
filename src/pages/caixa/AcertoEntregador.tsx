@@ -603,6 +603,7 @@ export default function AcertoEntregador() {
       "Vale Gás": "vale_gas",
       "Fiado": "fiado",
       "Boleto": "boleto",
+      "Gás do Povo": "gas_do_povo",
     };
     return map[forma] || forma.toLowerCase().replace(/\s+/g, "_");
   };
