@@ -1029,6 +1029,19 @@ export async function saveMessage(supabase: any, conversationId: string, role: s
   // Status default: inbound = 'sent' (já chegou); assistant/system = 'sent' (BIA enviou via sendMessage do webhook); human = pending (operador)
   if (role === "user") row.status = "sent";
   else if (role === "assistant" || role === "system") row.status = "sent";
+
+  // Tenant explícito: nunca confiar apenas no trigger. Buscar empresa_id/unidade_id da conversa
+  // para garantir que RLS/Realtime entreguem a mensagem ao operador da unidade certa.
+  try {
+    const { data: conv } = await supabase
+      .from("ai_conversas")
+      .select("empresa_id, unidade_id")
+      .eq("id", conversationId)
+      .maybeSingle();
+    if (conv?.empresa_id) row.empresa_id = conv.empresa_id;
+    if (conv?.unidade_id) row.unidade_id = conv.unidade_id;
+  } catch (_) { /* fallback no trigger */ }
+
   await supabase.from("ai_mensagens").insert(row);
 }
 
