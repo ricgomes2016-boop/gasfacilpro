@@ -252,7 +252,7 @@ export default function PDV() {
           forma_pagamento: formaPagamentoLabel,
           canal_venda: "portaria",
           responsavel_acerto: "portaria",
-          status: "entregue", // PDV is immediate
+          status: "finalizado", // PDV: venda imediata, sem acerto com entregador
           endereco_entrega: "Retirada no local",
           unidade_id: unidadeAtual?.id || null,
         } as any)
