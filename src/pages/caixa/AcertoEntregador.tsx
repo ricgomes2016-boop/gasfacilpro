@@ -119,6 +119,7 @@ function canonicalForma(raw: string): string {
 const CANAIS_VIRTUAIS = [
   { id: "__portaria__", nome: "🏪 Portaria", canal: "Portaria" },
   { id: "__pdv__", nome: "🖥️ PDV", canal: "PDV" },
+  { id: "__gas_do_povo__", nome: "🔥 Gás do Povo", canal: "Gas_do_Povo" },
 ];
 
 type FiltroStatus = "pendentes" | "acertados" | "todos";

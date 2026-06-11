@@ -1,31 +1,22 @@
-# Corrigir popover do canal de venda em Pedidos
+## Ajustes no Acerto do Entregador e PDV
 
-## Problema
+### 1. Adicionar canal virtual "Gás do Povo"
+Em `src/pages/caixa/AcertoEntregador.tsx`, na lista `CANAIS_VIRTUAIS` (hoje com Portaria e PDV), incluir um terceiro item:
 
-Na tabela **desktop** de `/vendas/pedidos`, ao clicar no lápis para editar o canal de venda, o popover não abre.
+```
+{ id: "__gas_do_povo__", nome: "🔥 Gás do Povo", canal: "Gas_do_Povo" }
+```
 
-## Causa
+A query atual já filtra por `responsavel_acerto = canalVirtual.canal.toLowerCase()`. Para o Gás do Povo, o filtro deve buscar pedidos cuja `forma_pagamento` contenha `gas_do_povo` (inclusive em pagamentos múltiplos tipo `multiplo:gas_do_povo+...`), pois ele é uma forma de pagamento (governo) e não um canal físico. Ajuste na query: quando `canalVirtual.id === "__gas_do_povo__"`, trocar `.eq("responsavel_acerto", ...)` por `.or("forma_pagamento.eq.gas_do_povo,forma_pagamento.ilike.%gas_do_povo%")`.
 
-O gatilho do popover (`PopoverTrigger asChild`) é um `<button>` que contém um `<Badge>`. O componente `Badge` é renderizado como `<div>` (em `src/components/ui/badge.tsx` linha 29). Como o HTML não permite um `<div>` (elemento de bloco) dentro de `<button>`, o navegador "conserta" a marcação movendo o `<div>` para fora do `<button>`. Isso quebra a referência do Radix `PopoverTrigger` e o clique no badge não dispara mais o popover.
+Mantém todo o resto do fluxo igual (filtros de status pendentes/acertados, confirmação, PDF, etc.).
 
-A versão **mobile** funciona porque o gatilho ali é um `<button>` que contém apenas `<span>` + ícone, sem nenhum `<div>` aninhado.
+### 2. PDV não deve gerar pendência de acerto
+Em `src/pages/vendas/PDV.tsx` (linha ~255), a venda é criada com `status: "entregue"`, o que faz com que ela apareça como pendente de acerto na tela do entregador (filtro Portaria).
 
-## Correção
+Alterar o insert do PDV para já gravar `status: "finalizado"` (venda confirmada, sem necessidade de acerto). Manter `canal_venda: "portaria"` e `responsavel_acerto: "portaria"` para fins de relatório/histórico — ainda aparece em "Acertados" quando o usuário seleciona Portaria + filtro "Acertados/Todos", mas nunca em "Pendentes".
 
-Arquivo único: `src/pages/vendas/Pedidos.tsx` (linhas ~1098-1109, coluna "Canal de venda" da tabela desktop).
-
-Trocar o `<button>` do `PopoverTrigger` por um `<span role="button" tabIndex={0}>` (elemento inline, HTML válido com `Badge`/`div` dentro). Manter as classes visuais existentes e adicionar foco acessível.
-
-Sem alterações em:
-- versão mobile (já funciona corretamente);
-- query `canais-venda-empresa`, agrupamentos `canaisFixos`/`canaisParceiros` e `renderCanalCommand`;
-- regras de `podeEditarCanalPedido` ou `alterarCanalVenda`;
-- backend / RLS / edge functions.
-
-## Verificação
-
-1. Abrir `/vendas/pedidos` em largura desktop (≥ md).
-2. Clicar no lápis ao lado do canal de venda em um pedido editável.
-3. O popover deve abrir com o `CommandInput` de busca e os grupos "Canais da unidade" e "Parceiros Vale Gás", roláveis.
-4. Selecionar um canal deve atualizar o pedido e fechar o popover.
-5. Confirmar que a versão mobile (cards) continua funcionando.
+### Verificação
+- Abrir `/caixa/acerto`: o seletor deve listar Portaria, PDV e Gás do Povo.
+- Selecionar Gás do Povo deve trazer pedidos com forma de pagamento Gás do Povo no período.
+- Fazer uma venda nova no PDV (`/vendas/pdv`) e confirmar que ela NÃO aparece no acerto Portaria como pendente, somente em "Acertados".
