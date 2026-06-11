@@ -119,6 +119,7 @@ function canonicalForma(raw: string): string {
 const CANAIS_VIRTUAIS = [
   { id: "__portaria__", nome: "🏪 Portaria", canal: "Portaria" },
   { id: "__pdv__", nome: "🖥️ PDV", canal: "PDV" },
+  { id: "__gas_do_povo__", nome: "🔥 Gás do Povo", canal: "Gas_do_Povo" },
 ];
 
 type FiltroStatus = "pendentes" | "acertados" | "todos";
@@ -234,7 +235,11 @@ export default function AcertoEntregador() {
         .order("created_at", { ascending: true });
 
       if (canalVirtual) {
-        query = query.eq("responsavel_acerto", canalVirtual.canal.toLowerCase());
+        if (canalVirtual.id === "__gas_do_povo__") {
+          query = query.or("forma_pagamento.eq.gas_do_povo,forma_pagamento.ilike.%gas_do_povo%");
+        } else {
+          query = query.eq("responsavel_acerto", canalVirtual.canal.toLowerCase());
+        }
       } else {
         query = query.eq("entregador_id", selectedId);
       }
