@@ -55,6 +55,7 @@ const paymentLabels: Record<string, string> = {
   vale_gas: "Vale Gás",
   cheque: "Cheque",
   boleto: "Boleto",
+  gas_do_povo: "Gás do Povo",
   Dinheiro: "Dinheiro",
   PIX: "PIX",
   "PIX Maquininha": "PIX Maquininha",
@@ -63,16 +64,17 @@ const paymentLabels: Record<string, string> = {
   "Vale Gás": "Vale Gás",
   Cheque: "Cheque",
   Boleto: "Boleto",
+  "Gás do Povo": "Gás do Povo",
 };
 
 const formasPagamento = [
-  "Dinheiro", "PIX", "PIX Maquininha", "Cartão Crédito", "Cartão Débito", "Cheque", "Vale Gás", "Fiado", "Boleto",
+  "Dinheiro", "PIX", "PIX Maquininha", "Cartão Crédito", "Cartão Débito", "Cheque", "Vale Gás", "Fiado", "Boleto", "Gás do Povo",
 ];
 
 // Normaliza qualquer variação de forma de pagamento para uma chave canônica.
 // Retorna "__invalido__" para valores ambíguos (cartao puro), desconhecidos (outros) ou vazios.
 const FORMAS_CANONICAS = new Set([
-  "dinheiro", "pix", "pix_maquininha", "cartao_credito", "cartao_debito", "cheque", "vale_gas", "fiado", "boleto",
+  "dinheiro", "pix", "pix_maquininha", "cartao_credito", "cartao_debito", "cheque", "vale_gas", "fiado", "boleto", "gas_do_povo",
 ]);
 
 function canonicalForma(raw: string): string {
