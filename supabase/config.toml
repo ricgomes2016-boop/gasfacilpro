@@ -1,5 +1,8 @@
 project_id = "gcrdftnnbgsogoqcmcxo"
 
+[functions.check-subscription]
+verify_jwt = true
+
 [functions.parse-fuel-photo]
 verify_jwt = true
 
