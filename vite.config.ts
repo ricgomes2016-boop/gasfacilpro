@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
   const supabasePublishableKey =
     env.SUPABASE_PUBLISHABLE_KEY ||
     env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXAiOiJnY3JkZnRubmJnc29nb3FjbWN4byIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzcwNjUwNDU0LCJleHAiOjIwODYyMjY0NTR9.q4XxAd-BWI5OfPE-LdNuZdT_mnU4PxxMUSOKEGM7Wd8";
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdjcmRmdG5uYmdzb2dvcWNtY3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0ODkzMTksImV4cCI6MjA4NjA2NTMxOX0.62JP9-5p0BKgbEui-qgfmxvagmj_G34e6Y7Jqp4vC04";
   const projectIdFromUrl = supabaseUrl.match(/^https:\/\/([^.]+)\.supabase\.co/)?.[1];
   const viteProjectId =
     env.VITE_SUPABASE_PROJECT_ID === legacySupabaseProjectId ? undefined : env.VITE_SUPABASE_PROJECT_ID;
