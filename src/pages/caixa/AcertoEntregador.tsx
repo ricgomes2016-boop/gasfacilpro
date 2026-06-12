@@ -1292,10 +1292,11 @@ export default function AcertoEntregador() {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <Table className="min-w-[520px]">
+                    <Table className="min-w-[560px]">
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-14">Hora</TableHead>
+                          <TableHead className="w-16">Nº</TableHead>
+                          <TableHead className="w-20">Data</TableHead>
                           <TableHead>Cliente</TableHead>
                           <TableHead className="hidden md:table-cell">Produtos</TableHead>
                           <TableHead>Pagamento</TableHead>
@@ -1310,11 +1311,16 @@ export default function AcertoEntregador() {
                             .map((i: any) => `${i.quantidade}x ${i.produtos?.nome || "?"}`)
                             .join(", ") || "—";
                           const isAcertado = e.status === "finalizado";
+                          const numeroStr = e.numero_sequencial
+                            ? `#${e.numero_sequencial}`
+                            : `#${String(e.id).slice(-6)}`;
+                          const dataStr = e.data_entrega
+                            ? format(parseISO(`${e.data_entrega}T12:00:00`), "dd/MM/yyyy")
+                            : format(parseISO(e.created_at), "dd/MM/yyyy");
                           return (
                             <TableRow key={e.id} className={isAcertado ? "opacity-75" : ""}>
-                              <TableCell className="text-xs">
-                                {e.data_entrega ? format(parseISO(`${e.data_entrega}T12:00:00`), "dd/MM") : format(parseISO(e.created_at), "dd/MM HH:mm")}
-                              </TableCell>
+                              <TableCell className="text-xs font-mono whitespace-nowrap">{numeroStr}</TableCell>
+                              <TableCell className="text-xs whitespace-nowrap">{dataStr}</TableCell>
                               <TableCell className="text-sm font-medium">
                                 <div>{e.clientes?.nome || "—"}</div>
                                 <div className="md:hidden text-xs text-muted-foreground mt-0.5 max-w-[140px] truncate">{itensStr}</div>
@@ -1347,6 +1353,7 @@ export default function AcertoEntregador() {
                         })}
                       </TableBody>
                     </Table>
+
                   </div>
                 )}
               </CardContent>
