@@ -767,9 +767,10 @@ export default function AcertoEntregador() {
     doc.setFontSize(12);
     doc.text("Entregas Detalhadas", 14, y + 10);
     autoTable(doc, {
-      head: [["Hora", "Cliente", "Itens", "Pagamento", "Status", "Valor"]],
+      head: [["Nº", "Data", "Cliente", "Itens", "Pagamento", "Status", "Valor"]],
       body: entregas.map((e) => [
-        e.data_entrega ? format(parseISO(`${e.data_entrega}T12:00:00`), "dd/MM/yyyy") : format(parseISO(e.created_at), "dd/MM/yyyy HH:mm"),
+        e.numero_sequencial ? `#${e.numero_sequencial}` : `#${String(e.id).slice(-6)}`,
+        e.data_entrega ? format(parseISO(`${e.data_entrega}T12:00:00`), "dd/MM/yyyy") : format(parseISO(e.created_at), "dd/MM/yyyy"),
         e.clientes?.nome || "—",
         (e.pedido_itens || []).map((i: any) => `${i.quantidade}x ${i.produtos?.nome || "?"}`).join(", ") || "—",
         paymentLabels[e.forma_pagamento || ""] || e.forma_pagamento || "—",
@@ -780,6 +781,7 @@ export default function AcertoEntregador() {
       styles: { fontSize: 8 },
       headStyles: { fillColor: [51, 65, 85] },
     });
+
 
     if (despesas.length > 0) {
       y = (doc as any).lastAutoTable?.finalY || 180;
