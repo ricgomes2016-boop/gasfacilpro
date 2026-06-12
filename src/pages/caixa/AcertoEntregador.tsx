@@ -695,7 +695,8 @@ export default function AcertoEntregador() {
           const { error: updErr } = await supabase
             .from("pedidos")
             .update({ status: "finalizado" })
-            .eq("id", entrega.id);
+            .eq("id", entrega.id)
+            .eq("unidade_id", unidadeAtual.id);
           if (updErr) throw updErr;
 
           sucessos += 1;
