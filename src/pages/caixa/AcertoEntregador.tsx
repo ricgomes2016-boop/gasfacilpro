@@ -237,9 +237,21 @@ export default function AcertoEntregador() {
 
       if (canalVirtual) {
         if (canalVirtual.id === "__gas_do_povo__") {
-          query = query.or("forma_pagamento.eq.gas_do_povo,forma_pagamento.ilike.%gas_do_povo%");
+          // Aceita variações: gas_do_povo, Gás do Povo, Gas Do Povo, etc.
+          query = query.or(
+            [
+              "forma_pagamento.eq.gas_do_povo",
+              "forma_pagamento.ilike.%gas%povo%",
+              "forma_pagamento.ilike.%gás%povo%",
+              "responsavel_acerto.eq.gas_do_povo",
+            ].join(",")
+          );
         } else {
-          query = query.eq("responsavel_acerto", canalVirtual.canal.toLowerCase());
+          // Portaria/PDV: exclui pedidos do programa Gás do Povo (vão no canal próprio)
+          query = query
+            .eq("responsavel_acerto", canalVirtual.canal.toLowerCase())
+            .not("forma_pagamento", "ilike", "%gas%povo%")
+            .not("forma_pagamento", "ilike", "%gás%povo%");
         }
       } else {
         query = query.eq("entregador_id", selectedId);
