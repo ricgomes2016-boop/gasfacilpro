@@ -704,12 +704,15 @@ export default function AcertoEntregador() {
             userId: user?.id,
           });
 
-          const { error: updErr } = await supabase
+          const { data: updated, error: updErr } = await supabase
             .from("pedidos")
             .update({ status: "finalizado" })
             .eq("id", entrega.id)
-            .eq("unidade_id", unidadeAtual.id);
+            .eq("unidade_id", unidadeAtual.id)
+            .select("id")
+            .maybeSingle();
           if (updErr) throw updErr;
+          if (!updated) throw new Error("Status não atualizado (sem permissão ou linha não encontrada)");
 
           sucessos += 1;
         } catch (err: any) {
