@@ -620,78 +620,104 @@ export default function AcertoEntregador() {
       return;
     }
     setIsConfirmingAcerto(true);
+    const falhas: { numero: string; motivo: string }[] = [];
+    let sucessos = 0;
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       for (const entrega of pendentes) {
-        const fp = entrega.forma_pagamento || "";
-        let pagamentos: PagamentoRoteamento[] = [];
+        const numeroLabel = (entrega as any).numero_sequencial
+          ? `#${(entrega as any).numero_sequencial}`
+          : entrega.id.slice(-6);
+        try {
+          const fp = entrega.forma_pagamento || "";
+          let pagamentos: PagamentoRoteamento[] = [];
 
-        if (fp.includes(", ") || fp.startsWith("Múltiplos: ")) {
-          const cleanFp = fp.replace("Múltiplos: ", "");
-          const parts = cleanFp.split(/,\s*|\s*\+\s*/);
-        pagamentos = parts.map((part: string) => {
-            const match = part.trim().match(/^(.+?)\s+R\$(\d+[\.,]?\d*)$/);
-            if (match) {
-              return { forma: normalizarFormaPagamento(match[1].trim()), valor: parseFloat(match[2].replace(",", ".")) };
-            }
-            return { forma: normalizarFormaPagamento(part.trim()), valor: Number(entrega.valor_total) };
-          });
-        } else if (fp) {
-          pagamentos = [{ forma: normalizarFormaPagamento(fp), valor: Number(entrega.valor_total) }];
-        } else {
-          pagamentos = [{ forma: "dinheiro", valor: Number(entrega.valor_total) }];
-        }
-
-        if (pagamentos.some(p => p.forma === "vale_gas")) {
-          const { data: valeUsado } = await (supabase as any)
-            .from("vale_gas")
-            .select("id, numero, codigo, parceiro_id, valor, vale_gas_parceiros:parceiro_id(nome)")
-            .eq("venda_id", entrega.id)
-            .maybeSingle();
-          if (valeUsado) {
-            pagamentos = pagamentos.map((p) => p.forma === "vale_gas" ? {
-              ...p,
-              vale_gas_id: valeUsado.id,
-              vale_gas_parceiro_id: valeUsado.parceiro_id,
-              vale_gas_parceiro_nome: valeUsado.vale_gas_parceiros?.nome,
-              vale_gas_numero: valeUsado.numero,
-              vale_gas_codigo: valeUsado.codigo,
-              valor: Number(valeUsado.valor || p.valor),
-            } : p);
+          if (fp.includes(", ") || fp.startsWith("Múltiplos: ")) {
+            const cleanFp = fp.replace("Múltiplos: ", "");
+            const parts = cleanFp.split(/,\s*|\s*\+\s*/);
+            pagamentos = parts.map((part: string) => {
+              const match = part.trim().match(/^(.+?)\s+R\$(\d+[\.,]?\d*)$/);
+              if (match) {
+                return { forma: normalizarFormaPagamento(match[1].trim()), valor: parseFloat(match[2].replace(",", ".")) };
+              }
+              return { forma: normalizarFormaPagamento(part.trim()), valor: Number(entrega.valor_total) };
+            });
+          } else if (fp) {
+            pagamentos = [{ forma: normalizarFormaPagamento(fp), valor: Number(entrega.valor_total) }];
+          } else {
+            pagamentos = [{ forma: "dinheiro", valor: Number(entrega.valor_total) }];
           }
+
+          if (pagamentos.some(p => p.forma === "vale_gas")) {
+            const { data: valeUsado } = await (supabase as any)
+              .from("vale_gas")
+              .select("id, numero, codigo, parceiro_id, valor, vale_gas_parceiros:parceiro_id(nome)")
+              .eq("venda_id", entrega.id)
+              .maybeSingle();
+            if (valeUsado) {
+              pagamentos = pagamentos.map((p) => p.forma === "vale_gas" ? {
+                ...p,
+                vale_gas_id: valeUsado.id,
+                vale_gas_parceiro_id: valeUsado.parceiro_id,
+                vale_gas_parceiro_nome: valeUsado.vale_gas_parceiros?.nome,
+                vale_gas_numero: valeUsado.numero,
+                vale_gas_codigo: valeUsado.codigo,
+                valor: Number(valeUsado.valor || p.valor),
+              } : p);
+            }
+          }
+
+          const temValeGasSemVinculo = pagamentos.some(p => p.forma === "vale_gas" && !(p as any).vale_gas_id);
+          if (temValeGasSemVinculo) {
+            throw new Error("Vale Gás sem parceiro/número validado");
+          }
+
+          await rotearPagamentosVenda({
+            pedidoId: entrega.id,
+            pedidoNumero: (entrega as any).numero_sequencial ?? null,
+            clienteId: entrega.cliente_id || null,
+            clienteNome: entrega.clientes?.nome || "Cliente",
+            pagamentos,
+            unidadeId: unidadeAtual?.id || null,
+            entregadorId: canalVirtual ? null : selectedId,
+            userId: user?.id,
+          });
+
+          const { error: updErr } = await supabase
+            .from("pedidos")
+            .update({ status: "finalizado" })
+            .eq("id", entrega.id);
+          if (updErr) throw updErr;
+
+          sucessos += 1;
+        } catch (err: any) {
+          console.error(`[Acerto] Falha pedido ${numeroLabel}:`, err);
+          falhas.push({ numero: numeroLabel, motivo: err?.message || "erro desconhecido" });
         }
-
-        const temValeGasSemVinculo = pagamentos.some(p => p.forma === "vale_gas" && !(p as any).vale_gas_id);
-        if (temValeGasSemVinculo) {
-          throw new Error("Existe pedido com Vale Gás sem parceiro/número validado. Abra a edição do pedido e valide o vale antes de confirmar o acerto.");
-        }
-
-        await rotearPagamentosVenda({
-          pedidoId: entrega.id,
-          pedidoNumero: (entrega as any).numero_sequencial ?? null,
-          clienteId: entrega.cliente_id || null,
-          clienteNome: entrega.clientes?.nome || "Cliente",
-          pagamentos,
-          unidadeId: unidadeAtual?.id || null,
-          entregadorId: canalVirtual ? null : selectedId,
-          userId: user?.id,
-        });
-
-        await supabase.from("pedidos").update({ status: "finalizado" }).eq("id", entrega.id);
       }
 
-      setAcertoConfirmado(true);
-      toast.success(`Acerto confirmado! ${pendentes.length} entrega(s) roteadas financeiramente.`);
       queryClient.invalidateQueries({ queryKey: ["acerto-entregas"] });
-      // Switch to "acertados" to show the settled orders
-      setFiltroStatus("acertados");
+
+      if (falhas.length === 0) {
+        setAcertoConfirmado(true);
+        toast.success(`Acerto confirmado! ${sucessos} entrega(s) roteadas financeiramente.`);
+        setFiltroStatus("acertados");
+      } else {
+        const listaFalhas = falhas.map(f => f.numero).join(", ");
+        toast.error(
+          `${sucessos} de ${pendentes.length} pedido(s) finalizados. ${falhas.length} falharam: ${listaFalhas}`,
+          { duration: 10000 }
+        );
+        if (sucessos > 0) setAcertoConfirmado(true);
+      }
     } catch (err: any) {
       toast.error("Erro ao confirmar acerto: " + err.message);
     } finally {
       setIsConfirmingAcerto(false);
     }
   };
+
 
   // Exportar PDF do acerto
   const exportarPDF = () => {
