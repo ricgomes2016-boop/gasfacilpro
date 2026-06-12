@@ -456,7 +456,8 @@ export default function AcertoEntregador() {
       const { error } = await supabase
         .from("pedidos")
         .update({ forma_pagamento: formaPgtoSalvar, valor_total: novoTotal })
-        .eq("id", editingEntrega.id);
+        .eq("id", editingEntrega.id)
+        .eq("unidade_id", unidadeAtual.id);
       if (error) throw error;
 
       if (valeGasValidado?.valido && (valeGasValidado as any)?.valeId) {
@@ -464,6 +465,7 @@ export default function AcertoEntregador() {
           .from("pedidos")
           .select("cliente_id, clientes(nome, telefone, endereco, bairro)")
           .eq("id", editingEntrega.id)
+          .eq("unidade_id", unidadeAtual.id)
           .single();
 
         const clienteInfo = pedidoData?.clientes as any;
