@@ -186,20 +186,18 @@ export default function AcertoEntregador() {
   const { data: entregadores = [] } = useQuery({
     queryKey: ["entregadores-ativos", unidadeAtual?.id],
     queryFn: async () => {
-      let query = supabase
+      if (!unidadeAtual?.id) return [];
+      const { data, error } = await supabase
         .from("entregadores")
         .select("id, nome")
         .eq("ativo", true)
+        .eq("unidade_id", unidadeAtual.id)
         .order("nome");
 
-      if (unidadeAtual?.id) {
-        query = query.eq("unidade_id", unidadeAtual.id);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
+    enabled: !!unidadeAtual?.id,
   });
 
   const canalVirtual = CANAIS_VIRTUAIS.find(c => c.id === selectedId);
