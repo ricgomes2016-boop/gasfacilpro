@@ -1029,7 +1029,18 @@ export async function saveMessage(supabase: any, conversationId: string, role: s
   // Status default: inbound = 'sent' (já chegou); assistant/system = 'sent' (BIA enviou via sendMessage do webhook); human = pending (operador)
   if (role === "user") row.status = "sent";
   else if (role === "assistant" || role === "system") row.status = "sent";
-  await supabase.from("ai_mensagens").insert(row);
+  const { error } = await supabase.from("ai_mensagens").insert(row);
+  if (error) {
+    console.error("[bia-core] saveMessage failed", {
+      conversationId,
+      role,
+      wa_message_id,
+      code: error.code,
+      message: error.message,
+      details: error.details,
+    });
+    throw error;
+  }
 }
 
 export async function upsertConversation(supabase: any, conversationId: string, title: string, telefone?: string, unidadeId?: string | null) {
@@ -1058,7 +1069,17 @@ export async function upsertConversation(supabase: any, conversationId: string, 
       if (unidade?.empresa_id) payload.empresa_id = unidade.empresa_id;
     } catch {}
   }
-  await supabase.from("ai_conversas").upsert(payload, { onConflict: "id" });
+  const { error } = await supabase.from("ai_conversas").upsert(payload, { onConflict: "id" });
+  if (error) {
+    console.error("[bia-core] upsertConversation failed", {
+      conversationId,
+      unidadeId,
+      code: error.code,
+      message: error.message,
+      details: error.details,
+    });
+    throw error;
+  }
 }
 
 // ========== IDEMPOTENCY ==========
