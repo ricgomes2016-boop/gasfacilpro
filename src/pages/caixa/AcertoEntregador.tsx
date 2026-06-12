@@ -1438,6 +1438,7 @@ export default function AcertoEntregador() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Editar Entrega</DialogTitle>
+            <DialogDescription>Ajuste itens, valores e formas de pagamento desta entrega.</DialogDescription>
           </DialogHeader>
           {editingEntrega && (
             <div className="space-y-4">
