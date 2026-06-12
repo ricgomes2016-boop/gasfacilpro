@@ -186,20 +186,18 @@ export default function AcertoEntregador() {
   const { data: entregadores = [] } = useQuery({
     queryKey: ["entregadores-ativos", unidadeAtual?.id],
     queryFn: async () => {
-      let query = supabase
+      if (!unidadeAtual?.id) return [];
+      const { data, error } = await supabase
         .from("entregadores")
         .select("id, nome")
         .eq("ativo", true)
+        .eq("unidade_id", unidadeAtual.id)
         .order("nome");
 
-      if (unidadeAtual?.id) {
-        query = query.eq("unidade_id", unidadeAtual.id);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return data || [];
     },
+    enabled: !!unidadeAtual?.id,
   });
 
   const canalVirtual = CANAIS_VIRTUAIS.find(c => c.id === selectedId);
@@ -221,7 +219,7 @@ export default function AcertoEntregador() {
   const { data: entregas = [], isLoading: loadingEntregas } = useQuery({
     queryKey: ["acerto-entregas", selectedId, dataInicio, dataFim, unidadeAtual?.id, filtroStatus],
     queryFn: async () => {
-      if (!selectedId) return [];
+      if (!selectedId || !unidadeAtual?.id) return [];
       const statusList = getStatusFilter();
       let query = supabase
         .from("pedidos")
@@ -230,6 +228,7 @@ export default function AcertoEntregador() {
           clientes (nome),
           pedido_itens (id, quantidade, preco_unitario, produtos (nome))
         `)
+        .eq("unidade_id", unidadeAtual.id)
         .gte("data_entrega", dataInicio)
         .lte("data_entrega", dataFim)
         .in("status", statusList)
@@ -246,27 +245,26 @@ export default function AcertoEntregador() {
         query = query.eq("entregador_id", selectedId);
       }
 
-      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as any[];
     },
-    enabled: buscar && !!selectedId,
+    enabled: buscar && !!selectedId && !!unidadeAtual?.id,
   });
 
   const { data: entregadoresPendentes = [], isLoading: loadingPendentes } = useQuery({
     queryKey: ["acerto-entregadores-pendentes", dataInicio, dataFim, unidadeAtual?.id],
     queryFn: async () => {
-      let query = supabase
+      if (!unidadeAtual?.id) return [];
+      const { data, error } = await supabase
         .from("pedidos")
         .select("id, valor_total, data_entrega, entregador_id, entregadores (id, nome)")
+        .eq("unidade_id", unidadeAtual.id)
         .gte("data_entrega", dataInicio)
         .lte("data_entrega", dataFim)
         .in("status", ["entregue", "pago"])
         .not("entregador_id", "is", null);
 
-      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
-      const { data, error } = await query;
       if (error) throw error;
 
       const map = new Map<string, { id: string; nome: string; pedidos: number; total: number }>();
@@ -285,28 +283,28 @@ export default function AcertoEntregador() {
 
       return Array.from(map.values()).sort((a, b) => b.total - a.total);
     },
+    enabled: !!unidadeAtual?.id,
   });
 
   // Despesas do entregador no período (não se aplica a canais virtuais)
   const { data: despesas = [], isLoading: loadingDespesas } = useQuery({
     queryKey: ["acerto-despesas", selectedId, dataInicio, dataFim, unidadeAtual?.id],
     queryFn: async () => {
-      if (!selectedId || canalVirtual) return [];
-      let query = supabase
+      if (!selectedId || canalVirtual || !unidadeAtual?.id) return [];
+      const { data, error } = await supabase
         .from("movimentacoes_caixa")
         .select("id, descricao, valor, categoria, created_at")
+        .eq("unidade_id", unidadeAtual.id)
         .eq("entregador_id", selectedId)
         .eq("tipo", "saida")
         .gte("created_at", `${dataInicio}T00:00:00-03:00`)
         .lte("created_at", `${dataFim}T23:59:59-03:00`)
         .order("created_at", { ascending: true });
 
-      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
-      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as any[];
     },
-    enabled: buscar && !!selectedId,
+    enabled: buscar && !!selectedId && !canalVirtual && !!unidadeAtual?.id,
   });
 
   const handleBuscar = () => {
@@ -413,6 +411,10 @@ export default function AcertoEntregador() {
 
   const salvarEdicao = async () => {
     if (!editingEntrega) return;
+    if (!unidadeAtual?.id) {
+      toast.error("Selecione uma unidade antes de editar a entrega");
+      return;
+    }
     setIsSavingEdit(true);
 
     try {
@@ -454,7 +456,8 @@ export default function AcertoEntregador() {
       const { error } = await supabase
         .from("pedidos")
         .update({ forma_pagamento: formaPgtoSalvar, valor_total: novoTotal })
-        .eq("id", editingEntrega.id);
+        .eq("id", editingEntrega.id)
+        .eq("unidade_id", unidadeAtual.id);
       if (error) throw error;
 
       if (valeGasValidado?.valido && (valeGasValidado as any)?.valeId) {
@@ -462,6 +465,7 @@ export default function AcertoEntregador() {
           .from("pedidos")
           .select("cliente_id, clientes(nome, telefone, endereco, bairro)")
           .eq("id", editingEntrega.id)
+          .eq("unidade_id", unidadeAtual.id)
           .single();
 
         const clienteInfo = pedidoData?.clientes as any;
@@ -610,6 +614,10 @@ export default function AcertoEntregador() {
 
   // Confirmar acerto
   const confirmarAcerto = async () => {
+    if (!unidadeAtual?.id) {
+      toast.error("Selecione uma unidade antes de confirmar o acerto");
+      return;
+    }
     const pendentes = entregas.filter(e => e.status === "entregue" || e.status === "pago");
     if (pendentes.length === 0) {
       toast.error("Nenhuma entrega pendente para confirmar");
@@ -687,7 +695,8 @@ export default function AcertoEntregador() {
           const { error: updErr } = await supabase
             .from("pedidos")
             .update({ status: "finalizado" })
-            .eq("id", entrega.id);
+            .eq("id", entrega.id)
+            .eq("unidade_id", unidadeAtual.id);
           if (updErr) throw updErr;
 
           sucessos += 1;
