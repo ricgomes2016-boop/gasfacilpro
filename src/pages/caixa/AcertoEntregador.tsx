@@ -1210,7 +1210,18 @@ export default function AcertoEntregador() {
                           {Object.entries(metricas.porForma)
                             .sort(([, a], [, b]) => b - a)
                             .map(([forma, valor]) => {
-                              const qtd = entregas.filter((e) => (e.forma_pagamento || "outros") === forma).length;
+                              const qtd = entregas.filter((e) => {
+                                const fp = (e.forma_pagamento || "").trim();
+                                const isMulti = /^m[uú]ltiplos?:/i.test(fp) || fp.includes(",") || /\+/.test(fp);
+                                if (isMulti) {
+                                  const clean = fp.replace(/^m[uú]ltiplos?:\s*/i, "");
+                                  return clean.split(/\s*\+\s*|,\s*/).some((p) => {
+                                    const m = p.trim().match(/^(.+?)(?:\s+R?\$?\s*[\d.,]+)?$/);
+                                    return canonicalForma(m ? m[1] : p) === forma;
+                                  });
+                                }
+                                return canonicalForma(fp) === forma;
+                              }).length;
                               const pct = metricas.totalVendas > 0 ? ((valor / metricas.totalVendas) * 100).toFixed(1) : "0";
                               return (
                                 <TableRow key={forma}>
