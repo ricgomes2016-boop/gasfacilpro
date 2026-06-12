@@ -614,6 +614,10 @@ export default function AcertoEntregador() {
 
   // Confirmar acerto
   const confirmarAcerto = async () => {
+    if (!unidadeAtual?.id) {
+      toast.error("Selecione uma unidade antes de confirmar o acerto");
+      return;
+    }
     const pendentes = entregas.filter(e => e.status === "entregue" || e.status === "pago");
     if (pendentes.length === 0) {
       toast.error("Nenhuma entrega pendente para confirmar");
