@@ -86,7 +86,7 @@ serve(async (req) => {
     };
 
     const buildEstoqueBaixo = () => {
-      let q = sb.from("produtos").select("id, nome, estoque_atual, estoque_minimo").filter("estoque_atual", "lte", "estoque_minimo");
+      let q = sb.from("produtos").select("id, nome, estoque").lte("estoque", 5);
       if (safeUnidadeId) q = q.eq("unidade_id", safeUnidadeId);
       else q = q.in("unidade_id", unidadeIds);
       return q;
@@ -146,16 +146,27 @@ serve(async (req) => {
       hora: nowBrasilia.getHours(),
       vendas_hoje: { total: pedidosHoje?.length || 0, valor: totalVendasHoje },
       pedidos_pendentes: pedidosPendentes?.length || 0,
-      estoque_baixo: (estoqueBaixo || []).map((p: any) => ({ nome: p.nome, atual: p.estoque_atual, minimo: p.estoque_minimo })),
+      estoque_baixo: (estoqueBaixo || []).map((p: any) => ({ nome: p.nome, atual: p.estoque, minimo: 5 })),
       manutencoes: (manutencoesPendentes || []).map((m: any) => ({ placa: (m.veiculos as any)?.placa, tipo: m.tipo, descricao: m.descricao })),
       contas_vencidas: (contasPagar || []).map((c: any) => ({ descricao: c.descricao, valor: c.valor, vencimento: c.vencimento })),
       alertas_jornada: (alertasJornada || []).map((a: any) => ({ funcionario: (a.funcionarios as any)?.nome, tipo: a.tipo, descricao: a.descricao })),
     };
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const saudacao = context.hora < 12 ? "Bom dia" : context.hora < 18 ? "Boa tarde" : "Boa noite";
+
+    if (!LOVABLE_API_KEY) {
+      const briefing = `${saudacao}, ${context.nome_gestor}! 👋\n\n` +
+        `• Vendas hoje: ${context.vendas_hoje.total} pedido(s), R$ ${context.vendas_hoje.valor.toFixed(2)}.\n` +
+        `• Pedidos pendentes: ${context.pedidos_pendentes}.\n` +
+        `• Produtos com estoque baixo: ${context.estoque_baixo.length}.\n\n` +
+        `Dados carregados. A geração com IA fica disponível após configurar a chave do gateway.`;
+
+      return new Response(JSON.stringify({ briefing, context, ai_unavailable: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const systemPrompt = `Você é o assistente de gestão de uma revenda de gás. Gere um briefing matinal curto e direto para o gestor.
 Use emojis para deixar visual. Seja conciso (máx 200 palavras). Use markdown com bullet points.
@@ -178,10 +189,16 @@ Termine com uma frase motivacional curta.`;
 
     if (!aiRes.ok) {
       const errText = await aiRes.text();
-      console.error("AI error:", aiRes.status, errText);
-      if (aiRes.status === 429) return new Response(JSON.stringify({ error: "Muitas requisições, tente novamente em instantes." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (aiRes.status === 402) return new Response(JSON.stringify({ error: "Créditos insuficientes." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      throw new Error("AI gateway error");
+      console.warn("AI gateway unavailable:", aiRes.status, errText);
+      const briefing = `${saudacao}, ${context.nome_gestor}! 👋\n\n` +
+        `• Vendas hoje: ${context.vendas_hoje.total} pedido(s), R$ ${context.vendas_hoje.valor.toFixed(2)}.\n` +
+        `• Pedidos pendentes: ${context.pedidos_pendentes}.\n` +
+        `• Produtos com estoque baixo: ${context.estoque_baixo.length}.\n\n` +
+        `Dados carregados. A IA não respondeu agora, mas o resumo operacional segue disponível.`;
+
+      return new Response(JSON.stringify({ briefing, context, ai_unavailable: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const aiData = await aiRes.json();

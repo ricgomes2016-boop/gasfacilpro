@@ -32,9 +32,6 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-
     // Get authenticated user's empresa_id
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -137,6 +134,22 @@ serve(async (req) => {
       dia_semana: dayOfWeek,
     });
 
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      return new Response(JSON.stringify({
+        insights: [
+          {
+            emoji: "📊",
+            titulo: "Central operacional pronta",
+            descricao: "Os dados do dashboard foram carregados. A geração com IA está indisponível até configurar a chave do gateway.",
+            prioridade: "baixa",
+          },
+        ],
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -200,18 +213,20 @@ Regras:
     });
 
     if (!response.ok) {
-      const status = response.status;
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit atingido" }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos esgotados" }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      throw new Error("AI gateway error");
+      console.warn("AI gateway unavailable:", response.status, await response.text());
+      return new Response(JSON.stringify({
+        insights: [
+          {
+            emoji: "📊",
+            titulo: "Dados carregados",
+            descricao: "A IA não respondeu agora, mas o dashboard segue disponível com os indicadores operacionais.",
+            prioridade: "baixa",
+          },
+        ],
+        ai_unavailable: true,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const result = await response.json();
