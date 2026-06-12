@@ -15,7 +15,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -116,6 +116,25 @@ function canonicalForma(raw: string): string {
   if (direct[s]) return direct[s];
   if (FORMAS_CANONICAS.has(s)) return s;
   return "__invalido__";
+}
+
+// Parse robusto de valores monetários (aceita "R$ 1.234,56", "1234.56", "50.00", "1,234.56")
+function parseValorBR(raw: string): number {
+  if (!raw) return 0;
+  let s = raw.toString().replace(/r\$/gi, "").replace(/\s/g, "").trim();
+  if (!s) return 0;
+  const hasComma = s.includes(",");
+  const hasDot = s.includes(".");
+  if (hasComma && hasDot) {
+    // pt-BR: "1.234,56" — ponto é milhar, vírgula é decimal
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else if (hasComma) {
+    // "1234,56" — só vírgula decimal
+    s = s.replace(",", ".");
+  }
+  // só ponto: trata como decimal padrão ("50.00", "1234.56")
+  const n = parseFloat(s);
+  return isFinite(n) ? n : 0;
 }
 
 const CANAIS_VIRTUAIS = [
@@ -536,23 +555,24 @@ export default function AcertoEntregador() {
     const entregasInvalidas: { id: string; forma_original: string; valor: number }[] = [];
 
     const parseMultiplos = (fp: string, total: number): { forma: string; valor: number }[] => {
-      const clean = fp.replace(/^Múltiplos:\s*/i, "");
+      // Remove prefixos "Múltiplos:" e "multiplo:" (sem acento)
+      const clean = fp.replace(/^m[uú]ltiplos?:\s*/i, "");
       const parts = clean.split(/\s*\+\s*|,\s*/).filter(Boolean);
       const out: { forma: string; valor: number }[] = [];
       let restante = total;
-      let semValor: string[] = [];
+      const semValor: string[] = [];
       parts.forEach((part) => {
-        const m = part.trim().match(/^(.+?)\s+R\$\s*([\d\.,]+)$/);
+        const m = part.trim().match(/^(.+?)\s+R?\$?\s*([\d.,]+)$/);
         if (m) {
-          const v = parseFloat(m[2].replace(/\./g, "").replace(",", "."));
-          out.push({ forma: m[1].trim(), valor: isFinite(v) ? v : 0 });
-          restante -= isFinite(v) ? v : 0;
+          const v = parseValorBR(m[2]);
+          out.push({ forma: m[1].trim(), valor: v });
+          restante -= v;
         } else {
           semValor.push(part.trim());
         }
       });
       if (semValor.length > 0) {
-        const dividido = semValor.length > 0 ? restante / semValor.length : 0;
+        const dividido = restante / semValor.length;
         semValor.forEach((forma) => out.push({ forma, valor: dividido }));
       }
       return out;
@@ -561,7 +581,8 @@ export default function AcertoEntregador() {
     entregas.forEach((e) => {
       const fp = (e.forma_pagamento || "").trim();
       const total = Number(e.valor_total || 0);
-      const items = (fp.includes(",") || /\+/.test(fp) || /^Múltiplos:/i.test(fp))
+      const isMultiplo = /^m[uú]ltiplos?:/i.test(fp) || fp.includes(",") || /\+/.test(fp);
+      const items = isMultiplo
         ? parseMultiplos(fp, total)
         : [{ forma: fp, valor: total }];
 
@@ -609,6 +630,9 @@ export default function AcertoEntregador() {
   const nomeEntregador = canalVirtual?.canal || entregadores.find((e) => e.id === selectedId)?.nome || "";
 
   const normalizarFormaPagamento = (forma: string): string => {
+    const canon = canonicalForma(forma);
+    if (canon !== "__invalido__") return canon;
+    // Fallback para variações conhecidas
     const map: Record<string, string> = {
       "Dinheiro": "dinheiro",
       "PIX": "pix",
@@ -651,22 +675,32 @@ export default function AcertoEntregador() {
           : entrega.id.slice(-6);
         try {
           const fp = entrega.forma_pagamento || "";
+          const totalEntrega = Number(entrega.valor_total) || 0;
           let pagamentos: PagamentoRoteamento[] = [];
 
-          if (fp.includes(", ") || fp.startsWith("Múltiplos: ")) {
-            const cleanFp = fp.replace("Múltiplos: ", "");
-            const parts = cleanFp.split(/,\s*|\s*\+\s*/);
-            pagamentos = parts.map((part: string) => {
-              const match = part.trim().match(/^(.+?)\s+R\$(\d+[\.,]?\d*)$/);
+          const isMultiplo = /^m[uú]ltiplos?:/i.test(fp) || fp.includes(", ") || /\+/.test(fp);
+          if (isMultiplo) {
+            const cleanFp = fp.replace(/^m[uú]ltiplos?:\s*/i, "");
+            const parts = cleanFp.split(/,\s*|\s*\+\s*/).filter(Boolean);
+            const parsed: { forma: string; valor: number | null }[] = parts.map((part: string) => {
+              const match = part.trim().match(/^(.+?)\s+R?\$?\s*([\d.,]+)$/);
               if (match) {
-                return { forma: normalizarFormaPagamento(match[1].trim()), valor: parseFloat(match[2].replace(",", ".")) };
+                return { forma: normalizarFormaPagamento(match[1].trim()), valor: parseValorBR(match[2]) };
               }
-              return { forma: normalizarFormaPagamento(part.trim()), valor: Number(entrega.valor_total) };
+              return { forma: normalizarFormaPagamento(part.trim()), valor: null };
             });
+            const somaExplicita = parsed.reduce((a, p) => a + (p.valor ?? 0), 0);
+            const semValor = parsed.filter((p) => p.valor === null);
+            const restante = Math.max(0, totalEntrega - somaExplicita);
+            const divididoEntreSemValor = semValor.length > 0 ? restante / semValor.length : 0;
+            pagamentos = parsed.map((p) => ({
+              forma: p.forma,
+              valor: p.valor !== null ? p.valor : divididoEntreSemValor,
+            }));
           } else if (fp) {
-            pagamentos = [{ forma: normalizarFormaPagamento(fp), valor: Number(entrega.valor_total) }];
+            pagamentos = [{ forma: normalizarFormaPagamento(fp), valor: totalEntrega }];
           } else {
-            pagamentos = [{ forma: "dinheiro", valor: Number(entrega.valor_total) }];
+            pagamentos = [{ forma: "dinheiro", valor: totalEntrega }];
           }
 
           if (pagamentos.some(p => p.forma === "vale_gas")) {
@@ -1176,7 +1210,18 @@ export default function AcertoEntregador() {
                           {Object.entries(metricas.porForma)
                             .sort(([, a], [, b]) => b - a)
                             .map(([forma, valor]) => {
-                              const qtd = entregas.filter((e) => (e.forma_pagamento || "outros") === forma).length;
+                              const qtd = entregas.filter((e) => {
+                                const fp = (e.forma_pagamento || "").trim();
+                                const isMulti = /^m[uú]ltiplos?:/i.test(fp) || fp.includes(",") || /\+/.test(fp);
+                                if (isMulti) {
+                                  const clean = fp.replace(/^m[uú]ltiplos?:\s*/i, "");
+                                  return clean.split(/\s*\+\s*|,\s*/).some((p) => {
+                                    const m = p.trim().match(/^(.+?)(?:\s+R?\$?\s*[\d.,]+)?$/);
+                                    return canonicalForma(m ? m[1] : p) === forma;
+                                  });
+                                }
+                                return canonicalForma(fp) === forma;
+                              }).length;
                               const pct = metricas.totalVendas > 0 ? ((valor / metricas.totalVendas) * 100).toFixed(1) : "0";
                               return (
                                 <TableRow key={forma}>
@@ -1393,6 +1438,7 @@ export default function AcertoEntregador() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Editar Entrega</DialogTitle>
+            <DialogDescription>Ajuste itens, valores e formas de pagamento desta entrega.</DialogDescription>
           </DialogHeader>
           {editingEntrega && (
             <div className="space-y-4">
