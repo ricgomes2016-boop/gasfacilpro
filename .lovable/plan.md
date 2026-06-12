@@ -1,30 +1,39 @@
-# Correção do Acerto Diário do Entregador
+## Problema
 
-## 1. Melhorias na tabela de entregas (`src/pages/caixa/AcertoEntregador.tsx`)
+No `AcertoEntregador.tsx`, várias queries usam o padrão "filtra por `unidade_id` somente SE `unidadeAtual?.id` existir". Quando o componente monta e o `UnidadeContext` ainda não terminou de carregar (ou o usuário tem acesso a múltiplas unidades/empresas), as queries rodam SEM o filtro de unidade — e o RLS, para perfis admin/gestor, permite ver todas as unidades da empresa (e, em contas multi-empresa como contador, de outras empresas também). Resultado: os cards de "Entregadores com acerto pendente", "Entregadores ativos" e os totais por entregador misturam pedidos de outras lojas.
 
-**Nova coluna "Nº Pedido"** (primeira coluna), exibindo `numero_sequencial` do pedido (formato `#1234`). Quando ausente, mostra os últimos 6 caracteres do `id`.
+## Correções (arquivo único: `src/pages/caixa/AcertoEntregador.tsx`)
 
-**Coluna "Data" no lugar de "Hora"**: passa a mostrar a data real do pedido (`data_entrega` formatada `dd/MM/yyyy`). Se o pedido ainda não tiver `data_entrega` (raro), faz fallback para `created_at` formatado como `dd/MM/yyyy`. Isso garante que a data exibida seja a do pedido — não a data do acerto.
+Tornar o filtro por unidade **obrigatório** em todas as queries da tela e impedir a execução enquanto `unidadeAtual` não estiver pronto.
 
-**Mesma alteração no PDF exportado** (`exportarPDF`): adicionar coluna `Nº` e usar `data_entrega` em formato `dd/MM/yyyy`.
+1. **Query `entregadores-ativos`** (linha 186):
+   - Adicionar `enabled: !!unidadeAtual?.id`.
+   - Trocar `if (unidadeAtual?.id) query = query.eq(...)` por filtro sempre aplicado; se ausente, retornar `[]`.
 
-**Mobile/Responsivo**: o `numero_sequencial` aparece também como subtítulo no celular (junto ao cliente), preservando o padrão de UI mobile existente.
+2. **Query `acerto-entregas`** (linha 221):
+   - Atualizar `enabled` para `buscar && !!selectedId && !!unidadeAtual?.id`.
+   - Filtro `unidade_id` sempre aplicado (sem condicional).
 
-## 2. Investigar pedidos "não finalizados"
+3. **Query `acerto-entregadores-pendentes`** (linha 257) — principal vazamento, pois roda sem `enabled`:
+   - Adicionar `enabled: !!unidadeAtual?.id`.
+   - Filtro `unidade_id` sempre obrigatório; se ausente, retornar `[]`.
 
-Diagnóstico provável: ao confirmar o acerto, a função `confirmarAcerto` chama `rotearPagamentosVenda` e depois `UPDATE pedidos SET status='finalizado'`. Se qualquer pedido lançar erro no meio do loop, o `for` é interrompido e os pedidos restantes ficam pendentes — sem feedback claro de quais falharam.
+4. **Query `acerto-despesas`** (linha 291):
+   - Atualizar `enabled` para `buscar && !!selectedId && !canalVirtual && !!unidadeAtual?.id`.
+   - Filtro `unidade_id` sempre aplicado.
 
-Correções:
+5. **Mutações `salvarEdicao` (linhas 454, 461) e `confirmarAcerto` (linha 688)**:
+   - Adicionar guarda `if (!unidadeAtual?.id) { toast.error("Selecione uma unidade"); return; }` no início.
+   - Nos `update` em `pedidos`, adicionar `.eq("unidade_id", unidadeAtual.id)` como defesa em profundidade (evita editar pedido de outra unidade caso o id vaze).
 
-- **Trocar `for` por processamento individual com try/catch por pedido**: cada pedido tenta finalizar isoladamente; falhas viram lista de erros mostrada ao final (toast com IDs/números dos pedidos que falharam), e os bem-sucedidos seguem finalizados.
-- **Verificar retorno do UPDATE**: capturar `error` do `supabase.from('pedidos').update(...)` (hoje ignorado) e contar como falha se ocorrer (ex.: RLS, trigger).
-- **Mensagem final detalhada**: `"X de Y pedidos finalizados. Z falharam: #123, #456"` em vez do toast de sucesso atual quando há falhas parciais.
-- **Logar no console** o motivo de cada falha para facilitar diagnóstico futuro.
+6. **Query interna de `pedidos` em `salvarEdicao` (linha 461)** que busca `cliente_id` e dados do cliente:
+   - Adicionar `.eq("unidade_id", unidadeAtual.id)`.
 
-Nenhuma alteração em schema, RLS ou Edge Functions. Mudanças apenas no arquivo `src/pages/caixa/AcertoEntregador.tsx`.
+## Fora do escopo
 
-## Detalhes técnicos
+- Não mexer em RLS, schema ou Edge Functions — a correção é só no frontend, garantindo que toda chamada à tela carregue exclusivamente dados da unidade atual selecionada.
+- Não alterar a lógica de status, finalização ou PDF (já corrigidos antes).
 
-- Coluna `numero_sequencial` já vem no `select` (linha 229) — só faltava exibir.
-- `data_entrega` já é usada como filtro/ordenação — apenas ajustar o `format` na célula para `dd/MM/yyyy` (sem o `HH:mm` que aparece no fallback hoje).
-- O loop em `confirmarAcerto` (linhas 626–682) será refatorado para `Promise.allSettled`-like sequencial com coleta de erros, mantendo a regra de processar pedidos um a um (para não estourar limite do PostgREST nas chamadas de roteamento).
+## Resultado esperado
+
+Após buscar, todos os cards (entregadores pendentes, lista de entregas, despesas, totais por forma de pagamento e resumo de produtos) refletem **somente** a unidade atualmente selecionada no header. Trocar de unidade dispara refetch automático via `queryKey` que já inclui `unidadeAtual?.id`.
