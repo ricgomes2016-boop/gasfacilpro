@@ -1,66 +1,42 @@
-## Diagnóstico
+## Análise
 
-Investiguei os pedidos da unidade **Morumbi Gás** e o código de `src/pages/caixa/AcertoEntregador.tsx`. Encontrei duas causas raiz independentes que explicam tudo que você descreveu:
+Encontrei três problemas principais na tela `/caixa/acerto`:
 
-### 1. Filtro do canal "🔥 Gás do Povo" não casa com a forma de pagamento real
-O canal **Gás do Povo** usa hoje o filtro:
-```
-forma_pagamento.eq.gas_do_povo  OR  forma_pagamento.ilike.%gas_do_povo%
-```
-Mas na sua base os pedidos foram salvos com o texto **"Gás do Povo"** (com acento e espaços). `ILIKE` é case-insensitive mas **não ignora acentos nem espaços**, então `%gas_do_povo%` **não casa** com `Gás do Povo`.
+1. **Erro 400 na consulta de pedidos**
+   - A requisição do console mostra um filtro inválido enviado ao backend: `valor...=lte.2026-06-12`.
+   - Isso indica que alguma consulta/filtro de pedidos está sendo montada com coluna errada ou parâmetros desalinhados.
 
-Resultado:
-- Pedidos #3 a #6 (forma `gas_do_povo` minúsculo) aparecem no canal Gás do Povo ✅
-- Pedidos **#9, #10, #11, #12, #485, #486, #487** (forma `Gás do Povo`) **só aparecem no canal Portaria** ❌
+2. **Resumo automático com valores impossíveis**
+   - O card mostra, por exemplo, cartão débito/crédito/PIX com `QTD 0` e valores enormes, enquanto o total final é pequeno.
+   - A causa provável está no parser de pagamentos múltiplos: valores como `R$5.000,00` podem ser lidos errado em alguns fluxos, e a contagem por forma compara a forma original com a chave normalizada, por isso fica `0`.
 
-Isso é o motivo do "**resumo automático mostrando dados que parecem de outra empresa**": ao abrir o canal Portaria, o resumo soma vendas de programa Gás do Povo junto com vendas comuns de portaria. Não é vazamento entre empresas — é a mistura indevida de canais dentro da mesma unidade.
+3. **Avisos de acessibilidade em Dialog**
+   - Há avisos de `DialogContent requires DialogTitle` / `Missing Description` no console.
+   - Na própria tela de acerto existe `DialogTitle`, mas falta descrição; também vou revisar os diálogos acionados nessa rota para eliminar o aviso quando vier desta tela.
 
-### 2. Acerto da entrega #9 não finalizou
-Pedido #9 está no banco como `status = entregue`, `responsavel_acerto = portaria`, `forma_pagamento = "Gás do Povo"`.
+## Plano de correção
 
-Se você clicou no canal **🔥 Gás do Povo** para fazer o acerto, o #9 **nem apareceu** na lista (pelo mesmo bug do filtro acima), então o `confirmarAcerto` nunca passou por ele. Pela tela ele continuou "entregue".
+1. **Blindar o cálculo do resumo automático**
+   - Criar um parser único e seguro para valores BR (`R$ 1.587,56`, `1587.56`, `1.587,56`).
+   - Usar esse parser tanto em `metricas` quanto em `confirmarAcerto` e `abrirEdicao`.
+   - Corrigir a contagem (`QTD`) por forma de pagamento para contar formas normalizadas, inclusive pagamentos múltiplos.
+   - Garantir que percentuais sejam calculados somente sobre o total real das vendas e não gerem números acima de 100% quando o total estiver correto.
 
-Você confirmou que usou o canal **🏪 Portaria**. Nesse caso o #9 aparece, então o problema é diferente: o `confirmarAcerto` chama `rotearPagamentosVenda` antes do `update`. Como o roteamento usa `Promise.allSettled` (não joga erro pra cima), se houve falha individual ela ficou apenas no console e o status deveria ter sido atualizado — mas só **se** o `update` realmente atingiu a linha. Como hoje não temos verificação do retorno, qualquer 0-rows passa em silêncio.
+2. **Corrigir filtros de canais e período**
+   - Manter `unidade_id` obrigatório em todas as consultas da tela.
+   - Ajustar a filtragem de Portaria/PDV/Gás do Povo sem gerar URL inválida e sem misturar pedidos entre canais.
+   - Revisar a origem do erro 400 para impedir que `valor` receba data por engano em consultas de pedidos usadas na tela.
 
-## Plano
+3. **Tornar a confirmação mais confiável**
+   - Antes de finalizar, validar que cada pedido ainda pertence à unidade atual e ainda está pendente de acerto.
+   - Após o update, exigir retorno da linha atualizada; se não atualizar, mostrar falha clara ao usuário.
+   - Evitar sucesso parcial silencioso.
 
-Apenas mudanças frontend em `src/pages/caixa/AcertoEntregador.tsx`. Sem migração, sem mudanças no roteamento financeiro, sem mexer em RLS.
+4. **Corrigir avisos de Dialog no console**
+   - Adicionar `DialogDescription`/descrição acessível nos diálogos desta tela.
+   - Se o aviso vier de componente chamado pela tela, corrigir no componente correspondente sem alterar outros fluxos.
 
-### A. Corrigir o filtro do canal "Gás do Povo"
-Trocar a query do `__gas_do_povo__` por um filtro robusto que cubra todas as variações ortográficas e também o caso onde `responsavel_acerto = 'gas_do_povo'`:
-```ts
-query = query.or([
-  "forma_pagamento.eq.gas_do_povo",
-  "forma_pagamento.ilike.%gas%povo%",
-  "forma_pagamento.ilike.%gás%povo%",
-  "responsavel_acerto.eq.gas_do_povo",
-].join(","));
-```
-`ilike '%gas%povo%'` casa `Gás do Povo`, `gas_do_povo`, `Gas Do Povo`, etc.
-
-### B. Excluir Gás do Povo do canal Portaria
-Adicionar `.not("forma_pagamento", "ilike", "%gas%povo%")` quando o canal selecionado for Portaria/PDV. Assim cada pedido aparece em exatamente um canal e o "Resumo Automático" deixa de misturar.
-
-### C. Garantir feedback real ao finalizar
-No loop do `confirmarAcerto`, mudar o update para retornar a linha e contabilizar falha quando 0 linhas forem afetadas:
-```ts
-const { data: updated, error: updErr } = await supabase
-  .from("pedidos")
-  .update({ status: "finalizado" })
-  .eq("id", entrega.id)
-  .eq("unidade_id", unidadeAtual.id)
-  .select("id")
-  .maybeSingle();
-if (updErr) throw updErr;
-if (!updated) throw new Error("Status não atualizado (RLS ou linha não encontrada)");
-```
-Isso impede que um pedido fique "fantasma" como #9.
-
-### D. Re-finalizar manualmente os pedidos órfãos
-Após o deploy, abrir a tela já corrigida na unidade Morumbi, canal Gás do Povo, período 03/06–10/06, e clicar em "Confirmar Acerto". Isso vai mover #9, #10, #11, #12, #485, #486, #487 para `finalizado` e gerar os recebíveis do programa Gás do Povo automaticamente.
-
-## Não está no escopo
-- RLS / migrações no banco
-- Lógica de `rotearPagamentosVenda`
-- Coluna "Nº", coluna "Data" e relatório PDF (já entregues nas iterações anteriores)
-- Cards "Entregadores com acerto pendente" (já filtrados por `unidade_id`)
+5. **Validação após implementação**
+   - Conferir novamente os logs/requisições da rota `/caixa/acerto`.
+   - Confirmar que o resumo automático da Morumbi Gás não exibe valores de outras empresas nem valores inflados.
+   - Confirmar que o pedido #9 e pedidos similares entram no canal correto e podem mudar para `finalizado` sem erro silencioso.
