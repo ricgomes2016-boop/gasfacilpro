@@ -290,22 +290,21 @@ export default function AcertoEntregador() {
   const { data: despesas = [], isLoading: loadingDespesas } = useQuery({
     queryKey: ["acerto-despesas", selectedId, dataInicio, dataFim, unidadeAtual?.id],
     queryFn: async () => {
-      if (!selectedId || canalVirtual) return [];
-      let query = supabase
+      if (!selectedId || canalVirtual || !unidadeAtual?.id) return [];
+      const { data, error } = await supabase
         .from("movimentacoes_caixa")
         .select("id, descricao, valor, categoria, created_at")
+        .eq("unidade_id", unidadeAtual.id)
         .eq("entregador_id", selectedId)
         .eq("tipo", "saida")
         .gte("created_at", `${dataInicio}T00:00:00-03:00`)
         .lte("created_at", `${dataFim}T23:59:59-03:00`)
         .order("created_at", { ascending: true });
 
-      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
-      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as any[];
     },
-    enabled: buscar && !!selectedId,
+    enabled: buscar && !!selectedId && !canalVirtual && !!unidadeAtual?.id,
   });
 
   const handleBuscar = () => {
