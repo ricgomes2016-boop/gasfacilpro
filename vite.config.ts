@@ -8,16 +8,16 @@ import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig(({ mode }) => {
   const buildVersion = new Date().toISOString();
   const env = loadEnv(mode, process.cwd(), "");
-  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL || "https://gcrdftnnbgsogoqcmcxo.supabase.co";
+  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL || "https://scqenurznkatvrqxqjmt.supabase.co";
   const supabasePublishableKey =
     env.SUPABASE_PUBLISHABLE_KEY ||
     env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdjcmRmdG5uYmdzb2dvcWNtY3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0ODkzMTksImV4cCI6MjA4NjA2NTMxOX0.62JP9-5p0BKgbEui-qgfmxvagmj_G34e6Y7Jqp4vC04";
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjcWVudXJ6bmthdHZycXhxam10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzNzIxMDMsImV4cCI6MjA4NTk0ODEwM30.JfjppsJiUB4AbL4NqImbvZtp65taUQmeQ3Ikzkz6mGk";
   const supabaseProjectId =
     env.SUPABASE_PROJECT_ID ||
     env.VITE_SUPABASE_PROJECT_ID ||
     supabaseUrl.match(/^https:\/\/([^.]+)\.supabase\.co/)?.[1] ||
-    "gcrdftnnbgsogoqcmcxo";
+    "scqenurznkatvrqxqjmt";
 
   return {
     define: {
