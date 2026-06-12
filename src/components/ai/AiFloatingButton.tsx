@@ -41,9 +41,14 @@ export function AiFloatingButton({ externalOpen, onExternalClose }: AiFloatingBu
       {/* Chat panel */}
       {open && (
         <Card className={cn(
-          "fixed z-50 shadow-2xl border flex flex-col overflow-hidden",
-          "bottom-[64px] inset-x-2 h-[70svh] max-h-[calc(100svh-120px)] rounded-2xl md:bottom-16 xl:bottom-[136px] md:right-6 md:left-auto md:inset-x-auto md:w-[380px] md:h-[520px] md:max-h-[calc(100vh-6rem)] md:rounded-lg"
+          "fixed z-50 shadow-2xl border flex flex-col overflow-hidden bg-background",
+          // Mobile: full width sheet above bottom bar
+          "left-2 right-2 bottom-[72px] h-[70svh] max-h-[calc(100svh-96px)] rounded-2xl",
+          // Desktop: fixed panel at bottom-right, above floating chat bubble
+          "md:left-auto md:right-6 md:bottom-24 md:w-[400px] md:h-[560px] md:max-h-[calc(100vh-8rem)] md:rounded-xl",
+          "xl:bottom-28"
         )}>
+
           <div className="flex items-center justify-between px-4 py-3 border-b bg-primary/5 rounded-t-2xl md:rounded-t-lg">
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5 text-primary" />
