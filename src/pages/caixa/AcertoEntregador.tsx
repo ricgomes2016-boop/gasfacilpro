@@ -255,16 +255,16 @@ export default function AcertoEntregador() {
   const { data: entregadoresPendentes = [], isLoading: loadingPendentes } = useQuery({
     queryKey: ["acerto-entregadores-pendentes", dataInicio, dataFim, unidadeAtual?.id],
     queryFn: async () => {
-      let query = supabase
+      if (!unidadeAtual?.id) return [];
+      const { data, error } = await supabase
         .from("pedidos")
         .select("id, valor_total, data_entrega, entregador_id, entregadores (id, nome)")
+        .eq("unidade_id", unidadeAtual.id)
         .gte("data_entrega", dataInicio)
         .lte("data_entrega", dataFim)
         .in("status", ["entregue", "pago"])
         .not("entregador_id", "is", null);
 
-      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
-      const { data, error } = await query;
       if (error) throw error;
 
       const map = new Map<string, { id: string; nome: string; pedidos: number; total: number }>();
@@ -283,6 +283,7 @@ export default function AcertoEntregador() {
 
       return Array.from(map.values()).sort((a, b) => b.total - a.total);
     },
+    enabled: !!unidadeAtual?.id,
   });
 
   // Despesas do entregador no período (não se aplica a canais virtuais)
