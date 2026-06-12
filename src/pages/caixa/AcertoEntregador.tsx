@@ -555,23 +555,24 @@ export default function AcertoEntregador() {
     const entregasInvalidas: { id: string; forma_original: string; valor: number }[] = [];
 
     const parseMultiplos = (fp: string, total: number): { forma: string; valor: number }[] => {
-      const clean = fp.replace(/^Múltiplos:\s*/i, "");
+      // Remove prefixos "Múltiplos:" e "multiplo:" (sem acento)
+      const clean = fp.replace(/^m[uú]ltiplos?:\s*/i, "");
       const parts = clean.split(/\s*\+\s*|,\s*/).filter(Boolean);
       const out: { forma: string; valor: number }[] = [];
       let restante = total;
-      let semValor: string[] = [];
+      const semValor: string[] = [];
       parts.forEach((part) => {
-        const m = part.trim().match(/^(.+?)\s+R\$\s*([\d\.,]+)$/);
+        const m = part.trim().match(/^(.+?)\s+R?\$?\s*([\d.,]+)$/);
         if (m) {
-          const v = parseFloat(m[2].replace(/\./g, "").replace(",", "."));
-          out.push({ forma: m[1].trim(), valor: isFinite(v) ? v : 0 });
-          restante -= isFinite(v) ? v : 0;
+          const v = parseValorBR(m[2]);
+          out.push({ forma: m[1].trim(), valor: v });
+          restante -= v;
         } else {
           semValor.push(part.trim());
         }
       });
       if (semValor.length > 0) {
-        const dividido = semValor.length > 0 ? restante / semValor.length : 0;
+        const dividido = restante / semValor.length;
         semValor.forEach((forma) => out.push({ forma, valor: dividido }));
       }
       return out;
@@ -580,7 +581,8 @@ export default function AcertoEntregador() {
     entregas.forEach((e) => {
       const fp = (e.forma_pagamento || "").trim();
       const total = Number(e.valor_total || 0);
-      const items = (fp.includes(",") || /\+/.test(fp) || /^Múltiplos:/i.test(fp))
+      const isMultiplo = /^m[uú]ltiplos?:/i.test(fp) || fp.includes(",") || /\+/.test(fp);
+      const items = isMultiplo
         ? parseMultiplos(fp, total)
         : [{ forma: fp, valor: total }];
 
