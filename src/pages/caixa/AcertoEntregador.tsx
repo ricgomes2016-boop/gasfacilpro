@@ -630,6 +630,9 @@ export default function AcertoEntregador() {
   const nomeEntregador = canalVirtual?.canal || entregadores.find((e) => e.id === selectedId)?.nome || "";
 
   const normalizarFormaPagamento = (forma: string): string => {
+    const canon = canonicalForma(forma);
+    if (canon !== "__invalido__") return canon;
+    // Fallback para variações conhecidas
     const map: Record<string, string> = {
       "Dinheiro": "dinheiro",
       "PIX": "pix",
