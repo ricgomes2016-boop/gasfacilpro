@@ -219,7 +219,7 @@ export default function AcertoEntregador() {
   const { data: entregas = [], isLoading: loadingEntregas } = useQuery({
     queryKey: ["acerto-entregas", selectedId, dataInicio, dataFim, unidadeAtual?.id, filtroStatus],
     queryFn: async () => {
-      if (!selectedId) return [];
+      if (!selectedId || !unidadeAtual?.id) return [];
       const statusList = getStatusFilter();
       let query = supabase
         .from("pedidos")
@@ -228,6 +228,7 @@ export default function AcertoEntregador() {
           clientes (nome),
           pedido_itens (id, quantidade, preco_unitario, produtos (nome))
         `)
+        .eq("unidade_id", unidadeAtual.id)
         .gte("data_entrega", dataInicio)
         .lte("data_entrega", dataFim)
         .in("status", statusList)
@@ -244,12 +245,11 @@ export default function AcertoEntregador() {
         query = query.eq("entregador_id", selectedId);
       }
 
-      if (unidadeAtual?.id) query = query.eq("unidade_id", unidadeAtual.id);
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as any[];
     },
-    enabled: buscar && !!selectedId,
+    enabled: buscar && !!selectedId && !!unidadeAtual?.id,
   });
 
   const { data: entregadoresPendentes = [], isLoading: loadingPendentes } = useQuery({
