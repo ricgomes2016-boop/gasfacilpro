@@ -118,6 +118,25 @@ function canonicalForma(raw: string): string {
   return "__invalido__";
 }
 
+// Parse robusto de valores monetários (aceita "R$ 1.234,56", "1234.56", "50.00", "1,234.56")
+function parseValorBR(raw: string): number {
+  if (!raw) return 0;
+  let s = raw.toString().replace(/r\$/gi, "").replace(/\s/g, "").trim();
+  if (!s) return 0;
+  const hasComma = s.includes(",");
+  const hasDot = s.includes(".");
+  if (hasComma && hasDot) {
+    // pt-BR: "1.234,56" — ponto é milhar, vírgula é decimal
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else if (hasComma) {
+    // "1234,56" — só vírgula decimal
+    s = s.replace(",", ".");
+  }
+  // só ponto: trata como decimal padrão ("50.00", "1234.56")
+  const n = parseFloat(s);
+  return isFinite(n) ? n : 0;
+}
+
 const CANAIS_VIRTUAIS = [
   { id: "__portaria__", nome: "🏪 Portaria", canal: "Portaria" },
   { id: "__pdv__", nome: "🖥️ PDV", canal: "PDV" },
