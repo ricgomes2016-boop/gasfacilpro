@@ -1026,9 +1026,21 @@ export async function saveMessage(supabase: any, conversationId: string, role: s
   const wa_message_id = metadata?.message_id || metadata?.wa_message_id || null;
   const row: any = { conversa_id: conversationId, role, content, metadata };
   if (wa_message_id) row.wa_message_id = wa_message_id;
-  // Status default: inbound = 'sent' (já chegou); assistant/system = 'sent' (BIA enviou via sendMessage do webhook); human = pending (operador)
   if (role === "user") row.status = "sent";
   else if (role === "assistant" || role === "system") row.status = "sent";
+
+  // Set tenant fields explicitly so RLS/Realtime can deliver the message to
+  // the right company/unit even if the DB trigger is delayed or unavailable.
+  try {
+    const { data: conv } = await supabase
+      .from("ai_conversas")
+      .select("empresa_id, unidade_id")
+      .eq("id", conversationId)
+      .maybeSingle();
+    if (conv?.empresa_id) row.empresa_id = conv.empresa_id;
+    if (conv?.unidade_id) row.unidade_id = conv.unidade_id;
+  } catch (_) { /* DB trigger remains as fallback */ }
+
   const { error } = await supabase.from("ai_mensagens").insert(row);
   if (error) {
     console.error("[bia-core] saveMessage failed", {
