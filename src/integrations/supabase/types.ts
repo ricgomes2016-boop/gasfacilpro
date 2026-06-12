@@ -11819,6 +11819,14 @@ export type Database = {
           slug: string
         }[]
       }
+      get_unidade_certificado_status: {
+        Args: { _unidade_id: string }
+        Returns: {
+          certificado_a1_configurado: boolean
+          certificado_a1_titular: string
+          certificado_a1_validade: string
+        }[]
+      }
       get_unidade_credenciais: {
         Args: { _unidade_id: string }
         Returns: {
