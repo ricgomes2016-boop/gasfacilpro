@@ -411,6 +411,10 @@ export default function AcertoEntregador() {
 
   const salvarEdicao = async () => {
     if (!editingEntrega) return;
+    if (!unidadeAtual?.id) {
+      toast.error("Selecione uma unidade antes de editar a entrega");
+      return;
+    }
     setIsSavingEdit(true);
 
     try {
