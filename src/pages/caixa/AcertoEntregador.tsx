@@ -237,9 +237,21 @@ export default function AcertoEntregador() {
 
       if (canalVirtual) {
         if (canalVirtual.id === "__gas_do_povo__") {
-          query = query.or("forma_pagamento.eq.gas_do_povo,forma_pagamento.ilike.%gas_do_povo%");
+          // Aceita variações: gas_do_povo, Gás do Povo, Gas Do Povo, etc.
+          query = query.or(
+            [
+              "forma_pagamento.eq.gas_do_povo",
+              "forma_pagamento.ilike.%gas%povo%",
+              "forma_pagamento.ilike.%gás%povo%",
+              "responsavel_acerto.eq.gas_do_povo",
+            ].join(",")
+          );
         } else {
-          query = query.eq("responsavel_acerto", canalVirtual.canal.toLowerCase());
+          // Portaria/PDV: exclui pedidos do programa Gás do Povo (vão no canal próprio)
+          query = query
+            .eq("responsavel_acerto", canalVirtual.canal.toLowerCase())
+            .not("forma_pagamento", "ilike", "%gas%povo%")
+            .not("forma_pagamento", "ilike", "%gás%povo%");
         }
       } else {
         query = query.eq("entregador_id", selectedId);
@@ -692,12 +704,15 @@ export default function AcertoEntregador() {
             userId: user?.id,
           });
 
-          const { error: updErr } = await supabase
+          const { data: updated, error: updErr } = await supabase
             .from("pedidos")
             .update({ status: "finalizado" })
             .eq("id", entrega.id)
-            .eq("unidade_id", unidadeAtual.id);
+            .eq("unidade_id", unidadeAtual.id)
+            .select("id")
+            .maybeSingle();
           if (updErr) throw updErr;
+          if (!updated) throw new Error("Status não atualizado (sem permissão ou linha não encontrada)");
 
           sucessos += 1;
         } catch (err: any) {
