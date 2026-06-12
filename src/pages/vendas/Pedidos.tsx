@@ -14,7 +14,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from
 "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from
 "@/components/ui/dialog";
 import {
   Popover, PopoverContent, PopoverTrigger } from
@@ -760,6 +760,9 @@ export default function Pedidos() {
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Sugerir Entregador - Pedido #{getNumExib(pedido)}</DialogTitle>
+                        <DialogDescription>
+                          Selecione o entregador mais adequado para este pedido.
+                        </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4 mt-4">
                         <div className="p-4 bg-muted rounded-lg">
@@ -1211,6 +1214,9 @@ export default function Pedidos() {
                 <ArrowRightLeft className="h-5 w-5" />
                 {pedidoTransferir?.entregador ? "Transferir Entregador" : "Atribuir Entregador"}
               </DialogTitle>
+              <DialogDescription>
+                Escolha o entregador responsável por este pedido.
+              </DialogDescription>
             </DialogHeader>
             {pedidoTransferir &&
             <div className="space-y-4 mt-2">
@@ -1284,6 +1290,9 @@ export default function Pedidos() {
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle>{batchAction === "status" ? "Alterar Status em Lote" : "Atribuir Entregador em Lote"}</DialogTitle>
+              <DialogDescription>
+                Aplique a ação selecionada aos pedidos marcados.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 mt-2">
               <p className="text-sm text-muted-foreground">{selecionados.size} pedido(s) selecionado(s)</p>
@@ -1337,6 +1346,9 @@ export default function Pedidos() {
               <MoveRight className="h-5 w-5 text-primary" />
               Transferir Pedido para Outra Filial
             </DialogTitle>
+            <DialogDescription>
+              Selecione a filial de destino para continuar o atendimento.
+            </DialogDescription>
           </DialogHeader>
           {pedidoTransferirFilial &&
           <div className="space-y-4 mt-2">

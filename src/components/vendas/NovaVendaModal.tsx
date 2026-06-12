@@ -1,5 +1,10 @@
 import { lazy, Suspense } from "react";
-import { ResponsiveDialog as Dialog, ResponsiveDialogContent as DialogContent } from "@/components/ui/responsive-dialog";
+import {
+  ResponsiveDialog as Dialog,
+  ResponsiveDialogContent as DialogContent,
+  ResponsiveDialogDescription as DialogDescription,
+  ResponsiveDialogTitle as DialogTitle,
+} from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { X, ShoppingCart } from "lucide-react";
 import { Loader2 } from "lucide-react";
@@ -16,6 +21,10 @@ export function NovaVendaModal({ open, onClose, clienteId }: NovaVendaModalProps
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-[100vw] w-full h-[100dvh] max-h-[100dvh] p-0 gap-0 rounded-none border-none overflow-hidden [&>button]:hidden">
+        <DialogTitle className="sr-only">Nova venda pelo atendimento</DialogTitle>
+        <DialogDescription className="sr-only">
+          Formulario de venda aberto a partir do atendimento ao cliente.
+        </DialogDescription>
         {/* Compact header */}
         <div className="flex items-center justify-between px-4 py-2 border-b bg-primary/5 shrink-0">
           <div className="flex items-center gap-2 text-sm font-semibold">

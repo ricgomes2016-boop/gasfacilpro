@@ -89,7 +89,7 @@ const STATUS_CONFIG: Record<StatusConexao, { color: string; label: string; icon:
   aguardando: { color: "bg-amber-500", label: "Aguardando QR", icon: Loader2 },
 };
 
-const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID || "scqenurznkatvrqxqjmt";
+const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID || "gcrdftnnbgsogoqcmcxo";
 const WEBHOOK_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/meta-webhook`;
 const VERIFY_TOKEN = "gasfacil_meta_verify";
 

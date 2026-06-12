@@ -8,16 +8,23 @@ import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig(({ mode }) => {
   const buildVersion = new Date().toISOString();
   const env = loadEnv(mode, process.cwd(), "");
-  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL || "https://scqenurznkatvrqxqjmt.supabase.co";
+  const currentSupabaseUrl = "https://gcrdftnnbgsogoqcmcxo.supabase.co";
+  const legacySupabaseProjectId = "scqenurznkatvrqxqjmt";
+  const viteSupabaseUrl =
+    env.VITE_SUPABASE_URL?.includes(legacySupabaseProjectId) ? undefined : env.VITE_SUPABASE_URL;
+  const supabaseUrl = env.SUPABASE_URL || viteSupabaseUrl || currentSupabaseUrl;
   const supabasePublishableKey =
     env.SUPABASE_PUBLISHABLE_KEY ||
     env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjcWVudXJ6bmthdHZycXhxam10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzNzIxMDMsImV4cCI6MjA4NTk0ODEwM30.JfjppsJiUB4AbL4NqImbvZtp65taUQmeQ3Ikzkz6mGk";
+    "";
+  const projectIdFromUrl = supabaseUrl.match(/^https:\/\/([^.]+)\.supabase\.co/)?.[1];
+  const viteProjectId =
+    env.VITE_SUPABASE_PROJECT_ID === legacySupabaseProjectId ? undefined : env.VITE_SUPABASE_PROJECT_ID;
   const supabaseProjectId =
     env.SUPABASE_PROJECT_ID ||
-    env.VITE_SUPABASE_PROJECT_ID ||
-    supabaseUrl.match(/^https:\/\/([^.]+)\.supabase\.co/)?.[1] ||
-    "scqenurznkatvrqxqjmt";
+    projectIdFromUrl ||
+    viteProjectId ||
+    "gcrdftnnbgsogoqcmcxo";
 
   return {
     define: {

@@ -30,7 +30,8 @@ export default function AsaasConfig() {
   const [hasWebhookToken, setHasWebhookToken] = useState(false);
   const [balance, setBalance] = useState<{ balance: number; } | null>(null);
 
-  const webhookUrl = `https://scqenurznkatvrqxqjmt.supabase.co/functions/v1/asaas-webhook`;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://gcrdftnnbgsogoqcmcxo.supabase.co";
+  const webhookUrl = `${supabaseUrl}/functions/v1/asaas-webhook`;
 
 
   useEffect(() => {
