@@ -1,3 +1,11 @@
+ALTER TABLE public.unidades
+  ADD COLUMN IF NOT EXISTS certificado_a1_path text,
+  ADD COLUMN IF NOT EXISTS certificado_a1_senha text,
+  ADD COLUMN IF NOT EXISTS certificado_a1_titular text,
+  ADD COLUMN IF NOT EXISTS certificado_a1_validade date;
+
+DROP FUNCTION IF EXISTS public.get_unidade_certificado_status(uuid);
+
 CREATE OR REPLACE FUNCTION public.get_unidade_certificado_status(_unidade_id uuid)
 RETURNS TABLE(
   certificado_a1_configurado boolean,
