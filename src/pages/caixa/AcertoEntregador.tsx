@@ -672,22 +672,32 @@ export default function AcertoEntregador() {
           : entrega.id.slice(-6);
         try {
           const fp = entrega.forma_pagamento || "";
+          const totalEntrega = Number(entrega.valor_total) || 0;
           let pagamentos: PagamentoRoteamento[] = [];
 
-          if (fp.includes(", ") || fp.startsWith("Múltiplos: ")) {
-            const cleanFp = fp.replace("Múltiplos: ", "");
-            const parts = cleanFp.split(/,\s*|\s*\+\s*/);
-            pagamentos = parts.map((part: string) => {
-              const match = part.trim().match(/^(.+?)\s+R\$(\d+[\.,]?\d*)$/);
+          const isMultiplo = /^m[uú]ltiplos?:/i.test(fp) || fp.includes(", ") || /\+/.test(fp);
+          if (isMultiplo) {
+            const cleanFp = fp.replace(/^m[uú]ltiplos?:\s*/i, "");
+            const parts = cleanFp.split(/,\s*|\s*\+\s*/).filter(Boolean);
+            const parsed: { forma: string; valor: number | null }[] = parts.map((part: string) => {
+              const match = part.trim().match(/^(.+?)\s+R?\$?\s*([\d.,]+)$/);
               if (match) {
-                return { forma: normalizarFormaPagamento(match[1].trim()), valor: parseFloat(match[2].replace(",", ".")) };
+                return { forma: normalizarFormaPagamento(match[1].trim()), valor: parseValorBR(match[2]) };
               }
-              return { forma: normalizarFormaPagamento(part.trim()), valor: Number(entrega.valor_total) };
+              return { forma: normalizarFormaPagamento(part.trim()), valor: null };
             });
+            const somaExplicita = parsed.reduce((a, p) => a + (p.valor ?? 0), 0);
+            const semValor = parsed.filter((p) => p.valor === null);
+            const restante = Math.max(0, totalEntrega - somaExplicita);
+            const divididoEntreSemValor = semValor.length > 0 ? restante / semValor.length : 0;
+            pagamentos = parsed.map((p) => ({
+              forma: p.forma,
+              valor: p.valor !== null ? p.valor : divididoEntreSemValor,
+            }));
           } else if (fp) {
-            pagamentos = [{ forma: normalizarFormaPagamento(fp), valor: Number(entrega.valor_total) }];
+            pagamentos = [{ forma: normalizarFormaPagamento(fp), valor: totalEntrega }];
           } else {
-            pagamentos = [{ forma: "dinheiro", valor: Number(entrega.valor_total) }];
+            pagamentos = [{ forma: "dinheiro", valor: totalEntrega }];
           }
 
           if (pagamentos.some(p => p.forma === "vale_gas")) {
