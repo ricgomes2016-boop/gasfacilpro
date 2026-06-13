@@ -91,41 +91,114 @@ export const GRUPOS_2026: Record<string, { nome: string; codigo: string }[]> = {
   ],
 };
 
-// Gera os 72 jogos da fase de grupos. Cada grupo tem 6 jogos (round-robin).
-// Datas distribuídas a partir de 11/06/2026.
-function gerarJogosGrupos(): BolaoFixtureJogo[] {
-  const jogos: BolaoFixtureJogo[] = [];
-  const grupos = Object.keys(GRUPOS_2026);
-  const dataInicio = new Date("2026-06-11T17:00:00-03:00");
-  let numero = 1;
-  let diaOffset = 0;
+// Tabela oficial impressa (12 grupos × 6 jogos = 72 jogos). Horário de Brasília.
+// Formato: [grupo, dataISO, mandante, visitante]
+const TABELA_OFICIAL: Array<[string, string, string, string]> = [
+  // Grupo A
+  ["A", "2026-06-11T16:00:00-03:00", "México", "África do Sul"],
+  ["A", "2026-06-11T23:00:00-03:00", "Coreia do Sul", "República Tcheca"],
+  ["A", "2026-06-18T13:00:00-03:00", "República Tcheca", "África do Sul"],
+  ["A", "2026-06-18T22:00:00-03:00", "México", "Coreia do Sul"],
+  ["A", "2026-06-24T22:00:00-03:00", "República Tcheca", "México"],
+  ["A", "2026-06-24T22:00:00-03:00", "África do Sul", "Coreia do Sul"],
+  // Grupo B
+  ["B", "2026-06-12T16:00:00-03:00", "Canadá", "Bósnia e Herzegovina"],
+  ["B", "2026-06-13T16:00:00-03:00", "Catar", "Suíça"],
+  ["B", "2026-06-18T16:00:00-03:00", "Suíça", "Bósnia e Herzegovina"],
+  ["B", "2026-06-18T19:00:00-03:00", "Canadá", "Catar"],
+  ["B", "2026-06-24T16:00:00-03:00", "Suíça", "Canadá"],
+  ["B", "2026-06-24T16:00:00-03:00", "Bósnia e Herzegovina", "Catar"],
+  // Grupo C
+  ["C", "2026-06-13T19:00:00-03:00", "Brasil", "Marrocos"],
+  ["C", "2026-06-13T22:00:00-03:00", "Haiti", "Escócia"],
+  ["C", "2026-06-19T19:00:00-03:00", "Escócia", "Marrocos"],
+  ["C", "2026-06-19T21:30:00-03:00", "Brasil", "Haiti"],
+  ["C", "2026-06-24T19:00:00-03:00", "Escócia", "Brasil"],
+  ["C", "2026-06-24T19:00:00-03:00", "Marrocos", "Haiti"],
+  // Grupo D
+  ["D", "2026-06-12T22:00:00-03:00", "Estados Unidos", "Paraguai"],
+  ["D", "2026-06-14T01:00:00-03:00", "Austrália", "Turquia"],
+  ["D", "2026-06-19T16:00:00-03:00", "Estados Unidos", "Austrália"],
+  ["D", "2026-06-20T01:00:00-03:00", "Turquia", "Paraguai"],
+  ["D", "2026-06-25T23:00:00-03:00", "Turquia", "Estados Unidos"],
+  ["D", "2026-06-25T23:00:00-03:00", "Paraguai", "Austrália"],
+  // Grupo E
+  ["E", "2026-06-14T14:00:00-03:00", "Alemanha", "Curaçao"],
+  ["E", "2026-06-14T20:00:00-03:00", "Costa do Marfim", "Equador"],
+  ["E", "2026-06-20T17:00:00-03:00", "Alemanha", "Costa do Marfim"],
+  ["E", "2026-06-20T21:00:00-03:00", "Equador", "Curaçao"],
+  ["E", "2026-06-25T17:00:00-03:00", "Equador", "Alemanha"],
+  ["E", "2026-06-25T17:00:00-03:00", "Curaçao", "Costa do Marfim"],
+  // Grupo F
+  ["F", "2026-06-14T17:00:00-03:00", "Holanda", "Japão"],
+  ["F", "2026-06-14T23:00:00-03:00", "Suécia", "Tunísia"],
+  ["F", "2026-06-20T14:00:00-03:00", "Holanda", "Suécia"],
+  ["F", "2026-06-20T23:00:00-03:00", "Tunísia", "Japão"],
+  ["F", "2026-06-25T20:00:00-03:00", "Japão", "Suécia"],
+  ["F", "2026-06-25T20:00:00-03:00", "Tunísia", "Holanda"],
+  // Grupo G
+  ["G", "2026-06-15T16:00:00-03:00", "Bélgica", "Egito"],
+  ["G", "2026-06-15T22:00:00-03:00", "Irã", "Nova Zelândia"],
+  ["G", "2026-06-21T16:00:00-03:00", "Bélgica", "Irã"],
+  ["G", "2026-06-21T22:00:00-03:00", "Nova Zelândia", "Egito"],
+  ["G", "2026-06-27T00:00:00-03:00", "Egito", "Irã"],
+  ["G", "2026-06-27T00:00:00-03:00", "Nova Zelândia", "Bélgica"],
+  // Grupo H
+  ["H", "2026-06-15T13:00:00-03:00", "Espanha", "Cabo Verde"],
+  ["H", "2026-06-15T19:00:00-03:00", "Arábia Saudita", "Uruguai"],
+  ["H", "2026-06-21T13:00:00-03:00", "Espanha", "Arábia Saudita"],
+  ["H", "2026-06-21T19:00:00-03:00", "Uruguai", "Cabo Verde"],
+  ["H", "2026-06-26T21:00:00-03:00", "Cabo Verde", "Arábia Saudita"],
+  ["H", "2026-06-26T21:00:00-03:00", "Uruguai", "Espanha"],
+  // Grupo I
+  ["I", "2026-06-16T16:00:00-03:00", "França", "Senegal"],
+  ["I", "2026-06-16T19:00:00-03:00", "Iraque", "Noruega"],
+  ["I", "2026-06-22T18:00:00-03:00", "França", "Iraque"],
+  ["I", "2026-06-22T21:00:00-03:00", "Noruega", "Senegal"],
+  ["I", "2026-06-26T16:00:00-03:00", "Noruega", "França"],
+  ["I", "2026-06-26T16:00:00-03:00", "Senegal", "Iraque"],
+  // Grupo J
+  ["J", "2026-06-16T22:00:00-03:00", "Argentina", "Argélia"],
+  ["J", "2026-06-17T01:00:00-03:00", "Áustria", "Jordânia"],
+  ["J", "2026-06-22T14:00:00-03:00", "Argentina", "Áustria"],
+  ["J", "2026-06-23T00:00:00-03:00", "Jordânia", "Argélia"],
+  ["J", "2026-06-27T23:00:00-03:00", "Argélia", "Áustria"],
+  ["J", "2026-06-27T23:00:00-03:00", "Jordânia", "Argentina"],
+  // Grupo K
+  ["K", "2026-06-17T14:00:00-03:00", "Portugal", "RD do Congo"],
+  ["K", "2026-06-17T21:00:00-03:00", "Uzbequistão", "Colômbia"],
+  ["K", "2026-06-23T14:00:00-03:00", "Portugal", "Uzbequistão"],
+  ["K", "2026-06-23T23:00:00-03:00", "Colômbia", "RD do Congo"],
+  ["K", "2026-06-27T20:30:00-03:00", "Colômbia", "Portugal"],
+  ["K", "2026-06-27T20:30:00-03:00", "RD do Congo", "Uzbequistão"],
+  // Grupo L
+  ["L", "2026-06-17T17:00:00-03:00", "Inglaterra", "Croácia"],
+  ["L", "2026-06-17T20:00:00-03:00", "Gana", "Panamá"],
+  ["L", "2026-06-23T17:00:00-03:00", "Inglaterra", "Gana"],
+  ["L", "2026-06-23T20:00:00-03:00", "Panamá", "Croácia"],
+  ["L", "2026-06-27T18:00:00-03:00", "Panamá", "Inglaterra"],
+  ["L", "2026-06-27T18:00:00-03:00", "Croácia", "Gana"],
+];
 
-  for (const g of grupos) {
-    const times = GRUPOS_2026[g];
-    const rodadas: [number, number][][] = [
-      [[0, 1], [2, 3]],
-      [[0, 2], [1, 3]],
-      [[0, 3], [1, 2]],
-    ];
-    rodadas.forEach((rodada, idx) => {
-      rodada.forEach(([a, b]) => {
-        const data = new Date(dataInicio);
-        data.setDate(data.getDate() + diaOffset + idx * 5);
-        jogos.push({
-          numero_jogo: numero++,
-          fase: "grupos",
-          grupo: g,
-          data_jogo: data.toISOString(),
-          time_casa: times[a].nome,
-          time_fora: times[b].nome,
-          codigo_casa: times[a].codigo,
-          codigo_fora: times[b].codigo,
-        });
-      });
-    });
-    diaOffset += 1;
+function codigoDoTime(nome: string): string | undefined {
+  for (const grupo of Object.values(GRUPOS_2026)) {
+    const t = grupo.find((x) => x.nome === nome);
+    if (t) return t.codigo;
   }
-  return jogos;
+  return undefined;
+}
+
+function gerarJogosGrupos(): BolaoFixtureJogo[] {
+  return TABELA_OFICIAL.map(([grupo, data, casa, fora], idx) => ({
+    numero_jogo: idx + 1,
+    fase: "grupos" as const,
+    grupo,
+    data_jogo: new Date(data).toISOString(),
+    time_casa: casa,
+    time_fora: fora,
+    codigo_casa: codigoDoTime(casa),
+    codigo_fora: codigoDoTime(fora),
+  }));
 }
 
 // Gera mata-mata com placeholders. Admin atualiza times conforme classificação.
