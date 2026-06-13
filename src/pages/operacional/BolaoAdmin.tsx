@@ -310,6 +310,29 @@ export default function BolaoAdmin() {
               Nenhum jogo encontrado com esses filtros.
             </CardContent>
           </Card>
+        ) : modoSequencia ? (
+          Array.from(jogosPorDia.entries()).map(([dia, lista]) => (
+            <section key={dia} className="space-y-2">
+              <div className="flex items-center gap-2 sticky top-0 bg-background/95 backdrop-blur z-10 py-2">
+                <div className="h-7 w-1 bg-primary rounded-full" />
+                <h2 className="text-lg font-bold capitalize">
+                  {format(new Date(`${dia}T12:00:00`), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                </h2>
+                <Badge variant="secondary">{lista.length}</Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {lista.map((j) => (
+                  <CardJogo
+                    key={j.id}
+                    jogo={j}
+                    onSalvar={(c, f, fin) =>
+                      finalizar.mutate({ jogo_id: j.id, gols_casa: c, gols_fora: f, finalizado: fin })
+                    }
+                  />
+                ))}
+              </div>
+            </section>
+          ))
         ) : (
           FASE_ORDEM.map((fase) => {
             const lista = jogosPorFase.get(fase) || [];
