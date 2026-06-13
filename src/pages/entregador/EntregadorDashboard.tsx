@@ -156,40 +156,25 @@ export default function EntregadorDashboard() {
           </Card>
         )}
 
-        {/* Botão de Jornada Gigante (Action-Oriented) */}
-        <div>
-           {entregadorStatus === "offline" ? (
-             <Link to="/entregador/jornada" className="block w-full">
-               <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-3xl p-5 text-white shadow-lg shadow-orange-500/30 flex items-center justify-between active:scale-[0.98] transition-transform">
-                 <div>
-                   <h2 className="text-xl font-bold flex items-center gap-2">
-                     <Flame className="h-6 w-6" />
-                     Iniciar Jornada
-                   </h2>
-                   <p className="text-white/80 text-sm mt-1">Fique online para receber pedidos</p>
-                 </div>
-                 <div className="h-14 w-14 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm shadow-inner">
-                   <Target className="h-7 w-7 text-white animate-pulse" />
-                 </div>
-               </div>
-             </Link>
-           ) : (
-             <Link to="/entregador/jornada" className="block w-full">
-               <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-3xl p-5 text-white shadow-lg shadow-emerald-500/30 flex items-center justify-between active:scale-[0.98] transition-transform">
-                 <div>
-                   <h2 className="text-xl font-bold flex items-center gap-2">
-                     <div className="h-3 w-3 rounded-full bg-white animate-pulse" />
-                     Online e Rastreando
-                   </h2>
-                   <p className="text-white/80 text-sm mt-1">Sua localização está sendo atualizada</p>
-                 </div>
-                 <div className="h-14 w-14 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm shadow-inner">
-                   <Package className="h-7 w-7 text-white" />
-                 </div>
-               </div>
-             </Link>
-           )}
-        </div>
+        {/* Botão de Jornada (somente quando offline) */}
+        {entregadorStatus === "offline" && (
+          <div>
+            <Link to="/entregador/jornada" className="block w-full">
+              <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-3xl p-5 text-white shadow-lg shadow-orange-500/30 flex items-center justify-between active:scale-[0.98] transition-transform">
+                <div>
+                  <h2 className="text-xl font-bold flex items-center gap-2">
+                    <Flame className="h-6 w-6" />
+                    Iniciar Jornada
+                  </h2>
+                  <p className="text-white/80 text-sm mt-1">Fique online para receber pedidos</p>
+                </div>
+                <div className="h-14 w-14 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm shadow-inner">
+                  <Target className="h-7 w-7 text-white animate-pulse" />
+                </div>
+              </div>
+            </Link>
+          </div>
+        )}
 
         {/* Header com saudação Glassmorphism */}
         <div className="relative overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl p-5 text-white shadow-xl">
