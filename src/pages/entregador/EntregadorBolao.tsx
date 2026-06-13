@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBolaoJogos, useMeusPalpites, useSalvarPalpite, useRankingBolao, BolaoJogo, BolaoPalpite } from "@/hooks/useBolao";
@@ -123,21 +124,34 @@ export default function EntregadorBolao() {
   const { data: ranking = [] } = useRankingBolao(unidadeAtual?.id);
   const salvar = useSalvarPalpite(unidadeAtual?.id);
 
+  const [dataFiltro, setDataFiltro] = useState<string>("todas");
+
   const palpitesPorJogo = useMemo(() => {
     const m = new Map<string, BolaoPalpite>();
     meusPalpites.forEach((p) => m.set(p.jogo_id, p));
     return m;
   }, [meusPalpites]);
 
+  const datasDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    jogos.forEach((j) => set.add(format(new Date(j.data_jogo), "yyyy-MM-dd")));
+    return Array.from(set).sort();
+  }, [jogos]);
+
+  const jogosFiltrados = useMemo(() => {
+    if (dataFiltro === "todas") return jogos;
+    return jogos.filter((j) => format(new Date(j.data_jogo), "yyyy-MM-dd") === dataFiltro);
+  }, [jogos, dataFiltro]);
+
   const jogosPorFase = useMemo(() => {
     const m = new Map<BolaoFase, BolaoJogo[]>();
-    jogos.forEach((j) => {
+    jogosFiltrados.forEach((j) => {
       const arr = m.get(j.fase) || [];
       arr.push(j);
       m.set(j.fase, arr);
     });
     return m;
-  }, [jogos]);
+  }, [jogosFiltrados]);
 
   const meusStats = useMemo(() => {
     const total = meusPalpites.reduce((acc, p) => acc + (p.pontos || 0), 0);
@@ -179,7 +193,7 @@ export default function EntregadorBolao() {
             <TabsTrigger value="ranking">Ranking</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="jogos" className="space-y-4 mt-3">
+          <TabsContent value="jogos" className="space-y-3 mt-3">
             {isLoading ? (
               <Skeleton className="h-40" />
             ) : jogos.length === 0 ? (
@@ -189,27 +203,52 @@ export default function EntregadorBolao() {
                 </CardContent>
               </Card>
             ) : (
-              FASE_ORDEM.map((fase) => {
-                const lista = jogosPorFase.get(fase) || [];
-                if (lista.length === 0) return null;
-                return (
-                  <div key={fase} className="space-y-2">
-                    <h3 className="text-sm font-bold px-1">{FASE_LABELS[fase]}</h3>
-                    <div className="space-y-2">
-                      {lista.map((j) => (
-                        <JogoCard
-                          key={j.id}
-                          jogo={j}
-                          palpite={palpitesPorJogo.get(j.id)}
-                          onSalvar={(c, f) =>
-                            salvar.mutate({ jogo_id: j.id, gols_casa: c, gols_fora: f })
-                          }
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })
+              <>
+                <Select value={dataFiltro} onValueChange={setDataFiltro}>
+                  <SelectTrigger className="w-full">
+                    <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <SelectValue placeholder="Filtrar por data" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas as datas ({jogos.length})</SelectItem>
+                    {datasDisponiveis.map((d) => (
+                      <SelectItem key={d} value={d}>
+                        {format(new Date(`${d}T12:00:00`), "dd/MM (EEE)", { locale: ptBR })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {jogosFiltrados.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                      Nenhum jogo nesta data.
+                    </CardContent>
+                  </Card>
+                ) : (
+                  FASE_ORDEM.map((fase) => {
+                    const lista = jogosPorFase.get(fase) || [];
+                    if (lista.length === 0) return null;
+                    return (
+                      <div key={fase} className="space-y-2">
+                        <h3 className="text-sm font-bold px-1">{FASE_LABELS[fase]}</h3>
+                        <div className="space-y-2">
+                          {lista.map((j) => (
+                            <JogoCard
+                              key={j.id}
+                              jogo={j}
+                              palpite={palpitesPorJogo.get(j.id)}
+                              onSalvar={(c, f) =>
+                                salvar.mutate({ jogo_id: j.id, gols_casa: c, gols_fora: f })
+                              }
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </>
             )}
           </TabsContent>
 
