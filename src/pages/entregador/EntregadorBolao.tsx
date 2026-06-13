@@ -9,6 +9,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBolaoJogos, useMeusPalpites, useSalvarPalpite, useRankingBolao, BolaoJogo, BolaoPalpite } from "@/hooks/useBolao";
 import { FASE_LABELS, FASE_ORDEM, BolaoFase } from "@/lib/bolao/fixture2026";
+import { bandeiraEmoji } from "@/lib/bolao/flags";
 import { Trophy, Calendar, CheckCircle2, Lock, Medal, CalendarRange } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -52,9 +53,9 @@ function JogoCard({
         </div>
 
         <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-          <div className="text-right">
+          <div className="text-right flex items-center justify-end gap-1.5 min-w-0">
             <p className="text-sm font-semibold truncate">{jogo.time_casa}</p>
-            {jogo.codigo_casa && <p className="text-[10px] text-muted-foreground">{jogo.codigo_casa}</p>}
+            <span className="text-2xl leading-none shrink-0">{bandeiraEmoji(jogo.codigo_casa)}</span>
           </div>
           <div className="flex items-center gap-1">
             <Input
@@ -77,9 +78,9 @@ function JogoCard({
               className="w-12 h-10 text-center text-base font-bold p-0"
             />
           </div>
-          <div className="text-left">
+          <div className="text-left flex items-center justify-start gap-1.5 min-w-0">
+            <span className="text-2xl leading-none shrink-0">{bandeiraEmoji(jogo.codigo_fora)}</span>
             <p className="text-sm font-semibold truncate">{jogo.time_fora}</p>
-            {jogo.codigo_fora && <p className="text-[10px] text-muted-foreground">{jogo.codigo_fora}</p>}
           </div>
         </div>
 
