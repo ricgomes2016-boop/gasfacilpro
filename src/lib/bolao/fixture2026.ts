@@ -1,5 +1,6 @@
 // Tabela oficial da Copa do Mundo 2026 (formato 48 seleções, 12 grupos).
-// Datas e cidades são aproximações públicas; admin pode ajustar depois.
+// Times conforme tabela impressa das farmácias parceiras.
+// Datas são aproximações — admin pode finalizar com placar real a qualquer momento.
 
 export type BolaoFase = "grupos" | "oitavas_32" | "oitavas" | "quartas" | "semi" | "terceiro" | "final";
 
@@ -14,80 +15,79 @@ export interface BolaoFixtureJogo {
   codigo_fora?: string;
 }
 
-// Grupos da Copa 2026 (12 grupos A–L). Times confirmados onde já há classificação.
-// Onde ainda não há time confirmado, usamos placeholder editável pelo admin.
+// Grupos oficiais da Copa 2026 (A–L) conforme tabela impressa.
 export const GRUPOS_2026: Record<string, { nome: string; codigo: string }[]> = {
   A: [
     { nome: "México", codigo: "MEX" },
-    { nome: "A2", codigo: "??" },
-    { nome: "A3", codigo: "??" },
-    { nome: "A4", codigo: "??" },
+    { nome: "África do Sul", codigo: "RSA" },
+    { nome: "República Tcheca", codigo: "CZE" },
+    { nome: "Coreia do Sul", codigo: "KOR" },
   ],
   B: [
     { nome: "Canadá", codigo: "CAN" },
-    { nome: "B2", codigo: "??" },
-    { nome: "B3", codigo: "??" },
-    { nome: "B4", codigo: "??" },
+    { nome: "Suíça", codigo: "SUI" },
+    { nome: "Catar", codigo: "QAT" },
+    { nome: "Bósnia e Herzegovina", codigo: "BIH" },
   ],
   C: [
-    { nome: "EUA", codigo: "USA" },
-    { nome: "C2", codigo: "??" },
-    { nome: "C3", codigo: "??" },
-    { nome: "C4", codigo: "??" },
+    { nome: "Brasil", codigo: "BRA" },
+    { nome: "Escócia", codigo: "SCO" },
+    { nome: "Haiti", codigo: "HAI" },
+    { nome: "Marrocos", codigo: "MAR" },
   ],
   D: [
-    { nome: "Brasil", codigo: "BRA" },
-    { nome: "D2", codigo: "??" },
-    { nome: "D3", codigo: "??" },
-    { nome: "D4", codigo: "??" },
+    { nome: "Estados Unidos", codigo: "USA" },
+    { nome: "Austrália", codigo: "AUS" },
+    { nome: "Turquia", codigo: "TUR" },
+    { nome: "Paraguai", codigo: "PAR" },
   ],
   E: [
-    { nome: "Argentina", codigo: "ARG" },
-    { nome: "E2", codigo: "??" },
-    { nome: "E3", codigo: "??" },
-    { nome: "E4", codigo: "??" },
+    { nome: "Alemanha", codigo: "GER" },
+    { nome: "Costa do Marfim", codigo: "CIV" },
+    { nome: "Equador", codigo: "ECU" },
+    { nome: "Curaçao", codigo: "CUW" },
   ],
   F: [
-    { nome: "França", codigo: "FRA" },
-    { nome: "F2", codigo: "??" },
-    { nome: "F3", codigo: "??" },
-    { nome: "F4", codigo: "??" },
+    { nome: "Japão", codigo: "JPN" },
+    { nome: "Suécia", codigo: "SWE" },
+    { nome: "Tunísia", codigo: "TUN" },
+    { nome: "Holanda", codigo: "NED" },
   ],
   G: [
-    { nome: "Inglaterra", codigo: "ENG" },
-    { nome: "G2", codigo: "??" },
-    { nome: "G3", codigo: "??" },
-    { nome: "G4", codigo: "??" },
+    { nome: "Bélgica", codigo: "BEL" },
+    { nome: "Irã", codigo: "IRN" },
+    { nome: "Egito", codigo: "EGY" },
+    { nome: "Nova Zelândia", codigo: "NZL" },
   ],
   H: [
-    { nome: "Alemanha", codigo: "GER" },
-    { nome: "H2", codigo: "??" },
-    { nome: "H3", codigo: "??" },
-    { nome: "H4", codigo: "??" },
+    { nome: "Espanha", codigo: "ESP" },
+    { nome: "Arábia Saudita", codigo: "KSA" },
+    { nome: "Cabo Verde", codigo: "CPV" },
+    { nome: "Uruguai", codigo: "URU" },
   ],
   I: [
-    { nome: "Espanha", codigo: "ESP" },
-    { nome: "I2", codigo: "??" },
-    { nome: "I3", codigo: "??" },
-    { nome: "I4", codigo: "??" },
+    { nome: "França", codigo: "FRA" },
+    { nome: "Senegal", codigo: "SEN" },
+    { nome: "Iraque", codigo: "IRQ" },
+    { nome: "Noruega", codigo: "NOR" },
   ],
   J: [
-    { nome: "Portugal", codigo: "POR" },
-    { nome: "J2", codigo: "??" },
-    { nome: "J3", codigo: "??" },
-    { nome: "J4", codigo: "??" },
+    { nome: "Áustria", codigo: "AUT" },
+    { nome: "Argentina", codigo: "ARG" },
+    { nome: "Argélia", codigo: "ALG" },
+    { nome: "Jordânia", codigo: "JOR" },
   ],
   K: [
-    { nome: "Holanda", codigo: "NED" },
-    { nome: "K2", codigo: "??" },
-    { nome: "K3", codigo: "??" },
-    { nome: "K4", codigo: "??" },
+    { nome: "Portugal", codigo: "POR" },
+    { nome: "Colômbia", codigo: "COL" },
+    { nome: "Uzbequistão", codigo: "UZB" },
+    { nome: "RD do Congo", codigo: "CGO" },
   ],
   L: [
-    { nome: "Uruguai", codigo: "URU" },
-    { nome: "L2", codigo: "??" },
-    { nome: "L3", codigo: "??" },
-    { nome: "L4", codigo: "??" },
+    { nome: "Inglaterra", codigo: "ENG" },
+    { nome: "Gana", codigo: "GHA" },
+    { nome: "Panamá", codigo: "PAN" },
+    { nome: "Croácia", codigo: "CRO" },
   ],
 };
 
@@ -102,7 +102,6 @@ function gerarJogosGrupos(): BolaoFixtureJogo[] {
 
   for (const g of grupos) {
     const times = GRUPOS_2026[g];
-    // 3 rodadas: (1v2, 3v4), (1v3, 2v4), (1v4, 2v3)
     const rodadas: [number, number][][] = [
       [[0, 1], [2, 3]],
       [[0, 2], [1, 3]],
@@ -134,30 +133,76 @@ function gerarMataMata(numeroInicial: number): BolaoFixtureJogo[] {
   const jogos: BolaoFixtureJogo[] = [];
   let numero = numeroInicial;
 
-  const addFase = (fase: BolaoFase, qtd: number, dataBase: string, prefixoA: string, prefixoB: string) => {
-    const dataIni = new Date(dataBase);
-    for (let i = 0; i < qtd; i++) {
-      const data = new Date(dataIni);
-      data.setDate(data.getDate() + Math.floor(i / 2));
-      jogos.push({
-        numero_jogo: numero++,
-        fase,
-        data_jogo: data.toISOString(),
-        time_casa: `${prefixoA}${i + 1}`,
-        time_fora: `${prefixoB}${i + 1}`,
-      });
-    }
-  };
+  // Fase de 32 — 16 jogos: 28/06 a 03/07/2026
+  const datasR32 = [
+    "2026-06-28T16:00:00-03:00", "2026-06-28T20:00:00-03:00",
+    "2026-06-29T16:00:00-03:00", "2026-06-29T20:00:00-03:00",
+    "2026-06-30T16:00:00-03:00", "2026-06-30T20:00:00-03:00",
+    "2026-07-01T16:00:00-03:00", "2026-07-01T20:00:00-03:00",
+    "2026-07-02T16:00:00-03:00", "2026-07-02T20:00:00-03:00",
+    "2026-07-03T16:00:00-03:00", "2026-07-03T20:00:00-03:00",
+    "2026-06-29T13:00:00-03:00", "2026-06-30T13:00:00-03:00",
+    "2026-07-02T13:00:00-03:00", "2026-07-03T13:00:00-03:00",
+  ];
+  for (let i = 0; i < 16; i++) {
+    jogos.push({
+      numero_jogo: numero++,
+      fase: "oitavas_32",
+      data_jogo: datasR32[i],
+      time_casa: `Classif. R32 J${i * 2 + 1}`,
+      time_fora: `Classif. R32 J${i * 2 + 2}`,
+    });
+  }
 
-  // 16 jogos das oitavas de 32 (round of 32) → 32 times classificados
-  addFase("oitavas_32", 16, "2026-06-27T17:00:00-03:00", "1º ", "2º ");
-  // 8 jogos oitavas
-  addFase("oitavas", 8, "2026-07-04T17:00:00-03:00", "Vencedor R32-", "Vencedor R32-");
-  // 4 quartas
-  addFase("quartas", 4, "2026-07-09T17:00:00-03:00", "Vencedor O", "Vencedor O");
-  // 2 semis
-  addFase("semi", 2, "2026-07-14T17:00:00-03:00", "Vencedor Q", "Vencedor Q");
-  // Terceiro lugar
+  // Oitavas (16 → 8) — 04/07 a 07/07
+  const datasOit = [
+    "2026-07-04T13:00:00-03:00", "2026-07-04T17:00:00-03:00",
+    "2026-07-05T13:00:00-03:00", "2026-07-05T17:00:00-03:00",
+    "2026-07-06T13:00:00-03:00", "2026-07-06T17:00:00-03:00",
+    "2026-07-07T13:00:00-03:00", "2026-07-07T17:00:00-03:00",
+  ];
+  for (let i = 0; i < 8; i++) {
+    jogos.push({
+      numero_jogo: numero++,
+      fase: "oitavas",
+      data_jogo: datasOit[i],
+      time_casa: `Vencedor R32-${i * 2 + 1}`,
+      time_fora: `Vencedor R32-${i * 2 + 2}`,
+    });
+  }
+
+  // Quartas — 09/07 a 11/07
+  const datasQuartas = [
+    "2026-07-09T17:00:00-03:00", "2026-07-09T21:00:00-03:00",
+    "2026-07-11T13:00:00-03:00", "2026-07-11T17:00:00-03:00",
+  ];
+  for (let i = 0; i < 4; i++) {
+    jogos.push({
+      numero_jogo: numero++,
+      fase: "quartas",
+      data_jogo: datasQuartas[i],
+      time_casa: `Vencedor O${i * 2 + 1}`,
+      time_fora: `Vencedor O${i * 2 + 2}`,
+    });
+  }
+
+  // Semi — 14/07 e 15/07
+  jogos.push({
+    numero_jogo: numero++,
+    fase: "semi",
+    data_jogo: "2026-07-14T17:00:00-03:00",
+    time_casa: "Vencedor Q1",
+    time_fora: "Vencedor Q2",
+  });
+  jogos.push({
+    numero_jogo: numero++,
+    fase: "semi",
+    data_jogo: "2026-07-15T17:00:00-03:00",
+    time_casa: "Vencedor Q3",
+    time_fora: "Vencedor Q4",
+  });
+
+  // Terceiro lugar — 18/07
   jogos.push({
     numero_jogo: numero++,
     fase: "terceiro",
@@ -165,7 +210,8 @@ function gerarMataMata(numeroInicial: number): BolaoFixtureJogo[] {
     time_casa: "Perdedor SF1",
     time_fora: "Perdedor SF2",
   });
-  // Final
+
+  // Final — 19/07
   jogos.push({
     numero_jogo: numero++,
     fase: "final",
@@ -173,6 +219,7 @@ function gerarMataMata(numeroInicial: number): BolaoFixtureJogo[] {
     time_casa: "Vencedor SF1",
     time_fora: "Vencedor SF2",
   });
+
   return jogos;
 }
 
@@ -184,7 +231,7 @@ export function gerarFixtureCompleta(): BolaoFixtureJogo[] {
 
 export const FASE_LABELS: Record<BolaoFase, string> = {
   grupos: "Fase de Grupos",
-  oitavas_32: "16-avos de Final",
+  oitavas_32: "Fase de 32 (16-avos)",
   oitavas: "Oitavas de Final",
   quartas: "Quartas de Final",
   semi: "Semifinais",
