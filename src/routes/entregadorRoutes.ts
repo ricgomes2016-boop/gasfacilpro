@@ -20,6 +20,7 @@ const EntregadorVendas = lazy(() => import("@/pages/entregador/EntregadorVendas"
 const EntregadorTreinamento = lazy(() => import("@/pages/entregador/EntregadorTreinamento"));
 const EntregadorContasPrazo = lazy(() => import("@/pages/entregador/EntregadorContasPrazo"));
 const EntregadorDevolucoes = lazy(() => import("@/pages/entregador/EntregadorDevolucoes"));
+const EntregadorBolao = lazy(() => import("@/pages/entregador/EntregadorBolao"));
 
 const DRIVER_ROLES: ("admin" | "gestor" | "entregador")[] = ["admin", "gestor", "entregador"];
 
