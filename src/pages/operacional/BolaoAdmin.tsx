@@ -10,7 +10,8 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { useBolaoJogos, useFinalizarJogo, useImportarTabela, BolaoJogo } from "@/hooks/useBolao";
 import { FASE_LABELS, FASE_ORDEM, BolaoFase } from "@/lib/bolao/fixture2026";
 import { bandeiraEmoji } from "@/lib/bolao/flags";
-import { Download, Lock, Unlock, Search, Trophy, CheckCircle2, Clock } from "lucide-react";
+import { Download, Lock, Unlock, Search, Trophy, CheckCircle2, Clock, CalendarRange } from "lucide-react";
+import { Toggle } from "@/components/ui/toggle";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -113,18 +114,12 @@ export default function BolaoAdmin() {
   const [busca, setBusca] = useState("");
   const [faseAtiva, setFaseAtiva] = useState<BolaoFase | "todas">("todas");
   const [statusFiltro, setStatusFiltro] = useState<"todos" | "pendente" | "finalizado">("todos");
-  const [dataFiltro, setDataFiltro] = useState<string>("todas");
+  const [modoSequencia, setModoSequencia] = useState(false);
 
   const stats = useMemo(() => {
     const total = jogos.length;
     const finalizados = jogos.filter((j) => j.finalizado).length;
     return { total, finalizados, pendentes: total - finalizados };
-  }, [jogos]);
-
-  const datasDisponiveis = useMemo(() => {
-    const set = new Set<string>();
-    jogos.forEach((j) => set.add(format(new Date(j.data_jogo), "yyyy-MM-dd")));
-    return Array.from(set).sort();
   }, [jogos]);
 
   const jogosFiltrados = useMemo(() => {
@@ -133,11 +128,10 @@ export default function BolaoAdmin() {
       if (faseAtiva !== "todas" && j.fase !== faseAtiva) return false;
       if (statusFiltro === "pendente" && j.finalizado) return false;
       if (statusFiltro === "finalizado" && !j.finalizado) return false;
-      if (dataFiltro !== "todas" && format(new Date(j.data_jogo), "yyyy-MM-dd") !== dataFiltro) return false;
       if (q && !j.time_casa.toLowerCase().includes(q) && !j.time_fora.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [jogos, busca, faseAtiva, statusFiltro, dataFiltro]);
+  }, [jogos, busca, faseAtiva, statusFiltro]);
 
   const jogosPorFase = useMemo(() => {
     const m = new Map<BolaoFase, BolaoJogo[]>();
@@ -146,6 +140,19 @@ export default function BolaoAdmin() {
       arr.push(j);
       m.set(j.fase, arr);
     });
+    return m;
+  }, [jogosFiltrados]);
+
+  const jogosPorDia = useMemo(() => {
+    const m = new Map<string, BolaoJogo[]>();
+    [...jogosFiltrados]
+      .sort((a, b) => new Date(a.data_jogo).getTime() - new Date(b.data_jogo).getTime())
+      .forEach((j) => {
+        const k = format(new Date(j.data_jogo), "yyyy-MM-dd");
+        const arr = m.get(k) || [];
+        arr.push(j);
+        m.set(k, arr);
+      });
     return m;
   }, [jogosFiltrados]);
 
@@ -245,20 +252,11 @@ export default function BolaoAdmin() {
                     <SelectItem value="finalizado">Finalizados</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={dataFiltro} onValueChange={setDataFiltro}>
-                  <SelectTrigger className="w-full sm:w-[170px]">
-                    <SelectValue placeholder="Data" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todas">Todas as datas</SelectItem>
-                    {datasDisponiveis.map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {format(new Date(`${d}T12:00:00`), "dd/MM (EEE)", { locale: ptBR })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={faseAtiva} onValueChange={(v) => setFaseAtiva(v as typeof faseAtiva)}>
+                <Select
+                  value={faseAtiva}
+                  onValueChange={(v) => setFaseAtiva(v as typeof faseAtiva)}
+                  disabled={modoSequencia}
+                >
                   <SelectTrigger className="w-full sm:w-[220px]">
                     <SelectValue placeholder="Fase" />
                   </SelectTrigger>
@@ -275,6 +273,16 @@ export default function BolaoAdmin() {
                     })}
                   </SelectContent>
                 </Select>
+                <Toggle
+                  pressed={modoSequencia}
+                  onPressedChange={setModoSequencia}
+                  variant="outline"
+                  aria-label="Mostrar em sequência por data"
+                  className="w-full sm:w-auto gap-2"
+                >
+                  <CalendarRange className="h-4 w-4" />
+                  Em sequência
+                </Toggle>
               </div>
 
             </CardContent>
@@ -302,6 +310,29 @@ export default function BolaoAdmin() {
               Nenhum jogo encontrado com esses filtros.
             </CardContent>
           </Card>
+        ) : modoSequencia ? (
+          Array.from(jogosPorDia.entries()).map(([dia, lista]) => (
+            <section key={dia} className="space-y-2">
+              <div className="flex items-center gap-2 sticky top-0 bg-background/95 backdrop-blur z-10 py-2">
+                <div className="h-7 w-1 bg-primary rounded-full" />
+                <h2 className="text-lg font-bold capitalize">
+                  {format(new Date(`${dia}T12:00:00`), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                </h2>
+                <Badge variant="secondary">{lista.length}</Badge>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {lista.map((j) => (
+                  <CardJogo
+                    key={j.id}
+                    jogo={j}
+                    onSalvar={(c, f, fin) =>
+                      finalizar.mutate({ jogo_id: j.id, gols_casa: c, gols_fora: f, finalizado: fin })
+                    }
+                  />
+                ))}
+              </div>
+            </section>
+          ))
         ) : (
           FASE_ORDEM.map((fase) => {
             const lista = jogosPorFase.get(fase) || [];

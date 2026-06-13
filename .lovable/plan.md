@@ -1,17 +1,23 @@
-## Filtro por data nos jogos do Bolão
+## Toggle "Em sequência" no Bolão (Admin + Entregador)
 
-Adicionar um seletor de data nas duas telas, mantendo todos os filtros e layout atuais intactos.
+Substitui o filtro de data por um toggle único. Quando ativo, lista todos os jogos em ordem cronológica agrupados por dia (11/06, 12/06, 13/06…). Quando inativo, mantém o agrupamento por fase atual.
 
-### O que muda
+### `src/pages/operacional/BolaoAdmin.tsx`
+- Remover state `dataFiltro` e o `<Select>` de data.
+- Adicionar state `modoSequencia: boolean` (default `false`).
+- Adicionar `<Toggle>` (shadcn) com ícone `CalendarRange` + label "Em sequência" na barra de filtros, ao lado de Status/Fase.
+- Quando `modoSequencia === true`: ignorar agrupamento por fase, ordenar `jogosFiltrados` por `data_jogo` ASC e renderizar grupos por dia (`dd/MM (EEE)`) com o mesmo sticky header visual já usado por fases. Busca + Status + Fase continuam aplicáveis.
+- Quando `false`: mantém render atual por `FASE_ORDEM`/grupos sem alterações visuais.
 
-**`src/pages/operacional/BolaoAdmin.tsx`** (admin)
-- Novo estado `dataFiltro` (default `"todas"`).
-- Lista `datasDisponiveis` derivada de `jogos`, ordenada crescente (11/06, 12/06, 13/06…), exibida como `dd/MM (qua)`.
-- Incluir a condição no `useMemo` de `jogosFiltrados` comparando `yyyy-MM-dd` local.
-- Renderizar `<Select>` ao lado dos filtros de Status/Fase, com `w-full sm:w-[170px]`.
+### `src/pages/entregador/EntregadorBolao.tsx`
+- Remover state `dataFiltro` e o `<Select>` de data.
+- Adicionar state `modoSequencia: boolean` (default `false`).
+- Adicionar `<Toggle>` compacto no topo da aba Jogos: ícone `CalendarRange` + "Em sequência".
+- Quando `true`: lista cronológica única agrupada por dia (`dd/MM (EEE)`), cada grupo com cabeçalho de data acima dos `JogoCard`s.
+- Quando `false`: mantém render atual por fase.
 
-**`src/pages/entregador/EntregadorBolao.tsx`** (app entregador)
-- Mesma lógica: estado, `datasDisponiveis` ordenada crescente, filtro aplicado à lista, `<Select>` acima da lista de jogos com largura mobile-friendly.
+### Validação contra fonte oficial
+Antes de implementar, abrir a página oficial da FIFA (`https://www.fifa.com/.../fifaworldcup`) para confirmar que a ordenação por `data_jogo` ASC reproduz a sequência oficial de jogos (11/06 abertura, depois 12/06, 13/06…). Sem mudanças em `fixture2026.ts` a menos que apareça divergência — nesse caso, reportar ao usuário antes de editar dados.
 
-### Fora do escopo
-`fixture2026.ts`, hooks, banco, rotas, mata-mata, e qualquer alteração nos filtros/visual já existentes.
+### Fora de escopo
+Hooks, schema, abas Desempenho/Ranking, filtros existentes (busca, status, fase), `fixture2026.ts` (a menos que divergência seja detectada e aprovada).
