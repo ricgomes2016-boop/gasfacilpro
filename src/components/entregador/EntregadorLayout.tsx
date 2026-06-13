@@ -26,7 +26,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NotificationToggle } from "./NotificationToggle";
 import { useGeoTracking, GeoTrackingState } from "@/hooks/useGeoTracking";
 import { GpsPermissionBanner } from "./GpsPermissionBanner";
-import { TrackingStatusCard } from "./TrackingStatusCard";
+import { TrackingStatusHeader } from "./TrackingStatusHeader";
 import { PendingDeliveriesBanner } from "./PendingDeliveriesBanner";
 import { SystemFooter } from "@/components/layout/SystemFooter";
 import { ChatBase } from "./ChatBase";
