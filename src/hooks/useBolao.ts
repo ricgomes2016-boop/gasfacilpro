@@ -161,8 +161,16 @@ export function useFinalizarJogo(unidadeId?: string) {
 export function useImportarTabela(unidadeId?: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts?: { reimportar?: boolean }) => {
       if (!unidadeId) throw new Error("Unidade não selecionada");
+      if (opts?.reimportar) {
+        // Apaga jogos e palpites existentes (palpites caem em cascade via FK)
+        const { error: delErr } = await supabase
+          .from("bolao_jogos" as any)
+          .delete()
+          .eq("unidade_id", unidadeId);
+        if (delErr) throw delErr;
+      }
       const fixture = gerarFixtureCompleta();
       const rows = fixture.map((j) => ({
         unidade_id: unidadeId,
@@ -175,7 +183,6 @@ export function useImportarTabela(unidadeId?: string) {
         codigo_casa: j.codigo_casa ?? null,
         codigo_fora: j.codigo_fora ?? null,
       }));
-      // Inserir em lotes de 50 para evitar payload grande
       for (let i = 0; i < rows.length; i += 50) {
         const lote = rows.slice(i, i + 50);
         const { error } = await supabase.from("bolao_jogos" as any).insert(lote);
@@ -185,6 +192,8 @@ export function useImportarTabela(unidadeId?: string) {
     },
     onSuccess: (qtd) => {
       qc.invalidateQueries({ queryKey: ["bolao-jogos", unidadeId] });
+      qc.invalidateQueries({ queryKey: ["bolao-palpites"] });
+      qc.invalidateQueries({ queryKey: ["bolao-ranking", unidadeId] });
       toast.success(`${qtd} jogos importados`);
     },
     onError: (err: any) => {
@@ -192,3 +201,4 @@ export function useImportarTabela(unidadeId?: string) {
     },
   });
 }
+
