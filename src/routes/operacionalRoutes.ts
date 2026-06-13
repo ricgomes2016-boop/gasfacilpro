@@ -29,6 +29,7 @@ const RelatorioGerencial = lazy(() => import("@/pages/operacional/RelatorioGeren
 const CategoriasDespesa = lazy(() => import("@/pages/config/CategoriasDespesa"));
 const Declaracoes = lazy(() => import("@/pages/config/Declaracoes"));
 const Fornecedores = lazy(() => import("@/pages/cadastros/Fornecedores"));
+const BolaoAdmin = lazy(() => import("@/pages/operacional/BolaoAdmin"));
 
 export const operacionalRoutes: RouteConfig[] = [
   { path: "/operacional/ia", component: ConselhosIA, roles: ["admin", "gestor"] },
