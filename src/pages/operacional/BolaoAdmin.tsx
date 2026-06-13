@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useBolaoJogos, useFinalizarJogo, useImportarTabela, BolaoJogo } from "@/hooks/useBolao";
 import { FASE_LABELS, FASE_ORDEM, BolaoFase } from "@/lib/bolao/fixture2026";
@@ -216,8 +217,8 @@ export default function BolaoAdmin() {
         {jogos.length > 0 && (
           <Card>
             <CardContent className="p-3 space-y-3">
-              <div className="flex flex-col sm:flex-row gap-2">
-                <div className="relative flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
+                <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar seleção..."
@@ -226,46 +227,35 @@ export default function BolaoAdmin() {
                     className="pl-8"
                   />
                 </div>
-                <div className="flex gap-1">
-                  {(["todos", "pendente", "finalizado"] as const).map((s) => (
-                    <Button
-                      key={s}
-                      size="sm"
-                      variant={statusFiltro === s ? "default" : "outline"}
-                      onClick={() => setStatusFiltro(s)}
-                      className="capitalize"
-                    >
-                      {s === "todos" ? "Todos" : s === "pendente" ? "Pendentes" : "Finalizados"}
-                    </Button>
-                  ))}
-                </div>
+                <Select value={statusFiltro} onValueChange={(v) => setStatusFiltro(v as typeof statusFiltro)}>
+                  <SelectTrigger className="w-full sm:w-[150px]">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="pendente">Pendentes</SelectItem>
+                    <SelectItem value="finalizado">Finalizados</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={faseAtiva} onValueChange={(v) => setFaseAtiva(v as typeof faseAtiva)}>
+                  <SelectTrigger className="w-full sm:w-[220px]">
+                    <SelectValue placeholder="Fase" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas as fases ({jogos.length})</SelectItem>
+                    {FASE_ORDEM.map((f) => {
+                      const c = contagemPorFase.get(f) || 0;
+                      if (c === 0) return null;
+                      return (
+                        <SelectItem key={f} value={f}>
+                          {FASE_LABELS[f]} ({c})
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
-              {/* Pills de fase */}
-              <div className="flex flex-wrap gap-1.5">
-                <Button
-                  size="sm"
-                  variant={faseAtiva === "todas" ? "default" : "outline"}
-                  onClick={() => setFaseAtiva("todas")}
-                  className="h-7 text-xs"
-                >
-                  Todas ({jogos.length})
-                </Button>
-                {FASE_ORDEM.map((f) => {
-                  const c = contagemPorFase.get(f) || 0;
-                  if (c === 0) return null;
-                  return (
-                    <Button
-                      key={f}
-                      size="sm"
-                      variant={faseAtiva === f ? "default" : "outline"}
-                      onClick={() => setFaseAtiva(f)}
-                      className="h-7 text-xs"
-                    >
-                      {FASE_LABELS[f]} ({c})
-                    </Button>
-                  );
-                })}
-              </div>
+
             </CardContent>
           </Card>
         )}
