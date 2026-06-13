@@ -191,17 +191,25 @@ export default function BolaoAdmin() {
           <Card className="flex items-center justify-center">
             <CardContent className="p-3 w-full">
               <Button
-                onClick={() => importar.mutate()}
-                disabled={importar.isPending || jogos.length > 0}
+                onClick={() => {
+                  if (jogos.length > 0) {
+                    if (!window.confirm("Reimportar apaga os jogos atuais e TODOS os palpites desta unidade. Continuar?")) return;
+                    importar.mutate({ reimportar: true });
+                  } else {
+                    importar.mutate({});
+                  }
+                }}
+                disabled={importar.isPending}
                 variant="outline"
                 className="w-full"
                 size="sm"
               >
                 <Download className="h-4 w-4 mr-2" />
-                {jogos.length > 0 ? "Tabela importada" : "Importar tabela"}
+                {jogos.length > 0 ? "Reimportar tabela oficial" : "Importar tabela"}
               </Button>
             </CardContent>
           </Card>
+
         </div>
 
         {/* Filtros */}
