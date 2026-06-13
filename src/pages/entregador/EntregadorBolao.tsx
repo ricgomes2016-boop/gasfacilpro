@@ -206,34 +206,25 @@ export default function EntregadorBolao() {
               </Card>
             ) : (
               <>
-                <Select value={dataFiltro} onValueChange={setDataFiltro}>
-                  <SelectTrigger className="w-full">
-                    <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <SelectValue placeholder="Filtrar por data" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todas">Todas as datas ({jogos.length})</SelectItem>
-                    {datasDisponiveis.map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {format(new Date(`${d}T12:00:00`), "dd/MM (EEE)", { locale: ptBR })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Toggle
+                  pressed={modoSequencia}
+                  onPressedChange={setModoSequencia}
+                  variant="outline"
+                  aria-label="Mostrar em sequência por data"
+                  className="w-full gap-2"
+                >
+                  <CalendarRange className="h-4 w-4" />
+                  Em sequência (por data)
+                </Toggle>
 
-                {jogosFiltrados.length === 0 ? (
-                  <Card>
-                    <CardContent className="p-6 text-center text-sm text-muted-foreground">
-                      Nenhum jogo nesta data.
-                    </CardContent>
-                  </Card>
-                ) : (
-                  FASE_ORDEM.map((fase) => {
-                    const lista = jogosPorFase.get(fase) || [];
-                    if (lista.length === 0) return null;
-                    return (
-                      <div key={fase} className="space-y-2">
-                        <h3 className="text-sm font-bold px-1">{FASE_LABELS[fase]}</h3>
+                {modoSequencia
+                  ? Array.from(jogosPorDia.entries()).map(([dia, lista]) => (
+                      <div key={dia} className="space-y-2">
+                        <h3 className="text-sm font-bold px-1 capitalize flex items-center gap-2">
+                          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                          {format(new Date(`${dia}T12:00:00`), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                          <Badge variant="secondary" className="ml-auto">{lista.length}</Badge>
+                        </h3>
                         <div className="space-y-2">
                           {lista.map((j) => (
                             <JogoCard
@@ -247,9 +238,28 @@ export default function EntregadorBolao() {
                           ))}
                         </div>
                       </div>
-                    );
-                  })
-                )}
+                    ))
+                  : FASE_ORDEM.map((fase) => {
+                      const lista = jogosPorFase.get(fase) || [];
+                      if (lista.length === 0) return null;
+                      return (
+                        <div key={fase} className="space-y-2">
+                          <h3 className="text-sm font-bold px-1">{FASE_LABELS[fase]}</h3>
+                          <div className="space-y-2">
+                            {lista.map((j) => (
+                              <JogoCard
+                                key={j.id}
+                                jogo={j}
+                                palpite={palpitesPorJogo.get(j.id)}
+                                onSalvar={(c, f) =>
+                                  salvar.mutate({ jogo_id: j.id, gols_casa: c, gols_fora: f })
+                                }
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
               </>
             )}
           </TabsContent>
