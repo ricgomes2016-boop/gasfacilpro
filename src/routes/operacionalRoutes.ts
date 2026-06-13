@@ -62,4 +62,5 @@ export const operacionalRoutes: RouteConfig[] = [
   { path: "/operacional/gerencial", component: RelatorioGerencial, roles: ["admin", "gestor"] },
   { path: "/operacional/declaracoes", component: Declaracoes, roles: ["admin", "gestor", "financeiro"] },
   { path: "/config/categorias-despesa", component: CategoriasDespesa, roles: ["admin", "gestor"] },
+  { path: "/operacional/bolao-admin", component: BolaoAdmin, roles: ["admin", "gestor"] },
 ];
