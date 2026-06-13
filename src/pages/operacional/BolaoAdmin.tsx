@@ -8,12 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useBolaoJogos, useFinalizarJogo, useImportarTabela, BolaoJogo } from "@/hooks/useBolao";
 import { FASE_LABELS, FASE_ORDEM, BolaoFase } from "@/lib/bolao/fixture2026";
-import { Download, Lock, Unlock } from "lucide-react";
+import { bandeiraEmoji } from "@/lib/bolao/flags";
+import { Download, Lock, Unlock, Search, Trophy, CheckCircle2, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
-function LinhaJogo({ jogo, onSalvar }: { jogo: BolaoJogo; onSalvar: (c: number, f: number, fin: boolean) => void }) {
+function CardJogo({ jogo, onSalvar }: { jogo: BolaoJogo; onSalvar: (c: number, f: number, fin: boolean) => void }) {
   const [casa, setCasa] = useState(jogo.gols_casa_real?.toString() ?? "");
   const [fora, setFora] = useState(jogo.gols_fora_real?.toString() ?? "");
 
@@ -23,37 +25,79 @@ function LinhaJogo({ jogo, onSalvar }: { jogo: BolaoJogo; onSalvar: (c: number, 
     if (Number.isNaN(c) || Number.isNaN(f)) return;
     onSalvar(c, f, true);
   };
-
   const reabrir = () => onSalvar(jogo.gols_casa_real ?? 0, jogo.gols_fora_real ?? 0, false);
 
   return (
-    <Card>
-      <CardContent className="p-3 flex flex-wrap items-center gap-3">
-        <div className="text-xs text-muted-foreground w-20">#{jogo.numero_jogo}</div>
-        <div className="text-xs text-muted-foreground w-28">
-          {format(new Date(jogo.data_jogo), "dd/MM HH:mm", { locale: ptBR })}
+    <Card
+      className={cn(
+        "transition-all hover:shadow-md overflow-hidden",
+        jogo.finalizado && "border-emerald-500/40 bg-emerald-500/[0.03]"
+      )}
+    >
+      <CardContent className="p-3 space-y-2">
+        {/* Header com número e data */}
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+          <span className="font-mono font-semibold">Jogo #{jogo.numero_jogo}</span>
+          <span>{format(new Date(jogo.data_jogo), "dd/MM 'às' HH:mm", { locale: ptBR })}</span>
         </div>
-        <div className="flex-1 min-w-[200px] grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-          <span className="text-sm font-semibold text-right truncate">{jogo.time_casa}</span>
-          <div className="flex items-center gap-1">
-            <Input type="number" min={0} value={casa} onChange={(e) => setCasa(e.target.value)} className="w-14 text-center" />
-            <span>×</span>
-            <Input type="number" min={0} value={fora} onChange={(e) => setFora(e.target.value)} className="w-14 text-center" />
+
+        {/* Confronto */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          {/* Casa */}
+          <div className="flex items-center justify-end gap-2 min-w-0">
+            <span className="text-sm font-semibold truncate">{jogo.time_casa}</span>
+            <span className="text-2xl leading-none">{bandeiraEmoji(jogo.codigo_casa)}</span>
           </div>
-          <span className="text-sm font-semibold truncate">{jogo.time_fora}</span>
+
+          {/* Placar */}
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              min={0}
+              inputMode="numeric"
+              value={casa}
+              onChange={(e) => setCasa(e.target.value)}
+              className="w-12 h-10 text-center text-base font-bold p-0"
+            />
+            <span className="text-muted-foreground font-semibold">×</span>
+            <Input
+              type="number"
+              min={0}
+              inputMode="numeric"
+              value={fora}
+              onChange={(e) => setFora(e.target.value)}
+              className="w-12 h-10 text-center text-base font-bold p-0"
+            />
+          </div>
+
+          {/* Fora */}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-2xl leading-none">{bandeiraEmoji(jogo.codigo_fora)}</span>
+            <span className="text-sm font-semibold truncate">{jogo.time_fora}</span>
+          </div>
         </div>
-        {jogo.finalizado ? (
-          <>
-            <Badge variant="outline" className="border-emerald-500/40 text-emerald-600">Finalizado</Badge>
-            <Button size="sm" variant="outline" onClick={reabrir}>
-              <Unlock className="h-3 w-3 mr-1" /> Reabrir
+
+        {/* Ações */}
+        <div className="flex items-center justify-between pt-1">
+          {jogo.finalizado ? (
+            <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 gap-1">
+              <CheckCircle2 className="h-3 w-3" /> Finalizado
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-muted-foreground gap-1">
+              <Clock className="h-3 w-3" /> Pendente
+            </Badge>
+          )}
+          {jogo.finalizado ? (
+            <Button size="sm" variant="ghost" onClick={reabrir} className="h-8">
+              <Unlock className="h-3.5 w-3.5 mr-1" /> Reabrir
             </Button>
-          </>
-        ) : (
-          <Button size="sm" onClick={finalizar}>
-            <Lock className="h-3 w-3 mr-1" /> Finalizar
-          </Button>
-        )}
+          ) : (
+            <Button size="sm" onClick={finalizar} className="h-8">
+              <Lock className="h-3.5 w-3.5 mr-1" /> Finalizar
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
@@ -65,47 +109,235 @@ export default function BolaoAdmin() {
   const finalizar = useFinalizarJogo(unidadeAtual?.id);
   const importar = useImportarTabela(unidadeAtual?.id);
 
+  const [busca, setBusca] = useState("");
+  const [faseAtiva, setFaseAtiva] = useState<BolaoFase | "todas">("todas");
+  const [statusFiltro, setStatusFiltro] = useState<"todos" | "pendente" | "finalizado">("todos");
+
+  const stats = useMemo(() => {
+    const total = jogos.length;
+    const finalizados = jogos.filter((j) => j.finalizado).length;
+    return { total, finalizados, pendentes: total - finalizados };
+  }, [jogos]);
+
+  const jogosFiltrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return jogos.filter((j) => {
+      if (faseAtiva !== "todas" && j.fase !== faseAtiva) return false;
+      if (statusFiltro === "pendente" && j.finalizado) return false;
+      if (statusFiltro === "finalizado" && !j.finalizado) return false;
+      if (q && !j.time_casa.toLowerCase().includes(q) && !j.time_fora.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [jogos, busca, faseAtiva, statusFiltro]);
+
   const jogosPorFase = useMemo(() => {
     const m = new Map<BolaoFase, BolaoJogo[]>();
-    jogos.forEach((j) => {
+    jogosFiltrados.forEach((j) => {
       const arr = m.get(j.fase) || [];
       arr.push(j);
       m.set(j.fase, arr);
     });
     return m;
+  }, [jogosFiltrados]);
+
+  const contagemPorFase = useMemo(() => {
+    const m = new Map<BolaoFase, number>();
+    jogos.forEach((j) => m.set(j.fase, (m.get(j.fase) || 0) + 1));
+    return m;
   }, [jogos]);
 
   return (
     <MainLayout>
-      <Header title="Bolão Copa 2026 — Admin" subtitle="Cadastre placares reais para calcular pontos dos entregadores" />
-      <div className="p-4 space-y-4">
-        <div className="flex justify-end">
-          <Button
-            onClick={() => importar.mutate()}
-            disabled={importar.isPending || jogos.length > 0}
-            variant="outline"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            {jogos.length > 0 ? `Tabela já importada (${jogos.length} jogos)` : "Importar tabela oficial"}
-          </Button>
+      <Header
+        title="Bolão Copa 2026 — Admin"
+        subtitle="Cadastre placares reais para calcular pontos dos entregadores"
+      />
+      <div className="p-4 space-y-4 max-w-6xl mx-auto">
+        {/* Stats + import */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card>
+            <CardContent className="p-3 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Trophy className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Total de jogos</div>
+                <div className="text-xl font-bold">{stats.total}</div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Finalizados</div>
+                <div className="text-xl font-bold text-emerald-600">{stats.finalizados}</div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Pendentes</div>
+                <div className="text-xl font-bold text-amber-600">{stats.pendentes}</div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="flex items-center justify-center">
+            <CardContent className="p-3 w-full">
+              <Button
+                onClick={() => importar.mutate()}
+                disabled={importar.isPending || jogos.length > 0}
+                variant="outline"
+                className="w-full"
+                size="sm"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {jogos.length > 0 ? "Tabela importada" : "Importar tabela"}
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
+        {/* Filtros */}
+        {jogos.length > 0 && (
+          <Card>
+            <CardContent className="p-3 space-y-3">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar seleção..."
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+                <div className="flex gap-1">
+                  {(["todos", "pendente", "finalizado"] as const).map((s) => (
+                    <Button
+                      key={s}
+                      size="sm"
+                      variant={statusFiltro === s ? "default" : "outline"}
+                      onClick={() => setStatusFiltro(s)}
+                      className="capitalize"
+                    >
+                      {s === "todos" ? "Todos" : s === "pendente" ? "Pendentes" : "Finalizados"}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              {/* Pills de fase */}
+              <div className="flex flex-wrap gap-1.5">
+                <Button
+                  size="sm"
+                  variant={faseAtiva === "todas" ? "default" : "outline"}
+                  onClick={() => setFaseAtiva("todas")}
+                  className="h-7 text-xs"
+                >
+                  Todas ({jogos.length})
+                </Button>
+                {FASE_ORDEM.map((f) => {
+                  const c = contagemPorFase.get(f) || 0;
+                  if (c === 0) return null;
+                  return (
+                    <Button
+                      key={f}
+                      size="sm"
+                      variant={faseAtiva === f ? "default" : "outline"}
+                      onClick={() => setFaseAtiva(f)}
+                      className="h-7 text-xs"
+                    >
+                      {FASE_LABELS[f]} ({c})
+                    </Button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Lista */}
         {isLoading ? (
-          <Skeleton className="h-40" />
+          <div className="space-y-2">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </div>
         ) : jogos.length === 0 ? (
-          <Card><CardContent className="p-8 text-center text-muted-foreground">
-            Nenhum jogo cadastrado. Clique em "Importar tabela oficial" para começar.
-          </CardContent></Card>
+          <Card>
+            <CardContent className="p-12 text-center text-muted-foreground">
+              <Trophy className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p className="font-medium mb-1">Nenhum jogo cadastrado</p>
+              <p className="text-sm">Clique em "Importar tabela" para começar.</p>
+            </CardContent>
+          </Card>
+        ) : jogosFiltrados.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center text-muted-foreground text-sm">
+              Nenhum jogo encontrado com esses filtros.
+            </CardContent>
+          </Card>
         ) : (
           FASE_ORDEM.map((fase) => {
             const lista = jogosPorFase.get(fase) || [];
             if (lista.length === 0) return null;
+
+            // Para fase de grupos, agrupa por letra do grupo
+            if (fase === "grupos") {
+              const porGrupo = new Map<string, BolaoJogo[]>();
+              lista.forEach((j) => {
+                const g = j.grupo || "—";
+                const arr = porGrupo.get(g) || [];
+                arr.push(j);
+                porGrupo.set(g, arr);
+              });
+              const grupos = Array.from(porGrupo.keys()).sort();
+
+              return (
+                <section key={fase} className="space-y-3">
+                  <div className="flex items-center gap-2 sticky top-0 bg-background/95 backdrop-blur z-10 py-2">
+                    <div className="h-7 w-1 bg-primary rounded-full" />
+                    <h2 className="text-lg font-bold">{FASE_LABELS[fase]}</h2>
+                    <Badge variant="secondary">{lista.length}</Badge>
+                  </div>
+                  {grupos.map((g) => (
+                    <div key={g} className="space-y-2">
+                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-1">
+                        Grupo {g}
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {porGrupo.get(g)!.map((j) => (
+                          <CardJogo
+                            key={j.id}
+                            jogo={j}
+                            onSalvar={(c, f, fin) =>
+                              finalizar.mutate({ jogo_id: j.id, gols_casa: c, gols_fora: f, finalizado: fin })
+                            }
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </section>
+              );
+            }
+
             return (
               <section key={fase} className="space-y-2">
-                <h2 className="text-lg font-bold">{FASE_LABELS[fase]}</h2>
-                <div className="space-y-2">
+                <div className="flex items-center gap-2 sticky top-0 bg-background/95 backdrop-blur z-10 py-2">
+                  <div className="h-7 w-1 bg-primary rounded-full" />
+                  <h2 className="text-lg font-bold">{FASE_LABELS[fase]}</h2>
+                  <Badge variant="secondary">{lista.length}</Badge>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {lista.map((j) => (
-                    <LinhaJogo
+                    <CardJogo
                       key={j.id}
                       jogo={j}
                       onSalvar={(c, f, fin) =>
