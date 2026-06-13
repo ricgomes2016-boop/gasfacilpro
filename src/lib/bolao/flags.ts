@@ -9,7 +9,7 @@ const FIFA_TO_ISO2: Record<string, string> = {
   FRA: "FR", ENG: "GB-ENG", GER: "DE", ESP: "ES", POR: "PT", NED: "NL",
   ITA: "IT", BEL: "BE", CRO: "HR", SUI: "CH", DEN: "DK", POL: "PL",
   SRB: "RS", AUT: "AT", UKR: "UA", WAL: "GB-WLS", SCO: "GB-SCT",
-  IRL: "IE", SWE: "SE", NOR: "NO", BIH: "BA",
+  IRL: "IE", SWE: "SE", NOR: "NO", BIH: "BA", TUR: "TR",
   // Ásia/Oceania
   JPN: "JP", KOR: "KR", AUS: "AU", IRN: "IR", KSA: "SA", QAT: "QA",
   IRQ: "IQ", UZB: "UZ", NZL: "NZ", JOR: "JO",
