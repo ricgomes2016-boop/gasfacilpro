@@ -1,42 +1,32 @@
-## Análise
+# Corrigir fontes brancas ilegíveis no menu do entregador
 
-Encontrei três problemas principais na tela `/caixa/acerto`:
+## Problema
+Em `src/components/entregador/EntregadorLayout.tsx`, o `SheetContent` lateral usa `gradient-dark` como fundo e os itens do menu/textos usam `text-white`, `text-white/80`, `text-white/70` e `border-white/10`.
 
-1. **Erro 400 na consulta de pedidos**
-   - A requisição do console mostra um filtro inválido enviado ao backend: `valor...=lte.2026-06-12`.
-   - Isso indica que alguma consulta/filtro de pedidos está sendo montada com coluna errada ou parâmetros desalinhados.
+No tema atual (gasfacil), os tokens `--sidebar-gradient-from/to` que alimentam `--gradient-dark` resolvem para um gradiente claro (lavanda/branco). Resultado: cabeçalho "App Entregador" e botão "Jornada" ativo aparecem, mas todos os demais itens (Início, Entregas, Nova Venda, Produtividade, Qtd Vendida, Financeiro, Contas a Prazo, Devoluções/Trocas, Treinamento, Sair) ficam quase invisíveis — texto branco sobre fundo branco.
 
-2. **Resumo automático com valores impossíveis**
-   - O card mostra, por exemplo, cartão débito/crédito/PIX com `QTD 0` e valores enormes, enquanto o total final é pequeno.
-   - A causa provável está no parser de pagamentos múltiplos: valores como `R$5.000,00` podem ser lidos errado em alguns fluxos, e a contagem por forma compara a forma original com a chave normalizada, por isso fica `0`.
+## Solução
+Trocar as cores hardcoded por tokens semânticos do design system, que garantem contraste tanto em fundo claro quanto escuro:
 
-3. **Avisos de acessibilidade em Dialog**
-   - Há avisos de `DialogContent requires DialogTitle` / `Missing Description` no console.
-   - Na própria tela de acerto existe `DialogTitle`, mas falta descrição; também vou revisar os diálogos acionados nessa rota para eliminar o aviso quando vier desta tela.
+1. **Fundo do drawer**: substituir `gradient-dark` por `bg-sidebar` (token oficial do shadcn sidebar) para que o fundo acompanhe corretamente o tema do entregador.
+2. **Cabeçalho** (App Entregador / Revenda de Gás / Versão):
+   - `text-white` → `text-sidebar-foreground`
+   - `text-white/70` → `text-sidebar-foreground/70`
+   - `border-white/10` → `border-sidebar-border`
+3. **Itens de navegação**:
+   - Inativo: `text-white/80 hover:bg-white/10` → `text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground`
+   - Ativo: manter `gradient-primary text-primary-foreground shadow-glow` (já legível, como visto no item "Jornada").
+4. **Rodapé / botão Sair**:
+   - `border-white/10` → `border-sidebar-border`
+   - `text-white/80 hover:bg-red-500/20 hover:text-red-300` → `text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive`
+5. Ajustar o `BuildVersionBadge` (tone `on-primary`) se necessário — verificar se sob `bg-sidebar` ele continua legível; senão, trocar para tone padrão.
 
-## Plano de correção
+## Escopo
+- Apenas `src/components/entregador/EntregadorLayout.tsx`.
+- Nenhuma alteração em rotas, providers, App.tsx, lógica de negócio ou tokens globais.
+- Bottom nav e header superior ficam como estão (não estão com o problema).
 
-1. **Blindar o cálculo do resumo automático**
-   - Criar um parser único e seguro para valores BR (`R$ 1.587,56`, `1587.56`, `1.587,56`).
-   - Usar esse parser tanto em `metricas` quanto em `confirmarAcerto` e `abrirEdicao`.
-   - Corrigir a contagem (`QTD`) por forma de pagamento para contar formas normalizadas, inclusive pagamentos múltiplos.
-   - Garantir que percentuais sejam calculados somente sobre o total real das vendas e não gerem números acima de 100% quando o total estiver correto.
-
-2. **Corrigir filtros de canais e período**
-   - Manter `unidade_id` obrigatório em todas as consultas da tela.
-   - Ajustar a filtragem de Portaria/PDV/Gás do Povo sem gerar URL inválida e sem misturar pedidos entre canais.
-   - Revisar a origem do erro 400 para impedir que `valor` receba data por engano em consultas de pedidos usadas na tela.
-
-3. **Tornar a confirmação mais confiável**
-   - Antes de finalizar, validar que cada pedido ainda pertence à unidade atual e ainda está pendente de acerto.
-   - Após o update, exigir retorno da linha atualizada; se não atualizar, mostrar falha clara ao usuário.
-   - Evitar sucesso parcial silencioso.
-
-4. **Corrigir avisos de Dialog no console**
-   - Adicionar `DialogDescription`/descrição acessível nos diálogos desta tela.
-   - Se o aviso vier de componente chamado pela tela, corrigir no componente correspondente sem alterar outros fluxos.
-
-5. **Validação após implementação**
-   - Conferir novamente os logs/requisições da rota `/caixa/acerto`.
-   - Confirmar que o resumo automático da Morumbi Gás não exibe valores de outras empresas nem valores inflados.
-   - Confirmar que o pedido #9 e pedidos similares entram no canal correto e podem mudar para `finalizado` sem erro silencioso.
+## Validação
+- Abrir `/entregador` no preview mobile (384px), abrir o menu lateral e confirmar que todos os itens estão legíveis.
+- Conferir o item ativo (destaque roxo) continua com bom contraste.
+- Verificar rapidamente em outro tema de marca (gasmais) se o fundo do sidebar continua coerente.
