@@ -146,17 +146,13 @@ export function EntregadorLayout({ children, title }: EntregadorLayoutProps) {
           </div>
           <NotificationToggle className="text-primary-foreground hover:bg-white/20" />
         </div>
+        <TrackingStatusHeader tracking={trackingState} />
       </header>
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto pb-20">
         <GpsPermissionBanner />
         <PendingDeliveriesBanner />
-        {trackingState.isTracking && (
-          <div className="px-4 mt-3">
-            <TrackingStatusCard tracking={trackingState} />
-          </div>
-        )}
         {children}
       </main>
 
