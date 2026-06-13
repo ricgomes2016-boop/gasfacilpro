@@ -113,11 +113,18 @@ export default function BolaoAdmin() {
   const [busca, setBusca] = useState("");
   const [faseAtiva, setFaseAtiva] = useState<BolaoFase | "todas">("todas");
   const [statusFiltro, setStatusFiltro] = useState<"todos" | "pendente" | "finalizado">("todos");
+  const [dataFiltro, setDataFiltro] = useState<string>("todas");
 
   const stats = useMemo(() => {
     const total = jogos.length;
     const finalizados = jogos.filter((j) => j.finalizado).length;
     return { total, finalizados, pendentes: total - finalizados };
+  }, [jogos]);
+
+  const datasDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    jogos.forEach((j) => set.add(format(new Date(j.data_jogo), "yyyy-MM-dd")));
+    return Array.from(set).sort();
   }, [jogos]);
 
   const jogosFiltrados = useMemo(() => {
@@ -126,10 +133,11 @@ export default function BolaoAdmin() {
       if (faseAtiva !== "todas" && j.fase !== faseAtiva) return false;
       if (statusFiltro === "pendente" && j.finalizado) return false;
       if (statusFiltro === "finalizado" && !j.finalizado) return false;
+      if (dataFiltro !== "todas" && format(new Date(j.data_jogo), "yyyy-MM-dd") !== dataFiltro) return false;
       if (q && !j.time_casa.toLowerCase().includes(q) && !j.time_fora.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [jogos, busca, faseAtiva, statusFiltro]);
+  }, [jogos, busca, faseAtiva, statusFiltro, dataFiltro]);
 
   const jogosPorFase = useMemo(() => {
     const m = new Map<BolaoFase, BolaoJogo[]>();
