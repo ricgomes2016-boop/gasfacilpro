@@ -4,12 +4,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Toggle } from "@/components/ui/toggle";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBolaoJogos, useMeusPalpites, useSalvarPalpite, useRankingBolao, BolaoJogo, BolaoPalpite } from "@/hooks/useBolao";
 import { FASE_LABELS, FASE_ORDEM, BolaoFase } from "@/lib/bolao/fixture2026";
-import { Trophy, Calendar, CheckCircle2, Lock, Medal } from "lucide-react";
+import { Trophy, Calendar, CheckCircle2, Lock, Medal, CalendarRange } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -124,7 +124,7 @@ export default function EntregadorBolao() {
   const { data: ranking = [] } = useRankingBolao(unidadeAtual?.id);
   const salvar = useSalvarPalpite(unidadeAtual?.id);
 
-  const [dataFiltro, setDataFiltro] = useState<string>("todas");
+  const [modoSequencia, setModoSequencia] = useState(false);
 
   const palpitesPorJogo = useMemo(() => {
     const m = new Map<string, BolaoPalpite>();
@@ -132,26 +132,28 @@ export default function EntregadorBolao() {
     return m;
   }, [meusPalpites]);
 
-  const datasDisponiveis = useMemo(() => {
-    const set = new Set<string>();
-    jogos.forEach((j) => set.add(format(new Date(j.data_jogo), "yyyy-MM-dd")));
-    return Array.from(set).sort();
-  }, [jogos]);
-
-  const jogosFiltrados = useMemo(() => {
-    if (dataFiltro === "todas") return jogos;
-    return jogos.filter((j) => format(new Date(j.data_jogo), "yyyy-MM-dd") === dataFiltro);
-  }, [jogos, dataFiltro]);
-
   const jogosPorFase = useMemo(() => {
     const m = new Map<BolaoFase, BolaoJogo[]>();
-    jogosFiltrados.forEach((j) => {
+    jogos.forEach((j) => {
       const arr = m.get(j.fase) || [];
       arr.push(j);
       m.set(j.fase, arr);
     });
     return m;
-  }, [jogosFiltrados]);
+  }, [jogos]);
+
+  const jogosPorDia = useMemo(() => {
+    const m = new Map<string, BolaoJogo[]>();
+    [...jogos]
+      .sort((a, b) => new Date(a.data_jogo).getTime() - new Date(b.data_jogo).getTime())
+      .forEach((j) => {
+        const k = format(new Date(j.data_jogo), "yyyy-MM-dd");
+        const arr = m.get(k) || [];
+        arr.push(j);
+        m.set(k, arr);
+      });
+    return m;
+  }, [jogos]);
 
   const meusStats = useMemo(() => {
     const total = meusPalpites.reduce((acc, p) => acc + (p.pontos || 0), 0);
