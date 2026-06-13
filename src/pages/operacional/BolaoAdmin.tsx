@@ -225,7 +225,7 @@ export default function BolaoAdmin() {
         {jogos.length > 0 && (
           <Card>
             <CardContent className="p-3 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2">
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -243,6 +243,19 @@ export default function BolaoAdmin() {
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="pendente">Pendentes</SelectItem>
                     <SelectItem value="finalizado">Finalizados</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={dataFiltro} onValueChange={setDataFiltro}>
+                  <SelectTrigger className="w-full sm:w-[170px]">
+                    <SelectValue placeholder="Data" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas as datas</SelectItem>
+                    {datasDisponiveis.map((d) => (
+                      <SelectItem key={d} value={d}>
+                        {format(new Date(`${d}T12:00:00`), "dd/MM (EEE)", { locale: ptBR })}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Select value={faseAtiva} onValueChange={(v) => setFaseAtiva(v as typeof faseAtiva)}>
