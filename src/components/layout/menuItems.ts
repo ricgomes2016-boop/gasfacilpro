@@ -153,6 +153,7 @@ export const menuItems: MenuItem[] = [
       { icon: FileText, label: "Declarações", path: "/operacional/declaracoes" },
       { icon: CheckSquare, label: "Workflow Aprovações", path: "/operacional/aprovacoes" },
       { icon: Timer, label: "SLA de Entregas", path: "/operacional/sla" },
+      { icon: Trophy, label: "Bolão Copa 2026", path: "/operacional/bolao-admin" },
     ],
   },
   {
