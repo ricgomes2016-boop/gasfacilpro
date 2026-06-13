@@ -26,7 +26,9 @@ function JogoCard({
   const [casa, setCasa] = useState<string>(palpite ? String(palpite.gols_casa_palpite) : "");
   const [fora, setFora] = useState<string>(palpite ? String(palpite.gols_fora_palpite) : "");
   const isBrasil = jogo.codigo_casa === "BRA" || jogo.codigo_fora === "BRA";
-  const bloqueado = jogo.finalizado || (!isBrasil && new Date(jogo.data_jogo) <= new Date());
+  const isHoje = format(new Date(jogo.data_jogo), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
+  const excecao = isBrasil && isHoje;
+  const bloqueado = jogo.finalizado || (!excecao && new Date(jogo.data_jogo) <= new Date());
   const acertou = palpite && jogo.finalizado && palpite.pontos > 0;
 
   const salvar = () => {
