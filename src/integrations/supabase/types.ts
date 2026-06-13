@@ -812,6 +812,110 @@ export type Database = {
           },
         ]
       }
+      bolao_jogos: {
+        Row: {
+          codigo_casa: string | null
+          codigo_fora: string | null
+          created_at: string
+          data_jogo: string
+          empresa_id: string | null
+          fase: Database["public"]["Enums"]["bolao_fase"]
+          finalizado: boolean
+          gols_casa_real: number | null
+          gols_fora_real: number | null
+          grupo: string | null
+          id: string
+          numero_jogo: number
+          time_casa: string
+          time_fora: string
+          unidade_id: string
+          updated_at: string
+        }
+        Insert: {
+          codigo_casa?: string | null
+          codigo_fora?: string | null
+          created_at?: string
+          data_jogo: string
+          empresa_id?: string | null
+          fase: Database["public"]["Enums"]["bolao_fase"]
+          finalizado?: boolean
+          gols_casa_real?: number | null
+          gols_fora_real?: number | null
+          grupo?: string | null
+          id?: string
+          numero_jogo: number
+          time_casa: string
+          time_fora: string
+          unidade_id: string
+          updated_at?: string
+        }
+        Update: {
+          codigo_casa?: string | null
+          codigo_fora?: string | null
+          created_at?: string
+          data_jogo?: string
+          empresa_id?: string | null
+          fase?: Database["public"]["Enums"]["bolao_fase"]
+          finalizado?: boolean
+          gols_casa_real?: number | null
+          gols_fora_real?: number | null
+          grupo?: string | null
+          id?: string
+          numero_jogo?: number
+          time_casa?: string
+          time_fora?: string
+          unidade_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bolao_palpites: {
+        Row: {
+          created_at: string
+          empresa_id: string | null
+          gols_casa_palpite: number
+          gols_fora_palpite: number
+          id: string
+          jogo_id: string
+          pontos: number
+          unidade_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id?: string | null
+          gols_casa_palpite: number
+          gols_fora_palpite: number
+          id?: string
+          jogo_id: string
+          pontos?: number
+          unidade_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string | null
+          gols_casa_palpite?: number
+          gols_fora_palpite?: number
+          id?: string
+          jogo_id?: string
+          pontos?: number
+          unidade_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bolao_palpites_jogo_id_fkey"
+            columns: ["jogo_id"]
+            isOneToOne: false
+            referencedRelation: "bolao_jogos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       boletos_emitidos: {
         Row: {
           conta_receber_id: string | null
@@ -11775,6 +11879,15 @@ export type Database = {
         Args: { _data: string; _unidade_id: string }
         Returns: boolean
       }
+      calcular_pontos_palpite: {
+        Args: {
+          _p_casa: number
+          _p_fora: number
+          _r_casa: number
+          _r_fora: number
+        }
+        Returns: number
+      }
       consumir_vale_empenho: {
         Args: {
           _cliente_final_id: string
@@ -11961,6 +12074,14 @@ export type Database = {
         | "contador"
         | "super_admin"
         | "transportadora"
+      bolao_fase:
+        | "grupos"
+        | "oitavas_32"
+        | "oitavas"
+        | "quartas"
+        | "semi"
+        | "terceiro"
+        | "final"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -12099,6 +12220,15 @@ export const Constants = {
         "contador",
         "super_admin",
         "transportadora",
+      ],
+      bolao_fase: [
+        "grupos",
+        "oitavas_32",
+        "oitavas",
+        "quartas",
+        "semi",
+        "terceiro",
+        "final",
       ],
     },
   },
