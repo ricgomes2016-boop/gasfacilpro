@@ -57,6 +57,7 @@ const menuItems = [
   { path: "/entregador/despesas", icon: Receipt, label: "Despesas" },
   { path: "/entregador/combustivel", icon: Fuel, label: "Combustível" },
   { path: "/entregador/conquistas", icon: Trophy, label: "Conquistas" },
+  { path: "/entregador/bolao", icon: Trophy, label: "Bolão Copa 2026" },
   { path: "/entregador/historico", icon: History, label: "Histórico" },
   { path: "/entregador/perfil", icon: User, label: "Perfil" },
 ];
