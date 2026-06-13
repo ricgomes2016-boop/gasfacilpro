@@ -124,21 +124,34 @@ export default function EntregadorBolao() {
   const { data: ranking = [] } = useRankingBolao(unidadeAtual?.id);
   const salvar = useSalvarPalpite(unidadeAtual?.id);
 
+  const [dataFiltro, setDataFiltro] = useState<string>("todas");
+
   const palpitesPorJogo = useMemo(() => {
     const m = new Map<string, BolaoPalpite>();
     meusPalpites.forEach((p) => m.set(p.jogo_id, p));
     return m;
   }, [meusPalpites]);
 
+  const datasDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    jogos.forEach((j) => set.add(format(new Date(j.data_jogo), "yyyy-MM-dd")));
+    return Array.from(set).sort();
+  }, [jogos]);
+
+  const jogosFiltrados = useMemo(() => {
+    if (dataFiltro === "todas") return jogos;
+    return jogos.filter((j) => format(new Date(j.data_jogo), "yyyy-MM-dd") === dataFiltro);
+  }, [jogos, dataFiltro]);
+
   const jogosPorFase = useMemo(() => {
     const m = new Map<BolaoFase, BolaoJogo[]>();
-    jogos.forEach((j) => {
+    jogosFiltrados.forEach((j) => {
       const arr = m.get(j.fase) || [];
       arr.push(j);
       m.set(j.fase, arr);
     });
     return m;
-  }, [jogos]);
+  }, [jogosFiltrados]);
 
   const meusStats = useMemo(() => {
     const total = meusPalpites.reduce((acc, p) => acc + (p.pontos || 0), 0);
