@@ -44,4 +44,5 @@ export const entregadorRoutes: RouteConfig[] = [
   { path: "/entregador/treinamento", component: EntregadorTreinamento, roles: DRIVER_ROLES },
   { path: "/entregador/contas-prazo", component: EntregadorContasPrazo, roles: DRIVER_ROLES },
   { path: "/entregador/devolucoes", component: EntregadorDevolucoes, roles: DRIVER_ROLES },
+  { path: "/entregador/bolao", component: EntregadorBolao, roles: DRIVER_ROLES },
 ];
