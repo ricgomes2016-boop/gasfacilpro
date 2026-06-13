@@ -1,62 +1,115 @@
+
 ## Objetivo
+Substituir o gerador round-robin atual por uma lista fixa com a tabela oficial extraída da imagem (12 grupos × 6 jogos = 72 jogos da fase de grupos), com datas/horários e confrontos corretos.
 
-Substituir a tabela placeholder do bolão pela tabela oficial mostrada nas fotos (mesma usada nas farmácias parceiras), com seleções reais, datas e horários corretos em todas as fases.
+## Tabela oficial (lida da foto)
 
-## O que vai mudar
+**Grupo A**
+- 11/06 16:00 México × África do Sul
+- 11/06 23:00 Coréia do Sul × República Tcheca
+- 18/06 13:00 República Tcheca × África do Sul
+- 18/06 22:00 México × Coréia do Sul
+- 24/06 22:00 República Tcheca × México
+- 24/06 22:00 África do Sul × Coréia do Sul
 
-### 1. `src/lib/bolao/fixture2026.ts` — tabela oficial completa
+**Grupo B**
+- 12/06 16:00 Canadá × Bósnia e Herzegovina
+- 13/06 16:00 Catar × Suíça
+- 18/06 16:00 Suíça × Bósnia e Herzegovina
+- 18/06 19:00 Canadá × Catar
+- 24/06 16:00 Suíça × Canadá
+- 24/06 16:00 Bósnia e Herzegovina × Catar
 
-**Fase de Grupos (jogos 1–72)** — substituir os placeholders "A2/A3/B2..." pelas seleções reais conforme as fotos:
+**Grupo C**
+- 13/06 19:00 Brasil × Marrocos
+- 13/06 22:00 Haiti × Escócia
+- 19/06 19:00 Escócia × Marrocos
+- 19/06 21:30 Brasil × Haiti
+- 24/06 19:00 Escócia × Brasil
+- 24/06 19:00 Marrocos × Haiti
 
-- **A** — México, África do Sul, República Tcheca, Coreia do Sul
-- **B** — Canadá, Suíça, Catar, Bósnia e Herzegovina
-- **C** — Brasil, Escócia, Haiti, Marrocos
-- **D** — Estados Unidos, Austrália, Turquia, Paraguai
-- **E** — Alemanha, Costa do Marfim, Equador, Curaçao
-- **F** — Japão, Suécia, Tunísia, Holanda
-- **G** — Bélgica, Irã, Egito, Nova Zelândia
-- **H** — Espanha, Arábia Saudita, Cabo Verde, Uruguai
-- **I** — França, Senegal, Iraque, Noruega
-- **J** — Áustria, Argentina, Argélia, Jordânia
-- **K** — Portugal, Colômbia, Uzbequistão, RD do Congo
-- **L** — Inglaterra, Gana, Panamá, Croácia
+**Grupo D**
+- 12/06 22:00 Estados Unidos × Paraguai
+- 14/06 01:00 Austrália × Turquia
+- 19/06 16:00 Estados Unidos × Austrália
+- 20/06 01:00 Turquia × Paraguai
+- 25/06 23:00 Turquia × Estados Unidos
+- 25/06 23:00 Paraguai × Austrália
 
-Cada grupo tem 6 confrontos com datas/horários extraídos das fotos (ex.: GRUPO A — 11/06 16:00 México×África do Sul, 11/06 23:00 Coreia do Sul×Rep. Tcheca, 18/06 13:00 Rep. Tcheca×África do Sul, 18/06 22:00 México×Coreia do Sul, 24/06 22:00 Rep. Tcheca×México, 24/06 22:00 África do Sul×Coreia do Sul). Aplicar o mesmo para B–L.
+**Grupo E**
+- 14/06 14:00 Alemanha × Curaçao
+- 14/06 20:00 Costa do Marfim × Equador
+- 20/06 17:00 Alemanha × Costa do Marfim
+- 20/06 21:00 Equador × Curaçao
+- 25/06 17:00 Equador × Alemanha
+- 25/06 17:00 Curaçao × Costa do Marfim
 
-**Mata-mata (jogos 73–104)** — manter placeholders de classificação (ex.: "1º A × 2º B"), mas atualizar datas:
+**Grupo F**
+- 14/06 17:00 Holanda × Japão
+- 14/06 23:00 Suécia × Tunísia
+- 20/06 14:00 Holanda × Suécia
+- 20/06 23:00 Tunísia × Japão
+- 25/06 20:00 Japão × Suécia
+- 25/06 20:00 Tunísia × Holanda
 
-- Fase de 32 (jogos 73–88): 28/06 a 03/07/2026
-- Oitavas de Final (jogos 89–96): 04/07 a 07/07/2026
-- Quartas de Final (jogos 97–100): 09/07 a 11/07/2026
-- Semifinal (jogos 101 e 102): 14/07 e 15/07/2026
-- 3º e 4º lugar (jogo 103): 18/07/2026
-- Final (jogo 104): 19/07/2026
+**Grupo G**
+- 15/06 16:00 Bélgica × Egito
+- 15/06 22:00 Irã × Nova Zelândia
+- 21/06 16:00 Bélgica × Irã
+- 21/06 22:00 Nova Zelândia × Egito
+- 27/06 00:00 Egito × Irã
+- 27/06 00:00 Nova Zelândia × Bélgica
 
-Adicionar/atualizar códigos FIFA dos países (BRA, ARG, FRA, ENG, GER, ESP, POR, NED, USA, MEX, CAN, JPN, KOR, AUS, MAR, SEN, CIV, GHA, EGY, IRN, KSA, QAT, TUN, RSA, CHI, COL, PER, ECU, PAR, URU, CRC, JAM, CRO, SUI, BIH, SCO, HAI, SWE, BEL, NZL, CPV, IRQ, NOR, AUT, ALG, JOR, CGO, UZB, PAN, CUW) para que as bandeiras `bandeiraEmoji()` (já criada) renderizem corretamente. Faltam alguns no map atual — vou ampliar `src/lib/bolao/flags.ts`.
+**Grupo H**
+- 15/06 13:00 Espanha × Cabo Verde
+- 15/06 19:00 Arábia Saudita × Uruguai
+- 21/06 13:00 Espanha × Arábia Saudita
+- 21/06 19:00 Uruguai × Cabo Verde
+- 26/06 21:00 Cabo Verde × Arábia Saudita
+- 26/06 21:00 Uruguai × Espanha
 
-### 2. `src/pages/operacional/BolaoAdmin.tsx` — permitir reimportar
+**Grupo I**
+- 16/06 16:00 França × Senegal
+- 16/06 19:00 Iraque × Noruega
+- 22/06 18:00 França × Iraque
+- 22/06 21:00 Noruega × Senegal
+- 26/06 16:00 Noruega × França
+- 26/06 16:00 Senegal × Iraque
 
-Hoje o botão "Importar tabela" fica desabilitado quando já há jogos. Como a unidade já importou a versão antiga com placeholders, vou:
+**Grupo J**
+- 16/06 22:00 Argentina × Argélia
+- 17/06 01:00 Áustria × Jordânia
+- 22/06 14:00 Argentina × Áustria
+- 23/06 00:00 Jordânia × Argélia
+- 27/06 23:00 Argélia × Áustria
+- 27/06 23:00 Jordânia × Argentina
 
-- Trocar o botão por **"Reimportar tabela oficial"** quando já houver jogos.
-- Pedir confirmação (`window.confirm`) antes de reimportar.
-- Acionar um novo modo do hook `useImportarTabela` que apaga os jogos atuais (e palpites em cascade — já existe o FK) da unidade antes de inserir os novos. Os palpites zerados serão refeitos pelos entregadores.
+**Grupo K**
+- 17/06 14:00 Portugal × RD do Congo
+- 17/06 21:00 Uzbequistão × Colômbia
+- 23/06 14:00 Portugal × Uzbequistão
+- 23/06 23:00 Colômbia × RD do Congo
+- 27/06 20:30 Colômbia × Portugal
+- 27/06 20:30 RD do Congo × Uzbequistão
 
-### 3. `src/hooks/useBolao.ts` — modo de reimportação
+**Grupo L**
+- 17/06 17:00 Inglaterra × Croácia
+- 17/06 20:00 Gana × Panamá
+- 23/06 17:00 Inglaterra × Gana
+- 23/06 20:00 Panamá × Croácia
+- 27/06 18:00 Panamá × Inglaterra
+- 27/06 18:00 Croácia × Gana
 
-Adicionar um parâmetro `reimportar?: boolean` em `useImportarTabela`:
-- Se `true`: `DELETE FROM bolao_jogos WHERE unidade_id = ?` antes do insert (palpites caem em cascade via FK).
-- Se `false` (default): comportamento atual.
+## Implementação
 
-## Validação
+1. **`src/lib/bolao/fixture2026.ts`**
+   - Remover o gerador round-robin automático.
+   - Definir array fixo `OFFICIAL_GROUP_MATCHES` com os 72 jogos acima (campos: grupo, fase='grupos', mandante, visitante, data_hora ISO em horário de Brasília `-03:00`).
+   - Manter a exportação que `useBolao` usa para reimportação.
 
-- Abrir `/operacional/bolao-admin` → clicar "Reimportar tabela oficial" → confirmar → ver os 104 jogos com seleções reais, datas corretas e bandeiras nos cards.
-- Filtrar por Grupo A e conferir os 6 jogos com nomes/horários iguais à foto.
-- Abrir `/entregador/bolao` no app do entregador → confirmar que aparecem os mesmos jogos para palpitar.
+2. **Reimportação**
+   - Nenhum schema novo. Após o deploy, o usuário clica **"Reimportar tabela oficial"** em `BolaoAdmin` para apagar jogos antigos e inserir a tabela correta.
 
-## O que NÃO vai mudar
-
-- Estrutura do banco (`bolao_jogos`, `bolao_palpites`) e RLS — já estão corretas.
-- Trigger de cálculo de pontos (10 placar exato / 5 vencedor / 0 errado).
-- Layout da tela admin (cards, filtros, agrupamento por grupo) feito na rodada anterior.
-- Rotas, `App.tsx`, providers.
+## Fora de escopo
+- Mata-mata (16-avos em diante) — segue como está; pode ser adicionado depois com base na classificação.
+- UI do admin e do seletor — sem mudanças.
