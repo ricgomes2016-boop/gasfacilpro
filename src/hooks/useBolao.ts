@@ -105,7 +105,7 @@ export function useRankingBolao(unidadeId?: string) {
       if (error) throw error;
 
       const mapa = new Map<string, { user_id: string; pontos: number; palpites: number; exatos: number; vencedores: number }>();
-      const palpites = (data || []) as { user_id: string; pontos: number }[];
+      const palpites = ((data || []) as unknown) as { user_id: string; pontos: number }[];
       palpites.forEach((p) => {
         const cur = mapa.get(p.user_id) || { user_id: p.user_id, pontos: 0, palpites: 0, exatos: 0, vencedores: 0 };
         cur.pontos += p.pontos || 0;
