@@ -25,8 +25,6 @@ import {
   Minus,
   Trash2,
   CheckCircle,
-  Search,
-
   Sparkles,
   Mic,
   MicOff,
