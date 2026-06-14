@@ -56,6 +56,11 @@ function JogoCard({
             {format(new Date(jogo.data_jogo), "dd/MM HH:mm", { locale: ptBR })}
           </span>
           {jogo.grupo && <span className="font-semibold">Grupo {jogo.grupo}</span>}
+          {projecao?.projetado && (
+            <span className="text-[10px] font-semibold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded">
+              projetado
+            </span>
+          )}
           <span>#{jogo.numero_jogo}</span>
         </div>
 
