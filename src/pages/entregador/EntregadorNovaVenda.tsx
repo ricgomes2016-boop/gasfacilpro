@@ -588,57 +588,33 @@ export default function EntregadorNovaVenda() {
                   </span>
                 )}
               </CardTitle>
-              <Dialog open={dialogClienteAberto} onOpenChange={setDialogClienteAberto}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 text-xs">
-                    <Search className="h-4 w-4 mr-1" />
-                    Buscar
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Buscar Cliente</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <Input
-                      placeholder="Nome ou telefone..."
-                      value={buscaCliente}
-                      onChange={(e) => setBuscaCliente(e.target.value)}
-                    />
-                    <div className="space-y-2 max-h-60 overflow-auto">
-                      {clientesFiltrados.slice(0, 20).map((c) => (
-                        <div
-                          key={c.id}
-                          onClick={() => selecionarCliente(c)}
-                          className="p-3 rounded-lg border border-border hover:bg-muted cursor-pointer transition-colors"
-                        >
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{c.nome}</p>
-                            {c.tipo && (
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getTipoBadge(c.tipo).className}`}>
-                                {getTipoBadge(c.tipo).label}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground">{c.telefone || "Sem telefone"}</p>
-                          <p className="text-xs text-muted-foreground">{c.endereco || "Sem endereço"}</p>
-                        </div>
-                      ))}
-                      {clientesFiltrados.length === 0 && (
-                        <p className="text-center text-muted-foreground py-4">Nenhum cliente encontrado</p>
-                      )}
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              {cliente.id && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs gap-1"
+                  onClick={limparCliente}
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Trocar
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2">
-                <Label className="text-xs">Nome *</Label>
-                <Input value={cliente.nome} onChange={(e) => setCliente({ ...cliente, nome: e.target.value })} placeholder="Nome do cliente" />
-              </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Buscar cliente cadastrado</Label>
+              <ClienteAutocompleteInput
+                value={cliente.nome}
+                onChange={selecionarClienteAutocomplete}
+                placeholder="Nome, telefone ou endereço..."
+              />
+              {!cliente.id && cliente.nome.trim().length > 0 && (
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  💡 Cliente avulso — preencha os dados abaixo ou selecione da lista.
+                </p>
+              )}
+            </div>
               <div className="col-span-2">
                 <Label className="text-xs">Telefone</Label>
                 <div className="relative">
