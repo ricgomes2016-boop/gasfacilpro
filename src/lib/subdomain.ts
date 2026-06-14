@@ -10,7 +10,7 @@
  * Em ambiente de desenvolvimento (localhost, preview), usa rotas normais.
  */
 
-export type SubdomainApp = "cliente" | "entregador" | "parceiro" | "erp" | "painel" | "api" | "transportadora" | "contador" | "landing" | null;
+export type SubdomainApp = "cliente" | "entregador" | "parceiro" | "erp" | "painel" | "api" | "transportadora" | "contador" | "vendedor" | "landing" | null;
 
 const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
   clientes: "cliente",
@@ -30,7 +30,11 @@ const SUBDOMAIN_MAP: Record<string, SubdomainApp> = {
   contabil: "contador",
   contador: "contador",
   contabilidade: "contador",
+  vendas: "vendedor",
+  vendedor: "vendedor",
+  vendedores: "vendedor",
 };
+
 
 // Known base domains for the SaaS
 const BASE_DOMAINS = [
