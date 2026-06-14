@@ -15,6 +15,7 @@ import {
 import { Loader2, Search, Printer, QrCode, Clock, CheckCircle2, Package, ShoppingCart, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { ValeGasQRCode } from "@/components/valegas/ValeGasQRCode";
+import { esc } from "@/lib/escapeHtml";
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: typeof Clock }> = {
   disponivel: { label: "Disponível", variant: "default", icon: Package },
