@@ -157,10 +157,12 @@ export function inferAppFromPath(pathname: string): Exclude<SubdomainApp, null> 
   if (matchesRouteSegment(pathname, "/clientes")) return "erp";
   if (matchesRouteSegment(pathname, "/cliente")) return "cliente";
   if (matchesRouteSegment(pathname, "/entregador")) return "entregador";
+  if (matchesRouteSegment(pathname, "/vendedor")) return "vendedor";
   if (matchesRouteSegment(pathname, "/parceiro")) return "parceiro";
   if (matchesRouteSegment(pathname, "/transportadora")) return "transportadora";
   // /integracoes é usado no ERP e no portal API; evita redirecionamento cruzado automático
   if (matchesRouteSegment(pathname, "/integracoes")) return null;
+
 
   const erpPrefixes = [
     "/dashboard",
