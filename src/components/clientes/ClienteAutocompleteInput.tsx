@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 
-interface ClienteSugestao {
+export interface ClienteSugestao {
   id: string;
   nome: string;
   telefone: string | null;
