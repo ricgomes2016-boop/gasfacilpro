@@ -51,7 +51,7 @@ export function DeliveryPersonSelect({ value, onChange, endereco, onVendedorAuto
       try {
         let query = supabase
           .from("entregadores")
-          .select("id, nome, status, foto_url")
+          .select("id, nome, status, foto_url, funcionario_id, funcionarios:funcionario_id(is_vendedor)")
           .eq("ativo", true)
           .order("nome");
 
@@ -62,16 +62,19 @@ export function DeliveryPersonSelect({ value, onChange, endereco, onVendedorAuto
         const { data, error } = await query;
 
         if (!error && data) {
-          // Remover duplicados por nome para evitar confusão visual se houver registros redundantes
           const nomesUnicos = new Set();
-          const uniqueData = data.filter(e => {
-            if (nomesUnicos.has(e.nome)) {
-              console.warn(`Entregador duplicado detectado: ${e.nome} (ID: ${e.id})`);
-              return false;
-            }
+          const uniqueData = (data as any[]).filter((e) => {
+            if (nomesUnicos.has(e.nome)) return false;
             nomesUnicos.add(e.nome);
             return true;
-          });
+          }).map((e) => ({
+            id: e.id,
+            nome: e.nome,
+            status: e.status,
+            foto_url: e.foto_url,
+            funcionario_id: e.funcionario_id,
+            is_vendedor: !!e.funcionarios?.is_vendedor,
+          }));
           setEntregadores(uniqueData);
         }
       } catch (error) {
@@ -83,6 +86,21 @@ export function DeliveryPersonSelect({ value, onChange, endereco, onVendedorAuto
 
     fetchEntregadores();
   }, [unidadeAtual?.id]);
+
+  const handleSelect = (id: string) => {
+    const entregador = entregadores.find((e) => e.id === id);
+    if (entregador) {
+      onChange(id, entregador.nome);
+      if (onVendedorAuto) {
+        if (entregador.is_vendedor && entregador.funcionario_id) {
+          onVendedorAuto(entregador.funcionario_id, entregador.nome);
+        } else {
+          onVendedorAuto(null, null);
+        }
+      }
+    }
+  };
+
 
   const handleSelect = (id: string) => {
     const entregador = entregadores.find((e) => e.id === id);
