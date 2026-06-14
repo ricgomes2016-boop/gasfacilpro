@@ -17,11 +17,13 @@ const ACCENT_BY_PORTAL: Record<AuthPortalKey, string> = {
   painel: "265 84% 60%",
   cliente: "200 95% 50%",
   entregador: "142 70% 45%",
+  vendedor: "160 75% 45%",
   contador: "215 85% 55%",
   transportadora: "30 90% 50%",
   parceiro: "340 80% 55%",
   api: "260 70% 60%",
 };
+
 
 function detectPortalKey(pathname: string): AuthPortalKey {
   const host = typeof window !== "undefined" ? window.location.hostname : "";
