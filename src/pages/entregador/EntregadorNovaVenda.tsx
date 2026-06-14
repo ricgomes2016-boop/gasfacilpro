@@ -16,13 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   ShoppingCart,
   User,
   MapPin,
@@ -38,13 +31,16 @@ import {
   MicOff,
   Send,
   Loader2,
+  X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PaymentSection, Pagamento } from "@/components/vendas/PaymentSection";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { getBrasiliaDateString } from "@/lib/utils";
+import { ClienteAutocompleteInput, type ClienteSugestao } from "@/components/clientes/ClienteAutocompleteInput";
 
 interface ProdutoDB {
   id: string;
