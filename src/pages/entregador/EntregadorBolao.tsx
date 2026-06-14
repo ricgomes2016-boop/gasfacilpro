@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBolaoJogos, useMeusPalpites, useSalvarPalpite, useRankingBolao, BolaoJogo, BolaoPalpite } from "@/hooks/useBolao";
 import { FASE_LABELS, FASE_ORDEM, BolaoFase } from "@/lib/bolao/fixture2026";
 import { bandeiraEmoji } from "@/lib/bolao/flags";
+import { projetarChaveCompleta, ProjecaoSlot } from "@/lib/bolao/projecao";
 import { Trophy, Calendar, CheckCircle2, Lock, Medal, CalendarRange } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -18,15 +19,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 function JogoCard({
   jogo,
   palpite,
+  projecao,
   onSalvar,
 }: {
   jogo: BolaoJogo;
   palpite?: BolaoPalpite;
+  projecao?: ProjecaoSlot;
   onSalvar: (casa: number, fora: number) => void;
 }) {
   const [casa, setCasa] = useState<string>(palpite ? String(palpite.gols_casa_palpite) : "");
   const [fora, setFora] = useState<string>(palpite ? String(palpite.gols_fora_palpite) : "");
-  const isBrasil = jogo.codigo_casa === "BRA" || jogo.codigo_fora === "BRA";
+  const timeCasa = projecao?.time_casa ?? jogo.time_casa;
+  const timeFora = projecao?.time_fora ?? jogo.time_fora;
+  const codCasa = projecao?.codigo_casa ?? jogo.codigo_casa;
+  const codFora = projecao?.codigo_fora ?? jogo.codigo_fora;
+  const isBrasil = codCasa === "BRA" || codFora === "BRA";
   const isHoje = format(new Date(jogo.data_jogo), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
   const excecao = isBrasil && isHoje;
   const bloqueado = jogo.finalizado || (!excecao && new Date(jogo.data_jogo) <= new Date());
@@ -49,13 +56,18 @@ function JogoCard({
             {format(new Date(jogo.data_jogo), "dd/MM HH:mm", { locale: ptBR })}
           </span>
           {jogo.grupo && <span className="font-semibold">Grupo {jogo.grupo}</span>}
+          {projecao?.projetado && (
+            <span className="text-[10px] font-semibold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded">
+              projetado
+            </span>
+          )}
           <span>#{jogo.numero_jogo}</span>
         </div>
 
         <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
           <div className="text-right flex items-center justify-end gap-1.5 min-w-0">
-            <p className="text-sm font-semibold truncate">{jogo.time_casa}</p>
-            <span className="text-2xl leading-none shrink-0">{bandeiraEmoji(jogo.codigo_casa)}</span>
+            <p className="text-sm font-semibold truncate">{timeCasa}</p>
+            <span className="text-2xl leading-none shrink-0">{bandeiraEmoji(codCasa)}</span>
           </div>
           <div className="flex items-center gap-1">
             <Input
@@ -79,8 +91,8 @@ function JogoCard({
             />
           </div>
           <div className="text-left flex items-center justify-start gap-1.5 min-w-0">
-            <span className="text-2xl leading-none shrink-0">{bandeiraEmoji(jogo.codigo_fora)}</span>
-            <p className="text-sm font-semibold truncate">{jogo.time_fora}</p>
+            <span className="text-2xl leading-none shrink-0">{bandeiraEmoji(codFora)}</span>
+            <p className="text-sm font-semibold truncate">{timeFora}</p>
           </div>
         </div>
 
@@ -135,6 +147,11 @@ export default function EntregadorBolao() {
     meusPalpites.forEach((p) => m.set(p.jogo_id, p));
     return m;
   }, [meusPalpites]);
+
+  const projecao = useMemo(
+    () => projetarChaveCompleta(jogos, meusPalpites),
+    [jogos, meusPalpites]
+  );
 
   const jogosPorFase = useMemo(() => {
     const m = new Map<BolaoFase, BolaoJogo[]>();
@@ -235,6 +252,7 @@ export default function EntregadorBolao() {
                               key={j.id}
                               jogo={j}
                               palpite={palpitesPorJogo.get(j.id)}
+                              projecao={projecao.get(j.id)}
                               onSalvar={(c, f) =>
                                 salvar.mutate({ jogo_id: j.id, gols_casa: c, gols_fora: f })
                               }
@@ -255,6 +273,7 @@ export default function EntregadorBolao() {
                                 key={j.id}
                                 jogo={j}
                                 palpite={palpitesPorJogo.get(j.id)}
+                                projecao={projecao.get(j.id)}
                                 onSalvar={(c, f) =>
                                   salvar.mutate({ jogo_id: j.id, gols_casa: c, gols_fora: f })
                                 }
