@@ -86,7 +86,7 @@ export default function Vendedores() {
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
 
   useEffect(() => {
-    if (!unidadeAtiva?.id) return;
+    if (!unidadeAtual?.id) return;
     (async () => {
       setLoading(true);
       try {
@@ -94,7 +94,7 @@ export default function Vendedores() {
           .from("funcionarios")
           .select("id, nome, user_id")
           .eq("is_vendedor", true)
-          .eq("unidade_id", unidadeAtiva.id);
+          .eq("unidade_id", unidadeAtual.id);
 
         const funcIds = (funcs || []).map((f: any) => f.id);
         if (funcIds.length === 0) {
@@ -153,7 +153,7 @@ export default function Vendedores() {
         setLoading(false);
       }
     })();
-  }, [unidadeAtiva?.id, range.inicioISOFull, range.fimISOFull]);
+  }, [unidadeAtual?.id, range.inicioISOFull, range.fimISOFull]);
 
   const resumo: ResumoVendedor[] = useMemo(() => {
     return vendedores
