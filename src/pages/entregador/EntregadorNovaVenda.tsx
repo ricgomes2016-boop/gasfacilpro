@@ -80,7 +80,11 @@ interface Cliente {
   tipo: string | null;
 }
 
-export default function EntregadorNovaVenda() {
+interface EntregadorNovaVendaProps {
+  noLayout?: boolean;
+}
+
+export default function EntregadorNovaVenda({ noLayout = false }: EntregadorNovaVendaProps = {}) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
