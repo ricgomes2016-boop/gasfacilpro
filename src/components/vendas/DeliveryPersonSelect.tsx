@@ -20,15 +20,20 @@ interface Entregador {
   nome: string;
   status: string | null;
   foto_url?: string | null;
+  funcionario_id?: string | null;
+  is_vendedor?: boolean;
 }
 
 interface DeliveryPersonSelectProps {
   value: string | null;
   onChange: (id: string, nome: string) => void;
   endereco?: string;
+  /** Called whenever an entregador is selected. Provides the funcionario_id when that entregador is also a vendedor, otherwise null. */
+  onVendedorAuto?: (funcionarioId: string | null, nome: string | null) => void;
 }
 
-export function DeliveryPersonSelect({ value, onChange, endereco }: DeliveryPersonSelectProps) {
+export function DeliveryPersonSelect({ value, onChange, endereco, onVendedorAuto }: DeliveryPersonSelectProps) {
+
   const [entregadores, setEntregadores] = useState<Entregador[]>([]);
   const [loading, setLoading] = useState(true);
   const { unidadeAtual } = useUnidade();
