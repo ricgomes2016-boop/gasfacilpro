@@ -1,91 +1,73 @@
-## App Vendedor (`vendas.gasfacilpro.com.br`)
 
-App mobile-first dedicado ao vendedor externo/interno, espelhando a arquitetura enxuta do app do entregador, mas focado em **vender rápido** (balcão ou para entrega), acompanhar **metas/comissão**, consultar **clientes** e participar do **bolão**.
+# Cadastro de Vendedor dentro de Funcionários
 
----
+O cadastro de vendedor ficará **dentro de Cadastros > Funcionários**, sem criar uma tela separada. Ao marcar o checkbox "É vendedor", aparecem os campos extras e o sistema cria login + role + meta automaticamente.
 
-### 1. Infra de subdomínio e auth
+## 1. Banco de dados (migration)
 
-- **`src/lib/subdomain.ts`**: adicionar `"vendedor"` ao tipo `SubdomainApp`, mapear `vendas` / `vendedor` no `SUBDOMAIN_MAP`, retornar `vendedor.<base>` em `getCanonicalHostnameForApp`, default route `/vendedor`, `inferAppFromPath` reconhece `/vendedor`, `isRouteAllowedForSubdomain` libera só `/vendedor/*` + `/auth` + `/reset-password`.
-- **`src/contexts/AuthContext.tsx`**: adicionar `"vendedor"` em `AppRole`.
-- **`src/components/auth/ProtectedRoute.tsx`**: redirecionar usuários com role `vendedor` para `/vendedor`. Em `STAFF_ROLES`, **não** incluir vendedor (mantém isolamento de portal igual entregador).
-- **`src/pages/Auth.tsx`** + novo **`src/pages/auth/AuthVendedor.tsx`**: tela de login espelhando `AuthEntregador` (e-mail+senha, branding GásFácil).
-- **DNS**: usuário cria `CNAME vendas` apontando para Lovable (ou A 185.158.133.1) e conecta o domínio em Project Settings.
+Adicionar em `vendedor_metas` (tabela já existente):
+- `tipo_comissao` TEXT — `'percentual'` ou `'valor_fixo'`
+- `valor_fixo_comissao` NUMERIC — usado quando `tipo_comissao = 'valor_fixo'`
+- `tipo_venda_permitido` TEXT — `'balcao'`, `'entrega'`, `'ambos'` (default `'ambos'`)
+- `ativo` BOOLEAN default true
 
-### 2. Banco de dados (migration única)
+Em `funcionarios`: adicionar `is_vendedor` BOOLEAN default false (flag rápida para listagem/badge).
 
-- Acrescentar `'vendedor'` no enum `app_role`.
-- Nenhuma tabela nova obrigatória — reusamos:
-  - `pedidos` (vendas) — campos `vendedor_id`, `tipo_venda` ('balcao' | 'entrega') já mapeáveis em colunas existentes; usar `entregador_id` = vendedor quando balcão, ou deixar vazio quando entrega.
-  - `clientes`, `produtos`, `bolao_jogos`, `bolao_palpites`, `rh_avisos_entregador` (renomear conceitualmente para "avisos da equipe" — reusar tabela tal qual, sem mudar schema).
-  - `comissao_config` + view agregando `pedidos` para a aba Metas.
-- **GRANTs**: nenhum schema novo, só policy adicional permitindo `role = 'vendedor'` ler/inserir nas mesmas tabelas que `operacional` já acessa (RLS scoped por `unidade_id` via `user_unidades`).
+## 2. UI — Cadastro de Funcionário
 
-### 3. Rotas e shell do app
-
-Novo arquivo **`src/routes/vendedorRoutes.ts`** (espelho de `entregadorRoutes`), todas com `roles: ["vendedor", "admin", "gestor"]`:
+Na tela `src/pages/cadastros/Funcionarios.tsx` (modal de criar/editar), adicionar uma seção **"Vendedor"**:
 
 ```text
-/vendedor                  → VendedorHome (atalhos + resumo do dia)
-/vendedor/nova-venda       → VendedorNovaVenda (toggle Balcão / Entrega)
-/vendedor/historico        → VendedorHistorico (minhas vendas)
-/vendedor/clientes         → VendedorClientes (busca + ficha leve)
-/vendedor/metas            → VendedorMetas (meta, ranking, comissão)
-/vendedor/avisos           → VendedorAvisos (comunicados)
-/vendedor/bolao            → VendedorBolao (copy de EntregadorBolao)
-/vendedor/perfil           → VendedorPerfil
+☐ Este funcionário é vendedor
+   ├─ Tipo de venda permitido: [Balcão | Entrega | Ambos]
+   ├─ Meta mensal (R$): [_______]
+   ├─ Tipo de comissão: ( ) % sobre venda  ( ) Valor fixo por venda
+   │    └─ % Comissão: [__]   OU   Valor fixo (R$): [_____]
+   └─ [Botão] Criar acesso ao app de vendas
+        └─ Abre modal com: E-mail + Senha temporária (gerada/editável)
 ```
 
-Shell **`VendedorApp.tsx`** com bottom-tab fixo (4 abas visíveis + menu "Mais"):
+Ao salvar com `is_vendedor = true`:
+1. Atualiza `funcionarios.is_vendedor`
+2. Cria/atualiza registro em `vendedor_metas`
+3. Se clicou em "Criar acesso": chama edge function `create-vendedor-user` (admin API → cria user em `auth.users`, insere role `vendedor` em `user_roles`, vincula `user_id` ao funcionário)
 
-```text
-[ Vendas ] [ Histórico ] [ Bolão ] [ Mais ▾ ]
-                                    ├ Clientes
-                                    ├ Metas
-                                    ├ Avisos
-                                    └ Perfil
-```
+## 3. Listagem de Funcionários
 
-Mantém padrão mobile: `pb-12`, inputs 16px, `ResponsiveDialog`, Plus Jakarta Sans.
+- Adicionar **badge verde "Vendedor"** ao lado do nome quando `is_vendedor = true`
+- Filtro rápido: "Mostrar apenas vendedores"
 
-### 4. Telas (copy + ajustes do app entregador)
+## 4. Card "Desempenho" (aba dentro do modal de edição)
 
-- **Nova Venda**: reusar `EntregadorNovaVenda` como base. Adicionar toggle no topo: **Balcão** (cria pedido `status='entregue'`, baixa estoque imediato, abre caixa do vendedor) ou **Entrega** (cria pedido `status='pendente'` → cai na fila de roteirização do ERP, sem rota atribuída). Mesma busca de cliente melhorada já implementada, mesmo carrinho.
-- **Histórico**: lista os pedidos onde `vendedor_id = auth.uid()`, filtros por período e status. Reusar componentes de `EntregadorHistorico`.
-- **Clientes (CRM leve)**: lista com busca, ficha mostra últimos pedidos, endereço, telefone (botão WhatsApp), observação. Sem edição pesada — só `cliente_observacoes` insert.
-- **Metas/Comissão**: card de meta do mês, barra de progresso, total vendido, comissão estimada (lê `comissao_config` da unidade), ranking entre vendedores da unidade.
-- **Avisos**: reusa `rh_avisos_entregador` filtrado por escopo "vendedor" ou "todos". Badge de não lido no bottom-tab.
-- **Bolão**: copy direto de `EntregadorBolao.tsx` (já tem projeção mata-mata, títulos de fase) — só troca path/role.
-- **Perfil**: avatar, nome, unidade, sair. Igual `EntregadorPerfil`.
+Visível apenas quando `is_vendedor = true`. Mostra:
+- Vendas do mês (qtd + R$)
+- % da meta atingida (barra de progresso)
+- Comissão acumulada no mês (calcula conforme `tipo_comissao`)
+- Últimas 5 vendas (link para histórico completo)
 
-### 5. Integração com ERP
+Consulta: `pedidos` onde `vendedor_id = funcionario.user_id` e mês corrente.
 
-- ERP ganha tela **Cadastros → Vendedores** (lista usuários com role `vendedor`, atribui unidade via `user_unidades`, define meta e % comissão).
-- Dashboard do gestor mostra widget "Vendas por vendedor" usando `pedidos.vendedor_id`.
+## 5. Edge function `create-vendedor-user`
 
-### 6. Detalhes técnicos
+Nova função em `supabase/functions/create-vendedor-user/index.ts`:
+- Recebe: `email`, `senha`, `funcionario_id`, `empresa_id`, `unidade_id`
+- Usa `service_role` para `auth.admin.createUser` (email confirmado automaticamente)
+- Insere role `vendedor` em `user_roles`
+- Insere em `user_unidades`
+- Atualiza `funcionarios.user_id`
+- Retorna 200 com flags (padrão do projeto)
 
-- Nenhuma alteração em `App.tsx` (mantemos estabilidade — só registramos `vendedorRoutes` da mesma forma que `entregadorRoutes`).
-- SubdomainGuard já cobre redirecionamento automático.
-- Service worker / forced update já é global, app herda.
-- Para "balcão", o pedido entra direto no caixa aberto da unidade do vendedor — se não houver caixa aberto, bloqueia com toast (regra `useCaixaBloqueado`).
+## Detalhes técnicos
 
-### 7. Sugestões extras (opcionais, fora do escopo inicial)
+- Cálculo de comissão no card Desempenho:
+  - `percentual`: `SUM(pedidos.total) * (percentual/100)`
+  - `valor_fixo`: `COUNT(pedidos) * valor_fixo_comissao`
+- A tela do app vendedor (`VendedorMetas.tsx`) também precisa ser ajustada para suportar os dois tipos de comissão.
+- RLS de `vendedor_metas` já existe (2 policies) — só revisar se `WITH CHECK` aceita os novos campos.
+- Senha temporária: gerar 8 caracteres alfanuméricos no front, mostrar uma vez com botão "Copiar".
 
-- **Catálogo offline** com SW para vendas em locais sem sinal.
-- **Compartilhar orçamento por WhatsApp** antes de fechar a venda.
-- **Check-in geolocalizado** no cliente (para vendedor externo) — reusa `useGeoTracking`.
-- **Voz para buscar cliente/produto** (reusa infra Bia).
+## Fora do escopo (não fazer agora)
 
----
-
-### Entregáveis dessa implementação
-
-1. Migration: enum role + policies vendedor.
-2. `src/lib/subdomain.ts`, `AuthContext`, `ProtectedRoute`, `Auth.tsx`, `AuthVendedor.tsx`.
-3. `src/routes/vendedorRoutes.ts` + registro em `App.tsx` (linha única, sem refactor).
-4. `src/pages/vendedor/`: `VendedorApp.tsx`, `VendedorHome`, `VendedorNovaVenda`, `VendedorHistorico`, `VendedorClientes`, `VendedorMetas`, `VendedorAvisos`, `VendedorBolao`, `VendedorPerfil`.
-5. ERP: página `Cadastros → Vendedores`.
-6. Docs rápidos no README sobre DNS do subdomínio.
-
-Posso seguir com a implementação?
+- Comissão por produto
+- Comissão escalonada por meta
+- Relatório consolidado de comissões (pode vir depois, em Financeiro)
