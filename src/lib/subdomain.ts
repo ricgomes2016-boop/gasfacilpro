@@ -203,6 +203,7 @@ export function getSubdomainDefaultRoute(app: SubdomainApp): string {
   switch (app) {
     case "cliente": return "/cliente";
     case "entregador": return "/entregador";
+    case "vendedor": return "/vendedor";
     case "parceiro": return "/parceiro";
     case "erp": return "/dashboard";
     case "transportadora": return "/transportadora";
@@ -213,6 +214,7 @@ export function getSubdomainDefaultRoute(app: SubdomainApp): string {
     default: return "/dashboard";
   }
 }
+
 
 /**
  * Checks if a given route path is allowed for the detected subdomain app.
