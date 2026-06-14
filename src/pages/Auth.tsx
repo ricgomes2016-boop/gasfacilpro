@@ -9,6 +9,7 @@ const AuthParceiro = lazy(() => import("./auth/AuthParceiro"));
 const AuthTransportadora = lazy(() => import("./auth/AuthTransportadora"));
 const AuthApi = lazy(() => import("./auth/AuthApi"));
 const AuthContador = lazy(() => import("./auth/AuthContador"));
+const AuthVendedor = lazy(() => import("./auth/AuthVendedor"));
 
 export default function Auth() {
   const app = detectSubdomainApp();
@@ -22,6 +23,7 @@ export default function Auth() {
     case "transportadora": return <AuthTransportadora />;
     case "api": return <AuthApi />;
     case "contador": return <AuthContador />;
+    case "vendedor": return <AuthVendedor />;
     default:
       return <AuthErp />;
   }
