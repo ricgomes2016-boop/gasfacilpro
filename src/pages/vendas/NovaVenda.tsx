@@ -1349,7 +1349,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               <div className="lg:col-span-2 space-y-3 md:space-y-4">
                 {metaCard}
                 <CustomerSearch value={customer} onChange={setCustomer} />
-                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} endereco={customer.endereco} />
+                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} onVendedorAuto={handleVendedorAuto} endereco={customer.endereco} />
+                <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
                 <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
                 <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} />
               </div>
