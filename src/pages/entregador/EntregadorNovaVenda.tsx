@@ -37,7 +37,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PaymentSection, Pagamento } from "@/components/vendas/PaymentSection";
 import { useEmpresa } from "@/contexts/EmpresaContext";
-import { useUnidade } from "@/contexts/UnidadeContext";
+
 import { getBrasiliaDateString } from "@/lib/utils";
 import { ClienteAutocompleteInput, type ClienteSugestao } from "@/components/clientes/ClienteAutocompleteInput";
 
