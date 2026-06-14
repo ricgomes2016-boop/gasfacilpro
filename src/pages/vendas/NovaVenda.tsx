@@ -901,6 +901,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       const pedidoInsert: any = {
         cliente_id: clienteId,
         entregador_id: entregador.id,
+        vendedor_id: vendedor.id,
         endereco_entrega: enderecoCompleto,
         valor_total: totalVenda,
         forma_pagamento: pagamentos.map((p) => p.forma).join(", "),
