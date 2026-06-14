@@ -1332,7 +1332,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             )}
             {activeStep === "entregador" && (
               <div className="venda-step-panel venda-tone-entregador w-full">
-                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} endereco={customer.endereco} />
+                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} onVendedorAuto={handleVendedorAuto} endereco={customer.endereco} />
+                <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
               </div>
             )}
             {activeStep === "confirmar" && (
