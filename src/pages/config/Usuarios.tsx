@@ -56,6 +56,8 @@ const roleLabels: Record<AppRole, string> = {
   parceiro: "Parceiro",
   contador: "Contador",
   transportadora: "Transportadora",
+  vendedor: "Vendedor",
+
 };
 
 // System roles available in Usuários — entregador/cliente/parceiro are managed elsewhere

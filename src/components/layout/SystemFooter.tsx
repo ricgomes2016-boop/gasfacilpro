@@ -17,11 +17,13 @@ const ACCENT_BY_PORTAL: Record<AuthPortalKey, string> = {
   painel: "265 84% 60%",
   cliente: "200 95% 50%",
   entregador: "142 70% 45%",
+  vendedor: "160 75% 45%",
   contador: "215 85% 55%",
   transportadora: "30 90% 50%",
   parceiro: "340 80% 55%",
   api: "260 70% 60%",
 };
+
 
 function detectPortalKey(pathname: string): AuthPortalKey {
   const host = typeof window !== "undefined" ? window.location.hostname : "";
@@ -29,6 +31,7 @@ function detectPortalKey(pathname: string): AuthPortalKey {
   if (sub === "painel" || sub === "admin") return "painel";
   if (sub === "clientes" || sub === "cliente") return "cliente";
   if (sub === "entregador") return "entregador";
+  if (sub === "vendas" || sub === "vendedor" || sub === "vendedores") return "vendedor";
   if (sub === "contador") return "contador";
   if (sub === "transporte" || sub === "transportadora") return "transportadora";
   if (sub === "parceiro") return "parceiro";
@@ -36,11 +39,13 @@ function detectPortalKey(pathname: string): AuthPortalKey {
   if (pathname.startsWith("/admin")) return "painel";
   if (pathname.startsWith("/cliente")) return "cliente";
   if (pathname.startsWith("/entregador")) return "entregador";
+  if (pathname.startsWith("/vendedor")) return "vendedor";
   if (pathname.startsWith("/contador")) return "contador";
   if (pathname.startsWith("/transportadora")) return "transportadora";
   if (pathname.startsWith("/parceiro")) return "parceiro";
   return "erp";
 }
+
 
 /**
  * Fixed system footer with a motivational quote.

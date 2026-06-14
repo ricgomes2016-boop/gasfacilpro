@@ -12074,6 +12074,7 @@ export type Database = {
         | "contador"
         | "super_admin"
         | "transportadora"
+        | "vendedor"
       bolao_fase:
         | "grupos"
         | "oitavas_32"
@@ -12220,6 +12221,7 @@ export const Constants = {
         "contador",
         "super_admin",
         "transportadora",
+        "vendedor",
       ],
       bolao_fase: [
         "grupos",
