@@ -648,6 +648,148 @@ export default function Funcionarios() {
                   />
                 </div>
 
+                {/* Vendedor toggle */}
+                <div className="col-span-2 border rounded-lg p-4 space-y-4 bg-emerald-500/5 border-emerald-500/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-emerald-600" />
+                      <Label className="text-base font-medium">É Vendedor?</Label>
+                    </div>
+                    <Switch
+                      checked={form.is_vendedor}
+                      onCheckedChange={(v) => setForm({ ...form, is_vendedor: v })}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Marque para habilitar o acesso ao app de vendas (vendas.gasfacilpro.com.br) e configurar meta/comissão.
+                  </p>
+
+                  {form.is_vendedor && (
+                    <div className="space-y-4 pt-2 border-t border-emerald-500/20">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label className="text-xs">Tipo de venda permitido</Label>
+                          <Select
+                            value={form.vend_tipo_venda}
+                            onValueChange={(v) => setForm({ ...form, vend_tipo_venda: v as any })}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ambos">Balcão e Entrega</SelectItem>
+                              <SelectItem value="balcao">Apenas Balcão</SelectItem>
+                              <SelectItem value="entrega">Apenas Entrega</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs flex items-center gap-1">
+                            <Target className="h-3 w-3" /> Meta mensal (R$)
+                          </Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={form.vend_meta_mensal}
+                            onChange={(e) => setForm({ ...form, vend_meta_mensal: e.target.value })}
+                            placeholder="15000.00"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs">Tipo de comissão</Label>
+                        <Select
+                          value={form.vend_tipo_comissao}
+                          onValueChange={(v) => setForm({ ...form, vend_tipo_comissao: v as any })}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="percentual">% sobre o valor da venda</SelectItem>
+                            <SelectItem value="valor_fixo">Valor fixo por venda</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {form.vend_tipo_comissao === "percentual" ? (
+                        <div className="space-y-2">
+                          <Label className="text-xs flex items-center gap-1">
+                            <Percent className="h-3 w-3" /> % de comissão
+                          </Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={form.vend_percentual}
+                            onChange={(e) => setForm({ ...form, vend_percentual: e.target.value })}
+                            placeholder="3.00"
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label className="text-xs flex items-center gap-1">
+                            <DollarSign className="h-3 w-3" /> Valor fixo por venda (R$)
+                          </Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={form.vend_valor_fixo}
+                            onChange={(e) => setForm({ ...form, vend_valor_fixo: e.target.value })}
+                            placeholder="5.00"
+                          />
+                        </div>
+                      )}
+
+                      {/* Credenciais de acesso ao app de vendas */}
+                      <div className="space-y-3 p-3 rounded-md bg-emerald-500/10 border border-emerald-500/20">
+                        <p className="text-sm font-medium flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-emerald-600" />
+                          Acesso ao app de vendas
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Preencha apenas se for criar um login novo. Se o vendedor já tem acesso, deixe em branco.
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">E-mail de login</Label>
+                            <Input
+                              type="email"
+                              value={form.vend_login_email}
+                              onChange={(e) => setForm({ ...form, vend_login_email: e.target.value })}
+                              placeholder="vendedor@empresa.com"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs flex items-center gap-1">
+                              <Lock className="h-3 w-3" /> Senha temporária
+                            </Label>
+                            <div className="flex gap-1">
+                              <Input
+                                value={form.vend_login_password}
+                                onChange={(e) => setForm({ ...form, vend_login_password: e.target.value })}
+                                placeholder="Mínimo 6 caracteres"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const senha = Math.random().toString(36).slice(-8);
+                                  setForm({ ...form, vend_login_password: senha });
+                                }}
+                              >
+                                Gerar
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Desempenho do mês — apenas em edição */}
+                      {editId && (
+                        <VendedorDesempenhoCard funcionarioId={editId} />
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {/* Entregador toggle */}
                 <div className="col-span-2 border rounded-lg p-4 space-y-4 bg-muted/30">
                   <div className="flex items-center justify-between">
