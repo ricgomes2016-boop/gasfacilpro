@@ -64,7 +64,7 @@ export default function VendedorNovaVenda() {
       return;
     }
     const t = setTimeout(async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("clientes")
         .select("id, nome, telefone, endereco")
         .eq("unidade_id", unidadeAtual.id)

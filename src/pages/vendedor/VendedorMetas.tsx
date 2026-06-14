@@ -32,7 +32,7 @@ export default function VendedorMetas() {
       setQtd(((vendas || []) as any[]).length);
 
       const { data: cfg } = await (supabase as any)
-        .from("comissao_config")
+        .from("vendedor_metas")
         .select("meta_mensal, percentual")
         .eq("user_id", user.id)
         .maybeSingle();
