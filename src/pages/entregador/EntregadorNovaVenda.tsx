@@ -80,7 +80,11 @@ interface Cliente {
   tipo: string | null;
 }
 
-export default function EntregadorNovaVenda() {
+interface EntregadorNovaVendaProps {
+  noLayout?: boolean;
+}
+
+export default function EntregadorNovaVenda({ noLayout = false }: EntregadorNovaVendaProps = {}) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -545,8 +549,8 @@ export default function EntregadorNovaVenda() {
 
   const todosCanais = canaisVenda.map((c) => ({ value: c.nome, label: c.nome }));
 
-  return (
-    <EntregadorLayout title="Nova Venda">
+  const content = (
+    <>
       <div className="p-4 space-y-4 pb-24">
         {/* AI Command Bar */}
         <Card className="border-primary/30 bg-primary/5">
@@ -800,6 +804,9 @@ export default function EntregadorNovaVenda() {
           Finalizar Venda • R$ {total.toFixed(2)}
         </Button>
       </div>
-    </EntregadorLayout>
+    </>
   );
+
+  if (noLayout) return content;
+  return <EntregadorLayout title="Nova Venda">{content}</EntregadorLayout>;
 }
