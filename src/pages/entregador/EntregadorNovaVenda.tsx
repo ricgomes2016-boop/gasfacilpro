@@ -615,6 +615,11 @@ export default function EntregadorNovaVenda() {
                 </p>
               )}
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <Label className="text-xs">Nome *</Label>
+                <Input value={cliente.nome} onChange={(e) => setCliente({ ...cliente, nome: e.target.value, id: null })} placeholder="Nome do cliente" />
+              </div>
               <div className="col-span-2">
                 <Label className="text-xs">Telefone</Label>
                 <div className="relative">
