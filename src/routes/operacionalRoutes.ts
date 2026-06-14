@@ -30,6 +30,7 @@ const CategoriasDespesa = lazy(() => import("@/pages/config/CategoriasDespesa"))
 const Declaracoes = lazy(() => import("@/pages/config/Declaracoes"));
 const Fornecedores = lazy(() => import("@/pages/cadastros/Fornecedores"));
 const BolaoAdmin = lazy(() => import("@/pages/operacional/BolaoAdmin"));
+const Vendedores = lazy(() => import("@/pages/operacional/Vendedores"));
 
 export const operacionalRoutes: RouteConfig[] = [
   { path: "/operacional/ia", component: ConselhosIA, roles: ["admin", "gestor"] },
@@ -63,4 +64,5 @@ export const operacionalRoutes: RouteConfig[] = [
   { path: "/operacional/declaracoes", component: Declaracoes, roles: ["admin", "gestor", "financeiro"] },
   { path: "/config/categorias-despesa", component: CategoriasDespesa, roles: ["admin", "gestor"] },
   { path: "/operacional/bolao-admin", component: BolaoAdmin, roles: ["admin", "gestor"] },
+  { path: "/operacional/vendedores", component: Vendedores, roles: ["admin", "gestor"] },
 ];
