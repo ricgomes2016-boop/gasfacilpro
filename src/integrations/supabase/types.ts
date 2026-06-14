@@ -7928,10 +7928,12 @@ export type Database = {
           sla_minutos: number | null
           status: string | null
           tempo_entrega_minutos: number | null
+          tipo_venda: string | null
           troco_para: number | null
           unidade_id: string | null
           updated_at: string
           valor_total: number | null
+          vendedor_id: string | null
         }
         Insert: {
           agendado?: boolean
@@ -7968,10 +7970,12 @@ export type Database = {
           sla_minutos?: number | null
           status?: string | null
           tempo_entrega_minutos?: number | null
+          tipo_venda?: string | null
           troco_para?: number | null
           unidade_id?: string | null
           updated_at?: string
           valor_total?: number | null
+          vendedor_id?: string | null
         }
         Update: {
           agendado?: boolean
@@ -8008,10 +8012,12 @@ export type Database = {
           sla_minutos?: number | null
           status?: string | null
           tempo_entrega_minutos?: number | null
+          tipo_venda?: string | null
           troco_para?: number | null
           unidade_id?: string | null
           updated_at?: string
           valor_total?: number | null
+          vendedor_id?: string | null
         }
         Relationships: [
           {
@@ -11443,6 +11449,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vendedor_metas: {
+        Row: {
+          created_at: string
+          empresa_id: string | null
+          id: string
+          meta_mensal: number
+          percentual: number
+          unidade_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          meta_mensal?: number
+          percentual?: number
+          unidade_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          meta_mensal?: number
+          percentual?: number
+          unidade_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       whatsapp_eventos: {
         Row: {
