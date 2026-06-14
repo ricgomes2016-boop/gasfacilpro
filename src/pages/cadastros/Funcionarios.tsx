@@ -298,9 +298,75 @@ export default function Funcionarios() {
         }
       }
 
+      // ===== Sincroniza vendedor =====
+      let vendedorUserCriado = false;
+      if (form.is_vendedor && funcionarioId) {
+        // Busca meta existente
+        const { data: metaExistente } = await (supabase as any)
+          .from("vendedor_metas")
+          .select("id, user_id")
+          .eq("funcionario_id", funcionarioId)
+          .maybeSingle();
+
+        let vendedorUserId: string | null = metaExistente?.user_id || null;
+
+        // Criar login se solicitado e ainda não houver
+        if (!vendedorUserId && form.vend_login_email && form.vend_login_password) {
+          if (form.vend_login_password.length < 6) {
+            toast.error("Senha do vendedor deve ter no mínimo 6 caracteres");
+            setSaving(false);
+            return;
+          }
+          const { data: createData, error: createError } = await supabase.functions.invoke("manage-users", {
+            body: {
+              action: "create",
+              email: form.vend_login_email,
+              password: form.vend_login_password,
+              full_name: form.nome,
+              phone: form.telefone || undefined,
+              role: "vendedor",
+              unidade_ids: unidadeAtual?.id ? [unidadeAtual.id] : [],
+            },
+          });
+          if (createError || createData?.error) {
+            toast.error("Erro ao criar acesso do vendedor: " + (createError?.message || createData?.error));
+            setSaving(false);
+            return;
+          }
+          vendedorUserId = createData.user_id;
+          vendedorUserCriado = true;
+        }
+
+        const metaPayload: any = {
+          funcionario_id: funcionarioId,
+          user_id: vendedorUserId,
+          meta_mensal: form.vend_meta_mensal ? parseFloat(form.vend_meta_mensal) : 0,
+          percentual: form.vend_tipo_comissao === "percentual" && form.vend_percentual ? parseFloat(form.vend_percentual) : 0,
+          valor_fixo_comissao: form.vend_tipo_comissao === "valor_fixo" && form.vend_valor_fixo ? parseFloat(form.vend_valor_fixo) : 0,
+          tipo_comissao: form.vend_tipo_comissao,
+          tipo_venda_permitido: form.vend_tipo_venda,
+          ativo: true,
+          unidade_id: unidadeAtual?.id || null,
+        };
+
+        if (metaExistente?.id) {
+          await (supabase as any).from("vendedor_metas").update(metaPayload).eq("id", metaExistente.id);
+        } else if (vendedorUserId) {
+          await (supabase as any).from("vendedor_metas").insert(metaPayload);
+        }
+      } else if (!form.is_vendedor && funcionarioId) {
+        await (supabase as any)
+          .from("vendedor_metas")
+          .update({ ativo: false })
+          .eq("funcionario_id", funcionarioId);
+      }
+
       toast.success(editId ? "Funcionário atualizado!" : "Funcionário cadastrado!");
       if (needsNewUser) {
         toast.success("Acesso ao app do entregador criado automaticamente!");
+      }
+      if (vendedorUserCriado) {
+        toast.success("Acesso ao app de vendas criado automaticamente!");
       }
       setOpen(false);
       setForm(emptyForm);
