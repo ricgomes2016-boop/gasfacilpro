@@ -11,22 +11,16 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Minus, Trash2 } from "lucide-react";
+import { Plus, Minus, Trash2 } from "lucide-react";
+import { ClienteSearchVendedor, type ClienteVendedor } from "@/components/vendedor/ClienteSearchVendedor";
+import { CadastroRapidoClienteModal } from "@/components/vendedor/CadastroRapidoClienteModal";
+import { EntregadorSelectVendedor, type EntregadorOption } from "@/components/vendedor/EntregadorSelectVendedor";
+import {
+  buildPedidoWhatsappMessage, buildWhatsappUrl, normalizePhoneBr,
+} from "@/lib/whatsapp/pedidoMessage";
 
-interface Produto {
-  id: string;
-  nome: string;
-  preco: number;
-}
-interface ItemCarrinho extends Produto {
-  qtd: number;
-}
-interface Cliente {
-  id: string;
-  nome: string;
-  telefone: string | null;
-  endereco?: string | null;
-}
+interface Produto { id: string; nome: string; preco: number; }
+interface ItemCarrinho extends Produto { qtd: number; }
 
 export default function VendedorNovaVenda() {
   const { user } = useAuth();
@@ -36,13 +30,14 @@ export default function VendedorNovaVenda() {
   const [tipo, setTipo] = useState<"balcao" | "entrega">("balcao");
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [carrinho, setCarrinho] = useState<ItemCarrinho[]>([]);
-  const [buscaCliente, setBuscaCliente] = useState("");
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [cliente, setCliente] = useState<Cliente | null>(null);
+  const [cliente, setCliente] = useState<ClienteVendedor | null>(null);
   const [pagamento, setPagamento] = useState("dinheiro");
   const [endereco, setEndereco] = useState("");
   const [obs, setObs] = useState("");
   const [saving, setSaving] = useState(false);
+  const [cadastroOpen, setCadastroOpen] = useState(false);
+  const [termoCadastro, setTermoCadastro] = useState("");
+  const [entregador, setEntregador] = useState<EntregadorOption | null>(null);
 
   useEffect(() => {
     if (!unidadeAtual?.id) return;
@@ -58,23 +53,6 @@ export default function VendedorNovaVenda() {
     })();
   }, [unidadeAtual?.id]);
 
-  useEffect(() => {
-    if (!unidadeAtual?.id || buscaCliente.length < 2) {
-      setClientes([]);
-      return;
-    }
-    const t = setTimeout(async () => {
-      const { data } = await (supabase as any)
-        .from("clientes")
-        .select("id, nome, telefone, endereco")
-        .eq("unidade_id", unidadeAtual.id)
-        .or(`nome.ilike.%${buscaCliente}%,telefone.ilike.%${buscaCliente}%`)
-        .limit(8);
-      setClientes((data as any) || []);
-    }, 300);
-    return () => clearTimeout(t);
-  }, [buscaCliente, unidadeAtual?.id]);
-
   const total = carrinho.reduce((s, i) => s + i.preco * i.qtd, 0);
 
   const addProduto = (p: Produto) => {
@@ -87,24 +65,55 @@ export default function VendedorNovaVenda() {
 
   const updateQtd = (id: string, delta: number) => {
     setCarrinho((prev) =>
-      prev
-        .map((i) => (i.id === id ? { ...i, qtd: i.qtd + delta } : i))
-        .filter((i) => i.qtd > 0)
+      prev.map((i) => (i.id === id ? { ...i, qtd: i.qtd + delta } : i)).filter((i) => i.qtd > 0),
     );
+  };
+
+  const handleClienteChange = (c: ClienteVendedor | null) => {
+    setCliente(c);
+    if (c) {
+      const enderecoMontado = [
+        c.endereco && c.numero ? `${c.endereco}, ${c.numero}` : c.endereco,
+        c.bairro,
+        c.cidade,
+      ].filter(Boolean).join(" - ");
+      setEndereco(enderecoMontado || "");
+    } else {
+      setEndereco("");
+    }
+  };
+
+  const abrirWhatsappEntregador = (pedidoId: string) => {
+    if (!entregador) return;
+    const tel = normalizePhoneBr(entregador.telefone);
+    if (!tel) {
+      toast.warning("Entregador sem telefone válido — pedido salvo, mas WhatsApp não enviado.");
+      return;
+    }
+    const msg = buildPedidoWhatsappMessage({
+      numeroCurto: pedidoId.slice(-6).toUpperCase(),
+      clienteNome: cliente?.nome,
+      clienteTelefone: cliente?.telefone,
+      enderecoEntrega: endereco || cliente?.endereco || null,
+      itens: carrinho.map((i) => ({
+        nome: i.nome, quantidade: i.qtd, preco_unitario: i.preco,
+      })),
+      total,
+      formaPagamento: pagamento,
+      observacoes: obs || null,
+      unidadeNome: (unidadeAtual as any)?.nome,
+    });
+    window.open(buildWhatsappUrl(tel, msg), "_blank");
   };
 
   const finalizar = async () => {
     if (!user?.id || !unidadeAtual?.id) {
-      toast.error("Sessão inválida");
-      return;
+      toast.error("Sessão inválida"); return;
     }
-    if (carrinho.length === 0) {
-      toast.error("Adicione ao menos um produto");
-      return;
-    }
-    if (tipo === "entrega" && !cliente) {
-      toast.error("Selecione um cliente para entrega");
-      return;
+    if (carrinho.length === 0) { toast.error("Adicione ao menos um produto"); return; }
+    if (tipo === "entrega" && !cliente) { toast.error("Selecione um cliente para entrega"); return; }
+    if (tipo === "entrega" && !entregador) {
+      toast.error("Selecione o entregador para enviar o pedido"); return;
     }
     setSaving(true);
     try {
@@ -116,26 +125,28 @@ export default function VendedorNovaVenda() {
           empresa_id: (unidadeAtual as any).empresa_id,
           vendedor_id: user.id,
           cliente_id: cliente?.id || null,
+          entregador_id: tipo === "entrega" ? entregador?.id || null : null,
           status,
           valor_total: total,
           forma_pagamento: pagamento,
           endereco_entrega: tipo === "entrega" ? (endereco || cliente?.endereco || "") : null,
           observacoes: obs || null,
           tipo_venda: tipo,
-        } as any)
+        })
         .select()
         .single();
 
       if (error) throw error;
 
       const itens = carrinho.map((i) => ({
-        pedido_id: pedido.id,
-        produto_id: i.id,
-        quantidade: i.qtd,
-        preco_unitario: i.preco,
+        pedido_id: pedido.id, produto_id: i.id, quantidade: i.qtd, preco_unitario: i.preco,
       }));
       const { error: e2 } = await (supabase as any).from("pedido_itens").insert(itens);
       if (e2) throw e2;
+
+      if (tipo === "entrega" && entregador) {
+        abrirWhatsappEntregador(pedido.id);
+      }
 
       toast.success(tipo === "balcao" ? "Venda balcão registrada!" : "Pedido enviado para entrega!");
       navigate("/vendedor/historico");
@@ -158,48 +169,19 @@ export default function VendedorNovaVenda() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Cliente {tipo === "balcao" && "(opcional)"}</CardTitle>
+            <CardTitle className="text-base">
+              Cliente {tipo === "balcao" && <span className="text-xs text-muted-foreground">(opcional)</span>}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {cliente ? (
-              <div className="flex items-center justify-between p-2 border rounded-lg">
-                <div>
-                  <p className="font-medium">{cliente.nome}</p>
-                  <p className="text-xs text-muted-foreground">{cliente.telefone}</p>
-                </div>
-                <Button size="sm" variant="ghost" onClick={() => setCliente(null)}>
-                  Trocar
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="pl-8"
-                    placeholder="Buscar por nome ou telefone"
-                    value={buscaCliente}
-                    onChange={(e) => setBuscaCliente(e.target.value)}
-                  />
-                </div>
-                {clientes.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => {
-                      setCliente(c);
-                      setBuscaCliente("");
-                      setEndereco(c.endereco || "");
-                    }}
-                    className="w-full text-left p-2 border rounded-lg hover:bg-accent"
-                  >
-                    <p className="font-medium">{c.nome}</p>
-                    <p className="text-xs text-muted-foreground">{c.telefone}</p>
-                  </button>
-                ))}
-              </>
-            )}
+            <ClienteSearchVendedor
+              value={cliente}
+              onChange={handleClienteChange}
+              onRequestCadastro={(t) => { setTermoCadastro(t); setCadastroOpen(true); }}
+            />
             {tipo === "entrega" && (
               <Input
+                className="text-base"
                 placeholder="Endereço de entrega"
                 value={endereco}
                 onChange={(e) => setEndereco(e.target.value)}
@@ -207,6 +189,20 @@ export default function VendedorNovaVenda() {
             )}
           </CardContent>
         </Card>
+
+        {tipo === "entrega" && (
+          <Card>
+            <CardContent className="p-4">
+              <EntregadorSelectVendedor
+                value={entregador?.id || null}
+                onChange={setEntregador}
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Ao finalizar, abriremos o WhatsApp com o resumo do pedido para enviar ao entregador.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader className="pb-2">
@@ -221,9 +217,7 @@ export default function VendedorNovaVenda() {
                   className="text-left p-2 border rounded-lg hover:bg-accent"
                 >
                   <p className="font-medium text-sm truncate">{p.nome}</p>
-                  <p className="text-sm text-primary font-bold">
-                    R$ {Number(p.preco).toFixed(2)}
-                  </p>
+                  <p className="text-sm text-primary font-bold">R$ {Number(p.preco).toFixed(2)}</p>
                 </button>
               ))}
             </div>
@@ -240,9 +234,7 @@ export default function VendedorNovaVenda() {
                 <div key={i.id} className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{i.nome}</p>
-                    <p className="text-xs text-muted-foreground">
-                      R$ {i.preco.toFixed(2)} × {i.qtd}
-                    </p>
+                    <p className="text-xs text-muted-foreground">R$ {i.preco.toFixed(2)} × {i.qtd}</p>
                   </div>
                   <div className="flex items-center gap-1">
                     <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => updateQtd(i.id, -1)}>
@@ -267,9 +259,7 @@ export default function VendedorNovaVenda() {
             <div>
               <Label>Pagamento</Label>
               <Select value={pagamento} onValueChange={setPagamento}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="dinheiro">Dinheiro</SelectItem>
                   <SelectItem value="pix">PIX</SelectItem>
@@ -281,18 +271,25 @@ export default function VendedorNovaVenda() {
             </div>
             <div>
               <Label>Observações</Label>
-              <Input value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Opcional" />
+              <Input className="text-base" value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Opcional" />
             </div>
             <div className="flex items-center justify-between pt-2 border-t">
               <span className="text-sm text-muted-foreground">Total</span>
               <span className="text-2xl font-bold text-primary">R$ {total.toFixed(2)}</span>
             </div>
             <Button onClick={finalizar} disabled={saving} className="w-full h-12">
-              {saving ? "Salvando..." : tipo === "balcao" ? "Finalizar venda" : "Enviar para entrega"}
+              {saving ? "Salvando..." : tipo === "balcao" ? "Finalizar venda" : "Finalizar e enviar ao entregador"}
             </Button>
           </CardContent>
         </Card>
       </div>
+
+      <CadastroRapidoClienteModal
+        open={cadastroOpen}
+        onOpenChange={setCadastroOpen}
+        termoInicial={termoCadastro}
+        onCriado={(c) => handleClienteChange(c)}
+      />
     </VendedorLayout>
   );
 }
