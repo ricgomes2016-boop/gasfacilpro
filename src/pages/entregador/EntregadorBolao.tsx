@@ -147,7 +147,7 @@ function JogoCard({
   );
 }
 
-export default function EntregadorBolao() {
+export default function EntregadorBolao({ noLayout = false }: { noLayout?: boolean } = {}) {
   const { unidadeAtual } = useUnidade();
   const { user } = useAuth();
   const { data: jogos = [], isLoading } = useBolaoJogos(unidadeAtual?.id);
@@ -205,9 +205,10 @@ export default function EntregadorBolao() {
     return idx >= 0 ? idx + 1 : null;
   }, [ranking, user]);
 
-  return (
-    <EntregadorLayout title="Bolão Copa 2026">
+  const content = (
+    <>
       <div className="p-3 space-y-3">
+
         <Card className="border-none bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-600 text-white">
           <CardContent className="p-4 flex items-center gap-3">
             <Trophy className="h-8 w-8" />
@@ -361,6 +362,8 @@ export default function EntregadorBolao() {
           </TabsContent>
         </Tabs>
       </div>
-    </EntregadorLayout>
+    </>
   );
+  if (noLayout) return content;
+  return <EntregadorLayout title="Bolão Copa 2026">{content}</EntregadorLayout>;
 }
