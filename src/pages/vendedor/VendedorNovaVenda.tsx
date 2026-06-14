@@ -109,7 +109,7 @@ export default function VendedorNovaVenda() {
     setSaving(true);
     try {
       const status = tipo === "balcao" ? "entregue" : "pendente";
-      const { data: pedido, error } = await supabase
+      const { data: pedido, error } = await (supabase as any)
         .from("pedidos")
         .insert({
           unidade_id: unidadeAtual.id,
@@ -134,7 +134,7 @@ export default function VendedorNovaVenda() {
         quantidade: i.qtd,
         preco_unitario: i.preco,
       }));
-      const { error: e2 } = await supabase.from("pedido_itens").insert(itens);
+      const { error: e2 } = await (supabase as any).from("pedido_itens").insert(itens);
       if (e2) throw e2;
 
       toast.success(tipo === "balcao" ? "Venda balcão registrada!" : "Pedido enviado para entrega!");
