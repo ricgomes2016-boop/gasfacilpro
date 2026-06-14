@@ -792,10 +792,10 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     });
   };
 
-  const handleVendedorAuto = (funcionarioId: string | null, nome: string | null) => {
+  const handleVendedorAuto = (vendedorUserId: string | null, nome: string | null) => {
     // Só auto-preenche se ainda não há vendedor escolhido manualmente
-    if (!vendedor.id && funcionarioId) {
-      setVendedor({ id: funcionarioId, nome });
+    if (!vendedor.id && vendedorUserId) {
+      setVendedor({ id: vendedorUserId, nome });
     }
   };
 

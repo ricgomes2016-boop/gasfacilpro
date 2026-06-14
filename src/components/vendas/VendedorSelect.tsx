@@ -10,6 +10,7 @@ import { VendaSectionHeader } from "./VendaSectionHeader";
 
 interface Vendedor {
   id: string;
+  user_id: string | null;
   nome: string;
   is_transporte?: boolean | null;
 }
@@ -29,9 +30,10 @@ export function VendedorSelect({ value, onChange }: VendedorSelectProps) {
       try {
         let q = supabase
           .from("funcionarios")
-          .select("id, nome, is_transporte")
+          .select("id, user_id, nome, is_transporte")
           .eq("ativo", true)
           .eq("is_vendedor", true)
+          .not("user_id", "is", null)
           .order("nome");
         if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
         const { data, error } = await q;
@@ -48,8 +50,8 @@ export function VendedorSelect({ value, onChange }: VendedorSelectProps) {
       onChange(null, null);
       return;
     }
-    const v = vendedores.find((x) => x.id === id);
-    if (v) onChange(v.id, v.nome);
+    const v = vendedores.find((x) => x.user_id === id);
+    if (v?.user_id) onChange(v.user_id, v.nome);
   };
 
   if (!loading && vendedores.length === 0) return null;
@@ -65,7 +67,7 @@ export function VendedorSelect({ value, onChange }: VendedorSelectProps) {
           <SelectContent>
             <SelectItem value="nenhum">— Sem vendedor —</SelectItem>
             {vendedores.map((v) => (
-              <SelectItem key={v.id} value={v.id}>
+              <SelectItem key={v.id} value={v.user_id!}>
                 {v.nome}{v.is_transporte ? " (entregador)" : ""}
               </SelectItem>
             ))}
@@ -74,12 +76,12 @@ export function VendedorSelect({ value, onChange }: VendedorSelectProps) {
 
         <div className="flex flex-wrap gap-2">
           {vendedores.map((v) => {
-            const selected = value === v.id;
+            const selected = value === v.user_id;
             return (
               <button
                 key={v.id}
                 type="button"
-                onClick={() => handleSelect(v.id)}
+                onClick={() => v.user_id && handleSelect(v.user_id)}
                 className={cn(
                   "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-all",
                   selected

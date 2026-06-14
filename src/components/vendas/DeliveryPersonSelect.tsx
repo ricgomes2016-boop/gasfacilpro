@@ -21,6 +21,7 @@ interface Entregador {
   status: string | null;
   foto_url?: string | null;
   funcionario_id?: string | null;
+  vendedor_user_id?: string | null;
   is_vendedor?: boolean;
 }
 
@@ -28,8 +29,8 @@ interface DeliveryPersonSelectProps {
   value: string | null;
   onChange: (id: string, nome: string) => void;
   endereco?: string;
-  /** Called whenever an entregador is selected. Provides the funcionario_id when that entregador is also a vendedor, otherwise null. */
-  onVendedorAuto?: (funcionarioId: string | null, nome: string | null) => void;
+  /** Called whenever an entregador is selected. Provides the seller auth user_id when available. */
+  onVendedorAuto?: (vendedorUserId: string | null, nome: string | null) => void;
 }
 
 export function DeliveryPersonSelect({ value, onChange, endereco, onVendedorAuto }: DeliveryPersonSelectProps) {
@@ -51,7 +52,7 @@ export function DeliveryPersonSelect({ value, onChange, endereco, onVendedorAuto
       try {
         let query = supabase
           .from("entregadores")
-          .select("id, nome, status, foto_url, funcionario_id, funcionarios:funcionario_id(is_vendedor)")
+          .select("id, nome, status, foto_url, funcionario_id, funcionarios:funcionario_id(is_vendedor, user_id)")
           .eq("ativo", true)
           .order("nome");
 
@@ -73,6 +74,7 @@ export function DeliveryPersonSelect({ value, onChange, endereco, onVendedorAuto
             status: e.status,
             foto_url: e.foto_url,
             funcionario_id: e.funcionario_id,
+            vendedor_user_id: e.funcionarios?.user_id || null,
             is_vendedor: !!e.funcionarios?.is_vendedor,
           }));
           setEntregadores(uniqueData);
@@ -92,8 +94,8 @@ export function DeliveryPersonSelect({ value, onChange, endereco, onVendedorAuto
     if (entregador) {
       onChange(id, entregador.nome);
       if (onVendedorAuto) {
-        if (entregador.is_vendedor && entregador.funcionario_id) {
-          onVendedorAuto(entregador.funcionario_id, entregador.nome);
+        if (entregador.is_vendedor && entregador.vendedor_user_id) {
+          onVendedorAuto(entregador.vendedor_user_id, entregador.nome);
         } else {
           onVendedorAuto(null, null);
         }

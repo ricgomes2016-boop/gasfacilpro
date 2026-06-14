@@ -162,16 +162,19 @@ export function CadastroRapidoClienteModal({ open, onOpenChange, termoInicial, o
           ativo: true,
           latitude: lat,
           longitude: lng,
+          canal_venda_id: form.canal_venda_id !== "nenhum" ? form.canal_venda_id : null,
         })
         .select("id, nome, telefone, endereco, numero, bairro, cidade, cep, tipo")
         .single();
       if (error) throw error;
 
       // vincula à unidade atual
-      await (supabase as any).from("cliente_unidades").insert({
-        cliente_id: cliente.id,
-        unidade_id: unidadeAtual.id,
-      });
+      await (supabase as any)
+        .from("cliente_unidades")
+        .upsert({
+          cliente_id: cliente.id,
+          unidade_id: unidadeAtual.id,
+        }, { onConflict: "cliente_id,unidade_id" });
 
       // ponto de referência → cliente_observacoes
       if (form.ponto_referencia.trim()) {

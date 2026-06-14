@@ -141,7 +141,7 @@ export function VendedorLayout({ children, title }: Props) {
           </button>
         </div>
       </nav>
-      <SystemFooter portalKey="entregador" />
+      <SystemFooter portalKey="vendedor" />
     </div>
   );
 }

@@ -29,6 +29,7 @@ export default function VendedorNovaVenda() {
 
   const [tipo, setTipo] = useState<"balcao" | "entrega">("balcao");
   const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [produtosLoading, setProdutosLoading] = useState(false);
   const [carrinho, setCarrinho] = useState<ItemCarrinho[]>([]);
   const [cliente, setCliente] = useState<ClienteVendedor | null>(null);
   const [pagamento, setPagamento] = useState("dinheiro");
@@ -42,14 +43,19 @@ export default function VendedorNovaVenda() {
   useEffect(() => {
     if (!unidadeAtual?.id) return;
     (async () => {
-      const { data } = await (supabase as any)
-        .from("produtos")
-        .select("id, nome, preco")
-        .eq("unidade_id", unidadeAtual.id)
-        .eq("ativo", true)
-        .order("nome")
-        .limit(50);
-      setProdutos((data as any) || []);
+      setProdutosLoading(true);
+      try {
+        const { data } = await (supabase as any)
+          .from("produtos")
+          .select("id, nome, preco")
+          .eq("unidade_id", unidadeAtual.id)
+          .eq("ativo", true)
+          .order("nome")
+          .limit(50);
+        setProdutos((data as any) || []);
+      } finally {
+        setProdutosLoading(false);
+      }
     })();
   }, [unidadeAtual?.id]);
 
@@ -209,7 +215,17 @@ export default function VendedorNovaVenda() {
             <CardTitle className="text-base">Produtos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-2 max-h-60 overflow-auto">
+            {produtosLoading ? (
+              <p className="text-sm text-muted-foreground text-center py-6">Carregando produtos...</p>
+            ) : produtos.length === 0 ? (
+              <div className="rounded-lg border border-dashed p-4 text-center">
+                <p className="text-sm font-medium">Nenhum produto ativo nesta loja</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Verifique o cadastro de produtos da unidade antes de registrar a venda.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 max-h-60 overflow-auto">
               {produtos.map((p) => (
                 <button
                   key={p.id}
@@ -220,7 +236,8 @@ export default function VendedorNovaVenda() {
                   <p className="text-sm text-primary font-bold">R$ {Number(p.preco).toFixed(2)}</p>
                 </button>
               ))}
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -358,6 +358,7 @@ export default function Funcionarios() {
           tipo_comissao: form.vend_tipo_comissao,
           tipo_venda_permitido: form.vend_tipo_venda,
           ativo: true,
+          empresa_id: (unidadeAtual as any)?.empresa_id || null,
           unidade_id: unidadeAtual?.id || null,
         };
 
