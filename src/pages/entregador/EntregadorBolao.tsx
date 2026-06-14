@@ -19,15 +19,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 function JogoCard({
   jogo,
   palpite,
+  projecao,
   onSalvar,
 }: {
   jogo: BolaoJogo;
   palpite?: BolaoPalpite;
+  projecao?: ProjecaoSlot;
   onSalvar: (casa: number, fora: number) => void;
 }) {
   const [casa, setCasa] = useState<string>(palpite ? String(palpite.gols_casa_palpite) : "");
   const [fora, setFora] = useState<string>(palpite ? String(palpite.gols_fora_palpite) : "");
-  const isBrasil = jogo.codigo_casa === "BRA" || jogo.codigo_fora === "BRA";
+  const timeCasa = projecao?.time_casa ?? jogo.time_casa;
+  const timeFora = projecao?.time_fora ?? jogo.time_fora;
+  const codCasa = projecao?.codigo_casa ?? jogo.codigo_casa;
+  const codFora = projecao?.codigo_fora ?? jogo.codigo_fora;
+  const isBrasil = codCasa === "BRA" || codFora === "BRA";
   const isHoje = format(new Date(jogo.data_jogo), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
   const excecao = isBrasil && isHoje;
   const bloqueado = jogo.finalizado || (!excecao && new Date(jogo.data_jogo) <= new Date());
