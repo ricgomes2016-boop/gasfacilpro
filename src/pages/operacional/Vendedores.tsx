@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { usePeriodo } from "@/contexts/PeriodoContext";
+import { usePeriodo, PeriodoProvider } from "@/contexts/PeriodoContext";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -75,7 +75,7 @@ function statusMeta(pct: number): { label: string; variant: "default" | "seconda
   return { label: "Abaixo", variant: "destructive" };
 }
 
-export default function Vendedores() {
+function VendedoresInner() {
   const { range } = usePeriodo();
   const { unidadeAtual } = useUnidade();
   const [vendedores, setVendedores] = useState<VendedorMeta[]>([]);
@@ -502,5 +502,13 @@ export default function Vendedores() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function Vendedores() {
+  return (
+    <PeriodoProvider>
+      <VendedoresInner />
+    </PeriodoProvider>
   );
 }
