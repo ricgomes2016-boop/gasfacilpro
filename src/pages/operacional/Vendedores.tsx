@@ -505,10 +505,14 @@ function VendedoresInner() {
   );
 }
 
+import { MainLayout } from "@/components/layout/MainLayout";
+
 export default function Vendedores() {
   return (
-    <PeriodoProvider>
-      <VendedoresInner />
-    </PeriodoProvider>
+    <MainLayout>
+      <PeriodoProvider>
+        <VendedoresInner />
+      </PeriodoProvider>
+    </MainLayout>
   );
 }
