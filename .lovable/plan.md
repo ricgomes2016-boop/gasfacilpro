@@ -1,41 +1,65 @@
-# Entregador também pode ser Vendedor
-
-## Contexto
-- `funcionarios` já tem `is_vendedor` e `is_transporte` (entregador).
-- `entregadores` referencia `funcionarios` via `funcionario_id`.
-- Hoje o seletor de Vendedor em Nova Venda lista só vendedores, e o de Entregador lista só entregadores — a mesma pessoa que faz as duas coisas precisa estar duplicada.
-
 ## Objetivo
-Um único cadastro de pessoa pode ter ambos os papéis. Em Nova Venda, ao escolher um entregador que também é vendedor, o vendedor é preenchido automaticamente (editável).
+Aprimorar a tela `Nova Venda` do portal do vendedor (`vendas.gasfacilpro.com.br`) com três melhorias: busca de cliente mais rica (com foco em endereço), cadastro rápido quando o cliente não existir, e envio do pedido finalizado via WhatsApp para o entregador selecionado.
 
-## Mudanças
+## 1. Busca de cliente melhorada (unificada com foco em endereço)
+- Substituir o input simples por um autocomplete que busca em paralelo por **endereço/rua/bairro/cidade**, **nome** e **telefone**.
+- Reusar o RPC `autocomplete_clientes_v2` (já usado no ERP — vide `ClienteAutocompleteInput`) que já retorna endereço/bairro/cidade.
+- Resultado mostra: **endereço completo em destaque**, nome abaixo, telefone + bairro como metadados.
+- Ordenação: prioriza match em endereço quando o termo digitado parece endereço (contém número ou palavras como "rua", "av").
+- Quando nenhum resultado for encontrado (≥3 caracteres), mostrar botão **"+ Cadastrar novo cliente"** logo abaixo, já passando o termo digitado como pré-preenchimento.
 
-### 1. Cadastro de Entregador (`Funcionarios.tsx` / form de entregador)
-- Adicionar toggle **"Habilitado também como vendedor"**.
-- Quando marcado: setar `funcionarios.is_vendedor = true` no funcionário vinculado e abrir os campos de comissão (`comissao_config`: percentual ou valor fixo por produto).
-- Quando desmarcado: setar `is_vendedor = false` (mantém histórico de vendas já feitas).
-- Mostrar badge "Vendedor" na lista de entregadores quando habilitado.
+## 2. Cadastro rápido de cliente
+Modal/sheet acionado pelo botão "+ Cadastrar novo cliente" com os campos:
+- **Nome** (obrigatório)
+- **Telefone** (obrigatório, com máscara BR)
+- **CEP** com auto-preenchimento via ViaCEP → preenche rua, bairro, cidade, UF
+- **Número** + **Complemento** + **Ponto de referência**
+- **Tipo de cliente**: residencial / comercial (Select)
+- **Canal de venda**: select com canais ativos da unidade (`canais_venda`)
 
-### 2. Cadastro de Vendedor (`Funcionarios.tsx`)
-- Já existe `is_vendedor`. Adicionar paralelo: toggle **"Também é entregador"** que cria/ativa registro em `entregadores` ligado ao mesmo `funcionario_id` (sem duplicar pessoa).
+Ao salvar:
+- Insert em `clientes` com `unidade_id` + `empresa_id` (obrigatório pelas RLS).
+- Geocodifica via `geocodeAddress` (Nominatim) se houver endereço completo, salvando `latitude/longitude` para o app do entregador.
+- Validação client-side com Zod (nome ≤100, telefone ≥10 dígitos, CEP 8 dígitos).
+- Após salvar, o cliente recém-criado vira o cliente selecionado da venda automaticamente, com endereço já pré-preenchido.
 
-### 3. Seletor em Nova Venda (`DeliveryPersonSelect.tsx` + seletor de Vendedor)
-- Buscar entregadores trazendo junto `funcionarios.is_vendedor`.
-- No card do entregador, mostrar selo discreto "VEND" quando também for vendedor.
-- Ao selecionar um entregador com `is_vendedor=true`: chamar callback `onVendedorAuto(funcionarioId, nome)` que pré-preenche o seletor de Vendedor (continua editável pelo operador).
-- O seletor de Vendedor continua mostrando todos os vendedores (incluindo os entregadores-vendedores) — não vira read-only.
+## 3. Seleção do entregador + envio por WhatsApp
+- Novo bloco "Entregador" (visível quando tipo = entrega): Select carregado de `entregadores` filtrado por `unidade_id` e `ativo = true`. Mostrar apenas entregadores que estão de plantão hoje quando possível (usar `escalas_entregador`); fallback para todos os ativos.
+- Cada item do select mostra: nome + telefone.
+- Persistir `entregador_id` no `pedidos` (coluna já existe).
+- **Ao finalizar** com sucesso o pedido de entrega:
+  1. Monta uma mensagem padronizada:
+     ```
+     🛵 Novo Pedido #ABC123
+     👤 Cliente: {nome} ({telefone})
+     📍 Endereço: {endereco_entrega}
+     📦 Itens:
+       • 2x Gás P13 — R$ 240,00
+       • 1x Água 20L — R$ 25,00
+     💰 Total: R$ 265,00
+     💳 Pagamento: PIX
+     📝 Obs: {observações}
+     ```
+  2. Abre `https://wa.me/55{telefone_entregador}?text=...` em nova aba (`encodeURIComponent` no texto).
+  3. Toast de confirmação + navegação para `/vendedor/historico`.
+- Se o vendedor não tiver selecionado entregador (apenas em entrega), bloquear finalização com toast claro.
 
-### 4. Comissão
-- Usa a config existente em `comissao_config` (percentual ou valor fixo) — mesma lógica do Vendedores Dashboard. Entregador-vendedor recebe comissão de venda igual a qualquer outro vendedor.
-
-### 5. Dashboard `/operacional/vendedores`
-- Adicionar coluna/badge "Entregador" para vendedores que também atuam em rota.
-- Filtro: "Todos / Só vendedores puros / Entregadores-vendedores".
+## Arquivos a alterar/criar
+- `src/pages/vendedor/VendedorNovaVenda.tsx` — refatorar bloco de cliente, adicionar Select de entregador, adicionar envio WhatsApp no `finalizar()`.
+- `src/components/vendedor/ClienteSearchVendedor.tsx` (novo) — autocomplete unificado focado em endereço + botão de cadastro.
+- `src/components/vendedor/CadastroRapidoClienteModal.tsx` (novo) — Sheet/Dialog com ViaCEP, validação Zod, geocoding, insert em `clientes`.
+- `src/components/vendedor/EntregadorSelectVendedor.tsx` (novo) — Select de entregadores ativos da unidade.
+- `src/lib/whatsapp/pedidoMessage.ts` (novo) — função pura `buildPedidoWhatsappMessage(pedido, itens, cliente)` para reuso e testabilidade.
 
 ## Detalhes técnicos
-- Nenhuma migration de schema necessária — `is_vendedor` já existe. Apenas escrever esse campo nos formulários e ler junto na query de entregadores (`select id, nome, funcionario_id, funcionarios(is_vendedor)`).
-- Sem mudanças em `App.tsx`, providers ou rotas.
-- Manter regra Radix `value="nenhum"` nos selects.
+- **Tenancy**: todo insert em `clientes` inclui `unidade_id` e `empresa_id` (regra Core).
+- **Radix Select**: nenhum `SelectItem value=""` — usar `"nenhum"` quando aplicável.
+- **Mobile**: usar `ResponsiveDialog` para o cadastro rápido (regra Core), inputs com `text-base` (16px) para evitar zoom iOS.
+- **Performance**: `useMemo` para a lista filtrada de entregadores.
+- **Segurança**: telefone do entregador sanitizado (`replace(/\D/g, "")`), texto WhatsApp via `encodeURIComponent`, validação Zod no formulário.
+- **Sem mudanças** em `App.tsx`, rotas, providers, ou no schema do banco (campos `entregador_id`, `latitude`, `longitude` já existem).
 
 ## Fora de escopo
-- Não unifica historicamente registros duplicados existentes (entregador e vendedor cadastrados como pessoas separadas) — isso fica para uma ferramenta de merge depois, se necessário.
+- Não altera a tela `/vendas/nova` do ERP.
+- Não envia automaticamente via Evolution/Meta — apenas abre o `wa.me` no app/WhatsApp do vendedor (mais simples, sem custo de API e sem risco de ban).
+- Geocoding fica como melhor esforço; falha não bloqueia o cadastro.
