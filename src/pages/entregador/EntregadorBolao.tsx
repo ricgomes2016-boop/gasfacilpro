@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBolaoJogos, useMeusPalpites, useSalvarPalpite, useRankingBolao, BolaoJogo, BolaoPalpite } from "@/hooks/useBolao";
 import { FASE_LABELS, FASE_ORDEM, BolaoFase } from "@/lib/bolao/fixture2026";
 import { bandeiraEmoji } from "@/lib/bolao/flags";
+import { projetarChaveCompleta, ProjecaoSlot } from "@/lib/bolao/projecao";
 import { Trophy, Calendar, CheckCircle2, Lock, Medal, CalendarRange } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
