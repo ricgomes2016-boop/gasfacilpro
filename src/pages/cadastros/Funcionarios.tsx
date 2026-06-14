@@ -310,9 +310,12 @@ export default function Funcionarios() {
           .eq("funcionario_id", funcionarioId)
           .maybeSingle();
 
-        let vendedorUserId: string | null = metaExistente?.user_id || null;
+        // Reaproveita o user do entregador (mesmo login) quando ele também for entregador
+        const entregadorAtual = entregadores.find(e => e.funcionario_id === funcionarioId);
+        let vendedorUserId: string | null =
+          metaExistente?.user_id || entregadorAtual?.user_id || null;
 
-        // Criar login se solicitado e ainda não houver
+        // Criar login só quando NÃO é entregador e ainda não tem user
         if (!vendedorUserId && form.vend_login_email && form.vend_login_password) {
           if (form.vend_login_password.length < 6) {
             toast.error("Senha do vendedor deve ter no mínimo 6 caracteres");
@@ -337,6 +340,13 @@ export default function Funcionarios() {
           }
           vendedorUserId = createData.user_id;
           vendedorUserCriado = true;
+        }
+
+        // Garante que o user tenha o papel 'vendedor' (caso seja entregador-vendedor reaproveitando login)
+        if (vendedorUserId) {
+          await supabase.functions.invoke("manage-users", {
+            body: { action: "add_role", user_id: vendedorUserId, role: "vendedor" },
+          });
         }
 
         const metaPayload: any = {
