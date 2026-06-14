@@ -11,6 +11,10 @@ interface ClienteSugestao {
   telefone: string | null;
   bairro: string | null;
   endereco: string | null;
+  numero: string | null;
+  cep: string | null;
+  cidade: string | null;
+  tipo: string | null;
 }
 
 interface Props {
@@ -18,9 +22,10 @@ interface Props {
   onChange: (nome: string, cliente?: ClienteSugestao) => void;
   placeholder?: string;
   disabled?: boolean;
+  autoFocus?: boolean;
 }
 
-export function ClienteAutocompleteInput({ value, onChange, placeholder, disabled }: Props) {
+export function ClienteAutocompleteInput({ value, onChange, placeholder, disabled, autoFocus }: Props) {
   const { empresa } = useEmpresa();
   const { unidadeAtual } = useUnidade();
   const [results, setResults] = useState<ClienteSugestao[]>([]);
@@ -60,6 +65,10 @@ export function ClienteAutocompleteInput({ value, onChange, placeholder, disable
             telefone: c.telefone,
             bairro: c.bairro,
             endereco: c.endereco,
+            numero: c.numero ?? null,
+            cep: c.cep ?? null,
+            cidade: c.cidade ?? null,
+            tipo: (c as any).tipo ?? null,
           })),
         );
         setOpen(true);
@@ -90,6 +99,7 @@ export function ClienteAutocompleteInput({ value, onChange, placeholder, disable
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder={placeholder || "Buscar cliente cadastrado..."}
           disabled={disabled}
+          autoFocus={autoFocus}
           className="pl-8"
         />
         {loading && (
@@ -110,9 +120,11 @@ export function ClienteAutocompleteInput({ value, onChange, placeholder, disable
               }}
               className="w-full text-left px-3 py-2 hover:bg-accent border-b border-border last:border-0"
             >
-              <div className="text-sm font-medium">{c.nome}</div>
+              <div className="text-sm font-medium truncate">{c.nome}</div>
               <div className="text-xs text-muted-foreground truncate">
-                {[c.telefone, c.bairro || c.endereco].filter(Boolean).join(" • ")}
+                {[c.telefone, c.endereco && c.numero ? `${c.endereco}, ${c.numero}` : c.endereco, c.bairro, c.cidade]
+                  .filter(Boolean)
+                  .join(" • ")}
               </div>
             </button>
           ))}
