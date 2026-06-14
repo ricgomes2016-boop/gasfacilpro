@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+
 import {
   Select,
   SelectContent,
@@ -15,13 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   ShoppingCart,
   User,
@@ -32,19 +25,21 @@ import {
   Minus,
   Trash2,
   CheckCircle,
-  Search,
   Sparkles,
   Mic,
   MicOff,
   Send,
   Loader2,
+  X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { PaymentSection, Pagamento } from "@/components/vendas/PaymentSection";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+
 import { getBrasiliaDateString } from "@/lib/utils";
+import { ClienteAutocompleteInput, type ClienteSugestao } from "@/components/clientes/ClienteAutocompleteInput";
 
 interface ProdutoDB {
   id: string;
@@ -111,8 +106,6 @@ export default function EntregadorNovaVenda() {
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [canalVenda, setCanalVenda] = useState("");
   const [observacao, setObservacao] = useState("");
-  const [dialogClienteAberto, setDialogClienteAberto] = useState(false);
-  const [buscaCliente, setBuscaCliente] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Voice / AI command state
@@ -385,7 +378,37 @@ export default function EntregadorNovaVenda() {
       complemento: "",
       tipo: c.tipo,
     });
-    setDialogClienteAberto(false);
+  };
+
+  const selecionarClienteAutocomplete = (nome: string, c?: ClienteSugestao) => {
+    if (c) {
+      setCliente({
+        id: c.id,
+        nome: c.nome,
+        telefone: c.telefone || "",
+        endereco: c.endereco || "",
+        numero: c.numero || "",
+        bairro: c.bairro || "",
+        complemento: "",
+        tipo: c.tipo,
+      });
+    } else {
+      // Digitou nome manualmente sem selecionar da lista — mantém o id anterior apenas se o nome não foi editado
+      setCliente((prev) => ({ ...prev, nome, id: prev.id && prev.nome === nome ? prev.id : null }));
+    }
+  };
+
+  const limparCliente = () => {
+    setCliente({
+      id: null,
+      nome: "",
+      telefone: "",
+      endereco: "",
+      numero: "",
+      bairro: "",
+      complemento: "",
+      tipo: null,
+    });
   };
 
   const finalizarVenda = async () => {
@@ -522,20 +545,6 @@ export default function EntregadorNovaVenda() {
 
   const todosCanais = canaisVenda.map((c) => ({ value: c.nome, label: c.nome }));
 
-  const clientesFiltrados = clientes.filter((c) => {
-    const termo = buscaCliente.trim().toLowerCase();
-    const digits = buscaCliente.replace(/\D/g, "");
-    if (!termo) return true;
-    return (
-      c.nome.toLowerCase().includes(termo) ||
-      (c.telefone || "").replace(/\D/g, "").includes(digits) ||
-      (c.telefone || "").toLowerCase().includes(termo) ||
-      (c.endereco || "").toLowerCase().includes(termo) ||
-      (c.numero || "").toLowerCase().includes(termo) ||
-      (c.bairro || "").toLowerCase().includes(termo)
-    );
-  });
-
   return (
     <EntregadorLayout title="Nova Venda">
       <div className="p-4 space-y-4 pb-24">
@@ -592,56 +601,37 @@ export default function EntregadorNovaVenda() {
                   </span>
                 )}
               </CardTitle>
-              <Dialog open={dialogClienteAberto} onOpenChange={setDialogClienteAberto}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 text-xs">
-                    <Search className="h-4 w-4 mr-1" />
-                    Buscar
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Buscar Cliente</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <Input
-                      placeholder="Nome ou telefone..."
-                      value={buscaCliente}
-                      onChange={(e) => setBuscaCliente(e.target.value)}
-                    />
-                    <div className="space-y-2 max-h-60 overflow-auto">
-                      {clientesFiltrados.slice(0, 20).map((c) => (
-                        <div
-                          key={c.id}
-                          onClick={() => selecionarCliente(c)}
-                          className="p-3 rounded-lg border border-border hover:bg-muted cursor-pointer transition-colors"
-                        >
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{c.nome}</p>
-                            {c.tipo && (
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getTipoBadge(c.tipo).className}`}>
-                                {getTipoBadge(c.tipo).label}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground">{c.telefone || "Sem telefone"}</p>
-                          <p className="text-xs text-muted-foreground">{c.endereco || "Sem endereço"}</p>
-                        </div>
-                      ))}
-                      {clientesFiltrados.length === 0 && (
-                        <p className="text-center text-muted-foreground py-4">Nenhum cliente encontrado</p>
-                      )}
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              {cliente.id && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs gap-1"
+                  onClick={limparCliente}
+                >
+                  <X className="h-3.5 w-3.5" />
+                  Trocar
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
+            <div className="col-span-2">
+              <Label className="text-xs">Buscar cliente cadastrado</Label>
+              <ClienteAutocompleteInput
+                value={cliente.nome}
+                onChange={selecionarClienteAutocomplete}
+                placeholder="Nome, telefone ou endereço..."
+              />
+              {!cliente.id && cliente.nome.trim().length > 0 && (
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  💡 Cliente avulso — preencha os dados abaixo ou selecione da lista.
+                </p>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <Label className="text-xs">Nome *</Label>
-                <Input value={cliente.nome} onChange={(e) => setCliente({ ...cliente, nome: e.target.value })} placeholder="Nome do cliente" />
+                <Input value={cliente.nome} onChange={(e) => setCliente({ ...cliente, nome: e.target.value, id: null })} placeholder="Nome do cliente" />
               </div>
               <div className="col-span-2">
                 <Label className="text-xs">Telefone</Label>
