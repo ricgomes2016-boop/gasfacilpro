@@ -147,7 +147,7 @@ function JogoCard({
   );
 }
 
-export default function EntregadorBolao() {
+export default function EntregadorBolao({ noLayout = false }: { noLayout?: boolean } = {}) {
   const { unidadeAtual } = useUnidade();
   const { user } = useAuth();
   const { data: jogos = [], isLoading } = useBolaoJogos(unidadeAtual?.id);
