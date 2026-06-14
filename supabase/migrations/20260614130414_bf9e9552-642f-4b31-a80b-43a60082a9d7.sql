@@ -1,20 +1,37 @@
 
--- 1) Revoke column-level SELECT on sensitive credential columns from authenticated/anon
-REVOKE SELECT (asaas_api_key, asaas_webhook_token) ON public.configuracoes_empresa FROM authenticated, anon;
+-- 1) Revoke column-level SELECT on sensitive credential columns from authenticated/anon.
+-- Lovable environments can drift slightly, so only revoke columns that exist.
+DO $$
+DECLARE
+  item record;
+  existing_columns text;
+BEGIN
+  FOR item IN
+    SELECT * FROM (VALUES
+      ('configuracoes_empresa', ARRAY['asaas_api_key', 'asaas_webhook_token']),
+      ('integracoes_whatsapp', ARRAY['token', 'instancia_token', 'meta_access_token', 'meta_verify_token', 'security_token']),
+      ('transp_outlook_config', ARRAY['microsoft_refresh_token']),
+      ('unidades', ARRAY['certificado_a1_senha', 'nfce_csc_token', 'provedor_nfe_token']),
+      ('social_accounts', ARRAY['access_token', 'refresh_token', 'token']),
+      ('whatsapp_gateway_instances', ARRAY['api_key', 'session_data'])
+    ) AS sensitive(table_name, column_names)
+  LOOP
+    SELECT string_agg(quote_ident(c.column_name), ', ')
+    INTO existing_columns
+    FROM information_schema.columns c
+    WHERE c.table_schema = 'public'
+      AND c.table_name = item.table_name
+      AND c.column_name = ANY(item.column_names);
 
-REVOKE SELECT (token, instancia_token, meta_access_token, meta_verify_token, security_token)
-  ON public.integracoes_whatsapp FROM authenticated, anon;
-
-REVOKE SELECT (microsoft_refresh_token) ON public.transp_outlook_config FROM authenticated, anon;
-
-REVOKE SELECT (certificado_a1_senha, nfce_csc_token, provedor_nfe_token)
-  ON public.unidades FROM authenticated, anon;
-
-REVOKE SELECT (access_token, refresh_token, token)
-  ON public.social_accounts FROM authenticated, anon;
-
-REVOKE SELECT (api_key, session_data)
-  ON public.whatsapp_gateway_instances FROM authenticated, anon;
+    IF existing_columns IS NOT NULL THEN
+      EXECUTE format(
+        'REVOKE SELECT (%s) ON public.%I FROM authenticated, anon',
+        existing_columns,
+        item.table_name
+      );
+    END IF;
+  END LOOP;
+END $$;
 
 -- 2) Restrict ai_mensagens SELECT policy to authenticated role only
 DROP POLICY IF EXISTS "ai_mensagens select tenant" ON public.ai_mensagens;

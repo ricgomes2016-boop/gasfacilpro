@@ -1,5 +1,17 @@
 -- Harden portal do vendedor: identidade por auth user_id e policies com escopo SaaS.
 
+ALTER TABLE public.pedidos
+  ADD COLUMN IF NOT EXISTS empresa_id UUID;
+
+UPDATE public.pedidos p
+SET empresa_id = u.empresa_id
+FROM public.unidades u
+WHERE p.unidade_id = u.id
+  AND p.empresa_id IS NULL
+  AND u.empresa_id IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_pedidos_empresa_id ON public.pedidos(empresa_id);
+
 ALTER TABLE public.vendedor_metas
   ADD COLUMN IF NOT EXISTS empresa_id UUID,
   ADD COLUMN IF NOT EXISTS unidade_id UUID,
@@ -110,18 +122,24 @@ WITH CHECK (
 );
 
 -- Avisos do RH tambem podem ser usados pelo portal do vendedor.
-DROP POLICY IF EXISTS "Vendedores can view active RH avisos" ON public.rh_avisos_entregador;
-CREATE POLICY "Vendedores can view active RH avisos"
-ON public.rh_avisos_entregador
-FOR SELECT
-TO authenticated
-USING (
-  public.has_role(auth.uid(), 'vendedor'::public.app_role)
-  AND ativo = true
-  AND (exibir_de IS NULL OR exibir_de <= now())
-  AND (exibir_ate IS NULL OR exibir_ate >= now())
-  AND (
-    empresa_id = public.get_user_empresa_id()
-    OR (unidade_id IS NOT NULL AND public.unidade_belongs_to_user_empresa(unidade_id))
-  )
-);
+DO $$
+BEGIN
+  IF to_regclass('public.rh_avisos_entregador') IS NOT NULL THEN
+    DROP POLICY IF EXISTS "Vendedores can view active RH avisos" ON public.rh_avisos_entregador;
+
+    CREATE POLICY "Vendedores can view active RH avisos"
+    ON public.rh_avisos_entregador
+    FOR SELECT
+    TO authenticated
+    USING (
+      public.has_role(auth.uid(), 'vendedor'::public.app_role)
+      AND ativo = true
+      AND (exibir_de IS NULL OR exibir_de <= now())
+      AND (exibir_ate IS NULL OR exibir_ate >= now())
+      AND (
+        empresa_id = public.get_user_empresa_id()
+        OR (unidade_id IS NOT NULL AND public.unidade_belongs_to_user_empresa(unidade_id))
+      )
+    );
+  END IF;
+END $$;
