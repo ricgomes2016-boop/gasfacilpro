@@ -37,6 +37,7 @@ import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsa
 import { OrderSummary } from "@/components/vendas/OrderSummary";
 import { CustomerHistory } from "@/components/vendas/CustomerHistory";
 import { DeliveryPersonSelect } from "@/components/vendas/DeliveryPersonSelect";
+import { VendedorSelect } from "@/components/vendas/VendedorSelect";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 
 interface CustomerData {
@@ -223,6 +224,10 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const [itens, setItens] = useState<ItemVenda[]>([]);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [entregador, setEntregador] = useState<{ id: string | null; nome: string | null }>({
+    id: null,
+    nome: null,
+  });
+  const [vendedor, setVendedor] = useState<{ id: string | null; nome: string | null }>({
     id: null,
     nome: null,
   });
@@ -787,6 +792,14 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     });
   };
 
+  const handleVendedorAuto = (funcionarioId: string | null, nome: string | null) => {
+    // Só auto-preenche se ainda não há vendedor escolhido manualmente
+    if (!vendedor.id && funcionarioId) {
+      setVendedor({ id: funcionarioId, nome });
+    }
+  };
+
+
   const handleStepEnterNavigation = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.defaultPrevented || event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
     const target = event.target as HTMLElement;
@@ -888,6 +901,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       const pedidoInsert: any = {
         cliente_id: clienteId,
         entregador_id: entregador.id,
+        vendedor_id: vendedor.id,
         endereco_entrega: enderecoCompleto,
         valor_total: totalVenda,
         forma_pagamento: pagamentos.map((p) => p.forma).join(", "),
@@ -1066,7 +1080,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       const { data: pedido, error: pedidoError } = await supabase
         .from("pedidos")
         .insert({
-          cliente_id: customer.id, entregador_id: entregador.id,
+          cliente_id: customer.id, entregador_id: entregador.id, vendedor_id: vendedor.id,
           endereco_entrega: enderecoCompleto, valor_total: totalVenda,
           forma_pagamento: pagamentos.map((p) => p.forma).join(", "),
           canal_venda: canalVenda, observacoes: customer.observacao,
@@ -1318,7 +1332,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             )}
             {activeStep === "entregador" && (
               <div className="venda-step-panel venda-tone-entregador w-full">
-                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} endereco={customer.endereco} />
+                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} onVendedorAuto={handleVendedorAuto} endereco={customer.endereco} />
+                <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
               </div>
             )}
             {activeStep === "confirmar" && (
@@ -1334,7 +1349,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               <div className="lg:col-span-2 space-y-3 md:space-y-4">
                 {metaCard}
                 <CustomerSearch value={customer} onChange={setCustomer} />
-                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} endereco={customer.endereco} />
+                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} onVendedorAuto={handleVendedorAuto} endereco={customer.endereco} />
+                <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
                 <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
                 <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} />
               </div>
