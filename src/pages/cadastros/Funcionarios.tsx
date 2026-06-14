@@ -20,6 +20,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Plus, Search, Edit, Trash2, Phone, Briefcase, Truck,
   LinkIcon, CreditCard, Mail, Lock, Loader2, UserCheck, Building2, Image,
+  Target, TrendingUp, Percent, DollarSign,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
