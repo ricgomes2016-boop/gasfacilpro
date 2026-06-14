@@ -50,18 +50,33 @@ function JogoCard({
   return (
     <Card className="border-none shadow-sm">
       <CardContent className="p-3 space-y-2">
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground gap-1.5 flex-wrap">
           <span className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
             {format(new Date(jogo.data_jogo), "dd/MM HH:mm", { locale: ptBR })}
           </span>
-          {jogo.grupo && <span className="font-semibold">Grupo {jogo.grupo}</span>}
+          <Badge variant="secondary" className="text-[10px] font-semibold h-5 px-1.5 gap-1 bg-primary/10 text-primary border-0">
+            <Trophy className="h-2.5 w-2.5" />
+            {jogo.fase === "grupos"
+              ? `Fase de Grupos${jogo.grupo ? ` · ${jogo.grupo}` : ""}`
+              : jogo.fase === "oitavas_32"
+              ? "16-avos (R32)"
+              : jogo.fase === "oitavas"
+              ? "Oitavas"
+              : jogo.fase === "quartas"
+              ? "Quartas"
+              : jogo.fase === "semi"
+              ? "Semifinal"
+              : jogo.fase === "terceiro"
+              ? "Disputa 3º Lugar"
+              : "Final"}
+          </Badge>
           {projecao?.projetado && (
             <span className="text-[10px] font-semibold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded">
               projetado
             </span>
           )}
-          <span>#{jogo.numero_jogo}</span>
+          <span className="ml-auto">#{jogo.numero_jogo}</span>
         </div>
 
         <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
@@ -266,7 +281,11 @@ export default function EntregadorBolao() {
                       if (lista.length === 0) return null;
                       return (
                         <div key={fase} className="space-y-2">
-                          <h3 className="text-sm font-bold px-1">{FASE_LABELS[fase]}</h3>
+                          <h3 className="text-sm font-bold px-1 flex items-center gap-2">
+                            <Trophy className="h-3.5 w-3.5 text-primary" />
+                            {FASE_LABELS[fase]}
+                            <Badge variant="secondary" className="ml-auto">{lista.length}</Badge>
+                          </h3>
                           <div className="space-y-2">
                             {lista.map((j) => (
                               <JogoCard
