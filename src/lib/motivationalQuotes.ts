@@ -31,6 +31,13 @@ const QUOTES: Record<AuthPortalKey, string[]> = {
     "Hoje é dia de bater meta!",
     "Foco, fé e foco no próximo cliente.",
   ],
+  vendedor: [
+    "Vender é resolver o problema do cliente.",
+    "Cada NÃO te aproxima do próximo SIM.",
+    "Meta é destino, atitude é o caminho.",
+    "Cliente bem atendido volta sempre.",
+  ],
+
   painel: [
     "Liderar é simplificar o complexo.",
     "Visão sistêmica, ação precisa.",
