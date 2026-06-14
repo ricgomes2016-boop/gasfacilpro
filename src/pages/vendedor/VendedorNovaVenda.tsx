@@ -47,7 +47,7 @@ export default function VendedorNovaVenda() {
   useEffect(() => {
     if (!unidadeAtual?.id) return;
     (async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("produtos")
         .select("id, nome, preco")
         .eq("unidade_id", unidadeAtual.id)
