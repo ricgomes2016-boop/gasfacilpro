@@ -98,8 +98,10 @@ export function ProtectedRoute({
       // Redirect to their proper app instead of showing "access denied" in admin
       if (roles.includes("cliente")) return <Navigate to="/cliente" replace />;
       if (roles.includes("entregador")) return <Navigate to="/entregador" replace />;
+      if (roles.includes("vendedor")) return <Navigate to="/vendedor" replace />;
       if (roles.includes("parceiro")) return <Navigate to="/parceiro" replace />;
       if (roles.includes("transportadora")) return <Navigate to="/transportadora" replace />;
+
       if (roles.includes("contador")) {
         return <Navigate to={subdomainApp === "contador" ? "/contador" : "/financeiro/contador"} replace />;
       }
