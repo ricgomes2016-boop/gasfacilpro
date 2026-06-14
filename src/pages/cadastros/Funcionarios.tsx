@@ -310,9 +310,12 @@ export default function Funcionarios() {
           .eq("funcionario_id", funcionarioId)
           .maybeSingle();
 
-        let vendedorUserId: string | null = metaExistente?.user_id || null;
+        // Reaproveita o user do entregador (mesmo login) quando ele também for entregador
+        const entregadorAtual = entregadores.find(e => e.funcionario_id === funcionarioId);
+        let vendedorUserId: string | null =
+          metaExistente?.user_id || entregadorAtual?.user_id || null;
 
-        // Criar login se solicitado e ainda não houver
+        // Criar login só quando NÃO é entregador e ainda não tem user
         if (!vendedorUserId && form.vend_login_email && form.vend_login_password) {
           if (form.vend_login_password.length < 6) {
             toast.error("Senha do vendedor deve ter no mínimo 6 caracteres");
@@ -337,6 +340,13 @@ export default function Funcionarios() {
           }
           vendedorUserId = createData.user_id;
           vendedorUserCriado = true;
+        }
+
+        // Garante que o user tenha o papel 'vendedor' (caso seja entregador-vendedor reaproveitando login)
+        if (vendedorUserId) {
+          await supabase.functions.invoke("manage-users", {
+            body: { action: "add_role", user_id: vendedorUserId, role: "vendedor" },
+          });
         }
 
         const metaPayload: any = {
@@ -746,43 +756,51 @@ export default function Funcionarios() {
                           <Mail className="h-4 w-4 text-emerald-600" />
                           Acesso ao app de vendas
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          Preencha apenas se for criar um login novo. Se o vendedor já tem acesso, deixe em branco.
-                        </p>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1">
-                            <Label className="text-xs">E-mail de login</Label>
-                            <Input
-                              type="email"
-                              value={form.vend_login_email}
-                              onChange={(e) => setForm({ ...form, vend_login_email: e.target.value })}
-                              placeholder="vendedor@empresa.com"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs flex items-center gap-1">
-                              <Lock className="h-3 w-3" /> Senha temporária
-                            </Label>
-                            <div className="flex gap-1">
-                              <Input
-                                value={form.vend_login_password}
-                                onChange={(e) => setForm({ ...form, vend_login_password: e.target.value })}
-                                placeholder="Mínimo 6 caracteres"
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const senha = Math.random().toString(36).slice(-8);
-                                  setForm({ ...form, vend_login_password: senha });
-                                }}
-                              >
-                                Gerar
-                              </Button>
+                        {form.is_entregador ? (
+                          <p className="text-xs text-muted-foreground">
+                            ✓ Este vendedor é também entregador. Será usado o <b>mesmo e-mail e senha definidos no acesso de entregador</b> acima. O portal do vendedor (<code>vendas.gasfacilpro.com.br</code>) aceita o mesmo login.
+                          </p>
+                        ) : (
+                          <>
+                            <p className="text-xs text-muted-foreground">
+                              Preencha apenas se for criar um login novo. Se o vendedor já tem acesso, deixe em branco.
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs">E-mail de login</Label>
+                                <Input
+                                  type="email"
+                                  value={form.vend_login_email}
+                                  onChange={(e) => setForm({ ...form, vend_login_email: e.target.value })}
+                                  placeholder="vendedor@empresa.com"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs flex items-center gap-1">
+                                  <Lock className="h-3 w-3" /> Senha temporária
+                                </Label>
+                                <div className="flex gap-1">
+                                  <Input
+                                    value={form.vend_login_password}
+                                    onChange={(e) => setForm({ ...form, vend_login_password: e.target.value })}
+                                    placeholder="Mínimo 6 caracteres"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      const senha = Math.random().toString(36).slice(-8);
+                                      setForm({ ...form, vend_login_password: senha });
+                                    }}
+                                  >
+                                    Gerar
+                                  </Button>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
+                          </>
+                        )}
                       </div>
 
                       {/* Desempenho do mês — apenas em edição */}

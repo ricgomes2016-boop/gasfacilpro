@@ -397,6 +397,49 @@ Deno.serve(async (req) => {
     }
 
     // UPDATE role (kept for backward compatibility)
+    if (action === "add_role") {
+      const { user_id, role } = params;
+
+      const roleDenied = validateRoleAssignment(role);
+      if (roleDenied) return roleDenied;
+
+      if (!user_id || !role) {
+        return new Response(JSON.stringify({ error: "user_id e role são obrigatórios" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const denied = await assertSameEmpresa(user_id);
+      if (denied) return denied;
+
+      if (!isSuperAdmin && (role === "super_admin" || (isGestor && role === "admin"))) {
+        return new Response(JSON.stringify({ error: "Permissão insuficiente para atribuir este papel" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Verifica se já existe esse papel — evita duplicidade
+      const { data: existing } = await supabaseAdmin
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("role", role)
+        .maybeSingle();
+
+      if (!existing) {
+        const { error } = await supabaseAdmin
+          .from("user_roles")
+          .insert({ user_id, role });
+        if (error) throw error;
+      }
+
+      return new Response(JSON.stringify({ success: true, added: !existing }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "update_role") {
       const { user_id, role } = params;
 
