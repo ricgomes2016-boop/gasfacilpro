@@ -792,6 +792,14 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     });
   };
 
+  const handleVendedorAuto = (funcionarioId: string | null, nome: string | null) => {
+    // Só auto-preenche se ainda não há vendedor escolhido manualmente
+    if (!vendedor.id && funcionarioId) {
+      setVendedor({ id: funcionarioId, nome });
+    }
+  };
+  };
+
   const handleStepEnterNavigation = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.defaultPrevented || event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
     const target = event.target as HTMLElement;
