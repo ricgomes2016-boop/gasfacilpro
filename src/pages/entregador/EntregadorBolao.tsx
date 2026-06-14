@@ -362,6 +362,8 @@ export default function EntregadorBolao({ noLayout = false }: { noLayout?: boole
           </TabsContent>
         </Tabs>
       </div>
-    </EntregadorLayout>
+    </>
   );
+  if (noLayout) return content;
+  return <EntregadorLayout title="Bolão Copa 2026">{content}</EntregadorLayout>;
 }
