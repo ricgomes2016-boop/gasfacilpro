@@ -504,3 +504,11 @@ function VendedoresInner() {
     </div>
   );
 }
+
+export default function Vendedores() {
+  return (
+    <PeriodoProvider>
+      <VendedoresInner />
+    </PeriodoProvider>
+  );
+}
