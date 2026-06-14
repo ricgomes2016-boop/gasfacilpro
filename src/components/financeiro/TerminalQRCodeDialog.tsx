@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import { Download, Printer } from "lucide-react";
+import { esc } from "@/lib/escapeHtml";
 
 interface TerminalQRCodeDialogProps {
   open: boolean;
