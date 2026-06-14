@@ -32,7 +32,7 @@ function ValeCard({ vale, onVender, onUtilizar, onQRCode }: { vale: ValeGasParce
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(`
-      <html><head><title>Vale Gás #${vale.numero}</title>
+      <html><head><title>Vale Gás #${esc(vale.numero)}</title>
       <style>
         body { font-family: monospace; width: 280px; margin: 0 auto; padding: 10px; }
         .center { text-align: center; }
@@ -40,15 +40,15 @@ function ValeCard({ vale, onVender, onUtilizar, onQRCode }: { vale: ValeGasParce
         .bold { font-weight: bold; }
         .small { font-size: 11px; }
       </style></head><body>
-      <div class="center bold">VALE GÁS #${vale.numero}</div>
-      <div>Código: ${vale.codigo}</div>
+      <div class="center bold">VALE GÁS #${esc(vale.numero)}</div>
+      <div>Código: ${esc(vale.codigo)}</div>
       <div class="bold">Valor: R$ ${Number(vale.valor).toFixed(2)}</div>
-      ${vale.produto_nome ? `<div>Produto: ${vale.produto_nome}</div>` : ""}
+      ${vale.produto_nome ? `<div>Produto: ${esc(vale.produto_nome)}</div>` : ""}
       <div class="line"></div>
-      ${vale.consumidor_nome ? `<div class="bold">Consumidor:</div><div>${vale.consumidor_nome}</div>` : ""}
-      ${vale.consumidor_cpf ? `<div>CPF: ${vale.consumidor_cpf}</div>` : ""}
+      ${vale.consumidor_nome ? `<div class="bold">Consumidor:</div><div>${esc(vale.consumidor_nome)}</div>` : ""}
+      ${vale.consumidor_cpf ? `<div>CPF: ${esc(vale.consumidor_cpf)}</div>` : ""}
       <div class="line"></div>
-      <div class="center small">Status: ${cfg.label}</div>
+      <div class="center small">Status: ${esc(cfg.label)}</div>
       <div class="center small">${new Date(vale.created_at).toLocaleDateString("pt-BR")}</div>
       <script>window.print(); window.close();</script>
       </body></html>
