@@ -18,7 +18,7 @@ export default function VendedorPerfil() {
               <User className="h-10 w-10 text-primary" />
             </div>
             <div>
-              <p className="text-xl font-bold">{profile?.nome || "Vendedor"}</p>
+              <p className="text-xl font-bold">{profile?.full_name || "Vendedor"}</p>
               <p className="text-sm text-muted-foreground">Vendedor</p>
             </div>
           </CardContent>
@@ -30,10 +30,10 @@ export default function VendedorPerfil() {
               <Mail className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">{user?.email || "—"}</span>
             </div>
-            {profile?.telefone && (
+            {profile?.phone && (
               <div className="flex items-center gap-3">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{profile.telefone}</span>
+                <span className="text-sm">{profile.phone}</span>
               </div>
             )}
           </CardContent>

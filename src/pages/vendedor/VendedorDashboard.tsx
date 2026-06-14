@@ -20,15 +20,15 @@ export default function VendedorDashboard() {
       const hojeStr = new Date();
       hojeStr.setHours(0, 0, 0, 0);
 
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("pedidos")
         .select("id, valor_total, created_at")
         .eq("vendedor_id", user.id)
         .gte("created_at", inicioMes.toISOString());
 
-      const lista = data || [];
-      const valorMes = lista.reduce((s, p: any) => s + Number(p.valor_total || 0), 0);
-      const hoje = lista.filter((p: any) => new Date(p.created_at) >= hojeStr).length;
+      const lista = (data || []) as any[];
+      const valorMes = lista.reduce((s, p) => s + Number(p.valor_total || 0), 0);
+      const hoje = lista.filter((p) => new Date(p.created_at) >= hojeStr).length;
       setStats({ hoje, mes: lista.length, valorMes });
     })();
   }, [user?.id]);
@@ -43,7 +43,7 @@ export default function VendedorDashboard() {
   ];
 
   return (
-    <VendedorLayout title={`Olá, ${profile?.nome?.split(" ")[0] || "Vendedor"}`}>
+    <VendedorLayout title={`Olá, ${profile?.full_name?.split(" ")[0] || "Vendedor"}`}>
       <div className="p-4 space-y-4">
         <div className="grid grid-cols-3 gap-3">
           <Card>

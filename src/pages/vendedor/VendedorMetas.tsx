@@ -20,18 +20,18 @@ export default function VendedorMetas() {
       inicio.setDate(1);
       inicio.setHours(0, 0, 0, 0);
 
-      const { data: vendas } = await supabase
+      const { data: vendas } = await (supabase as any)
         .from("pedidos")
         .select("valor_total")
         .eq("vendedor_id", user.id)
         .gte("created_at", inicio.toISOString())
         .in("status", ["entregue", "pago", "concluido"]);
 
-      const total = (vendas || []).reduce((s, p: any) => s + Number(p.valor_total || 0), 0);
+      const total = ((vendas || []) as any[]).reduce((s, p) => s + Number(p.valor_total || 0), 0);
       setVendido(total);
-      setQtd((vendas || []).length);
+      setQtd(((vendas || []) as any[]).length);
 
-      const { data: cfg } = await supabase
+      const { data: cfg } = await (supabase as any)
         .from("comissao_config")
         .select("meta_mensal, percentual")
         .eq("user_id", user.id)

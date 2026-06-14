@@ -24,7 +24,7 @@ export default function VendedorClientes() {
     if (!unidadeAtual?.id) return;
     setLoading(true);
     const t = setTimeout(async () => {
-      let query = supabase
+      let query: any = (supabase as any)
         .from("clientes")
         .select("id, nome, telefone, endereco")
         .eq("unidade_id", unidadeAtual.id)

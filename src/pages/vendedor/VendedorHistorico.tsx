@@ -25,7 +25,7 @@ export default function VendedorHistorico() {
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("pedidos")
         .select("id, created_at, status, valor_total, tipo_venda, forma_pagamento, clientes(nome)")
         .eq("vendedor_id", user.id)
