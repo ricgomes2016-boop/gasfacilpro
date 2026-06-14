@@ -6,6 +6,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Copy, Download, Share2, QrCode, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRef } from "react";
+import { esc } from "@/lib/escapeHtml";
 
 export default function ParceiroQRCode() {
   const { parceiro, isLoading, disponiveis } = useParceiroDados();
