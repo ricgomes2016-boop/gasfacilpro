@@ -798,7 +798,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       setVendedor({ id: funcionarioId, nome });
     }
   };
-  };
+
 
   const handleStepEnterNavigation = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.defaultPrevented || event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
