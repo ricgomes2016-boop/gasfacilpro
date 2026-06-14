@@ -146,6 +146,7 @@ export const menuItems: MenuItem[] = [
       { icon: FileSpreadsheet, label: "Análise de Resultados", path: "/operacional/analise-resultados" },
       { icon: CalendarRange, label: "Planejamento", path: "/operacional/planejamento" },
       { icon: Target, label: "Metas e Desafios", path: "/operacional/metas" },
+      { icon: Users, label: "Vendedores", path: "/operacional/vendedores" },
       { icon: Search, label: "Análise de Concorrência", path: "/operacional/concorrencia" },
       { icon: Clipboard, label: "Relatório Gerencial", path: "/operacional/gerencial" },
       { icon: Trophy, label: "Gamificação Entregadores", path: "/operacional/gamificacao-entregadores" },
