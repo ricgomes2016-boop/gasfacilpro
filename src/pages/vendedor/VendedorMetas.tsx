@@ -10,6 +10,8 @@ export default function VendedorMetas() {
   const { user } = useAuth();
   const [meta, setMeta] = useState(0);
   const [comissaoPct, setComissaoPct] = useState(0);
+  const [valorFixo, setValorFixo] = useState(0);
+  const [tipoComissao, setTipoComissao] = useState<"percentual" | "valor_fixo">("percentual");
   const [vendido, setVendido] = useState(0);
   const [qtd, setQtd] = useState(0);
 
@@ -33,18 +35,24 @@ export default function VendedorMetas() {
 
       const { data: cfg } = await (supabase as any)
         .from("vendedor_metas")
-        .select("meta_mensal, percentual")
+        .select("meta_mensal, percentual, valor_fixo_comissao, tipo_comissao")
         .eq("user_id", user.id)
         .maybeSingle();
       if (cfg) {
         setMeta(Number((cfg as any).meta_mensal || 0));
         setComissaoPct(Number((cfg as any).percentual || 0));
+        setValorFixo(Number((cfg as any).valor_fixo_comissao || 0));
+        setTipoComissao((((cfg as any).tipo_comissao as string) || "percentual") as "percentual" | "valor_fixo");
       }
     })();
   }, [user?.id]);
 
   const progresso = meta > 0 ? Math.min(100, (vendido / meta) * 100) : 0;
-  const comissao = vendido * (comissaoPct / 100);
+  const comissao = tipoComissao === "valor_fixo" ? qtd * valorFixo : vendido * (comissaoPct / 100);
+  const comissaoLabel =
+    tipoComissao === "valor_fixo"
+      ? `R$ ${valorFixo.toFixed(2)} por venda`
+      : `${comissaoPct}% sobre vendido`;
 
   return (
     <VendedorLayout title="Metas & Comissão">
@@ -88,7 +96,7 @@ export default function VendedorMetas() {
               <Award className="h-6 w-6 mx-auto text-yellow-500 mb-1" />
               <p className="text-xs text-muted-foreground">Comissão est.</p>
               <p className="text-2xl font-bold">R$ {comissao.toFixed(0)}</p>
-              <p className="text-[10px] text-muted-foreground">{comissaoPct}% sobre vendido</p>
+              <p className="text-[10px] text-muted-foreground">{comissaoLabel}</p>
             </CardContent>
           </Card>
         </div>
