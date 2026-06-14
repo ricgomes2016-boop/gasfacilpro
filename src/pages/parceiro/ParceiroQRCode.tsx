@@ -75,7 +75,7 @@ export default function ParceiroQRCode() {
       <div class="card">
         <div class="logo">🔥 Gas Express25</div>
         <div class="qr">${svg}</div>
-        <div class="name">${parceiro?.nome || "Parceiro"}</div>
+        <div class="name">${esc(parceiro?.nome || "Parceiro")}</div>
         <div class="sub">Escaneie o QR Code para adquirir seu Vale Gás</div>
         <div class="info">Aponte a câmera do celular para o QR Code acima</div>
       </div>
