@@ -91,8 +91,8 @@ function JogoCard({
             />
           </div>
           <div className="text-left flex items-center justify-start gap-1.5 min-w-0">
-            <span className="text-2xl leading-none shrink-0">{bandeiraEmoji(jogo.codigo_fora)}</span>
-            <p className="text-sm font-semibold truncate">{jogo.time_fora}</p>
+            <span className="text-2xl leading-none shrink-0">{bandeiraEmoji(codFora)}</span>
+            <p className="text-sm font-semibold truncate">{timeFora}</p>
           </div>
         </div>
 
