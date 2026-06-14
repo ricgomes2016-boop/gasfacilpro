@@ -472,7 +472,8 @@ export default function Funcionarios() {
     const matchSearch = f.nome.toLowerCase().includes(search.toLowerCase()) || (f.cpf || "").includes(search);
     if (!matchSearch) return false;
     if (filter === "entregadores") return entregadorFuncIds.has(f.id);
-    if (filter === "internos") return !entregadorFuncIds.has(f.id);
+    if (filter === "vendedores") return !!(f as any).is_vendedor;
+    if (filter === "internos") return !entregadorFuncIds.has(f.id) && !(f as any).is_vendedor;
     return true;
   });
 
