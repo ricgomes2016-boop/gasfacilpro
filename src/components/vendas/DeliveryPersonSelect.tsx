@@ -192,7 +192,14 @@ export function DeliveryPersonSelect({ value, onChange, endereco, onVendedorAuto
                     </p>
                     {selected && <CheckCircle2 className="h-4 w-4 shrink-0 text-primary-foreground drop-shadow-sm" />}
                   </div>
-                  <div className="mt-1">{getStatusBadge(entregador.status)}</div>
+                  <div className="mt-1 flex flex-wrap items-center justify-center gap-1">
+                    {getStatusBadge(entregador.status)}
+                    {entregador.is_vendedor && (
+                      <Badge variant="outline" className="border-primary-foreground/40 bg-primary-foreground/15 text-[10px] text-primary-foreground">
+                        Vendedor
+                      </Badge>
+                    )}
+                  </div>
                 </div>
               </button>
             );
