@@ -109,7 +109,7 @@ export default function Funcionarios() {
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"todos" | "entregadores" | "internos">("todos");
+  const [filter, setFilter] = useState<"todos" | "entregadores" | "vendedores" | "internos">("todos");
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [terminais, setTerminais] = useState<TerminalOption[]>([]);
