@@ -498,7 +498,9 @@ function VendedoresInner() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
+
   );
 }
 
