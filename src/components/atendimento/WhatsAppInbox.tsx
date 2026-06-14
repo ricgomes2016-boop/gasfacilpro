@@ -194,6 +194,12 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
 
   useEffect(() => {
     const fetchConversas = async () => {
+      if (!empresa?.id) {
+        setConversas([]);
+        setLoading(false);
+        return;
+      }
+
       let query = supabase
         .from("ai_conversas")
         .select("id, titulo, updated_at, telefone, foto_url, foto_atualizada_em, unidade_id, empresa_id")
@@ -202,9 +208,7 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
         .limit(200);
 
       // Escopa por empresa do usuário (quando disponível)
-      if (empresa?.id) {
-        query = query.eq("empresa_id", empresa.id);
-      }
+      query = query.eq("empresa_id", empresa.id);
 
       // Se há unidade selecionada, mostra conversas dessa unidade OU sem unidade (legado)
       if (unidadeAtual?.id) {
@@ -213,16 +217,41 @@ export function WhatsAppInbox({ className }: WhatsAppInboxProps) {
 
       const { data } = await query;
 
-      const convs = (data || []) as Conversa[];
+      let convs = (data || []) as Conversa[];
+      let recentMsgs: any[] = [];
+
+      let msgQuery = supabase
+        .from("ai_mensagens")
+        .select("conversa_id, role, content, created_at, empresa_id, unidade_id")
+        .order("created_at", { ascending: false })
+        .limit(500);
+
+      msgQuery = msgQuery.eq("empresa_id", empresa.id);
+
+      if (unidadeAtual?.id) {
+        msgQuery = msgQuery.or(`unidade_id.eq.${unidadeAtual.id},unidade_id.is.null`);
+      }
+
+      const { data: scopedMsgs } = await msgQuery;
+      recentMsgs = scopedMsgs || [];
+
+      const knownIds = new Set(convs.map((c) => c.id));
+      const missingIds = Array.from(new Set(recentMsgs.map((m: any) => m.conversa_id).filter(Boolean)))
+        .filter((id) => !knownIds.has(id));
+
+      if (missingIds.length) {
+        const { data: missingConvs } = await supabase
+          .from("ai_conversas")
+          .select("id, titulo, updated_at, telefone, foto_url, foto_atualizada_em, unidade_id, empresa_id")
+          .is("deleted_at", null)
+          .in("id", missingIds);
+
+        convs = [...convs, ...((missingConvs || []) as Conversa[])];
+      }
 
       if (convs.length) {
-        const ids = convs.map((c) => c.id);
-        const { data: msgs } = await supabase
-          .from("ai_mensagens")
-          .select("conversa_id, role, content, created_at")
-          .in("conversa_id", ids)
-          .order("created_at", { ascending: false })
-          .limit(500);
+        const ids = new Set(convs.map((c) => c.id));
+        const msgs = recentMsgs.filter((m: any) => ids.has(m.conversa_id));
         const lastByConv = new Map<string, { role: string; content: string; created_at: string }>();
         (msgs || []).forEach((m: any) => {
           if (!lastByConv.has(m.conversa_id)) {

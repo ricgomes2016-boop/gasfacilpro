@@ -127,11 +127,11 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
   useEffect(() => { selectedRef.current = selectedConversaId; }, [selectedConversaId]);
   useEffect(() => { openRef.current = isWidgetOpen; }, [isWidgetOpen]);
 
-  // Helper: a conversa pertence ao escopo atual (mesma empresa + unidade atual ou legado sem unidade)?
+  // Helper: a conversa/mensagem pertence ao escopo atual (mesma empresa + unidade atual ou legado sem unidade)?
   const conversaNoEscopo = useCallback((conv: { empresa_id?: string | null; unidade_id?: string | null } | null | undefined) => {
     if (!conv) return false;
     const emp = empresaRef.current;
-    if (emp && conv.empresa_id && conv.empresa_id !== emp) return false;
+    if (emp && conv.empresa_id !== emp) return false;
     const uni = unidadeRef.current;
     if (uni && conv.unidade_id && conv.unidade_id !== uni) return false;
     return true;
@@ -198,7 +198,7 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
           // criam/atualizam a conversa quase junto com a mensagem, entao damos
           // uma pequena margem para nao perder a primeira mensagem do cliente.
           let conv: { titulo?: string | null; telefone?: string | null; empresa_id?: string | null; unidade_id?: string | null } | null = null;
-          for (let attempt = 0; attempt < 4; attempt++) {
+          for (let attempt = 0; attempt < 6; attempt++) {
             const { data } = await supabase
               .from("ai_conversas")
               .select("titulo, telefone, empresa_id, unidade_id")
@@ -210,7 +210,11 @@ export function WhatsAppNotificationProvider({ children }: { children: ReactNode
             }
             await wait(250);
           }
-          if (!conversaNoEscopo(conv)) return;
+          const scope = {
+            empresa_id: conv?.empresa_id || msg.empresa_id || null,
+            unidade_id: conv?.unidade_id || msg.unidade_id || null,
+          };
+          if (!conversaNoEscopo(scope)) return;
 
           try { localStorage.setItem(notifiedKey, "1"); } catch {}
 

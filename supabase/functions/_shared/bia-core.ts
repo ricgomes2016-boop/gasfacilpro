@@ -1053,6 +1053,15 @@ export async function saveMessage(supabase: any, conversationId: string, role: s
     });
     throw error;
   }
+
+  try {
+    await supabase
+      .from("ai_conversas")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", conversationId);
+  } catch (e) {
+    console.warn("[bia-core] failed to touch conversation after message insert", conversationId, e);
+  }
 }
 
 export async function upsertConversation(supabase: any, conversationId: string, title: string, telefone?: string, unidadeId?: string | null) {

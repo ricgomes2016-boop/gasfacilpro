@@ -17,6 +17,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 const OK = (data: any) => new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+const lastDigits = (value?: string | null, size = 10) => (value || "").replace(/\D/g, "").slice(-size);
 
 serve(async (req) => {
   // Meta webhook verification (GET with hub.challenge)
@@ -190,11 +191,9 @@ serve(async (req) => {
             console.log("Meta: skipping system/internal message (coexistence)");
             continue;
           }
-          // Known business phone number digits (last 10 of +55 43 3524-1094)
-          const BUSINESS_PHONE_LAST10 = "4335241094";
-          const senderLast10 = (msg.from || "").replace(/\D/g, "").slice(-10);
-          if (senderLast10 === BUSINESS_PHONE_LAST10) {
-            console.log("Meta: skipping echo from business number (coexistence protection):", msg.from);
+          const displayPhoneLast10 = lastDigits(metadata?.display_phone_number);
+          if (displayPhoneLast10 && lastDigits(msg.from) === displayPhoneLast10) {
+            console.log("Meta: skipping echo from business display number (coexistence protection):", msg.from);
             continue;
           }
           // ─── END COEXISTENCE LOOP PROTECTION ───────────────────────────────
