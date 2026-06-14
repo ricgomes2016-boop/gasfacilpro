@@ -804,6 +804,9 @@ export default function EntregadorNovaVenda({ noLayout = false }: EntregadorNova
           Finalizar Venda • R$ {total.toFixed(2)}
         </Button>
       </div>
-    </EntregadorLayout>
+    </>
   );
+
+  if (noLayout) return content;
+  return <EntregadorLayout title="Nova Venda">{content}</EntregadorLayout>;
 }
