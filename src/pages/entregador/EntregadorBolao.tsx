@@ -56,42 +56,20 @@ function JogoCard({
             {format(new Date(jogo.data_jogo), "dd/MM HH:mm", { locale: ptBR })}
           </span>
           <Badge variant="secondary" className="text-[10px] font-semibold h-5 px-1.5 gap-1 bg-primary/10 text-primary border-0">
-            {jogo.fase === "grupos" ? (
-              <>
-                <Trophy className="h-2.5 w-2.5" />
-                Fase de Grupos{jogo.grupo ? ` · ${jogo.grupo}` : ""}
-              </>
-            ) : jogo.fase === "oitavas_32" ? (
-              <>
-                <Trophy className="h-2.5 w-2.5" />
-                16-avos (R32)
-              </>
-            ) : jogo.fase === "oitavas" ? (
-              <>
-                <Trophy className="h-2.5 w-2.5" />
-                Oitavas
-              </>
-            ) : jogo.fase === "quartas" ? (
-              <>
-                <Trophy className="h-2.5 w-2.5" />
-                Quartas
-              </>
-            ) : jogo.fase === "semi" ? (
-              <>
-                <Trophy className="h-2.5 w-2.5" />
-                Semifinal
-              </>
-            ) : jogo.fase === "terceiro" ? (
-              <>
-                <Trophy className="h-2.5 w-2.5" />
-                Disputa 3º Lugar
-              </>
-            ) : (
-              <>
-                <Trophy className="h-2.5 w-2.5" />
-                Final
-              </>
-            )}
+            <Trophy className="h-2.5 w-2.5" />
+            {jogo.fase === "grupos"
+              ? `Fase de Grupos${jogo.grupo ? ` · ${jogo.grupo}` : ""}`
+              : jogo.fase === "oitavas_32"
+              ? "16-avos (R32)"
+              : jogo.fase === "oitavas"
+              ? "Oitavas"
+              : jogo.fase === "quartas"
+              ? "Quartas"
+              : jogo.fase === "semi"
+              ? "Semifinal"
+              : jogo.fase === "terceiro"
+              ? "Disputa 3º Lugar"
+              : "Final"}
           </Badge>
           {projecao?.projetado && (
             <span className="text-[10px] font-semibold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded">
