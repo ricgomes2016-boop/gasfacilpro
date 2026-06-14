@@ -148,6 +148,11 @@ export default function EntregadorBolao() {
     return m;
   }, [meusPalpites]);
 
+  const projecao = useMemo(
+    () => projetarChaveCompleta(jogos, meusPalpites),
+    [jogos, meusPalpites]
+  );
+
   const jogosPorFase = useMemo(() => {
     const m = new Map<BolaoFase, BolaoJogo[]>();
     jogos.forEach((j) => {
