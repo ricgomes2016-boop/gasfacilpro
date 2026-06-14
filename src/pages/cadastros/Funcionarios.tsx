@@ -41,6 +41,7 @@ interface Funcionario {
   status: string | null;
   ativo: boolean | null;
   unidade_id: string | null;
+  is_vendedor?: boolean | null;
 }
 
 interface Entregador {
@@ -52,6 +53,18 @@ interface Entregador {
   cnh: string | null;
   status: string | null;
   foto_url: string | null;
+}
+
+interface VendedorMeta {
+  id: string;
+  user_id: string | null;
+  funcionario_id: string | null;
+  meta_mensal: number;
+  percentual: number;
+  valor_fixo_comissao: number;
+  tipo_comissao: string;
+  tipo_venda_permitido: string;
+  ativo: boolean;
 }
 
 interface TerminalOption {
@@ -76,6 +89,15 @@ const emptyForm = {
   valor_diaria: "",
   entra_na_escala: false,
   is_transporte: false,
+  // Vendedor
+  is_vendedor: false,
+  vend_login_email: "",
+  vend_login_password: "",
+  vend_meta_mensal: "",
+  vend_tipo_comissao: "percentual" as "percentual" | "valor_fixo",
+  vend_percentual: "",
+  vend_valor_fixo: "",
+  vend_tipo_venda: "ambos" as "balcao" | "entrega" | "ambos",
 };
 
 export default function Funcionarios() {
