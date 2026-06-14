@@ -77,7 +77,7 @@ function statusMeta(pct: number): { label: string; variant: "default" | "seconda
 
 export default function Vendedores() {
   const { range } = usePeriodo();
-  const { unidadeAtiva } = useUnidade();
+  const { unidadeAtual } = useUnidade();
   const [vendedores, setVendedores] = useState<VendedorMeta[]>([]);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
