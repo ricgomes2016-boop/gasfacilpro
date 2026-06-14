@@ -303,7 +303,11 @@ export default function EntregadorBolao() {
                       if (lista.length === 0) return null;
                       return (
                         <div key={fase} className="space-y-2">
-                          <h3 className="text-sm font-bold px-1">{FASE_LABELS[fase]}</h3>
+                          <h3 className="text-sm font-bold px-1 flex items-center gap-2">
+                            <Trophy className="h-3.5 w-3.5 text-primary" />
+                            {FASE_LABELS[fase]}
+                            <Badge variant="secondary" className="ml-auto">{lista.length}</Badge>
+                          </h3>
                           <div className="space-y-2">
                             {lista.map((j) => (
                               <JogoCard
