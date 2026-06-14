@@ -997,14 +997,22 @@ export default function Funcionarios() {
                           R$ {(f.salario || 0).toLocaleString("pt-BR")}
                         </TableCell>
                         <TableCell>
-                          {entregador ? (
-                            <Badge variant="default" className="gap-1 text-xs">
-                              <Truck className="h-3 w-3" />
-                              Entregador
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-xs">Interno</Badge>
-                          )}
+                          <div className="flex flex-wrap gap-1">
+                            {entregador ? (
+                              <Badge variant="default" className="gap-1 text-xs">
+                                <Truck className="h-3 w-3" />
+                                Entregador
+                              </Badge>
+                            ) : !((f as any).is_vendedor) ? (
+                              <Badge variant="secondary" className="text-xs">Interno</Badge>
+                            ) : null}
+                            {(f as any).is_vendedor && (
+                              <Badge className="gap-1 text-xs bg-emerald-600 hover:bg-emerald-700">
+                                <Target className="h-3 w-3" />
+                                Vendedor
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           {entregador?.user_id ? (
