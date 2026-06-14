@@ -205,9 +205,10 @@ export default function EntregadorBolao({ noLayout = false }: { noLayout?: boole
     return idx >= 0 ? idx + 1 : null;
   }, [ranking, user]);
 
-  return (
-    <EntregadorLayout title="Bolão Copa 2026">
+  const content = (
+    <>
       <div className="p-3 space-y-3">
+
         <Card className="border-none bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-600 text-white">
           <CardContent className="p-4 flex items-center gap-3">
             <Trophy className="h-8 w-8" />
