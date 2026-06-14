@@ -2,11 +2,13 @@ export type AuthPortalKey =
   | "erp"
   | "cliente"
   | "entregador"
+  | "vendedor"
   | "painel"
   | "parceiro"
   | "transportadora"
   | "api"
   | "contador";
+
 
 const QUOTES: Record<AuthPortalKey, string[]> = {
   erp: [
