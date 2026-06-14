@@ -96,7 +96,7 @@ export default function VendedorMetas() {
               <Award className="h-6 w-6 mx-auto text-yellow-500 mb-1" />
               <p className="text-xs text-muted-foreground">Comissão est.</p>
               <p className="text-2xl font-bold">R$ {comissao.toFixed(0)}</p>
-              <p className="text-[10px] text-muted-foreground">{comissaoPct}% sobre vendido</p>
+              <p className="text-[10px] text-muted-foreground">{comissaoLabel}</p>
             </CardContent>
           </Card>
         </div>
