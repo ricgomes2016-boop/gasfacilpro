@@ -252,6 +252,7 @@ export default function EntregadorBolao() {
                               key={j.id}
                               jogo={j}
                               palpite={palpitesPorJogo.get(j.id)}
+                              projecao={projecao.get(j.id)}
                               onSalvar={(c, f) =>
                                 salvar.mutate({ jogo_id: j.id, gols_casa: c, gols_fora: f })
                               }
