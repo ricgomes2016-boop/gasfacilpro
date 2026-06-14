@@ -1080,7 +1080,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       const { data: pedido, error: pedidoError } = await supabase
         .from("pedidos")
         .insert({
-          cliente_id: customer.id, entregador_id: entregador.id,
+          cliente_id: customer.id, entregador_id: entregador.id, vendedor_id: vendedor.id,
           endereco_entrega: enderecoCompleto, valor_total: totalVenda,
           forma_pagamento: pagamentos.map((p) => p.forma).join(", "),
           canal_venda: canalVenda, observacoes: customer.observacao,
