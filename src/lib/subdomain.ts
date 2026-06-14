@@ -127,12 +127,15 @@ export function getCanonicalHostnameForApp(
       return `api.${baseDomain}`;
     case "contador":
       return `contabil.${baseDomain}`;
+    case "vendedor":
+      return `vendas.${baseDomain}`;
     case "landing":
       return baseDomain;
     default:
       return `app.${baseDomain}`;
   }
 }
+
 
 /**
  * Checks whether pathname matches a route segment exactly ("/foo" or "/foo/...").
