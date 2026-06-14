@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Header } from "@/components/layout/Header";
 
 interface VendedorMeta {
   funcionario_id: string;
@@ -237,17 +238,13 @@ function VendedoresInner() {
     n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="h-6 w-6 text-primary" /> Vendedores
-          </h1>
-          <p className="text-sm text-muted-foreground flex items-center gap-1">
-            <CalendarIcon className="h-3 w-3" /> Período: {range.label}
-          </p>
-        </div>
-      </div>
+    <>
+      <Header title="Vendedores" subtitle="Desempenho, metas e comissão por vendedor" />
+      <div className="p-4 md:p-6 space-y-6">
+        <p className="text-sm text-muted-foreground flex items-center gap-1">
+          <CalendarIcon className="h-3 w-3" /> Período: {range.label}
+        </p>
+
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -501,7 +498,9 @@ function VendedoresInner() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
+
   );
 }
 
