@@ -955,6 +955,7 @@ export default function Funcionarios() {
                   <TabsList className="h-8">
                     <TabsTrigger value="todos" className="text-xs px-3 h-7">Todos</TabsTrigger>
                     <TabsTrigger value="entregadores" className="text-xs px-3 h-7">Entregadores</TabsTrigger>
+                    <TabsTrigger value="vendedores" className="text-xs px-3 h-7">Vendedores</TabsTrigger>
                     <TabsTrigger value="internos" className="text-xs px-3 h-7">Internos</TabsTrigger>
                   </TabsList>
                 </Tabs>
