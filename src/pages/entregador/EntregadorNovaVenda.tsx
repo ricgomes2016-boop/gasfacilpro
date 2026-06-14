@@ -107,8 +107,6 @@ export default function EntregadorNovaVenda() {
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [canalVenda, setCanalVenda] = useState("");
   const [observacao, setObservacao] = useState("");
-  const [dialogClienteAberto, setDialogClienteAberto] = useState(false);
-  const [buscaCliente, setBuscaCliente] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Voice / AI command state
@@ -381,7 +379,37 @@ export default function EntregadorNovaVenda() {
       complemento: "",
       tipo: c.tipo,
     });
-    setDialogClienteAberto(false);
+  };
+
+  const selecionarClienteAutocomplete = (nome: string, c?: ClienteSugestao) => {
+    if (c) {
+      setCliente({
+        id: c.id,
+        nome: c.nome,
+        telefone: c.telefone || "",
+        endereco: c.endereco || "",
+        numero: c.numero || "",
+        bairro: c.bairro || "",
+        complemento: "",
+        tipo: c.tipo,
+      });
+    } else {
+      // Digitou nome manualmente sem selecionar da lista — mantém o id anterior apenas se o nome não foi editado
+      setCliente((prev) => ({ ...prev, nome, id: prev.id && prev.nome === nome ? prev.id : null }));
+    }
+  };
+
+  const limparCliente = () => {
+    setCliente({
+      id: null,
+      nome: "",
+      telefone: "",
+      endereco: "",
+      numero: "",
+      bairro: "",
+      complemento: "",
+      tipo: null,
+    });
   };
 
   const finalizarVenda = async () => {
