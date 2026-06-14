@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Header } from "@/components/layout/Header";
 
 interface VendedorMeta {
   funcionario_id: string;
