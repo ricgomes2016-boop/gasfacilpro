@@ -102,12 +102,6 @@ export function DeliveryPersonSelect({ value, onChange, endereco, onVendedorAuto
   };
 
 
-  const handleSelect = (id: string) => {
-    const entregador = entregadores.find((e) => e.id === id);
-    if (entregador) {
-      onChange(id, entregador.nome);
-    }
-  };
 
   const handleSugestao = (id: number, nome: string) => {
     const entregador = entregadores.find((e) => e.nome === nome) || entregadores[0];
