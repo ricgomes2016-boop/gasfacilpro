@@ -314,9 +314,21 @@ export default function Funcionarios() {
     }
   };
 
-  const handleEdit = (f: Funcionario) => {
+  const handleEdit = async (f: Funcionario) => {
     const entregador = getEntregadorForFuncionario(f.id);
     const fAny = f as any;
+
+    // Buscar metas do vendedor (se houver)
+    let meta: VendedorMeta | null = null;
+    if (fAny.is_vendedor) {
+      const { data } = await (supabase as any)
+        .from("vendedor_metas")
+        .select("*")
+        .eq("funcionario_id", f.id)
+        .maybeSingle();
+      meta = data as VendedorMeta | null;
+    }
+
     setForm({
       nome: f.nome,
       cpf: f.cpf || "",
@@ -339,6 +351,14 @@ export default function Funcionarios() {
       valor_diaria: fAny.valor_diaria?.toString() || "",
       entra_na_escala: !!fAny.entra_na_escala,
       is_transporte: !!fAny.is_transporte,
+      is_vendedor: !!fAny.is_vendedor,
+      vend_login_email: "",
+      vend_login_password: "",
+      vend_meta_mensal: meta?.meta_mensal?.toString() || "",
+      vend_tipo_comissao: (meta?.tipo_comissao as any) || "percentual",
+      vend_percentual: meta?.percentual?.toString() || "",
+      vend_valor_fixo: meta?.valor_fixo_comissao?.toString() || "",
+      vend_tipo_venda: (meta?.tipo_venda_permitido as any) || "ambos",
     });
     setFotoFile(null);
     setEditId(f.id);
