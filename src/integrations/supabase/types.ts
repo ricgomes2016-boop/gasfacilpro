@@ -5381,6 +5381,7 @@ export type Database = {
           entra_na_escala: boolean
           id: string
           is_transporte: boolean
+          is_vendedor: boolean
           nome: string
           regime_pagamento: string
           salario: number | null
@@ -5405,6 +5406,7 @@ export type Database = {
           entra_na_escala?: boolean
           id?: string
           is_transporte?: boolean
+          is_vendedor?: boolean
           nome: string
           regime_pagamento?: string
           salario?: number | null
@@ -5429,6 +5431,7 @@ export type Database = {
           entra_na_escala?: boolean
           id?: string
           is_transporte?: boolean
+          is_vendedor?: boolean
           nome?: string
           regime_pagamento?: string
           salario?: number | null
@@ -11452,36 +11455,59 @@ export type Database = {
       }
       vendedor_metas: {
         Row: {
+          ativo: boolean
           created_at: string
           empresa_id: string | null
+          funcionario_id: string | null
           id: string
           meta_mensal: number
           percentual: number
+          tipo_comissao: string
+          tipo_venda_permitido: string
           unidade_id: string | null
           updated_at: string
           user_id: string
+          valor_fixo_comissao: number
         }
         Insert: {
+          ativo?: boolean
           created_at?: string
           empresa_id?: string | null
+          funcionario_id?: string | null
           id?: string
           meta_mensal?: number
           percentual?: number
+          tipo_comissao?: string
+          tipo_venda_permitido?: string
           unidade_id?: string | null
           updated_at?: string
           user_id: string
+          valor_fixo_comissao?: number
         }
         Update: {
+          ativo?: boolean
           created_at?: string
           empresa_id?: string | null
+          funcionario_id?: string | null
           id?: string
           meta_mensal?: number
           percentual?: number
+          tipo_comissao?: string
+          tipo_venda_permitido?: string
           unidade_id?: string | null
           updated_at?: string
           user_id?: string
+          valor_fixo_comissao?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vendedor_metas_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       whatsapp_eventos: {
         Row: {

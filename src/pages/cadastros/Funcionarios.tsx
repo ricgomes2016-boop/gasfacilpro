@@ -20,12 +20,15 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Users, Plus, Search, Edit, Trash2, Phone, Briefcase, Truck,
   LinkIcon, CreditCard, Mail, Lock, Loader2, UserCheck, Building2, Image,
+  Target, TrendingUp, Percent, DollarSign,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { FuncionarioUnidadesDialog } from "@/components/cadastros/FuncionarioUnidadesDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { VendedorDesempenhoCard } from "@/components/cadastros/VendedorDesempenhoCard";
+
 
 interface Funcionario {
   id: string;
@@ -40,6 +43,7 @@ interface Funcionario {
   status: string | null;
   ativo: boolean | null;
   unidade_id: string | null;
+  is_vendedor?: boolean | null;
 }
 
 interface Entregador {
@@ -51,6 +55,18 @@ interface Entregador {
   cnh: string | null;
   status: string | null;
   foto_url: string | null;
+}
+
+interface VendedorMeta {
+  id: string;
+  user_id: string | null;
+  funcionario_id: string | null;
+  meta_mensal: number;
+  percentual: number;
+  valor_fixo_comissao: number;
+  tipo_comissao: string;
+  tipo_venda_permitido: string;
+  ativo: boolean;
 }
 
 interface TerminalOption {
@@ -75,6 +91,15 @@ const emptyForm = {
   valor_diaria: "",
   entra_na_escala: false,
   is_transporte: false,
+  // Vendedor
+  is_vendedor: false,
+  vend_login_email: "",
+  vend_login_password: "",
+  vend_meta_mensal: "",
+  vend_tipo_comissao: "percentual" as "percentual" | "valor_fixo",
+  vend_percentual: "",
+  vend_valor_fixo: "",
+  vend_tipo_venda: "ambos" as "balcao" | "entrega" | "ambos",
 };
 
 export default function Funcionarios() {
@@ -84,7 +109,7 @@ export default function Funcionarios() {
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"todos" | "entregadores" | "internos">("todos");
+  const [filter, setFilter] = useState<"todos" | "entregadores" | "vendedores" | "internos">("todos");
   const [form, setForm] = useState(emptyForm);
   const [editId, setEditId] = useState<string | null>(null);
   const [terminais, setTerminais] = useState<TerminalOption[]>([]);
@@ -189,6 +214,7 @@ export default function Funcionarios() {
         valor_diaria: regimeUsaDiaria && form.valor_diaria ? parseFloat(form.valor_diaria) : 0,
         entra_na_escala: !!form.entra_na_escala,
         is_transporte: !!form.is_transporte,
+        is_vendedor: !!form.is_vendedor,
       };
       // unidade_id: usa o selecionado no form, ou o atual da empresa, ou null
       if (form.unidade_id) {
@@ -274,9 +300,75 @@ export default function Funcionarios() {
         }
       }
 
+      // ===== Sincroniza vendedor =====
+      let vendedorUserCriado = false;
+      if (form.is_vendedor && funcionarioId) {
+        // Busca meta existente
+        const { data: metaExistente } = await (supabase as any)
+          .from("vendedor_metas")
+          .select("id, user_id")
+          .eq("funcionario_id", funcionarioId)
+          .maybeSingle();
+
+        let vendedorUserId: string | null = metaExistente?.user_id || null;
+
+        // Criar login se solicitado e ainda não houver
+        if (!vendedorUserId && form.vend_login_email && form.vend_login_password) {
+          if (form.vend_login_password.length < 6) {
+            toast.error("Senha do vendedor deve ter no mínimo 6 caracteres");
+            setSaving(false);
+            return;
+          }
+          const { data: createData, error: createError } = await supabase.functions.invoke("manage-users", {
+            body: {
+              action: "create",
+              email: form.vend_login_email,
+              password: form.vend_login_password,
+              full_name: form.nome,
+              phone: form.telefone || undefined,
+              role: "vendedor",
+              unidade_ids: unidadeAtual?.id ? [unidadeAtual.id] : [],
+            },
+          });
+          if (createError || createData?.error) {
+            toast.error("Erro ao criar acesso do vendedor: " + (createError?.message || createData?.error));
+            setSaving(false);
+            return;
+          }
+          vendedorUserId = createData.user_id;
+          vendedorUserCriado = true;
+        }
+
+        const metaPayload: any = {
+          funcionario_id: funcionarioId,
+          user_id: vendedorUserId,
+          meta_mensal: form.vend_meta_mensal ? parseFloat(form.vend_meta_mensal) : 0,
+          percentual: form.vend_tipo_comissao === "percentual" && form.vend_percentual ? parseFloat(form.vend_percentual) : 0,
+          valor_fixo_comissao: form.vend_tipo_comissao === "valor_fixo" && form.vend_valor_fixo ? parseFloat(form.vend_valor_fixo) : 0,
+          tipo_comissao: form.vend_tipo_comissao,
+          tipo_venda_permitido: form.vend_tipo_venda,
+          ativo: true,
+          unidade_id: unidadeAtual?.id || null,
+        };
+
+        if (metaExistente?.id) {
+          await (supabase as any).from("vendedor_metas").update(metaPayload).eq("id", metaExistente.id);
+        } else if (vendedorUserId) {
+          await (supabase as any).from("vendedor_metas").insert(metaPayload);
+        }
+      } else if (!form.is_vendedor && funcionarioId) {
+        await (supabase as any)
+          .from("vendedor_metas")
+          .update({ ativo: false })
+          .eq("funcionario_id", funcionarioId);
+      }
+
       toast.success(editId ? "Funcionário atualizado!" : "Funcionário cadastrado!");
       if (needsNewUser) {
         toast.success("Acesso ao app do entregador criado automaticamente!");
+      }
+      if (vendedorUserCriado) {
+        toast.success("Acesso ao app de vendas criado automaticamente!");
       }
       setOpen(false);
       setForm(emptyForm);
@@ -291,9 +383,21 @@ export default function Funcionarios() {
     }
   };
 
-  const handleEdit = (f: Funcionario) => {
+  const handleEdit = async (f: Funcionario) => {
     const entregador = getEntregadorForFuncionario(f.id);
     const fAny = f as any;
+
+    // Buscar metas do vendedor (se houver)
+    let meta: VendedorMeta | null = null;
+    if (fAny.is_vendedor) {
+      const { data } = await (supabase as any)
+        .from("vendedor_metas")
+        .select("*")
+        .eq("funcionario_id", f.id)
+        .maybeSingle();
+      meta = data as VendedorMeta | null;
+    }
+
     setForm({
       nome: f.nome,
       cpf: f.cpf || "",
@@ -316,6 +420,14 @@ export default function Funcionarios() {
       valor_diaria: fAny.valor_diaria?.toString() || "",
       entra_na_escala: !!fAny.entra_na_escala,
       is_transporte: !!fAny.is_transporte,
+      is_vendedor: !!fAny.is_vendedor,
+      vend_login_email: "",
+      vend_login_password: "",
+      vend_meta_mensal: meta?.meta_mensal?.toString() || "",
+      vend_tipo_comissao: (meta?.tipo_comissao as any) || "percentual",
+      vend_percentual: meta?.percentual?.toString() || "",
+      vend_valor_fixo: meta?.valor_fixo_comissao?.toString() || "",
+      vend_tipo_venda: (meta?.tipo_venda_permitido as any) || "ambos",
     });
     setFotoFile(null);
     setEditId(f.id);
@@ -360,7 +472,8 @@ export default function Funcionarios() {
     const matchSearch = f.nome.toLowerCase().includes(search.toLowerCase()) || (f.cpf || "").includes(search);
     if (!matchSearch) return false;
     if (filter === "entregadores") return entregadorFuncIds.has(f.id);
-    if (filter === "internos") return !entregadorFuncIds.has(f.id);
+    if (filter === "vendedores") return !!(f as any).is_vendedor;
+    if (filter === "internos") return !entregadorFuncIds.has(f.id) && !(f as any).is_vendedor;
     return true;
   });
 
@@ -538,6 +651,148 @@ export default function Funcionarios() {
                   />
                 </div>
 
+                {/* Vendedor toggle */}
+                <div className="col-span-2 border rounded-lg p-4 space-y-4 bg-emerald-500/5 border-emerald-500/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-emerald-600" />
+                      <Label className="text-base font-medium">É Vendedor?</Label>
+                    </div>
+                    <Switch
+                      checked={form.is_vendedor}
+                      onCheckedChange={(v) => setForm({ ...form, is_vendedor: v })}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Marque para habilitar o acesso ao app de vendas (vendas.gasfacilpro.com.br) e configurar meta/comissão.
+                  </p>
+
+                  {form.is_vendedor && (
+                    <div className="space-y-4 pt-2 border-t border-emerald-500/20">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label className="text-xs">Tipo de venda permitido</Label>
+                          <Select
+                            value={form.vend_tipo_venda}
+                            onValueChange={(v) => setForm({ ...form, vend_tipo_venda: v as any })}
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ambos">Balcão e Entrega</SelectItem>
+                              <SelectItem value="balcao">Apenas Balcão</SelectItem>
+                              <SelectItem value="entrega">Apenas Entrega</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs flex items-center gap-1">
+                            <Target className="h-3 w-3" /> Meta mensal (R$)
+                          </Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={form.vend_meta_mensal}
+                            onChange={(e) => setForm({ ...form, vend_meta_mensal: e.target.value })}
+                            placeholder="15000.00"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs">Tipo de comissão</Label>
+                        <Select
+                          value={form.vend_tipo_comissao}
+                          onValueChange={(v) => setForm({ ...form, vend_tipo_comissao: v as any })}
+                        >
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="percentual">% sobre o valor da venda</SelectItem>
+                            <SelectItem value="valor_fixo">Valor fixo por venda</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {form.vend_tipo_comissao === "percentual" ? (
+                        <div className="space-y-2">
+                          <Label className="text-xs flex items-center gap-1">
+                            <Percent className="h-3 w-3" /> % de comissão
+                          </Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={form.vend_percentual}
+                            onChange={(e) => setForm({ ...form, vend_percentual: e.target.value })}
+                            placeholder="3.00"
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label className="text-xs flex items-center gap-1">
+                            <DollarSign className="h-3 w-3" /> Valor fixo por venda (R$)
+                          </Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={form.vend_valor_fixo}
+                            onChange={(e) => setForm({ ...form, vend_valor_fixo: e.target.value })}
+                            placeholder="5.00"
+                          />
+                        </div>
+                      )}
+
+                      {/* Credenciais de acesso ao app de vendas */}
+                      <div className="space-y-3 p-3 rounded-md bg-emerald-500/10 border border-emerald-500/20">
+                        <p className="text-sm font-medium flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-emerald-600" />
+                          Acesso ao app de vendas
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Preencha apenas se for criar um login novo. Se o vendedor já tem acesso, deixe em branco.
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">E-mail de login</Label>
+                            <Input
+                              type="email"
+                              value={form.vend_login_email}
+                              onChange={(e) => setForm({ ...form, vend_login_email: e.target.value })}
+                              placeholder="vendedor@empresa.com"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs flex items-center gap-1">
+                              <Lock className="h-3 w-3" /> Senha temporária
+                            </Label>
+                            <div className="flex gap-1">
+                              <Input
+                                value={form.vend_login_password}
+                                onChange={(e) => setForm({ ...form, vend_login_password: e.target.value })}
+                                placeholder="Mínimo 6 caracteres"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const senha = Math.random().toString(36).slice(-8);
+                                  setForm({ ...form, vend_login_password: senha });
+                                }}
+                              >
+                                Gerar
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Desempenho do mês — apenas em edição */}
+                      {editId && (
+                        <VendedorDesempenhoCard funcionarioId={editId} />
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {/* Entregador toggle */}
                 <div className="col-span-2 border rounded-lg p-4 space-y-4 bg-muted/30">
                   <div className="flex items-center justify-between">
@@ -701,6 +956,7 @@ export default function Funcionarios() {
                   <TabsList className="h-8">
                     <TabsTrigger value="todos" className="text-xs px-3 h-7">Todos</TabsTrigger>
                     <TabsTrigger value="entregadores" className="text-xs px-3 h-7">Entregadores</TabsTrigger>
+                    <TabsTrigger value="vendedores" className="text-xs px-3 h-7">Vendedores</TabsTrigger>
                     <TabsTrigger value="internos" className="text-xs px-3 h-7">Internos</TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -743,14 +999,22 @@ export default function Funcionarios() {
                           R$ {(f.salario || 0).toLocaleString("pt-BR")}
                         </TableCell>
                         <TableCell>
-                          {entregador ? (
-                            <Badge variant="default" className="gap-1 text-xs">
-                              <Truck className="h-3 w-3" />
-                              Entregador
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-xs">Interno</Badge>
-                          )}
+                          <div className="flex flex-wrap gap-1">
+                            {entregador ? (
+                              <Badge variant="default" className="gap-1 text-xs">
+                                <Truck className="h-3 w-3" />
+                                Entregador
+                              </Badge>
+                            ) : !((f as any).is_vendedor) ? (
+                              <Badge variant="secondary" className="text-xs">Interno</Badge>
+                            ) : null}
+                            {(f as any).is_vendedor && (
+                              <Badge className="gap-1 text-xs bg-emerald-600 hover:bg-emerald-700">
+                                <Target className="h-3 w-3" />
+                                Vendedor
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           {entregador?.user_id ? (
