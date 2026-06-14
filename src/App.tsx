@@ -34,6 +34,7 @@ import { rhRoutes } from "@/routes/rhRoutes";
 import { fiscalRoutes } from "@/routes/fiscalRoutes";
 import { configRoutes } from "@/routes/configRoutes";
 import { entregadorRoutes } from "@/routes/entregadorRoutes";
+import { vendedorRoutes } from "@/routes/vendedorRoutes";
 import { clienteAppRoutes } from "@/routes/clienteAppRoutes";
 import { parceiroRoutes } from "@/routes/parceiroRoutes";
 import { transportadoraRoutes } from "@/routes/transportadoraRoutes";
@@ -131,6 +132,7 @@ const App = () => (
                             {renderRoutes(fiscalRoutes)}
                             {renderRoutes(configRoutes)}
                             {renderRoutes(entregadorRoutes)}
+                            {renderRoutes(vendedorRoutes)}
                             {renderRoutes(clienteAppRoutes)}
                             {renderRoutes(parceiroRoutes)}
                             {renderRoutes(transportadoraRoutes)}
