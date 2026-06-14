@@ -37,7 +37,7 @@ export function VendedorSelect({ value, onChange }: VendedorSelectProps) {
           .order("nome");
         if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
         const { data, error } = await q;
-        if (!error && data) setVendedores(data as Vendedor[]);
+        if (!error && data) setVendedores(data as unknown as Vendedor[]);
       } finally {
         setLoading(false);
       }
