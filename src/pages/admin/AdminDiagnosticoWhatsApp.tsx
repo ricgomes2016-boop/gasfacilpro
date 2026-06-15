@@ -43,7 +43,15 @@ const STEP_LABELS: Record<string, { label: string; help: string }> = {
   },
   numero_registrado: {
     label: "Número registrado na Cloud API",
-    help: "O número precisa estar registrado na Cloud API. Vá em Meta Business > WhatsApp Manager > Números de telefone e verifique o status.",
+    help: "O número precisa estar registrado e com verificação em 2 etapas ATIVA. Se aparecer 'EXPIRED', vá em Meta Business > WhatsApp Manager > Números, clique no número e reenvie o PIN de 6 dígitos.",
+  },
+  webhook_configurado: {
+    label: "Webhook apontando para o GásFácil",
+    help: "A Meta precisa enviar as mensagens recebidas para a URL do nosso servidor. Configure em Meta for Developers → seu App → WhatsApp → Configuração → Webhook (cole a URL e marque o campo 'messages').",
+  },
+  subscribed_apps: {
+    label: "App inscrito no WABA",
+    help: "Sem app inscrito no WABA, a Meta não dispara webhooks. Em Meta for Developers → App → WhatsApp → Configuração, clique em 'Inscrever' e marque 'messages'.",
   },
   registro_api: {
     label: "Registro automático via API",
