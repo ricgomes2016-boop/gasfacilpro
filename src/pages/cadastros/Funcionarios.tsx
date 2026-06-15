@@ -376,10 +376,18 @@ export default function Funcionarios() {
 
       toast.success(editId ? "Funcionário atualizado!" : "Funcionário cadastrado!");
       if (needsNewUser) {
-        toast.success("Acesso ao app do entregador criado automaticamente!");
+        toast.success(`Acesso entregador criado! E-mail: ${form.login_email}`, {
+          description: `Senha: ${form.login_password} — anote e repasse ao funcionário.`,
+          duration: 20000,
+        });
+        try { await navigator.clipboard.writeText(`E-mail: ${form.login_email}\nSenha: ${form.login_password}`); } catch {}
       }
       if (vendedorUserCriado) {
-        toast.success("Acesso ao app de vendas criado automaticamente!");
+        toast.success(`Acesso vendedor criado! E-mail: ${form.vend_login_email}`, {
+          description: `Senha: ${form.vend_login_password} — anote e repasse ao vendedor.`,
+          duration: 20000,
+        });
+        try { await navigator.clipboard.writeText(`E-mail: ${form.vend_login_email}\nSenha: ${form.vend_login_password}`); } catch {}
       }
       setOpen(false);
       setForm(emptyForm);
