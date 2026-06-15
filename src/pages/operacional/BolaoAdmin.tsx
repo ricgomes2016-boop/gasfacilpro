@@ -74,7 +74,7 @@ function CardJogo({ jogo, onSalvar }: { jogo: BolaoJogo; onSalvar: (c: number, f
 
           {/* Fora */}
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-2xl leading-none">{bandeiraEmoji(jogo.codigo_fora)}</span>
+            <Bandeira codigo={jogo.codigo_fora} size={24} />
             <span className="text-sm font-semibold truncate">{jogo.time_fora}</span>
           </div>
         </div>
