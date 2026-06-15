@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useBolaoJogos, useFinalizarJogo, useImportarTabela, BolaoJogo } from "@/hooks/useBolao";
 import { FASE_LABELS, FASE_ORDEM, BolaoFase } from "@/lib/bolao/fixture2026";
-import { bandeiraEmoji } from "@/lib/bolao/flags";
+import { Bandeira } from "@/components/bolao/Bandeira";
 import { Download, Lock, Unlock, Search, Trophy, CheckCircle2, Clock, CalendarRange } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import { format } from "date-fns";
