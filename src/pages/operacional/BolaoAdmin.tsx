@@ -48,7 +48,7 @@ function CardJogo({ jogo, onSalvar }: { jogo: BolaoJogo; onSalvar: (c: number, f
           {/* Casa */}
           <div className="flex items-center justify-end gap-2 min-w-0">
             <span className="text-sm font-semibold truncate">{jogo.time_casa}</span>
-            <span className="text-2xl leading-none">{bandeiraEmoji(jogo.codigo_casa)}</span>
+            <Bandeira codigo={jogo.codigo_casa} size={24} />
           </div>
 
           {/* Placar */}
