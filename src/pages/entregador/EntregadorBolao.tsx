@@ -106,7 +106,7 @@ function JogoCard({
             />
           </div>
           <div className="text-left flex items-center justify-start gap-1.5 min-w-0">
-            <span className="text-2xl leading-none shrink-0">{bandeiraEmoji(codFora)}</span>
+            <Bandeira codigo={codFora} size={22} className="shrink-0" />
             <p className="text-sm font-semibold truncate">{timeFora}</p>
           </div>
         </div>
