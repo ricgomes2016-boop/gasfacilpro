@@ -82,7 +82,7 @@ function JogoCard({
         <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
           <div className="text-right flex items-center justify-end gap-1.5 min-w-0">
             <p className="text-sm font-semibold truncate">{timeCasa}</p>
-            <span className="text-2xl leading-none shrink-0">{bandeiraEmoji(codCasa)}</span>
+            <Bandeira codigo={codCasa} size={22} className="shrink-0" />
           </div>
           <div className="flex items-center gap-1">
             <Input
