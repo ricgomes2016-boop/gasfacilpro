@@ -26,9 +26,13 @@ const REGIONAL: Record<string, string> = {
   "GB-WLS": "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
 };
 
+export function codigoFifaParaIso(codigo?: string | null): string | null {
+  if (!codigo) return null;
+  return FIFA_TO_ISO2[codigo.toUpperCase()] || null;
+}
+
 export function bandeiraEmoji(codigo?: string | null): string {
-  if (!codigo) return "🏳️";
-  const iso = FIFA_TO_ISO2[codigo.toUpperCase()];
+  const iso = codigoFifaParaIso(codigo);
   if (!iso) return "🏳️";
   if (REGIONAL[iso]) return REGIONAL[iso];
   return iso

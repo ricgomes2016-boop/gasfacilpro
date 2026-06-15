@@ -9,7 +9,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBolaoJogos, useMeusPalpites, useSalvarPalpite, useRankingBolao, BolaoJogo, BolaoPalpite } from "@/hooks/useBolao";
 import { FASE_LABELS, FASE_ORDEM, BolaoFase } from "@/lib/bolao/fixture2026";
-import { bandeiraEmoji } from "@/lib/bolao/flags";
+import { Bandeira } from "@/components/bolao/Bandeira";
 import { projetarChaveCompleta, ProjecaoSlot } from "@/lib/bolao/projecao";
 import { Trophy, Calendar, CheckCircle2, Lock, Medal, CalendarRange } from "lucide-react";
 import { format } from "date-fns";
@@ -82,7 +82,7 @@ function JogoCard({
         <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
           <div className="text-right flex items-center justify-end gap-1.5 min-w-0">
             <p className="text-sm font-semibold truncate">{timeCasa}</p>
-            <span className="text-2xl leading-none shrink-0">{bandeiraEmoji(codCasa)}</span>
+            <Bandeira codigo={codCasa} size={22} className="shrink-0" />
           </div>
           <div className="flex items-center gap-1">
             <Input
@@ -106,7 +106,7 @@ function JogoCard({
             />
           </div>
           <div className="text-left flex items-center justify-start gap-1.5 min-w-0">
-            <span className="text-2xl leading-none shrink-0">{bandeiraEmoji(codFora)}</span>
+            <Bandeira codigo={codFora} size={22} className="shrink-0" />
             <p className="text-sm font-semibold truncate">{timeFora}</p>
           </div>
         </div>
