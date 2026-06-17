@@ -25,6 +25,7 @@ function norm(s: string | null | undefined): string {
 export function getFormaCategoria(forma: string | null | undefined): FormaCategoria {
   const f = norm(forma);
   if (!f) return "outros";
+  if (f.includes("povo")) return "gas_do_povo";
   if (f.includes("pix_maquininha") || f.includes("pix maquininha")) return "pix_maquininha";
   if (f === "pix" || f.startsWith("pix")) return "pix";
   if (f.includes("debito")) return "cartao_debito";
