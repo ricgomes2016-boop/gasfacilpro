@@ -839,6 +839,12 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       return;
     }
 
+    if (!canalVenda) {
+      toast({ title: "Canal de venda obrigatório", description: "Selecione o canal de venda antes de finalizar.", variant: "destructive" });
+      return;
+    }
+
+
     const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
     if (totalPago < totalVenda) {
       toast({ title: "Pagamento incompleto", description: `Falta pagar R$ ${(totalVenda - totalPago).toFixed(2)}`, variant: "destructive" });
