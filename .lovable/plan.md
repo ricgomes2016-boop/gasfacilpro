@@ -1,25 +1,23 @@
 ## Problema
+Em `Venda > Nova Venda`, na aba **Entregador**, a lista aparece vazia ("Nenhum entregador disponível"), mesmo havendo entregadores ativos cadastrados na unidade.
 
-Em `/operacional/vendedores` não aparecem o **menu lateral** nem o **header** que existem nas demais páginas do ERP.
+## Causa provável
+`DeliveryPersonSelect.tsx` carrega entregadores com um **embed PostgREST** em `funcionarios`:
 
-A causa não é o `MainLayout` (ele já está aplicado). É que:
+```ts
+.select("id, nome, status, foto_url, funcionario_id, funcionarios:funcionario_id(is_vendedor, user_id)")
+```
 
-- O `Sidebar` do ERP só fica visível em telas `xl` (≥ 1280px). Em viewports menores (o usuário está em 1070px) o acesso ao menu vem do componente `<Header />`, que renderiza o título + o `MobileNav` (botão hambúrguer que abre o menu lateral em sheet).
-- Todas as outras páginas (`DRE`, `DashboardExecutivo`, `BolaoAdmin`, etc.) chamam `<Header title="..." subtitle="..." />` logo no topo do conteúdo.
-- `src/pages/operacional/Vendedores.tsx` não usa o `<Header>`; tem apenas um `<h1>` inline, então o cabeçalho oficial e o gatilho de menu somem nessa rota.
+A tabela `funcionarios` tem RLS restritiva e, dependendo do papel do usuário logado, o embed pode falhar silenciosamente (PostgREST retorna erro no nível da query, e como o código faz `if (!error && data)`, a lista fica vazia sem aviso). Também não há tratamento de erro visível — qualquer falha some sem feedback.
 
-## Mudança
+## Correção (apenas frontend, em `src/components/vendas/DeliveryPersonSelect.tsx`)
 
-Arquivo: `src/pages/operacional/Vendedores.tsx`
+1. **Separar as duas queries** em vez de usar embed:
+   - Query 1: `entregadores` filtrado por `unidade_id` + `ativo=true`.
+   - Query 2 (opcional, em paralelo): `funcionarios` pelos `funcionario_id` coletados, trazendo `id, is_vendedor, user_id`. Se falhar (RLS), seguir sem dados de vendedor (entregador continua aparecendo, apenas sem o badge "Vendedor"/auto-seleção).
+2. **Logar e exibir o erro** real da query de entregadores via `toast` + `console.error`, em vez de engolir silenciosamente, para facilitar diagnóstico futuro.
+3. **Manter** toda a UI, ordenação, dedup por nome e callback `onVendedorAuto` exatamente como estão.
 
-1. Importar `Header` de `@/components/layout/Header`.
-2. Dentro de `VendedoresInner`, renderizar `<Header title="Vendedores" subtitle="Desempenho, metas e comissão por vendedor" />` como primeiro filho do wrapper.
-3. Remover o bloco `<h1>` inline com ícone `Users` que servia de título (para evitar duplicação). Manter o badge de período (`Período: range.label`) logo abaixo do `Header`, dentro do container `p-4 md:p-6`.
-
-Sem alterações em rotas, `App.tsx`, providers, `MainLayout`, ou no Sidebar/breakpoints — apenas alinhamento da página ao padrão das demais.
-
-## Fora de escopo
-
-- Não mexer no breakpoint `xl:` do Sidebar.
-- Não alterar `operacionalRoutes.ts` nem qualquer outra página.
-- Nenhuma mudança de lógica/consultas da página.
+## Fora do escopo
+- Nenhuma alteração em RLS, schema, edge functions ou no fluxo de `NovaVenda.tsx`.
+- Nenhuma mudança visual além da mensagem de erro quando a query falhar.
