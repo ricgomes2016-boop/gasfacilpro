@@ -34,6 +34,7 @@ import { useUnidade } from "@/contexts/UnidadeContext";
 import { VeiculoDetalheDialog } from "@/components/frota/VeiculoDetalheDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { SignedImage } from "@/components/ui/signed-image";
 
 const PLACA_MERCOSUL_REGEX = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;
 const PLACA_LEGADO_REGEX = /^[A-Z]{3}[0-9]{4}$/;
