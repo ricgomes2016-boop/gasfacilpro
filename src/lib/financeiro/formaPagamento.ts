@@ -13,6 +13,7 @@ export type FormaCategoria =
   | "cheque"
   | "fiado"
   | "vale_gas"
+  | "gas_do_povo"
   | "outros";
 
 export type FormaGrupo = "a_vista" | "a_prazo" | "outros";
