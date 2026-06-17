@@ -221,7 +221,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const { isGasmais } = useDashboardTheme();
 
   const [dataEntrega, setDataEntrega] = useState(() => { const d = getBrasiliaDate(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; });
-  const [canalVenda, setCanalVenda] = useState("telefone");
+  const [canalVenda, setCanalVenda] = useState("");
   const [customer, setCustomer] = useState<CustomerData>(initialCustomerData);
   const [itens, setItens] = useState<ItemVenda[]>([]);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
@@ -305,7 +305,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       setCustomer(draft.customer || initialCustomerData);
       setItens(draft.itens || []);
       setPagamentos(draft.pagamentos || []);
-      setCanalVenda(draft.canalVenda || "telefone");
+      setCanalVenda(draft.canalVenda || "");
       setEntregador(draft.entregador || { id: null, nome: null });
       toast({ title: "Rascunho restaurado", description: "Sua venda em andamento foi recuperada." });
     }
@@ -839,6 +839,12 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       return;
     }
 
+    if (!canalVenda) {
+      toast({ title: "Canal de venda obrigatório", description: "Selecione o canal de venda antes de finalizar.", variant: "destructive" });
+      return;
+    }
+
+
     const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
     if (totalPago < totalVenda) {
       toast({ title: "Pagamento incompleto", description: `Falta pagar R$ ${(totalVenda - totalPago).toFixed(2)}`, variant: "destructive" });
@@ -1067,8 +1073,13 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       toast({ title: "Erro", description: "Adicione pelo menos um produto.", variant: "destructive" });
       return;
     }
+    if (!canalVenda) {
+      toast({ title: "Canal de venda obrigatório", description: "Selecione o canal de venda antes de agendar.", variant: "destructive" });
+      return;
+    }
     setAgendarOpen(true);
   };
+
 
   const handleConfirmarAgendamento = async () => {
     if (!dataAgendamento) {
@@ -1201,7 +1212,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           <div>
             <Label className="text-xs font-semibold text-foreground">Canal de Venda</Label>
             <Select value={canalVenda} onValueChange={setCanalVenda}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o canal de venda" /></SelectTrigger>
+
               <SelectContent>
                 {allChannels.map((ch) => (
                   <SelectItem key={ch.value} value={ch.value}>{ch.label}</SelectItem>
