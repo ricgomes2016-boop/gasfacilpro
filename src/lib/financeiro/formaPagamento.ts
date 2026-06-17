@@ -81,5 +81,6 @@ export const FORMA_LABELS: Record<FormaCategoria, string> = {
   cheque: "Cheque",
   fiado: "Fiado",
   vale_gas: "Vale Gás",
+  gas_do_povo: "Gás do Povo",
   outros: "Outros",
 };
