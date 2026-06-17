@@ -10,6 +10,7 @@ import { AlertTriangle, Fuel, Wrench, FileWarning, DollarSign, Calendar, Trendin
 import { supabase } from "@/integrations/supabase/client";
 import { format, differenceInDays, parseISO, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { SignedImage, resolveSignedUrl } from "@/components/ui/signed-image";
 
 interface VeiculoDetalheDialogProps {
   open: boolean;
