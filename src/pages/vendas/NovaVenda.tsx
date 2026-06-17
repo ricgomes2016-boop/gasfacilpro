@@ -934,6 +934,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         .single();
 
       if (pedidoError) throw pedidoError;
+      if (pedido?.id) markOrderNotified(pedido.id, (pedidoInsert as any)?.telefone_entrega || customer?.telefone || null);
+
 
       // Regra Empenho: consumir vale físico vinculado ao empenho do parceiro
       if (parceiroEmpenhoId !== "nenhum" && valeNumero) {
