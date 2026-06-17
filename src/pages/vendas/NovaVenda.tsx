@@ -1073,8 +1073,13 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       toast({ title: "Erro", description: "Adicione pelo menos um produto.", variant: "destructive" });
       return;
     }
+    if (!canalVenda) {
+      toast({ title: "Canal de venda obrigatório", description: "Selecione o canal de venda antes de agendar.", variant: "destructive" });
+      return;
+    }
     setAgendarOpen(true);
   };
+
 
   const handleConfirmarAgendamento = async () => {
     if (!dataAgendamento) {
