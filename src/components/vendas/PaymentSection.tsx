@@ -77,6 +77,20 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   const { unidadeAtual } = useUnidade();
   const effectiveUnidadeNome = unidadeId ? undefined : unidadeAtual?.nome;
 
+  const gasDoPovoHabilitado = !!(unidadeAtual as any)?.gas_do_povo_habilitado;
+  const gasDoPovoValor = Number((unidadeAtual as any)?.gas_do_povo_valor ?? 101.08);
+  const formasPagamento = gasDoPovoHabilitado
+    ? [...formasPagamentoBase, GAS_DO_POVO_FORMA]
+    : formasPagamentoBase;
+
+  // Carrinho elegível: exatamente 1× Gás P13
+  const cartoElegivelGasDoPovo = (() => {
+    if (itens.length !== 1) return false;
+    const it = itens[0];
+    if (it.quantidade !== 1) return false;
+    return /g[áa]s\s*p13/i.test(it.nome);
+  })();
+
   const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
   const diferenca = totalVenda - totalPago;
 
