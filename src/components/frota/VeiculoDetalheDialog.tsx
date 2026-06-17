@@ -203,9 +203,16 @@ export function VeiculoDetalheDialog({ open, onOpenChange, veiculo }: VeiculoDet
                       <div key={f.label} className="space-y-1">
                         <p className="text-xs font-medium text-muted-foreground">{f.label}</p>
                         {f.url ? (
-                          <a href={f.url} target="_blank" rel="noopener noreferrer" className="block">
-                            <img src={f.url} alt={f.label} className="w-full h-32 object-cover rounded-lg border border-border hover:opacity-90 transition cursor-zoom-in" />
-                          </a>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const signed = await resolveSignedUrl(f.url!, "vehicle-photos");
+                              window.open(signed, "_blank", "noopener,noreferrer");
+                            }}
+                            className="block w-full"
+                          >
+                            <SignedImage value={f.url} bucket="vehicle-photos" alt={f.label} className="w-full h-32 object-cover rounded-lg border border-border hover:opacity-90 transition cursor-zoom-in" />
+                          </button>
                         ) : (
                           <div className="w-full h-32 rounded-lg border border-dashed border-border bg-muted/30 flex items-center justify-center">
                             <Camera className="h-6 w-6 text-muted-foreground/50" />
