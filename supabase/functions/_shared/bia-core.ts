@@ -333,6 +333,69 @@ export function getOffHoursMessage(clienteNome: string | null, horarioInfo: stri
   return `${saudacao} 😊\nNo momento estamos *fechados*.\nNosso horário de funcionamento é *${horarioInfo}*.\n\nSe quiser, posso *agendar seu pedido* para quando abrirmos! Basta me dizer o que precisa. 📋`;
 }
 
+// ========== LOCAL FALLBACK REPLY ==========
+export function buildLocalSalesFallbackReply(
+  messageText: string,
+  history: any[],
+  cliente: ClienteInfo,
+  productList: string,
+): string {
+  const text = messageText || "";
+  const lower = text.toLowerCase();
+  const nome = cliente.nome ? cliente.nome.split(" ")[0] : "";
+  const prefix = nome ? `${nome}, ` : "";
+
+  const hasProductIntent = /\b(g[aá]s|gas|botij|p\s*13|p13|p\s*20|p20|p\s*45|p45|[aá]gua|agua|gal[aã]o)\b/i.test(text);
+  const asksPrice = /\b(valor|pre[cç]o|quanto|custa|sai|fica)\b/i.test(text);
+  const hasGreetingOnly = /^(oi|ol[aá]|bom dia|boa tarde|boa noite|tudo bem|td bem)[\s!.?]*$/i.test(text.trim());
+  const hasAddressHint = /\b(rua|avenida|av\.?|travessa|alameda|rodovia|estrada|numero|n[úu]mero|bairro|casa|apto|apartamento|\d{1,5})\b/i.test(text);
+  const hasPaymentHint = /\b(pix|dinheiro|cart[aã]o|cartao|d[eé]bito|credito|cr[eé]dito|fiado|vale)\b/i.test(text);
+
+  const p13Match = productList.match(/P13[^\d]*R\$\s*([\d.,]+)/i);
+  const p20Match = productList.match(/P20[^\d]*R\$\s*([\d.,]+)/i);
+  const p45Match = productList.match(/P45[^\d]*R\$\s*([\d.,]+)/i);
+  const aguaMatch = productList.match(/(?:agua|gal[aã]o)[^\d]*R\$\s*([\d.,]+)/i);
+
+  const priceForText = () => {
+    if (/\bp\s*20|p20\b/i.test(lower) && p20Match) return `O P20 esta R$ ${p20Match[1]}.`;
+    if (/\bp\s*45|p45\b/i.test(lower) && p45Match) return `O P45 esta R$ ${p45Match[1]}.`;
+    if (/\b[aá]gua|agua|gal[aã]o\b/i.test(lower) && aguaMatch) return `A agua 20L esta R$ ${aguaMatch[1]}.`;
+    if (p13Match) return `O P13 esta R$ ${p13Match[1]}.`;
+    return "Consigo verificar o valor certinho para voce.";
+  };
+
+  const recentUserText = history
+    .filter((m: any) => m.role === "user")
+    .map((m: any) => m.content || "")
+    .join("\n");
+  const combined = `${recentUserText}\n${text}`;
+  const alreadyHasProduct = /\b(g[aá]s|gas|botij|p\s*13|p13|p\s*20|p20|p\s*45|p45|[aá]gua|agua|gal[aã]o)\b/i.test(combined);
+  const alreadyHasAddress = /\b(rua|avenida|av\.?|travessa|alameda|rodovia|estrada|numero|n[úu]mero|bairro|casa|apto|apartamento|\d{1,5})\b/i.test(combined);
+  const alreadyHasPayment = /\b(pix|dinheiro|cart[aã]o|cartao|d[eé]bito|credito|cr[eé]dito|fiado|vale)\b/i.test(combined);
+
+  if (asksPrice) {
+    return `${prefix}${priceForText()} Para entrega, me envie o endereco, por favor.`;
+  }
+  if (hasGreetingOnly) {
+    return nome ? `Oi ${nome}! Tudo bem?` : "Ola! Tudo bem?";
+  }
+  if (hasProductIntent && !alreadyHasAddress) {
+    return `${prefix}claro! Qual o endereco para entrega?`;
+  }
+  if ((hasAddressHint || alreadyHasAddress) && alreadyHasProduct && !alreadyHasPayment) {
+    return "Perfeito. Qual sera a forma de pagamento: pix, dinheiro ou cartao?";
+  }
+  if (hasPaymentHint && alreadyHasProduct && alreadyHasAddress) {
+    return "Combinado! Vou encaminhar seu pedido para a equipe confirmar e sair para entrega.";
+  }
+  if (hasProductIntent) {
+    return `${prefix}certo! Me envie o endereco para entrega, por favor.`;
+  }
+  return nome
+    ? `Oi ${nome}! Posso ajudar com seu pedido de gas ou agua.`
+    : "Ola! Posso ajudar com seu pedido de gas ou agua.";
+}
+
 // ========== IDENTIFY CONTACT ==========
 export interface ContactIdentity {
   tipo: "cliente" | "entregador" | "parceiro";

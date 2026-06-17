@@ -9,7 +9,7 @@ import {
   createOrder, sendTyping, sendMessage, sendLocation, registerCall,
   getOffHoursMessage,
   downloadAudio, transcribeAudio, getEntregadorLocation, collectBufferedMessages,
-  identifyContact,
+  identifyContact, buildLocalSalesFallbackReply,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
@@ -327,7 +327,7 @@ serve(async (req) => {
             console.error("Meta webhook callAI failed:", e?.message || e);
             const fallback = e.message === "RATE_LIMIT"
               ? "Desculpe, estamos com muitas mensagens. Tente novamente! 😊"
-              : "Desculpe, tive um problema técnico. Ligue para nós! 📞";
+              : buildLocalSalesFallbackReply(finalMessageText, history, cliente, products);
             await saveMessage(supabase, conversationId, "assistant", fallback, { source: "meta-webhook", ai_error: e?.message || "unknown" });
             await sendMessage(config, phone, fallback);
             continue;
