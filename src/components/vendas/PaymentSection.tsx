@@ -175,6 +175,18 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
       return;
     }
 
+    if (forma === "gas_do_povo") {
+      if (!cartoElegivelGasDoPovo) {
+        toast.error("Gás do Povo aceito apenas para 1× Gás P13.");
+        return;
+      }
+      if (Math.abs(valorNum - gasDoPovoValor) > 0.01) {
+        toast.error(`Valor do Gás do Povo é fixo em R$ ${gasDoPovoValor.toFixed(2)}.`);
+        return;
+      }
+    }
+
+
     const novoPagamento: Pagamento = {
       id: crypto.randomUUID(),
       forma,
