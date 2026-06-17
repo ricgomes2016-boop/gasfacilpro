@@ -38,9 +38,10 @@ interface PaymentSectionProps {
   onChange: (pagamentos: Pagamento[]) => void;
   totalVenda: number;
   unidadeId?: string;
+  itens?: Array<{ nome: string; quantidade: number }>;
 }
 
-const formasPagamento = [
+const formasPagamentoBase = [
   { value: "dinheiro", label: "Dinheiro", icon: "💵", Icon: Banknote, tone: "bg-success/15 text-success ring-success/25", cardTone: "border-success/25 bg-success/5 hover:border-success/45 hover:bg-success/10", valueTone: "text-success", quickTone: "text-success", quickSurface: "bg-success/10", quickRing: "ring-success/35" },
   { value: "pix", label: "PIX", icon: "📱", Icon: Smartphone, tone: "bg-success/15 text-success ring-success/25", cardTone: "border-success/25 bg-success/5 hover:border-success/45 hover:bg-success/10", valueTone: "text-success", quickTone: "text-info", quickSurface: "bg-info/10", quickRing: "ring-info/35" },
   { value: "pix_maquininha", label: "PIX Maquininha", icon: "📱", Icon: CreditCard, tone: "bg-accent/15 text-accent ring-accent/25", cardTone: "border-accent/25 bg-accent/5 hover:border-accent/45 hover:bg-accent/10", valueTone: "text-accent", quickTone: "text-primary", quickSurface: "bg-primary/10", quickRing: "ring-primary/35" },
@@ -50,10 +51,11 @@ const formasPagamento = [
   { value: "vale_gas", label: "Vale Gás", icon: "🔥", Icon: Flame, tone: "bg-destructive/15 text-destructive ring-destructive/25", cardTone: "border-destructive/25 bg-destructive/5 hover:border-destructive/45 hover:bg-destructive/10", valueTone: "text-destructive", quickTone: "text-destructive", quickSurface: "bg-destructive/10", quickRing: "ring-destructive/35" },
   { value: "cheque", label: "Cheque", icon: "🧾", Icon: ReceiptText, tone: "bg-secondary/10 text-secondary ring-secondary/25", cardTone: "border-secondary/25 bg-secondary/5 hover:border-primary/35 hover:bg-secondary/10", valueTone: "text-secondary", quickTone: "text-secondary", quickSurface: "bg-secondary/10", quickRing: "ring-secondary/35" },
   { value: "fiado", label: "Fiado / A Prazo", icon: "📝", Icon: AlertCircle, tone: "bg-warning/15 text-warning ring-warning/25", cardTone: "border-warning/25 bg-warning/5 hover:border-warning/45 hover:bg-warning/10", valueTone: "text-warning", quickTone: "text-warning", quickSurface: "bg-warning/15", quickRing: "ring-warning/35" },
-  
 ];
 
-export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: PaymentSectionProps) {
+const GAS_DO_POVO_FORMA = { value: "gas_do_povo", label: "Gás do Povo", icon: "🏛️", Icon: Flame, tone: "bg-info/15 text-info ring-info/25", cardTone: "border-info/25 bg-info/5 hover:border-info/45 hover:bg-info/10", valueTone: "text-info", quickTone: "text-info", quickSurface: "bg-info/10", quickRing: "ring-info/35" };
+
+export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, itens = [] }: PaymentSectionProps) {
   const [forma, setForma] = useState("");
   const [valorDisplay, setValorDisplay] = useState("");
   const [chequeNumero, setChequeNumero] = useState("");
@@ -74,6 +76,20 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
 
   const { unidadeAtual } = useUnidade();
   const effectiveUnidadeNome = unidadeId ? undefined : unidadeAtual?.nome;
+
+  const gasDoPovoHabilitado = !!(unidadeAtual as any)?.gas_do_povo_habilitado;
+  const gasDoPovoValor = Number((unidadeAtual as any)?.gas_do_povo_valor ?? 101.08);
+  const formasPagamento = gasDoPovoHabilitado
+    ? [...formasPagamentoBase, GAS_DO_POVO_FORMA]
+    : formasPagamentoBase;
+
+  // Carrinho elegível: exatamente 1× Gás P13
+  const cartoElegivelGasDoPovo = (() => {
+    if (itens.length !== 1) return false;
+    const it = itens[0];
+    if (it.quantidade !== 1) return false;
+    return /g[áa]s\s*p13/i.test(it.nome);
+  })();
 
   const totalPago = pagamentos.reduce((acc, p) => acc + p.valor, 0);
   const diferenca = totalVenda - totalPago;
@@ -159,6 +175,18 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
       return;
     }
 
+    if (forma === "gas_do_povo") {
+      if (!cartoElegivelGasDoPovo) {
+        toast.error("Gás do Povo aceito apenas para 1× Gás P13.");
+        return;
+      }
+      if (Math.abs(valorNum - gasDoPovoValor) > 0.01) {
+        toast.error(`Valor do Gás do Povo é fixo em R$ ${gasDoPovoValor.toFixed(2)}.`);
+        return;
+      }
+    }
+
+
     const novoPagamento: Pagamento = {
       id: crypto.randomUUID(),
       forma,
@@ -207,6 +235,17 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId }: 
   };
 
   const handleFormaChange = (value: string) => {
+    if (value === "gas_do_povo") {
+      if (!cartoElegivelGasDoPovo) {
+        toast.error("Gás do Povo aceito apenas para venda de exatamente 1× Gás P13.");
+        return;
+      }
+      setForma(value);
+      resetExtraFields();
+      setValorDisplay(formatCurrency(gasDoPovoValor.toFixed(2).replace(".", ",")));
+      setPendingCardInfo(`Programa Gás do Povo — R$ ${gasDoPovoValor.toFixed(2)} (D+2, taxa 0%)`);
+      return;
+    }
     setForma(value);
     resetExtraFields();
     if (!valorDisplay && diferenca > 0) {

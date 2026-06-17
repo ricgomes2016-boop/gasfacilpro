@@ -13,6 +13,7 @@ export type FormaCategoria =
   | "cheque"
   | "fiado"
   | "vale_gas"
+  | "gas_do_povo"
   | "outros";
 
 export type FormaGrupo = "a_vista" | "a_prazo" | "outros";
@@ -24,6 +25,7 @@ function norm(s: string | null | undefined): string {
 export function getFormaCategoria(forma: string | null | undefined): FormaCategoria {
   const f = norm(forma);
   if (!f) return "outros";
+  if (f.includes("povo")) return "gas_do_povo";
   if (f.includes("pix_maquininha") || f.includes("pix maquininha")) return "pix_maquininha";
   if (f === "pix" || f.startsWith("pix")) return "pix";
   if (f.includes("debito")) return "cartao_debito";
@@ -49,6 +51,7 @@ export function getFormaGrupo(forma: string | null | undefined): FormaGrupo {
     cat === "fiado" ||
     cat === "cheque" ||
     cat === "vale_gas" ||
+    cat === "gas_do_povo" ||
     cat === "transferencia" ||
     cat === "cartao_debito" ||
     cat === "cartao_credito" ||
@@ -78,5 +81,6 @@ export const FORMA_LABELS: Record<FormaCategoria, string> = {
   cheque: "Cheque",
   fiado: "Fiado",
   vale_gas: "Vale Gás",
+  gas_do_povo: "Gás do Povo",
   outros: "Outros",
 };

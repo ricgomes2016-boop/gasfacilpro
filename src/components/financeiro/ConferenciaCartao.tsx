@@ -700,10 +700,16 @@ export function ConferenciaCartao() {
                             {format(new Date(item.data_venda + "T12:00:00"), "dd/MM/yy")}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={item.tipo === "credito" ? "default" : "secondary"} className="text-[10px] sm:text-xs">
-                              {item.tipo === "credito" ? "Créd" : "Déb"}
-                              {item.parcelas > 1 && ` ${item.parcelas}x`}
-                            </Badge>
+                            {item.tipo === "gas_do_povo" ? (
+                              <Badge className="text-[10px] sm:text-xs bg-info/15 text-info ring-1 ring-info/30 hover:bg-info/20">
+                                🏛️ Gás do Povo
+                              </Badge>
+                            ) : (
+                              <Badge variant={item.tipo === "credito" ? "default" : "secondary"} className="text-[10px] sm:text-xs">
+                                {item.tipo === "credito" ? "Créd" : "Déb"}
+                                {item.parcelas > 1 && ` ${item.parcelas}x`}
+                              </Badge>
+                            )}
                           </TableCell>
                           <TableCell className="hidden sm:table-cell text-xs">{item.bandeira || "—"}</TableCell>
                           <TableCell className="hidden md:table-cell text-xs">{item.operadora_nome}</TableCell>
