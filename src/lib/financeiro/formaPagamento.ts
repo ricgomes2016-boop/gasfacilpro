@@ -51,6 +51,7 @@ export function getFormaGrupo(forma: string | null | undefined): FormaGrupo {
     cat === "fiado" ||
     cat === "cheque" ||
     cat === "vale_gas" ||
+    cat === "gas_do_povo" ||
     cat === "transferencia" ||
     cat === "cartao_debito" ||
     cat === "cartao_credito" ||
