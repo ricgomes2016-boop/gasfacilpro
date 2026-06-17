@@ -804,27 +804,50 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   };
 
 
+  const advanceStep = useCallback(() => {
+    const currentIdx = VENDA_STEPS.indexOf(activeStep);
+    const nextStep = VENDA_STEPS[currentIdx + 1];
+    if (nextStep && canOpenStep(nextStep)) {
+      setActiveStep(nextStep);
+    }
+  }, [activeStep]);
+
   const handleStepEnterNavigation = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.defaultPrevented || event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
     const target = event.target as HTMLElement;
     if (target.closest("#ai-send-btn") || target.closest("[data-venda-enter-skip]") || target.closest('[role="combobox"]') || target.closest("button")) return;
     if (target instanceof HTMLTextAreaElement) return;
-    if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) return;
-    if (target.type === "file" || target.type === "checkbox" || target.type === "radio") return;
-    if (!target.matches("[data-venda-enter-next]")) return;
 
-    const panel = target.closest(".venda-step-panel");
-    if (!panel) return;
+    const isNavigableInput =
+      (target instanceof HTMLInputElement || target instanceof HTMLSelectElement) &&
+      target.matches("[data-venda-enter-next]") &&
+      !(target instanceof HTMLInputElement && (target.type === "file" || target.type === "checkbox" || target.type === "radio"));
 
-    const focusables = Array.from(
-      panel.querySelectorAll<HTMLElement>('[data-venda-enter-next]:not([disabled])')
-    ).filter((el) => el.offsetParent !== null && !el.closest('[aria-hidden="true"]'));
-    const index = focusables.indexOf(target);
-    const next = focusables[index + 1];
+    if (isNavigableInput) {
+      const panel = target.closest(".venda-step-panel");
+      if (panel) {
+        const focusables = Array.from(
+          panel.querySelectorAll<HTMLElement>('[data-venda-enter-next]:not([disabled])')
+        ).filter((el) => el.offsetParent !== null && !el.closest('[aria-hidden="true"]'));
+        const index = focusables.indexOf(target);
+        const next = focusables[index + 1];
 
-    if (next) {
+        if (next) {
+          event.preventDefault();
+          next.focus();
+          return;
+        }
+        // No próximo input no painel: avança para a próxima aba
+        event.preventDefault();
+        advanceStep();
+        return;
+      }
+    }
+
+    // Enter fora de um input navegável (ex: painel Entregador/Confirmar) também avança
+    if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) {
       event.preventDefault();
-      next.focus();
+      advanceStep();
     }
   };
 
