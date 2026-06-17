@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { SignedImage } from "@/components/ui/signed-image";
 
 interface ImageUploadProps {
   value?: string | null;
@@ -170,8 +171,9 @@ export function ImageUpload({
 
       {value ? (
         <div className="relative inline-block">
-          <img
-            src={value}
+          <SignedImage
+            value={value}
+            bucket={bucket}
             alt="Preview"
             className="h-32 w-32 object-cover rounded-lg border border-border"
           />
