@@ -235,6 +235,17 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
   };
 
   const handleFormaChange = (value: string) => {
+    if (value === "gas_do_povo") {
+      if (!cartoElegivelGasDoPovo) {
+        toast.error("Gás do Povo aceito apenas para venda de exatamente 1× Gás P13.");
+        return;
+      }
+      setForma(value);
+      resetExtraFields();
+      setValorDisplay(formatCurrency(gasDoPovoValor.toFixed(2).replace(".", ",")));
+      setPendingCardInfo(`Programa Gás do Povo — R$ ${gasDoPovoValor.toFixed(2)} (D+2, taxa 0%)`);
+      return;
+    }
     setForma(value);
     resetExtraFields();
     if (!valorDisplay && diferenca > 0) {
