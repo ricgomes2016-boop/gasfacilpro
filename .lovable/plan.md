@@ -1,23 +1,26 @@
 ## Problema
-Em `Venda > Nova Venda`, na aba **Entregador**, a lista aparece vazia ("Nenhum entregador disponível"), mesmo havendo entregadores ativos cadastrados na unidade.
+Hoje o listener `useNovoPedidoNotifier` dispara toast + push + som para **todo** INSERT em `pedidos` (exceto `canal_venda = telefone_ia`). Isso inclui pedidos lançados manualmente pelo atendente em Nova Venda, gerando notificação desnecessária.
 
-## Causa provável
-`DeliveryPersonSelect.tsx` carrega entregadores com um **embed PostgREST** em `funcionarios`:
+## Comportamento desejado
+- **NÃO notificar** quando o pedido é lançado pelo atendente (qualquer um dos 3 inserts de `NovaVenda.tsx`).
+- **Continuar notificando** para todas as outras origens já tratadas pelo sistema:
+  - Pedidos da Bia (whatsapp / site_ia / telefone_ia já é tratado pelo CallerIdPopup)
+  - Mensagens do entregador (chat) — já trata via `useChatNotification`
+  - Bina notificando entrega — já trata via `CallerIdPopup`
+  - Mensagens novas do WhatsApp — já trata via `WhatsAppNotificationContext`
+
+## Correção (mínima, apenas frontend)
+Em `src/pages/vendas/NovaVenda.tsx`, após cada `insert` em `pedidos` que retorna o `pedido.id` (linhas ~682, ~927 e ~1081), chamar imediatamente:
 
 ```ts
-.select("id, nome, status, foto_url, funcionario_id, funcionarios:funcionario_id(is_vendedor, user_id)")
+markOrderNotified(pedido.id, pedido.telefone_entrega || pedido.cliente_telefone || null);
 ```
 
-A tabela `funcionarios` tem RLS restritiva e, dependendo do papel do usuário logado, o embed pode falhar silenciosamente (PostgREST retorna erro no nível da query, e como o código faz `if (!error && data)`, a lista fica vazia sem aviso). Também não há tratamento de erro visível — qualquer falha some sem feedback.
+Isso adiciona o id ao cache em memória do `novoPedidoDedupe`. Quando o evento Realtime chegar logo em seguida, `useNovoPedidoNotifier` fará `wasOrderNotified(...) === true` e descartará silenciosamente — sem toast, sem push, sem som.
 
-## Correção (apenas frontend, em `src/components/vendas/DeliveryPersonSelect.tsx`)
-
-1. **Separar as duas queries** em vez de usar embed:
-   - Query 1: `entregadores` filtrado por `unidade_id` + `ativo=true`.
-   - Query 2 (opcional, em paralelo): `funcionarios` pelos `funcionario_id` coletados, trazendo `id, is_vendedor, user_id`. Se falhar (RLS), seguir sem dados de vendedor (entregador continua aparecendo, apenas sem o badge "Vendedor"/auto-seleção).
-2. **Logar e exibir o erro** real da query de entregadores via `toast` + `console.error`, em vez de engolir silenciosamente, para facilitar diagnóstico futuro.
-3. **Manter** toda a UI, ordenação, dedup por nome e callback `onVendedorAuto` exatamente como estão.
+Bonus: também impede que o `WhatsAppNotificationContext` notifique a mensagem de WhatsApp que originou esse pedido (mesma janela de 60s já existente via `wasRecentOrderForPhone`).
 
 ## Fora do escopo
-- Nenhuma alteração em RLS, schema, edge functions ou no fluxo de `NovaVenda.tsx`.
-- Nenhuma mudança visual além da mensagem de erro quando a query falhar.
+- Nada muda em `useNovoPedidoNotifier`, `WhatsAppNotificationContext`, `useChatNotification` ou no `CallerIdPopup`.
+- Sem mudanças no schema, RLS ou edge functions.
+- Sem alterações visuais.

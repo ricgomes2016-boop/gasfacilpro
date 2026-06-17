@@ -37,6 +37,8 @@ import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsa
 import { OrderSummary } from "@/components/vendas/OrderSummary";
 import { CustomerHistory } from "@/components/vendas/CustomerHistory";
 import { DeliveryPersonSelect } from "@/components/vendas/DeliveryPersonSelect";
+import { markOrderNotified } from "@/lib/novoPedidoDedupe";
+
 import { VendedorSelect } from "@/components/vendas/VendedorSelect";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 
@@ -696,6 +698,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             .single();
 
           if (pedidoError) throw pedidoError;
+          if (pedido?.id) markOrderNotified(pedido.id, venda.telefone_entrega || venda.cliente_telefone || null);
+
 
           if (venda.itens?.length) {
             const itensInsert = venda.itens.map((item: any) => ({
@@ -930,6 +934,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         .single();
 
       if (pedidoError) throw pedidoError;
+      if (pedido?.id) markOrderNotified(pedido.id, (pedidoInsert as any)?.telefone_entrega || customer?.telefone || null);
+
 
       // Regra Empenho: consumir vale físico vinculado ao empenho do parceiro
       if (parceiroEmpenhoId !== "nenhum" && valeNumero) {
@@ -1092,6 +1098,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
         .single();
 
       if (pedidoError) throw pedidoError;
+      if (pedido?.id) markOrderNotified(pedido.id, customer?.telefone || null);
+
 
       const itensInsert = itens.map((item) => ({
         pedido_id: pedido.id, produto_id: item.produto_id,
