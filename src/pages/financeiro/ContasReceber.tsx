@@ -88,6 +88,7 @@ const FORMA_FILTER_OPTIONS: { value: FormaCategoria; label: string; grupo: "a_vi
   { value: "fiado", label: "Fiado", grupo: "a_prazo" },
   { value: "cheque", label: "Cheque", grupo: "a_prazo" },
   { value: "vale_gas", label: "Vale Gás", grupo: "a_prazo" },
+  { value: "gas_do_povo", label: "Gás do Povo", grupo: "a_prazo" },
   { value: "transferencia", label: "Transferência", grupo: "a_prazo" },
   { value: "outros", label: "Outros", grupo: "outros" },
 ];
