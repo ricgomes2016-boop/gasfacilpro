@@ -719,7 +719,7 @@ export default function Veiculos() {
                         <div className="flex items-start gap-3 min-w-0 flex-1">
                           <button type="button" onClick={() => setDetalheVeiculo(v)} className="shrink-0 focus:outline-none focus:ring-2 focus:ring-primary rounded-lg" title="Ver detalhes">
                           {v.foto_url ? (
-                            <img src={v.foto_url} alt={v.placa} className="h-14 w-14 rounded-lg object-cover border border-border cursor-pointer hover:opacity-80 transition" />
+                            <SignedImage value={v.foto_url} bucket="vehicle-photos" alt={v.placa} className="h-14 w-14 rounded-lg object-cover border border-border cursor-pointer hover:opacity-80 transition" />
                           ) : (
                             <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center cursor-pointer hover:bg-muted/70 transition">
                               <Car className="h-6 w-6 text-muted-foreground" />
