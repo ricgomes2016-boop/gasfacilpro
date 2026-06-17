@@ -804,27 +804,50 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   };
 
 
+  const advanceStep = useCallback(() => {
+    const currentIdx = VENDA_STEPS.indexOf(activeStep);
+    const nextStep = VENDA_STEPS[currentIdx + 1];
+    if (nextStep && canOpenStep(nextStep)) {
+      setActiveStep(nextStep);
+    }
+  }, [activeStep]);
+
   const handleStepEnterNavigation = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.defaultPrevented || event.key !== "Enter" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
     const target = event.target as HTMLElement;
     if (target.closest("#ai-send-btn") || target.closest("[data-venda-enter-skip]") || target.closest('[role="combobox"]') || target.closest("button")) return;
     if (target instanceof HTMLTextAreaElement) return;
-    if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) return;
-    if (target.type === "file" || target.type === "checkbox" || target.type === "radio") return;
-    if (!target.matches("[data-venda-enter-next]")) return;
 
-    const panel = target.closest(".venda-step-panel");
-    if (!panel) return;
+    const isNavigableInput =
+      (target instanceof HTMLInputElement || target instanceof HTMLSelectElement) &&
+      target.matches("[data-venda-enter-next]") &&
+      !(target instanceof HTMLInputElement && (target.type === "file" || target.type === "checkbox" || target.type === "radio"));
 
-    const focusables = Array.from(
-      panel.querySelectorAll<HTMLElement>('[data-venda-enter-next]:not([disabled])')
-    ).filter((el) => el.offsetParent !== null && !el.closest('[aria-hidden="true"]'));
-    const index = focusables.indexOf(target);
-    const next = focusables[index + 1];
+    if (isNavigableInput) {
+      const panel = target.closest(".venda-step-panel");
+      if (panel) {
+        const focusables = Array.from(
+          panel.querySelectorAll<HTMLElement>('[data-venda-enter-next]:not([disabled])')
+        ).filter((el) => el.offsetParent !== null && !el.closest('[aria-hidden="true"]'));
+        const index = focusables.indexOf(target);
+        const next = focusables[index + 1];
 
-    if (next) {
+        if (next) {
+          event.preventDefault();
+          next.focus();
+          return;
+        }
+        // No próximo input no painel: avança para a próxima aba
+        event.preventDefault();
+        advanceStep();
+        return;
+      }
+    }
+
+    // Enter fora de um input navegável (ex: painel Entregador/Confirmar) também avança
+    if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) {
       event.preventDefault();
-      next.focus();
+      advanceStep();
     }
   };
 
@@ -1145,6 +1168,45 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     }
   };
 
+  // Refs para atalhos de teclado (evita stale closures)
+  const handleFinalizarRef = useRef(handleFinalizar);
+  const handleAgendarRef = useRef(handleAgendar);
+  const openNovaVendaWindowRef = useRef(openNovaVendaWindow);
+  const isLoadingRef = useRef(isLoading);
+  useEffect(() => { handleFinalizarRef.current = handleFinalizar; });
+  useEffect(() => { handleAgendarRef.current = handleAgendar; });
+  useEffect(() => { openNovaVendaWindowRef.current = openNovaVendaWindow; });
+  useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
+
+  // Atalhos de teclado: F2 novo pedido, F3 finalizar, F4 agendar, F5 cadastro cliente
+  useEffect(() => {
+    const onKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      switch (e.key) {
+        case "F2":
+          e.preventDefault();
+          openNovaVendaWindowRef.current({});
+          break;
+        case "F3":
+          e.preventDefault();
+          if (!isLoadingRef.current) handleFinalizarRef.current();
+          break;
+        case "F4":
+          e.preventDefault();
+          if (!isLoadingRef.current) handleAgendarRef.current();
+          break;
+        case "F5":
+          e.preventDefault();
+          window.open("/clientes/cadastro", "_blank", "noopener,noreferrer,width=1200,height=800");
+          break;
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+
+
   // Load initial client when in embedded mode (e.g., from CallerIdPopup) OR via URL ?cliente_id=
   const urlClienteId = searchParams.get("cliente_id");
   const urlRepetirPedido = searchParams.get("repetir_pedido");
@@ -1315,6 +1377,9 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               #{proximoNumero ?? "—"}
             </Badge>
             <div className="flex items-center gap-2">
+              <span className="hidden md:inline text-[10px] text-muted-foreground font-medium">
+                F2 Novo · F3 Finalizar · F4 Agendar · F5 Cliente · Enter Próximo
+              </span>
               <Button variant="ghost" size="sm" onClick={toggleViewMode} className="h-8 px-2 text-xs font-semibold text-foreground hover:text-primary">
                 {useNewView ? "Versão antiga" : "Versão nova"}
               </Button>
@@ -1325,6 +1390,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             </div>
           </div>
         </div>
+
 
         {useNewView ? (
           <div className="space-y-3 md:space-y-4">
