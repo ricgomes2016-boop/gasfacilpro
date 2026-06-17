@@ -1,44 +1,31 @@
 ## Objetivo
-Adicionar a forma de pagamento **Gás do Povo** na tela Nova Venda, exatamente como já funciona no PDV: aparece só quando a unidade tem o programa habilitado, valida que o carrinho é 1× Gás P13 com valor fixo, gera recebível D+2 (taxa 0%) em Contas a Receber e aparece também na Gestão de Cartões com o badge azul "maquininha azulzinha".
+Adicionar atalhos de teclado na tela Nova Venda:
+
+- **F2** → abre uma nova janela de Novo Pedido (mesma ação do botão "+ Nova Venda" atual: `openNovaVendaWindow({})`).
+- **F3** → finaliza o pedido (`handleFinalizar`).
+- **F4** → agenda o pedido (`handleAgendar`).
+- **F5** → abre o cadastro de cliente em nova janela (`/clientes/cadastro`).
+- **Enter** → pula para a próxima aba do stepper (Cliente → Produtos → Pagamento → Entregador → Confirmar), preservando o comportamento atual do Enter dentro de campos `[data-venda-enter-next]` (que continua navegando entre inputs).
 
 ## Mudanças
 
-### 1. `src/components/vendas/PaymentSection.tsx` (frontend)
-- Importar `useUnidade` e ler `gas_do_povo_habilitado` / `gas_do_povo_valor`.
-- Adicionar opção `{ value: "gas_do_povo", label: "Gás do Povo", Icon: Flame, ... }` à lista `formasPagamento`, com paleta **azul (info/primary)** para o atalho rápido e o badge.
-- A opção é exibida apenas quando `gas_do_povo_habilitado === true`.
-- Adicionar `itens` (carrinho) às `PaymentSectionProps` para validar elegibilidade (1× Gás P13). Reutilizar a mesma checagem do `PDVPayment` (`/g[áa]s\s*p13/i`).
-- Em `handleFormaChange("gas_do_povo")` e em `addPagamento()`:
-  - Bloquear com toast se carrinho não for elegível.
-  - Forçar valor = `gas_do_povo_valor` (default 101.08); rejeitar valor divergente.
+### `src/pages/vendas/NovaVenda.tsx`
+1. Adicionar `useEffect` global com listener `window.addEventListener("keydown", ...)`:
+   - Ignorar quando o foco está em `<input>`, `<textarea>` ou `[contenteditable]` editáveis para **F2–F5** apenas se o usuário estiver digitando texto puro (mas teclas F* normalmente não causam digitação — então capturamos sempre, com `preventDefault`).
+   - `F2`: `event.preventDefault()`; `openNovaVendaWindow({})`.
+   - `F3`: `event.preventDefault()`; se não estiver carregando, chama `handleFinalizar()`.
+   - `F4`: `event.preventDefault()`; chama `handleAgendar()`.
+   - `F5`: `event.preventDefault()`; `window.open("/clientes/cadastro", "_blank", "noopener,noreferrer,width=1200,height=800")`.
+   - Cleanup no unmount.
 
-### 2. `src/pages/vendas/NovaVenda.tsx` (frontend)
-- Passar `itens` como prop ao `<PaymentSection ... itens={itens} />`.
+2. **Enter pula de aba**: estender `handleStepEnterNavigation` (ou adicionar handler complementar no contêiner externo):
+   - Quando Enter for pressionado e **não houver próximo input** `[data-venda-enter-next]` no painel atual (`focusables[index + 1]` undefined), avançar para o próximo step via `setActiveStep(proximoStep)` respeitando `canOpenStep`.
+   - Quando o Enter for pressionado **fora** de um input (ou em um painel sem inputs com `data-venda-enter-next` — ex: Entregador, Confirmar), também avançar para o próximo step.
+   - Sequência: `cliente → produtos → pagamento → entregador → confirmar`. No `confirmar`, Enter não faz nada (usuário usa F3).
 
-### 3. `src/lib/financeiro/formaPagamento.ts` (frontend)
-- Adicionar `"gas_do_povo"` ao tipo `FormaCategoria`.
-- `getFormaCategoria`: mapear strings contendo "povo" para `gas_do_povo`.
-- `getFormaGrupo`: `gas_do_povo → "a_prazo"`.
-- `FORMA_LABELS.gas_do_povo = "Gás do Povo"`.
-
-### 4. `src/pages/financeiro/ContasReceber.tsx` (frontend)
-- Adicionar `{ value: "gas_do_povo", label: "Gás do Povo", grupo: "a_prazo" }` em `FORMA_FILTER_OPTIONS`.
-- Renderizar badge azul para essa forma (ícone `Flame` + cor `bg-info`/`text-info`) onde os outros badges são desenhados.
-
-### 5. `src/services/paymentRoutingService.ts` (frontend)
-- No `case "gas_do_povo"`, **também** inserir uma linha em `conferencia_cartao` para que apareça em Gestão de Cartões:
-  - `tipo: "gas_do_povo"` (string nova; conferencia_cartao.tipo é texto livre)
-  - `operadora_id: null`, `bandeira: "Gás do Povo"`, `parcelas: 1`
-  - `valor_bruto = pag.valor`, `taxa_percentual = 0`, `valor_taxa = 0`, `valor_liquido_esperado = pag.valor`
-  - `data_venda = hoje`, `data_prevista_deposito = hoje + 2` (D+2)
-  - `status: "pendente"`, `pedido_id`, `unidade_id`
-- Manter o insert atual em `contas_receber` (já existe).
-
-### 6. `src/components/financeiro/ConferenciaCartao.tsx` (frontend)
-- Onde os badges são renderizados (Créd/Déb), adicionar variante para `tipo === "gas_do_povo"`: texto "Gás do Povo" em badge **azul** (`bg-info/15 text-info`) com ícone `Flame`, mantendo o visual da "maquininha azulzinha".
-- Filtros/selects de tipo permanecem como estão (linhas só de leitura; usuário não cria Gás do Povo manualmente daqui).
+3. Adicionar uma **dica visual discreta** ao lado dos botões (no header da página ou no `OrderSummary` actions) com os atalhos: `F2 Novo · F3 Finalizar · F4 Agendar · F5 Cliente · Enter Próximo`.
 
 ## Fora do escopo
-- Sem mudança de schema (`conferencia_cartao.tipo` é text livre, aceita o novo valor).
-- Sem mudança de RLS.
-- Sem alteração na tela do entregador, PDV, Acerto, etc — esses já tratam Gás do Povo.
+- Sem mudanças em `OrderSummary`, `PaymentSection`, `CustomerSearch` etc. (apenas leitura/uso de funções já existentes).
+- Sem mudanças de rota ou backend.
+- F5 padrão do navegador (reload) é sobrescrito apenas enquanto a tela Nova Venda está montada.
