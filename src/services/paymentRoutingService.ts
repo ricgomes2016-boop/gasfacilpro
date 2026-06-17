@@ -304,11 +304,12 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
       case "gas_do_povo": {
         // Programa Gás do Povo (governo): recebível D+2, taxa 0%.
         // Tratado como recebível tipo cartão para aparecer na Conciliação Cartão.
+        const dataPrevista = format(addDays(new Date(), 2), "yyyy-MM-dd");
         promises.push(insertContasReceber({
           cliente: "Programa Gás do Povo",
           descricao: `Gás do Povo - Venda #${pedidoRef}`,
           valor: pag.valor,
-          vencimento: format(addDays(new Date(), 2), "yyyy-MM-dd"),
+          vencimento: dataPrevista,
           status: "pendente",
           forma_pagamento: "gas_do_povo",
           pedido_id: pedidoId,
@@ -318,6 +319,25 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
           valor_liquido: pag.valor,
           cliente_id: clienteId || null,
         }));
+        // Também aparece em Gestão de Cartões (Conferência) como "maquininha azulzinha"
+        promises.push((async () => {
+          const { error } = await supabase.from("conferencia_cartao").insert({
+            pedido_id: pedidoId,
+            operadora_id: null,
+            tipo: "gas_do_povo",
+            bandeira: "Gás do Povo",
+            valor_bruto: pag.valor,
+            taxa_percentual: 0,
+            valor_taxa: 0,
+            valor_liquido_esperado: pag.valor,
+            data_venda: hoje,
+            data_prevista_deposito: dataPrevista,
+            parcelas: 1,
+            status: "pendente",
+            unidade_id: unidadeId || null,
+          });
+          if (error) throw error;
+        })());
         break;
       }
 
