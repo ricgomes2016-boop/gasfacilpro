@@ -1168,6 +1168,45 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     }
   };
 
+  // Refs para atalhos de teclado (evita stale closures)
+  const handleFinalizarRef = useRef(handleFinalizar);
+  const handleAgendarRef = useRef(handleAgendar);
+  const openNovaVendaWindowRef = useRef(openNovaVendaWindow);
+  const isLoadingRef = useRef(isLoading);
+  useEffect(() => { handleFinalizarRef.current = handleFinalizar; });
+  useEffect(() => { handleAgendarRef.current = handleAgendar; });
+  useEffect(() => { openNovaVendaWindowRef.current = openNovaVendaWindow; });
+  useEffect(() => { isLoadingRef.current = isLoading; }, [isLoading]);
+
+  // Atalhos de teclado: F2 novo pedido, F3 finalizar, F4 agendar, F5 cadastro cliente
+  useEffect(() => {
+    const onKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      switch (e.key) {
+        case "F2":
+          e.preventDefault();
+          openNovaVendaWindowRef.current({});
+          break;
+        case "F3":
+          e.preventDefault();
+          if (!isLoadingRef.current) handleFinalizarRef.current();
+          break;
+        case "F4":
+          e.preventDefault();
+          if (!isLoadingRef.current) handleAgendarRef.current();
+          break;
+        case "F5":
+          e.preventDefault();
+          window.open("/clientes/cadastro", "_blank", "noopener,noreferrer,width=1200,height=800");
+          break;
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+
+
   // Load initial client when in embedded mode (e.g., from CallerIdPopup) OR via URL ?cliente_id=
   const urlClienteId = searchParams.get("cliente_id");
   const urlRepetirPedido = searchParams.get("repetir_pedido");
