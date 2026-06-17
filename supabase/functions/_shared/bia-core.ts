@@ -418,17 +418,35 @@ export async function collectBufferedMessages(supabase: any, conversationId: str
 
   // Fetch all user messages from the last 5 seconds
   const fiveSecsAgo = new Date(Date.now() - 6000).toISOString();
-  const { data: recentMsgs } = await supabase.from("ai_mensagens")
+  const { data: recentMsgs, error } = await supabase.from("ai_mensagens")
     .select("content, created_at, metadata")
     .eq("conversa_id", conversationId)
     .eq("role", "user")
     .gte("created_at", fiveSecsAgo)
     .order("created_at", { ascending: true });
 
+  if (error) {
+    console.error("Debounce: failed to load recent messages; replying with current text.", {
+      conversationId,
+      currentMessageId,
+      code: error.code,
+      message: error.message,
+    });
+    return { text: currentText, isLatest: true };
+  }
+
   if (recentMsgs && recentMsgs.length > 0) {
-    // Check if the CURRENT message is the LAST one in the window
-    const lastMsg = recentMsgs[recentMsgs.length - 1];
-    const isLatest = lastMsg.metadata?.message_id === currentMessageId;
+    // Check if the CURRENT message is the LAST one in the window. If the
+    // current message is not returned by the recent window, do not silence BIA:
+    // clock drift, slow inserts, or metadata inconsistencies should not make
+    // the assistant miss an actual customer request.
+    const currentIndex = recentMsgs.findIndex((m: any) => m.metadata?.message_id === currentMessageId);
+    if (currentIndex === -1) {
+      console.warn("Debounce: current message not found in recent window; replying with current text.", currentMessageId);
+      return { text: currentText, isLatest: true };
+    }
+
+    const isLatest = currentIndex === recentMsgs.length - 1;
 
     if (recentMsgs.length > 1) {
       const combined = recentMsgs.map((m: any) => m.content).join("\n");
