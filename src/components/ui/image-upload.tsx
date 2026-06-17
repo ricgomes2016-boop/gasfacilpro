@@ -171,8 +171,9 @@ export function ImageUpload({
 
       {value ? (
         <div className="relative inline-block">
-          <img
-            src={value}
+          <SignedImage
+            value={value}
+            bucket={bucket}
             alt="Preview"
             className="h-32 w-32 object-cover rounded-lg border border-border"
           />
