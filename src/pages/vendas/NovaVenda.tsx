@@ -221,7 +221,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const { isGasmais } = useDashboardTheme();
 
   const [dataEntrega, setDataEntrega] = useState(() => { const d = getBrasiliaDate(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; });
-  const [canalVenda, setCanalVenda] = useState("telefone");
+  const [canalVenda, setCanalVenda] = useState("");
   const [customer, setCustomer] = useState<CustomerData>(initialCustomerData);
   const [itens, setItens] = useState<ItemVenda[]>([]);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
