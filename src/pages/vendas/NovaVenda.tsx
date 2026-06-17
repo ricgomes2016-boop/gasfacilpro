@@ -1377,6 +1377,9 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
               #{proximoNumero ?? "—"}
             </Badge>
             <div className="flex items-center gap-2">
+              <span className="hidden md:inline text-[10px] text-muted-foreground font-medium">
+                F2 Novo · F3 Finalizar · F4 Agendar · F5 Cliente · Enter Próximo
+              </span>
               <Button variant="ghost" size="sm" onClick={toggleViewMode} className="h-8 px-2 text-xs font-semibold text-foreground hover:text-primary">
                 {useNewView ? "Versão antiga" : "Versão nova"}
               </Button>
@@ -1387,6 +1390,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             </div>
           </div>
         </div>
+
 
         {useNewView ? (
           <div className="space-y-3 md:space-y-4">
