@@ -1347,7 +1347,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             )}
             {activeStep === "pagamento" && (
               <div className="venda-step-panel venda-tone-pagamento w-full" onKeyDown={handleStepEnterNavigation}>
-                <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} />
+                <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} />
               </div>
             )}
             {activeStep === "entregador" && (
@@ -1372,7 +1372,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
                 <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} onVendedorAuto={handleVendedorAuto} endereco={customer.endereco} />
                 <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
                 <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
-                <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} />
+                <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} />
               </div>
               <div className="lg:sticky lg:top-4 space-y-3 md:space-y-4 self-start">
                 <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
