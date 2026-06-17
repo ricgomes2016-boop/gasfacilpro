@@ -1122,7 +1122,7 @@ export async function saveMessage(supabase: any, conversationId: string, role: s
     if (conv?.unidade_id) row.unidade_id = conv.unidade_id;
   } catch (_) { /* DB trigger remains as fallback */ }
 
-  const { error } = await supabase.from("ai_mensagens").insert(row);
+  const { data, error } = await supabase.from("ai_mensagens").insert(row).select("id").single();
   if (error) {
     console.error("[bia-core] saveMessage failed", {
       conversationId,
@@ -1143,6 +1143,7 @@ export async function saveMessage(supabase: any, conversationId: string, role: s
   } catch (e) {
     console.warn("[bia-core] failed to touch conversation after message insert", conversationId, e);
   }
+  return data;
 }
 
 export async function upsertConversation(supabase: any, conversationId: string, title: string, telefone?: string, unidadeId?: string | null) {
