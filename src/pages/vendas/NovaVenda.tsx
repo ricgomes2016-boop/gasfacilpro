@@ -305,7 +305,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       setCustomer(draft.customer || initialCustomerData);
       setItens(draft.itens || []);
       setPagamentos(draft.pagamentos || []);
-      setCanalVenda(draft.canalVenda || "telefone");
+      setCanalVenda(draft.canalVenda || "");
       setEntregador(draft.entregador || { id: null, nome: null });
       toast({ title: "Rascunho restaurado", description: "Sua venda em andamento foi recuperada." });
     }
