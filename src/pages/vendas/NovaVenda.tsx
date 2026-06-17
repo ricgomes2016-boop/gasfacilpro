@@ -698,6 +698,8 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             .single();
 
           if (pedidoError) throw pedidoError;
+          if (pedido?.id) markOrderNotified(pedido.id, venda.telefone_entrega || venda.cliente_telefone || null);
+
 
           if (venda.itens?.length) {
             const itensInsert = venda.itens.map((item: any) => ({
