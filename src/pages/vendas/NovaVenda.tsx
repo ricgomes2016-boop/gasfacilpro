@@ -37,6 +37,8 @@ import { EmitirBoletoAsaasDialog } from "@/components/financeiro/EmitirBoletoAsa
 import { OrderSummary } from "@/components/vendas/OrderSummary";
 import { CustomerHistory } from "@/components/vendas/CustomerHistory";
 import { DeliveryPersonSelect } from "@/components/vendas/DeliveryPersonSelect";
+import { markOrderNotified } from "@/lib/novoPedidoDedupe";
+
 import { VendedorSelect } from "@/components/vendas/VendedorSelect";
 import { useDashboardTheme } from "@/hooks/useDashboardTheme";
 
