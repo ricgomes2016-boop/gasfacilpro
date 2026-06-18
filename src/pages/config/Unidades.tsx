@@ -169,6 +169,7 @@ export default function UnidadesConfig() {
         regime_tributario: u.regime_tributario || null,
         telefone: u.telefone || null,
         email: u.email || null,
+        whatsapp_notificacao_pedido: (u as any).whatsapp_notificacao_pedido?.replace(/\D/g, "") || null,
         // Endereço
         endereco: u.endereco || null,
         bairro: u.bairro || null,
