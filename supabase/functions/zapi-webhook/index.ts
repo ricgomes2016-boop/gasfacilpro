@@ -97,9 +97,10 @@ serve(async (req) => {
       };
     }
 
-    // Enforce security token if configured (defense against fake inbound messages)
-    if (finalConfig.securityToken && incomingToken !== finalConfig.securityToken) {
-      console.warn("Z-API webhook: invalid or missing security token");
+    // Z-API uses Client-Token for outbound API calls. Some webhook deliveries do
+    // not include it, so only reject when a token is explicitly sent and wrong.
+    if (finalConfig.securityToken && incomingToken && incomingToken !== finalConfig.securityToken) {
+      console.warn("Z-API webhook: invalid security token");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
