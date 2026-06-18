@@ -112,3 +112,12 @@ verify_jwt = false
 
 [functions.bia-followup-cron]
 verify_jwt = false
+
+[functions.escalacao-pedidos-bia]
+verify_jwt = false
+
+[functions.twilio-voice-webhook]
+verify_jwt = false
+
+[functions.meta-webhook]
+verify_jwt = false
