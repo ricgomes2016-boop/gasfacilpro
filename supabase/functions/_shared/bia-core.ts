@@ -1664,6 +1664,25 @@ export async function createOrder(
     }
 
     console.log("Order created:", ped.id);
+
+    // Notificar gestor da unidade via WhatsApp
+    try {
+      await notifyOrderConfirmed(supabase, config, {
+        pedidoId: ped.id,
+        unidadeId,
+        clienteNome: orderData.nome || clienteNome || senderName,
+        clienteTelefone: phone,
+        produtoNome: produto?.nome || "Produto",
+        quantidade: qty,
+        total,
+        formaPagamento: payMap[orderData.pagamento?.toLowerCase()] || (orderData.pagamento || "—"),
+        endereco: orderData.endereco || "",
+        agendado: !!isAgendado,
+      });
+    } catch (notifyErr) {
+      console.error("[notifyOrderConfirmed] erro (não bloqueante):", notifyErr);
+    }
+
     return { pedidoId: ped.id as string, entregadorId: (ped as any).entregador_id as string | null };
   } catch (e) {
     console.error("Create order error:", e);
@@ -1931,6 +1950,60 @@ export async function sendMessage(config: BiaConfig, phone: string, message: str
     }
   } catch (e) { console.error("Send message error:", e); return { ok: false, error: (e as Error).message }; }
 }
+
+// ========== NOTIFY ORDER CONFIRMED (gestor da unidade) ==========
+const FALLBACK_NOTIFY_NUMBER = "5543999692765";
+export async function notifyOrderConfirmed(
+  supabase: any,
+  config: BiaConfig,
+  data: {
+    pedidoId: string;
+    unidadeId: string | null;
+    clienteNome: string;
+    clienteTelefone: string;
+    produtoNome: string;
+    quantidade: number;
+    total: number;
+    formaPagamento: string;
+    endereco: string;
+    agendado: boolean;
+  }
+) {
+  let destino = FALLBACK_NOTIFY_NUMBER;
+  let unidadeNome = "—";
+  if (data.unidadeId) {
+    const { data: uni } = await supabase
+      .from("unidades")
+      .select("nome, whatsapp_notificacao_pedido")
+      .eq("id", data.unidadeId)
+      .maybeSingle();
+    if (uni?.nome) unidadeNome = uni.nome;
+    const configurado = (uni?.whatsapp_notificacao_pedido || "").replace(/\D/g, "");
+    if (configurado.length >= 12) destino = configurado;
+  }
+  if (!destino || destino.replace(/\D/g, "").length < 12) {
+    console.log("[notifyOrderConfirmed] sem número de notificação configurado, ignorando.");
+    return;
+  }
+
+  const totalFmt = `R$ ${Number(data.total || 0).toFixed(2).replace(".", ",")}`;
+  const msg = [
+    `✅ *Novo pedido confirmado* #${data.pedidoId.slice(0, 8)}${data.agendado ? " (AGENDADO)" : ""}`,
+    `🏢 Unidade: ${unidadeNome}`,
+    `👤 Cliente: ${data.clienteNome} (${data.clienteTelefone})`,
+    `📦 ${data.quantidade}x ${data.produtoNome}`,
+    `💰 ${totalFmt} — ${data.formaPagamento}`,
+    data.endereco ? `📍 ${data.endereco}` : null,
+  ].filter(Boolean).join("\n");
+
+  console.log("[notifyOrderConfirmed] enviando para", destino);
+  const result = await sendMessage(config, destino.replace(/\D/g, ""), msg);
+  if (!result.ok) {
+    console.error("[notifyOrderConfirmed] falha:", result.error);
+  }
+}
+
+
 
 // ========== SEND LOCATION (WHATSAPP) ==========
 export async function sendLocation(config: BiaConfig, phone: string, lat: number, lng: number, name: string) {

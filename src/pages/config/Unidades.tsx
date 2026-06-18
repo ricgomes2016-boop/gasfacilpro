@@ -36,7 +36,7 @@ const PROVEDORES = [
 ];
 
 const UNIDADES_CONFIG_COLUMNS =
-  "id, nome, tipo, ativo, razao_social, nome_fantasia, cnpj, inscricao_estadual, inscricao_estadual_st, inscricao_municipal, cnae_principal, regime_tributario, telefone, email, endereco, bairro, cidade, estado, cep, chave_pix, horario_abertura, horario_fechamento, certificado_a1_validade, certificado_a1_titular, nfe_ambiente, nfe_serie, nfe_proximo_numero, nfce_serie, nfce_proximo_numero, nfce_csc_id, cte_serie, cte_proximo_numero, cfop_padrao_venda, cfop_padrao_devolucao, natureza_operacao_padrao, aliquota_icms_padrao, aliquota_pis_padrao, aliquota_cofins_padrao, cst_csosn_padrao, contador_nome, contador_crc, contador_telefone, provedor_nfe, provedor_nfe_url, empresa_id, created_at, updated_at, gas_do_povo_habilitado, gas_do_povo_valor";
+  "id, nome, tipo, ativo, razao_social, nome_fantasia, cnpj, inscricao_estadual, inscricao_estadual_st, inscricao_municipal, cnae_principal, regime_tributario, telefone, email, endereco, bairro, cidade, estado, cep, chave_pix, horario_abertura, horario_fechamento, certificado_a1_validade, certificado_a1_titular, nfe_ambiente, nfe_serie, nfe_proximo_numero, nfce_serie, nfce_proximo_numero, nfce_csc_id, cte_serie, cte_proximo_numero, cfop_padrao_venda, cfop_padrao_devolucao, natureza_operacao_padrao, aliquota_icms_padrao, aliquota_pis_padrao, aliquota_cofins_padrao, cst_csosn_padrao, contador_nome, contador_crc, contador_telefone, provedor_nfe, provedor_nfe_url, empresa_id, created_at, updated_at, gas_do_povo_habilitado, gas_do_povo_valor, whatsapp_notificacao_pedido";
 
 export default function UnidadesConfig() {
   const { toast } = useToast();
@@ -169,6 +169,7 @@ export default function UnidadesConfig() {
         regime_tributario: u.regime_tributario || null,
         telefone: u.telefone || null,
         email: u.email || null,
+        whatsapp_notificacao_pedido: (u as any).whatsapp_notificacao_pedido?.replace(/\D/g, "") || null,
         // Endereço
         endereco: u.endereco || null,
         bairro: u.bairro || null,
@@ -454,6 +455,17 @@ export default function UnidadesConfig() {
                       <Label>Email</Label>
                       <Input value={editingUnidade.email || ""} onChange={(e) => setField("email", e.target.value)} placeholder="email@exemplo.com" />
                     </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>WhatsApp para notificação de pedidos confirmados</Label>
+                    <Input
+                      value={(editingUnidade as any).whatsapp_notificacao_pedido || ""}
+                      onChange={(e) => setField("whatsapp_notificacao_pedido" as any, e.target.value)}
+                      placeholder="5543999692765 (com DDI 55 + DDD)"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Sempre que a Bia confirmar um pedido nesta unidade, será enviado um WhatsApp para este número. Deixe vazio para não notificar.
+                    </p>
                   </div>
                 </TabsContent>
 
