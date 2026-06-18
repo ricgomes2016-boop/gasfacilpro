@@ -1,36 +1,49 @@
 ## Objetivo
-Sempre que a Bia confirmar um pedido via WhatsApp (qualquer unidade — Central Gás, Forte Gás, etc.), o sistema envia uma mensagem WhatsApp para um número de notificação configurável por unidade. Default: `+5543999692765`.
+Qualquer pedido cujo status não tenha mudado nos últimos 5 minutos (e ainda esteja em andamento) dispara um WhatsApp de alerta para o número configurado em `unidades.whatsapp_notificacao_pedido` (fallback `5543999692765`).
 
 ## Mudanças
 
-### 1) Banco — campo configurável por unidade
-Migration adicionando coluna em `unidades`:
-- `whatsapp_notificacao_pedido text` (nullable) — número E.164 (ex: `5543999692765`) para receber alertas.
-- Backfill: definir `5543999692765` nas unidades de Central Gás e Forte Gás.
+### 1) Banco
+Migration:
+- Coluna `pedidos.alerta_atraso_enviado_em timestamptz` (nullable) — marca quando o alerta foi enviado, evitando spam.
+- Coluna `pedidos.status_atualizado_em timestamptz` com default `now()`.
+- Trigger `BEFORE UPDATE` em `pedidos`: quando `status` mudar, atualiza `status_atualizado_em = now()` e zera `alerta_atraso_enviado_em` (permitindo re-alertar se o próximo status também travar).
+- Backfill: `status_atualizado_em = COALESCE(updated_at, created_at)` para registros existentes.
 
-### 2) UI — campo na configuração da unidade
-No formulário de edição de Unidade (Configurações → Unidades), adicionar um input "WhatsApp para notificação de pedidos confirmados" com placeholder `5543999692765`, validação simples (somente dígitos, 12-13 chars). Persistir em `unidades.whatsapp_notificacao_pedido`.
-
-### 3) Edge Function — disparo da notificação
-Em `supabase/functions/_shared/bia-core.ts`, logo após o `insert` bem-sucedido em `pedidos` (linha ~1638) e o registro dos itens, chamar uma nova função `notifyOrderConfirmed(supabase, ped.id, unidadeId, config)`:
-
-- Lê `unidades.whatsapp_notificacao_pedido` da unidade do pedido. Se vazio, usa fallback `5543999692765`.
-- Monta texto:
+### 2) Nova Edge Function `pedidos-alerta-atraso`
+- Roda a cada 1 minuto.
+- Busca pedidos com:
+  - `status IN ('pendente','agendado','em_separacao','em_rota','saiu_para_entrega')` (status ainda em aberto — exclui `entregue`, `cancelado`, `concluido`)
+  - `status_atualizado_em <= now() - interval '5 minutes'`
+  - `alerta_atraso_enviado_em IS NULL`
+- Para cada pedido: carrega `unidade.whatsapp_notificacao_pedido` + config WhatsApp ativa da unidade (`integracoes_whatsapp` ativo), monta mensagem:
   ```
-  ✅ Novo pedido confirmado #<id>
-  🏢 Unidade: <nome>
-  👤 Cliente: <nome> (<telefone>)
-  📦 <qtd>x <produto>
-  💰 R$ <total> — <forma_pagamento>
+  ⚠️ Pedido parado há mais de 5 min
+  #<id> — <unidade>
+  Status atual: <status> (desde <hh:mm>)
+  Cliente: <nome> (<telefone>)
   📍 <endereço>
   ```
-- Envia via Z-API usando a mesma `config` (instance/token) já usada pela conversa (mesma helper `sendText` existente nas linhas 1858/1878/1911), apenas alterando o destinatário.
-- Erros de envio são apenas logados (não quebram o fluxo do pedido).
+- Envia via helper `sendMessage` reaproveitada de `_shared/bia-core.ts`.
+- Marca `alerta_atraso_enviado_em = now()` no pedido para não reenviar.
+- Erros logados, não bloqueantes.
 
-### 4) Sem mudanças em outros fluxos
-Não altera webhook, autenticação, layout do app, ou outras rotinas. Apenas adiciona o disparo extra após criação do pedido.
+### 3) Agendamento (pg_cron)
+Via tool `insert` (não migration, contém URL/anon key):
+```sql
+select cron.schedule(
+  'pedidos-alerta-atraso-1min',
+  '* * * * *',
+  $$ select net.http_post(
+       url:='https://<project>.supabase.co/functions/v1/pedidos-alerta-atraso',
+       headers:='{"Content-Type":"application/json","apikey":"<anon>"}'::jsonb,
+       body:='{}'::jsonb) $$
+);
+```
+Habilita `pg_cron` e `pg_net` se ainda não estiverem.
 
 ## Detalhes técnicos
-- Reaproveita o `sendText` interno do `bia-core.ts` — não cria nova edge function.
-- Número é normalizado para dígitos (`replace(/\D/g,'')`); aceita formatos `+55 43 99969-2765`, `5543999692765`, etc.
-- Sem alteração em RLS (campo lido via service role na edge function; UI usa políticas existentes de `unidades`).
+- Não envia se a unidade não tiver `whatsapp_notificacao_pedido` configurado e o fallback estiver vazio.
+- Se a unidade não tiver integração WhatsApp ativa, busca a primeira `integracoes_whatsapp` ativa da empresa como fallback.
+- Apenas 1 alerta por "trecho de status": ao mudar de status, o trigger zera o flag, então se o próximo status também travar 5 min, novo alerta é disparado.
+- Não altera UI, dashboard, nem fluxos existentes.

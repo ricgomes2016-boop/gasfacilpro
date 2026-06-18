@@ -7898,6 +7898,7 @@ export type Database = {
       pedidos: {
         Row: {
           agendado: boolean
+          alerta_atraso_enviado_em: string | null
           bairro_entrega: string | null
           canal_venda: string | null
           cep_entrega: string | null
@@ -7930,6 +7931,7 @@ export type Database = {
           sla_cumprido: boolean | null
           sla_minutos: number | null
           status: string | null
+          status_atualizado_em: string | null
           tempo_entrega_minutos: number | null
           tipo_venda: string | null
           troco_para: number | null
@@ -7940,6 +7942,7 @@ export type Database = {
         }
         Insert: {
           agendado?: boolean
+          alerta_atraso_enviado_em?: string | null
           bairro_entrega?: string | null
           canal_venda?: string | null
           cep_entrega?: string | null
@@ -7972,6 +7975,7 @@ export type Database = {
           sla_cumprido?: boolean | null
           sla_minutos?: number | null
           status?: string | null
+          status_atualizado_em?: string | null
           tempo_entrega_minutos?: number | null
           tipo_venda?: string | null
           troco_para?: number | null
@@ -7982,6 +7986,7 @@ export type Database = {
         }
         Update: {
           agendado?: boolean
+          alerta_atraso_enviado_em?: string | null
           bairro_entrega?: string | null
           canal_venda?: string | null
           cep_entrega?: string | null
@@ -8014,6 +8019,7 @@ export type Database = {
           sla_cumprido?: boolean | null
           sla_minutos?: number | null
           status?: string | null
+          status_atualizado_em?: string | null
           tempo_entrega_minutos?: number | null
           tipo_venda?: string | null
           troco_para?: number | null
