@@ -1664,6 +1664,25 @@ export async function createOrder(
     }
 
     console.log("Order created:", ped.id);
+
+    // Notificar gestor da unidade via WhatsApp
+    try {
+      await notifyOrderConfirmed(supabase, config, {
+        pedidoId: ped.id,
+        unidadeId,
+        clienteNome: orderData.nome || clienteNome || senderName,
+        clienteTelefone: phone,
+        produtoNome: produto?.nome || "Produto",
+        quantidade: qty,
+        total,
+        formaPagamento: payMap[orderData.pagamento?.toLowerCase()] || (orderData.pagamento || "—"),
+        endereco: orderData.endereco || "",
+        agendado: !!isAgendado,
+      });
+    } catch (notifyErr) {
+      console.error("[notifyOrderConfirmed] erro (não bloqueante):", notifyErr);
+    }
+
     return { pedidoId: ped.id as string, entregadorId: (ped as any).entregador_id as string | null };
   } catch (e) {
     console.error("Create order error:", e);
