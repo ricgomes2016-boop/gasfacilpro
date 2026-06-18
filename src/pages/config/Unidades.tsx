@@ -456,6 +456,17 @@ export default function UnidadesConfig() {
                       <Input value={editingUnidade.email || ""} onChange={(e) => setField("email", e.target.value)} placeholder="email@exemplo.com" />
                     </div>
                   </div>
+                  <div className="grid gap-2">
+                    <Label>WhatsApp para notificação de pedidos confirmados</Label>
+                    <Input
+                      value={(editingUnidade as any).whatsapp_notificacao_pedido || ""}
+                      onChange={(e) => setField("whatsapp_notificacao_pedido" as any, e.target.value)}
+                      placeholder="5543999692765 (com DDI 55 + DDD)"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Sempre que a Bia confirmar um pedido nesta unidade, será enviado um WhatsApp para este número. Deixe vazio para não notificar.
+                    </p>
+                  </div>
                 </TabsContent>
 
                 {/* ENDEREÇO */}
