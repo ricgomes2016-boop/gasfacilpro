@@ -10,6 +10,7 @@ import {
   getOffHoursMessage,
   downloadAudio, transcribeAudio, getEntregadorLocation, collectBufferedMessages,
   identifyContact, buildLocalSalesFallbackReply,
+  stripPedidoConfirmadoBlock, processCancelTagInReply,
 } from "../_shared/bia-core.ts";
 
 const corsHeaders = {
