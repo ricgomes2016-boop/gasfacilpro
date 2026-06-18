@@ -1279,7 +1279,7 @@ export async function callAI(messages: any[]): Promise<string> {
       payload.system_instruction = { parts: [{ text: systemInstruction }] };
     }
 
-    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -1383,7 +1383,7 @@ export async function transcribeAudio(audioBase64: string, mimeType: string): Pr
   try {
     // 1. Tenta via Gemini Direto (Suporta áudio nativamente)
     if (GEMINI_API_KEY) {
-      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
