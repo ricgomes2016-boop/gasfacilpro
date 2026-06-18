@@ -10390,6 +10390,7 @@ export type Database = {
           telefone: string | null
           tipo: string
           updated_at: string
+          whatsapp_notificacao_pedido: string | null
         }
         Insert: {
           aliquota_cofins_padrao?: number | null
@@ -10450,6 +10451,7 @@ export type Database = {
           telefone?: string | null
           tipo?: string
           updated_at?: string
+          whatsapp_notificacao_pedido?: string | null
         }
         Update: {
           aliquota_cofins_padrao?: number | null
@@ -10510,6 +10512,7 @@ export type Database = {
           telefone?: string | null
           tipo?: string
           updated_at?: string
+          whatsapp_notificacao_pedido?: string | null
         }
         Relationships: [
           {
