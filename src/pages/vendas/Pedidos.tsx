@@ -910,29 +910,6 @@ export default function Pedidos() {
           </Card>
         </div>
 
-        {/* Product sold summary: follows current period/status/driver/search filters and ignores cancelled orders */}
-        {resumoProdutos.length > 0 &&
-        <Card className="modern-panel">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-2">
-              <CardTitle className="text-base flex items-center gap-2"><Package className="h-4 w-4 text-primary" />Produtos Vendidos</CardTitle>
-              <Badge variant="secondary">{totalItensVendidos.toLocaleString("pt-BR")} itens</Badge>
-            </div>
-            <p className="text-xs text-muted-foreground">Quantidade por produto considerando os filtros aplicados.</p>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-              {resumoProdutos.map((produto) =>
-              <div key={produto.nome} className="rounded-xl border bg-background px-3 py-2 min-w-0 sm:min-w-[150px]">
-                <p className="text-xs text-muted-foreground truncate" title={produto.nome}>{produto.nome}</p>
-                <p className="text-lg font-bold leading-tight">{produto.quantidade.toLocaleString("pt-BR")}</p>
-                <p className="text-[11px] text-muted-foreground truncate">R$ {produto.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-              </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-        }
 
         {/* #5 - Payment method breakdown */}
         {pagamentoContadores.length > 0 &&
