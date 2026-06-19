@@ -18,7 +18,9 @@ import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Calendar, ShoppingBag, Sparkles, Loader2, Send, Mic, MicOff, Camera, ImageIcon, PlusCircle, Check, User, Package as PackageIcon, CreditCard, CheckCircle, CalendarClock } from "lucide-react";
+import { Calendar, ShoppingBag, Sparkles, Loader2, Send, Mic, MicOff, Camera, ImageIcon, PlusCircle, Check, User, Package as PackageIcon, CreditCard, CheckCircle, CalendarClock, Keyboard } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNovaVendaWindows } from "@/contexts/NovaVendaWindowsContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -184,20 +186,20 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
               title={onStepClick && !isActive ? `Clique ou use ← → para ir para ${step.label}` : undefined}
               aria-label={`Etapa ${step.label}${step.done ? " (preenchida)" : ""}`}
               className={cn(
-                "flex items-center gap-1.5 rounded-full text-xs font-medium transition-colors disabled:cursor-not-allowed",
+                "flex items-center gap-1 rounded-full font-medium transition-colors disabled:cursor-not-allowed",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                 "venda-step-tab",
                 STEP_TONE_CLASS[step.id],
-                compact ? "px-2 py-1" : "px-2.5 py-1.5",
+                compact ? "px-1.5 py-0.5 text-[11px]" : "px-2.5 py-1.5 text-xs",
                 isActive || step.done ? "" : "bg-muted text-muted-foreground",
                 step.enabled && onStepClick && !isActive && "cursor-pointer hover:bg-muted/80 hover:ring-2 hover:ring-primary/30"
               )}
             >
-              {step.done ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
+              {step.done ? <Check className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} /> : <Icon className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />}
               <span className="hidden sm:inline">{step.label}</span>
             </button>
             {i < steps.length - 1 && (
-              <div className={cn("h-0.5 flex-1 rounded", step.done ? "bg-primary/30" : "bg-muted")} />
+              <div className={cn("h-px flex-1 rounded", step.done ? "bg-primary/30" : "bg-muted")} />
             )}
           </div>
         );
@@ -275,6 +277,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const [aiLoading, setAiLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [photoLoading, setPhotoLoading] = useState(false);
+  const [aiPopoverOpen, setAiPopoverOpen] = useState(false);
   const [agendarOpen, setAgendarOpen] = useState(false);
   const [dataAgendamento, setDataAgendamento] = useState("");
   const [horaAgendamento, setHoraAgendamento] = useState("08:00");
@@ -1317,18 +1320,40 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     </Card>
   );
 
-  const aiCommandCard = (
-    <Card className="venda-card venda-gasmais-card venda-tone-confirmar border-primary/40 bg-primary/5 shadow-primary/10">
-      <CardContent className="py-3 md:py-4">
+  const aiCommandPopover = (
+    <Popover open={aiPopoverOpen} onOpenChange={setAiPopoverOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            "gap-1.5 text-xs border-primary/40 bg-primary/5 text-primary hover:bg-primary/10",
+            (isListening || aiLoading || photoLoading) && "ring-2 ring-primary/40"
+          )}
+          title="Assistente IA — lançar venda por texto, voz ou foto"
+        >
+          {aiLoading || photoLoading ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Sparkles className={cn("h-3.5 w-3.5", isListening && "animate-pulse")} />
+          )}
+          <span className="hidden sm:inline">Assistente IA</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[min(92vw,440px)] p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkles className="h-4 w-4 text-primary shrink-0" />
+          <span className="text-sm font-semibold">Assistente IA</span>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary shrink-0" />
           <Input
+            autoFocus
             placeholder='Ex: "2 P13 para Maria, Rua Ceará 30, Centro"'
             value={aiCommand}
             onChange={(e) => setAiCommand(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !aiLoading && handleAiCommand()}
             className="bg-background flex-1 min-w-0"
-              data-venda-enter-skip
+            data-venda-enter-skip
             disabled={aiLoading || isListening}
           />
           <div className="flex items-center gap-1">
@@ -1347,13 +1372,18 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             </Button>
           </div>
         </div>
-        <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
-        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
-        <p className="text-xs font-medium text-foreground mt-2 ml-7">
+        <p className="text-[11px] font-medium text-muted-foreground mt-2">
           {photoLoading ? "📸 Processando foto..." : isListening ? "🔴 Ouvindo... Fale o comando." : "💡 Digite, 🎤 dite, ou 📷 tire foto de anotações."}
         </p>
-      </CardContent>
-    </Card>
+      </PopoverContent>
+    </Popover>
+  );
+
+  const hiddenAiInputs = (
+    <>
+      <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
+    </>
   );
 
   const vendaContent = (
@@ -1361,7 +1391,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
       <div className="p-3 md:p-4 space-y-3 md:space-y-4"> 
         <CaixaBloqueadoBanner />
 
-        <div className="space-y-3 rounded-lg border border-border/70 bg-card p-3 shadow-lg shadow-foreground/10">
+        <div className="space-y-2 rounded-lg border border-border/70 bg-card p-2.5 shadow-lg shadow-foreground/10">
           <VendaStepper
             customer={customer}
             itens={itens}
@@ -1373,23 +1403,43 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             compact
           />
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <Badge variant="outline" className="text-xs border-primary/30 bg-primary/5 text-primary">
+            <Badge variant="outline" className="text-[11px] h-6 px-2 border-primary/30 bg-primary/5 text-primary">
               #{proximoNumero ?? "—"}
             </Badge>
-            <div className="flex items-center gap-2">
-              <span className="hidden md:inline text-[10px] text-muted-foreground font-medium">
-                F2 Novo · F3 Finalizar · F4 Agendar · F5 Cliente · Enter Próximo
-              </span>
-              <Button variant="ghost" size="sm" onClick={toggleViewMode} className="h-8 px-2 text-xs font-semibold text-foreground hover:text-primary">
-                {useNewView ? "Versão antiga" : "Versão nova"}
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => openNovaVendaWindow({})} className="gap-1.5 text-xs">
+            <div className="flex items-center gap-1.5">
+              {aiCommandPopover}
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label="Atalhos de teclado">
+                      <Keyboard className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" align="end" className="text-[11px]">
+                    F2 Novo · F3 Finalizar · F4 Agendar · F5 Cliente · Enter Próximo
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={toggleViewMode} className="h-7 px-2 text-[11px] font-semibold text-foreground hover:text-primary">
+                      {useNewView ? "Antiga" : "Nova"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-[11px]">
+                    Alternar versão da tela
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <Button variant="outline" size="sm" onClick={() => openNovaVendaWindow({})} className="h-7 gap-1 text-[11px]">
                 <PlusCircle className="h-3.5 w-3.5" />
-                Nova Venda
+                <span className="hidden sm:inline">Nova Venda</span>
               </Button>
             </div>
           </div>
         </div>
+        {hiddenAiInputs}
 
 
         {useNewView ? (
@@ -1397,7 +1447,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             {activeStep === "cliente" && (
               <div className="venda-step-panel grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]" onKeyDown={handleStepEnterNavigation}>
                 <div className="space-y-3 md:space-y-4 min-w-0">
-                  {aiCommandCard}
+                  
                   {metaCard}
                   <div className="venda-tone-cliente"><CustomerSearch value={customer} onChange={setCustomer} /></div>
                 </div>
@@ -1430,7 +1480,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           </div>
         ) : (
           <>
-            {aiCommandCard}
+            
             <div className="grid gap-3 md:gap-4 lg:grid-cols-3">
               <div className="lg:col-span-2 space-y-3 md:space-y-4">
                 {metaCard}
