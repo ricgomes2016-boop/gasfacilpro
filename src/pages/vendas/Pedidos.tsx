@@ -29,8 +29,12 @@ import {
   User, RefreshCw, MoreHorizontal, Edit, ArrowRightLeft, Printer,
   Share2, DollarSign, Trash2, Lock, MessageCircle, CreditCard,
   ChevronLeft, ChevronRight, CheckSquare, Building2, Pencil, MoveRight, Map as MapIcon,
-  Download, Package, Calendar } from
+  Download, Package, Calendar, SlidersHorizontal } from
 "lucide-react";
+import {
+  ResponsiveDialog, ResponsiveDialogContent, ResponsiveDialogHeader,
+  ResponsiveDialogTitle, ResponsiveDialogTrigger, ResponsiveDialogFooter } from
+"@/components/ui/responsive-dialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { SugestaoEntregador } from "@/components/sugestao/SugestaoEntregador";
@@ -117,6 +121,7 @@ export default function Pedidos() {
   const [pedidoView, setPedidoView] = useState<PedidoFormatado | null>(null);
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroEntregador, setFiltroEntregador] = useState<string>("todos");
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [busca, setBusca] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
   const { toast } = useToast();
@@ -678,10 +683,94 @@ export default function Pedidos() {
             <MapIcon className="h-4 w-4 mr-2 shrink-0" />
             <span className="truncate">Mapa Operacional</span>
           </Button>
+          {(() => {
+            const filtrosAtivos =
+              (busca ? 1 : 0) +
+              (filtroStatus !== "todos" ? 1 : 0) +
+              (filtroEntregador !== "todos" ? 1 : 0) +
+              (dataInicio !== hoje || dataFim !== hoje ? 1 : 0);
+            return (
+              <Button variant="outline" className="h-10 min-w-0 relative" onClick={() => setFiltrosAbertos(true)}>
+                <SlidersHorizontal className="h-4 w-4 mr-2 shrink-0" />
+                <span className="truncate">Mais Filtros</span>
+                {filtrosAtivos > 0 && (
+                  <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">{filtrosAtivos}</Badge>
+                )}
+              </Button>
+            );
+          })()}
           <Button className="h-10 min-w-0 bg-accent text-accent-foreground shadow-accent/25 hover:bg-accent/90 hover:shadow-accent/30" onClick={() => navigate("/vendas/nova")}>
             <span className="truncate">+ Novo Pedido</span>
           </Button>
         </div>
+
+        {/* Filters Dialog */}
+        <ResponsiveDialog open={filtrosAbertos} onOpenChange={setFiltrosAbertos}>
+          <ResponsiveDialogContent className="sm:max-w-lg">
+            <ResponsiveDialogHeader>
+              <ResponsiveDialogTitle>Filtros</ResponsiveDialogTitle>
+            </ResponsiveDialogHeader>
+            <div className="flex flex-col gap-3 py-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar nº pedido, cliente, endereço..."
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  className="h-10 pl-9" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground block">Início</label>
+                  <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="h-10 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground block">Fim</label>
+                  <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="h-10 text-sm" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground block">Status</label>
+                <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                  <SelectTrigger className="h-10 text-sm">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos Status</SelectItem>
+                    <SelectItem value="agendado">📅 Agendados</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="em_rota">Em Rota</SelectItem>
+                    <SelectItem value="entregue">Entregue</SelectItem>
+                    <SelectItem value="finalizado">Finalizado</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground block">Entregador</label>
+                <Select value={filtroEntregador} onValueChange={setFiltroEntregador}>
+                  <SelectTrigger className="h-10 text-sm">
+                    <SelectValue placeholder="Entregador" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos Entregadores</SelectItem>
+                    <SelectItem value="sem_entregador">Sem entregador</SelectItem>
+                    {entregadoresNoPeriodo.map((nome) =>
+                      <SelectItem key={nome} value={nome}>{nome}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <ResponsiveDialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => {setBusca("");setDataInicio(hoje);setDataFim(hoje);setFiltroStatus("todos");setFiltroEntregador("todos");}}>
+                <RefreshCw className="h-3.5 w-3.5 mr-1" /> Limpar
+              </Button>
+              <Button onClick={() => setFiltrosAbertos(false)}>Aplicar</Button>
+            </ResponsiveDialogFooter>
+          </ResponsiveDialogContent>
+        </ResponsiveDialog>
+
 
         {/* Alert for old pending orders */}
         {(() => {
@@ -783,61 +872,6 @@ export default function Pedidos() {
           </Card>
         }
 
-        {/* Filters - #6 added entregador filter */}
-          <Card className="modern-panel">
-          <CardContent className="pt-3 md:pt-6">
-            <div className="flex flex-col gap-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar nº pedido, cliente, endereço..."
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                  className="h-9 pl-9" />
-                
-              </div>
-              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 items-end">
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground block">Início</label>
-                  <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="h-9 text-xs" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground block">Fim</label>
-                  <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="h-9 text-xs" />
-                </div>
-                <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos Status</SelectItem>
-                    <SelectItem value="agendado">📅 Agendados</SelectItem>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="em_rota">Em Rota</SelectItem>
-                    <SelectItem value="entregue">Entregue</SelectItem>
-                    <SelectItem value="finalizado">Finalizado</SelectItem>
-                    <SelectItem value="cancelado">Cancelado</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={filtroEntregador} onValueChange={setFiltroEntregador}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Entregador" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos Entregadores</SelectItem>
-                    <SelectItem value="sem_entregador">Sem entregador</SelectItem>
-                    {entregadoresNoPeriodo.map((nome) =>
-                    <SelectItem key={nome} value={nome}>{nome}</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" size="sm" className="h-9 col-span-2 sm:col-span-1" onClick={() => {setBusca("");setDataInicio(hoje);setDataFim(hoje);setFiltroStatus("todos");setFiltroEntregador("todos");}}>
-                  <RefreshCw className="h-3.5 w-3.5 mr-1" /> Limpar
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Stats - #3 responsive grid */}
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
