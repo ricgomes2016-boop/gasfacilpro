@@ -912,21 +912,6 @@ export default function Pedidos() {
 
 
 
-        {/* #5 - Payment method breakdown */}
-        {pagamentoContadores.length > 0 &&
-        <div className="flex flex-wrap gap-2">
-            {pagamentoContadores.map(([method, valor]) =>
-          <Badge key={method} variant="outline" className="gap-1.5 py-1.5 px-3 text-xs">
-                <CreditCard className="h-3 w-3" />
-                {method}: R$ {valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                <span className="text-muted-foreground">
-                  ({contadores.total > 0 ? Math.round(valor / contadores.total * 100) : 0}%)
-                </span>
-              </Badge>
-          )}
-          </div>
-        }
-
         {/* #7 - Batch actions bar */}
         {selecionados.size > 0 &&
         <Card className="modern-panel border-primary/25 bg-primary/5">
@@ -1239,6 +1224,39 @@ export default function Pedidos() {
           </CardContent>
         </Card>
         }
+
+        {/* Resumo Financeiro - breakdown por forma de pagamento */}
+        {pagamentoContadores.length > 0 &&
+        <Card className="modern-panel">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-base flex items-center gap-2"><CreditCard className="h-4 w-4 text-primary" />Resumo Financeiro</CardTitle>
+              <Badge variant="secondary">R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">Recebimentos por forma de pagamento (ignora cancelados).</p>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {pagamentoContadores.map(([method, valor]) => {
+                const pct = contadores.total > 0 ? Math.round(valor / contadores.total * 100) : 0;
+                return (
+                  <div key={method} className="rounded-xl border bg-background px-3 py-2 min-w-0">
+                    <p className="text-xs text-muted-foreground truncate capitalize" title={method}>{method}</p>
+                    <p className="text-lg font-bold leading-tight">R$ {valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                    <p className="text-[11px] text-muted-foreground">{pct}% do total</p>
+                  </div>
+                );
+              })}
+              <div className="rounded-xl border border-success/40 bg-success/5 px-3 py-2 min-w-0">
+                <p className="text-xs text-muted-foreground truncate">Total Geral</p>
+                <p className="text-lg font-bold leading-tight text-success">R$ {contadores.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                <p className="text-[11px] text-muted-foreground">100%</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        }
+
 
 
         <PedidoViewDialog pedido={pedidoView} open={viewDialogAberto} onOpenChange={setViewDialogAberto} onCancelar={cancelarPedido} />

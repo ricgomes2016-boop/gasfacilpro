@@ -1,23 +1,18 @@
-## Otimizar tela Vendas / Pedidos — Filtros em popup
+## Criar card "Resumo Financeiro" abaixo de Produtos Vendidos
 
-Mover o card de busca/filtros para um popup acionado por um novo botão **"Mais Filtros"** colocado ao lado do botão **+ Novo Pedido**.
+Em `src/pages/vendas/Pedidos.tsx`:
 
-### Mudanças em `src/pages/vendas/Pedidos.tsx`
+1. **Remover** o bloco atual de badges de pagamento (linhas 915-928) — `{pagamentoContadores.length > 0 && <div className="flex flex-wrap gap-2">...</div>}`.
 
-1. **Remover** o `Card` de filtros (linhas ~786–840) da posição atual.
-2. **Adicionar botão "Mais Filtros"** na barra de ações superior (linhas ~671–684), à esquerda do botão "+ Novo Pedido":
-   - Variante `outline`, ícone `SlidersHorizontal` (lucide).
-   - Mostra um badge com a contagem de filtros ativos quando `busca`, `filtroStatus !== "todos"`, `filtroEntregador !== "todos"` ou as datas forem diferentes de hoje.
-3. **Criar Dialog/Popup** (usando `ResponsiveDialog` para boa UX em mobile, conforme padrão do projeto) que envolve exatamente o mesmo conteúdo do card removido:
-   - Campo de busca
-   - Início / Fim
-   - Select Status
-   - Select Entregador
-   - Botão Limpar
-   - Adicionar botão "Aplicar / Fechar" no rodapé do dialog.
-4. **Estado**: nenhum estado novo de dados — só `const [filtrosAbertos, setFiltrosAbertos] = useState(false)`. Lógica de filtragem (`pedidosFiltrados`, `useEffect` de paginação) permanece intacta.
-5. **Mobile**: o botão "Mais Filtros" entra no mesmo `flex-wrap` da barra de ações, então já se adapta. O `ResponsiveDialog` vira drawer no mobile (padrão do projeto).
+2. **Inserir** um novo `<Card>` "Resumo Financeiro" logo após o card "Produtos Vendidos" (após o fechamento do bloco em ~linha 1220), seguindo o mesmo estilo visual (`modern-panel`, `CardHeader` com `CardTitle` `text-base flex items-center gap-2` + ícone `CreditCard`, `CardContent` em grid).
 
-### Não muda
-- Lógica de pedidos, hooks, KPIs, tabela, alertas e sugestão IA permanecem inalterados.
-- Nenhuma mudança em rotas, contextos ou backend.
+3. **Conteúdo do card:**
+   - Título: "Resumo Financeiro" com ícone `CreditCard`.
+   - Grid responsivo (`grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3`) listando cada forma de pagamento de `pagamentoContadores`:
+     - Nome da forma (capitalizado)
+     - Valor: `R$ X,XX`
+     - Percentual sobre o total
+   - Linha final destacada com **Total Geral** (`contadores.total`).
+   - Renderizar somente quando `pagamentoContadores.length > 0`.
+
+Sem alterações em lógica de negócio — apenas reorganização visual dos dados já calculados em `pagamentoContadores` e `contadores.total`.
