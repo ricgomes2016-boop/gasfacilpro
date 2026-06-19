@@ -186,20 +186,20 @@ function VendaStepper({ customer, itens, pagamentos, totalVenda, entregadorSelec
               title={onStepClick && !isActive ? `Clique ou use ← → para ir para ${step.label}` : undefined}
               aria-label={`Etapa ${step.label}${step.done ? " (preenchida)" : ""}`}
               className={cn(
-                "flex items-center gap-1.5 rounded-full text-xs font-medium transition-colors disabled:cursor-not-allowed",
+                "flex items-center gap-1 rounded-full font-medium transition-colors disabled:cursor-not-allowed",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                 "venda-step-tab",
                 STEP_TONE_CLASS[step.id],
-                compact ? "px-2 py-1" : "px-2.5 py-1.5",
+                compact ? "px-1.5 py-0.5 text-[11px]" : "px-2.5 py-1.5 text-xs",
                 isActive || step.done ? "" : "bg-muted text-muted-foreground",
                 step.enabled && onStepClick && !isActive && "cursor-pointer hover:bg-muted/80 hover:ring-2 hover:ring-primary/30"
               )}
             >
-              {step.done ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
+              {step.done ? <Check className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} /> : <Icon className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} />}
               <span className="hidden sm:inline">{step.label}</span>
             </button>
             {i < steps.length - 1 && (
-              <div className={cn("h-0.5 flex-1 rounded", step.done ? "bg-primary/30" : "bg-muted")} />
+              <div className={cn("h-px flex-1 rounded", step.done ? "bg-primary/30" : "bg-muted")} />
             )}
           </div>
         );
