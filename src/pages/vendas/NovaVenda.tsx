@@ -1320,18 +1320,40 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     </Card>
   );
 
-  const aiCommandCard = (
-    <Card className="venda-card venda-gasmais-card venda-tone-confirmar border-primary/40 bg-primary/5 shadow-primary/10">
-      <CardContent className="py-3 md:py-4">
+  const aiCommandPopover = (
+    <Popover open={aiPopoverOpen} onOpenChange={setAiPopoverOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn(
+            "gap-1.5 text-xs border-primary/40 bg-primary/5 text-primary hover:bg-primary/10",
+            (isListening || aiLoading || photoLoading) && "ring-2 ring-primary/40"
+          )}
+          title="Assistente IA — lançar venda por texto, voz ou foto"
+        >
+          {aiLoading || photoLoading ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Sparkles className={cn("h-3.5 w-3.5", isListening && "animate-pulse")} />
+          )}
+          <span className="hidden sm:inline">Assistente IA</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[min(92vw,440px)] p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkles className="h-4 w-4 text-primary shrink-0" />
+          <span className="text-sm font-semibold">Assistente IA</span>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary shrink-0" />
           <Input
+            autoFocus
             placeholder='Ex: "2 P13 para Maria, Rua Ceará 30, Centro"'
             value={aiCommand}
             onChange={(e) => setAiCommand(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !aiLoading && handleAiCommand()}
             className="bg-background flex-1 min-w-0"
-              data-venda-enter-skip
+            data-venda-enter-skip
             disabled={aiLoading || isListening}
           />
           <div className="flex items-center gap-1">
@@ -1350,13 +1372,18 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             </Button>
           </div>
         </div>
-        <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
-        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
-        <p className="text-xs font-medium text-foreground mt-2 ml-7">
+        <p className="text-[11px] font-medium text-muted-foreground mt-2">
           {photoLoading ? "📸 Processando foto..." : isListening ? "🔴 Ouvindo... Fale o comando." : "💡 Digite, 🎤 dite, ou 📷 tire foto de anotações."}
         </p>
-      </CardContent>
-    </Card>
+      </PopoverContent>
+    </Popover>
+  );
+
+  const hiddenAiInputs = (
+    <>
+      <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
+      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handlePhotoSales(file); e.target.value = ""; }} />
+    </>
   );
 
   const vendaContent = (
