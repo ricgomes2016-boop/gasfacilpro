@@ -1,49 +1,47 @@
-## Otimização Nova Venda — aiCommandCard + Stepper
+## Objetivo
+Alinhar a tela `Nova Venda` ao layout da imagem: cabeçalho com título + breadcrumb, coluna direita com **Resumo do Pedido** + **Ações Rápidas**, stepper movido para o **rodapé** com botão "Próxima etapa", e formulário do Cliente em grid de 4 colunas.
 
-### 1. aiCommandCard → popover acionado por botão
+## Mudanças em `src/pages/vendas/NovaVenda.tsx`
 
-O card do Assistente IA (linhas 1320-1357 de `src/pages/vendas/NovaVenda.tsx`) ocupa uma faixa larga no topo do passo "Cliente" e é pouco usado.
+### 1. Cabeçalho da página (novo)
+Acima do card do stepper, adicionar bloco com:
+- Título grande **Nova Venda** (gradiente primary, igual à imagem) + badge "Build {APP_BUILD}".
+- Breadcrumb `Empresa › Unidade › Unidade atual` usando dados de `EmpresaContext`/`UnidadeContext`.
+- À direita: botões **Assistente IA** (popover existente), **Antiga/Nova** e **Nova Venda** (já existem; só reposicionar nesta linha).
 
-**Solução:** transformar em um botão "Assistente IA" (ícone `Sparkles` + label) colocado na **mesma linha do stepper/atalhos** (linha 1379, ao lado do "Nova Venda" e badge `#numero`).
+### 2. Stepper para o rodapé
+- Remover o bloco do stepper que hoje fica no topo (linhas ~1394-1441).
+- Criar `vendaFooter`: barra fixa no fim do `vendaContent` (`sticky bottom-0` no desktop, `border-t bg-card`), contendo:
+  - `<VendaStepper compact …/>` ocupando o espaço flexível.
+  - Botão **Próxima etapa →** à direita; quando `activeStep === "confirmar"` o botão muda para **Finalizar venda** chamando `handleFinalizar`. Avanço calcula próximo `VendaStepId` respeitando `canOpenStep`.
+- `Badge #numero`, atalhos (Keyboard tooltip) e botão "Nova Venda/Antiga" são movidos para o cabeçalho do passo 1 (item 1) em vez de ficarem no stepper.
 
-- Clique abre um `Popover` (`@/components/ui/popover`) alinhado à direita, largura ~`w-[420px]`.
-- Conteúdo do popover = exatamente o conteúdo atual do `aiCommandCard`:
-  - Input de comando (`aiCommand`)
-  - Botões: Mic, Galeria, Câmera, Enviar
-  - Texto de dica ("💡 Digite, 🎤 dite, ou 📷 tire foto…")
-  - Inputs file ocultos (`photoInputRef`, `cameraInputRef`)
-- Mantém todos os handlers existentes: `handleAiCommand`, `startListening`, `stopListening`, `handlePhotoSales`, `aiLoading`, `isListening`, `photoLoading`.
-- O botão de abrir mostra estado: ícone pulsa quando `isListening`, spinner quando `aiLoading`/`photoLoading`, badge dot quando há texto digitado pendente.
-- Auto-focus no input ao abrir o popover; auto-fechar após `handleAiCommand` resolver com sucesso.
-- Remover o `{aiCommandCard}` das linhas 1400 e 1433 (tanto na versão nova quanto na antiga).
+### 3. Coluna direita do passo Cliente
+Ampliar a sidebar (`xl:grid-cols-[minmax(0,1fr)_360px]` → manter ~360-400px) e empilhar três cards:
+1. **Histórico do Cliente** (já existe — `<CustomerHistory/>`).
+2. **Resumo do Pedido** (novo card): exibe `Itens` (qtd), `Subtotal`, `Descontos`, `Taxas`, `Total` calculados a partir de `itens`/`pagamentos` (apenas leitura — sem alterar lógica de negócio). Total em destaque com cor primary.
+3. **Ações rápidas** (novo card): três botões — `Adicionar produto` (vai para passo `produtos`), `Aplicar desconto` (vai para `pagamento`), `Observação` (foca textarea de observação).
 
-**Ganho:** ~80px verticais recuperados no topo da tela.
+A mesma sidebar passa a ser exibida em **todos os passos** (não só no Cliente), para manter o resumo sempre visível como na imagem. O conteúdo do passo continua na coluna esquerda.
 
-### 2. Stepper mais compacto
+### 4. Formulário do Cliente — grid em 4 colunas
+A imagem mostra uma estrutura específica: linha 1 com **Data de entrega · Canal de venda · Telefone · Buscar cliente**; linha 2 com **Nome do cliente + Novo cliente + Salvar cliente**; depois **Endereço/Número/Mapa**, **CEP/Bairro/Complemento** e **Observação do pedido**.
 
-Arquivo: `src/components/vendas/VendaStepper.tsx` (modo `compact` já existe).
+Hoje esses campos vivem dentro de `CustomerSearch.tsx` (944 linhas) e do `metaCard`. Para evitar reescrever o `CustomerSearch`, faremos apenas ajustes **visuais/contêiner** em `NovaVenda.tsx`:
+- Renderizar `metaCard` e `CustomerSearch` dentro de um único `<Card>` com cabeçalho **Cliente** (ícone `User`) — mesma “casca” da imagem.
+- Ajustar o `metaCard` para 4 colunas (`md:grid-cols-4`) incluindo Telefone e Busca, apenas se for trivial; caso contrário manter 2 colunas. **Sem mudar lógica.**
+- Caso o usuário queira o grid 4-colunas exato da imagem, isso exigirá refatorar `CustomerSearch` — fora do escopo desta etapa, aviso na resposta final.
 
-- Reduzir altura/padding do modo compact: `py-2` → `py-1.5`, ícones `h-4 w-4` → `h-3.5 w-3.5`, textos `text-xs` → `text-[11px]`.
-- Diminuir gap entre steps (`gap-2` → `gap-1`) e separador/connector mais fino.
-- Em telas `<sm`: mostrar apenas ícone + check (esconder label do step).
-- Reduzir `space-y-3` do wrapper externo (linha 1364 em `NovaVenda.tsx`) para `space-y-2`, juntando stepper + linha de ações com menos respiro.
-- Trocar a string longa de atalhos (`F2 Novo · F3 Finalizar · F4 Agendar · F5 Cliente · Enter Próximo`, linha 1381) por um ícone `Keyboard` com `Tooltip` exibindo os atalhos no hover — economiza ~280px horizontais para acomodar o novo botão "Assistente IA".
-- Botão "Versão antiga/nova" (linha 1383) vira ícone-only com tooltip.
+### 5. Sem alterações
+- Lógica de negócio, validações, atalhos F2-F5, draft, navegação e o `CustomerSearch` permanecem intactos.
+- `metaCard` continua existindo (não foi removido conforme pedido anterior).
+- Versão antiga (`useNewView=false`) não muda.
 
-### 3. Sem mudanças
+## Arquivos afetados
+- `src/pages/vendas/NovaVenda.tsx` (cabeçalho, sidebar, footer com stepper, “Próxima etapa”).
 
-- `metaCard` (Data de Entrega + Canal de Venda) permanece exatamente como está.
-- Toda lógica de negócio, atalhos de teclado, validações, draft, navegação entre passos — inalterados.
-- A versão antiga (`useNewView=false`) recebe o mesmo botão na barra superior.
+## Pergunta antes de implementar
+A coluna **Cliente** do mock tem layout interno bem diferente do `CustomerSearch` atual (4 inputs na 1ª linha, botões "Novo cliente"/"Salvar cliente" ao lado do nome, "Mapa" como botão ao lado do número). Quer que eu:
 
-### Detalhes técnicos
-
-- `Popover` / `PopoverTrigger` / `PopoverContent` já existem em `@/components/ui/popover`.
-- Estado `aiPopoverOpen` local no componente; fechado por padrão.
-- O botão fica visível em todos os passos (não só "cliente"), permitindo lançar venda por IA a qualquer momento.
-- Inputs `<input type="file">` ocultos saem do popover e ficam no nível do componente raiz (popover desmonta ao fechar; refs precisam persistir).
-
-### Arquivos afetados
-
-- `src/pages/vendas/NovaVenda.tsx` — remover renderização do `aiCommandCard`, adicionar `AiCommandPopover` na barra superior, mover inputs file.
-- `src/components/vendas/VendaStepper.tsx` — densificar modo compact.
+- **(A)** faça apenas os ajustes externos (cabeçalho, sidebar com Resumo/Ações, stepper no rodapé) e mantenha o `CustomerSearch` como está hoje; ou
+- **(B)** refatore também o `CustomerSearch` para ficar 100 % igual ao mock (mais arriscado, mexe em ~944 linhas)?
