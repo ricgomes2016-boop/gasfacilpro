@@ -18,7 +18,8 @@ import { Input } from "@/components/ui/input";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Calendar, ShoppingBag, Sparkles, Loader2, Send, Mic, MicOff, Camera, ImageIcon, PlusCircle, Check, User, Package as PackageIcon, CreditCard, CheckCircle, CalendarClock, Keyboard } from "lucide-react";
+import { Calendar, ShoppingBag, Sparkles, Loader2, Send, Mic, MicOff, Camera, ImageIcon, PlusCircle, Check, User, Package as PackageIcon, CreditCard, CheckCircle, CalendarClock, Keyboard, ChevronRight, Receipt, Tag, FileText, ArrowRight, Zap } from "lucide-react";
+import { APP_BUILD_LABEL } from "@/lib/app-build";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNovaVendaWindows } from "@/contexts/NovaVendaWindowsContext";
@@ -1386,97 +1387,158 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
     </>
   );
 
-  const vendaContent = (
-    <>
-      <div className="p-3 md:p-4 space-y-3 md:space-y-4"> 
-        <CaixaBloqueadoBanner />
+  // Resumo financeiro derivado (visualização)
+  const totalDescontos = pagamentos.reduce((acc, p: any) => acc + (Number(p.desconto) || 0), 0);
+  const totalTaxas = pagamentos.reduce((acc, p: any) => acc + (Number(p.taxa) || 0), 0);
+  const totalSubtotal = totalVenda + totalDescontos - totalTaxas;
+  const qtdItens = itens.reduce((acc, it) => acc + (it.quantidade || 0), 0);
 
-        <div className="space-y-2 rounded-lg border border-border/70 bg-card p-2.5 shadow-lg shadow-foreground/10">
-          <VendaStepper
-            customer={customer}
-            itens={itens}
-            pagamentos={pagamentos}
-            totalVenda={totalVenda}
-            entregadorSelecionado={entregadorPreenchido}
-            activeStep={useNewView ? activeStep : undefined}
-            onStepClick={useNewView ? (step) => canOpenStep(step) && setActiveStep(step) : undefined}
-            compact
-          />
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <Badge variant="outline" className="text-[11px] h-6 px-2 border-primary/30 bg-primary/5 text-primary">
-              #{proximoNumero ?? "—"}
-            </Badge>
-            <div className="flex items-center gap-1.5">
-              {aiCommandPopover}
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" aria-label="Atalhos de teclado">
-                      <Keyboard className="h-3.5 w-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" align="end" className="text-[11px]">
-                    F2 Novo · F3 Finalizar · F4 Agendar · F5 Cliente · Enter Próximo
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" onClick={toggleViewMode} className="h-7 px-2 text-[11px] font-semibold text-foreground hover:text-primary">
-                      {useNewView ? "Antiga" : "Nova"}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-[11px]">
-                    Alternar versão da tela
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <Button variant="outline" size="sm" onClick={() => openNovaVendaWindow({})} className="h-7 gap-1 text-[11px]">
-                <PlusCircle className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Nova Venda</span>
-              </Button>
-            </div>
+  const focusObservacao = () => {
+    const el = document.querySelector<HTMLTextAreaElement>('textarea[name="observacao"], textarea[placeholder*="bserva"]');
+    if (el) { el.focus(); el.scrollIntoView({ behavior: "smooth", block: "center" }); }
+  };
+
+  const resumoCard = (
+    <Card className="venda-card border-primary/20">
+      <CardContent className="p-3 md:p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Receipt className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">Resumo do Pedido</span>
+        </div>
+        <div className="space-y-1 text-xs">
+          <div className="flex justify-between"><span className="text-muted-foreground">Itens</span><span className="font-medium">{qtdItens}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="font-medium">R$ {totalSubtotal.toFixed(2)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Descontos</span><span className="font-medium text-emerald-600">R$ {totalDescontos.toFixed(2)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Taxas</span><span className="font-medium">R$ {totalTaxas.toFixed(2)}</span></div>
+          <div className="border-t mt-2 pt-2 flex justify-between items-center">
+            <span className="text-sm font-semibold">Total</span>
+            <span className="text-lg font-bold text-primary">R$ {totalVenda.toFixed(2)}</span>
           </div>
         </div>
+      </CardContent>
+    </Card>
+  );
+
+  const acoesRapidasCard = (
+    <Card className="venda-card border-border/70">
+      <CardContent className="p-3 md:p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Zap className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">Ações rápidas</span>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5">
+          <Button variant="outline" size="sm" className="h-auto py-2 flex-col gap-1 text-[11px]" onClick={() => canOpenStep("produtos") && setActiveStep("produtos")}>
+            <PackageIcon className="h-4 w-4" />
+            <span className="leading-tight">Adicionar produto</span>
+          </Button>
+          <Button variant="outline" size="sm" className="h-auto py-2 flex-col gap-1 text-[11px]" onClick={() => canOpenStep("pagamento") && setActiveStep("pagamento")}>
+            <Tag className="h-4 w-4" />
+            <span className="leading-tight">Aplicar desconto</span>
+          </Button>
+          <Button variant="outline" size="sm" className="h-auto py-2 flex-col gap-1 text-[11px]" onClick={() => { setActiveStep("cliente"); setTimeout(focusObservacao, 60); }}>
+            <FileText className="h-4 w-4" />
+            <span className="leading-tight">Observação</span>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const sidebar = (
+    <div className="space-y-3 md:space-y-4 min-w-0 xl:sticky xl:top-4 self-start">
+      <div className="venda-tone-cliente"><CustomerHistory clienteId={customer.id} /></div>
+      {resumoCard}
+      {acoesRapidasCard}
+    </div>
+  );
+
+  const isLastStep = activeStep === "confirmar";
+  const nextStepId = VENDA_STEPS[VENDA_STEPS.indexOf(activeStep) + 1];
+  const canAdvance = !!nextStepId && canOpenStep(nextStepId);
+
+  const pageHeader = (
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Nova Venda</h1>
+          <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-border/60 text-muted-foreground font-normal">{APP_BUILD_LABEL}</Badge>
+          <Badge variant="outline" className="text-[11px] h-6 px-2 border-primary/30 bg-primary/5 text-primary">#{proximoNumero ?? "—"}</Badge>
+        </div>
+        <nav className="flex items-center gap-1 text-xs text-muted-foreground mt-1" aria-label="Breadcrumb">
+          <span>{empresa?.nome || "Empresa"}</span>
+          <ChevronRight className="h-3 w-3" />
+          <span>{unidadeAtual?.nome || "Unidade"}</span>
+          <ChevronRight className="h-3 w-3" />
+          <span className="text-primary font-medium">{unidadeAtual?.nome || "Atual"}</span>
+        </nav>
+      </div>
+      <div className="flex items-center gap-1.5">
+        {aiCommandPopover}
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" aria-label="Atalhos de teclado">
+                <Keyboard className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" align="end" className="text-[11px]">
+              F2 Novo · F3 Finalizar · F4 Agendar · F5 Cliente · Enter Próximo
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <Button variant="outline" size="sm" onClick={toggleViewMode} className="h-8 px-2 text-[11px] gap-1">
+          <PlusCircle className="h-3.5 w-3.5" />
+          {useNewView ? "Antiga" : "Nova"}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => openNovaVendaWindow({})} className="h-8 gap-1 text-[11px]">
+          <PlusCircle className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Nova Venda</span>
+        </Button>
+      </div>
+    </div>
+  );
+
+  const vendaContent = (
+    <>
+      <div className="p-3 md:p-4 space-y-3 md:space-y-4 pb-20"> 
+        <CaixaBloqueadoBanner />
+
+        {pageHeader}
         {hiddenAiInputs}
 
 
         {useNewView ? (
-          <div className="space-y-3 md:space-y-4">
-            {activeStep === "cliente" && (
-              <div className="venda-step-panel grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]" onKeyDown={handleStepEnterNavigation}>
-                <div className="space-y-3 md:space-y-4 min-w-0">
-                  
+          <div className="grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="space-y-3 md:space-y-4 min-w-0" onKeyDown={handleStepEnterNavigation}>
+              {activeStep === "cliente" && (
+                <div className="venda-step-panel space-y-3 md:space-y-4">
                   {metaCard}
                   <div className="venda-tone-cliente"><CustomerSearch value={customer} onChange={setCustomer} /></div>
                 </div>
-                <div className="venda-tone-cliente min-w-0 xl:sticky xl:top-4 self-start">
-                  <CustomerHistory clienteId={customer.id} />
+              )}
+              {activeStep === "produtos" && (
+                <div className="venda-step-panel w-full">
+                  <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
                 </div>
-              </div>
-            )}
-            {activeStep === "produtos" && (
-              <div className="venda-step-panel w-full" onKeyDown={handleStepEnterNavigation}>
-                <ProductSearch itens={itens} onChange={setItens} unidadeId={unidadeAtual?.id} clienteId={customer.id} />
-              </div>
-            )}
-            {activeStep === "pagamento" && (
-              <div className="venda-step-panel venda-tone-pagamento w-full" onKeyDown={handleStepEnterNavigation}>
-                <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} />
-              </div>
-            )}
-            {activeStep === "entregador" && (
-              <div className="venda-step-panel venda-tone-entregador w-full">
-                <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} onVendedorAuto={handleVendedorAuto} endereco={customer.endereco} />
-                <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
-              </div>
-            )}
-            {activeStep === "confirmar" && (
-              <div className="venda-step-panel venda-tone-confirmar w-full">
-                <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
-              </div>
-            )}
+              )}
+              {activeStep === "pagamento" && (
+                <div className="venda-step-panel venda-tone-pagamento w-full">
+                  <PaymentSection pagamentos={pagamentos} onChange={setPagamentos} totalVenda={totalVenda} itens={itens} />
+                </div>
+              )}
+              {activeStep === "entregador" && (
+                <div className="venda-step-panel venda-tone-entregador w-full space-y-3">
+                  <DeliveryPersonSelect value={entregador.id} onChange={handleSelecionarEntregador} onVendedorAuto={handleVendedorAuto} endereco={customer.endereco} />
+                  <VendedorSelect value={vendedor.id} onChange={(id, nome) => setVendedor({ id, nome })} />
+                </div>
+              )}
+              {activeStep === "confirmar" && (
+                <div className="venda-step-panel venda-tone-confirmar w-full">
+                  <OrderSummary itens={itens} pagamentos={pagamentos} entregadorNome={entregador.nome} canalVenda={canalVenda} onFinalizar={handleFinalizar} onCancelar={handleCancelar} onAgendar={handleAgendar} isLoading={isLoading} />
+                </div>
+              )}
+            </div>
+            {sidebar}
           </div>
         ) : (
           <>
@@ -1498,6 +1560,38 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           </>
         )}
       </div>
+
+      {/* Footer fixo: stepper + próxima etapa */}
+      {useNewView && (
+        <div className="sticky bottom-0 left-0 right-0 z-30 border-t bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 px-3 md:px-4 py-2 shadow-[0_-4px_12px_-4px_hsl(var(--foreground)/0.1)]">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <VendaStepper
+                customer={customer}
+                itens={itens}
+                pagamentos={pagamentos}
+                totalVenda={totalVenda}
+                entregadorSelecionado={entregadorPreenchido}
+                activeStep={activeStep}
+                onStepClick={(step) => canOpenStep(step) && setActiveStep(step)}
+                compact
+              />
+            </div>
+            {isLastStep ? (
+              <Button onClick={handleFinalizar} disabled={isLoading} size="sm" className="gap-1 shrink-0">
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                Finalizar venda
+              </Button>
+            ) : (
+              <Button onClick={advanceStep} disabled={!canAdvance} size="sm" className="gap-1 shrink-0">
+                Próxima etapa
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
 
       {/* Dialog Agendamento */}
       <Dialog open={agendarOpen} onOpenChange={setAgendarOpen}>
