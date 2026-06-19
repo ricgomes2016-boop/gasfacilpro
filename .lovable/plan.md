@@ -1,49 +1,50 @@
-## Otimização Nova Venda — aiCommandCard + Stepper
+## Otimização da tela "Nova Venda" — Versão Antiga
 
-### 1. aiCommandCard → popover acionado por botão
+Apenas a visão antiga (`useNewView === false`) será alterada. A versão nova permanece intacta.
 
-O card do Assistente IA (linhas 1320-1357 de `src/pages/vendas/NovaVenda.tsx`) ocupa uma faixa larga no topo do passo "Cliente" e é pouco usado.
+### Mudanças no layout (linhas 1481–1499 de `src/pages/vendas/NovaVenda.tsx`)
 
-**Solução:** transformar em um botão "Assistente IA" (ícone `Sparkles` + label) colocado na **mesma linha do stepper/atalhos** (linha 1379, ao lado do "Nova Venda" e badge `#numero`).
+**Layout atual (antiga):** coluna esquerda empilha Meta → Cliente → Entregador → Vendedor → Produtos → Pagamento; coluna direita tem Resumo da Venda (sticky) + Histórico do Cliente.
 
-- Clique abre um `Popover` (`@/components/ui/popover`) alinhado à direita, largura ~`w-[420px]`.
-- Conteúdo do popover = exatamente o conteúdo atual do `aiCommandCard`:
-  - Input de comando (`aiCommand`)
-  - Botões: Mic, Galeria, Câmera, Enviar
-  - Texto de dica ("💡 Digite, 🎤 dite, ou 📷 tire foto…")
-  - Inputs file ocultos (`photoInputRef`, `cameraInputRef`)
-- Mantém todos os handlers existentes: `handleAiCommand`, `startListening`, `stopListening`, `handlePhotoSales`, `aiLoading`, `isListening`, `photoLoading`.
-- O botão de abrir mostra estado: ícone pulsa quando `isListening`, spinner quando `aiLoading`/`photoLoading`, badge dot quando há texto digitado pendente.
-- Auto-focus no input ao abrir o popover; auto-fechar após `handleAiCommand` resolver com sucesso.
-- Remover o `{aiCommandCard}` das linhas 1400 e 1433 (tanto na versão nova quanto na antiga).
+**Novo layout proposto:**
 
-**Ganho:** ~80px verticais recuperados no topo da tela.
+```text
+┌───────────────────────────────────────────────┬──────────────────────┐
+│ metaCard (Data Entrega + Canal)               │                      │
+├───────────────────────────────────────────────┤                      │
+│ CustomerSearch (card Cliente)                 │  Histórico do        │
+│   ─ Linha de seletores compactos (3 colunas) ─│  Cliente             │
+│   [Entregador ▾] [Produto ▾] [Pagamento ▾]    │                      │
+├───────────────────────────────────────────────┴──────────────────────┤
+│ Resumo da Venda (full width abaixo de tudo, desktop)                 │
+└──────────────────────────────────────────────────────────────────────┘
+```
 
-### 2. Stepper mais compacto
+- **Desktop (`lg+`)**: grid 2 colunas — esquerda com `metaCard` + `CustomerSearch` (com a linha de 3 seletores embutida ao final do card) + `ProductSearch` (lista de itens detalhada) + `PaymentSection` (detalhes); direita com `CustomerHistory` sticky. **Resumo da Venda** ocupa linha inteira **abaixo do Histórico**, full-width.
+- **Mobile**: tudo em uma coluna na ordem: meta → cliente → seletores → produtos → pagamento → entregador → histórico → **Resumo da Venda (último)** via classes `order-*` em mobile e `lg:order-*` em desktop.
 
-Arquivo: `src/components/vendas/VendaStepper.tsx` (modo `compact` já existe).
+### Linha compacta de 3 seletores (dentro/abaixo do card Cliente)
 
-- Reduzir altura/padding do modo compact: `py-2` → `py-1.5`, ícones `h-4 w-4` → `h-3.5 w-3.5`, textos `text-xs` → `text-[11px]`.
-- Diminuir gap entre steps (`gap-2` → `gap-1`) e separador/connector mais fino.
-- Em telas `<sm`: mostrar apenas ícone + check (esconder label do step).
-- Reduzir `space-y-3` do wrapper externo (linha 1364 em `NovaVenda.tsx`) para `space-y-2`, juntando stepper + linha de ações com menos respiro.
-- Trocar a string longa de atalhos (`F2 Novo · F3 Finalizar · F4 Agendar · F5 Cliente · Enter Próximo`, linha 1381) por um ícone `Keyboard` com `Tooltip` exibindo os atalhos no hover — economiza ~280px horizontais para acomodar o novo botão "Assistente IA".
-- Botão "Versão antiga/nova" (linha 1383) vira ícone-only com tooltip.
+Adicionar um bloco `grid grid-cols-1 sm:grid-cols-3 gap-2` logo após `<CustomerSearch />`, contendo três `Select` compactos shadcn (`h-9 text-sm`):
 
-### 3. Sem mudanças
+1. **Entregador** — popula a partir do mesmo hook usado por `DeliveryPersonSelect` (lista de entregadores ativos da unidade). `onChange` chama `handleSelecionarEntregador` e `handleVendedorAuto` (mantém auto-seleção do vendedor). Label "Entregador".
+2. **Produto** — popula com produtos ativos da unidade (mesma fonte que `ProductSearch`). Selecionar adiciona 1 unidade do produto a `itens` via o setter já existente. Label "Adicionar produto".
+3. **Forma de Pagamento** — opções fixas (Dinheiro, PIX, Cartão Crédito, Cartão Débito, Fiado, Boleto, Vale-Gás) — selecionar cria/atualiza um pagamento único com `valor = totalVenda` em `pagamentos`. Label "Pagamento".
 
-- `metaCard` (Data de Entrega + Canal de Venda) permanece exatamente como está.
-- Toda lógica de negócio, atalhos de teclado, validações, draft, navegação entre passos — inalterados.
-- A versão antiga (`useNewView=false`) recebe o mesmo botão na barra superior.
+Os componentes completos `ProductSearch` e `PaymentSection` continuam abaixo (para edição detalhada: quantidade, múltiplos itens, divisão de pagamento, troco). Os 3 seletores são apenas atalhos rápidos.
 
-### Detalhes técnicos
+`DeliveryPersonSelect` e `VendedorSelect` antigos saem da coluna principal (entregador agora é definido pelo seletor compacto; vendedor continua selecionado automaticamente via `handleVendedorAuto`). Caso o atendente precise trocar manualmente o vendedor, mantemos `VendedorSelect` num slot menor ao lado do seletor de Entregador (mesma linha, oculto em telas pequenas).
 
-- `Popover` / `PopoverTrigger` / `PopoverContent` já existem em `@/components/ui/popover`.
-- Estado `aiPopoverOpen` local no componente; fechado por padrão.
-- O botão fica visível em todos os passos (não só "cliente"), permitindo lançar venda por IA a qualquer momento.
-- Inputs `<input type="file">` ocultos saem do popover e ficam no nível do componente raiz (popover desmonta ao fechar; refs precisam persistir).
+### Resumo da Venda
+
+- Sai da coluna direita sticky.
+- Vai para um bloco final `<div className="order-last lg:order-none lg:col-span-3 mt-3 md:mt-4">` abaixo do grid principal — em desktop fica full-width abaixo de Cliente+Histórico; em mobile naturalmente cai por último.
+- Mantém todos os botões/handlers (`handleFinalizar`, `handleCancelar`, `handleAgendar`).
 
 ### Arquivos afetados
 
-- `src/pages/vendas/NovaVenda.tsx` — remover renderização do `aiCommandCard`, adicionar `AiCommandPopover` na barra superior, mover inputs file.
-- `src/components/vendas/VendaStepper.tsx` — densificar modo compact.
+- `src/pages/vendas/NovaVenda.tsx` — somente o bloco `else` (linhas 1481–1499). Versão nova (1445–1480) **não é tocada**.
+
+### Sem mudança
+
+- Lógica de negócio, validações, atalhos F2–F5, draft, navegação, `metaCard`, versão nova, `aiCommandPopover`, stepper.
