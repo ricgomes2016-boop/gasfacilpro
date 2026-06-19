@@ -277,6 +277,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
   const [aiLoading, setAiLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [photoLoading, setPhotoLoading] = useState(false);
+  const [aiPopoverOpen, setAiPopoverOpen] = useState(false);
   const [agendarOpen, setAgendarOpen] = useState(false);
   const [dataAgendamento, setDataAgendamento] = useState("");
   const [horaAgendamento, setHoraAgendamento] = useState("08:00");
