@@ -912,21 +912,6 @@ export default function Pedidos() {
 
 
 
-        {/* #5 - Payment method breakdown */}
-        {pagamentoContadores.length > 0 &&
-        <div className="flex flex-wrap gap-2">
-            {pagamentoContadores.map(([method, valor]) =>
-          <Badge key={method} variant="outline" className="gap-1.5 py-1.5 px-3 text-xs">
-                <CreditCard className="h-3 w-3" />
-                {method}: R$ {valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                <span className="text-muted-foreground">
-                  ({contadores.total > 0 ? Math.round(valor / contadores.total * 100) : 0}%)
-                </span>
-              </Badge>
-          )}
-          </div>
-        }
-
         {/* #7 - Batch actions bar */}
         {selecionados.size > 0 &&
         <Card className="modern-panel border-primary/25 bg-primary/5">
