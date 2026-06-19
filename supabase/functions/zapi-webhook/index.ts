@@ -10,6 +10,7 @@ import {
   downloadAudio, transcribeAudio, getEntregadorLocation,
   getOffHoursMessage,
   identifyContact, checkRateLimit, processCancelTagInReply, stripPedidoConfirmadoBlock,
+  ORDER_CONFIRMATION_REGEX, recoverOrderBlock,
   type BiaConfig,
 } from "../_shared/bia-core.ts";
 
