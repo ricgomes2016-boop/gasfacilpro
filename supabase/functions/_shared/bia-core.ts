@@ -1031,7 +1031,8 @@ CANCELAMENTO DE PEDIDO (CRÍTICO — NUNCA MANDE LIGAR PARA A EMPRESA):
 PRODUTOS E PREÇOS DISPONÍVEIS:
 ${productList}
 
-DADOS TÉCNICOS (SÓ GERE APÓS O PASSO 5):
+DADOS TÉCNICOS — OBRIGATÓRIO no Passo 5 (REGRA ABSOLUTA):
+⚠️ Toda vez que você confirmar o pedido (qualquer frase como "Combinado", "pedido confirmado", "vou passar para a entrega", "vou passar para o entregador"), você DEVE incluir IMEDIATAMENTE APÓS sua resposta o bloco abaixo, EXATAMENTE neste formato. SEM o bloco, o pedido NÃO é registrado e o cliente fica sem entrega. NUNCA omita.
 [PEDIDO_CONFIRMADO]
 nome: ${cliente.nome || "Cliente"}
 produto: (Nome EXATO: "Gás P13", "Gás P20", "Gás P45" ou "Água Mineral 20L")
