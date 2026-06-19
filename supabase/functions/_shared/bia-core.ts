@@ -1463,6 +1463,75 @@ export function parseOrderData(raw: string): Record<string, string> | null {
   return data.produto && data.quantidade ? data : null;
 }
 
+// ========== ORDER RECOVERY ==========
+/**
+ * Quando a Bia escreve uma frase de confirmação ("Combinado!", "pedido confirmado"...)
+ * mas esquece de emitir o bloco [PEDIDO_CONFIRMADO], chamamos novamente o LLM apenas
+ * para extrair o bloco estruturado a partir do histórico.
+ */
+export const ORDER_CONFIRMATION_REGEX =
+  /(combinado!|pedido (?:foi )?confirmado|j[áa] vou passar (?:para|pra) (?:a )?entrega|j[áa] vou passar (?:para|pro) entregador|vou (?:passar|enviar|repassar) (?:para|pro|pra) (?:o )?entregador|repassar (?:para|pro|pra) (?:o )?entregador|seu pedido foi confirmado|j[áa] estou (?:passando|enviando) para (?:a )?entrega)/i;
+
+export async function recoverOrderBlock(
+  history: any[],
+  lastUserMessage: string,
+  assistantReply: string,
+  telefoneNormalizado: string,
+  clienteNome: string | null,
+): Promise<Record<string, string> | null> {
+  try {
+    const compactHistory = (history || []).slice(-20).map((m) => ({
+      role: m.role,
+      content: typeof m.content === "string" ? m.content.slice(0, 800) : "",
+    }));
+
+    const extractorPrompt = `Você é um EXTRATOR. Recebe o histórico de uma conversa de WhatsApp em que uma atendente confirmou um pedido de gás/água, mas esqueceu de emitir o bloco técnico.
+
+Sua tarefa: retornar APENAS o bloco a seguir, com os dados que aparecem no histórico, e NADA MAIS (sem explicação, sem saudação, sem markdown):
+
+[PEDIDO_CONFIRMADO]
+nome: ${clienteNome || "Cliente"}
+produto: (escolha EXATAMENTE um: "Gás P13", "Gás P20", "Gás P45" ou "Água Mineral 20L")
+quantidade: 1
+endereco: endereço completo (rua, número, bairro, cidade)
+pagamento: dinheiro|pix|cartão|crédito|débito|institucional|vale gás
+valor: número total em reais (ex.: 125). Use 0 SOMENTE se o pagamento for "institucional" ou "vale gás".
+telefone: ${telefoneNormalizado}
+[/PEDIDO_CONFIRMADO]
+
+Regras:
+- Use exatamente os dados que aparecem na conversa.
+- Se algum campo essencial (produto, endereço ou pagamento) estiver realmente ausente, retorne a string vazia.
+- NÃO invente endereço nem pagamento.
+- NÃO escreva nada fora do bloco.
+
+A última resposta da atendente foi: "${assistantReply.slice(0, 400)}"
+A última mensagem do cliente foi: "${lastUserMessage.slice(0, 400)}"`;
+
+    const messages = [
+      { role: "system", content: extractorPrompt },
+      ...compactHistory,
+    ];
+
+    const reply = await callAI(messages);
+    const match = reply?.match(/\[PEDIDO_CONFIRMADO\]([\s\S]*?)\[\/PEDIDO_CONFIRMADO\]/);
+    if (!match) {
+      console.warn("[order-recovery] LLM não devolveu bloco. reply=", (reply || "").slice(0, 200));
+      return null;
+    }
+    const data = parseOrderData(match[1]);
+    if (!data?.produto || !data?.endereco) {
+      console.warn("[order-recovery] bloco incompleto:", data);
+      return null;
+    }
+    if (!data.telefone) data.telefone = telefoneNormalizado;
+    return data;
+  } catch (e) {
+    console.error("[order-recovery] erro:", (e as Error).message);
+    return null;
+  }
+}
+
 // ========== EXTRACT DISCOUNT ==========
 export function extractLatestNegotiatedDiscountPerUnit(messages: string[]): number {
   for (const raw of messages) {
