@@ -1447,7 +1447,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
             {activeStep === "cliente" && (
               <div className="venda-step-panel grid gap-3 md:gap-4 xl:grid-cols-[minmax(0,1fr)_420px]" onKeyDown={handleStepEnterNavigation}>
                 <div className="space-y-3 md:space-y-4 min-w-0">
-                  {aiCommandCard}
+                  
                   {metaCard}
                   <div className="venda-tone-cliente"><CustomerSearch value={customer} onChange={setCustomer} /></div>
                 </div>
@@ -1480,7 +1480,7 @@ export default function NovaVenda({ embedded = false, initialClienteId, onClose 
           </div>
         ) : (
           <>
-            {aiCommandCard}
+            
             <div className="grid gap-3 md:gap-4 lg:grid-cols-3">
               <div className="lg:col-span-2 space-y-3 md:space-y-4">
                 {metaCard}
