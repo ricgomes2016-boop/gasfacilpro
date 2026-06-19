@@ -1,49 +1,50 @@
-## Objetivo
-Qualquer pedido cujo status não tenha mudado nos últimos 5 minutos (e ainda esteja em andamento) dispara um WhatsApp de alerta para o número configurado em `unidades.whatsapp_notificacao_pedido` (fallback `5543999692765`).
+## Diagnóstico
+Conversa `3ccf7e98...` (cliente Ana, 4396343193, unidade Central Gás), às 21:37 UTC (18:37 BRT):
+- Cliente passou endereço completo, escolheu PIX.
+- Bia respondeu: *"Combinado! Seu pedido foi confirmado e já vou passar para a entrega."*
+- **Mas o modelo NÃO emitiu o bloco `[PEDIDO_CONFIRMADO]…[/PEDIDO_CONFIRMADO]`** que o webhook procura para chamar `createOrder`.
+- Sem o bloco, nada foi inserido em `pedidos` — daí o sistema "não fez nada".
 
-## Mudanças
+Isso é falha de compliance do LLM (acontece de vez em quando com `gemini-flash-latest`). Precisa de uma rede de segurança determinística.
 
-### 1) Banco
-Migration:
-- Coluna `pedidos.alerta_atraso_enviado_em timestamptz` (nullable) — marca quando o alerta foi enviado, evitando spam.
-- Coluna `pedidos.status_atualizado_em timestamptz` com default `now()`.
-- Trigger `BEFORE UPDATE` em `pedidos`: quando `status` mudar, atualiza `status_atualizado_em = now()` e zera `alerta_atraso_enviado_em` (permitindo re-alertar se o próximo status também travar).
-- Backfill: `status_atualizado_em = COALESCE(updated_at, created_at)` para registros existentes.
+## Solução
 
-### 2) Nova Edge Function `pedidos-alerta-atraso`
-- Roda a cada 1 minuto.
-- Busca pedidos com:
-  - `status IN ('pendente','agendado','em_separacao','em_rota','saiu_para_entrega')` (status ainda em aberto — exclui `entregue`, `cancelado`, `concluido`)
-  - `status_atualizado_em <= now() - interval '5 minutes'`
-  - `alerta_atraso_enviado_em IS NULL`
-- Para cada pedido: carrega `unidade.whatsapp_notificacao_pedido` + config WhatsApp ativa da unidade (`integracoes_whatsapp` ativo), monta mensagem:
-  ```
-  ⚠️ Pedido parado há mais de 5 min
-  #<id> — <unidade>
-  Status atual: <status> (desde <hh:mm>)
-  Cliente: <nome> (<telefone>)
-  📍 <endereço>
-  ```
-- Envia via helper `sendMessage` reaproveitada de `_shared/bia-core.ts`.
-- Marca `alerta_atraso_enviado_em = now()` no pedido para não reenviar.
-- Erros logados, não bloqueantes.
+### 1) Detectar confirmação sem tag (no webhook)
+Em `supabase/functions/zapi-webhook/index.ts`, após o `match` da tag, se **NÃO** houver `[PEDIDO_CONFIRMADO]` mas o `rawReply` contiver uma frase de confirmação (regex case-insensitive):
+- `combinado`, `pedido foi confirmado`, `pedido confirmado`, `passar para (a )?entrega`, `passar para o entregador`, `vou (passar|enviar)` + (`entrega|entregador`)
 
-### 3) Agendamento (pg_cron)
-Via tool `insert` (não migration, contém URL/anon key):
-```sql
-select cron.schedule(
-  'pedidos-alerta-atraso-1min',
-  '* * * * *',
-  $$ select net.http_post(
-       url:='https://<project>.supabase.co/functions/v1/pedidos-alerta-atraso',
-       headers:='{"Content-Type":"application/json","apikey":"<anon>"}'::jsonb,
-       body:='{}'::jsonb) $$
-);
+→ disparar uma 2ª chamada ao LLM apenas para extrair o bloco estruturado.
+
+### 2) Re-chamada estrita
+Nova função `requestOrderBlock(config, history, messageText)` em `_shared/bia-core.ts`:
+- Mesma chave/modelo do `generateContent`.
+- Prompt curto e rígido: "Você é um extrator. Com base no histórico abaixo, retorne APENAS o bloco `[PEDIDO_CONFIRMADO]…[/PEDIDO_CONFIRMADO]` com os campos `nome, produto, quantidade, endereco, pagamento, valor, telefone`. Não escreva mais nada."
+- Inclui as últimas N mensagens (system + history + última do usuário).
+- Resposta passa pelo mesmo `match` e por `parseOrderData`.
+
+### 3) Criar pedido com o bloco recuperado
+Se `parseOrderData` retornar dados válidos:
+- Roda a mesma deduplicação de 2 min.
+- Chama `createOrder(...)` igual ao caminho normal.
+- Loga: `[order-recovery] criado via fallback pedido=<id>`.
+
+Se a 2ª chamada falhar ou não devolver bloco válido:
+- Apenas loga `[order-recovery] falhou`, mantém comportamento atual (cliente já recebeu o "Combinado!", mas pedido segue sem registrar — pelo menos visível no log).
+
+### 4) Reforçar prompt (preventivo)
+No `buildSystemPrompt` (linha ~1034), trocar:
 ```
-Habilita `pg_cron` e `pg_net` se ainda não estiverem.
+DADOS TÉCNICOS (SÓ GERE APÓS O PASSO 5):
+```
+por:
+```
+DADOS TÉCNICOS — OBRIGATÓRIO no Passo 5:
+Sempre que você responder confirmando o pedido (qualquer frase como "Combinado", "pedido confirmado", "vou passar para entrega"), você DEVE incluir IMEDIATAMENTE APÓS sua resposta o bloco abaixo, EXATAMENTE neste formato. Sem o bloco, o pedido NÃO é registrado no sistema. Esta regra é absoluta.
+```
 
-## Detalhes técnicos
-- Não envia se a unidade não tiver `whatsapp_notificacao_pedido` configurado e o fallback estiver vazio.
-- Se a unidade não tiver integração WhatsApp ativa, busca a primeira `integracoes_whatsapp` ativa da empresa como fallback.
-- Apenas 1 alerta por "trecho de status": ao mudar de status, o trigger zera o flag, então se o próximo status também travar 5 min, novo alerta é disparado.
-- Não altera UI, dashboard, nem fluxos existentes.
+### 5) Não altera
+- Schema, RLS, UI, cron de atraso, notificação ao gestor.
+- Apenas `_shared/bia-core.ts` (novo helper + reforço de prompt) e `zapi-webhook/index.ts` (fallback de detecção/re-chamada).
+
+## Limitação aceita
+A 2ª chamada acrescenta ~1s de latência apenas quando a tag for omitida. No caminho feliz (tag presente), nada muda.
