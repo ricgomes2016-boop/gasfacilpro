@@ -11,10 +11,21 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   Smartphone, Copy, Check, ExternalLink, QrCode, Users, ShoppingCart,
-  TrendingUp, Download, Share2, Link2, Star, MessageSquare
+  TrendingUp, Download, Share2, Link2, Star, MessageSquare, Upload, Save
 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
+
+function slugify(s: string) {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 60);
+}
 
 export default function AplicativoCliente() {
   const { empresa, loading } = useEmpresa();
@@ -22,24 +33,34 @@ export default function AplicativoCliente() {
   const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState({ totalClientes: 0, pedidosMes: 0, avaliacaoMedia: 0, clientesAtivos: 0 });
   const [unidadeEmpresa, setUnidadeEmpresa] = useState<{ id: string; nome: string; slug: string | null } | null>(null);
+  const [unidadeBrand, setUnidadeBrand] = useState<{ slug: string | null; logo_url: string | null }>({ slug: null, logo_url: null });
+  const [slugInput, setSlugInput] = useState("");
+  const [logoUrlInput, setLogoUrlInput] = useState("");
+  const [savingBrand, setSavingBrand] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
-  // Resolve empresa from the active unit (multi-tenant correctness — link must reflect
-  // the unit being viewed, not the logged-in user's profile empresa).
+  // Resolve empresa from the active unit + carrega branding da unidade
   useEffect(() => {
     let cancelled = false;
     async function resolveEmpresaDaUnidade() {
       if (!unidadeAtual?.id) {
         setUnidadeEmpresa(null);
+        setUnidadeBrand({ slug: null, logo_url: null });
         return;
       }
       const { data: u } = await supabase
         .from("unidades")
-        .select("empresa_id")
+        .select("empresa_id, slug, logo_url, nome")
         .eq("id", unidadeAtual.id)
         .maybeSingle();
       if (!u?.empresa_id) {
         if (!cancelled) setUnidadeEmpresa(null);
         return;
+      }
+      if (!cancelled) {
+        setUnidadeBrand({ slug: (u as any).slug ?? null, logo_url: (u as any).logo_url ?? null });
+        setSlugInput((u as any).slug ?? slugify((u as any).nome ?? ""));
+        setLogoUrlInput((u as any).logo_url ?? "");
       }
       const { data: e } = await supabase
         .from("empresas")
@@ -55,9 +76,55 @@ export default function AplicativoCliente() {
   const empresaLink = unidadeEmpresa ?? empresa;
 
   const baseUrl = "https://clientes.gasfacilpro.com.br";
-  const appLink = empresaLink?.slug
-    ? `${baseUrl}?empresa=${empresaLink.slug}${unidadeAtual ? `&unidade=${unidadeAtual.id}` : ""}`
-    : baseUrl;
+  const appLink = unidadeBrand.slug
+    ? `${baseUrl}?u=${unidadeBrand.slug}`
+    : empresaLink?.slug
+      ? `${baseUrl}?empresa=${empresaLink.slug}${unidadeAtual ? `&unidade=${unidadeAtual.id}` : ""}`
+      : baseUrl;
+
+  async function handleSaveBrand() {
+    if (!unidadeAtual?.id) return;
+    const slug = slugify(slugInput);
+    if (!slug) {
+      toast.error("Informe um slug válido (apenas letras, números e hífen)");
+      return;
+    }
+    setSavingBrand(true);
+    const { error } = await supabase
+      .from("unidades")
+      .update({ slug, logo_url: logoUrlInput || null } as any)
+      .eq("id", unidadeAtual.id);
+    setSavingBrand(false);
+    if (error) {
+      if (error.message?.includes("unique") || (error as any).code === "23505") {
+        toast.error("Esse slug já está em uso por outra unidade");
+      } else {
+        toast.error("Erro ao salvar: " + error.message);
+      }
+      return;
+    }
+    setUnidadeBrand({ slug, logo_url: logoUrlInput || null });
+    toast.success("Identidade da unidade salva!");
+  }
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !unidadeAtual?.id) return;
+    setUploadingLogo(true);
+    const ext = file.name.split(".").pop() || "png";
+    const path = `unidades-logos/${unidadeAtual.id}-${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("marketing-assets").upload(path, file, { upsert: true });
+    if (upErr) {
+      setUploadingLogo(false);
+      toast.error("Erro no upload: " + upErr.message);
+      return;
+    }
+    const { data: pub } = supabase.storage.from("marketing-assets").getPublicUrl(path);
+    setLogoUrlInput(pub.publicUrl);
+    setUploadingLogo(false);
+    toast.success("Logo enviado. Clique em Salvar para confirmar.");
+  }
+
 
   useEffect(() => {
     document.title = "GásFácil Pro — Aplicativo do Cliente";
@@ -181,6 +248,61 @@ export default function AplicativoCliente() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Identidade da Unidade */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Identidade desta unidade</CardTitle>
+            <CardDescription>
+              Cada unidade pode ter seu próprio nome, logo e link de aplicativo.
+              {unidadeAtual?.nome && <> Editando: <span className="font-medium">{unidadeAtual.nome}</span></>}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="unidade-slug">Slug do app (aparece na URL)</Label>
+                <Input
+                  id="unidade-slug"
+                  value={slugInput}
+                  onChange={(e) => setSlugInput(e.target.value)}
+                  placeholder="ex: forte-gas-matriz"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Apenas letras minúsculas, números e hífen. Será gerado: <code className="text-xs">?u={slugify(slugInput) || "..."}</code>
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Logo do app</Label>
+                <div className="flex items-center gap-3">
+                  {logoUrlInput && (
+                    <img src={logoUrlInput} alt="Logo" className="h-14 w-14 rounded-lg object-cover border" />
+                  )}
+                  <div className="flex-1 space-y-2">
+                    <Input
+                      value={logoUrlInput}
+                      onChange={(e) => setLogoUrlInput(e.target.value)}
+                      placeholder="URL da imagem"
+                    />
+                    <label className="inline-flex">
+                      <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploadingLogo} />
+                      <Button type="button" variant="outline" size="sm" asChild className="gap-2 cursor-pointer">
+                        <span>
+                          <Upload className="h-3.5 w-3.5" />
+                          {uploadingLogo ? "Enviando..." : "Enviar imagem"}
+                        </span>
+                      </Button>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <Button onClick={handleSaveBrand} disabled={savingBrand || !unidadeAtual?.id} className="gap-2">
+              <Save className="h-4 w-4" />
+              {savingBrand ? "Salvando..." : "Salvar identidade"}
+            </Button>
+          </CardContent>
+        </Card>
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Link do App */}

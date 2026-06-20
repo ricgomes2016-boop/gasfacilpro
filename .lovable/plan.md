@@ -1,54 +1,63 @@
-## Problema
+## Objetivo
 
-Na versão antiga, a linha com `DeliveryPersonSelect` + `ProductSearch` + `PaymentSection` ficou apertada porque cada um desses componentes é um card completo (com header, total, busca, lista, etc.) sendo espremido em 3 colunas estreitas — gerando texto vertical e scroll horizontal.
+Permitir que cada **unidade** tenha seu próprio app do cliente (nome, logo e identificação), independente da empresa-mãe. Hoje o app sempre exibe a marca da empresa (ex.: "Central Gas"), mesmo quando a unidade visitada é "Forte Gás".
 
-A intenção original era ter **3 caixas de seleção compactas** (dropdowns simples) lado a lado, não 3 cards completos.
+## Causa atual
 
-## Solução
+- A unidade "Forte Gás" pertence à empresa "Central Gas" no banco.
+- A tabela `unidades` não tem `slug` nem `logo_url`.
+- `AuthCliente.tsx` exibe `empresa?.nome` e `empresa?.logo_url` no logo (apesar de já capturar `unidadeNome` do parâmetro `&unidade=`, o logo continua vindo da empresa).
+- O link gerado em `AplicativoCliente.tsx` usa `?empresa=<slug-da-empresa>&unidade=<id>`, então a empresa "vence" o branding.
 
-Substituir a linha de 3 cards por **3 dropdowns compactos** usando `Select` do shadcn, e mover os componentes completos (`ProductSearch`, `PaymentSection`) para baixo em largura total — ou removê-los da versão antiga, já que a seleção rápida resolve o caso de uso comum.
+## Mudanças
 
-### Layout proposto (versão antiga)
+### 1. Banco — branding por unidade
 
+Migration:
+- `ALTER TABLE public.unidades ADD COLUMN slug text UNIQUE`, `ADD COLUMN logo_url text`, `ADD COLUMN cor_primaria text`.
+- Função `public.get_unidade_by_slug(_slug text)` (SECURITY DEFINER) para resolver unidade publicamente sem expor outras colunas sensíveis (retorna `id, nome, slug, logo_url, cor_primaria, empresa_id, empresa_nome, empresa_slug`).
+- `GRANT EXECUTE ... TO anon, authenticated`.
+
+### 2. Tela "Aplicativo do Cliente" (`src/pages/clientes/AplicativoCliente.tsx`)
+
+- Adicionar campos editáveis para a unidade ativa: **slug do app** (com sugestão automática a partir do nome — ex.: `forte-gas-matriz`) e **logo do app** (upload em bucket existente ou URL).
+- Mudar `appLink` para preferir o slug da unidade quando existir:
+  - Com slug de unidade: `https://clientes.gasfacilpro.com.br?u=<slug-unidade>`
+  - Fallback atual: `?empresa=<slug-empresa>&unidade=<id>`
+- QR code e compartilhamento usam o novo link.
+
+### 3. Login do cliente (`src/pages/auth/AuthCliente.tsx`)
+
+- Ler `?u=<slug-unidade>` além de `?empresa=` e `?unidade=`.
+- Quando `u` estiver presente, chamar `get_unidade_by_slug` e usar:
+  - `displayName` = `unidade.nome` (já é o caso quando `unidadeNome` existe).
+  - **Logo** = `unidade.logo_url` em vez de `empresa.logo_url` (correção principal — hoje o logo só usa a empresa).
+  - `empresaSlug` derivado da unidade para o restante do fluxo (cadastro, busca de produtos etc.).
+- Persistir `cliente_unidade_slug` no `localStorage` análogo ao `cliente_empresa_slug`.
+
+### 4. `ClienteContext.tsx` e `ClienteCadastro.tsx`
+
+- Aceitar `?u=` como fonte primária; resolver `empresaSlug` via unidade quando vier por aí. Comportamento legado (`?empresa=`) preservado.
+- Salvar `unidade_id` no cadastro/sessão do cliente (campo já passado hoje quando `&unidade=` está na URL — mantém).
+
+### 5. Forte Gás existente
+
+- Não migrar dados automaticamente. Após o deploy, basta o usuário entrar em **Aplicativo do Cliente** com a unidade "Forte Gás" selecionada, definir slug `forte-gas-cg` (ou similar) e fazer upload do logo da Forte Gás. O link gerado abrirá com a marca correta.
+- A empresa independente "Forte Gás" (slug `forte-gas`) continua funcionando normalmente.
+
+## Fora de escopo
+
+- Não mexer em `App.tsx`, providers ou rotas.
+- Tela "versão nova" do Nova Venda intocada (mantém regra anterior).
+- Sem mudanças em RLS de outras tabelas.
+
+## Resumo técnico
+
+```text
+unidades + slug, logo_url, cor_primaria
+        │
+        ▼
+get_unidade_by_slug(slug) ──► AuthCliente (?u=…)  → logo + nome da unidade
+                              ClienteContext      → empresa_id derivada
+AplicativoCliente: edita slug/logo da unidade e gera link com ?u=
 ```
-┌──────────────────────────────────────────────┬──────────────┐
-│ metaCard                                     │              │
-│ CustomerSearch                               │  Customer    │
-│ ┌──────────┬──────────┬──────────┐           │  History     │
-│ │Entregador│ Produto  │Pagamento │  (selects)│  (sticky)    │
-│ └──────────┴──────────┴──────────┘           │              │
-│ VendedorSelect                               │              │
-│ ProductSearch (full, p/ editar itens)        │              │
-│ PaymentSection (full, p/ editar pagamentos)  │              │
-├──────────────────────────────────────────────┴──────────────┤
-│ OrderSummary (full width)                                   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-No mobile, tudo em coluna única, com `OrderSummary` por último.
-
-### Detalhes técnicos
-
-1. **Linha compacta de 3 selects** (`grid grid-cols-1 md:grid-cols-3 gap-2`):
-   - **Entregador**: `Select` listando entregadores (reusar dados de `DeliveryPersonSelect` via hook existente). `onValueChange` chama `handleSelecionarEntregador` + `handleVendedorAuto`. Label "Entregador" com ícone `Truck`.
-   - **Produto (adicionar)**: `Select` com produtos do estoque. Ao selecionar, adiciona 1 unidade via setter de `itens` (mesma lógica que `ProductSearch` usa internamente no clique do produto). Label "Adicionar produto" com ícone `Package`.
-   - **Pagamento**: `Select` com opções fixas (Dinheiro, PIX, Cartão Crédito, Cartão Débito, Fiado, Boleto, Vale-Gás). Cria/atualiza um único pagamento com `valor = totalVenda`. Label "Pagamento" com ícone `CreditCard`.
-   - Cada select tem `h-9 text-sm` para ficar compacto.
-
-2. **Componentes completos abaixo** (largura total da coluna esquerda, `lg:col-span-2`):
-   - `ProductSearch` — para editar quantidades, remover itens, busca por nome.
-   - `PaymentSection` — para múltiplos pagamentos, troco, parcelas.
-   - Ficam disponíveis sem ficar espremidos.
-
-3. **Coluna direita** (`lg:col-span-1`, sticky): apenas `CustomerHistory`.
-
-4. **Linha final** (`lg:col-span-3`): `OrderSummary`.
-
-5. **Mobile** (`order-*`): metaCard → CustomerSearch → 3 selects → VendedorSelect → ProductSearch → PaymentSection → CustomerHistory → OrderSummary (último).
-
-### Escopo
-
-- **Arquivo:** `src/pages/vendas/NovaVenda.tsx` — apenas o bloco `else` (versão antiga, linhas 1481–1500).
-- **Versão nova (`useNewView === true`)**: não alterar.
-- **Sem mudanças de lógica**: hooks, validações, atalhos F2–F5, `metaCard`, `aiCommandPopover`, stepper permanecem iguais.
-- **Sem novos hooks de dados**: reaproveitar fontes que `DeliveryPersonSelect` e `ProductSearch` já consomem (importar o mesmo hook ou ler de props já disponíveis).

@@ -10360,6 +10360,7 @@ export type Database = {
           contador_email: string | null
           contador_nome: string | null
           contador_telefone: string | null
+          cor_primaria: string | null
           created_at: string
           cst_csosn_padrao: string | null
           cte_proximo_numero: number | null
@@ -10377,6 +10378,7 @@ export type Database = {
           inscricao_estadual_st: string | null
           inscricao_municipal: string | null
           latitude: number | null
+          logo_url: string | null
           longitude: number | null
           natureza_operacao_padrao: string | null
           nfce_csc_id: string | null
@@ -10393,6 +10395,7 @@ export type Database = {
           provedor_nfe_url: string | null
           razao_social: string | null
           regime_tributario: string | null
+          slug: string | null
           telefone: string | null
           tipo: string
           updated_at: string
@@ -10421,6 +10424,7 @@ export type Database = {
           contador_email?: string | null
           contador_nome?: string | null
           contador_telefone?: string | null
+          cor_primaria?: string | null
           created_at?: string
           cst_csosn_padrao?: string | null
           cte_proximo_numero?: number | null
@@ -10438,6 +10442,7 @@ export type Database = {
           inscricao_estadual_st?: string | null
           inscricao_municipal?: string | null
           latitude?: number | null
+          logo_url?: string | null
           longitude?: number | null
           natureza_operacao_padrao?: string | null
           nfce_csc_id?: string | null
@@ -10454,6 +10459,7 @@ export type Database = {
           provedor_nfe_url?: string | null
           razao_social?: string | null
           regime_tributario?: string | null
+          slug?: string | null
           telefone?: string | null
           tipo?: string
           updated_at?: string
@@ -10482,6 +10488,7 @@ export type Database = {
           contador_email?: string | null
           contador_nome?: string | null
           contador_telefone?: string | null
+          cor_primaria?: string | null
           created_at?: string
           cst_csosn_padrao?: string | null
           cte_proximo_numero?: number | null
@@ -10499,6 +10506,7 @@ export type Database = {
           inscricao_estadual_st?: string | null
           inscricao_municipal?: string | null
           latitude?: number | null
+          logo_url?: string | null
           longitude?: number | null
           natureza_operacao_padrao?: string | null
           nfce_csc_id?: string | null
@@ -10515,6 +10523,7 @@ export type Database = {
           provedor_nfe_url?: string | null
           razao_social?: string | null
           regime_tributario?: string | null
+          slug?: string | null
           telefone?: string | null
           tipo?: string
           updated_at?: string
@@ -12000,6 +12009,20 @@ export type Database = {
       get_empresa_by_slug: {
         Args: { _slug: string }
         Returns: {
+          id: string
+          logo_url: string
+          nome: string
+          slug: string
+        }[]
+      }
+      get_unidade_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          cor_primaria: string
+          empresa_id: string
+          empresa_logo_url: string
+          empresa_nome: string
+          empresa_slug: string
           id: string
           logo_url: string
           nome: string
