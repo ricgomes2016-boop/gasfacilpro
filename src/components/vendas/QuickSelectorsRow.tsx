@@ -15,7 +15,6 @@ import type { Pagamento } from "./PaymentSection";
 interface Entregador {
   id: string;
   nome: string;
-  vendedor_user_id?: string | null;
 }
 
 interface Produto {
