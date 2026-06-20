@@ -375,23 +375,7 @@ export default function ClienteHome() {
           </div>
         )}
 
-        {/* Sticky cart button */}
-        {cartItemsCount > 0 && (
-          <div className="fixed bottom-20 left-4 right-4 z-40">
-            <Button
-              className="w-full h-14 rounded-2xl shadow-xl shadow-primary/40 text-base font-bold gap-3"
-              onClick={() => navigate("/cliente/carrinho")}
-            >
-              <div className="flex items-center gap-2 flex-1">
-                <ShoppingCart className="h-5 w-5" />
-                <span>Ver carrinho</span>
-              </div>
-              <Badge className="bg-white/20 text-white border-0 text-sm">
-                {cartItemsCount} {cartItemsCount === 1 ? "item" : "itens"}
-              </Badge>
-            </Button>
-          </div>
-        )}
+        {/* Botão flutuante global vem do ClienteLayout */}
       </div>
     </ClienteLayout>
   );
