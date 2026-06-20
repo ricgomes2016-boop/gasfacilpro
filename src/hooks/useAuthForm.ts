@@ -145,7 +145,12 @@ export function useAuthForm(empresaSlug?: string, defaultLoginMethod: LoginMetho
       } else if (/password.*should be at least|at least \d+ characters/i.test(msg)) {
         setErrors({ password: "A senha precisa ter pelo menos 6 caracteres." });
       } else {
-        setErrors({ general: msg });
+        const rate = msg.match(/after (\d+) seconds/i);
+        if (rate) {
+          setErrors({ general: `Por segurança, aguarde ${rate[1]} segundos e tente novamente.` });
+        } else {
+          setErrors({ general: msg });
+        }
       }
     }
 
