@@ -56,27 +56,29 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
   const location = useLocation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { cartItemsCount: ctxCount, empresaInfo } = useCliente();
+  const { cartItemsCount: ctxCount, empresaInfo, lojas, lojaSelecionadaId } = useCliente();
   const cartItemsCount = cartItemsCountProp ?? ctxCount;
   const isCarrinhoPage = location.pathname === "/cliente/carrinho";
   const isCheckoutPage = location.pathname === "/cliente/checkout";
   const isHomeOrCategoria = location.pathname === "/cliente";
 
   const empresaNome = empresaInfo?.nome || "Gás Fácil";
+  const lojaSelecionada = lojas.find(l => l.id === lojaSelecionadaId);
+  const tituloPrincipal = lojaSelecionada?.nome || empresaNome;
 
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-primary text-primary-foreground shadow-md">
         <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex flex-col">
+          <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2">
               {empresaInfo?.logo_url ? (
-                <img src={empresaInfo.logo_url} alt={empresaNome} className="h-7 w-7 object-contain rounded" />
+                <img src={empresaInfo.logo_url} alt={tituloPrincipal} className="h-7 w-7 object-contain rounded" />
               ) : (
-                <img src={logoImg} alt={empresaNome} className="h-7 w-7 object-contain" />
+                <img src={logoImg} alt={tituloPrincipal} className="h-7 w-7 object-contain" />
               )}
-              <span className="font-bold text-lg">{empresaNome}</span>
+              <span className="font-bold text-lg truncate">{tituloPrincipal}</span>
             </div>
             <LojaSelector />
           </div>
