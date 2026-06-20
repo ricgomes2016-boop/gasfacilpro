@@ -309,10 +309,10 @@ export default function AuthCliente() {
       gradientTo="15 90% 50%"
       pageClassName="bg-gradient-to-br from-orange-50 via-white to-amber-50 dark:from-background dark:via-background dark:to-muted/20"
       logo={
-        empresa?.logo_url ? (
+        displayLogo ? (
           <img
-            src={empresa.logo_url}
-            alt={empresa.nome}
+            src={displayLogo}
+            alt={displayName}
             className="h-16 w-16 rounded-2xl object-cover shadow-lg"
           />
         ) : (
