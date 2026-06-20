@@ -121,7 +121,13 @@ function SignupForm({ form }: { form: ReturnType<typeof useAuthForm> }) {
             {form.showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </Button>
         </div>
-        {form.errors.password && <p className="text-sm text-destructive">{form.errors.password}</p>}
+        {form.errors.password ? (
+          <p className="text-sm text-destructive">{form.errors.password}</p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Use uma senha forte: mínimo 8 caracteres, com letras, números e símbolos. Evite senhas comuns como "123456".
+          </p>
+        )}
       </div>
 
       <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600" disabled={form.isLoading}>
