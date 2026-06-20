@@ -67,7 +67,7 @@ export function QuickSelectorsRow({
     (async () => {
       let q = supabase
         .from("entregadores")
-        .select("id, nome, vendedor_user_id")
+        .select("id, nome")
         .eq("ativo", true)
         .order("nome");
       if (unidadeId) q = q.eq("unidade_id", unidadeId);
@@ -95,7 +95,7 @@ export function QuickSelectorsRow({
     const e = entregadores.find((x) => x.id === id);
     if (!e) return;
     onSelectEntregador(e.id, e.nome);
-    onVendedorAuto?.(e.vendedor_user_id ?? null, e.nome);
+    onVendedorAuto?.(null, e.nome);
   };
 
   const handleAddProduto = async (id: string) => {
