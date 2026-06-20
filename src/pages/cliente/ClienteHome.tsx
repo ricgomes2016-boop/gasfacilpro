@@ -89,7 +89,7 @@ export default function ClienteHome() {
     const missing = produtos.filter(p => !p.image_url).map(p => p.nome);
     if (missing.length === 0 || !empresaInfo?.id) return;
     (async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("produtos")
         .select("nome, image_url")
         .eq("empresa_id", empresaInfo.id)
