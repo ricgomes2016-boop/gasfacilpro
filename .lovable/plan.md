@@ -1,50 +1,54 @@
-## Otimização da tela "Nova Venda" — Versão Antiga
+## Problema
 
-Apenas a visão antiga (`useNewView === false`) será alterada. A versão nova permanece intacta.
+Na versão antiga, a linha com `DeliveryPersonSelect` + `ProductSearch` + `PaymentSection` ficou apertada porque cada um desses componentes é um card completo (com header, total, busca, lista, etc.) sendo espremido em 3 colunas estreitas — gerando texto vertical e scroll horizontal.
 
-### Mudanças no layout (linhas 1481–1499 de `src/pages/vendas/NovaVenda.tsx`)
+A intenção original era ter **3 caixas de seleção compactas** (dropdowns simples) lado a lado, não 3 cards completos.
 
-**Layout atual (antiga):** coluna esquerda empilha Meta → Cliente → Entregador → Vendedor → Produtos → Pagamento; coluna direita tem Resumo da Venda (sticky) + Histórico do Cliente.
+## Solução
 
-**Novo layout proposto:**
+Substituir a linha de 3 cards por **3 dropdowns compactos** usando `Select` do shadcn, e mover os componentes completos (`ProductSearch`, `PaymentSection`) para baixo em largura total — ou removê-los da versão antiga, já que a seleção rápida resolve o caso de uso comum.
 
-```text
-┌───────────────────────────────────────────────┬──────────────────────┐
-│ metaCard (Data Entrega + Canal)               │                      │
-├───────────────────────────────────────────────┤                      │
-│ CustomerSearch (card Cliente)                 │  Histórico do        │
-│   ─ Linha de seletores compactos (3 colunas) ─│  Cliente             │
-│   [Entregador ▾] [Produto ▾] [Pagamento ▾]    │                      │
-├───────────────────────────────────────────────┴──────────────────────┤
-│ Resumo da Venda (full width abaixo de tudo, desktop)                 │
-└──────────────────────────────────────────────────────────────────────┘
+### Layout proposto (versão antiga)
+
+```
+┌──────────────────────────────────────────────┬──────────────┐
+│ metaCard                                     │              │
+│ CustomerSearch                               │  Customer    │
+│ ┌──────────┬──────────┬──────────┐           │  History     │
+│ │Entregador│ Produto  │Pagamento │  (selects)│  (sticky)    │
+│ └──────────┴──────────┴──────────┘           │              │
+│ VendedorSelect                               │              │
+│ ProductSearch (full, p/ editar itens)        │              │
+│ PaymentSection (full, p/ editar pagamentos)  │              │
+├──────────────────────────────────────────────┴──────────────┤
+│ OrderSummary (full width)                                   │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-- **Desktop (`lg+`)**: grid 2 colunas — esquerda com `metaCard` + `CustomerSearch` (com a linha de 3 seletores embutida ao final do card) + `ProductSearch` (lista de itens detalhada) + `PaymentSection` (detalhes); direita com `CustomerHistory` sticky. **Resumo da Venda** ocupa linha inteira **abaixo do Histórico**, full-width.
-- **Mobile**: tudo em uma coluna na ordem: meta → cliente → seletores → produtos → pagamento → entregador → histórico → **Resumo da Venda (último)** via classes `order-*` em mobile e `lg:order-*` em desktop.
+No mobile, tudo em coluna única, com `OrderSummary` por último.
 
-### Linha compacta de 3 seletores (dentro/abaixo do card Cliente)
+### Detalhes técnicos
 
-Adicionar um bloco `grid grid-cols-1 sm:grid-cols-3 gap-2` logo após `<CustomerSearch />`, contendo três `Select` compactos shadcn (`h-9 text-sm`):
+1. **Linha compacta de 3 selects** (`grid grid-cols-1 md:grid-cols-3 gap-2`):
+   - **Entregador**: `Select` listando entregadores (reusar dados de `DeliveryPersonSelect` via hook existente). `onValueChange` chama `handleSelecionarEntregador` + `handleVendedorAuto`. Label "Entregador" com ícone `Truck`.
+   - **Produto (adicionar)**: `Select` com produtos do estoque. Ao selecionar, adiciona 1 unidade via setter de `itens` (mesma lógica que `ProductSearch` usa internamente no clique do produto). Label "Adicionar produto" com ícone `Package`.
+   - **Pagamento**: `Select` com opções fixas (Dinheiro, PIX, Cartão Crédito, Cartão Débito, Fiado, Boleto, Vale-Gás). Cria/atualiza um único pagamento com `valor = totalVenda`. Label "Pagamento" com ícone `CreditCard`.
+   - Cada select tem `h-9 text-sm` para ficar compacto.
 
-1. **Entregador** — popula a partir do mesmo hook usado por `DeliveryPersonSelect` (lista de entregadores ativos da unidade). `onChange` chama `handleSelecionarEntregador` e `handleVendedorAuto` (mantém auto-seleção do vendedor). Label "Entregador".
-2. **Produto** — popula com produtos ativos da unidade (mesma fonte que `ProductSearch`). Selecionar adiciona 1 unidade do produto a `itens` via o setter já existente. Label "Adicionar produto".
-3. **Forma de Pagamento** — opções fixas (Dinheiro, PIX, Cartão Crédito, Cartão Débito, Fiado, Boleto, Vale-Gás) — selecionar cria/atualiza um pagamento único com `valor = totalVenda` em `pagamentos`. Label "Pagamento".
+2. **Componentes completos abaixo** (largura total da coluna esquerda, `lg:col-span-2`):
+   - `ProductSearch` — para editar quantidades, remover itens, busca por nome.
+   - `PaymentSection` — para múltiplos pagamentos, troco, parcelas.
+   - Ficam disponíveis sem ficar espremidos.
 
-Os componentes completos `ProductSearch` e `PaymentSection` continuam abaixo (para edição detalhada: quantidade, múltiplos itens, divisão de pagamento, troco). Os 3 seletores são apenas atalhos rápidos.
+3. **Coluna direita** (`lg:col-span-1`, sticky): apenas `CustomerHistory`.
 
-`DeliveryPersonSelect` e `VendedorSelect` antigos saem da coluna principal (entregador agora é definido pelo seletor compacto; vendedor continua selecionado automaticamente via `handleVendedorAuto`). Caso o atendente precise trocar manualmente o vendedor, mantemos `VendedorSelect` num slot menor ao lado do seletor de Entregador (mesma linha, oculto em telas pequenas).
+4. **Linha final** (`lg:col-span-3`): `OrderSummary`.
 
-### Resumo da Venda
+5. **Mobile** (`order-*`): metaCard → CustomerSearch → 3 selects → VendedorSelect → ProductSearch → PaymentSection → CustomerHistory → OrderSummary (último).
 
-- Sai da coluna direita sticky.
-- Vai para um bloco final `<div className="order-last lg:order-none lg:col-span-3 mt-3 md:mt-4">` abaixo do grid principal — em desktop fica full-width abaixo de Cliente+Histórico; em mobile naturalmente cai por último.
-- Mantém todos os botões/handlers (`handleFinalizar`, `handleCancelar`, `handleAgendar`).
+### Escopo
 
-### Arquivos afetados
-
-- `src/pages/vendas/NovaVenda.tsx` — somente o bloco `else` (linhas 1481–1499). Versão nova (1445–1480) **não é tocada**.
-
-### Sem mudança
-
-- Lógica de negócio, validações, atalhos F2–F5, draft, navegação, `metaCard`, versão nova, `aiCommandPopover`, stepper.
+- **Arquivo:** `src/pages/vendas/NovaVenda.tsx` — apenas o bloco `else` (versão antiga, linhas 1481–1500).
+- **Versão nova (`useNewView === true`)**: não alterar.
+- **Sem mudanças de lógica**: hooks, validações, atalhos F2–F5, `metaCard`, `aiCommandPopover`, stepper permanecem iguais.
+- **Sem novos hooks de dados**: reaproveitar fontes que `DeliveryPersonSelect` e `ProductSearch` já consomem (importar o mesmo hook ou ler de props já disponíveis).
