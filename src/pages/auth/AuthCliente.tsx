@@ -271,7 +271,7 @@ export default function AuthCliente() {
     navigate("/cliente");
   }, [user, loading, roles, navigate, signOut]);
 
-  if (loading || empresaLoading) {
+  if (loading || empresaLoading || unidadeLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
