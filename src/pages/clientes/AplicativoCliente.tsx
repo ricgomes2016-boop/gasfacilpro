@@ -103,8 +103,8 @@ export default function AplicativoCliente() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `${empresa?.nome ?? "GásFácil"} - Peça seu Gás`,
-          text: `Peça seu gás de cozinha pelo app da ${empresa?.nome ?? "nossa distribuidora"}!`,
+          title: `${empresaLink?.nome ?? "GásFácil"} - Peça seu Gás`,
+          text: `Peça seu gás de cozinha pelo app da ${empresaLink?.nome ?? "nossa distribuidora"}!`,
           url: appLink,
         });
       } catch {
