@@ -1,63 +1,27 @@
-## Objetivo
+## Causa
 
-Permitir que cada **unidade** tenha seu próprio app do cliente (nome, logo e identificação), independente da empresa-mãe. Hoje o app sempre exibe a marca da empresa (ex.: "Central Gas"), mesmo quando a unidade visitada é "Forte Gás".
+O cadastro do cliente usa **telefone + senha**, mas internamente cria um e-mail sintético (`43999692765@phone.gasfacilpro.app`) no Supabase Auth. O backend está com **confirmação de e-mail obrigatória**, então o usuário é criado mas fica com `email_confirmed_at = null` — por isso o login retorna "Confirme seu cadastro antes de fazer login" e parece que precisa cadastrar de novo.
 
-## Causa atual
+Confirmado no banco: o usuário `43999692765@phone.gasfacilpro.app` existe, mas sem confirmação.
 
-- A unidade "Forte Gás" pertence à empresa "Central Gas" no banco.
-- A tabela `unidades` não tem `slug` nem `logo_url`.
-- `AuthCliente.tsx` exibe `empresa?.nome` e `empresa?.logo_url` no logo (apesar de já capturar `unidadeNome` do parâmetro `&unidade=`, o logo continua vindo da empresa).
-- O link gerado em `AplicativoCliente.tsx` usa `?empresa=<slug-da-empresa>&unidade=<id>`, então a empresa "vence" o branding.
+## Plano
 
-## Mudanças
+1. **Ativar auto-confirmação de e-mail** no Auth (`auto_confirm_email: true`).
+   - Justificativa: o e-mail é sintético, gerado a partir do telefone — não existe caixa de entrada para confirmar. Sem isso, **nenhum cliente** consegue logar pelo app após o cadastro.
+   - Mantém HIBP ligado e cadastros abertos como já estão.
 
-### 1. Banco — branding por unidade
+2. **Backfill dos clientes já cadastrados sem confirmação**: marcar `email_confirmed_at = now()` para todos os usuários cujo e-mail termina em `@phone.gasfacilpro.app` e ainda estão sem confirmação. Isso libera o login do Ricardo Gomes (e qualquer outro afetado) sem precisar recadastrar.
 
-Migration:
-- `ALTER TABLE public.unidades ADD COLUMN slug text UNIQUE`, `ADD COLUMN logo_url text`, `ADD COLUMN cor_primaria text`.
-- Função `public.get_unidade_by_slug(_slug text)` (SECURITY DEFINER) para resolver unidade publicamente sem expor outras colunas sensíveis (retorna `id, nome, slug, logo_url, cor_primaria, empresa_id, empresa_nome, empresa_slug`).
-- `GRANT EXECUTE ... TO anon, authenticated`.
+3. **Após o cadastro bem-sucedido em `AuthCliente.tsx`**, garantir o redirecionamento automático para a área do cliente. Hoje, quando o `signUp` retorna sem erro, o usuário fica parado na tela de cadastro — vou adicionar um efeito que, ao detectar sessão ativa logo após o signup, navega para a rota inicial do app do cliente preservando o `?u=<slug>`.
 
-### 2. Tela "Aplicativo do Cliente" (`src/pages/clientes/AplicativoCliente.tsx`)
-
-- Adicionar campos editáveis para a unidade ativa: **slug do app** (com sugestão automática a partir do nome — ex.: `forte-gas-matriz`) e **logo do app** (upload em bucket existente ou URL).
-- Mudar `appLink` para preferir o slug da unidade quando existir:
-  - Com slug de unidade: `https://clientes.gasfacilpro.com.br?u=<slug-unidade>`
-  - Fallback atual: `?empresa=<slug-empresa>&unidade=<id>`
-- QR code e compartilhamento usam o novo link.
-
-### 3. Login do cliente (`src/pages/auth/AuthCliente.tsx`)
-
-- Ler `?u=<slug-unidade>` além de `?empresa=` e `?unidade=`.
-- Quando `u` estiver presente, chamar `get_unidade_by_slug` e usar:
-  - `displayName` = `unidade.nome` (já é o caso quando `unidadeNome` existe).
-  - **Logo** = `unidade.logo_url` em vez de `empresa.logo_url` (correção principal — hoje o logo só usa a empresa).
-  - `empresaSlug` derivado da unidade para o restante do fluxo (cadastro, busca de produtos etc.).
-- Persistir `cliente_unidade_slug` no `localStorage` análogo ao `cliente_empresa_slug`.
-
-### 4. `ClienteContext.tsx` e `ClienteCadastro.tsx`
-
-- Aceitar `?u=` como fonte primária; resolver `empresaSlug` via unidade quando vier por aí. Comportamento legado (`?empresa=`) preservado.
-- Salvar `unidade_id` no cadastro/sessão do cliente (campo já passado hoje quando `&unidade=` está na URL — mantém).
-
-### 5. Forte Gás existente
-
-- Não migrar dados automaticamente. Após o deploy, basta o usuário entrar em **Aplicativo do Cliente** com a unidade "Forte Gás" selecionada, definir slug `forte-gas-cg` (ou similar) e fazer upload do logo da Forte Gás. O link gerado abrirá com a marca correta.
-- A empresa independente "Forte Gás" (slug `forte-gas`) continua funcionando normalmente.
-
-## Fora de escopo
+## Fora do escopo
 
 - Não mexer em `App.tsx`, providers ou rotas.
-- Tela "versão nova" do Nova Venda intocada (mantém regra anterior).
-- Sem mudanças em RLS de outras tabelas.
+- Não alterar branding/`get_unidade_by_slug` (já funcionando — a tela mostra "Forte Gás" corretamente).
+- Não mudar autenticação dos outros portais (ERP, entregador, contador etc.).
 
-## Resumo técnico
+## Detalhes técnicos
 
-```text
-unidades + slug, logo_url, cor_primaria
-        │
-        ▼
-get_unidade_by_slug(slug) ──► AuthCliente (?u=…)  → logo + nome da unidade
-                              ClienteContext      → empresa_id derivada
-AplicativoCliente: edita slug/logo da unidade e gera link com ?u=
-```
+- `supabase--configure_auth` com `auto_confirm_email: true`, `password_hibp_enabled: true`, `disable_signup: false`, `external_anonymous_users_enabled: false`.
+- Migration: `UPDATE auth.users SET email_confirmed_at = now() WHERE email LIKE '%@phone.gasfacilpro.app' AND email_confirmed_at IS NULL;`
+- `src/pages/auth/AuthCliente.tsx`: usar `onAuthStateChange` + `getSession` para detectar `SIGNED_IN` e redirecionar para `/cliente` (ou rota equivalente já usada no fluxo) preservando query params.
