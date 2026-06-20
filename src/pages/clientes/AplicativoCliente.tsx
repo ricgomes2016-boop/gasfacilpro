@@ -221,7 +221,7 @@ export default function AplicativoCliente() {
                 </Button>
               </div>
 
-              {!empresa?.slug && (
+              {!empresaLink?.slug && (
                 <p className="text-sm text-destructive">
                   Configure o slug da sua empresa nas configurações para gerar um link personalizado.
                 </p>
