@@ -11,8 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   Smartphone, Copy, Check, ExternalLink, QrCode, Users, ShoppingCart,
-  TrendingUp, Download, Share2, Link2, Star, MessageSquare
+  TrendingUp, Download, Share2, Link2, Star, MessageSquare, Upload, Save
 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 
