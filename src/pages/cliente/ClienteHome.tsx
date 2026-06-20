@@ -392,36 +392,39 @@ interface ProductCardProps {
   onQuantityChange: (delta: number) => void;
   onAddToCart: () => void;
   isAdding: boolean;
+  resolvedImage?: string | null;
 }
 
-function ProductCard({ product, quantity, cartQty, onQuantityChange, onAddToCart, isAdding }: ProductCardProps) {
+function ProductCard({ product, quantity, cartQty, onQuantityChange, onAddToCart, isAdding, resolvedImage }: ProductCardProps) {
   const isOutOfStock = (product.estoque ?? 1) === 0;
   const Icon = product.categoria === "agua" ? Droplets : product.categoria === "gas" ? Flame : Package;
+  const imgSrc = resolvedImage ?? product.image_url ?? null;
 
   return (
-    <Card className={`overflow-hidden transition-all duration-200 ${isAdding ? "scale-[0.98] shadow-sm" : "hover:shadow-md"}`}>
-      <CardContent className="p-0">
-        <div className="flex gap-0">
+    <Card className={`overflow-hidden border-border/60 transition-all duration-200 active:scale-[0.985] ${isAdding ? "scale-[0.98] shadow-sm" : "hover:shadow-md hover:border-primary/30"}`}>
+      <CardContent className="p-2">
+        <div className="flex gap-3 items-stretch">
           {/* Product Image */}
-          <div className="w-28 h-28 bg-muted/30 shrink-0 flex items-center justify-center rounded-l-lg overflow-hidden relative">
-            {product.image_url ? (
-              <img 
-                src={product.image_url} 
-                alt={product.nome} 
-                className="w-full h-full object-contain p-2"
+          <div className="w-28 h-28 shrink-0 flex items-center justify-center rounded-xl overflow-hidden relative bg-gradient-to-br from-muted/60 via-muted/30 to-muted/10 ring-1 ring-border/40">
+            {imgSrc ? (
+              <img
+                src={imgSrc}
+                alt={product.nome}
+                className="w-full h-full object-contain p-2 drop-shadow-sm"
+                loading="lazy"
               />
             ) : (
               <Icon className="h-12 w-12 text-primary/40" />
             )}
             {isOutOfStock && (
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/45 flex items-center justify-center backdrop-blur-[1px]">
                 <span className="text-white text-xs font-bold">Indisponível</span>
               </div>
             )}
           </div>
-          
+
           {/* Info */}
-          <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
+          <div className="flex-1 py-1 pr-1 flex flex-col justify-between min-w-0">
             <div>
               <div className="flex items-start justify-between gap-1">
                 <h3 className="font-bold text-sm leading-tight">{product.nome}</h3>
@@ -432,18 +435,17 @@ function ProductCard({ product, quantity, cartQty, onQuantityChange, onAddToCart
                 )}
               </div>
               {product.descricao && (
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{product.descricao}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{product.descricao}</p>
               )}
             </div>
-            
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-lg font-black text-primary">
+
+            <div className="flex items-center justify-between mt-2 gap-2">
+              <span className="text-lg font-black text-primary tracking-tight">
                 R$ {product.preco.toFixed(2)}
               </span>
-              
+
               <div className="flex items-center gap-1.5">
-                {/* Quantity selector */}
-                <div className="flex items-center border border-border rounded-lg overflow-hidden">
+                <div className="flex items-center border border-border rounded-lg overflow-hidden bg-background">
                   <button
                     className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
                     onClick={() => onQuantityChange(-1)}
@@ -458,7 +460,7 @@ function ProductCard({ product, quantity, cartQty, onQuantityChange, onAddToCart
                     <Plus className="h-3 w-3" />
                   </button>
                 </div>
-                
+
                 <Button
                   size="sm"
                   onClick={onAddToCart}
