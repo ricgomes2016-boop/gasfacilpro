@@ -323,6 +323,7 @@ export default function ClienteHome() {
                     onQuantityChange={(delta) => setQuantity(product.id, getQuantity(product.id) + delta)}
                     onAddToCart={() => handleAddToCart(product)}
                     isAdding={addingToCart === product.id}
+                    resolvedImage={product.image_url || imageFallbacks[product.nome] || null}
                   />
                 ))}
               </div>
@@ -343,6 +344,7 @@ export default function ClienteHome() {
                     onQuantityChange={(delta) => setQuantity(product.id, getQuantity(product.id) + delta)}
                     onAddToCart={() => handleAddToCart(product)}
                     isAdding={addingToCart === product.id}
+                    resolvedImage={product.image_url || imageFallbacks[product.nome] || null}
                   />
                 ))}
               </div>
@@ -360,6 +362,7 @@ export default function ClienteHome() {
                     onQuantityChange={(delta) => setQuantity(product.id, getQuantity(product.id) + delta)}
                     onAddToCart={() => handleAddToCart(product)}
                     isAdding={addingToCart === product.id}
+                    resolvedImage={product.image_url || imageFallbacks[product.nome] || null}
                   />
                 ))}
               </div>
