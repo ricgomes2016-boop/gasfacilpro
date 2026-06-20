@@ -152,13 +152,19 @@ export default function AuthCliente() {
 
   const urlSlug = searchParams.get("empresa");
   const urlUnidade = searchParams.get("unidade");
+  const urlUnidadeSlug = searchParams.get("u");
   const codigoIndicacao = normalizarCodigoIndicacao(searchParams.get("ref"));
   const [showSignup, setShowSignup] = useState(false);
+
+  const [unidadeSlug, setUnidadeSlug] = useState<string | undefined>(
+    urlUnidadeSlug || localStorage.getItem("cliente_unidade_slug") || undefined
+  );
   const [empresaSlug, setEmpresaSlug] = useState<string | undefined>(
     urlSlug || localStorage.getItem("cliente_empresa_slug") || undefined
   );
   const [empresa, setEmpresa] = useState<EmpresaInfo | null>(null);
-  const [empresaLoading, setEmpresaLoading] = useState(!!empresaSlug);
+  const [unidadeBrand, setUnidadeBrand] = useState<{ id: string; nome: string; logo_url: string | null } | null>(null);
+  const [empresaLoading, setEmpresaLoading] = useState(!!(empresaSlug || unidadeSlug));
   const [empresaError, setEmpresaError] = useState(false);
   const [unidadeNome, setUnidadeNome] = useState<string | null>(null);
 
@@ -172,6 +178,13 @@ export default function AuthCliente() {
   }, [urlSlug]);
 
   useEffect(() => {
+    if (urlUnidadeSlug) {
+      localStorage.setItem("cliente_unidade_slug", urlUnidadeSlug);
+      setUnidadeSlug(urlUnidadeSlug);
+    }
+  }, [urlUnidadeSlug]);
+
+  useEffect(() => {
     if (!urlUnidade) return;
     supabase
       .from("unidades")
@@ -183,11 +196,30 @@ export default function AuthCliente() {
       });
   }, [urlUnidade]);
 
+  // Branding por unidade (?u=slug)
+  useEffect(() => {
+    if (!unidadeSlug) return;
+    (async () => {
+      const { data, error } = await supabase.rpc("get_unidade_by_slug", { _slug: unidadeSlug });
+      const row = Array.isArray(data) ? data[0] : data;
+      if (error || !row) {
+        localStorage.removeItem("cliente_unidade_slug");
+        return;
+      }
+      setUnidadeBrand({ id: row.id, nome: row.nome, logo_url: row.logo_url });
+      setUnidadeNome(row.nome);
+      if (row.empresa_slug) {
+        setEmpresaSlug(row.empresa_slug);
+        localStorage.setItem("cliente_empresa_slug", row.empresa_slug);
+      }
+    })();
+  }, [unidadeSlug]);
+
   useEffect(() => {
     async function fetchEmpresa() {
       if (!empresaSlug) {
         setEmpresaLoading(false);
-        if (isSubdomain) setEmpresaError(true);
+        if (isSubdomain && !unidadeSlug) setEmpresaError(true);
         return;
       }
 
@@ -209,9 +241,10 @@ export default function AuthCliente() {
     }
 
     fetchEmpresa();
-  }, [empresaSlug]);
+  }, [empresaSlug, isSubdomain, unidadeSlug]);
 
-  const displayName = unidadeNome || empresa?.nome || "GásFácil Pro";
+  const displayName = unidadeBrand?.nome || unidadeNome || empresa?.nome || "GásFácil Pro";
+  const displayLogo = unidadeBrand?.logo_url || empresa?.logo_url || null;
 
   useEffect(() => {
     document.title = `${displayName} — Área do Cliente`;
