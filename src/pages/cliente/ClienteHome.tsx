@@ -91,8 +91,8 @@ export default function ClienteHome() {
     (async () => {
       const { data } = await (supabase as any)
         .from("produtos")
-        .select("nome, image_url")
-        .eq("empresa_id", empresaInfo.id)
+        .select("nome, image_url, unidades!inner(empresa_id)")
+        .eq("unidades.empresa_id", empresaInfo.id)
         .in("nome", missing)
         .not("image_url", "is", null);
       if (data) {
