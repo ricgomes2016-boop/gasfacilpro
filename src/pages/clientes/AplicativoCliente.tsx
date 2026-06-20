@@ -110,9 +110,15 @@ export default function AplicativoCliente() {
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !unidadeAtual?.id) return;
+    const empresaId = unidadeEmpresa?.id || empresa?.id;
+    if (!empresaId) {
+      toast.error("Empresa não identificada. Recarregue a página.");
+      return;
+    }
     setUploadingLogo(true);
     const ext = file.name.split(".").pop() || "png";
-    const path = `unidades-logos/${unidadeAtual.id}-${Date.now()}.${ext}`;
+    // RLS exige que a primeira pasta seja o empresa_id do usuário
+    const path = `${empresaId}/unidades-logos/${unidadeAtual.id}-${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage.from("marketing-assets").upload(path, file, { upsert: true });
     if (upErr) {
       setUploadingLogo(false);

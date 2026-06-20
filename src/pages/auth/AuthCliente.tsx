@@ -160,10 +160,12 @@ export default function AuthCliente() {
     urlUnidadeSlug || localStorage.getItem("cliente_unidade_slug") || undefined
   );
   const [empresaSlug, setEmpresaSlug] = useState<string | undefined>(
-    urlSlug || localStorage.getItem("cliente_empresa_slug") || undefined
+    // Se há ?u= na URL, ignoramos cache de empresa para evitar mostrar marca antiga
+    urlSlug || (urlUnidadeSlug ? undefined : localStorage.getItem("cliente_empresa_slug") || undefined)
   );
   const [empresa, setEmpresa] = useState<EmpresaInfo | null>(null);
   const [unidadeBrand, setUnidadeBrand] = useState<{ id: string; nome: string; logo_url: string | null } | null>(null);
+  const [unidadeLoading, setUnidadeLoading] = useState(!!unidadeSlug);
   const [empresaLoading, setEmpresaLoading] = useState(!!(empresaSlug || unidadeSlug));
   const [empresaError, setEmpresaError] = useState(false);
   const [unidadeNome, setUnidadeNome] = useState<string | null>(null);
@@ -198,12 +200,17 @@ export default function AuthCliente() {
 
   // Branding por unidade (?u=slug)
   useEffect(() => {
-    if (!unidadeSlug) return;
+    if (!unidadeSlug) {
+      setUnidadeLoading(false);
+      return;
+    }
+    setUnidadeLoading(true);
     (async () => {
       const { data, error } = await supabase.rpc("get_unidade_by_slug", { _slug: unidadeSlug });
       const row = Array.isArray(data) ? data[0] : data;
       if (error || !row) {
         localStorage.removeItem("cliente_unidade_slug");
+        setUnidadeLoading(false);
         return;
       }
       setUnidadeBrand({ id: row.id, nome: row.nome, logo_url: row.logo_url });
@@ -212,6 +219,7 @@ export default function AuthCliente() {
         setEmpresaSlug(row.empresa_slug);
         localStorage.setItem("cliente_empresa_slug", row.empresa_slug);
       }
+      setUnidadeLoading(false);
     })();
   }, [unidadeSlug]);
 
@@ -263,7 +271,7 @@ export default function AuthCliente() {
     navigate("/cliente");
   }, [user, loading, roles, navigate, signOut]);
 
-  if (loading || empresaLoading) {
+  if (loading || empresaLoading || unidadeLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
