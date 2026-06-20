@@ -132,12 +132,18 @@ export function useAuthForm(empresaSlug?: string, defaultLoginMethod: LoginMetho
     setIsLoading(true);
     const { error } = await signUp(emailForAuth, signupPassword, signupName, empresaSlug, phoneValue, codigoIndicacao);
     if (error) {
-      if (error.message.includes("already registered")) {
+      const msg = error.message || "";
+      if (msg.includes("already registered")) {
         setErrors({ general: loginMethod === "phone" ? "Este telefone já está cadastrado" : "Este email já está cadastrado" });
+      } else if (/known to be weak|pwned|compromised|weak.*password|password.*weak/i.test(msg)) {
+        setErrors({ password: "Esta senha é muito comum e foi encontrada em vazamentos. Escolha uma senha mais forte (mínimo 8 caracteres, com letras, números e símbolos)." });
+      } else if (/password.*should be at least|at least \d+ characters/i.test(msg)) {
+        setErrors({ password: "A senha precisa ter pelo menos 6 caracteres." });
       } else {
-        setErrors({ general: error.message });
+        setErrors({ general: msg });
       }
     }
+
     setIsLoading(false);
   };
 
