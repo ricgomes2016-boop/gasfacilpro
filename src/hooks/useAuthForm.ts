@@ -78,14 +78,19 @@ export function useAuthForm(empresaSlug?: string, defaultLoginMethod: LoginMetho
     setIsLoading(true);
     const { error } = await signIn(emailForAuth, loginPassword);
     if (error) {
-      if (error.message.includes("Invalid login credentials")) {
+      const msg = error.message || "";
+      const rate = msg.match(/after (\d+) seconds/i);
+      if (msg.includes("Invalid login credentials")) {
         setErrors({ general: loginMethod === "phone" ? "Telefone ou senha incorretos" : "Email ou senha incorretos" });
-      } else if (error.message.includes("Email not confirmed")) {
+      } else if (msg.includes("Email not confirmed")) {
         setErrors({ general: "Confirme seu cadastro antes de fazer login" });
+      } else if (rate) {
+        setErrors({ general: `Por segurança, aguarde ${rate[1]} segundos e tente novamente.` });
       } else {
-        setErrors({ general: error.message });
+        setErrors({ general: msg });
       }
     }
+
     setIsLoading(false);
   };
 
@@ -140,7 +145,12 @@ export function useAuthForm(empresaSlug?: string, defaultLoginMethod: LoginMetho
       } else if (/password.*should be at least|at least \d+ characters/i.test(msg)) {
         setErrors({ password: "A senha precisa ter pelo menos 6 caracteres." });
       } else {
-        setErrors({ general: msg });
+        const rate = msg.match(/after (\d+) seconds/i);
+        if (rate) {
+          setErrors({ general: `Por segurança, aguarde ${rate[1]} segundos e tente novamente.` });
+        } else {
+          setErrors({ general: msg });
+        }
       }
     }
 
