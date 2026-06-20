@@ -200,12 +200,17 @@ export default function AuthCliente() {
 
   // Branding por unidade (?u=slug)
   useEffect(() => {
-    if (!unidadeSlug) return;
+    if (!unidadeSlug) {
+      setUnidadeLoading(false);
+      return;
+    }
+    setUnidadeLoading(true);
     (async () => {
       const { data, error } = await supabase.rpc("get_unidade_by_slug", { _slug: unidadeSlug });
       const row = Array.isArray(data) ? data[0] : data;
       if (error || !row) {
         localStorage.removeItem("cliente_unidade_slug");
+        setUnidadeLoading(false);
         return;
       }
       setUnidadeBrand({ id: row.id, nome: row.nome, logo_url: row.logo_url });
@@ -214,6 +219,7 @@ export default function AuthCliente() {
         setEmpresaSlug(row.empresa_slug);
         localStorage.setItem("cliente_empresa_slug", row.empresa_slug);
       }
+      setUnidadeLoading(false);
     })();
   }, [unidadeSlug]);
 
