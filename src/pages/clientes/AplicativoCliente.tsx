@@ -21,10 +21,42 @@ export default function AplicativoCliente() {
   const { unidadeAtual } = useUnidade();
   const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState({ totalClientes: 0, pedidosMes: 0, avaliacaoMedia: 0, clientesAtivos: 0 });
+  const [unidadeEmpresa, setUnidadeEmpresa] = useState<{ id: string; nome: string; slug: string | null } | null>(null);
+
+  // Resolve empresa from the active unit (multi-tenant correctness — link must reflect
+  // the unit being viewed, not the logged-in user's profile empresa).
+  useEffect(() => {
+    let cancelled = false;
+    async function resolveEmpresaDaUnidade() {
+      if (!unidadeAtual?.id) {
+        setUnidadeEmpresa(null);
+        return;
+      }
+      const { data: u } = await supabase
+        .from("unidades")
+        .select("empresa_id")
+        .eq("id", unidadeAtual.id)
+        .maybeSingle();
+      if (!u?.empresa_id) {
+        if (!cancelled) setUnidadeEmpresa(null);
+        return;
+      }
+      const { data: e } = await supabase
+        .from("empresas")
+        .select("id, nome, slug")
+        .eq("id", u.empresa_id)
+        .maybeSingle();
+      if (!cancelled && e) setUnidadeEmpresa(e as any);
+    }
+    resolveEmpresaDaUnidade();
+    return () => { cancelled = true; };
+  }, [unidadeAtual?.id]);
+
+  const empresaLink = unidadeEmpresa ?? empresa;
 
   const baseUrl = "https://clientes.gasfacilpro.com.br";
-  const appLink = empresa?.slug
-    ? `${baseUrl}?empresa=${empresa.slug}${unidadeAtual ? `&unidade=${unidadeAtual.id}` : ""}`
+  const appLink = empresaLink?.slug
+    ? `${baseUrl}?empresa=${empresaLink.slug}${unidadeAtual ? `&unidade=${unidadeAtual.id}` : ""}`
     : baseUrl;
 
   useEffect(() => {
