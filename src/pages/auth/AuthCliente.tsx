@@ -160,10 +160,12 @@ export default function AuthCliente() {
     urlUnidadeSlug || localStorage.getItem("cliente_unidade_slug") || undefined
   );
   const [empresaSlug, setEmpresaSlug] = useState<string | undefined>(
-    urlSlug || localStorage.getItem("cliente_empresa_slug") || undefined
+    // Se há ?u= na URL, ignoramos cache de empresa para evitar mostrar marca antiga
+    urlSlug || (urlUnidadeSlug ? undefined : localStorage.getItem("cliente_empresa_slug") || undefined)
   );
   const [empresa, setEmpresa] = useState<EmpresaInfo | null>(null);
   const [unidadeBrand, setUnidadeBrand] = useState<{ id: string; nome: string; logo_url: string | null } | null>(null);
+  const [unidadeLoading, setUnidadeLoading] = useState(!!unidadeSlug);
   const [empresaLoading, setEmpresaLoading] = useState(!!(empresaSlug || unidadeSlug));
   const [empresaError, setEmpresaError] = useState(false);
   const [unidadeNome, setUnidadeNome] = useState<string | null>(null);
