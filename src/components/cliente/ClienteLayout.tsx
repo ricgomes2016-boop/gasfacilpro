@@ -66,31 +66,45 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
   const lojaSelecionada = lojas.find(l => l.id === lojaSelecionadaId);
   const tituloPrincipal = lojaSelecionada?.nome || empresaNome;
 
+  const showFloatingCart = cartItemsCount > 0 && !isCarrinhoPage && !isCheckoutPage;
+  const hasMultipleLojas = lojas.length > 1;
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-primary text-primary-foreground shadow-md">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-2">
+      <header className="sticky top-0 z-50 bg-gradient-to-b from-primary via-primary to-primary/85 text-primary-foreground shadow-lg shadow-primary/20 border-b border-white/10">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="h-10 w-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0 ring-1 ring-white/20">
               {empresaInfo?.logo_url ? (
-                <img src={empresaInfo.logo_url} alt={tituloPrincipal} className="h-7 w-7 object-contain rounded" />
+                <img src={empresaInfo.logo_url} alt={tituloPrincipal} className="h-7 w-7 object-contain rounded-full" />
               ) : (
-                <img src={logoImg} alt={tituloPrincipal} className="h-7 w-7 object-contain" />
+                <img src={logoImg} alt={tituloPrincipal} className="h-6 w-6 object-contain" />
               )}
-              <span className="font-bold text-lg truncate">{tituloPrincipal}</span>
             </div>
-            <LojaSelector />
+            <div className="flex flex-col min-w-0 leading-tight">
+              <span className="text-[10px] uppercase tracking-[0.14em] opacity-70 font-medium">Sua loja</span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="font-semibold text-base tracking-tight truncate drop-shadow-sm">
+                  {tituloPrincipal}
+                </span>
+                {hasMultipleLojas && (
+                  <div className="shrink-0 [&>*]:!text-primary-foreground [&_button]:!h-6 [&_button]:!px-1.5 [&_button]:!bg-white/10 [&_button]:!border-white/20">
+                    <LojaSelector />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-          
+
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary/80">
-                <Menu className="h-6 w-6" />
+              <Button variant="ghost" size="icon" className="text-primary-foreground bg-white/10 hover:bg-white/20 shrink-0 rounded-full">
+                <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-80 p-0">
-              <div className="bg-primary text-primary-foreground p-6">
+              <div className="bg-gradient-to-b from-primary via-primary to-primary/85 text-primary-foreground p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     {empresaInfo?.logo_url ? (
@@ -100,18 +114,18 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
                     )}
                     <span className="font-bold text-lg">{empresaNome}</span>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setMenuOpen(false)}
-                    className="text-primary-foreground hover:bg-primary/80"
+                    className="text-primary-foreground hover:bg-white/15"
                   >
                     <X className="h-5 w-5" />
                   </Button>
                 </div>
                 <p className="text-primary-foreground/80 text-sm">Bem-vindo ao app do cliente</p>
               </div>
-              
+
               <nav className="p-4">
                 {menuItems.map((item) => (
                   <Link
@@ -139,29 +153,34 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
       </header>
 
       {/* Main Content */}
-      <main className="px-4 py-4">
+      <main
+        className={cn(
+          "px-4 py-4 scroll-pb-28",
+          showFloatingCart ? "pb-32" : "pb-20"
+        )}
+      >
         {children}
       </main>
 
-      {/* Floating Cart Button - visible on home when cart has items, not on cart page */}
-      {cartItemsCount > 0 && !isCarrinhoPage && !isCheckoutPage && (
-        <div className="fixed bottom-[72px] left-0 right-0 px-4 z-40">
+      {/* Floating Cart Button - global, único */}
+      {showFloatingCart && (
+        <div className="fixed bottom-[76px] left-0 right-0 px-4 z-40 pointer-events-none animate-in slide-in-from-bottom-4 fade-in duration-300">
           <Button
-            className="w-full h-12 shadow-lg gap-2 text-base font-semibold"
+            className="w-full h-13 py-3 rounded-2xl shadow-xl shadow-primary/40 gap-3 text-base font-semibold pointer-events-auto"
             onClick={() => navigate("/cliente/carrinho")}
           >
             <ShoppingCart className="h-5 w-5" />
-            Ver carrinho
-            <Badge className="bg-primary-foreground text-primary ml-1 text-xs h-5 px-1.5">
-              {cartItemsCount}
+            <span className="flex-1 text-left">Ver carrinho</span>
+            <Badge className="bg-primary-foreground/20 text-primary-foreground border-0 text-xs h-6 px-2">
+              {cartItemsCount} {cartItemsCount === 1 ? "item" : "itens"}
             </Badge>
-            <ArrowRight className="h-4 w-4 ml-auto" />
+            <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       )}
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
+      <nav className="fixed bottom-0 left-0 right-0 backdrop-blur-md bg-background/85 border-t border-border z-50">
         <div className="flex justify-around items-center py-2">
           {bottomNavItems.map((item) => {
             const isActive = location.pathname === item.path;
@@ -177,7 +196,7 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
                 <div className="relative">
                   <item.icon className="h-5 w-5" />
                   {item.showBadge && cartItemsCount > 0 && (
-                    <Badge 
+                    <Badge
                       className="absolute -top-2 -right-2 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-destructive"
                     >
                       {cartItemsCount}

@@ -1,27 +1,56 @@
-## Causa
+# Refinamento Premium — App do Cliente
 
-O cadastro do cliente usa **telefone + senha**, mas internamente cria um e-mail sintético (`43999692765@phone.gasfacilpro.app`) no Supabase Auth. O backend está com **confirmação de e-mail obrigatória**, então o usuário é criado mas fica com `email_confirmed_at = null` — por isso o login retorna "Confirme seu cadastro antes de fazer login" e parece que precisa cadastrar de novo.
+Ajustes focados em 3 pontos pedidos + polimento geral de UX, sem mexer em rotas, providers ou App.tsx.
 
-Confirmado no banco: o usuário `43999692765@phone.gasfacilpro.app` existe, mas sem confirmação.
+## 1. Header da loja (ClienteLayout.tsx)
 
-## Plano
+Hoje o título "Forte Gás" aparece em branco sobre o fundo `primary` cheio, com peso visual desproporcional e o `LojaSelector` colado embaixo, deixando o header alto e "pesado".
 
-1. **Ativar auto-confirmação de e-mail** no Auth (`auto_confirm_email: true`).
-   - Justificativa: o e-mail é sintético, gerado a partir do telefone — não existe caixa de entrada para confirmar. Sem isso, **nenhum cliente** consegue logar pelo app após o cadastro.
-   - Mantém HIBP ligado e cadastros abertos como já estão.
+Mudanças:
+- Substituir o fundo chapado `bg-primary` por um header em **gradiente sutil** (`from-primary via-primary to-primary/85`) com leve sombra e borda inferior translúcida — combinando com o hero da Home.
+- Título com tipografia refinada: `text-base font-semibold tracking-tight` + um chip pequeno acima ("Sua loja") em `text-[10px] uppercase opacity-70`. Cor do título: `text-primary-foreground` (mantém contraste em qualquer tema da unidade), com leve `drop-shadow` para destaque.
+- Logo da unidade dentro de um círculo `bg-white/15 backdrop-blur` `h-9 w-9` para dar profundidade.
+- Reduzir padding vertical (`py-2.5` no lugar de `py-3`) e enxugar o `LojaSelector` para ficar inline ao lado do nome quando houver mais de uma loja, ou esconder quando só existir uma.
+- Botão Menu com `bg-white/10` para não sumir no gradiente.
 
-2. **Backfill dos clientes já cadastrados sem confirmação**: marcar `email_confirmed_at = now()` para todos os usuários cujo e-mail termina em `@phone.gasfacilpro.app` e ainda estão sem confirmação. Isso libera o login do Ricardo Gomes (e qualquer outro afetado) sem precisar recadastrar.
+Resultado: header mais baixo, elegante e coerente com o gradiente do hero da Home.
 
-3. **Após o cadastro bem-sucedido em `AuthCliente.tsx`**, garantir o redirecionamento automático para a área do cliente. Hoje, quando o `signUp` retorna sem erro, o usuário fica parado na tela de cadastro — vou adicionar um efeito que, ao detectar sessão ativa logo após o signup, navega para a rota inicial do app do cliente preservando o `?u=<slug>`.
+## 2. Espaçamento — não cobrir o botão flutuante "Ver carrinho"
 
-## Fora do escopo
+Hoje há **dois botões flutuantes**: um no `ClienteLayout` (`bottom-[72px]`) e outro dentro de `ClienteHome` (`bottom-20`), e ambos podem cobrir conteúdo/duplicar.
 
-- Não mexer em `App.tsx`, providers ou rotas.
-- Não alterar branding/`get_unidade_by_slug` (já funcionando — a tela mostra "Forte Gás" corretamente).
-- Não mudar autenticação dos outros portais (ERP, entregador, contador etc.).
+Mudanças:
+- Remover o botão flutuante duplicado do `ClienteHome` (manter apenas o do Layout, que é global).
+- Ajustar o botão do Layout para `bottom-[76px]`, com `rounded-2xl`, `h-13`, sombra `shadow-xl shadow-primary/30` e leve animação de entrada (`animate-in slide-in-from-bottom-4`).
+- Aumentar o `pb` do `<main>` para `pb-28` quando carrinho > 0 e `pb-20` quando vazio (condicional), para o último card de produto nunca ficar coberto.
+- Adicionar `scroll-pb-28` no container para que rolagem por âncora respeite o espaço.
 
-## Detalhes técnicos
+## 3. Fotos dos produtos (igual Nova Venda)
 
-- `supabase--configure_auth` com `auto_confirm_email: true`, `password_hibp_enabled: true`, `disable_signup: false`, `external_anonymous_users_enabled: false`.
-- Migration: `UPDATE auth.users SET email_confirmed_at = now() WHERE email LIKE '%@phone.gasfacilpro.app' AND email_confirmed_at IS NULL;`
-- `src/pages/auth/AuthCliente.tsx`: usar `onAuthStateChange` + `getSession` para detectar `SIGNED_IN` e redirecionar para `/cliente` (ou rota equivalente já usada no fluxo) preservando query params.
+A query já é idêntica à do PDV (`image_url` incluído). O problema visual real:
+- Quando `image_url` é nulo, hoje aparece só um ícone genérico — diferente da Nova Venda que mostra a foto cadastrada do produto.
+- Cards usam `object-contain p-2` em fundo `bg-muted/30`, perdendo destaque.
+
+Mudanças no `ProductCard` (ClienteHome.tsx):
+- Aumentar a área da foto para `w-32 h-32` em telas estreitas, fundo `bg-gradient-to-br from-muted/40 to-muted/10`, `rounded-xl m-2` (foto "flutuando" dentro do card, estilo iFood/Uber Eats).
+- `object-contain` mantido, com `drop-shadow-sm` para dar profundidade.
+- Fallback inteligente: se não houver `image_url`, usar **a mesma imagem padrão do produto-pai** (consultar `produtos` na empresa quando a loja não tem imagem) — query secundária buscando por `nome` + `empresa_id` para preencher imagens faltantes. Sem alterar dados, só fallback em runtime.
+- Badge "Mais pedido" 🔥 no produto de maior categoria gás (visual, sem regra nova).
+
+## 4. Polimento geral premium (escopo enxuto)
+
+- Hero banner: reduzir altura em ~20%, gradiente já existente mantido, mas com um `noise/grain overlay` muito sutil (CSS, sem assets).
+- Cards de produto com `transition-transform active:scale-[0.98]` para feedback tátil.
+- Tipografia das seções ("Gás", "Água & Outros") com divisor sutil à direita: `<h2>Gás</h2><div className="h-px flex-1 bg-border/60"/>`.
+- Bottom nav com leve `backdrop-blur-md bg-background/80` para parecer flutuante.
+
+## Arquivos afetados
+
+- `src/components/cliente/ClienteLayout.tsx` — header, botão flutuante único, padding condicional, bottom nav blur.
+- `src/pages/cliente/ClienteHome.tsx` — remover botão flutuante duplicado, refinar `ProductCard`, fallback de imagem, hero compacto, divisores de seção.
+
+## Fora de escopo
+
+- `App.tsx`, providers, rotas, autenticação, schemas/RLS.
+- Páginas além de Home (Carrinho/Checkout/Perfil ficam para um próximo ciclo).
+- Mudança de paleta de marca/tema da unidade.

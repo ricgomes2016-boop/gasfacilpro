@@ -43,7 +43,7 @@ interface UltimoPedido {
 }
 
 export default function ClienteHome() {
-  const { addToCart, cartItemsCount, cart } = useCliente();
+  const { addToCart, cartItemsCount, cart, empresaInfo, lojaSelecionadaId } = useCliente();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -53,8 +53,7 @@ export default function ClienteHome() {
   const [isLoading, setIsLoading] = useState(true);
   const [ultimoPedido, setUltimoPedido] = useState<UltimoPedido | null>(null);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
-
-  const { lojaSelecionadaId } = useCliente();
+  const [imageFallbacks, setImageFallbacks] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setIsLoading(true);
@@ -84,6 +83,27 @@ export default function ClienteHome() {
     };
     fetchProdutos();
   }, [lojaSelecionadaId]);
+
+  // Fallback: buscar imagens da empresa quando a loja não tem image_url
+  useEffect(() => {
+    const missing = produtos.filter(p => !p.image_url).map(p => p.nome);
+    if (missing.length === 0 || !empresaInfo?.id) return;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("produtos")
+        .select("nome, image_url")
+        .eq("empresa_id", empresaInfo.id)
+        .in("nome", missing)
+        .not("image_url", "is", null);
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((row: any) => {
+          if (row.image_url && !map[row.nome]) map[row.nome] = row.image_url;
+        });
+        setImageFallbacks(map);
+      }
+    })();
+  }, [produtos, empresaInfo?.id]);
 
   // Fetch último pedido do cliente
   useEffect(() => {
@@ -303,6 +323,7 @@ export default function ClienteHome() {
                     onQuantityChange={(delta) => setQuantity(product.id, getQuantity(product.id) + delta)}
                     onAddToCart={() => handleAddToCart(product)}
                     isAdding={addingToCart === product.id}
+                    resolvedImage={product.image_url || imageFallbacks[product.nome] || null}
                   />
                 ))}
               </div>
@@ -323,6 +344,7 @@ export default function ClienteHome() {
                     onQuantityChange={(delta) => setQuantity(product.id, getQuantity(product.id) + delta)}
                     onAddToCart={() => handleAddToCart(product)}
                     isAdding={addingToCart === product.id}
+                    resolvedImage={product.image_url || imageFallbacks[product.nome] || null}
                   />
                 ))}
               </div>
@@ -340,6 +362,7 @@ export default function ClienteHome() {
                     onQuantityChange={(delta) => setQuantity(product.id, getQuantity(product.id) + delta)}
                     onAddToCart={() => handleAddToCart(product)}
                     isAdding={addingToCart === product.id}
+                    resolvedImage={product.image_url || imageFallbacks[product.nome] || null}
                   />
                 ))}
               </div>
@@ -355,23 +378,7 @@ export default function ClienteHome() {
           </div>
         )}
 
-        {/* Sticky cart button */}
-        {cartItemsCount > 0 && (
-          <div className="fixed bottom-20 left-4 right-4 z-40">
-            <Button
-              className="w-full h-14 rounded-2xl shadow-xl shadow-primary/40 text-base font-bold gap-3"
-              onClick={() => navigate("/cliente/carrinho")}
-            >
-              <div className="flex items-center gap-2 flex-1">
-                <ShoppingCart className="h-5 w-5" />
-                <span>Ver carrinho</span>
-              </div>
-              <Badge className="bg-white/20 text-white border-0 text-sm">
-                {cartItemsCount} {cartItemsCount === 1 ? "item" : "itens"}
-              </Badge>
-            </Button>
-          </div>
-        )}
+        {/* Botão flutuante global vem do ClienteLayout */}
       </div>
     </ClienteLayout>
   );
@@ -385,36 +392,39 @@ interface ProductCardProps {
   onQuantityChange: (delta: number) => void;
   onAddToCart: () => void;
   isAdding: boolean;
+  resolvedImage?: string | null;
 }
 
-function ProductCard({ product, quantity, cartQty, onQuantityChange, onAddToCart, isAdding }: ProductCardProps) {
+function ProductCard({ product, quantity, cartQty, onQuantityChange, onAddToCart, isAdding, resolvedImage }: ProductCardProps) {
   const isOutOfStock = (product.estoque ?? 1) === 0;
   const Icon = product.categoria === "agua" ? Droplets : product.categoria === "gas" ? Flame : Package;
+  const imgSrc = resolvedImage ?? product.image_url ?? null;
 
   return (
-    <Card className={`overflow-hidden transition-all duration-200 ${isAdding ? "scale-[0.98] shadow-sm" : "hover:shadow-md"}`}>
-      <CardContent className="p-0">
-        <div className="flex gap-0">
+    <Card className={`overflow-hidden border-border/60 transition-all duration-200 active:scale-[0.985] ${isAdding ? "scale-[0.98] shadow-sm" : "hover:shadow-md hover:border-primary/30"}`}>
+      <CardContent className="p-2">
+        <div className="flex gap-3 items-stretch">
           {/* Product Image */}
-          <div className="w-28 h-28 bg-muted/30 shrink-0 flex items-center justify-center rounded-l-lg overflow-hidden relative">
-            {product.image_url ? (
-              <img 
-                src={product.image_url} 
-                alt={product.nome} 
-                className="w-full h-full object-contain p-2"
+          <div className="w-28 h-28 shrink-0 flex items-center justify-center rounded-xl overflow-hidden relative bg-gradient-to-br from-muted/60 via-muted/30 to-muted/10 ring-1 ring-border/40">
+            {imgSrc ? (
+              <img
+                src={imgSrc}
+                alt={product.nome}
+                className="w-full h-full object-contain p-2 drop-shadow-sm"
+                loading="lazy"
               />
             ) : (
               <Icon className="h-12 w-12 text-primary/40" />
             )}
             {isOutOfStock && (
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/45 flex items-center justify-center backdrop-blur-[1px]">
                 <span className="text-white text-xs font-bold">Indisponível</span>
               </div>
             )}
           </div>
-          
+
           {/* Info */}
-          <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
+          <div className="flex-1 py-1 pr-1 flex flex-col justify-between min-w-0">
             <div>
               <div className="flex items-start justify-between gap-1">
                 <h3 className="font-bold text-sm leading-tight">{product.nome}</h3>
@@ -425,18 +435,17 @@ function ProductCard({ product, quantity, cartQty, onQuantityChange, onAddToCart
                 )}
               </div>
               {product.descricao && (
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{product.descricao}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{product.descricao}</p>
               )}
             </div>
-            
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-lg font-black text-primary">
+
+            <div className="flex items-center justify-between mt-2 gap-2">
+              <span className="text-lg font-black text-primary tracking-tight">
                 R$ {product.preco.toFixed(2)}
               </span>
-              
+
               <div className="flex items-center gap-1.5">
-                {/* Quantity selector */}
-                <div className="flex items-center border border-border rounded-lg overflow-hidden">
+                <div className="flex items-center border border-border rounded-lg overflow-hidden bg-background">
                   <button
                     className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
                     onClick={() => onQuantityChange(-1)}
@@ -451,7 +460,7 @@ function ProductCard({ product, quantity, cartQty, onQuantityChange, onAddToCart
                     <Plus className="h-3 w-3" />
                   </button>
                 </div>
-                
+
                 <Button
                   size="sm"
                   onClick={onAddToCart}
