@@ -43,7 +43,7 @@ interface UltimoPedido {
 }
 
 export default function ClienteHome() {
-  const { addToCart, cartItemsCount, cart } = useCliente();
+  const { addToCart, cartItemsCount, cart, empresaInfo, lojaSelecionadaId } = useCliente();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -53,8 +53,7 @@ export default function ClienteHome() {
   const [isLoading, setIsLoading] = useState(true);
   const [ultimoPedido, setUltimoPedido] = useState<UltimoPedido | null>(null);
   const [addingToCart, setAddingToCart] = useState<string | null>(null);
-
-  const { lojaSelecionadaId } = useCliente();
+  const [imageFallbacks, setImageFallbacks] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setIsLoading(true);
@@ -84,6 +83,27 @@ export default function ClienteHome() {
     };
     fetchProdutos();
   }, [lojaSelecionadaId]);
+
+  // Fallback: buscar imagens da empresa quando a loja não tem image_url
+  useEffect(() => {
+    const missing = produtos.filter(p => !p.image_url).map(p => p.nome);
+    if (missing.length === 0 || !empresaInfo?.id) return;
+    (async () => {
+      const { data } = await supabase
+        .from("produtos")
+        .select("nome, image_url")
+        .eq("empresa_id", empresaInfo.id)
+        .in("nome", missing)
+        .not("image_url", "is", null);
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((row: any) => {
+          if (row.image_url && !map[row.nome]) map[row.nome] = row.image_url;
+        });
+        setImageFallbacks(map);
+      }
+    })();
+  }, [produtos, empresaInfo?.id]);
 
   // Fetch último pedido do cliente
   useEffect(() => {
