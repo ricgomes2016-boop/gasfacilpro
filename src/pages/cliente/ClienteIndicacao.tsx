@@ -66,8 +66,8 @@ export default function ClienteIndicacao() {
     <ClienteLayout>
       <div className="space-y-4">
         {/* Header Banner */}
-        <Card className="bg-gradient-to-br from-primary via-primary/90 to-primary/80 text-primary-foreground overflow-hidden relative">
-          <CardContent className="p-6 relative z-10">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 text-primary-foreground shadow-md">
+          <div className="p-6 relative z-10">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-3 bg-white/20 rounded-full">
                 <Gift className="h-8 w-8" />
@@ -77,16 +77,16 @@ export default function ClienteIndicacao() {
                 <p className="text-primary-foreground/80">R$10 por cada amigo!</p>
               </div>
             </div>
-            
+
             <p className="text-sm text-primary-foreground/90">
-              Convide amigos para usar o GásExpress. Quando eles fizerem a primeira compra, 
+              Convide amigos para usar o GásExpress. Quando eles fizerem a primeira compra,
               você ganha R$10 na sua carteira!
             </p>
-          </CardContent>
-          <div className="absolute -right-8 -bottom-8 opacity-10">
+          </div>
+          <div className="absolute -right-8 -bottom-8 opacity-10 pointer-events-none">
             <Gift className="h-40 w-40" />
           </div>
-        </Card>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-4">
