@@ -249,6 +249,61 @@ export default function AplicativoCliente() {
           </Card>
         </div>
 
+        {/* Identidade da Unidade */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Identidade desta unidade</CardTitle>
+            <CardDescription>
+              Cada unidade pode ter seu próprio nome, logo e link de aplicativo.
+              {unidadeAtual?.nome && <> Editando: <span className="font-medium">{unidadeAtual.nome}</span></>}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="unidade-slug">Slug do app (aparece na URL)</Label>
+                <Input
+                  id="unidade-slug"
+                  value={slugInput}
+                  onChange={(e) => setSlugInput(e.target.value)}
+                  placeholder="ex: forte-gas-matriz"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Apenas letras minúsculas, números e hífen. Será gerado: <code className="text-xs">?u={slugify(slugInput) || "..."}</code>
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Logo do app</Label>
+                <div className="flex items-center gap-3">
+                  {logoUrlInput && (
+                    <img src={logoUrlInput} alt="Logo" className="h-14 w-14 rounded-lg object-cover border" />
+                  )}
+                  <div className="flex-1 space-y-2">
+                    <Input
+                      value={logoUrlInput}
+                      onChange={(e) => setLogoUrlInput(e.target.value)}
+                      placeholder="URL da imagem"
+                    />
+                    <label className="inline-flex">
+                      <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploadingLogo} />
+                      <Button type="button" variant="outline" size="sm" asChild className="gap-2 cursor-pointer">
+                        <span>
+                          <Upload className="h-3.5 w-3.5" />
+                          {uploadingLogo ? "Enviando..." : "Enviar imagem"}
+                        </span>
+                      </Button>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <Button onClick={handleSaveBrand} disabled={savingBrand || !unidadeAtual?.id} className="gap-2">
+              <Save className="h-4 w-4" />
+              {savingBrand ? "Salvando..." : "Salvar identidade"}
+            </Button>
+          </CardContent>
+        </Card>
+
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Link do App */}
           <Card>
