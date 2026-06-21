@@ -547,6 +547,62 @@ export default function MarketingIA() {
                   {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                   {isLoading ? "Gerando..." : "Gerar Post"}
                 </Button>
+
+                {/* Multicanal batch */}
+                <div className="border-t pt-4 space-y-3">
+                  <div>
+                    <label className="text-sm font-medium mb-2 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" /> Gerar para várias plataformas (1 clique)
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {(Object.entries(platformConfig) as [Platform, typeof platformConfig[Platform]][]).map(([key, cfg]) => {
+                        const Icon = cfg.icon;
+                        const checked = batchPlatforms.includes(key);
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => setBatchPlatforms((prev) => prev.includes(key) ? prev.filter(p => p !== key) : [...prev, key])}
+                            className={`flex items-center gap-2 px-2 py-2 rounded-lg border text-xs font-medium transition-all ${checked ? "border-primary bg-primary/10 text-primary" : "border-border opacity-60 hover:opacity-100"}`}
+                          >
+                            <Icon className="h-3.5 w-3.5" />{cfg.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <Button onClick={generateBatch} disabled={Object.values(batchLoading).some(Boolean) || batchPlatforms.length === 0} variant="secondary" className="w-full gap-2">
+                    {Object.values(batchLoading).some(Boolean) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    Gerar {batchPlatforms.length} versões e salvar como rascunho
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Resultados multicanal */}
+            {Object.keys(batchResults).length > 0 && (
+              <div className="grid md:grid-cols-2 gap-3">
+                {(Object.entries(batchResults) as [Platform, string][]).map(([p, content]) => {
+                  const cfg = platformConfig[p];
+                  const Icon = cfg.icon;
+                  return (
+                    <Card key={p}>
+                      <CardHeader className="pb-2 flex-row items-center justify-between">
+                        <CardTitle className="text-sm flex items-center gap-2"><Icon className="h-4 w-4" /> {cfg.label}</CardTitle>
+                        {batchLoading[p] && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 rounded-lg p-3 text-xs"><ReactMarkdown>{content}</ReactMarkdown></div>
+                        <div className="flex gap-1.5">
+                          <Button size="sm" variant="outline" onClick={() => copyToClipboard(content)} className="gap-1 text-xs h-7"><Copy className="h-3 w-3" /> Copiar</Button>
+                          <Button size="sm" variant="outline" onClick={() => openWhatsappDialog(content)} className="gap-1 text-xs h-7 text-success"><Phone className="h-3 w-3" /> WhatsApp</Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
               </CardContent>
             </Card>
             {generatedContent && (
