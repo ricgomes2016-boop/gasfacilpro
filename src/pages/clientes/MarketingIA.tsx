@@ -295,7 +295,7 @@ export default function MarketingIA() {
     setIsCalendarLoading(true); setCalendarContent("");
     let acc = "";
     try {
-      await streamContent({ type: "calendar" }, (c) => { acc += c; setCalendarContent(acc); }, () => setIsCalendarLoading(false));
+      await streamContent({ type: "calendar", ...brandContext }, (c) => { acc += c; setCalendarContent(acc); }, () => setIsCalendarLoading(false));
     } catch (e: any) { toast.error(e.message); setIsCalendarLoading(false); }
   };
 
