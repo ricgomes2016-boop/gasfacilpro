@@ -135,6 +135,16 @@ export default function MarketingIA() {
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
   const empresaId = empresa?.id;
+  const [searchParams] = useSearchParams();
+
+  const brandContext = useMemo(() => ({
+    brandName: unidadeAtual?.nome || (empresa as any)?.nome || "",
+    cidade: unidadeAtual?.cidade || "",
+    whatsapp: unidadeAtual?.telefone || "",
+    instagram: "",
+    empresa_id: empresaId,
+    unidade_id: unidadeAtual?.id,
+  }), [empresa, unidadeAtual, empresaId]);
 
   // Post state
   const [platform, setPlatform] = useState<Platform>("instagram");
@@ -142,6 +152,17 @@ export default function MarketingIA() {
   const [topic, setTopic] = useState("");
   const [generatedContent, setGeneratedContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Aplicar query params (vindos do Dashboard "Sugestões")
+  useEffect(() => {
+    const t = searchParams.get("topic");
+    const to = searchParams.get("tone") as Tone | null;
+    const p = searchParams.get("platform") as Platform | null;
+    if (t) setTopic(t);
+    if (to && toneConfig[to]) setTone(to);
+    if (p && platformConfig[p]) setPlatform(p);
+  }, [searchParams]);
+
 
   // Image state
   const [imagePrompt, setImagePrompt] = useState("");
