@@ -190,6 +190,9 @@ export default function BibliotecaConteudos() {
                 {filtered.map((c: any) => {
                   const tc = tipoConfig[c.tipo] || tipoConfig.texto;
                   const TipoIcon = tc.icon;
+                  const status = c.status || "rascunho";
+                  const sc = statusConfig[status] || statusConfig.rascunho;
+                  const SIcon = sc.icon;
                   return (
                     <Card key={c.id} className="border-border/50 overflow-hidden">
                       {c.midia_url && (
@@ -205,10 +208,13 @@ export default function BibliotecaConteudos() {
                         </div>
                       )}
                       <CardContent className="p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <Badge variant="outline" className={`text-[10px] gap-1 ${tc.color}`}>
                               <TipoIcon className="h-3 w-3" /> {tc.label}
+                            </Badge>
+                            <Badge variant="outline" className={`text-[10px] gap-1 ${sc.color}`}>
+                              <SIcon className="h-3 w-3" /> {sc.label}
                             </Badge>
                             {c.plataforma && <span className="text-sm">{plataformaEmoji[c.plataforma] || ""}</span>}
                           </div>
@@ -219,6 +225,36 @@ export default function BibliotecaConteudos() {
                         {c.titulo && <p className="font-medium text-sm line-clamp-2">{c.titulo}</p>}
                         {c.conteudo && <p className="text-sm text-muted-foreground line-clamp-4">{c.conteudo}</p>}
                         {c.hashtags && <p className="text-xs text-primary/70 truncate">{c.hashtags}</p>}
+
+                        {/* Workflow editorial */}
+                        <div className="flex items-center gap-1 flex-wrap pt-2 border-t border-border/30">
+                          {status === "rascunho" && (
+                            <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1" onClick={() => setStatus.mutate({ id: c.id, status: "em_revisao" })}>
+                              <Clock4 className="h-3 w-3" /> Enviar p/ revisão
+                            </Button>
+                          )}
+                          {status === "em_revisao" && (
+                            <>
+                              <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 border-emerald-500/40 text-emerald-600" onClick={() => setStatus.mutate({ id: c.id, status: "aprovado" })}>
+                                <CheckCircle2 className="h-3 w-3" /> Aprovar
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => setStatus.mutate({ id: c.id, status: "rascunho" })}>
+                                Voltar
+                              </Button>
+                            </>
+                          )}
+                          {status === "aprovado" && (
+                            <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1" onClick={() => navigate(c.midia_url ? `/marketing/agendamentos?imagem=${encodeURIComponent(c.midia_url)}` : "/marketing/agendamentos")}>
+                              <CalendarPlus className="h-3 w-3" /> Agendar
+                            </Button>
+                          )}
+                          {(status === "agendado" || status === "publicado") && (
+                            <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => setStatus.mutate({ id: c.id, status: "arquivado" })}>
+                              <Archive className="h-3 w-3 mr-1" /> Arquivar
+                            </Button>
+                          )}
+                        </div>
+
                         <div className="flex items-center gap-1 pt-1 border-t border-border/30">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleFav.mutate({ id: c.id, favorito: !c.favorito })} title="Favoritar">
                             {c.favorito ? <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" /> : <StarOff className="h-3.5 w-3.5" />}
@@ -232,9 +268,6 @@ export default function BibliotecaConteudos() {
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPreviewItem(c)} title="Preview">
                             <Eye className="h-3.5 w-3.5" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(c.midia_url ? `/marketing/agendamentos?imagem=${encodeURIComponent(c.midia_url)}` : "/marketing/agendamentos")} title="Agendar">
-                            <CalendarPlus className="h-3.5 w-3.5" />
-                          </Button>
                           <div className="flex-1" />
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteMut.mutate(c.id)} title="Excluir">
                             <Trash2 className="h-3.5 w-3.5" />
@@ -242,6 +275,11 @@ export default function BibliotecaConteudos() {
                         </div>
                       </CardContent>
                     </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
                   );
                 })}
               </div>
