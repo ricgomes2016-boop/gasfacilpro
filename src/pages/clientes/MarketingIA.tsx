@@ -260,7 +260,7 @@ export default function MarketingIA() {
       const resp = await fetch(FUNCTION_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        body: JSON.stringify({ type: "image", imagePrompt: `Imagem para vídeo de marketing de revenda de gás. Cena: ${prompt}. Estilo: fotografia profissional, formato vertical 9:16, cores vibrantes, adequado para Reels/TikTok.` }),
+        body: JSON.stringify({ type: "image", imagePrompt: `Imagem para vídeo de marketing de revenda de gás. Cena: ${prompt}. Estilo: fotografia profissional, formato vertical 9:16, cores vibrantes, adequado para Reels/TikTok.`, ...brandContext }),
       });
       if (!resp.ok) throw new Error("Erro ao gerar imagem");
       const data = await resp.json();
