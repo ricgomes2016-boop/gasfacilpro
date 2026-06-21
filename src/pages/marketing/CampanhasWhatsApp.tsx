@@ -169,6 +169,7 @@ export default function CampanhasWhatsApp() {
     const { data: { session } } = await supabase.auth.getSession();
     let enviados = 0;
     let falhas = 0;
+    let abortReason: string | null = null;
 
     for (const c of publico) {
       try {
@@ -182,14 +183,28 @@ export default function CampanhasWhatsApp() {
             unidadeId: unidadeAtual?.id,
           }),
         });
-        if (resp.ok) enviados++; else falhas++;
+        const json = await resp.json().catch(() => ({}));
+        if (resp.ok && json?.ok) {
+          enviados++;
+        } else {
+          falhas++;
+          if (json?.reason === "whatsapp_disconnected") {
+            abortReason = json.message || "WhatsApp desconectado.";
+            setProgresso({ enviados, total: publico.length, falhas });
+            break;
+          }
+        }
       } catch { falhas++; }
       setProgresso({ enviados, total: publico.length, falhas });
       await new Promise((r) => setTimeout(r, 800)); // throttle anti-ban
     }
 
     setEnviando(false);
-    toast.success(`Campanha concluída: ${enviados} enviados, ${falhas} falhas`);
+    if (abortReason) {
+      toast.error(abortReason, { duration: 8000 });
+    } else {
+      toast.success(`Campanha concluída: ${enviados} enviados, ${falhas} falhas`);
+    }
   };
 
   const Icon = audienceLabels[audience].icon;
