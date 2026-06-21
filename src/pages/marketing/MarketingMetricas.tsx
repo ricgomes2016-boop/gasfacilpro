@@ -351,6 +351,49 @@ export default function MarketingMetricas() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Avaliações de entrega como combustível de conteúdo */}
+            {avaliacoes.length > 0 && (() => {
+              const total = avaliacoes.length;
+              const soma = avaliacoes.reduce((s: number, a: any) => s + (a.nota || 0), 0);
+              const media = total ? (soma / total).toFixed(2) : "0";
+              const positivas = avaliacoes.filter((a: any) => (a.nota || 0) >= 4 && (a.comentario || "").trim().length > 10).slice(0, 5);
+              return (
+                <Card className="border-emerald-500/30 bg-emerald-500/5">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Heart className="h-4 w-4 text-emerald-500" /> Avaliações de entrega — combustível para conteúdo
+                    </CardTitle>
+                    <CardDescription>
+                      Média {media} ⭐ · {total} avaliações no período. Use os elogios abaixo como prova social em posts.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {positivas.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-2">Sem comentários positivos suficientes ainda. Peça avaliações pós-entrega via WhatsApp.</p>
+                    ) : positivas.map((a: any, i: number) => (
+                      <div key={i} className="p-3 rounded-lg bg-background/60 border border-emerald-500/20">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-amber-500 text-sm">{"⭐".repeat(a.nota || 0)}</span>
+                          <span className="text-[10px] text-muted-foreground">{format(new Date(a.created_at), "dd/MM/yyyy")}</span>
+                        </div>
+                        <p className="text-sm italic">"{a.comentario}"</p>
+                        <Button
+                          size="sm" variant="ghost"
+                          className="mt-1.5 text-xs h-7 gap-1.5"
+                          onClick={() => {
+                            const texto = `💚 Quem é cliente nosso recomenda:\n\n"${a.comentario}"\n\n⭐⭐⭐⭐⭐\n\nPeça seu gás pelo WhatsApp!`;
+                            navigator.clipboard.writeText(texto);
+                          }}
+                        >
+                          📋 Transformar em post
+                        </Button>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </>
         )}
       </div>
