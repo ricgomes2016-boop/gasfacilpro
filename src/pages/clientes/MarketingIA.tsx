@@ -276,7 +276,7 @@ export default function MarketingIA() {
     let acc = "";
     try {
       await streamContent(
-        { type: "video_script", platform: videoPlatform, topic: videoTopic, tone: videoTone },
+        { type: "video_script", platform: videoPlatform, topic: videoTopic, tone: videoTone, ...brandContext },
         (c) => { acc += c; setVideoContent(acc); },
         () => {
           setIsVideoLoading(false);
