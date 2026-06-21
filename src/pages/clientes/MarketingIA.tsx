@@ -184,6 +184,13 @@ export default function MarketingIA() {
   const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [sceneImages, setSceneImages] = useState<Record<number, string>>({});
   const [loadingSceneImages, setLoadingSceneImages] = useState<Record<number, boolean>>({});
+  const [voiceoverUrl, setVoiceoverUrl] = useState("");
+  const [voiceoverLoading, setVoiceoverLoading] = useState(false);
+  const [voice, setVoice] = useState<string>("alloy");
+
+  // Concorrentes
+  const [competitorContent, setCompetitorContent] = useState("");
+  const [isCompetitorLoading, setIsCompetitorLoading] = useState(false);
 
   // Calendar state
   const [calendarContent, setCalendarContent] = useState("");
@@ -382,6 +389,53 @@ export default function MarketingIA() {
     toast.success(`Posts gerados e salvos como rascunho para ${batchPlatforms.length} plataformas!`);
   };
 
+  // Extrai apenas as falas do roteiro (linhas após "Fala/Texto:")
+  const extractNarration = (script: string): string => {
+    const lines = script.split("\n");
+    const falas: string[] = [];
+    for (const ln of lines) {
+      const m = ln.match(/(?:Fala\/Texto|Fala|Narração)[:\s]*(.+)/i);
+      if (m && m[1]) falas.push(m[1].replace(/[*_`"]/g, "").trim());
+    }
+    return falas.join(". ").replace(/\.\s*\./g, ".").trim();
+  };
+
+  const generateVoiceover = async () => {
+    const narration = extractNarration(videoContent);
+    if (!narration) { toast.error("Gere o roteiro primeiro"); return; }
+    setVoiceoverLoading(true); setVoiceoverUrl("");
+    try {
+      const resp = await fetch(FUNCTION_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ type: "tts", text: narration, voice, ...brandContext }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Erro" }));
+        throw new Error(err.error || `Erro ${resp.status}`);
+      }
+      const data = await resp.json();
+      if (data.audio_url) {
+        setVoiceoverUrl(data.audio_url);
+        toast.success("Narração gerada!");
+      } else throw new Error("Sem áudio retornado");
+    } catch (e: any) { toast.error(e.message); }
+    finally { setVoiceoverLoading(false); }
+  };
+
+  const generateCompetitorAnalysis = async () => {
+    setIsCompetitorLoading(true); setCompetitorContent("");
+    let acc = "";
+    try {
+      await streamContent(
+        { type: "competitor_analysis", ...brandContext },
+        (c) => { acc += c; setCompetitorContent(acc); },
+        () => setIsCompetitorLoading(false),
+      );
+    } catch (e: any) { toast.error(e.message); setIsCompetitorLoading(false); }
+  };
+
+
 
   const copyToClipboard = (text: string) => { navigator.clipboard.writeText(text); toast.success("Copiado!"); };
 
@@ -474,10 +528,11 @@ export default function MarketingIA() {
       <Header title="Criar Conteúdo" subtitle="Gere posts, imagens, roteiros de vídeo e campanhas com IA" />
       <div className="space-y-4 p-4 md:p-6">
         <Tabs defaultValue="posts" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="posts" className="gap-1.5 text-xs sm:text-sm"><MessageSquare className="h-4 w-4" /> <span className="hidden sm:inline">Post</span></TabsTrigger>
             <TabsTrigger value="image" className="gap-1.5 text-xs sm:text-sm"><ImageIcon className="h-4 w-4" /> <span className="hidden sm:inline">Imagem</span></TabsTrigger>
             <TabsTrigger value="video" className="gap-1.5 text-xs sm:text-sm"><Film className="h-4 w-4" /> <span className="hidden sm:inline">Vídeo</span></TabsTrigger>
+            <TabsTrigger value="competitor" className="gap-1.5 text-xs sm:text-sm"><Sparkles className="h-4 w-4" /> <span className="hidden sm:inline">Concorrência</span></TabsTrigger>
             <TabsTrigger value="calendar" className="gap-1.5 text-xs sm:text-sm"><Calendar className="h-4 w-4" /> <span className="hidden sm:inline">Calendário</span></TabsTrigger>
           </TabsList>
 
@@ -798,7 +853,65 @@ export default function MarketingIA() {
                     </div>
                   )}
                   
+                  {/* TTS Voiceover */}
+                  <div className="border-t pt-3 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="text-xs font-semibold flex items-center gap-1.5">🔊 Narração com IA:</label>
+                      <Select value={voice} onValueChange={setVoice}>
+                        <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="alloy">Alloy (neutra)</SelectItem>
+                          <SelectItem value="ash">Ash (grave)</SelectItem>
+                          <SelectItem value="ballad">Ballad (calma)</SelectItem>
+                          <SelectItem value="coral">Coral (feminina)</SelectItem>
+                          <SelectItem value="sage">Sage (amigável)</SelectItem>
+                          <SelectItem value="verse">Verse (animada)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button size="sm" onClick={generateVoiceover} disabled={voiceoverLoading} className="gap-1.5 h-8">
+                        {voiceoverLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                        Gerar narração
+                      </Button>
+                    </div>
+                    {voiceoverUrl && (
+                      <div className="space-y-1.5">
+                        <audio controls src={voiceoverUrl} className="w-full h-10" />
+                        <Button size="sm" variant="outline" onClick={() => downloadImage(voiceoverUrl)} className="gap-1.5 text-xs h-7">
+                          <Download className="h-3 w-3" /> Baixar MP3
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
                   <ActionButtons content={videoContent} tipo="video" />
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* ═══ CONCORRÊNCIA ═══ */}
+          <TabsContent value="competitor" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Análise de concorrência com IA</CardTitle>
+                <p className="text-sm text-muted-foreground">A IA analisa concorrentes e preços cadastrados na sua região e sugere diferenciais, posts e ofertas reativas.</p>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={generateCompetitorAnalysis} disabled={isCompetitorLoading} className="w-full gap-2">
+                  {isCompetitorLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {isCompetitorLoading ? "Analisando..." : "Gerar análise + ideias"}
+                </Button>
+              </CardContent>
+            </Card>
+            {competitorContent && (
+              <Card>
+                <CardHeader className="flex-row items-center justify-between pb-3">
+                  <CardTitle className="text-base">Análise & ideias</CardTitle>
+                  <Button size="sm" variant="outline" onClick={generateCompetitorAnalysis} disabled={isCompetitorLoading}><RefreshCw className="h-3.5 w-3.5 mr-1" /> Refazer</Button>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 rounded-lg p-4"><ReactMarkdown>{competitorContent}</ReactMarkdown></div>
+                  <ActionButtons content={competitorContent} tipo="texto" />
                 </CardContent>
               </Card>
             )}
