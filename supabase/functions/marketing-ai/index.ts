@@ -42,7 +42,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-2.5-flash-image",
           messages: [
-            { role: "user", content: imagePrompt || "Crie uma imagem promocional para revenda de gás" },
+            { role: "user", content: (imagePrompt || "Crie uma imagem promocional para revenda de gás") + (brand ? `\n\nMarca/logo: "${brand}". Se o design tiver texto, use APENAS esse nome. Não escreva outras marcas (ex.: "Gás Express", "Gás Rápido").` : "\n\nNão escreva nenhum nome de marca específico na imagem.") },
           ],
           modalities: ["image", "text"],
         }),
