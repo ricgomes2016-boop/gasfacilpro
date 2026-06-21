@@ -528,10 +528,11 @@ export default function MarketingIA() {
       <Header title="Criar Conteúdo" subtitle="Gere posts, imagens, roteiros de vídeo e campanhas com IA" />
       <div className="space-y-4 p-4 md:p-6">
         <Tabs defaultValue="posts" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="posts" className="gap-1.5 text-xs sm:text-sm"><MessageSquare className="h-4 w-4" /> <span className="hidden sm:inline">Post</span></TabsTrigger>
             <TabsTrigger value="image" className="gap-1.5 text-xs sm:text-sm"><ImageIcon className="h-4 w-4" /> <span className="hidden sm:inline">Imagem</span></TabsTrigger>
             <TabsTrigger value="video" className="gap-1.5 text-xs sm:text-sm"><Film className="h-4 w-4" /> <span className="hidden sm:inline">Vídeo</span></TabsTrigger>
+            <TabsTrigger value="competitor" className="gap-1.5 text-xs sm:text-sm"><Sparkles className="h-4 w-4" /> <span className="hidden sm:inline">Concorrência</span></TabsTrigger>
             <TabsTrigger value="calendar" className="gap-1.5 text-xs sm:text-sm"><Calendar className="h-4 w-4" /> <span className="hidden sm:inline">Calendário</span></TabsTrigger>
           </TabsList>
 
