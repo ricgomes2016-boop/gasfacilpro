@@ -124,6 +124,15 @@ Deno.serve(async (req) => {
 
         if (!resp.ok) {
           const errText = await resp.text();
+          const disconnected = /disconnected|not connected|enqueue message is disabled/i.test(errText);
+          if (disconnected) {
+            return new Response(JSON.stringify({
+              ok: false,
+              channel: "whatsapp",
+              reason: "whatsapp_disconnected",
+              message: "WhatsApp desconectado. Reconecte a instância em Configurações › WhatsApp para enviar campanhas.",
+            }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
           throw new Error(`Erro Z-API: ${resp.status} - ${errText}`);
         }
 
