@@ -630,10 +630,36 @@ export default function MarketingIA() {
                     <Badge key={s} variant="outline" className="cursor-pointer hover:bg-primary/10 text-xs" onClick={() => setImagePrompt(s)}>{s}</Badge>
                   ))}
                 </div>
-                <Button onClick={generateImage} disabled={isImageLoading} className="w-full gap-2">
-                  {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-                  {isImageLoading ? "Gerando..." : "Gerar Imagem"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={generateImage} disabled={isImageLoading} className="flex-1 gap-2">
+                    {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                    {isImageLoading ? "Gerando..." : "Gerar Imagem"}
+                  </Button>
+                  <Button onClick={generateVariations} disabled={isVariationsLoading} variant="secondary" className="gap-2">
+                    {isVariationsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    3 variações
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            {imageVariations.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3"><CardTitle className="text-base">Variações de estilo</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {imageVariations.map((url, i) => (
+                      <div key={i} className="space-y-2">
+                        <img src={url} alt={`Variação ${i+1}`} className="w-full rounded-lg border" />
+                        <div className="flex gap-1.5">
+                          <Button size="sm" variant="outline" onClick={() => downloadImage(url)} className="flex-1 gap-1 text-xs h-7"><Download className="h-3 w-3" /> Baixar</Button>
+                          <Button size="sm" variant="outline" onClick={() => setGeneratedImage(url)} className="flex-1 gap-1 text-xs h-7">Usar</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
               </CardContent>
             </Card>
             {generatedImage && (
