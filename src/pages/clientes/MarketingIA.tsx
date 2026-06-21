@@ -50,14 +50,86 @@ const videoPlatformConfig: Record<VideoPlatform, { label: string; emoji: string 
   shorts: { label: "Shorts", emoji: "▶️" },
 };
 
-const suggestedTopics = [
-  "Promoção de gás P13 para o fim de semana",
-  "Entrega rápida e segura em toda a cidade",
-  "Dicas de segurança com botijão de gás",
-  "Promoção para novos clientes",
-  "Programa de fidelidade e indicação",
-  "Atendimento 24h por WhatsApp",
+const topicCategories: { label: string; emoji: string; topics: string[] }[] = [
+  {
+    label: "Promoções",
+    emoji: "🔥",
+    topics: [
+      "Promoção de gás P13 para o fim de semana",
+      "Combo gás P13 + galão de água 20L com desconto",
+      "Desconto especial para a primeira compra",
+      "Compre 1 botijão e ganhe recarga de água",
+      "Promoção relâmpago: troca de gás com R$ 5 OFF",
+    ],
+  },
+  {
+    label: "Datas comemorativas",
+    emoji: "📅",
+    topics: [
+      "Dia das Mães: chame a mãe da casa",
+      "Festa Junina: gás para a fogueira e quentão",
+      "Dia do Cliente (15/09) — agradecimento especial",
+      "Black Friday do gás: melhor preço do ano",
+      "Natal e Ano Novo: ceia sem ficar sem gás",
+      "Inverno chegando: estoque seu gás antes do frio",
+    ],
+  },
+  {
+    label: "Educacional / segurança",
+    emoji: "🛡️",
+    topics: [
+      "Dicas de segurança com botijão de gás",
+      "Como identificar vazamento de gás",
+      "Validade e durabilidade do botijão P13",
+      "Como economizar gás na cozinha",
+      "Por que comprar gás de revenda autorizada",
+    ],
+  },
+  {
+    label: "Diferenciais",
+    emoji: "🚚",
+    topics: [
+      "Entrega em até 20 minutos na sua casa",
+      "Atendimento 24h pelo WhatsApp",
+      "Pague no PIX, cartão ou na entrega",
+      "Baixe nosso app e peça em 1 clique",
+      "Cobertura de bairros: atendemos toda a região",
+    ],
+  },
+  {
+    label: "Fidelidade",
+    emoji: "💚",
+    topics: [
+      "Programa de pontos: cada compra vira desconto",
+      "Indique um amigo e ganhe vale-gás",
+      "Cashback em todas as compras",
+      "Vale-gás digital: presenteie quem você ama",
+      "Clube do cliente: vantagens exclusivas",
+    ],
+  },
 ];
+
+const suggestedTopics = topicCategories.flatMap((c) => c.topics);
+
+// Sugestões "para hoje" rotativas por mês
+const monthlyIdeas: Record<number, { topic: string; tone: Tone; platform: Platform; emoji: string }[]> = {
+  0: [{ emoji: "🎆", topic: "Comece o ano com gás cheio em casa", tone: "promocional", platform: "instagram" }],
+  1: [{ emoji: "🎭", topic: "Carnaval: não fique sem gás na folia", tone: "informal", platform: "instagram" }],
+  2: [{ emoji: "👩", topic: "Dia Internacional da Mulher: homenagem às clientes", tone: "profissional", platform: "facebook" }],
+  3: [{ emoji: "🐰", topic: "Páscoa: chocolate quente combina com gás cheio", tone: "informal", platform: "instagram" }],
+  4: [{ emoji: "💐", topic: "Dia das Mães: presenteie com vale-gás", tone: "promocional", platform: "whatsapp" }],
+  5: [
+    { emoji: "🔥", topic: "Festa Junina: gás para o quentão e fogueira", tone: "informal", platform: "instagram" },
+    { emoji: "❄️", topic: "Inverno chegando: garanta seu gás antes do frio", tone: "promocional", platform: "facebook" },
+  ],
+  6: [{ emoji: "❄️", topic: "Inverno: banho quente todo dia sem ficar sem gás", tone: "promocional", platform: "instagram" }],
+  7: [{ emoji: "🧒", topic: "Dia dos Pais: vale-gás como presente útil", tone: "promocional", platform: "whatsapp" }],
+  8: [{ emoji: "🎉", topic: "Dia do Cliente (15/09): desconto especial", tone: "promocional", platform: "instagram" }],
+  9: [{ emoji: "🎃", topic: "Outubro: prepare a cozinha para as festas de fim de ano", tone: "informal", platform: "tiktok" }],
+  10: [{ emoji: "🛒", topic: "Black Friday do gás: melhor preço do ano", tone: "promocional", platform: "instagram" }],
+  11: [{ emoji: "🎄", topic: "Ceia de Natal sem perrengue: gás garantido", tone: "promocional", platform: "whatsapp" }],
+};
+
 
 export default function MarketingIA() {
   const { unidadeAtual } = useUnidade();
