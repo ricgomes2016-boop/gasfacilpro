@@ -324,6 +324,65 @@ export default function MarketingIA() {
     finally { setIsImageLoading(false); }
   };
 
+  const generateVariations = async () => {
+    if (!imagePrompt.trim()) { toast.error("Descreva a imagem"); return; }
+    setIsVariationsLoading(true); setImageVariations([]);
+    const styles = [
+      "estilo fotografia profissional realista, iluminação natural",
+      "estilo ilustração flat moderna, cores vibrantes, minimalista",
+      "estilo banner promocional com elementos gráficos chamativos e tipografia em destaque",
+    ];
+    try {
+      const results = await Promise.all(styles.map(async (style) => {
+        const resp = await fetch(FUNCTION_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          body: JSON.stringify({ type: "image", imagePrompt: `Imagem para marketing de revenda de gás: ${imagePrompt}. ${style}.`, ...brandContext }),
+        });
+        if (!resp.ok) return "";
+        const data = await resp.json();
+        return data.choices?.[0]?.message?.images?.[0]?.image_url?.url || "";
+      }));
+      const ok = results.filter(Boolean);
+      setImageVariations(ok);
+      if (ok.length) toast.success(`${ok.length} variações geradas!`);
+      else toast.error("Não foi possível gerar variações");
+    } catch (e: any) { toast.error(e.message); }
+    finally { setIsVariationsLoading(false); }
+  };
+
+  const generateBatch = async () => {
+    if (!topic.trim()) { toast.error("Digite um tema"); return; }
+    if (batchPlatforms.length === 0) { toast.error("Selecione ao menos 1 plataforma"); return; }
+    setBatchResults({} as any);
+    const loadingState: any = {};
+    batchPlatforms.forEach(p => { loadingState[p] = true; });
+    setBatchLoading(loadingState);
+
+    await Promise.all(batchPlatforms.map(async (p) => {
+      let acc = "";
+      try {
+        await streamContent(
+          { type: "post", platform: p, topic, tone, ...brandContext },
+          (c) => { acc += c; setBatchResults(prev => ({ ...prev, [p]: acc })); },
+          () => { setBatchLoading(prev => ({ ...prev, [p]: false })); }
+        );
+        // Auto-save as draft
+        if (empresaId && acc) {
+          await supabase.from("marketing_conteudos").insert({
+            empresa_id: empresaId, unidade_id: unidadeAtual?.id || null,
+            titulo: `[${p}] ${topic.slice(0, 50)}`, conteudo: acc, tipo: "texto", plataforma: p, status: "rascunho",
+          });
+        }
+      } catch (e: any) {
+        toast.error(`Erro em ${p}: ${e.message}`);
+        setBatchLoading(prev => ({ ...prev, [p]: false }));
+      }
+    }));
+    toast.success(`Posts gerados e salvos como rascunho para ${batchPlatforms.length} plataformas!`);
+  };
+
+
   const copyToClipboard = (text: string) => { navigator.clipboard.writeText(text); toast.success("Copiado!"); };
 
   const downloadImage = async (url: string) => {
