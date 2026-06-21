@@ -168,6 +168,13 @@ export default function MarketingIA() {
   const [imagePrompt, setImagePrompt] = useState("");
   const [generatedImage, setGeneratedImage] = useState("");
   const [isImageLoading, setIsImageLoading] = useState(false);
+  const [imageVariations, setImageVariations] = useState<string[]>([]);
+  const [isVariationsLoading, setIsVariationsLoading] = useState(false);
+
+  // Multicanal batch state
+  const [batchPlatforms, setBatchPlatforms] = useState<Platform[]>(["instagram", "facebook", "whatsapp"]);
+  const [batchResults, setBatchResults] = useState<Record<Platform, string>>({} as any);
+  const [batchLoading, setBatchLoading] = useState<Record<Platform, boolean>>({} as any);
 
   // Video state
   const [videoPlatform, setVideoPlatform] = useState<VideoPlatform>("reels");
@@ -316,6 +323,65 @@ export default function MarketingIA() {
     } catch (e: any) { toast.error(e.message); }
     finally { setIsImageLoading(false); }
   };
+
+  const generateVariations = async () => {
+    if (!imagePrompt.trim()) { toast.error("Descreva a imagem"); return; }
+    setIsVariationsLoading(true); setImageVariations([]);
+    const styles = [
+      "estilo fotografia profissional realista, iluminação natural",
+      "estilo ilustração flat moderna, cores vibrantes, minimalista",
+      "estilo banner promocional com elementos gráficos chamativos e tipografia em destaque",
+    ];
+    try {
+      const results = await Promise.all(styles.map(async (style) => {
+        const resp = await fetch(FUNCTION_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          body: JSON.stringify({ type: "image", imagePrompt: `Imagem para marketing de revenda de gás: ${imagePrompt}. ${style}.`, ...brandContext }),
+        });
+        if (!resp.ok) return "";
+        const data = await resp.json();
+        return data.choices?.[0]?.message?.images?.[0]?.image_url?.url || "";
+      }));
+      const ok = results.filter(Boolean);
+      setImageVariations(ok);
+      if (ok.length) toast.success(`${ok.length} variações geradas!`);
+      else toast.error("Não foi possível gerar variações");
+    } catch (e: any) { toast.error(e.message); }
+    finally { setIsVariationsLoading(false); }
+  };
+
+  const generateBatch = async () => {
+    if (!topic.trim()) { toast.error("Digite um tema"); return; }
+    if (batchPlatforms.length === 0) { toast.error("Selecione ao menos 1 plataforma"); return; }
+    setBatchResults({} as any);
+    const loadingState: any = {};
+    batchPlatforms.forEach(p => { loadingState[p] = true; });
+    setBatchLoading(loadingState);
+
+    await Promise.all(batchPlatforms.map(async (p) => {
+      let acc = "";
+      try {
+        await streamContent(
+          { type: "post", platform: p, topic, tone, ...brandContext },
+          (c) => { acc += c; setBatchResults(prev => ({ ...prev, [p]: acc })); },
+          () => { setBatchLoading(prev => ({ ...prev, [p]: false })); }
+        );
+        // Auto-save as draft
+        if (empresaId && acc) {
+          await supabase.from("marketing_conteudos").insert({
+            empresa_id: empresaId, unidade_id: unidadeAtual?.id || null,
+            titulo: `[${p}] ${topic.slice(0, 50)}`, conteudo: acc, tipo: "texto", plataforma: p, status: "rascunho",
+          });
+        }
+      } catch (e: any) {
+        toast.error(`Erro em ${p}: ${e.message}`);
+        setBatchLoading(prev => ({ ...prev, [p]: false }));
+      }
+    }));
+    toast.success(`Posts gerados e salvos como rascunho para ${batchPlatforms.length} plataformas!`);
+  };
+
 
   const copyToClipboard = (text: string) => { navigator.clipboard.writeText(text); toast.success("Copiado!"); };
 
@@ -481,8 +547,62 @@ export default function MarketingIA() {
                   {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                   {isLoading ? "Gerando..." : "Gerar Post"}
                 </Button>
+
+                {/* Multicanal batch */}
+                <div className="border-t pt-4 space-y-3">
+                  <div>
+                    <label className="text-sm font-medium mb-2 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" /> Gerar para várias plataformas (1 clique)
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {(Object.entries(platformConfig) as [Platform, typeof platformConfig[Platform]][]).map(([key, cfg]) => {
+                        const Icon = cfg.icon;
+                        const checked = batchPlatforms.includes(key);
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => setBatchPlatforms((prev) => prev.includes(key) ? prev.filter(p => p !== key) : [...prev, key])}
+                            className={`flex items-center gap-2 px-2 py-2 rounded-lg border text-xs font-medium transition-all ${checked ? "border-primary bg-primary/10 text-primary" : "border-border opacity-60 hover:opacity-100"}`}
+                          >
+                            <Icon className="h-3.5 w-3.5" />{cfg.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <Button onClick={generateBatch} disabled={Object.values(batchLoading).some(Boolean) || batchPlatforms.length === 0} variant="secondary" className="w-full gap-2">
+                    {Object.values(batchLoading).some(Boolean) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    Gerar {batchPlatforms.length} versões e salvar como rascunho
+                  </Button>
+                </div>
               </CardContent>
             </Card>
+
+            {/* Resultados multicanal */}
+            {Object.keys(batchResults).length > 0 && (
+              <div className="grid md:grid-cols-2 gap-3">
+                {(Object.entries(batchResults) as [Platform, string][]).map(([p, content]) => {
+                  const cfg = platformConfig[p];
+                  const Icon = cfg.icon;
+                  return (
+                    <Card key={p}>
+                      <CardHeader className="pb-2 flex-row items-center justify-between">
+                        <CardTitle className="text-sm flex items-center gap-2"><Icon className="h-4 w-4" /> {cfg.label}</CardTitle>
+                        {batchLoading[p] && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 rounded-lg p-3 text-xs"><ReactMarkdown>{content}</ReactMarkdown></div>
+                        <div className="flex gap-1.5">
+                          <Button size="sm" variant="outline" onClick={() => copyToClipboard(content)} className="gap-1 text-xs h-7"><Copy className="h-3 w-3" /> Copiar</Button>
+                          <Button size="sm" variant="outline" onClick={() => openWhatsappDialog(content)} className="gap-1 text-xs h-7 text-success"><Phone className="h-3 w-3" /> WhatsApp</Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
             {generatedContent && (
               <Card>
                 <CardHeader className="flex-row items-center justify-between pb-3">
@@ -510,12 +630,36 @@ export default function MarketingIA() {
                     <Badge key={s} variant="outline" className="cursor-pointer hover:bg-primary/10 text-xs" onClick={() => setImagePrompt(s)}>{s}</Badge>
                   ))}
                 </div>
-                <Button onClick={generateImage} disabled={isImageLoading} className="w-full gap-2">
-                  {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-                  {isImageLoading ? "Gerando..." : "Gerar Imagem"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={generateImage} disabled={isImageLoading} className="flex-1 gap-2">
+                    {isImageLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                    {isImageLoading ? "Gerando..." : "Gerar Imagem"}
+                  </Button>
+                  <Button onClick={generateVariations} disabled={isVariationsLoading} variant="secondary" className="gap-2">
+                    {isVariationsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    3 variações
+                  </Button>
+                </div>
               </CardContent>
             </Card>
+            {imageVariations.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3"><CardTitle className="text-base">Variações de estilo</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {imageVariations.map((url, i) => (
+                      <div key={i} className="space-y-2">
+                        <img src={url} alt={`Variação ${i+1}`} className="w-full rounded-lg border" />
+                        <div className="flex gap-1.5">
+                          <Button size="sm" variant="outline" onClick={() => downloadImage(url)} className="flex-1 gap-1 text-xs h-7"><Download className="h-3 w-3" /> Baixar</Button>
+                          <Button size="sm" variant="outline" onClick={() => setGeneratedImage(url)} className="flex-1 gap-1 text-xs h-7">Usar</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             {generatedImage && (
               <Card>
                 <CardHeader className="flex-row items-center justify-between pb-3">

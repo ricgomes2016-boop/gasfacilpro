@@ -56,6 +56,22 @@ const templates = [
     nome: "Recompra preditiva",
     texto: "Olá {nome}! Já passou {dias} dias do seu último pedido. Que tal garantir gás cheio antes que acabe? 🚚",
   },
+  {
+    nome: "Indicação amplificada",
+    texto: "Oi {nome}! 🤝 Indique um amigo do bairro {bairro} e *vocês dois ganham R$ 10* na próxima recarga. É só responder com o nome e WhatsApp do amigo!",
+  },
+  {
+    nome: "Pós-entrega · pedir avaliação",
+    texto: "Olá {nome}! Esperamos que tudo tenha corrido bem na entrega 💚 Em uma escala de 1 a 5, como foi seu atendimento? Sua resposta nos ajuda demais!",
+  },
+  {
+    nome: "Cliente VIP · agradecimento",
+    texto: "Oi {nome}! Você é um dos nossos clientes mais fiéis 👑 Como agradecimento, seu próximo gás tem entrega expressa e desconto especial. Peça por aqui!",
+  },
+  {
+    nome: "Sazonal · inverno",
+    texto: "{nome}, o frio chegou! ❄️ Banho quente todo dia sem ficar sem gás. Garanta o seu agora — entrega rápida na sua casa.",
+  },
 ];
 
 export default function CampanhasWhatsApp() {
