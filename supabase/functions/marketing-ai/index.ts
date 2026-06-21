@@ -174,7 +174,7 @@ Crie conteúdo de marketing de alta qualidade seguindo estas regras:
 - Adapte o formato para a plataforma especificada
 - Retorne APENAS o conteúdo pronto para publicar, sem explicações adicionais
 - Se gerar hashtags, coloque em linha separada no final
-${platformGuides[platform] || ""}`;
+${platformGuides[platform] || ""}${brandBlock}`;
 
     const calendarPrompt = type === "calendar" 
       ? `Liste as 10 próximas datas comemorativas e oportunidades de marketing para uma revenda de gás nos próximos 60 dias. Para cada data, sugira:
