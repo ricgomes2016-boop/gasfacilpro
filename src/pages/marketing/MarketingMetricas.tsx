@@ -67,6 +67,21 @@ export default function MarketingMetricas() {
     enabled: !!empresaId,
   });
 
+  const { data: avaliacoes = [] } = useQuery({
+    queryKey: ["mkt-avaliacoes", empresaId, periodo],
+    queryFn: async () => {
+      if (!empresaId) return [];
+      const { data } = await supabase
+        .from("avaliacoes_entrega")
+        .select("nota, comentario, created_at")
+        .gte("created_at", since.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(200);
+      return data || [];
+    },
+    enabled: !!empresaId,
+  });
+
   const filtered = useMemo(() => {
     return plataforma === "todas" ? metricas : metricas.filter((m: any) => m.plataforma === plataforma);
   }, [metricas, plataforma]);
