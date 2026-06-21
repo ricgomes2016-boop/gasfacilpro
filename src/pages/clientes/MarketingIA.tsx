@@ -232,7 +232,7 @@ export default function MarketingIA() {
     setIsLoading(true); setGeneratedContent("");
     let acc = "";
     try {
-      await streamContent({ type: "post", platform, topic, tone }, (c) => { acc += c; setGeneratedContent(acc); }, () => setIsLoading(false));
+      await streamContent({ type: "post", platform, topic, tone, ...brandContext }, (c) => { acc += c; setGeneratedContent(acc); }, () => setIsLoading(false));
     } catch (e: any) { toast.error(e.message); setIsLoading(false); }
   };
 
