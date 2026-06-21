@@ -11,13 +11,23 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { type, platform, topic, tone, imagePrompt, empresa_id, unidade_id, save } = body;
+    const {
+      type, platform, topic, tone, imagePrompt,
+      empresa_id, unidade_id, save,
+      brandName, cidade, whatsapp, instagram,
+    } = body;
 
     const toneGuides: Record<string, string> = {
       informal: "Use linguagem informal, gírias leves e muitos emojis.",
       promocional: "Foco em urgência, escassez e call-to-action forte. Use palavras como 'últimas unidades', 'só hoje', 'aproveite'.",
       profissional: "Tom profissional e amigável. Educado mas acessível, sem gírias.",
     };
+
+    const brand = (brandName || "").toString().trim();
+    const brandBlock = brand
+      ? `\n\n=== IDENTIDADE DA MARCA (OBRIGATÓRIO) ===\n- Nome da revenda: "${brand}"${cidade ? ` (cidade: ${cidade})` : ""}\n- SEMPRE use exatamente "${brand}" quando precisar citar a marca.\n- NUNCA invente outros nomes como "Gás Express", "Gás Rápido", "Gás Já", "GásFácil" etc.\n- Não escreva nomes de marcas concorrentes.\n${whatsapp ? `- Inclua no CTA o WhatsApp: ${whatsapp}.\n` : ""}${instagram ? `- Marque o Instagram: @${String(instagram).replace(/^@/, "")}.\n` : ""}=========================================`
+      : `\n\nIMPORTANTE: NÃO invente nomes de marca (ex.: "Gás Express", "Gás Rápido"). Escreva de forma genérica usando "nossa revenda" ou "nossa loja".`;
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
