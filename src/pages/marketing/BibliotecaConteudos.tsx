@@ -280,11 +280,7 @@ export default function BibliotecaConteudos() {
               </div>
             )}
           </TabsContent>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
+
 
           <TabsContent value="galeria">
             <GaleriaImagens />
