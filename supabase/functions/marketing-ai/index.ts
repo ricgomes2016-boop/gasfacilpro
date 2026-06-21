@@ -127,7 +127,7 @@ Crie roteiros estruturados seguindo estas regras:
   🎵 Trilha: [sugestão de tipo de música ou efeito sonoro]
 - Sempre incluir: gancho nos primeiros 3 segundos, CTA no final
 - Retorne APENAS o roteiro pronto, sem explicações
-${videoPlatformGuides[platform] || videoPlatformGuides.reels}`;
+${videoPlatformGuides[platform] || videoPlatformGuides.reels}${brandBlock}`;
 
       const videoResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
