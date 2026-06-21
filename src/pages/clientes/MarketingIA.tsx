@@ -660,8 +660,6 @@ export default function MarketingIA() {
                 </CardContent>
               </Card>
             )}
-              </CardContent>
-            </Card>
             {generatedImage && (
               <Card>
                 <CardHeader className="flex-row items-center justify-between pb-3">
