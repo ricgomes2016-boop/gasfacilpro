@@ -389,6 +389,53 @@ export default function MarketingIA() {
     toast.success(`Posts gerados e salvos como rascunho para ${batchPlatforms.length} plataformas!`);
   };
 
+  // Extrai apenas as falas do roteiro (linhas após "Fala/Texto:")
+  const extractNarration = (script: string): string => {
+    const lines = script.split("\n");
+    const falas: string[] = [];
+    for (const ln of lines) {
+      const m = ln.match(/(?:Fala\/Texto|Fala|Narração)[:\s]*(.+)/i);
+      if (m && m[1]) falas.push(m[1].replace(/[*_`"]/g, "").trim());
+    }
+    return falas.join(". ").replace(/\.\s*\./g, ".").trim();
+  };
+
+  const generateVoiceover = async () => {
+    const narration = extractNarration(videoContent);
+    if (!narration) { toast.error("Gere o roteiro primeiro"); return; }
+    setVoiceoverLoading(true); setVoiceoverUrl("");
+    try {
+      const resp = await fetch(FUNCTION_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ type: "tts", text: narration, voice, ...brandContext }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Erro" }));
+        throw new Error(err.error || `Erro ${resp.status}`);
+      }
+      const data = await resp.json();
+      if (data.audio_url) {
+        setVoiceoverUrl(data.audio_url);
+        toast.success("Narração gerada!");
+      } else throw new Error("Sem áudio retornado");
+    } catch (e: any) { toast.error(e.message); }
+    finally { setVoiceoverLoading(false); }
+  };
+
+  const generateCompetitorAnalysis = async () => {
+    setIsCompetitorLoading(true); setCompetitorContent("");
+    let acc = "";
+    try {
+      await streamContent(
+        { type: "competitor_analysis", ...brandContext },
+        (c) => { acc += c; setCompetitorContent(acc); },
+        () => setIsCompetitorLoading(false),
+      );
+    } catch (e: any) { toast.error(e.message); setIsCompetitorLoading(false); }
+  };
+
+
 
   const copyToClipboard = (text: string) => { navigator.clipboard.writeText(text); toast.success("Copiado!"); };
 
