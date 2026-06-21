@@ -184,6 +184,13 @@ export default function MarketingIA() {
   const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [sceneImages, setSceneImages] = useState<Record<number, string>>({});
   const [loadingSceneImages, setLoadingSceneImages] = useState<Record<number, boolean>>({});
+  const [voiceoverUrl, setVoiceoverUrl] = useState("");
+  const [voiceoverLoading, setVoiceoverLoading] = useState(false);
+  const [voice, setVoice] = useState<string>("alloy");
+
+  // Concorrentes
+  const [competitorContent, setCompetitorContent] = useState("");
+  const [isCompetitorLoading, setIsCompetitorLoading] = useState(false);
 
   // Calendar state
   const [calendarContent, setCalendarContent] = useState("");
