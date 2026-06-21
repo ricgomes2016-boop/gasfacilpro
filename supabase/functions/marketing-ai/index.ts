@@ -23,10 +23,99 @@ serve(async (req) => {
       profissional: "Tom profissional e amigável. Educado mas acessível, sem gírias.",
     };
 
-    const brand = (brandName || "").toString().trim();
-    const brandBlock = brand
-      ? `\n\n=== IDENTIDADE DA MARCA (OBRIGATÓRIO) ===\n- Nome da revenda: "${brand}"${cidade ? ` (cidade: ${cidade})` : ""}\n- SEMPRE use exatamente "${brand}" quando precisar citar a marca.\n- NUNCA invente outros nomes como "Gás Express", "Gás Rápido", "Gás Já", "GásFácil" etc.\n- Não escreva nomes de marcas concorrentes.\n${whatsapp ? `- Inclua no CTA o WhatsApp: ${whatsapp}.\n` : ""}${instagram ? `- Marque o Instagram: @${String(instagram).replace(/^@/, "")}.\n` : ""}=========================================`
-      : `\n\nIMPORTANTE: NÃO invente nomes de marca (ex.: "Gás Express", "Gás Rápido"). Escreva de forma genérica usando "nossa revenda" ou "nossa loja".`;
+    // === Carrega Brand Kit do banco (sobrepõe valores recebidos do cliente) ===
+    let brand = (brandName || "").toString().trim();
+    let kitCidade = (cidade || "").toString().trim();
+    let kitWhats = (whatsapp || "").toString().trim();
+    let kitInsta = (instagram || "").toString().trim();
+    let kitSlogan = "";
+    let kitDescricao = "";
+    let kitHashtags = "";
+    let kitProibidas = "";
+    let kitBairros = "";
+    let kitFacebook = "";
+    let kitTiktok = "";
+    let kitLinkApp = "";
+    let kitTomVoz = "";
+
+    if (empresa_id) {
+      try {
+        const supaUrl = Deno.env.get("SUPABASE_URL")!;
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const supa = createClient(supaUrl, serviceKey);
+
+        let kit: any = null;
+        if (unidade_id) {
+          const { data } = await supa
+            .from("marketing_brand_kit").select("*")
+            .eq("empresa_id", empresa_id).eq("unidade_id", unidade_id).maybeSingle();
+          kit = data;
+        }
+        if (!kit) {
+          const { data } = await supa
+            .from("marketing_brand_kit").select("*")
+            .eq("empresa_id", empresa_id).is("unidade_id", null).maybeSingle();
+          kit = data;
+        }
+        if (kit) {
+          kitSlogan = (kit.slogan || "").toString();
+          kitDescricao = (kit.descricao_curta || "").toString();
+          kitHashtags = (kit.hashtags_fixas || "").toString();
+          kitProibidas = (kit.frases_proibidas || "").toString();
+          kitBairros = (kit.bairros_atendidos || "").toString();
+          kitFacebook = (kit.facebook || "").toString();
+          kitTiktok = (kit.tiktok || "").toString();
+          kitLinkApp = (kit.link_app || "").toString();
+          kitTomVoz = (kit.tom_voz || "").toString();
+          if (!kitWhats && kit.whatsapp) kitWhats = kit.whatsapp;
+          if (!kitInsta && kit.instagram) kitInsta = kit.instagram;
+        }
+
+        if (!brand || !kitCidade) {
+          if (unidade_id) {
+            const { data: uni } = await supa
+              .from("unidades").select("nome, cidade, telefone")
+              .eq("id", unidade_id).maybeSingle();
+            if (uni) {
+              if (!brand) brand = uni.nome || "";
+              if (!kitCidade) kitCidade = uni.cidade || "";
+              if (!kitWhats) kitWhats = uni.telefone || "";
+            }
+          }
+          if (!brand) {
+            const { data: emp } = await supa
+              .from("empresas").select("nome, nome_fantasia, razao_social")
+              .eq("id", empresa_id).maybeSingle();
+            if (emp) brand = (emp as any).nome_fantasia || emp.nome || (emp as any).razao_social || "";
+          }
+        }
+      } catch (e) {
+        console.warn("brand kit load failed", e);
+      }
+    }
+
+    const brandLines: string[] = [];
+    if (brand) {
+      brandLines.push(`- Nome da revenda: "${brand}"${kitCidade ? ` (cidade: ${kitCidade})` : ""}`);
+      brandLines.push(`- SEMPRE use exatamente "${brand}" quando precisar citar a marca.`);
+      brandLines.push(`- NUNCA invente outros nomes (ex.: "Gás Express", "Gás Rápido", "Gás Já", "GásFácil").`);
+    }
+    if (kitSlogan) brandLines.push(`- Slogan/identidade: "${kitSlogan}"`);
+    if (kitDescricao) brandLines.push(`- Sobre a revenda: ${kitDescricao}`);
+    if (kitTomVoz) brandLines.push(`- Tom de voz preferido: ${kitTomVoz}`);
+    if (kitWhats) brandLines.push(`- WhatsApp para CTA: ${kitWhats}`);
+    if (kitInsta) brandLines.push(`- Instagram: @${String(kitInsta).replace(/^@/, "")}`);
+    if (kitFacebook) brandLines.push(`- Facebook: ${kitFacebook}`);
+    if (kitTiktok) brandLines.push(`- TikTok: @${String(kitTiktok).replace(/^@/, "")}`);
+    if (kitBairros) brandLines.push(`- Bairros atendidos: ${kitBairros}`);
+    if (kitLinkApp) brandLines.push(`- Link do app/site: ${kitLinkApp}`);
+    if (kitHashtags) brandLines.push(`- Hashtags fixas a sempre incluir: ${kitHashtags}`);
+    if (kitProibidas) brandLines.push(`- PROIBIDO mencionar / palavras a evitar: ${kitProibidas}`);
+    brandLines.push(`- Não escreva nomes de marcas concorrentes.`);
+
+    const brandBlock = brandLines.length
+      ? `\n\n=== IDENTIDADE DA MARCA (OBRIGATÓRIO) ===\n${brandLines.join("\n")}\n=========================================`
+      : `\n\nIMPORTANTE: NÃO invente nomes de marca. Escreva de forma genérica usando "nossa revenda".`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");

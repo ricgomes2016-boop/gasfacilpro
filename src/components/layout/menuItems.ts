@@ -180,8 +180,10 @@ export const menuItems: MenuItem[] = [
       { icon: Sparkles, label: "Criar Conteúdo", path: "/clientes/marketing" },
       { icon: FileText, label: "Biblioteca", path: "/marketing/conteudos" },
       { icon: CalendarDays, label: "Agendamentos", path: "/marketing/agendamentos" },
+      { icon: BarChart3, label: "Métricas & Insights", path: "/marketing/metricas" },
+      { icon: MessageCircle, label: "Campanhas WhatsApp", path: "/marketing/campanhas-whatsapp" },
       { icon: Megaphone, label: "Campanhas", path: "/marketing/campanhas" },
-      { icon: Settings, label: "Configurações", path: "/marketing/configuracoes" },
+      { icon: Settings, label: "Brand Kit & Config", path: "/marketing/configuracoes" },
     ],
   },
   {

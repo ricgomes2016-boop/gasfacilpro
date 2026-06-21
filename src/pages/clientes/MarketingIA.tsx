@@ -334,11 +334,13 @@ export default function MarketingIA() {
       const { error } = await supabase.from("marketing_conteudos").insert({
         empresa_id: empresaId, unidade_id: unidadeAtual?.id || null,
         titulo: content.slice(0, 60), conteudo: content, tipo, plataforma: platform,
+        status: "rascunho",
       });
       if (error) throw error;
-      toast.success("Salvo na biblioteca!");
+      toast.success("Salvo como rascunho na biblioteca!");
     } catch { toast.error("Erro ao salvar"); }
   };
+
 
   const openWhatsappDialog = (content: string, image?: string) => { setDispatchContent(content); setDispatchImage(image || ""); setWhatsappDialogOpen(true); };
   const openWebhookDialog = (content: string, image?: string) => { setDispatchContent(content); setDispatchImage(image || ""); setWebhookDialogOpen(true); };
