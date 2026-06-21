@@ -6226,8 +6226,95 @@ export type Database = {
           },
         ]
       }
+      marketing_brand_kit: {
+        Row: {
+          bairros_atendidos: string | null
+          created_at: string
+          descricao_curta: string | null
+          empresa_id: string
+          facebook: string | null
+          faixa_preco_max: number | null
+          faixa_preco_min: number | null
+          frases_proibidas: string | null
+          hashtags_fixas: string | null
+          id: string
+          instagram: string | null
+          link_app: string | null
+          observacoes: string | null
+          paleta_cores: Json | null
+          slogan: string | null
+          tiktok: string | null
+          tom_voz: string | null
+          unidade_id: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          bairros_atendidos?: string | null
+          created_at?: string
+          descricao_curta?: string | null
+          empresa_id: string
+          facebook?: string | null
+          faixa_preco_max?: number | null
+          faixa_preco_min?: number | null
+          frases_proibidas?: string | null
+          hashtags_fixas?: string | null
+          id?: string
+          instagram?: string | null
+          link_app?: string | null
+          observacoes?: string | null
+          paleta_cores?: Json | null
+          slogan?: string | null
+          tiktok?: string | null
+          tom_voz?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          bairros_atendidos?: string | null
+          created_at?: string
+          descricao_curta?: string | null
+          empresa_id?: string
+          facebook?: string | null
+          faixa_preco_max?: number | null
+          faixa_preco_min?: number | null
+          frases_proibidas?: string | null
+          hashtags_fixas?: string | null
+          id?: string
+          instagram?: string | null
+          link_app?: string | null
+          observacoes?: string | null
+          paleta_cores?: Json | null
+          slogan?: string | null
+          tiktok?: string | null
+          tom_voz?: string | null
+          unidade_id?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_brand_kit_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_brand_kit_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketing_conteudos: {
         Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          comentario_revisao: string | null
           conteudo: string | null
           created_at: string
           criado_por: string | null
@@ -6237,6 +6324,7 @@ export type Database = {
           id: string
           midia_url: string | null
           plataforma: string | null
+          status: string
           tipo: string
           titulo: string | null
           tom: string | null
@@ -6244,6 +6332,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          comentario_revisao?: string | null
           conteudo?: string | null
           created_at?: string
           criado_por?: string | null
@@ -6253,6 +6344,7 @@ export type Database = {
           id?: string
           midia_url?: string | null
           plataforma?: string | null
+          status?: string
           tipo?: string
           titulo?: string | null
           tom?: string | null
@@ -6260,6 +6352,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          comentario_revisao?: string | null
           conteudo?: string | null
           created_at?: string
           criado_por?: string | null
@@ -6269,6 +6364,7 @@ export type Database = {
           id?: string
           midia_url?: string | null
           plataforma?: string | null
+          status?: string
           tipo?: string
           titulo?: string | null
           tom?: string | null

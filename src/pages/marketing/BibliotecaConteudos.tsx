@@ -12,7 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import {
   Search, FileText, Image as ImageIcon, Video, Star, StarOff, Trash2, Copy, CalendarPlus,
-  Sparkles, Images, Link2, Eye, X, LayoutTemplate,
+  Sparkles, Images, Link2, Eye, X, LayoutTemplate, Send, CheckCircle2, Clock4, FileEdit, Archive,
 } from "lucide-react";
 import { TemplatesBiblioteca } from "@/components/marketing/TemplatesBiblioteca";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,15 @@ const tipoConfig: Record<string, { icon: any; label: string; color: string }> = 
   video: { icon: Video, label: "Vídeo/Roteiro", color: "bg-violet-500/10 text-violet-600" },
 };
 
+const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
+  rascunho: { label: "Rascunho", color: "bg-slate-500/10 text-slate-600 border-slate-500/30", icon: FileEdit },
+  em_revisao: { label: "Em revisão", color: "bg-amber-500/10 text-amber-600 border-amber-500/30", icon: Clock4 },
+  aprovado: { label: "Aprovado", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30", icon: CheckCircle2 },
+  agendado: { label: "Agendado", color: "bg-blue-500/10 text-blue-600 border-blue-500/30", icon: CalendarPlus },
+  publicado: { label: "Publicado", color: "bg-violet-500/10 text-violet-600 border-violet-500/30", icon: Send },
+  arquivado: { label: "Arquivado", color: "bg-muted text-muted-foreground border-border", icon: Archive },
+};
+
 const plataformaEmoji: Record<string, string> = {
   instagram: "📸", facebook: "📘", tiktok: "🎵", youtube: "▶️", whatsapp: "💬",
   reels: "📸", shorts: "▶️",
@@ -45,6 +54,7 @@ export default function BibliotecaConteudos() {
   const [busca, setBusca] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("todos");
   const [filtroPlataforma, setFiltroPlataforma] = useState("todas");
+  const [filtroStatus, setFiltroStatus] = useState("todos");
   const [seletorParaId, setSeletorParaId] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<any | null>(null);
 
@@ -66,6 +76,25 @@ export default function BibliotecaConteudos() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["mkt-conteudos"] }),
   });
 
+  const setStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const patch: any = { status };
+      if (status === "aprovado") {
+        const { data: { user } } = await supabase.auth.getUser();
+        patch.aprovado_por = user?.id || null;
+        patch.aprovado_em = new Date().toISOString();
+      }
+      const { error } = await supabase.from("marketing_conteudos").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      queryClient.invalidateQueries({ queryKey: ["mkt-conteudos"] });
+      const lbl = (statusConfig as any)[v.status]?.label || v.status;
+      toast({ title: `Status: ${lbl}` });
+    },
+    onError: (e: any) => toast({ title: "Erro ao atualizar status", description: e.message, variant: "destructive" }),
+  });
+
   const deleteMut = useMutation({
     mutationFn: async (id: string) => {
       await supabase.from("marketing_conteudos").delete().eq("id", id);
@@ -85,6 +114,7 @@ export default function BibliotecaConteudos() {
   const filtered = conteudos.filter((c: any) => {
     if (filtroTipo !== "todos" && c.tipo !== filtroTipo) return false;
     if (filtroPlataforma !== "todas" && c.plataforma !== filtroPlataforma) return false;
+    if (filtroStatus !== "todos" && (c.status || "rascunho") !== filtroStatus) return false;
     if (busca) {
       const s = busca.toLowerCase();
       return c.titulo?.toLowerCase().includes(s) || c.conteudo?.toLowerCase().includes(s) || c.hashtags?.toLowerCase().includes(s);
