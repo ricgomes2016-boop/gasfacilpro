@@ -853,7 +853,65 @@ export default function MarketingIA() {
                     </div>
                   )}
                   
+                  {/* TTS Voiceover */}
+                  <div className="border-t pt-3 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="text-xs font-semibold flex items-center gap-1.5">🔊 Narração com IA:</label>
+                      <Select value={voice} onValueChange={setVoice}>
+                        <SelectTrigger className="h-8 w-32 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="alloy">Alloy (neutra)</SelectItem>
+                          <SelectItem value="ash">Ash (grave)</SelectItem>
+                          <SelectItem value="ballad">Ballad (calma)</SelectItem>
+                          <SelectItem value="coral">Coral (feminina)</SelectItem>
+                          <SelectItem value="sage">Sage (amigável)</SelectItem>
+                          <SelectItem value="verse">Verse (animada)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button size="sm" onClick={generateVoiceover} disabled={voiceoverLoading} className="gap-1.5 h-8">
+                        {voiceoverLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                        Gerar narração
+                      </Button>
+                    </div>
+                    {voiceoverUrl && (
+                      <div className="space-y-1.5">
+                        <audio controls src={voiceoverUrl} className="w-full h-10" />
+                        <Button size="sm" variant="outline" onClick={() => downloadImage(voiceoverUrl)} className="gap-1.5 text-xs h-7">
+                          <Download className="h-3 w-3" /> Baixar MP3
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
                   <ActionButtons content={videoContent} tipo="video" />
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* ═══ CONCORRÊNCIA ═══ */}
+          <TabsContent value="competitor" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Análise de concorrência com IA</CardTitle>
+                <p className="text-sm text-muted-foreground">A IA analisa concorrentes e preços cadastrados na sua região e sugere diferenciais, posts e ofertas reativas.</p>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={generateCompetitorAnalysis} disabled={isCompetitorLoading} className="w-full gap-2">
+                  {isCompetitorLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {isCompetitorLoading ? "Analisando..." : "Gerar análise + ideias"}
+                </Button>
+              </CardContent>
+            </Card>
+            {competitorContent && (
+              <Card>
+                <CardHeader className="flex-row items-center justify-between pb-3">
+                  <CardTitle className="text-base">Análise & ideias</CardTitle>
+                  <Button size="sm" variant="outline" onClick={generateCompetitorAnalysis} disabled={isCompetitorLoading}><RefreshCw className="h-3.5 w-3.5 mr-1" /> Refazer</Button>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="prose prose-sm max-w-none dark:prose-invert bg-muted/30 rounded-lg p-4"><ReactMarkdown>{competitorContent}</ReactMarkdown></div>
+                  <ActionButtons content={competitorContent} tipo="texto" />
                 </CardContent>
               </Card>
             )}
