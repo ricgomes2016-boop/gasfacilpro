@@ -306,7 +306,7 @@ export default function MarketingIA() {
       const resp = await fetch(FUNCTION_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        body: JSON.stringify({ type: "image", imagePrompt: `Crie uma imagem profissional para marketing de revenda de gás: ${imagePrompt}. Estilo: moderno, cores vibrantes, adequado para redes sociais.` }),
+        body: JSON.stringify({ type: "image", imagePrompt: `Crie uma imagem profissional para marketing de revenda de gás: ${imagePrompt}. Estilo: moderno, cores vibrantes, adequado para redes sociais.`, ...brandContext }),
       });
       if (!resp.ok) { const err = await resp.json().catch(() => ({ error: "Erro" })); throw new Error(err.error || `Erro ${resp.status}`); }
       const data = await resp.json();
