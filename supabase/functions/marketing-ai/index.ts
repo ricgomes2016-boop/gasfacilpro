@@ -108,7 +108,13 @@ serve(async (req) => {
     if (kitFacebook) brandLines.push(`- Facebook: ${kitFacebook}`);
     if (kitTiktok) brandLines.push(`- TikTok: @${String(kitTiktok).replace(/^@/, "")}`);
     if (kitBairros) brandLines.push(`- Bairros atendidos: ${kitBairros}`);
-    if (kitLinkApp) brandLines.push(`- Link do app/site: ${kitLinkApp}`);
+    if (kitLinkApp) {
+      // Auto-anexa UTMs para rastreio de conversão
+      const sep = kitLinkApp.includes("?") ? "&" : "?";
+      const platformTag = (platform || "social").toString().toLowerCase();
+      const utmLink = `${kitLinkApp}${sep}utm_source=${platformTag}&utm_medium=marketing&utm_campaign=organico`;
+      brandLines.push(`- SEMPRE que incluir um link, use exatamente este (já com UTM): ${utmLink}`);
+    }
     if (kitHashtags) brandLines.push(`- Hashtags fixas a sempre incluir: ${kitHashtags}`);
     if (kitProibidas) brandLines.push(`- PROIBIDO mencionar / palavras a evitar: ${kitProibidas}`);
     brandLines.push(`- Não escreva nomes de marcas concorrentes.`);
