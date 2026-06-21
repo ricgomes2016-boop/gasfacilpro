@@ -226,31 +226,55 @@ export default function DashboardMarketing() {
             </CardContent>
           </Card>
 
-          {/* AI Suggestions placeholder */}
+          {/* AI Suggestions */}
           <Card className="border-border/50 border-dashed">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-violet-500" />
                 Sugestões da IA
               </CardTitle>
-              <CardDescription>Ideias proativas baseadas no seu negócio</CardDescription>
+              <CardDescription>
+                Ideias prontas para {unidadeAtual?.nome || empresa?.nome || "sua revenda"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {[
-                  { text: "🔥 Inverno chegando! Crie posts sobre entrega rápida de gás", action: "Gerar post" },
-                  { text: "📅 Dia do Cliente (15/09) — prepare uma campanha especial", action: "Criar campanha" },
-                  { text: "📊 Seus posts de promoção geram 3x mais engajamento", action: "Ver análise" },
-                ].map((sug, i) => (
+              <div className="space-y-2">
+                {(() => {
+                  const m = new Date().getMonth();
+                  const ideasByMonth: Record<number, { text: string; topic: string; tone: string; platform: string }[]> = {
+                    0: [{ text: "🎆 Comece o ano com gás cheio", topic: "Comece o ano com gás cheio em casa", tone: "promocional", platform: "instagram" }],
+                    1: [{ text: "🎭 Carnaval sem ficar sem gás", topic: "Carnaval: não fique sem gás na folia", tone: "informal", platform: "instagram" }],
+                    2: [{ text: "👩 Dia da Mulher: homenagem", topic: "Dia Internacional da Mulher: homenagem às clientes", tone: "profissional", platform: "facebook" }],
+                    3: [{ text: "🐰 Páscoa em família", topic: "Páscoa: chocolate quente combina com gás cheio", tone: "informal", platform: "instagram" }],
+                    4: [{ text: "💐 Dia das Mães: vale-gás", topic: "Dia das Mães: presenteie com vale-gás", tone: "promocional", platform: "whatsapp" }],
+                    5: [
+                      { text: "🔥 Festa Junina: gás para o quentão", topic: "Festa Junina: gás para o quentão e fogueira", tone: "informal", platform: "instagram" },
+                      { text: "❄️ Inverno chegando", topic: "Inverno chegando: garanta seu gás antes do frio", tone: "promocional", platform: "facebook" },
+                    ],
+                    6: [{ text: "❄️ Banho quente todo dia", topic: "Inverno: banho quente todo dia sem ficar sem gás", tone: "promocional", platform: "instagram" }],
+                    7: [{ text: "🧒 Dia dos Pais", topic: "Dia dos Pais: vale-gás como presente útil", tone: "promocional", platform: "whatsapp" }],
+                    8: [{ text: "🎉 Dia do Cliente (15/09)", topic: "Dia do Cliente: desconto especial para os clientes fiéis", tone: "promocional", platform: "instagram" }],
+                    9: [{ text: "🎃 Prepare a cozinha de fim de ano", topic: "Outubro: prepare a cozinha para as festas de fim de ano", tone: "informal", platform: "tiktok" }],
+                    10: [{ text: "🛒 Black Friday do gás", topic: "Black Friday do gás: melhor preço do ano", tone: "promocional", platform: "instagram" }],
+                    11: [{ text: "🎄 Ceia de Natal sem perrengue", topic: "Ceia de Natal sem perrengue: gás garantido", tone: "promocional", platform: "whatsapp" }],
+                  };
+                  const evergreen = [
+                    { text: "🚚 Destaque a entrega rápida", topic: "Entrega em até 20 minutos na sua casa", tone: "promocional", platform: "instagram" },
+                    { text: "💚 Programa de fidelidade", topic: "Programa de pontos: cada compra vira desconto", tone: "profissional", platform: "facebook" },
+                    { text: "🛡️ Dica de segurança", topic: "Dicas de segurança com botijão de gás", tone: "profissional", platform: "instagram" },
+                    { text: "📲 Indique e ganhe", topic: "Indique um amigo e ganhe vale-gás", tone: "promocional", platform: "whatsapp" },
+                  ];
+                  return [...(ideasByMonth[m] || []), ...evergreen].slice(0, 6);
+                })().map((sug, i) => (
                   <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-violet-500/5 border border-violet-500/10">
                     <p className="text-sm flex-1">{sug.text}</p>
                     <Button
                       variant="ghost"
                       size="sm"
                       className="text-xs text-violet-600 hover:text-violet-700 shrink-0"
-                      onClick={() => navigate("/clientes/marketing")}
+                      onClick={() => navigate(`/clientes/marketing?topic=${encodeURIComponent(sug.topic)}&tone=${sug.tone}&platform=${sug.platform}`)}
                     >
-                      {sug.action}
+                      Gerar post
                     </Button>
                   </div>
                 ))}

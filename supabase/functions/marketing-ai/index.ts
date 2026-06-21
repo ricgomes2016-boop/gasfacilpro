@@ -11,13 +11,23 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { type, platform, topic, tone, imagePrompt, empresa_id, unidade_id, save } = body;
+    const {
+      type, platform, topic, tone, imagePrompt,
+      empresa_id, unidade_id, save,
+      brandName, cidade, whatsapp, instagram,
+    } = body;
 
     const toneGuides: Record<string, string> = {
       informal: "Use linguagem informal, gírias leves e muitos emojis.",
       promocional: "Foco em urgência, escassez e call-to-action forte. Use palavras como 'últimas unidades', 'só hoje', 'aproveite'.",
       profissional: "Tom profissional e amigável. Educado mas acessível, sem gírias.",
     };
+
+    const brand = (brandName || "").toString().trim();
+    const brandBlock = brand
+      ? `\n\n=== IDENTIDADE DA MARCA (OBRIGATÓRIO) ===\n- Nome da revenda: "${brand}"${cidade ? ` (cidade: ${cidade})` : ""}\n- SEMPRE use exatamente "${brand}" quando precisar citar a marca.\n- NUNCA invente outros nomes como "Gás Express", "Gás Rápido", "Gás Já", "GásFácil" etc.\n- Não escreva nomes de marcas concorrentes.\n${whatsapp ? `- Inclua no CTA o WhatsApp: ${whatsapp}.\n` : ""}${instagram ? `- Marque o Instagram: @${String(instagram).replace(/^@/, "")}.\n` : ""}=========================================`
+      : `\n\nIMPORTANTE: NÃO invente nomes de marca (ex.: "Gás Express", "Gás Rápido"). Escreva de forma genérica usando "nossa revenda" ou "nossa loja".`;
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -32,7 +42,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-2.5-flash-image",
           messages: [
-            { role: "user", content: imagePrompt || "Crie uma imagem promocional para revenda de gás" },
+            { role: "user", content: (imagePrompt || "Crie uma imagem promocional para revenda de gás") + (brand ? `\n\nMarca/logo: "${brand}". Se o design tiver texto, use APENAS esse nome. Não escreva outras marcas (ex.: "Gás Express", "Gás Rápido").` : "\n\nNão escreva nenhum nome de marca específico na imagem.") },
           ],
           modalities: ["image", "text"],
         }),
@@ -117,7 +127,7 @@ Crie roteiros estruturados seguindo estas regras:
   🎵 Trilha: [sugestão de tipo de música ou efeito sonoro]
 - Sempre incluir: gancho nos primeiros 3 segundos, CTA no final
 - Retorne APENAS o roteiro pronto, sem explicações
-${videoPlatformGuides[platform] || videoPlatformGuides.reels}`;
+${videoPlatformGuides[platform] || videoPlatformGuides.reels}${brandBlock}`;
 
       const videoResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -164,7 +174,7 @@ Crie conteúdo de marketing de alta qualidade seguindo estas regras:
 - Adapte o formato para a plataforma especificada
 - Retorne APENAS o conteúdo pronto para publicar, sem explicações adicionais
 - Se gerar hashtags, coloque em linha separada no final
-${platformGuides[platform] || ""}`;
+${platformGuides[platform] || ""}${brandBlock}`;
 
     const calendarPrompt = type === "calendar" 
       ? `Liste as 10 próximas datas comemorativas e oportunidades de marketing para uma revenda de gás nos próximos 60 dias. Para cada data, sugira:

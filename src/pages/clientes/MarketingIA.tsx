@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,19 +50,101 @@ const videoPlatformConfig: Record<VideoPlatform, { label: string; emoji: string 
   shorts: { label: "Shorts", emoji: "▶️" },
 };
 
-const suggestedTopics = [
-  "Promoção de gás P13 para o fim de semana",
-  "Entrega rápida e segura em toda a cidade",
-  "Dicas de segurança com botijão de gás",
-  "Promoção para novos clientes",
-  "Programa de fidelidade e indicação",
-  "Atendimento 24h por WhatsApp",
+const topicCategories: { label: string; emoji: string; topics: string[] }[] = [
+  {
+    label: "Promoções",
+    emoji: "🔥",
+    topics: [
+      "Promoção de gás P13 para o fim de semana",
+      "Combo gás P13 + galão de água 20L com desconto",
+      "Desconto especial para a primeira compra",
+      "Compre 1 botijão e ganhe recarga de água",
+      "Promoção relâmpago: troca de gás com R$ 5 OFF",
+    ],
+  },
+  {
+    label: "Datas comemorativas",
+    emoji: "📅",
+    topics: [
+      "Dia das Mães: chame a mãe da casa",
+      "Festa Junina: gás para a fogueira e quentão",
+      "Dia do Cliente (15/09) — agradecimento especial",
+      "Black Friday do gás: melhor preço do ano",
+      "Natal e Ano Novo: ceia sem ficar sem gás",
+      "Inverno chegando: estoque seu gás antes do frio",
+    ],
+  },
+  {
+    label: "Educacional / segurança",
+    emoji: "🛡️",
+    topics: [
+      "Dicas de segurança com botijão de gás",
+      "Como identificar vazamento de gás",
+      "Validade e durabilidade do botijão P13",
+      "Como economizar gás na cozinha",
+      "Por que comprar gás de revenda autorizada",
+    ],
+  },
+  {
+    label: "Diferenciais",
+    emoji: "🚚",
+    topics: [
+      "Entrega em até 20 minutos na sua casa",
+      "Atendimento 24h pelo WhatsApp",
+      "Pague no PIX, cartão ou na entrega",
+      "Baixe nosso app e peça em 1 clique",
+      "Cobertura de bairros: atendemos toda a região",
+    ],
+  },
+  {
+    label: "Fidelidade",
+    emoji: "💚",
+    topics: [
+      "Programa de pontos: cada compra vira desconto",
+      "Indique um amigo e ganhe vale-gás",
+      "Cashback em todas as compras",
+      "Vale-gás digital: presenteie quem você ama",
+      "Clube do cliente: vantagens exclusivas",
+    ],
+  },
 ];
+
+const suggestedTopics = topicCategories.flatMap((c) => c.topics);
+
+// Sugestões "para hoje" rotativas por mês
+const monthlyIdeas: Record<number, { topic: string; tone: Tone; platform: Platform; emoji: string }[]> = {
+  0: [{ emoji: "🎆", topic: "Comece o ano com gás cheio em casa", tone: "promocional", platform: "instagram" }],
+  1: [{ emoji: "🎭", topic: "Carnaval: não fique sem gás na folia", tone: "informal", platform: "instagram" }],
+  2: [{ emoji: "👩", topic: "Dia Internacional da Mulher: homenagem às clientes", tone: "profissional", platform: "facebook" }],
+  3: [{ emoji: "🐰", topic: "Páscoa: chocolate quente combina com gás cheio", tone: "informal", platform: "instagram" }],
+  4: [{ emoji: "💐", topic: "Dia das Mães: presenteie com vale-gás", tone: "promocional", platform: "whatsapp" }],
+  5: [
+    { emoji: "🔥", topic: "Festa Junina: gás para o quentão e fogueira", tone: "informal", platform: "instagram" },
+    { emoji: "❄️", topic: "Inverno chegando: garanta seu gás antes do frio", tone: "promocional", platform: "facebook" },
+  ],
+  6: [{ emoji: "❄️", topic: "Inverno: banho quente todo dia sem ficar sem gás", tone: "promocional", platform: "instagram" }],
+  7: [{ emoji: "🧒", topic: "Dia dos Pais: vale-gás como presente útil", tone: "promocional", platform: "whatsapp" }],
+  8: [{ emoji: "🎉", topic: "Dia do Cliente (15/09): desconto especial", tone: "promocional", platform: "instagram" }],
+  9: [{ emoji: "🎃", topic: "Outubro: prepare a cozinha para as festas de fim de ano", tone: "informal", platform: "tiktok" }],
+  10: [{ emoji: "🛒", topic: "Black Friday do gás: melhor preço do ano", tone: "promocional", platform: "instagram" }],
+  11: [{ emoji: "🎄", topic: "Ceia de Natal sem perrengue: gás garantido", tone: "promocional", platform: "whatsapp" }],
+};
+
 
 export default function MarketingIA() {
   const { unidadeAtual } = useUnidade();
   const { empresa } = useEmpresa();
   const empresaId = empresa?.id;
+  const [searchParams] = useSearchParams();
+
+  const brandContext = useMemo(() => ({
+    brandName: unidadeAtual?.nome || (empresa as any)?.nome || "",
+    cidade: unidadeAtual?.cidade || "",
+    whatsapp: unidadeAtual?.telefone || "",
+    instagram: "",
+    empresa_id: empresaId,
+    unidade_id: unidadeAtual?.id,
+  }), [empresa, unidadeAtual, empresaId]);
 
   // Post state
   const [platform, setPlatform] = useState<Platform>("instagram");
@@ -69,6 +152,17 @@ export default function MarketingIA() {
   const [topic, setTopic] = useState("");
   const [generatedContent, setGeneratedContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Aplicar query params (vindos do Dashboard "Sugestões")
+  useEffect(() => {
+    const t = searchParams.get("topic");
+    const to = searchParams.get("tone") as Tone | null;
+    const p = searchParams.get("platform") as Platform | null;
+    if (t) setTopic(t);
+    if (to && toneConfig[to]) setTone(to);
+    if (p && platformConfig[p]) setPlatform(p);
+  }, [searchParams]);
+
 
   // Image state
   const [imagePrompt, setImagePrompt] = useState("");
@@ -138,7 +232,7 @@ export default function MarketingIA() {
     setIsLoading(true); setGeneratedContent("");
     let acc = "";
     try {
-      await streamContent({ type: "post", platform, topic, tone }, (c) => { acc += c; setGeneratedContent(acc); }, () => setIsLoading(false));
+      await streamContent({ type: "post", platform, topic, tone, ...brandContext }, (c) => { acc += c; setGeneratedContent(acc); }, () => setIsLoading(false));
     } catch (e: any) { toast.error(e.message); setIsLoading(false); }
   };
 
@@ -166,7 +260,7 @@ export default function MarketingIA() {
       const resp = await fetch(FUNCTION_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        body: JSON.stringify({ type: "image", imagePrompt: `Imagem para vídeo de marketing de revenda de gás. Cena: ${prompt}. Estilo: fotografia profissional, formato vertical 9:16, cores vibrantes, adequado para Reels/TikTok.` }),
+        body: JSON.stringify({ type: "image", imagePrompt: `Imagem para vídeo de marketing de revenda de gás. Cena: ${prompt}. Estilo: fotografia profissional, formato vertical 9:16, cores vibrantes, adequado para Reels/TikTok.`, ...brandContext }),
       });
       if (!resp.ok) throw new Error("Erro ao gerar imagem");
       const data = await resp.json();
@@ -182,7 +276,7 @@ export default function MarketingIA() {
     let acc = "";
     try {
       await streamContent(
-        { type: "video_script", platform: videoPlatform, topic: videoTopic, tone: videoTone },
+        { type: "video_script", platform: videoPlatform, topic: videoTopic, tone: videoTone, ...brandContext },
         (c) => { acc += c; setVideoContent(acc); },
         () => {
           setIsVideoLoading(false);
@@ -201,7 +295,7 @@ export default function MarketingIA() {
     setIsCalendarLoading(true); setCalendarContent("");
     let acc = "";
     try {
-      await streamContent({ type: "calendar" }, (c) => { acc += c; setCalendarContent(acc); }, () => setIsCalendarLoading(false));
+      await streamContent({ type: "calendar", ...brandContext }, (c) => { acc += c; setCalendarContent(acc); }, () => setIsCalendarLoading(false));
     } catch (e: any) { toast.error(e.message); setIsCalendarLoading(false); }
   };
 
@@ -212,7 +306,7 @@ export default function MarketingIA() {
       const resp = await fetch(FUNCTION_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        body: JSON.stringify({ type: "image", imagePrompt: `Crie uma imagem profissional para marketing de revenda de gás: ${imagePrompt}. Estilo: moderno, cores vibrantes, adequado para redes sociais.` }),
+        body: JSON.stringify({ type: "image", imagePrompt: `Crie uma imagem profissional para marketing de revenda de gás: ${imagePrompt}. Estilo: moderno, cores vibrantes, adequado para redes sociais.`, ...brandContext }),
       });
       if (!resp.ok) { const err = await resp.json().catch(() => ({ error: "Erro" })); throw new Error(err.error || `Erro ${resp.status}`); }
       const data = await resp.json();
@@ -321,6 +415,33 @@ export default function MarketingIA() {
 
           {/* ═══ POST ═══ */}
           <TabsContent value="posts" className="space-y-4">
+            {/* Sugestões para hoje */}
+            {(monthlyIdeas[new Date().getMonth()] || []).length > 0 && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" /> Ideias para hoje
+                    {brandContext.brandName && <span className="text-xs font-normal text-muted-foreground">· {brandContext.brandName}</span>}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {(monthlyIdeas[new Date().getMonth()] || []).map((idea, i) => (
+                      <button
+                        key={i}
+                        onClick={() => { setTopic(idea.topic); setTone(idea.tone); setPlatform(idea.platform); }}
+                        className="text-left p-3 rounded-lg bg-background border border-primary/20 hover:border-primary hover:shadow-sm transition-all"
+                      >
+                        <div className="text-sm font-medium flex items-center gap-1.5">{idea.emoji} {idea.topic}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {toneConfig[idea.tone].emoji} {toneConfig[idea.tone].label} · {platformConfig[idea.platform].label}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             <Card>
               <CardContent className="p-4 space-y-4">
                 <div>
@@ -342,9 +463,16 @@ export default function MarketingIA() {
                   <label className="text-sm font-medium mb-2 block">Tema do post</label>
                   <Textarea placeholder="Ex: Promoção de gás P13 para o fim de semana" value={topic} onChange={(e) => setTopic(e.target.value)} rows={3} />
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {suggestedTopics.map((t) => (
-                    <Badge key={t} variant="outline" className="cursor-pointer hover:bg-primary/10 text-xs" onClick={() => setTopic(t)}>{t}</Badge>
+                <div className="space-y-3">
+                  {topicCategories.map((cat) => (
+                    <div key={cat.label}>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1.5">{cat.emoji} {cat.label}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {cat.topics.map((t) => (
+                          <Badge key={t} variant="outline" className="cursor-pointer hover:bg-primary/10 text-xs font-normal" onClick={() => setTopic(t)}>{t}</Badge>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
                 <Button onClick={generatePost} disabled={isLoading} className="w-full gap-2">
