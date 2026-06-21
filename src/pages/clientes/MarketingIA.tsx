@@ -415,6 +415,33 @@ export default function MarketingIA() {
 
           {/* ═══ POST ═══ */}
           <TabsContent value="posts" className="space-y-4">
+            {/* Sugestões para hoje */}
+            {(monthlyIdeas[new Date().getMonth()] || []).length > 0 && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" /> Ideias para hoje
+                    {brandContext.brandName && <span className="text-xs font-normal text-muted-foreground">· {brandContext.brandName}</span>}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {(monthlyIdeas[new Date().getMonth()] || []).map((idea, i) => (
+                      <button
+                        key={i}
+                        onClick={() => { setTopic(idea.topic); setTone(idea.tone); setPlatform(idea.platform); }}
+                        className="text-left p-3 rounded-lg bg-background border border-primary/20 hover:border-primary hover:shadow-sm transition-all"
+                      >
+                        <div className="text-sm font-medium flex items-center gap-1.5">{idea.emoji} {idea.topic}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {toneConfig[idea.tone].emoji} {toneConfig[idea.tone].label} · {platformConfig[idea.platform].label}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             <Card>
               <CardContent className="p-4 space-y-4">
                 <div>
@@ -436,9 +463,16 @@ export default function MarketingIA() {
                   <label className="text-sm font-medium mb-2 block">Tema do post</label>
                   <Textarea placeholder="Ex: Promoção de gás P13 para o fim de semana" value={topic} onChange={(e) => setTopic(e.target.value)} rows={3} />
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {suggestedTopics.map((t) => (
-                    <Badge key={t} variant="outline" className="cursor-pointer hover:bg-primary/10 text-xs" onClick={() => setTopic(t)}>{t}</Badge>
+                <div className="space-y-3">
+                  {topicCategories.map((cat) => (
+                    <div key={cat.label}>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1.5">{cat.emoji} {cat.label}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {cat.topics.map((t) => (
+                          <Badge key={t} variant="outline" className="cursor-pointer hover:bg-primary/10 text-xs font-normal" onClick={() => setTopic(t)}>{t}</Badge>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
                 <Button onClick={generatePost} disabled={isLoading} className="w-full gap-2">
