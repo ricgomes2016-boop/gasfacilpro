@@ -164,6 +164,15 @@ export default function BibliotecaConteudos() {
                   <SelectItem value="whatsapp">WhatsApp</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Qualquer status</SelectItem>
+                  {Object.entries(statusConfig).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button onClick={() => navigate("/clientes/marketing")} size="sm"><Sparkles className="h-4 w-4 mr-1" /> Criar</Button>
             </div>
 
