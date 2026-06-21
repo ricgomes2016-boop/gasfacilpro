@@ -168,6 +168,13 @@ export default function MarketingIA() {
   const [imagePrompt, setImagePrompt] = useState("");
   const [generatedImage, setGeneratedImage] = useState("");
   const [isImageLoading, setIsImageLoading] = useState(false);
+  const [imageVariations, setImageVariations] = useState<string[]>([]);
+  const [isVariationsLoading, setIsVariationsLoading] = useState(false);
+
+  // Multicanal batch state
+  const [batchPlatforms, setBatchPlatforms] = useState<Platform[]>(["instagram", "facebook", "whatsapp"]);
+  const [batchResults, setBatchResults] = useState<Record<Platform, string>>({} as any);
+  const [batchLoading, setBatchLoading] = useState<Record<Platform, boolean>>({} as any);
 
   // Video state
   const [videoPlatform, setVideoPlatform] = useState<VideoPlatform>("reels");
