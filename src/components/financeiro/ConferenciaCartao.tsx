@@ -481,6 +481,7 @@ export function ConferenciaCartao({ operadoraId, hideOperadorasTab }: Conferenci
 
 
   const filtered = itens.filter(i => {
+    if (operadoraId && i.operadora_id !== operadoraId) return false;
     if (filtroStatus !== "todos" && i.status !== filtroStatus) return false;
     if (filtroBandeira !== "todos" && i.bandeira !== filtroBandeira) return false;
     if (filtroTipo !== "todos" && i.tipo !== filtroTipo) return false;
