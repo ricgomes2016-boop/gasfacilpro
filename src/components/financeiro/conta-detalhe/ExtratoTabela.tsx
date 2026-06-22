@@ -33,17 +33,19 @@ export default function ExtratoTabela({ contaId, saldoAtual }: Props) {
   });
 
   const rows = useMemo(() => {
-    // Calcula saldo acumulado de trás pra frente partindo do saldo atual
+    // Calcula saldo acumulado em ordem cronológica
     const totalEntradas = movs.filter((m: any) => m.tipo === "entrada").reduce((s, m: any) => s + Number(m.valor), 0);
     const totalSaidas = movs.filter((m: any) => m.tipo === "saida").reduce((s, m: any) => s + Number(m.valor), 0);
     let saldoInicial = saldoAtual - totalEntradas + totalSaidas;
     let acc = saldoInicial;
-    return movs.map((m: any) => {
+    const chronological = movs.map((m: any) => {
       const entrada = m.tipo === "entrada" ? Number(m.valor) : 0;
       const saida = m.tipo === "saida" ? Number(m.valor) : 0;
       acc += entrada - saida;
       return { ...m, entrada, saida, total: acc };
     });
+    // Mais recente no topo
+    return chronological.slice().reverse();
   }, [movs, saldoAtual]);
 
   const fmt = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;

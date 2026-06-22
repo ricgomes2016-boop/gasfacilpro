@@ -1,50 +1,34 @@
-## Objetivo
+## Problema 1: Transferência não aparece na conta destino
 
-Refatorar a aba **OFX** dentro do detalhe da conta bancária para ficar visualmente igual à aba **Extrato Bancário**, escopada na conta aberta, com importação de OFX e ações em lote por checkbox.
+**Causa:** `realizarTransferencia` em `ContaBancariaDetalhe.tsx` insere apenas na tabela `transferencias_bancarias` e atualiza `contas_bancarias.saldo_atual`. **Nada é gravado em `movimentacoes_bancarias`**, que é a tabela lida pelo `ExtratoTabela` e pelas "Últimas movimentações" da Visão Geral. Não existe trigger no banco que faça essa propagação.
 
-## O que muda
+**Correção (frontend):** após inserir em `transferencias_bancarias`, inserir duas linhas em `movimentacoes_bancarias`:
+- Conta origem → `tipo: "saida"`, descricao `"Transferência enviada para {nome destino}"`, data de hoje, `unidade_id`, `user_id`.
+- Conta destino → `tipo: "entrada"`, descricao `"Transferência recebida de {nome origem}"`, mesmos campos.
 
-### 1. Novo componente `OfxPanel.tsx`
-Criar `src/components/financeiro/conta-detalhe/OfxPanel.tsx` (substitui o uso de `Conciliacao` na aba OFX do `ContaBancariaDetalhe.tsx`). Não mexer no `Conciliacao.tsx` (continua sendo usado em outros lugares).
+Invalidar também as queries `extrato-tabela` da origem e do destino.
 
-### 2. Escopo
-- Sempre vinculado à `conta_bancaria_id` da conta atual (recebida por prop).
-- Remover seletor "Conta para Importação" — usa a conta atual automaticamente.
-- Remover filtro "Filtrar Extrato por Conta" — não faz sentido aqui.
-- Query do extrato filtra por `conta_bancaria_id = conta atual` (e `unidade_id`).
+## Problema 2: Ordenação do extrato
 
-### 3. Topo (cabeçalho compacto)
-- Botão **Importar OFX** (e CSV opcional).
-- Botão **Reconciliar Automaticamente**.
-- **Filtro de status** em segmented control (chips): `Todos · Conciliados · Pendentes`. Substitui os 4 cards (Lançamentos / Conciliados / Pendentes / Saldo), que serão removidos para não ocupar espaço. Ao lado dos chips, mostra contador discreto em texto pequeno (ex: `12 lançamentos · R$ 3.450,00`).
+`ExtratoTabela.tsx` ordena `ascending: true` e renderiza nessa ordem (movimentação do dia fica no fim). 
 
-### 4. Tabela no padrão do Extrato Bancário
-Colunas:
-| ☐ | Data | Descrição | Entrada | Saída | Total (acumulado) | Status | Ações |
+**Correção:** manter o cálculo do saldo acumulado em ordem cronológica (necessário para o running balance), mas **inverter o array antes de renderizar** (`rows.slice().reverse()`), de forma que o dia atual (22/06) apareça na primeira linha e a coluna Total continue mostrando o saldo correto de cada data.
 
-- Checkbox por linha + checkbox "selecionar todos" no header.
-- Entrada/Saída = `valor` positivo/negativo.
-- Total = saldo acumulado no estilo de `ExtratoTabela`.
-- Status: badge "Conciliado" / "Pendente" + nome do pedido vinculado, se houver.
-- Ações por linha: `Vincular` (abre dialog de pedido) e `Conciliar` (marca conciliado sem pedido) — mantém o dialog atual.
+## Problema 3: Aba "Extrato de movimentação" no Caixa da empresa
 
-### 5. Ações em lote (quando há linhas marcadas)
-Barra fina aparece acima da tabela quando `selected.size > 0`:
-- `N selecionados`
-- Botão **Conciliar selecionados** → marca `conciliado=true` em todos.
-- Botão **Desfazer vínculo** → seta `pedido_id=null, conciliado=false` nos selecionados.
-- Botão **Limpar seleção**.
+Hoje, quando `tipo === "caixa_interno"`, só existem as abas **Visão Geral** e **Transferência**. O extrato fica embutido dentro da Visão Geral.
 
-Vinculação a pedido permanece individual (1 lançamento → 1 pedido), via dialog já existente.
+**Correção em `ContaBancariaDetalhe.tsx`:**
+- Adicionar uma terceira aba "Extrato" no `TabsList` do Caixa.
+- Conteúdo: `<ExtratoTabela contaId={conta.id} saldoAtual={saldo} />` (mesmas colunas Data / Descrição / Entrada / Saída / Total).
+- Em `QuickShortcuts`, incluir `"extrato"` na lista de itens do Caixa (`["visao", "extrato", "transferencia"]`).
+- Em `VisaoGeralPanel`, quando `isCaixa`, remover o `<ExtratoTabela>` embutido (vai virar aba própria) — mantém só a lista de "Últimas movimentações em dinheiro".
 
-### 6. `ContaBancariaDetalhe.tsx`
-- Substituir `<Conciliacao embedded contas=[...]/>` da `TabsContent value="ofx"` por `<OfxPanel contaId={conta.id} unidadeId={conta.unidade_id} accentColor={theme.primary} />`.
+## Arquivos a editar
 
-## Detalhes técnicos
+- `src/pages/financeiro/ContaBancariaDetalhe.tsx` — gravar movimentações na transferência; adicionar aba Extrato para o Caixa; invalidar queries das duas contas.
+- `src/components/financeiro/conta-detalhe/ExtratoTabela.tsx` — inverter ordem de exibição (mais recente no topo).
+- `src/components/financeiro/conta-detalhe/VisaoGeralPanel.tsx` — quando `isCaixa`, não embutir mais o `ExtratoTabela`.
+- `src/components/financeiro/conta-detalhe/QuickShortcuts.tsx` — incluir `"extrato"` na lista do Caixa.
 
-- Reaproveitar lógica de parse OFX/CSV copiando de `Conciliacao.tsx` (apenas as funções `parseOFX` e `parseCSV`).
-- Tabela `extrato_bancario` já tem `conta_bancaria_id` — usar.
-- Mutations: `conciliarLote(ids[])`, `desvincularLote(ids[])`, `vincularPedido` (individual). Usar `.in('id', ids)` em update.
-- React Query: `["extrato_ofx_conta", contaId, statusFilter]`.
-- Nenhuma alteração de banco de dados.
-- A aba OFX só aparece para contas que NÃO são Caixa (regra já existente da última iteração).
+Sem alterações no banco de dados.

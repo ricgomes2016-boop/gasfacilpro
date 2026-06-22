@@ -119,23 +119,63 @@ export default function ContaBancariaDetalhe() {
     const destino = outrasContas.find((c: any) => c.id === transferForm.conta_destino_id);
     if (!destino) { toast.error("Conta destino inválida"); return; }
 
-    const { error: transError } = await supabase.from("transferencias_bancarias").insert({
-      conta_origem_id: conta.id,
-      conta_destino_id: destino.id,
-      valor,
-      descricao: transferForm.descricao || null,
-      user_id: user?.id,
-    });
+    const { data: transRow, error: transError } = await supabase
+      .from("transferencias_bancarias")
+      .insert({
+        conta_origem_id: conta.id,
+        conta_destino_id: destino.id,
+        valor,
+        descricao: transferForm.descricao || null,
+        user_id: user?.id,
+      })
+      .select()
+      .maybeSingle();
     if (transError) { toast.error("Erro na transferência"); console.error(transError); return; }
 
-    await supabase.from("contas_bancarias").update({ saldo_atual: Number(conta.saldo_atual) - valor }).eq("id", conta.id);
-    await supabase.from("contas_bancarias").update({ saldo_atual: Number(destino.saldo_atual) + valor }).eq("id", destino.id);
+    const novoSaldoOrigem = Number(conta.saldo_atual) - valor;
+    const novoSaldoDestino = Number(destino.saldo_atual) + valor;
+    await supabase.from("contas_bancarias").update({ saldo_atual: novoSaldoOrigem }).eq("id", conta.id);
+    await supabase.from("contas_bancarias").update({ saldo_atual: novoSaldoDestino }).eq("id", destino.id);
+
+    const hoje = format(new Date(), "yyyy-MM-dd");
+    const descBase = transferForm.descricao ? ` - ${transferForm.descricao}` : "";
+    const { error: movErr } = await supabase.from("movimentacoes_bancarias").insert([
+      {
+        conta_bancaria_id: conta.id,
+        data: hoje,
+        tipo: "saida",
+        categoria: "transferencia",
+        descricao: `Transferência enviada para ${destino.nome}${descBase}`,
+        valor,
+        saldo_apos: novoSaldoOrigem,
+        referencia_id: transRow?.id ?? null,
+        referencia_tipo: "transferencia_bancaria",
+        user_id: user?.id,
+        unidade_id: conta.unidade_id,
+      },
+      {
+        conta_bancaria_id: destino.id,
+        data: hoje,
+        tipo: "entrada",
+        categoria: "transferencia",
+        descricao: `Transferência recebida de ${conta.nome}${descBase}`,
+        valor,
+        saldo_apos: novoSaldoDestino,
+        referencia_id: transRow?.id ?? null,
+        referencia_tipo: "transferencia_bancaria",
+        user_id: user?.id,
+        unidade_id: destino.unidade_id ?? conta.unidade_id,
+      },
+    ]);
+    if (movErr) console.error("Erro ao gravar movimentações:", movErr);
 
     toast.success("Transferência realizada!");
     setTransferForm({ conta_destino_id: "", valor: "", descricao: "" });
     invalidarConta();
     queryClient.invalidateQueries({ queryKey: ["transferencias-conta", contaId] });
     queryClient.invalidateQueries({ queryKey: ["contas-bancarias-transfer"] });
+    queryClient.invalidateQueries({ queryKey: ["extrato-tabela"] });
+    queryClient.invalidateQueries({ queryKey: ["visao-geral-movs"] });
   };
 
   if (isLoading) {
@@ -216,7 +256,7 @@ export default function ContaBancariaDetalhe() {
         <Tabs value={aba} onValueChange={setAba} className="space-y-4">
           <TabsList className="bg-muted/60">
             <TabsTrigger value="visao">Visão Geral</TabsTrigger>
-            {!isCaixa && <TabsTrigger value="extrato">Extrato Bancário</TabsTrigger>}
+            <TabsTrigger value="extrato">{isCaixa ? "Extrato de Movimentação" : "Extrato Bancário"}</TabsTrigger>
             {!isCaixa && <TabsTrigger value="pix">PIX</TabsTrigger>}
             <TabsTrigger value="transferencia">Transferência</TabsTrigger>
             {!isCaixa && <TabsTrigger value="ofx">OFX</TabsTrigger>}
@@ -227,18 +267,16 @@ export default function ContaBancariaDetalhe() {
             activeTab={aba}
             onChange={setAba}
             accentColor={theme.primary}
-            items={isCaixa ? ["visao", "transferencia"] : undefined}
+            items={isCaixa ? ["visao", "extrato", "transferencia"] : undefined}
           />
 
           <TabsContent value="visao" className="mt-4">
             <VisaoGeralPanel contaId={conta.id} accentColor={theme.primary} isCaixa={isCaixa} saldoAtual={saldo} />
           </TabsContent>
 
-          {!isCaixa && (
-            <TabsContent value="extrato" className="mt-4">
-              <ExtratoTabela contaId={conta.id} saldoAtual={saldo} />
-            </TabsContent>
-          )}
+          <TabsContent value="extrato" className="mt-4">
+            <ExtratoTabela contaId={conta.id} saldoAtual={saldo} />
+          </TabsContent>
 
           {!isCaixa && (
             <TabsContent value="pix" className="mt-4">

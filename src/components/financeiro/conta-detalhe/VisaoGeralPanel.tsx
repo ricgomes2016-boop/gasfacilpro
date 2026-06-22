@@ -78,12 +78,6 @@ export default function VisaoGeralPanel({ contaId, accentColor, isCaixa, saldoAt
         </Card>
       </div>
 
-      {isCaixa && (
-        <div>
-          <h3 className="font-semibold mb-2 text-sm">Extrato em dinheiro</h3>
-          <ExtratoTabela contaId={contaId} saldoAtual={saldoAtual} />
-        </div>
-      )}
     </div>
   );
 }

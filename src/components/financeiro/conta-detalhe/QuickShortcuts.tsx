@@ -20,7 +20,7 @@ const ALL_ITEMS = [
 
 export default function QuickShortcuts({ activeTab, onChange, accentColor, items }: QuickShortcutsProps) {
   const visible = items ? ALL_ITEMS.filter(i => items.includes(i.id)) : ALL_ITEMS;
-  const cols = visible.length <= 2 ? "grid-cols-2" : visible.length <= 3 ? "grid-cols-3" : "grid-cols-3 sm:grid-cols-6";
+  const cols = visible.length <= 2 ? "grid-cols-2" : visible.length <= 3 ? "grid-cols-3" : visible.length <= 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3 sm:grid-cols-6";
   return (
     <div className={cn("grid gap-2", cols)}>
       {visible.map(({ id, label, icon: Icon }) => {
