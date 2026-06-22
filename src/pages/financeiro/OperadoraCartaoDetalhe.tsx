@@ -168,15 +168,59 @@ export default function OperadoraCartaoDetalhe() {
         </div>
 
         <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-          <TabsList className="w-full flex-wrap h-auto gap-1">
-            <TabsTrigger value="inicio" className="gap-1.5"><Home className="h-4 w-4" />Início</TabsTrigger>
-            <TabsTrigger value="vendas" className="gap-1.5"><ShoppingCart className="h-4 w-4" />Vendas</TabsTrigger>
-            <TabsTrigger value="recebiveis" className="gap-1.5"><Banknote className="h-4 w-4" />Recebíveis</TabsTrigger>
-            <TabsTrigger value="taxas" className="gap-1.5"><Percent className="h-4 w-4" />Taxas</TabsTrigger>
-            <TabsTrigger value="relatorios" className="gap-1.5"><BarChart3 className="h-4 w-4" />Relatórios</TabsTrigger>
-            <TabsTrigger value="conferencia" className="gap-1.5"><CheckCircle2 className="h-4 w-4" />Conferência</TabsTrigger>
-            <TabsTrigger value="maquininhas" className="gap-1.5"><CreditCard className="h-4 w-4" />Maquininhas</TabsTrigger>
-          </TabsList>
+          <div className="rounded-2xl border bg-card/80 backdrop-blur shadow-sm p-1.5 -mx-1 sm:mx-0">
+            <TabsList className="w-full h-auto bg-transparent p-0 gap-1 flex overflow-x-auto scrollbar-none sm:grid sm:grid-cols-4 lg:grid-cols-7">
+              <TabsTrigger
+                value="inicio"
+                className="flex-shrink-0 sm:flex-shrink justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium data-[state=active]:shadow-md data-[state=active]:text-white transition-all"
+                style={tab === "inicio" ? { background: operatorGradient(theme) } : undefined}
+              >
+                <Home className="h-4 w-4" />Início
+              </TabsTrigger>
+              <TabsTrigger
+                value="vendas"
+                className="flex-shrink-0 sm:flex-shrink justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium data-[state=active]:shadow-md data-[state=active]:text-white transition-all"
+                style={tab === "vendas" ? { background: operatorGradient(theme) } : undefined}
+              >
+                <ShoppingCart className="h-4 w-4" />Vendas
+              </TabsTrigger>
+              <TabsTrigger
+                value="recebiveis"
+                className="flex-shrink-0 sm:flex-shrink justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium data-[state=active]:shadow-md data-[state=active]:text-white transition-all"
+                style={tab === "recebiveis" ? { background: operatorGradient(theme) } : undefined}
+              >
+                <Banknote className="h-4 w-4" />Recebíveis
+              </TabsTrigger>
+              <TabsTrigger
+                value="taxas"
+                className="flex-shrink-0 sm:flex-shrink justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium data-[state=active]:shadow-md data-[state=active]:text-white transition-all"
+                style={tab === "taxas" ? { background: operatorGradient(theme) } : undefined}
+              >
+                <Percent className="h-4 w-4" />Taxas
+              </TabsTrigger>
+              <TabsTrigger
+                value="relatorios"
+                className="flex-shrink-0 sm:flex-shrink justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium data-[state=active]:shadow-md data-[state=active]:text-white transition-all"
+                style={tab === "relatorios" ? { background: operatorGradient(theme) } : undefined}
+              >
+                <BarChart3 className="h-4 w-4" />Relatórios
+              </TabsTrigger>
+              <TabsTrigger
+                value="conferencia"
+                className="flex-shrink-0 sm:flex-shrink justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium data-[state=active]:shadow-md data-[state=active]:text-white transition-all"
+                style={tab === "conferencia" ? { background: operatorGradient(theme) } : undefined}
+              >
+                <CheckCircle2 className="h-4 w-4" />Conferência
+              </TabsTrigger>
+              <TabsTrigger
+                value="maquininhas"
+                className="flex-shrink-0 sm:flex-shrink justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium data-[state=active]:shadow-md data-[state=active]:text-white transition-all"
+                style={tab === "maquininhas" ? { background: operatorGradient(theme) } : undefined}
+              >
+                <CreditCard className="h-4 w-4" />Maquininhas
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="inicio" className="space-y-4">
             <QuickAccessGrid theme={theme} metrics={metrics} onSelect={setTab} />
