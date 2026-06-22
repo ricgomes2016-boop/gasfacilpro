@@ -1,61 +1,37 @@
-## Reestruturar página de detalhe da Conta Bancária
+## Objetivo
 
-Reorganizar a página `ContaBancariaDetalhe.tsx` para ter, após o card colorido do banco, **abas principais + atalhos rápidos**, e adicionar suporte a **PIX** e **Boletos**.
+Quando a conta aberta for a **Caixa da Empresa** (`tipo = 'caixa_interno'`), simplificar a tela de detalhe para mostrar somente o essencial de caixa em dinheiro.
 
-### Nova estrutura da página
+## O que muda (somente para conta tipo Caixa Interno)
 
-```text
-[Card colorido do banco — mantém igual]
+### 1. Abas principais
+- Manter apenas: **Visão Geral** e **Transferência**
+- Remover (não renderizar): Extrato Bancário, PIX, OFX, Boletos
 
-[Tabs principais]  Visão Geral | Extrato | PIX | OFX
+### 2. Atalhos rápidos (QuickShortcuts)
+- Mostrar apenas 2 cards: **Visão Geral** e **Transferência**
+- Esconder os cards de PIX, Boletos, Extrato e OFX
 
-[Linha de cards-atalho rápidos]
- [PIX]  [Boletos]  [Extrato]  [Transferência]  [OFX]
-  ↑ cada card seta a aba ativa correspondente
+### 3. Últimas Movimentações (na Visão Geral)
+- Como toda movimentação registrada nessa conta já é dinheiro (é o próprio caixa físico da empresa), basta manter o filtro atual por `conta_bancaria_id`. Nenhuma movimentação de PIX/boleto/cartão entra nessa conta.
+- Ajustar apenas o título do card para deixar claro: **"Últimas movimentações em dinheiro"**.
 
-[Conteúdo da aba ativa]
-```
+### 4. Extrato (dentro da Visão Geral, opcional)
+- Como o usuário pediu também um extrato apenas de entrada/saída em dinheiro, embutir uma **mini-tabela de extrato** (Data, Descrição, Entrada, Saída, Total) logo abaixo das últimas movimentações na Visão Geral — reutilizando o componente `ExtratoTabela` já existente. Assim não há necessidade da aba separada.
 
-Os 5 cards-atalho ficam **sempre visíveis** abaixo das tabs e funcionam como botões para trocar de aba (controlado via `useState`, não mais `defaultValue`).
+## Comportamento para as demais contas (bancos)
+- **Sem alterações.** Itaú, Bradesco, etc. continuam com todas as abas (Visão Geral, Extrato, PIX, OFX) e todos os atalhos.
 
-### Abas e conteúdo
+## Detalhes técnicos
 
-1. **Visão Geral** — resumo: saldo, últimas 5 movimentações, últimas 3 transferências, atalho rápido.
-2. **Extrato Bancário** — tabela com colunas exatas: **Data | Descrição | Entrada | Saída | Total (saldo acumulado)**. Filtro de período no topo. Usa `movimentacoes_bancarias` filtradas por `conta_bancaria_id`.
-3. **PIX** (nova aba, com sub-tabs internas)
-   - **Chaves cadastradas**: lista chaves PIX da conta.
-   - **Cadastrar chave**: form (tipo: CPF/CNPJ/Email/Telefone/Aleatória + valor).
-   - **Pagar com PIX**: abre modal que lista contas a pagar (`contas_pagar` com status pendente). Ao selecionar, debita do saldo da conta atual, cria movimentação de saída e marca o título como pago.
-4. **Boletos** (nova aba)
-   - **Pagar boleto**: lista `contas_pagar` cujo tipo/forma é boleto. Selecionar → baixa saldo + marca pago + cria movimentação.
-5. **Transferência** — mantém o formulário e histórico atual.
-6. **OFX** — mantém componente `Conciliacao` embedded.
+- Arquivo principal: `src/pages/financeiro/ContaBancariaDetalhe.tsx`
+  - Criar flag `const isCaixa = conta.tipo === 'caixa_interno'`.
+  - Renderizar `TabsList` e `QuickShortcuts` condicionalmente com base em `isCaixa`.
+  - Se `isCaixa`, default `aba = 'visao'` e renderizar somente os `TabsContent` de `visao` e `transferencia`.
+- `src/components/financeiro/conta-detalhe/QuickShortcuts.tsx`
+  - Aceitar nova prop opcional `items?: string[]` (lista de chaves a exibir). Quando passada, filtra os atalhos. Default mantém comportamento atual.
+- `src/components/financeiro/conta-detalhe/VisaoGeralPanel.tsx`
+  - Aceitar prop opcional `isCaixa?: boolean`.
+  - Quando `isCaixa`, mudar título para "Últimas movimentações em dinheiro" e incluir `<ExtratoTabela />` abaixo.
 
-### Tabelas de banco necessárias
-
-- **Nova**: `contas_pix_chaves` (id, conta_bancaria_id, tipo, chave, unidade_id, empresa_id, created_at) com RLS por unidade + GRANTs.
-- **Reutilizadas**: `contas_pagar`, `movimentacoes_bancarias`, `contas_bancarias`, `transferencias_bancarias`.
-
-Migração será criada via tool de migração (com GRANTs + RLS).
-
-### Componentes a criar
-
-- `src/components/financeiro/conta-detalhe/PixPanel.tsx` — sub-tabs chaves/cadastrar/pagar.
-- `src/components/financeiro/conta-detalhe/BoletosPanel.tsx` — listar e pagar boletos.
-- `src/components/financeiro/conta-detalhe/VisaoGeralPanel.tsx` — resumo.
-- `src/components/financeiro/conta-detalhe/ExtratoTabela.tsx` — tabela Data/Descrição/Entrada/Saída/Total.
-- `src/components/financeiro/conta-detalhe/QuickShortcuts.tsx` — linha dos 5 cards-atalho clicáveis.
-
-### Pontos técnicos
-
-- Estado da aba via `useState` para permitir que os cards-atalho mudem a aba.
-- Tabs principais com estilo já existente (cores do `bankTheme`).
-- Pagamento PIX/Boleto: atualização atômica do saldo + insert em `movimentacoes_bancarias` + update em `contas_pagar` (status `pago`, `data_pagamento`, `conta_bancaria_id`).
-- Validação de saldo insuficiente.
-- Toast de sucesso/erro e invalidação de queries.
-- Manter `TabsList` interno do `ExtratoBancario` removido (substituído pela TabsList principal acima).
-
-### Confirmações antes de implementar
-
-1. Confirma criar a nova tabela `contas_pix_chaves`? (necessária para "ver/cadastrar chaves")
-2. Para pagamento via PIX/Boleto: deve **realmente baixar o título em `contas_pagar`** + criar movimentação na conta, certo? (sem integração real com banco — apenas registro interno)
+Nenhuma mudança de banco de dados.
