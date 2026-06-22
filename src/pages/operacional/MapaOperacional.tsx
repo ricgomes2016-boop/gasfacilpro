@@ -21,6 +21,7 @@ import { useOperacional } from "@/hooks/useOperacional";
 import { useEntregadorPresenca, type Presenca } from "@/hooks/useEntregadorPresenca";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { cn } from "@/lib/utils";
 
 const PRESENCE_COLOR: Record<Presenca, string> = {
