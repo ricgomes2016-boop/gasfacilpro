@@ -6,9 +6,10 @@ interface QuickShortcutsProps {
   activeTab: string;
   onChange: (tab: string) => void;
   accentColor: string;
+  items?: string[];
 }
 
-const items = [
+const ALL_ITEMS = [
   { id: "visao", label: "Visão Geral", icon: LayoutDashboard },
   { id: "pix", label: "PIX", icon: QrCode },
   { id: "boletos", label: "Boletos", icon: FileText },
@@ -17,10 +18,13 @@ const items = [
   { id: "ofx", label: "OFX", icon: FileSpreadsheet },
 ];
 
-export default function QuickShortcuts({ activeTab, onChange, accentColor }: QuickShortcutsProps) {
+export default function QuickShortcuts({ activeTab, onChange, accentColor, items }: QuickShortcutsProps) {
+  const visible = items ? ALL_ITEMS.filter(i => items.includes(i.id)) : ALL_ITEMS;
+  const cols = visible.length <= 2 ? "grid-cols-2" : visible.length <= 3 ? "grid-cols-3" : "grid-cols-3 sm:grid-cols-6";
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-      {items.map(({ id, label, icon: Icon }) => {
+    <div className={cn("grid gap-2", cols)}>
+      {visible.map(({ id, label, icon: Icon }) => {
+
         const active = activeTab === id;
         return (
           <Card
