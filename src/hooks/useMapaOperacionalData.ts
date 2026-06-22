@@ -83,12 +83,13 @@ export function useMapaOperacionalData({
 
       // Pedidos do dia ativos
       const hojeInicio = new Date(); hojeInicio.setHours(0, 0, 0, 0);
-      let pq = supabase
+      let pq: any = supabase
         .from("pedidos")
         .select("*, clientes(nome, bairro, endereco, telefone, latitude, longitude), pedido_itens(quantidade, produtos(nome))")
         .gte("created_at", hojeInicio.toISOString())
-        .in("status", ["pendente", "confirmado", "em_rota", "saiu_entrega", "em_preparo"]);
-      if (unidadeId) pq = pq.eq("unidade_id", unidadeId);
+        .in("status", ["pendente", "confirmado", "em_rota", "saiu_entrega", "em_preparo"])
+        .eq("unidade_id", unidadeId);
+      if (empresaId) pq = pq.eq("empresa_id", empresaId);
       const { data: peds } = await pq;
 
       const peds2: PedidoOp[] = (peds || []).map((p: any) => {
