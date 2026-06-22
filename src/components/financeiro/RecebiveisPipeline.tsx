@@ -189,6 +189,7 @@ export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {
 
   const filtered = useMemo(() => {
     return rows.filter(r => {
+      if (operadoraId && r.operadora_id !== operadoraId) return false;
       if (filtroEtapa === "nao_conciliado") return r.conciliacao_status === "nao_conciliado" && r.status === "pendente";
       if (filtroEtapa === "conciliado") return r.conciliacao_status === "confirmado" && r.status === "pendente";
       if (filtroEtapa === "liquidado") return r.status === "recebida";
@@ -196,7 +197,7 @@ export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {
       if (filtroEtapa === "vencido") return r.status === "pendente" && r.vencimento < hoje;
       return true;
     });
-  }, [rows, filtroEtapa, hoje]);
+  }, [rows, filtroEtapa, hoje, operadoraId]);
 
   const getFormaLabel = (f: string | null) => {
     if (!f) return "—";
