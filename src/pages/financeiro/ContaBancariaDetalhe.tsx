@@ -15,16 +15,20 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, ArrowRightLeft, Receipt, FileSpreadsheet, Send, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Send, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import ExtratoBancario from "@/components/financeiro/ExtratoBancario";
 import Conciliacao from "./Conciliacao";
 import { getBankTheme, bankGradient } from "@/lib/bancos/bankThemes";
+import QuickShortcuts from "@/components/financeiro/conta-detalhe/QuickShortcuts";
+import ExtratoTabela from "@/components/financeiro/conta-detalhe/ExtratoTabela";
+import VisaoGeralPanel from "@/components/financeiro/conta-detalhe/VisaoGeralPanel";
+import PixPanel from "@/components/financeiro/conta-detalhe/PixPanel";
+import BoletosPanel from "@/components/financeiro/conta-detalhe/BoletosPanel";
 
 interface ContaBancaria {
   id: string;
@@ -49,6 +53,7 @@ export default function ContaBancariaDetalhe() {
   const { empresa } = useEmpresa();
   const { user } = useAuth();
   const [mostrarSaldo, setMostrarSaldo] = useState(true);
+  const [aba, setAba] = useState("visao");
   const [transferForm, setTransferForm] = useState({ conta_destino_id: "", valor: "", descricao: "" });
 
   const { data: conta, isLoading } = useQuery({
@@ -66,7 +71,6 @@ export default function ContaBancariaDetalhe() {
     enabled: !!contaId,
   });
 
-  // Outras contas para transferência (mesma unidade/empresa)
   const { data: outrasContas = [] } = useQuery({
     queryKey: ["contas-bancarias-transfer", unidadeAtual?.id, empresa?.id, contaId],
     queryFn: async () => {
@@ -96,11 +100,11 @@ export default function ContaBancariaDetalhe() {
   });
 
   const theme = useMemo(() => getBankTheme(conta?.banco || ""), [conta?.banco]);
-  const contasParaExtrato = useMemo(() => (conta ? [{
-    id: conta.id, nome: conta.nome, banco: conta.banco,
-    saldo_atual: Number(conta.saldo_atual), unidade_id: conta.unidade_id,
-    unidades: conta.unidades,
-  }] : []), [conta]);
+
+  const invalidarConta = () => {
+    queryClient.invalidateQueries({ queryKey: ["conta-bancaria-detalhe", contaId] });
+    queryClient.invalidateQueries({ queryKey: ["contas-bancarias"] });
+  };
 
   const realizarTransferencia = async () => {
     if (!conta) return;
@@ -128,9 +132,8 @@ export default function ContaBancariaDetalhe() {
 
     toast.success("Transferência realizada!");
     setTransferForm({ conta_destino_id: "", valor: "", descricao: "" });
-    queryClient.invalidateQueries({ queryKey: ["conta-bancaria-detalhe", contaId] });
+    invalidarConta();
     queryClient.invalidateQueries({ queryKey: ["transferencias-conta", contaId] });
-    queryClient.invalidateQueries({ queryKey: ["contas-bancarias"] });
     queryClient.invalidateQueries({ queryKey: ["contas-bancarias-transfer"] });
   };
 
@@ -156,34 +159,23 @@ export default function ContaBancariaDetalhe() {
   }
 
   const saldo = Number(conta.saldo_atual);
-  const tipoLabel = ({ corrente: "Conta Corrente", poupanca: "Poupança", caixa_interno: "Caixa Interno" } as Record<string,string>)[conta.tipo] || conta.tipo;
+  const tipoLabel = ({ corrente: "Conta Corrente", poupanca: "Poupança", caixa_interno: "Caixa Interno" } as Record<string, string>)[conta.tipo] || conta.tipo;
 
   return (
     <MainLayout>
       <Header title={conta.nome} subtitle={`${theme.nome} • ${tipoLabel}`} />
-      <div className="p-4 md:p-6 space-y-6">
-        {/* Header do banco — estilo app */}
+      <div className="p-4 md:p-6 space-y-5">
+        {/* Header do banco */}
         <Card className="overflow-hidden border-0 shadow-lg">
-          <div
-            className="p-5 md:p-7"
-            style={{ background: bankGradient(theme), color: theme.textColor }}
-          >
+          <div className="p-5 md:p-7" style={{ background: bankGradient(theme), color: theme.textColor }}>
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-4">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate("/financeiro/contas-bancarias")}
-                  className="h-9 w-9 rounded-full hover:bg-white/15"
-                  style={{ color: theme.textColor }}
-                  title="Voltar"
-                >
+                <Button variant="ghost" size="icon" onClick={() => navigate("/financeiro/contas-bancarias")}
+                  className="h-9 w-9 rounded-full hover:bg-white/15" style={{ color: theme.textColor }} title="Voltar">
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <div
-                  className="h-14 w-14 rounded-2xl flex items-center justify-center font-bold text-lg shadow"
-                  style={{ background: "rgba(255,255,255,0.18)", color: theme.textColor }}
-                >
+                <div className="h-14 w-14 rounded-2xl flex items-center justify-center font-bold text-lg shadow"
+                  style={{ background: "rgba(255,255,255,0.18)", color: theme.textColor }}>
                   {theme.initials}
                 </div>
                 <div>
@@ -203,53 +195,61 @@ export default function ContaBancariaDetalhe() {
             <div className="mt-6 md:mt-8">
               <div className="flex items-center gap-2 opacity-85">
                 <span className="text-xs uppercase tracking-wider">Saldo disponível</span>
-                <button
-                  onClick={() => setMostrarSaldo(v => !v)}
-                  className="opacity-80 hover:opacity-100"
-                  title={mostrarSaldo ? "Ocultar" : "Mostrar"}
-                  style={{ color: theme.textColor }}
-                >
+                <button onClick={() => setMostrarSaldo(v => !v)} className="opacity-80 hover:opacity-100"
+                  title={mostrarSaldo ? "Ocultar" : "Mostrar"} style={{ color: theme.textColor }}>
                   {mostrarSaldo ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
               <p className="text-3xl md:text-4xl font-extrabold mt-1 tracking-tight">
-                {mostrarSaldo
-                  ? `R$ ${saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                  : "R$ ••••••"}
+                {mostrarSaldo ? `R$ ${saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "R$ ••••••"}
               </p>
-              {conta.chave_pix && (
-                <p className="text-xs opacity-80 mt-2">PIX: {conta.chave_pix}</p>
-              )}
+              {conta.chave_pix && <p className="text-xs opacity-80 mt-2">PIX: {conta.chave_pix}</p>}
             </div>
           </div>
         </Card>
 
-        {/* Abas */}
-        <Tabs defaultValue="extrato">
-          <TabsContent value="extrato" className="mt-0">
-            <ExtratoBancario
-              contas={contasParaExtrato as any}
-              toolbarExtra={
-                <TabsList className="inline-flex w-auto h-10 gap-1 bg-muted/60 ml-2">
-                  <TabsTrigger value="extrato" className="h-8 px-3 text-xs"><Receipt className="h-3.5 w-3.5 mr-1" />Extrato</TabsTrigger>
-                  <TabsTrigger value="transferencia" className="h-8 px-3 text-xs"><ArrowRightLeft className="h-3.5 w-3.5 mr-1" />Transferência</TabsTrigger>
-                  <TabsTrigger value="ofx" className="h-8 px-3 text-xs"><FileSpreadsheet className="h-3.5 w-3.5 mr-1" />OFX</TabsTrigger>
-                </TabsList>
-              }
+        {/* Tabs principais */}
+        <Tabs value={aba} onValueChange={setAba} className="space-y-4">
+          <TabsList className="bg-muted/60">
+            <TabsTrigger value="visao">Visão Geral</TabsTrigger>
+            <TabsTrigger value="extrato">Extrato Bancário</TabsTrigger>
+            <TabsTrigger value="pix">PIX</TabsTrigger>
+            <TabsTrigger value="ofx">OFX</TabsTrigger>
+          </TabsList>
+
+          {/* Atalhos rápidos */}
+          <QuickShortcuts activeTab={aba} onChange={setAba} accentColor={theme.primary} />
+
+          <TabsContent value="visao" className="mt-4">
+            <VisaoGeralPanel contaId={conta.id} accentColor={theme.primary} />
+          </TabsContent>
+
+          <TabsContent value="extrato" className="mt-4">
+            <ExtratoTabela contaId={conta.id} saldoAtual={saldo} />
+          </TabsContent>
+
+          <TabsContent value="pix" className="mt-4">
+            <PixPanel
+              contaId={conta.id}
+              saldoAtual={saldo}
+              unidadeId={conta.unidade_id}
+              accentColor={theme.primary}
+              onPago={invalidarConta}
             />
           </TabsContent>
 
+          <TabsContent value="boletos" className="mt-4">
+            <BoletosPanel
+              contaId={conta.id}
+              saldoAtual={saldo}
+              unidadeId={conta.unidade_id}
+              accentColor={theme.primary}
+              onPago={invalidarConta}
+            />
+          </TabsContent>
 
-          <TabsContent value="transferencia" className="mt-0 space-y-4">
-            <div className="flex justify-end">
-              <TabsList className="inline-flex w-auto h-10 gap-1 bg-muted/60">
-                <TabsTrigger value="extrato" className="h-8 px-3 text-xs"><Receipt className="h-3.5 w-3.5 mr-1" />Extrato</TabsTrigger>
-                <TabsTrigger value="transferencia" className="h-8 px-3 text-xs"><ArrowRightLeft className="h-3.5 w-3.5 mr-1" />Transferência</TabsTrigger>
-                <TabsTrigger value="ofx" className="h-8 px-3 text-xs"><FileSpreadsheet className="h-3.5 w-3.5 mr-1" />OFX</TabsTrigger>
-              </TabsList>
-            </div>
+          <TabsContent value="transferencia" className="mt-4 space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
               <Card>
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-2">
@@ -258,19 +258,14 @@ export default function ContaBancariaDetalhe() {
                   </div>
                   <div>
                     <Label>Conta destino *</Label>
-                    <Select
-                      value={transferForm.conta_destino_id}
-                      onValueChange={v => setTransferForm({ ...transferForm, conta_destino_id: v })}
-                    >
+                    <Select value={transferForm.conta_destino_id} onValueChange={v => setTransferForm({ ...transferForm, conta_destino_id: v })}>
                       <SelectTrigger><SelectValue placeholder="Selecione a conta" /></SelectTrigger>
                       <SelectContent>
                         {outrasContas.length === 0 ? (
                           <SelectItem value="nenhum" disabled>Nenhuma outra conta disponível</SelectItem>
                         ) : (
                           outrasContas.map((c: any) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.nome} ({c.banco})
-                            </SelectItem>
+                            <SelectItem key={c.id} value={c.id}>{c.nome} ({c.banco})</SelectItem>
                           ))
                         )}
                       </SelectContent>
@@ -278,25 +273,13 @@ export default function ContaBancariaDetalhe() {
                   </div>
                   <div>
                     <Label>Valor (R$) *</Label>
-                    <Input
-                      value={transferForm.valor}
-                      onChange={e => setTransferForm({ ...transferForm, valor: e.target.value })}
-                      placeholder="0,00"
-                    />
+                    <Input value={transferForm.valor} onChange={e => setTransferForm({ ...transferForm, valor: e.target.value })} placeholder="0,00" />
                   </div>
                   <div>
                     <Label>Descrição</Label>
-                    <Input
-                      value={transferForm.descricao}
-                      onChange={e => setTransferForm({ ...transferForm, descricao: e.target.value })}
-                      placeholder="Ex: Repasse do caixa"
-                    />
+                    <Input value={transferForm.descricao} onChange={e => setTransferForm({ ...transferForm, descricao: e.target.value })} placeholder="Ex: Repasse do caixa" />
                   </div>
-                  <Button
-                    onClick={realizarTransferencia}
-                    className="w-full"
-                    style={{ background: theme.primary, color: theme.textColor }}
-                  >
+                  <Button onClick={realizarTransferencia} className="w-full" style={{ background: theme.primary, color: theme.textColor }}>
                     <Send className="h-4 w-4 mr-2" />Transferir
                   </Button>
                 </CardContent>
@@ -344,20 +327,12 @@ export default function ContaBancariaDetalhe() {
             </div>
           </TabsContent>
 
-          <TabsContent value="ofx" className="mt-0 space-y-4">
-            <div className="flex justify-end">
-              <TabsList className="inline-flex w-auto h-10 gap-1 bg-muted/60">
-                <TabsTrigger value="extrato" className="h-8 px-3 text-xs"><Receipt className="h-3.5 w-3.5 mr-1" />Extrato</TabsTrigger>
-                <TabsTrigger value="transferencia" className="h-8 px-3 text-xs"><ArrowRightLeft className="h-3.5 w-3.5 mr-1" />Transferência</TabsTrigger>
-                <TabsTrigger value="ofx" className="h-8 px-3 text-xs"><FileSpreadsheet className="h-3.5 w-3.5 mr-1" />OFX</TabsTrigger>
-              </TabsList>
-            </div>
+          <TabsContent value="ofx" className="mt-4">
             <Conciliacao
               embedded
               contas={[{ id: conta.id, nome: conta.nome, banco: conta.banco, tipo: conta.tipo, saldo_atual: Number(conta.saldo_atual) }]}
             />
           </TabsContent>
-
         </Tabs>
       </div>
     </MainLayout>
