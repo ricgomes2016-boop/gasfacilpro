@@ -3496,6 +3496,44 @@ export type Database = {
           },
         ]
       }
+      contas_pix_chaves: {
+        Row: {
+          chave: string
+          conta_bancaria_id: string
+          created_at: string
+          id: string
+          tipo: string
+          unidade_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          chave: string
+          conta_bancaria_id: string
+          created_at?: string
+          id?: string
+          tipo: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          chave?: string
+          conta_bancaria_id?: string
+          created_at?: string
+          id?: string
+          tipo?: string
+          unidade_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pix_chaves_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contas_receber: {
         Row: {
           asaas_charge_id: string | null
