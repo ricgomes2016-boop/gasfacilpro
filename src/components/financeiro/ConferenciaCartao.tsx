@@ -79,9 +79,14 @@ interface TerminalItem {
   isNew?: boolean;
 }
 
-export function ConferenciaCartao() {
+interface ConferenciaCartaoProps {
+  operadoraId?: string;
+  hideOperadorasTab?: boolean;
+}
+
+export function ConferenciaCartao({ operadoraId, hideOperadorasTab }: ConferenciaCartaoProps = {}) {
   const { unidadeAtual } = useUnidade();
-  const [activeTab, setActiveTab] = useState("conferencia");
+  const [activeTab, setActiveTab] = useState(hideOperadorasTab ? "conferencia" : "conferencia");
 
   // Operadoras
   const [operadoras, setOperadoras] = useState<Operadora[]>([]);
