@@ -64,12 +64,14 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } }
     );
-    const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
-    if (userError) {
-      const message = userError.message || "Authentication failed";
-      // Avoid hard-failing transient auth races on client startup
-      if (message.includes("Auth session missing") || message.includes("invalid JWT") || message.includes("missing sub claim")) {
-        logStep("Auth token invalid/missing session, returning unsubscribed", { message });
+
+    // Use getClaims (local JWT verification, no TLS call to /auth/v1/user) to avoid
+    // transient "tls handshake eof" errors that break the app with a blank screen.
+    let userEmail: string | null = null;
+    try {
+      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims) {
+        logStep("Invalid token claims, returning unsubscribed", { message: claimsError?.message });
         return new Response(JSON.stringify({
           subscribed: false,
           product_id: null,
@@ -80,12 +82,22 @@ serve(async (req) => {
           status: 200,
         });
       }
-
-      throw new Error(`Authentication error: ${message}`);
+      userEmail = (claimsData.claims as any).email ?? null;
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      logStep("Auth verification threw, returning unsubscribed", { message });
+      return new Response(JSON.stringify({
+        subscribed: false,
+        product_id: null,
+        subscription_end: null,
+        unit_quantity: 0,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
-    const user = userData.user;
-    if (!user?.email) {
+    if (!userEmail) {
       logStep("Authenticated user has no email, returning unsubscribed");
       return new Response(JSON.stringify({
         subscribed: false,
@@ -98,6 +110,7 @@ serve(async (req) => {
       });
     }
 
+    const user = { email: userEmail };
     logStep("User authenticated", { email: user.email });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
