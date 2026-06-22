@@ -278,16 +278,6 @@ export default function ContaBancariaDetalhe() {
             <ExtratoTabela contaId={conta.id} saldoAtual={saldo} />
           </TabsContent>
 
-          <TabsContent value="visao" className="mt-4">
-            <VisaoGeralPanel contaId={conta.id} accentColor={theme.primary} isCaixa={isCaixa} saldoAtual={saldo} />
-          </TabsContent>
-
-          {!isCaixa && (
-            <TabsContent value="extrato" className="mt-4">
-              <ExtratoTabela contaId={conta.id} saldoAtual={saldo} />
-            </TabsContent>
-          )}
-
           {!isCaixa && (
             <TabsContent value="pix" className="mt-4">
               <PixPanel
