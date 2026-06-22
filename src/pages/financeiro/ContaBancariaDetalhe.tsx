@@ -344,12 +344,20 @@ export default function ContaBancariaDetalhe() {
             </div>
           </TabsContent>
 
-          <TabsContent value="ofx" className="mt-4">
+          <TabsContent value="ofx" className="mt-0 space-y-4">
+            <div className="flex justify-end">
+              <TabsList className="inline-flex w-auto h-10 gap-1 bg-muted/60">
+                <TabsTrigger value="extrato" className="h-8 px-3 text-xs"><Receipt className="h-3.5 w-3.5 mr-1" />Extrato</TabsTrigger>
+                <TabsTrigger value="transferencia" className="h-8 px-3 text-xs"><ArrowRightLeft className="h-3.5 w-3.5 mr-1" />Transferência</TabsTrigger>
+                <TabsTrigger value="ofx" className="h-8 px-3 text-xs"><FileSpreadsheet className="h-3.5 w-3.5 mr-1" />OFX</TabsTrigger>
+              </TabsList>
+            </div>
             <Conciliacao
               embedded
               contas={[{ id: conta.id, nome: conta.nome, banco: conta.banco, tipo: conta.tipo, saldo_atual: Number(conta.saldo_atual) }]}
             />
           </TabsContent>
+
         </Tabs>
       </div>
     </MainLayout>
