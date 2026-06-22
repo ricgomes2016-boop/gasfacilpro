@@ -33,9 +33,10 @@ interface ContaBancaria {
 
 interface Props {
   contas: ContaBancaria[];
+  toolbarExtra?: ReactNode;
 }
 
-export default function ExtratoBancario({ contas }: Props) {
+export default function ExtratoBancario({ contas, toolbarExtra }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [contaSelecionada, setContaSelecionada] = useState<string>(contas[0]?.id || "");
