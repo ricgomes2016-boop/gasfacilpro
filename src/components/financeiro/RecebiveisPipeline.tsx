@@ -105,7 +105,7 @@ function PipelineIndicator({ conciliado, liquidado, divergente }: {
   );
 }
 
-export function RecebiveisPipeline() {
+export function RecebiveisPipeline({ operadoraId }: { operadoraId?: string } = {}) {
   const { unidadeAtual } = useUnidade();
   const [rows, setRows] = useState<RecebiveisRow[]>([]);
   const [loading, setLoading] = useState(true);
