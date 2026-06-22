@@ -83,7 +83,7 @@ export default function ExtratoTabela({ contaId, saldoAtual }: Props) {
               )}
               {rows.map((r: any) => (
                 <TableRow key={r.id}>
-                  <TableCell className="text-xs whitespace-nowrap">{format(new Date(r.data), "dd/MM/yyyy")}</TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{(() => { const [y,m,d] = String(r.data).split("-"); return `${d}/${m}/${y}`; })()}</TableCell>
                   <TableCell className="text-sm">
                     <div className="font-medium">{r.descricao}</div>
                     {r.categoria && <div className="text-xs text-muted-foreground">{r.categoria}</div>}
