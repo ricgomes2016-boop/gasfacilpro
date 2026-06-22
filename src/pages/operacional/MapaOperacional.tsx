@@ -40,6 +40,7 @@ const PRESENCE_BADGE: Record<Presenca, { label: string; variant: any }> = {
 
 export default function MapaOperacional() {
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
   const [selectedEntregador, setSelectedEntregador] = useState<string | null>(null);
   const [showPercurso, setShowPercurso] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -51,11 +52,11 @@ export default function MapaOperacional() {
   const [routeToClienteLine, setRouteToClienteLine] = useState<[number, number][]>([]);
   const [percurso, setPercurso] = useState<PercursoPonto[]>([]);
 
-  // Fonte única de verdade
+  // Fonte única de verdade — escopada por empresa+unidade
   const {
     entregadores: ents, pedidos: peds, pontosCache,
     rotasAtivasPorEntregador, refresh,
-  } = useMapaOperacionalData({ unidadeId: unidadeAtual?.id });
+  } = useMapaOperacionalData({ unidadeId: unidadeAtual?.id, empresaId: empresa?.id });
   const dadosOp = useOperacional(ents, peds, pontosCache);
   const presencaMap = useEntregadorPresenca(ents, rotasAtivasPorEntregador, pontosCache);
 
