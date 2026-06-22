@@ -169,56 +169,26 @@ export default function OperadoraCartaoDetalhe() {
 
         <Tabs value={tab} onValueChange={setTab} className="space-y-4">
           <div className="rounded-2xl border bg-card/80 backdrop-blur shadow-sm p-1.5 -mx-1 sm:mx-0">
-            <TabsList className="w-full h-auto bg-transparent p-0 gap-1 flex overflow-x-auto scrollbar-none sm:grid sm:grid-cols-4 lg:grid-cols-7">
-              <TabsTrigger
-                value="inicio"
-                className="flex-shrink-0 sm:flex-shrink justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium data-[state=active]:shadow-md data-[state=active]:text-white transition-all"
-                style={tab === "inicio" ? { background: operatorGradient(theme) } : undefined}
-              >
-                <Home className="h-4 w-4" />Início
-              </TabsTrigger>
-              <TabsTrigger
-                value="vendas"
-                className="flex-shrink-0 sm:flex-shrink justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium data-[state=active]:shadow-md data-[state=active]:text-white transition-all"
-                style={tab === "vendas" ? { background: operatorGradient(theme) } : undefined}
-              >
-                <ShoppingCart className="h-4 w-4" />Vendas
-              </TabsTrigger>
-              <TabsTrigger
-                value="recebiveis"
-                className="flex-shrink-0 sm:flex-shrink justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium data-[state=active]:shadow-md data-[state=active]:text-white transition-all"
-                style={tab === "recebiveis" ? { background: operatorGradient(theme) } : undefined}
-              >
-                <Banknote className="h-4 w-4" />Recebíveis
-              </TabsTrigger>
-              <TabsTrigger
-                value="taxas"
-                className="flex-shrink-0 sm:flex-shrink justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium data-[state=active]:shadow-md data-[state=active]:text-white transition-all"
-                style={tab === "taxas" ? { background: operatorGradient(theme) } : undefined}
-              >
-                <Percent className="h-4 w-4" />Taxas
-              </TabsTrigger>
-              <TabsTrigger
-                value="relatorios"
-                className="flex-shrink-0 sm:flex-shrink justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium data-[state=active]:shadow-md data-[state=active]:text-white transition-all"
-                style={tab === "relatorios" ? { background: operatorGradient(theme) } : undefined}
-              >
-                <BarChart3 className="h-4 w-4" />Relatórios
-              </TabsTrigger>
-              <TabsTrigger
-                value="conferencia"
-                className="flex-shrink-0 sm:flex-shrink justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium data-[state=active]:shadow-md data-[state=active]:text-white transition-all"
-                style={tab === "conferencia" ? { background: operatorGradient(theme) } : undefined}
-              >
-                <CheckCircle2 className="h-4 w-4" />Conferência
-              </TabsTrigger>
-              <TabsTrigger
-                value="maquininhas"
-                className="flex-shrink-0 sm:flex-shrink justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium data-[state=active]:shadow-md data-[state=active]:text-white transition-all"
-                style={tab === "maquininhas" ? { background: operatorGradient(theme) } : undefined}
-              >
-                <CreditCard className="h-4 w-4" />Maquininhas
-              </TabsTrigger>
+            <TabsList className="w-full h-auto bg-transparent p-0 gap-1 grid grid-cols-4 lg:grid-cols-7">
+              {[
+                { v: "inicio", Icon: Home, label: "Início" },
+                { v: "vendas", Icon: ShoppingCart, label: "Vendas" },
+                { v: "recebiveis", Icon: Banknote, label: "Recebíveis" },
+                { v: "taxas", Icon: Percent, label: "Taxas" },
+                { v: "relatorios", Icon: BarChart3, label: "Relatórios" },
+                { v: "conferencia", Icon: CheckCircle2, label: "Conferência" },
+                { v: "maquininhas", Icon: CreditCard, label: "Maquininhas" },
+              ].map(({ v, Icon, label }) => (
+                <TabsTrigger
+                  key={v}
+                  value={v}
+                  className="flex-col sm:flex-row justify-center gap-1 sm:gap-1.5 rounded-xl px-2 py-2 text-[11px] sm:text-sm font-medium data-[state=active]:shadow-md data-[state=active]:text-white transition-all min-w-0"
+                  style={tab === v ? { background: operatorGradient(theme) } : undefined}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{label}</span>
+                </TabsTrigger>
+              ))}
             </TabsList>
           </div>
 
