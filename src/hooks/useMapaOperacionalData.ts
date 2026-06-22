@@ -161,7 +161,7 @@ export function useMapaOperacionalData({
       console.error("[useMapaOperacionalData] erro:", err);
       setLoading(false);
     }
-  }, [unidadeId, janelaHoras]);
+  }, [unidadeId, empresaId, janelaHoras]);
 
   // Refresh periódico
   useEffect(() => {
