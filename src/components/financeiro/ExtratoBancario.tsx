@@ -177,7 +177,9 @@ export default function ExtratoBancario({ contas, toolbarExtra }: Props) {
         <Button onClick={() => setDialogOpen(true)} disabled={!contaSelecionada}>
           <Plus className="h-4 w-4 mr-2" />Nova Movimentação
         </Button>
+        {toolbarExtra && <div className="flex items-end">{toolbarExtra}</div>}
       </div>
+
 
       {/* KPIs */}
       {conta && (
