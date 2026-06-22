@@ -21,6 +21,7 @@ const CalendarioFinanceiro = lazy(() => import("@/pages/financeiro/CalendarioFin
 const ValeGas = lazy(() => import("@/pages/financeiro/ValeGas"));
 const Orcamentos = lazy(() => import("@/pages/financeiro/Orcamentos"));
 const ContasBancarias = lazy(() => import("@/pages/financeiro/ContasBancarias"));
+const ContaBancariaDetalhe = lazy(() => import("@/pages/financeiro/ContaBancariaDetalhe"));
 const ControleCheques = lazy(() => import("@/pages/financeiro/ControleCheques"));
 const VendaAntecipada = lazy(() => import("@/pages/financeiro/VendaAntecipada"));
 const BalancoPatrimonial = lazy(() => import("@/pages/financeiro/BalancoPatrimonial"));
@@ -55,6 +56,7 @@ export const financeiroRoutes: RouteConfig[] = [
   { path: "/financeiro/vale-gas", component: ValeGas, roles: FINANCE_ROLES },
   { path: "/financeiro/vale-gas/*", component: ValeGas, roles: FINANCE_ROLES },
   { path: "/financeiro/contas-bancarias", component: ContasBancarias, roles: FINANCE_ROLES },
+  { path: "/financeiro/contas-bancarias/:contaId", component: ContaBancariaDetalhe, roles: FINANCE_ROLES },
   { path: "/financeiro/cheques", component: ControleCheques, roles: FINANCE_ROLES },
   { path: "/financeiro/venda-antecipada", component: VendaAntecipada, roles: FINANCE_ROLES },
   { path: "/financeiro/email-transacional", component: EmailTransacional, roles: FINANCE_ROLES },
