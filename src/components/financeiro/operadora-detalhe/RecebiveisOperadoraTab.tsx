@@ -84,24 +84,18 @@ export function RecebiveisOperadoraTab({ operadoraId }: { operadoraId: string })
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div className="space-y-2">
-        <Card className="bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-emerald-700 dark:text-emerald-300">✅ Recebido</CardTitle></CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{fmt(totalRecebido)}</p>
-            <p className="text-xs text-muted-foreground">{recebidos.length} liquidação(ões)</p>
-          </CardContent>
-        </Card>
+        <div className="flex items-center justify-between px-1">
+          <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">✅ Recebido</h3>
+          <span className="text-xs text-muted-foreground">{recebidos.length} liquidação(ões)</span>
+        </div>
         <Tabela data={recebidos} dateKey="data_deposito_real" dateLabel="Liquidação" valorKey="valor_liquido_recebido" emptyMsg="Nenhuma liquidação registrada" />
       </div>
 
       <div className="space-y-2">
-        <Card className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-900">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-amber-700 dark:text-amber-300">⏳ A receber</CardTitle></CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">{fmt(totalAReceber)}</p>
-            <p className="text-xs text-muted-foreground">{aReceber.length} previsão(ões)</p>
-          </CardContent>
-        </Card>
+        <div className="flex items-center justify-between px-1">
+          <h3 className="text-sm font-semibold text-amber-700 dark:text-amber-300">⏳ A receber</h3>
+          <span className="text-xs text-muted-foreground">{aReceber.length} previsão(ões)</span>
+        </div>
         <Tabela data={aReceber} dateKey="data_prevista_deposito" dateLabel="Previsão" valorKey="valor_liquido_esperado" emptyMsg="Nada previsto no momento" />
       </div>
     </div>

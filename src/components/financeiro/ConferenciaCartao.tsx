@@ -583,7 +583,8 @@ export function ConferenciaCartao({ operadoraId, hideOperadorasTab }: Conferenci
             </div>
           </div>
 
-          {/* Summary cards */}
+          {/* Summary cards - ocultos quando dentro do portal da operadora (KPIs já estão na aba Início) */}
+          {!hideOperadorasTab && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6 md:pb-2">
@@ -628,6 +629,7 @@ export function ConferenciaCartao({ operadoraId, hideOperadorasTab }: Conferenci
               </CardContent>
             </Card>
           </div>
+          )}
 
           {/* Filters */}
           <div className="flex flex-wrap gap-2">

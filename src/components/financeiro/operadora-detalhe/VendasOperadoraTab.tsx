@@ -80,16 +80,6 @@ export function VendasOperadoraTab({ operadoraId }: { operadoraId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card><CardHeader className="pb-1"><CardTitle className="text-xs">Total vendido</CardTitle></CardHeader>
-          <CardContent><p className="text-xl font-bold text-primary">{fmt(totBruto)}</p></CardContent></Card>
-        <Card><CardHeader className="pb-1"><CardTitle className="text-xs">Total líquido</CardTitle></CardHeader>
-          <CardContent><p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{fmt(totLiq)}</p></CardContent></Card>
-        <Card><CardHeader className="pb-1"><CardTitle className="text-xs">Vendas</CardTitle></CardHeader>
-          <CardContent><p className="text-xl font-bold">{filtered.length}</p></CardContent></Card>
-        <Card><CardHeader className="pb-1"><CardTitle className="text-xs">Taxas pagas</CardTitle></CardHeader>
-          <CardContent><p className="text-xl font-bold text-destructive">{fmt(totBruto - totLiq)}</p></CardContent></Card>
-      </div>
 
       <div className="flex gap-2 flex-wrap items-center">
         <Input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} className="w-[160px]" />
