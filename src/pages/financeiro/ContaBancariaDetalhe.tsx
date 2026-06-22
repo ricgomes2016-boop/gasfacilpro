@@ -256,7 +256,7 @@ export default function ContaBancariaDetalhe() {
         <Tabs value={aba} onValueChange={setAba} className="space-y-4">
           <TabsList className="bg-muted/60">
             <TabsTrigger value="visao">Visão Geral</TabsTrigger>
-            {!isCaixa && <TabsTrigger value="extrato">Extrato Bancário</TabsTrigger>}
+            <TabsTrigger value="extrato">{isCaixa ? "Extrato de Movimentação" : "Extrato Bancário"}</TabsTrigger>
             {!isCaixa && <TabsTrigger value="pix">PIX</TabsTrigger>}
             <TabsTrigger value="transferencia">Transferência</TabsTrigger>
             {!isCaixa && <TabsTrigger value="ofx">OFX</TabsTrigger>}
@@ -267,8 +267,16 @@ export default function ContaBancariaDetalhe() {
             activeTab={aba}
             onChange={setAba}
             accentColor={theme.primary}
-            items={isCaixa ? ["visao", "transferencia"] : undefined}
+            items={isCaixa ? ["visao", "extrato", "transferencia"] : undefined}
           />
+
+          <TabsContent value="visao" className="mt-4">
+            <VisaoGeralPanel contaId={conta.id} accentColor={theme.primary} isCaixa={isCaixa} saldoAtual={saldo} />
+          </TabsContent>
+
+          <TabsContent value="extrato" className="mt-4">
+            <ExtratoTabela contaId={conta.id} saldoAtual={saldo} />
+          </TabsContent>
 
           <TabsContent value="visao" className="mt-4">
             <VisaoGeralPanel contaId={conta.id} accentColor={theme.primary} isCaixa={isCaixa} saldoAtual={saldo} />
