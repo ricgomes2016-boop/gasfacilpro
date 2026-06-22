@@ -72,7 +72,7 @@ export function useMapaOperacionalData({
       const desde = new Date(Date.now() - janelaHoras * 60 * 60 * 1000).toISOString();
 
       // Entregadores — escopa por unidade e (defensivamente) por empresa
-      let eq = supabase.from("entregadores").select("*").eq("ativo", true).eq("unidade_id", unidadeId);
+      let eq: any = supabase.from("entregadores").select("*").eq("ativo", true).eq("unidade_id", unidadeId);
       if (empresaId) eq = eq.eq("empresa_id", empresaId);
       const { data: entregs } = await eq;
 
