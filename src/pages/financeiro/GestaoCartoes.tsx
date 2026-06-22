@@ -80,7 +80,7 @@ export default function GestaoCartoes() {
 
       let pq = supabase
         .from("pagamentos_cartao")
-        .select("operadora:operadora_id, maquininha_serial, valor_liquido, liquidado")
+        .select("maquininha_serial, valor_liquido, liquidado")
         .eq("status", "aprovado");
       if (unidadeAtual?.id) pq = pq.eq("unidade_id", unidadeAtual.id);
       const { data: pags } = await pq;
