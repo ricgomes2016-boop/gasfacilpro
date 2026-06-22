@@ -22,13 +22,14 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import Conciliacao from "./Conciliacao";
 import { getBankTheme, bankGradient } from "@/lib/bancos/bankThemes";
 import QuickShortcuts from "@/components/financeiro/conta-detalhe/QuickShortcuts";
 import ExtratoTabela from "@/components/financeiro/conta-detalhe/ExtratoTabela";
 import VisaoGeralPanel from "@/components/financeiro/conta-detalhe/VisaoGeralPanel";
 import PixPanel from "@/components/financeiro/conta-detalhe/PixPanel";
 import BoletosPanel from "@/components/financeiro/conta-detalhe/BoletosPanel";
+import OfxPanel from "@/components/financeiro/conta-detalhe/OfxPanel";
+
 
 interface ContaBancaria {
   id: string;
@@ -344,10 +345,8 @@ export default function ContaBancariaDetalhe() {
 
           {!isCaixa && (
             <TabsContent value="ofx" className="mt-4">
-              <Conciliacao
-                embedded
-                contas={[{ id: conta.id, nome: conta.nome, banco: conta.banco, tipo: conta.tipo, saldo_atual: Number(conta.saldo_atual) }]}
-              />
+              <OfxPanel contaId={conta.id} unidadeId={conta.unidade_id} accentColor={theme.primary} />
+
             </TabsContent>
           )}
         </Tabs>
