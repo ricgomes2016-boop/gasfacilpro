@@ -1,19 +1,23 @@
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Header } from "@/components/layout/Header";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  ArrowLeft, Banknote, CheckCircle2, BarChart3, CreditCard, Settings,
+  ArrowLeft, Home, ShoppingCart, Banknote, Percent, BarChart3, CheckCircle2, CreditCard,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useUnidade } from "@/contexts/UnidadeContext";
 import { getOperatorTheme, operatorGradient } from "@/lib/cartoes/operatorThemes";
-import { RecebiveisPipeline } from "@/components/financeiro/RecebiveisPipeline";
 import { ConferenciaCartao } from "@/components/financeiro/ConferenciaCartao";
-import PagamentosCartaoRelatorio from "@/pages/financeiro/PagamentosCartao";
+import { QuickAccessGrid } from "@/components/financeiro/operadora-detalhe/QuickAccessGrid";
+import { VendasOperadoraTab } from "@/components/financeiro/operadora-detalhe/VendasOperadoraTab";
+import { RecebiveisOperadoraTab } from "@/components/financeiro/operadora-detalhe/RecebiveisOperadoraTab";
+import { TaxasOperadoraTab } from "@/components/financeiro/operadora-detalhe/TaxasOperadoraTab";
+import { RelatoriosOperadoraTab } from "@/components/financeiro/operadora-detalhe/RelatoriosOperadoraTab";
+import { MaquininhasOperadoraTab } from "@/components/financeiro/operadora-detalhe/MaquininhasOperadoraTab";
 
 interface Operadora {
   id: string;
@@ -28,9 +32,14 @@ interface Operadora {
   prazo_pix: number | null;
 }
 
+const fmt = (v: number) =>
+  Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 export default function OperadoraCartaoDetalhe() {
   const { operadoraId } = useParams();
   const navigate = useNavigate();
+  const { unidadeAtual } = useUnidade();
+  const [tab, setTab] = useState("inicio");
 
   const { data: op, isLoading } = useQuery({
     queryKey: ["operadora-cartao", operadoraId],
@@ -45,6 +54,53 @@ export default function OperadoraCartaoDetalhe() {
       return data as Operadora | null;
     },
   });
+
+  // Métricas do mês para os quick cards
+  const inicioMes = useMemo(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+  }, []);
+
+  const { data: metricsRaw } = useQuery({
+    queryKey: ["operadora-metrics", operadoraId, unidadeAtual?.id, inicioMes],
+    enabled: !!op,
+    queryFn: async () => {
+      let q = supabase
+        .from("conferencia_cartao")
+        .select("valor_bruto,valor_liquido_esperado,valor_liquido_recebido,data_venda,data_deposito_real,status")
+        .eq("operadora_id", operadoraId!)
+        .gte("data_venda", inicioMes);
+      if (unidadeAtual?.id) q = q.eq("unidade_id", unidadeAtual.id);
+      const { data } = await q;
+
+      let maq = supabase.from("terminais_cartao").select("id", { count: "exact", head: true })
+        .eq("operadora_id", operadoraId!).eq("status", "ativo");
+      if (unidadeAtual?.id) maq = maq.eq("unidade_id", unidadeAtual.id);
+      const { count } = await maq;
+
+      return { rows: data || [], maquininhas: count || 0 };
+    },
+  });
+
+  const metrics = useMemo(() => {
+    const rows = metricsRaw?.rows || [];
+    const vendasMes = rows.reduce((s: number, r: any) => s + Number(r.valor_bruto || 0), 0);
+    const recebido = rows
+      .filter((r: any) => r.data_deposito_real)
+      .reduce((s: number, r: any) => s + Number(r.valor_liquido_recebido || r.valor_liquido_esperado || 0), 0);
+    const aReceber = rows
+      .filter((r: any) => !r.data_deposito_real)
+      .reduce((s: number, r: any) => s + Number(r.valor_liquido_esperado || 0), 0);
+    const conferencias = rows.filter((r: any) => r.status !== "confirmado").length;
+    return {
+      vendasMes,
+      recebido,
+      aReceber,
+      taxaDebito: Number(op?.taxa_debito || 0),
+      maquininhas: metricsRaw?.maquininhas || 0,
+      conferencias,
+    };
+  }, [metricsRaw, op]);
 
   if (isLoading) {
     return (
@@ -71,78 +127,94 @@ export default function OperadoraCartaoDetalhe() {
 
   return (
     <MainLayout>
-      <Header title={`Portal • ${op.nome}`} subtitle="Recebíveis, conferência, relatórios e importação" />
+      <Header title={`Portal • ${op.nome}`} subtitle="Vendas, recebíveis, taxas, relatórios e maquininhas" />
       <div className="p-4 md:p-6 space-y-4">
         <Button variant="ghost" size="sm" onClick={() => navigate("/financeiro/cartoes")} className="gap-2">
           <ArrowLeft className="h-4 w-4" />Voltar para operadoras
         </Button>
 
-        {/* Header card no estilo "portal da operadora" */}
+        {/* Header branded */}
         <div
           className="rounded-2xl p-5 md:p-6 shadow-lg"
           style={{ background: operatorGradient(theme), color: theme.textColor }}
         >
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-4 min-w-0">
-              <div
-                className="h-14 w-14 md:h-16 md:w-16 rounded-2xl flex items-center justify-center font-extrabold text-xl shadow"
-                style={{ background: "rgba(255,255,255,0.18)" }}
-              >
+              <div className="h-14 w-14 md:h-16 md:w-16 rounded-2xl flex items-center justify-center font-extrabold text-xl shadow"
+                style={{ background: "rgba(255,255,255,0.18)" }}>
                 {theme.initials}
               </div>
               <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-wider opacity-80">Operadora de cartão</p>
                 <h2 className="text-2xl md:text-3xl font-extrabold truncate">{op.nome}</h2>
-                {op.bandeira && (
-                  <p className="text-sm opacity-90 mt-0.5">Bandeira: {op.bandeira}</p>
-                )}
+                {op.bandeira && <p className="text-sm opacity-90 mt-0.5">Bandeira: {op.bandeira}</p>}
               </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div className="grid grid-cols-3 gap-2 text-xs">
               <div className="rounded-lg px-3 py-2" style={{ background: "rgba(255,255,255,0.15)" }}>
-                <p className="opacity-80">Taxa Déb</p>
-                <p className="text-base font-bold">{Number(op.taxa_debito).toFixed(2)}%</p>
+                <p className="opacity-80">Vendas (mês)</p>
+                <p className="text-base font-bold">{fmt(metrics.vendasMes)}</p>
               </div>
               <div className="rounded-lg px-3 py-2" style={{ background: "rgba(255,255,255,0.15)" }}>
-                <p className="opacity-80">Taxa Créd</p>
-                <p className="text-base font-bold">{Number(op.taxa_credito_vista).toFixed(2)}%</p>
+                <p className="opacity-80">A receber</p>
+                <p className="text-base font-bold">{fmt(metrics.aReceber)}</p>
               </div>
               <div className="rounded-lg px-3 py-2" style={{ background: "rgba(255,255,255,0.15)" }}>
-                <p className="opacity-80">Parcelado</p>
-                <p className="text-base font-bold">{Number(op.taxa_credito_parcelado).toFixed(2)}%</p>
-              </div>
-              <div className="rounded-lg px-3 py-2" style={{ background: "rgba(255,255,255,0.15)" }}>
-                <p className="opacity-80">Prazo Créd</p>
-                <p className="text-base font-bold">D+{op.prazo_credito}</p>
+                <p className="opacity-80">Recebido</p>
+                <p className="text-base font-bold">{fmt(metrics.recebido)}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Tabs estilo portal */}
-        <Tabs defaultValue="recebiveis" className="space-y-4">
+        <Tabs value={tab} onValueChange={setTab} className="space-y-4">
           <TabsList className="w-full flex-wrap h-auto gap-1">
-            <TabsTrigger value="recebiveis" className="gap-1.5">
-              <Banknote className="h-4 w-4" />Recebíveis
-            </TabsTrigger>
-            <TabsTrigger value="conferencia" className="gap-1.5">
-              <CheckCircle2 className="h-4 w-4" />Conferência
-            </TabsTrigger>
-            <TabsTrigger value="relatorio" className="gap-1.5">
-              <BarChart3 className="h-4 w-4" />Relatório
-            </TabsTrigger>
+            <TabsTrigger value="inicio" className="gap-1.5"><Home className="h-4 w-4" />Início</TabsTrigger>
+            <TabsTrigger value="vendas" className="gap-1.5"><ShoppingCart className="h-4 w-4" />Vendas</TabsTrigger>
+            <TabsTrigger value="recebiveis" className="gap-1.5"><Banknote className="h-4 w-4" />Recebíveis</TabsTrigger>
+            <TabsTrigger value="taxas" className="gap-1.5"><Percent className="h-4 w-4" />Taxas</TabsTrigger>
+            <TabsTrigger value="relatorios" className="gap-1.5"><BarChart3 className="h-4 w-4" />Relatórios</TabsTrigger>
+            <TabsTrigger value="conferencia" className="gap-1.5"><CheckCircle2 className="h-4 w-4" />Conferência</TabsTrigger>
+            <TabsTrigger value="maquininhas" className="gap-1.5"><CreditCard className="h-4 w-4" />Maquininhas</TabsTrigger>
           </TabsList>
 
+          <TabsContent value="inicio" className="space-y-4">
+            <QuickAccessGrid theme={theme} metrics={metrics} onSelect={setTab} />
+          </TabsContent>
+
+          <TabsContent value="vendas">
+            <VendasOperadoraTab operadoraId={op.id} />
+          </TabsContent>
+
           <TabsContent value="recebiveis">
-            <RecebiveisPipeline operadoraId={op.id} />
+            <RecebiveisOperadoraTab operadoraId={op.id} />
+          </TabsContent>
+
+          <TabsContent value="taxas">
+            <TaxasOperadoraTab
+              operadoraId={op.id}
+              initial={{
+                taxa_debito: op.taxa_debito,
+                taxa_credito_vista: op.taxa_credito_vista,
+                taxa_credito_parcelado: op.taxa_credito_parcelado,
+                taxa_pix: op.taxa_pix,
+                prazo_debito: op.prazo_debito,
+                prazo_credito: op.prazo_credito,
+                prazo_pix: op.prazo_pix,
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="relatorios">
+            <RelatoriosOperadoraTab operadoraId={op.id} />
           </TabsContent>
 
           <TabsContent value="conferencia">
             <ConferenciaCartao operadoraId={op.id} hideOperadorasTab />
           </TabsContent>
 
-          <TabsContent value="relatorio">
-            <PagamentosCartaoRelatorio />
+          <TabsContent value="maquininhas">
+            <MaquininhasOperadoraTab operadoraId={op.id} operadoraNome={op.nome} />
           </TabsContent>
         </Tabs>
       </div>
