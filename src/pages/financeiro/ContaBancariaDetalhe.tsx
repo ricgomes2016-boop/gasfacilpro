@@ -345,10 +345,8 @@ export default function ContaBancariaDetalhe() {
 
           {!isCaixa && (
             <TabsContent value="ofx" className="mt-4">
-              <Conciliacao
-                embedded
-                contas={[{ id: conta.id, nome: conta.nome, banco: conta.banco, tipo: conta.tipo, saldo_atual: Number(conta.saldo_atual) }]}
-              />
+              <OfxPanel contaId={conta.id} unidadeId={conta.unidade_id} accentColor={theme.primary} />
+
             </TabsContent>
           )}
         </Tabs>
