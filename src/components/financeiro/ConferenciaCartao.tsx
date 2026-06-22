@@ -535,17 +535,19 @@ export function ConferenciaCartao({ operadoraId, hideOperadorasTab }: Conferenci
   return (
     <div className="space-y-4 md:space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="conferencia" className="gap-1.5">
-            <CreditCard className="h-4 w-4" />
-            <span className="hidden sm:inline">Conferência</span>
-            <span className="sm:hidden">Conf.</span>
-          </TabsTrigger>
-          <TabsTrigger value="operadoras" className="gap-1.5">
-            <Settings className="h-4 w-4" />
-            Operadoras
-          </TabsTrigger>
-        </TabsList>
+        {!hideOperadorasTab && (
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="conferencia" className="gap-1.5">
+              <CreditCard className="h-4 w-4" />
+              <span className="hidden sm:inline">Conferência</span>
+              <span className="sm:hidden">Conf.</span>
+            </TabsTrigger>
+            <TabsTrigger value="operadoras" className="gap-1.5">
+              <Settings className="h-4 w-4" />
+              Operadoras
+            </TabsTrigger>
+          </TabsList>
+        )}
 
         {/* === CONFERÊNCIA === */}
         <TabsContent value="conferencia" className="space-y-4">
