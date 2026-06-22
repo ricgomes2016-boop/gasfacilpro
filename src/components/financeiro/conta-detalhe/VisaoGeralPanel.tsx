@@ -2,13 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
+import ExtratoTabela from "./ExtratoTabela";
 
 interface Props {
   contaId: string;
   accentColor: string;
+  isCaixa?: boolean;
+  saldoAtual?: number;
 }
 
-export default function VisaoGeralPanel({ contaId, accentColor }: Props) {
+export default function VisaoGeralPanel({ contaId, accentColor, isCaixa, saldoAtual = 0 }: Props) {
+
   const { data: movs = [] } = useQuery({
     queryKey: ["visao-geral-movs", contaId],
     queryFn: async () => {
