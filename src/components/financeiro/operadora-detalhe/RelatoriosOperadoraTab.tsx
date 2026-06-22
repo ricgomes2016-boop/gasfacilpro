@@ -97,14 +97,6 @@ export function RelatoriosOperadoraTab({ operadoraId }: { operadoraId: string })
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <Card><CardHeader className="pb-1"><CardTitle className="text-xs">Total bruto</CardTitle></CardHeader>
-          <CardContent><p className="text-xl font-bold text-primary">{fmt(totBruto)}</p></CardContent></Card>
-        <Card><CardHeader className="pb-1"><CardTitle className="text-xs">Total líquido</CardTitle></CardHeader>
-          <CardContent><p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">{fmt(totLiq)}</p></CardContent></Card>
-        <Card><CardHeader className="pb-1"><CardTitle className="text-xs">Registros</CardTitle></CardHeader>
-          <CardContent><p className="text-xl font-bold">{rows.length}</p></CardContent></Card>
-      </div>
 
       <Card>
         <CardContent className="p-0 overflow-x-auto">
