@@ -15,6 +15,7 @@ const ContadorSolicitacoes = lazy(() => import("@/pages/contador/ContadorSolicit
 const ContadorComunicados = lazy(() => import("@/pages/contador/ContadorComunicados"));
 const TerminaisCartao = lazy(() => import("@/pages/financeiro/TerminaisCartao"));
 const GestaoCartoes = lazy(() => import("@/pages/financeiro/GestaoCartoes"));
+const OperadoraCartaoDetalhe = lazy(() => import("@/pages/financeiro/OperadoraCartaoDetalhe"));
 const PagamentosCartao = lazy(() => import("@/pages/financeiro/PagamentosCartao"));
 const Cobrancas = lazy(() => import("@/pages/financeiro/Cobrancas"));
 const CalendarioFinanceiro = lazy(() => import("@/pages/financeiro/CalendarioFinanceiro"));
@@ -49,6 +50,7 @@ export const financeiroRoutes: RouteConfig[] = [
   { path: "/financeiro/orcamentos", component: Orcamentos, roles: ["admin", "gestor", "financeiro", "operacional"] },
   { path: "/financeiro/terminais", component: TerminaisCartao, roles: FINANCE_ROLES },
   { path: "/financeiro/cartoes", component: GestaoCartoes, roles: FINANCE_ROLES },
+  { path: "/financeiro/cartoes/:operadoraId", component: OperadoraCartaoDetalhe, roles: FINANCE_ROLES },
   { path: "/financeiro/pagamentos-cartao", component: PagamentosCartao, roles: FINANCE_ROLES },
   { path: "/financeiro/cobrancas", component: Cobrancas, roles: FINANCE_ROLES },
   { path: "/financeiro/boletos", component: Cobrancas, roles: FINANCE_ROLES },
