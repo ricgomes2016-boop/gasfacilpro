@@ -39,12 +39,14 @@ export interface PedidoOp {
 
 interface UseMapaOperacionalDataOptions {
   unidadeId?: string | null;
+  empresaId?: string | null;
   refreshMs?: number;
   janelaHoras?: number;
 }
 
 export function useMapaOperacionalData({
   unidadeId,
+  empresaId,
   refreshMs = 30000,
   janelaHoras = 4,
 }: UseMapaOperacionalDataOptions) {
@@ -57,11 +59,21 @@ export function useMapaOperacionalData({
 
   const fetchAll = useCallback(async () => {
     try {
+      // Sem unidade selecionada → não traz nada (evita vazamento entre empresas/unidades)
+      if (!unidadeId) {
+        setEntregadores([]);
+        setPedidos([]);
+        setPontosCache({});
+        setRotasAtivasPorEntregador({});
+        setLoading(false);
+        return;
+      }
+
       const desde = new Date(Date.now() - janelaHoras * 60 * 60 * 1000).toISOString();
 
-      // Entregadores
-      let eq = supabase.from("entregadores").select("*").eq("ativo", true);
-      if (unidadeId) eq = eq.eq("unidade_id", unidadeId);
+      // Entregadores — escopa por unidade e (defensivamente) por empresa
+      let eq = supabase.from("entregadores").select("*").eq("ativo", true).eq("unidade_id", unidadeId);
+      if (empresaId) eq = eq.eq("empresa_id", empresaId);
       const { data: entregs } = await eq;
 
       const ents: EntregadorOp[] = (entregs || []).map((e: any) => ({
