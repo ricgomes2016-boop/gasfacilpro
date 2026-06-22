@@ -240,8 +240,16 @@ export default function ContaBancariaDetalhe() {
           </TabsContent>
 
 
-          <TabsContent value="transferencia" className="mt-4">
+          <TabsContent value="transferencia" className="mt-0 space-y-4">
+            <div className="flex justify-end">
+              <TabsList className="inline-flex w-auto h-10 gap-1 bg-muted/60">
+                <TabsTrigger value="extrato" className="h-8 px-3 text-xs"><Receipt className="h-3.5 w-3.5 mr-1" />Extrato</TabsTrigger>
+                <TabsTrigger value="transferencia" className="h-8 px-3 text-xs"><ArrowRightLeft className="h-3.5 w-3.5 mr-1" />Transferência</TabsTrigger>
+                <TabsTrigger value="ofx" className="h-8 px-3 text-xs"><FileSpreadsheet className="h-3.5 w-3.5 mr-1" />OFX</TabsTrigger>
+              </TabsList>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
               <Card>
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-2">
