@@ -244,10 +244,30 @@ export default function MapaOperacional() {
     return Object.entries(acc).map(([nome, qtd]) => ({ nome, qtd }));
   }, [selectedEntregador, peds]);
 
+  if (!unidadeAtual?.id) {
+    return (
+      <MainLayout>
+        <Header title="Mapa Operacional" subtitle="Monitoramento em tempo real" />
+        <div className="p-6">
+          <Card>
+            <CardContent className="py-12 flex flex-col items-center text-center gap-3">
+              <MapPin className="h-10 w-10 text-muted-foreground" />
+              <div className="font-medium">Selecione uma unidade</div>
+              <div className="text-sm text-muted-foreground max-w-md">
+                O Mapa Operacional mostra entregadores e pedidos da unidade selecionada. Escolha uma unidade no seletor para visualizar os dados.
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
       <Header title="Mapa Operacional" subtitle="Monitoramento em tempo real" />
       <div className={cn("p-4 md:p-6 space-y-4", isFullscreen && "fixed inset-0 z-50 bg-background p-4")}>
+
         {/* Header compacto */}
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
