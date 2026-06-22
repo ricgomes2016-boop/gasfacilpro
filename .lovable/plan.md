@@ -1,63 +1,59 @@
-## Gestão de Cartões — redesign no padrão "portal da operadora"
+## Portal da Operadora de Cartão — Layout estilo PagBank/Stone
 
-Espelhar a experiência de **Contas Bancárias → Conta Detalhe** para o módulo de cartões. Hoje `GestaoCartoes.tsx` mostra abas globais (Recebíveis, Relatório, Operadoras) misturando dados de todas as operadoras. Vamos transformar em uma **lista de cards bonitos por operadora** + uma **página de detalhe da operadora** com abas internas, como se fosse o portal da PagBank / Stone / Cielo.
+Reformular `OperadoraCartaoDetalhe.tsx` para que ao abrir uma operadora, o usuário veja uma **home da operadora** com cards de acesso rápido (estilo portal real), e cada card abra sua respectiva seção operacional.
 
-### 1. Página principal `/financeiro/cartoes` (GestaoCartoes.tsx — reescrita)
+### 1. Home da operadora (nova aba "Início")
 
-Estrutura igual a `ContasBancarias.tsx`:
+Logo abaixo do header branded da operadora, grid de **6 cards de acesso rápido** (2 col mobile / 3 col tablet / 6 col desktop), cada um com ícone, título e métrica resumo:
 
-- Header: "Gestão de Cartões" / "Clique em uma operadora para abrir o portal".
-- Linha de ações:
-  - Botão primário **+ Operadora** (abre dialog de cadastro — reaproveita o form que hoje vive dentro de `ConferenciaCartao.tsx`: nome, bandeira, taxas débito/crédito à vista/parcelado/pix, prazos, unidade).
-  - Botão secundário **Importar extrato (CSV/OFX)** — opcional, abre seletor de operadora.
-- **Grid de cards de operadora** (filtrados por `unidade_id = unidadeAtual`), 1/2/3 colunas:
-  - Header colorido com gradiente da marca (novo `cardOperatorThemes.ts` espelhando `bankThemes.ts`): PagBank, PagSeguro, Stone, Cielo, Rede, GetNet, SafraPay, Mercado Pago, SumUp, Ton, InfinitePay + fallback.
-  - Avatar com iniciais, nome da operadora, bandeira.
-  - Métricas em destaque calculadas em paralelo (1 query agregada via `pagamentos_cartao` da operadora): **A receber (pendentes)** e **Recebido no mês**.
-  - Rodapé com badges (taxa débito / crédito / prazo D+) e ícone de editar (mesmo padrão do card de banco).
-  - Clique no card → `navigate('/financeiro/cartoes/:id')`.
-- Empty state com CTA "Nova operadora".
+```text
+┌─────────┬─────────┬─────────┬─────────┬─────────┬─────────┐
+│ Vendas  │Recebíve.│  Taxas  │Relatório│Conferên.│Maquinin.│
+│ R$ X,XX │ R$ X,XX │ 2.99%   │   📊    │  ⚖️     │  2 ativ.│
+│  hoje   │ a receb │ débito  │         │         │         │
+└─────────┴─────────┴─────────┴─────────┴─────────┴─────────┘
+```
 
-### 2. Nova rota `/financeiro/cartoes/:id` — `OperadoraCartaoDetalhe.tsx`
+Cards usam `operatorGradient` suave + hover lift. Cada card é um botão que muda a aba ativa do `Tabs`.
 
-Header em gradiente da marca + abas internas (`Tabs`) reaproveitando os componentes existentes filtrados pela operadora:
+### 2. Abas reorganizadas
 
-| Aba | Componente | Origem |
-|---|---|---|
-| Visão geral | novo `OperadoraVisaoGeralPanel` | KPIs: a receber hoje, D+1, D+30, recebido mês, taxa efetiva |
-| Recebíveis | `<RecebiveisPipeline operadoraId={id} />` | hoje existe sem filtro — adicionar prop opcional |
-| Conferência | `<ConferenciaCartao operadoraId={id} hideOperadoraSelector />` | esconder o seletor de operadora interno |
-| Relatório | `<PagamentosCartaoRelatorio operadoraId={id} />` | filtrar por operadora |
-| Registrar | reaproveita o dialog "Novo lançamento" do `ConferenciaCartao` em modo embutido | pré-seleciona a operadora |
-| Importar | novo `ImportarCartaoPanel` (CSV/OFX da operadora — análogo ao `OfxPanel` dos bancos) com checkboxes para vincular em massa a `pagamentos_cartao` pendentes |
-| Configurações | form de edição da operadora (taxas, prazos, bandeira) | extraído do dialog atual |
+Substitui as 3 abas atuais (Recebíveis/Conferência/Relatório) por **7 abas**:
 
-Padrão de "quick shortcuts" (mesmos cards-atalho do detalhe de banco) no topo: Visão, Recebíveis, Conferência, Importar.
+- **Início** — grid de cards de acesso rápido + KPIs do mês (vendido, recebido, a receber, taxas pagas).
+- **Vendas** — *novo* `VendasOperadoraTab`. Tabela `pagamentos_cartao` filtrada por `operadora_id`, colunas: **Data | Descrição (pedido/cliente/bandeira/parcelas) | Valor da venda (`valor_bruto`) | Valor líquido (`valor_liquido`)**. Filtros por período, busca, export CSV, paginação client-side, ordem desc por `created_at`.
+- **Recebíveis** — *novo* `RecebiveisOperadoraTab` em 2 colunas:
+  - **Recebido** (`liquidado = true`) — tabela: Data liquidação | Descrição | Bruto | Taxa | Líquido | Conta destino.
+  - **A receber** (`liquidado = false`) — tabela: Previsão | Descrição | Bruto | Taxa | Líquido | Status. Totais no topo de cada coluna. Mantém `RecebiveisPipeline` como subview opcional.
+- **Taxas** — *novo* `TaxasOperadoraTab`. Exibe e permite editar as taxas (`taxa_debito`, `taxa_credito_vista`, `taxa_credito_parcelado`, `taxa_pix`) e prazos (`prazo_debito`, `prazo_credito`, `prazo_pix`) da operadora — formulário direto sem dialog.
+- **Relatórios** — *novo* `RelatoriosOperadoraTab` com 3 sub-relatórios em segmented control:
+  1. **O que vendi** — agregação por período (dia/semana/mês), gráfico + tabela, export.
+  2. **O que vou receber** — projeção por data de liquidação futura.
+  3. **Recebido** — histórico de liquidações por período.
+  Reaproveita `PagamentosCartaoRelatorio` filtrado por `operadoraId`.
+- **Conferência** — `ConferenciaCartao` existente + reforço do fluxo de import:
+  - Botão destaque "Importar relatório PDF" (PagBank/Stone/Cielo) usando edge function `parse-extrato-pdf`.
+  - Após import, view de **comparação lado a lado**: linhas do PDF × linhas de `pagamentos_cartao` no mesmo período, com status `conferido / divergente / faltante`. Ações de match manual e marcar como conferido.
+- **Maquininhas** — *novo* `MaquininhasOperadoraTab`. Lista `terminais_cartao` filtrada por `operadora_id`: serial, modelo, loja/unidade, status, última transação. CRUD básico.
 
-### 3. Pesquisa — convenções dos portais das operadoras
+### 3. Detalhes técnicos
 
-Modelando após PagBank Conta PJ, Stone Portal, Cielo LIO, Rede Admin e GetNet:
+- Tabs controladas (`useState` para `activeTab`) para que os quick cards naveguem entre seções.
+- Novos componentes em `src/components/financeiro/operadora-detalhe/`:
+  - `QuickAccessGrid.tsx`
+  - `VendasOperadoraTab.tsx`
+  - `RecebiveisOperadoraTab.tsx`
+  - `TaxasOperadoraTab.tsx`
+  - `RelatoriosOperadoraTab.tsx`
+  - `MaquininhasOperadoraTab.tsx`
+- Queries `react-query` por aba (lazy: só roda quando a aba ativa) com `keyQuery` incluindo `operadoraId` + filtro de período.
+- Ordenação default: **data desc** (mais recente no topo) em todas as tabelas, com toggle.
+- Sem alterações de schema. Sem alterações em RLS. Sem mexer em `App.tsx` nem rotas.
+- Mantém isolamento por unidade já existente em `pagamentos_cartao` (RLS).
+- Formatação de data via split de string `YYYY-MM-DD` para evitar shift de timezone (mesmo padrão aplicado no extrato bancário).
 
-- **Home** = saldo a receber + próximos recebíveis + alertas.
-- **Recebíveis** = pipeline por data com filtros bandeira/forma/terminal.
-- **Extratos / Conciliação** = importar arquivo (CNAB / OFX / CSV) e bater contra vendas.
-- **Relatórios** = vendas, taxas pagas, antecipações.
-- **Maquininhas/Terminais** = link p/ `TerminaisCartao` filtrado.
-- **Configurações** = taxas, contas de liquidação, antecipação.
+### 4. Fora de escopo
 
-A nossa adaptação cobre Home (Visão), Recebíveis, Conferência (conciliação), Importar (extrato), Relatório, Registrar e Configurações — mantendo paridade com o que esses portais oferecem, sem inventar features que dependeriam de integração real com a operadora.
-
-### Detalhes técnicos
-
-- Novo arquivo `src/lib/cartoes/operatorThemes.ts` com `getOperatorTheme(nome)` e `operatorGradient`, mesmas APIs do `bankThemes`.
-- Nova rota em `src/routes/financeiroRoutes.ts`: `cartoes/:id` → `OperadoraCartaoDetalhe`.
-- Novo diretório `src/components/financeiro/operadora-detalhe/` com `QuickShortcuts.tsx`, `VisaoGeralPanel.tsx`, `ImportarCartaoPanel.tsx`, `OperadoraConfigPanel.tsx`.
-- Refatorar `RecebiveisPipeline`, `ConferenciaCartao`, `PagamentosCartao` para aceitar prop opcional `operadoraId` (filtro `.eq('operadora_id', id)`); quando ausente, comportamento atual preservado — sem mudar a lógica de negócio.
-- `GestaoCartoes.tsx` reescrita seguindo 1:1 o layout de `ContasBancarias.tsx` (form + grid + dialogs).
-- Cards de métricas removidos do topo (lançamentos / conciliados / pendentes / saldo) — viram filtros/abas dentro do detalhe da operadora, mesmo princípio aplicado ao OFX dos bancos.
-- Saldo "a receber" do card é calculado client-side a partir de `pagamentos_cartao` (status pendente) para evitar nova coluna.
-
-### Fora de escopo
-
-- Integração real com APIs das operadoras (PagBank/Stone/Cielo). O painel imita o portal mas continua operando sobre nossos próprios dados.
-- Mudanças em `terminais_cartao`, `conferencia_cartao` schema, ou novas migrations.
+- Integração real-time com APIs PagBank/Stone/Cielo (mantém import manual via PDF).
+- Alteração em `pagamentos_cartao`, `terminais_cartao`, `conferencia_cartao` ou migrações de banco.
+- Mudanças no card da operadora em `GestaoCartoes.tsx`.
