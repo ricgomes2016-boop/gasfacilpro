@@ -21,6 +21,7 @@ import { useOperacional } from "@/hooks/useOperacional";
 import { useEntregadorPresenca, type Presenca } from "@/hooks/useEntregadorPresenca";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { cn } from "@/lib/utils";
 
 const PRESENCE_COLOR: Record<Presenca, string> = {
@@ -39,6 +40,7 @@ const PRESENCE_BADGE: Record<Presenca, { label: string; variant: any }> = {
 
 export default function MapaOperacional() {
   const { unidadeAtual } = useUnidade();
+  const { empresa } = useEmpresa();
   const [selectedEntregador, setSelectedEntregador] = useState<string | null>(null);
   const [showPercurso, setShowPercurso] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -50,11 +52,11 @@ export default function MapaOperacional() {
   const [routeToClienteLine, setRouteToClienteLine] = useState<[number, number][]>([]);
   const [percurso, setPercurso] = useState<PercursoPonto[]>([]);
 
-  // Fonte única de verdade
+  // Fonte única de verdade — escopada por empresa+unidade
   const {
     entregadores: ents, pedidos: peds, pontosCache,
     rotasAtivasPorEntregador, refresh,
-  } = useMapaOperacionalData({ unidadeId: unidadeAtual?.id });
+  } = useMapaOperacionalData({ unidadeId: unidadeAtual?.id, empresaId: empresa?.id });
   const dadosOp = useOperacional(ents, peds, pontosCache);
   const presencaMap = useEntregadorPresenca(ents, rotasAtivasPorEntregador, pontosCache);
 
@@ -242,10 +244,30 @@ export default function MapaOperacional() {
     return Object.entries(acc).map(([nome, qtd]) => ({ nome, qtd }));
   }, [selectedEntregador, peds]);
 
+  if (!unidadeAtual?.id) {
+    return (
+      <MainLayout>
+        <Header title="Mapa Operacional" subtitle="Monitoramento em tempo real" />
+        <div className="p-6">
+          <Card>
+            <CardContent className="py-12 flex flex-col items-center text-center gap-3">
+              <MapPin className="h-10 w-10 text-muted-foreground" />
+              <div className="font-medium">Selecione uma unidade</div>
+              <div className="text-sm text-muted-foreground max-w-md">
+                O Mapa Operacional mostra entregadores e pedidos da unidade selecionada. Escolha uma unidade no seletor para visualizar os dados.
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
       <Header title="Mapa Operacional" subtitle="Monitoramento em tempo real" />
       <div className={cn("p-4 md:p-6 space-y-4", isFullscreen && "fixed inset-0 z-50 bg-background p-4")}>
+
         {/* Header compacto */}
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
