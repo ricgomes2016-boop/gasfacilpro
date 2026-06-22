@@ -226,21 +226,30 @@ export default function ContaBancariaDetalhe() {
 
         {/* Abas */}
         <Tabs defaultValue="extrato">
-          <div className="flex justify-end">
-            <TabsList className="inline-flex w-auto h-9 gap-1 bg-muted/60">
-              <TabsTrigger value="extrato" className="h-7 px-3 text-xs"><Receipt className="h-3.5 w-3.5 mr-1" />Extrato</TabsTrigger>
-              <TabsTrigger value="transferencia" className="h-7 px-3 text-xs"><ArrowRightLeft className="h-3.5 w-3.5 mr-1" />Transferência</TabsTrigger>
-              <TabsTrigger value="ofx" className="h-7 px-3 text-xs"><FileSpreadsheet className="h-3.5 w-3.5 mr-1" />OFX</TabsTrigger>
-            </TabsList>
-          </div>
-
-
-          <TabsContent value="extrato" className="mt-4">
-            <ExtratoBancario contas={contasParaExtrato as any} />
+          <TabsContent value="extrato" className="mt-0">
+            <ExtratoBancario
+              contas={contasParaExtrato as any}
+              toolbarExtra={
+                <TabsList className="inline-flex w-auto h-10 gap-1 bg-muted/60 ml-2">
+                  <TabsTrigger value="extrato" className="h-8 px-3 text-xs"><Receipt className="h-3.5 w-3.5 mr-1" />Extrato</TabsTrigger>
+                  <TabsTrigger value="transferencia" className="h-8 px-3 text-xs"><ArrowRightLeft className="h-3.5 w-3.5 mr-1" />Transferência</TabsTrigger>
+                  <TabsTrigger value="ofx" className="h-8 px-3 text-xs"><FileSpreadsheet className="h-3.5 w-3.5 mr-1" />OFX</TabsTrigger>
+                </TabsList>
+              }
+            />
           </TabsContent>
 
-          <TabsContent value="transferencia" className="mt-4">
+
+          <TabsContent value="transferencia" className="mt-0 space-y-4">
+            <div className="flex justify-end">
+              <TabsList className="inline-flex w-auto h-10 gap-1 bg-muted/60">
+                <TabsTrigger value="extrato" className="h-8 px-3 text-xs"><Receipt className="h-3.5 w-3.5 mr-1" />Extrato</TabsTrigger>
+                <TabsTrigger value="transferencia" className="h-8 px-3 text-xs"><ArrowRightLeft className="h-3.5 w-3.5 mr-1" />Transferência</TabsTrigger>
+                <TabsTrigger value="ofx" className="h-8 px-3 text-xs"><FileSpreadsheet className="h-3.5 w-3.5 mr-1" />OFX</TabsTrigger>
+              </TabsList>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
               <Card>
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-2">
@@ -335,12 +344,20 @@ export default function ContaBancariaDetalhe() {
             </div>
           </TabsContent>
 
-          <TabsContent value="ofx" className="mt-4">
+          <TabsContent value="ofx" className="mt-0 space-y-4">
+            <div className="flex justify-end">
+              <TabsList className="inline-flex w-auto h-10 gap-1 bg-muted/60">
+                <TabsTrigger value="extrato" className="h-8 px-3 text-xs"><Receipt className="h-3.5 w-3.5 mr-1" />Extrato</TabsTrigger>
+                <TabsTrigger value="transferencia" className="h-8 px-3 text-xs"><ArrowRightLeft className="h-3.5 w-3.5 mr-1" />Transferência</TabsTrigger>
+                <TabsTrigger value="ofx" className="h-8 px-3 text-xs"><FileSpreadsheet className="h-3.5 w-3.5 mr-1" />OFX</TabsTrigger>
+              </TabsList>
+            </div>
             <Conciliacao
               embedded
               contas={[{ id: conta.id, nome: conta.nome, banco: conta.banco, tipo: conta.tipo, saldo_atual: Number(conta.saldo_atual) }]}
             />
           </TabsContent>
+
         </Tabs>
       </div>
     </MainLayout>

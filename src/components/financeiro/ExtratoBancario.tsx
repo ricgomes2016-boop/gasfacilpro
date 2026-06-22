@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,9 +33,10 @@ interface ContaBancaria {
 
 interface Props {
   contas: ContaBancaria[];
+  toolbarExtra?: ReactNode;
 }
 
-export default function ExtratoBancario({ contas }: Props) {
+export default function ExtratoBancario({ contas, toolbarExtra }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [contaSelecionada, setContaSelecionada] = useState<string>(contas[0]?.id || "");
@@ -176,7 +177,9 @@ export default function ExtratoBancario({ contas }: Props) {
         <Button onClick={() => setDialogOpen(true)} disabled={!contaSelecionada}>
           <Plus className="h-4 w-4 mr-2" />Nova Movimentação
         </Button>
+        {toolbarExtra && <div className="flex items-end">{toolbarExtra}</div>}
       </div>
+
 
       {/* KPIs */}
       {conta && (
