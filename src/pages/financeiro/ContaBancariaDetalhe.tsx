@@ -209,44 +209,59 @@ export default function ContaBancariaDetalhe() {
         </Card>
 
         {/* Tabs principais */}
+        {(() => {
+          const isCaixa = conta.tipo === "caixa_interno";
+          return (
         <Tabs value={aba} onValueChange={setAba} className="space-y-4">
           <TabsList className="bg-muted/60">
             <TabsTrigger value="visao">Visão Geral</TabsTrigger>
-            <TabsTrigger value="extrato">Extrato Bancário</TabsTrigger>
-            <TabsTrigger value="pix">PIX</TabsTrigger>
-            <TabsTrigger value="ofx">OFX</TabsTrigger>
+            {!isCaixa && <TabsTrigger value="extrato">Extrato Bancário</TabsTrigger>}
+            {!isCaixa && <TabsTrigger value="pix">PIX</TabsTrigger>}
+            <TabsTrigger value="transferencia">Transferência</TabsTrigger>
+            {!isCaixa && <TabsTrigger value="ofx">OFX</TabsTrigger>}
           </TabsList>
 
           {/* Atalhos rápidos */}
-          <QuickShortcuts activeTab={aba} onChange={setAba} accentColor={theme.primary} />
+          <QuickShortcuts
+            activeTab={aba}
+            onChange={setAba}
+            accentColor={theme.primary}
+            items={isCaixa ? ["visao", "transferencia"] : undefined}
+          />
 
           <TabsContent value="visao" className="mt-4">
-            <VisaoGeralPanel contaId={conta.id} accentColor={theme.primary} />
+            <VisaoGeralPanel contaId={conta.id} accentColor={theme.primary} isCaixa={isCaixa} saldoAtual={saldo} />
           </TabsContent>
 
-          <TabsContent value="extrato" className="mt-4">
-            <ExtratoTabela contaId={conta.id} saldoAtual={saldo} />
-          </TabsContent>
+          {!isCaixa && (
+            <TabsContent value="extrato" className="mt-4">
+              <ExtratoTabela contaId={conta.id} saldoAtual={saldo} />
+            </TabsContent>
+          )}
 
-          <TabsContent value="pix" className="mt-4">
-            <PixPanel
-              contaId={conta.id}
-              saldoAtual={saldo}
-              unidadeId={conta.unidade_id}
-              accentColor={theme.primary}
-              onPago={invalidarConta}
-            />
-          </TabsContent>
+          {!isCaixa && (
+            <TabsContent value="pix" className="mt-4">
+              <PixPanel
+                contaId={conta.id}
+                saldoAtual={saldo}
+                unidadeId={conta.unidade_id}
+                accentColor={theme.primary}
+                onPago={invalidarConta}
+              />
+            </TabsContent>
+          )}
 
-          <TabsContent value="boletos" className="mt-4">
-            <BoletosPanel
-              contaId={conta.id}
-              saldoAtual={saldo}
-              unidadeId={conta.unidade_id}
-              accentColor={theme.primary}
-              onPago={invalidarConta}
-            />
-          </TabsContent>
+          {!isCaixa && (
+            <TabsContent value="boletos" className="mt-4">
+              <BoletosPanel
+                contaId={conta.id}
+                saldoAtual={saldo}
+                unidadeId={conta.unidade_id}
+                accentColor={theme.primary}
+                onPago={invalidarConta}
+              />
+            </TabsContent>
+          )}
 
           <TabsContent value="transferencia" className="mt-4 space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -327,13 +342,18 @@ export default function ContaBancariaDetalhe() {
             </div>
           </TabsContent>
 
-          <TabsContent value="ofx" className="mt-4">
-            <Conciliacao
-              embedded
-              contas={[{ id: conta.id, nome: conta.nome, banco: conta.banco, tipo: conta.tipo, saldo_atual: Number(conta.saldo_atual) }]}
-            />
-          </TabsContent>
+          {!isCaixa && (
+            <TabsContent value="ofx" className="mt-4">
+              <Conciliacao
+                embedded
+                contas={[{ id: conta.id, nome: conta.nome, banco: conta.banco, tipo: conta.tipo, saldo_atual: Number(conta.saldo_atual) }]}
+              />
+            </TabsContent>
+          )}
         </Tabs>
+          );
+        })()}
+
       </div>
     </MainLayout>
   );
