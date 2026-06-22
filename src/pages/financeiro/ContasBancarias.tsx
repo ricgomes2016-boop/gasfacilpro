@@ -180,17 +180,6 @@ export default function ContasBancarias() {
     <MainLayout>
       <Header title="Contas Bancárias" subtitle="Clique em uma conta para abrir o painel do banco" />
       <div className="p-4 md:p-6 space-y-6">
-        {/* KPIs */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total de Contas</CardTitle></CardHeader>
-            <CardContent><p className="text-2xl font-bold">{contas.length}</p></CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Saldo Consolidado</CardTitle></CardHeader>
-            <CardContent><p className="text-2xl font-bold text-primary">R$ {saldoTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p></CardContent>
-          </Card>
-        </div>
 
         {/* Ações */}
         <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
