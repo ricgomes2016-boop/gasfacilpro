@@ -175,6 +175,10 @@ export function ConferenciaCartao({ operadoraId, hideOperadorasTab }: Conferenci
 
   useEffect(() => { fetchOperadoras(); fetchItens(); }, [unidadeAtual]);
 
+  useEffect(() => {
+    if (operadoraId) setConfForm(f => ({ ...f, operadora_id: operadoraId }));
+  }, [operadoraId]);
+
   // --- Operadoras CRUD ---
   const resetOpForm = () => {
     setOpForm({
