@@ -51,7 +51,7 @@ interface Endereco {
 export default function ClienteCheckout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { cart, cartTotal, clearCart } = useCliente();
+  const { cart, cartTotal, clearCart, lojaSelecionadaId } = useCliente();
   const { user } = useAuth();
 
   const {
@@ -155,16 +155,30 @@ export default function ClienteCheckout() {
         }
       }
 
-      // Unidade ativa da empresa do usuário (satisfaz tenant_isolation_pedidos)
-      const { data: unidadeData } = await (supabase as any)
-        .from("unidades")
-        .select("id")
-        .eq("empresa_id", empresaId)
-        .eq("ativa", true)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      const unidadeId: string | null = unidadeData?.id || null;
+      // Unidade: prefere a loja escolhida pelo cliente (se pertencer à empresa);
+      // fallback: primeira unidade ativa da empresa (satisfaz tenant_isolation_pedidos)
+      let unidadeId: string | null = null;
+      if (lojaSelecionadaId) {
+        const { data: lojaData } = await (supabase as any)
+          .from("unidades")
+          .select("id")
+          .eq("id", lojaSelecionadaId)
+          .eq("empresa_id", empresaId)
+          .eq("ativo", true)
+          .maybeSingle();
+        unidadeId = lojaData?.id || null;
+      }
+      if (!unidadeId) {
+        const { data: unidadeData } = await (supabase as any)
+          .from("unidades")
+          .select("id")
+          .eq("empresa_id", empresaId)
+          .eq("ativo", true)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        unidadeId = unidadeData?.id || null;
+      }
 
       if (!unidadeId) {
         toast.error("Nenhuma unidade ativa disponível para receber o pedido.");
