@@ -301,7 +301,7 @@ export default function Pedidos() {
   }, [unidadeAtual?.id]);
 
   // Reset page when filters change
-  useEffect(() => {setPaginaAtual(1);}, [filtroStatus, filtroEntregador, busca, dataInicio, dataFim]);
+  useEffect(() => {setPaginaAtual(1);}, [filtroStatus, filtroEntregador, filtroOrigem, busca, dataInicio, dataFim]);
   // Quando filtrar agendados, ampliar a data para os próximos 90 dias
   useEffect(() => {
     if (filtroStatus === "agendado") {
