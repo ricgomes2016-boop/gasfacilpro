@@ -281,7 +281,13 @@ export default function ContasBancarias() {
               </div>
             </DialogContent>
           </Dialog>
+
+          <Button variant="outline" onClick={importarContaAsaas} disabled={importandoAsaas}>
+            {importandoAsaas ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+            Importar conta do Asaas
+          </Button>
         </div>
+
 
         {/* Grid de cards de banco */}
         {isLoading ? (
