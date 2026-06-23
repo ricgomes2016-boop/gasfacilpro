@@ -1,28 +1,15 @@
-## Plano para corrigir finalização de pedido no app do cliente
+## Problema
 
-1. **Ajustar a origem da unidade no checkout**
-   - Hoje o checkout tenta achar a unidade pela empresa do registro em `clientes`, mas a RLS obrigatória `tenant_isolation_pedidos` valida a unidade contra a empresa do usuário logado.
-   - Vou alterar o fluxo para buscar a `empresa_id` do usuário autenticado em `profiles` e então selecionar uma unidade ativa dessa empresa.
+No checkout do app do cliente (Forte Gás), o aviso "Nenhuma unidade ativa disponível para receber o pedido" aparece mesmo com a Matriz ativa na empresa.
 
-2. **Garantir vínculo correto com o cliente**
-   - Manter o `cliente_id` quando encontrado por e-mail/telefone, mas sem depender dele para descobrir a empresa.
-   - Se não houver unidade ativa válida, mostrar erro claro antes de tentar inserir o pedido.
+**Causa raiz:** a query em `src/pages/cliente/ClienteCheckout.tsx` filtra `unidades` por `.eq("ativa", true)`, mas o nome real da coluna na tabela é `ativo`. Como o filtro não bate, o retorno é vazio e o fluxo bloqueia o pedido. O restante do código (ClienteContext, ClienteHome) já usa `ativo` corretamente.
 
-3. **Corrigir o payload do pedido**
-   - Inserir `unidade_id` sempre preenchido e compatível com a empresa do usuário.
-   - Manter `origem_pedido: "app_cliente"` e `canal_venda: "Aplicativo"`.
-   - Evitar enviar campos inexistentes ou que possam quebrar a política.
+## Correção
 
-4. **Validar o resultado**
-   - Conferir que a inserção passa pela RLS esperada e que o pedido pode ser criado com itens.
-   - Se necessário, ajustar apenas o `ClienteCheckout.tsx`; migração só será usada se a política estiver impedindo corretamente um caso que deveria ser permitido.
+Arquivo único: `src/pages/cliente/ClienteCheckout.tsx`
 
-## Detalhe técnico
+1. Trocar `.eq("ativa", true)` por `.eq("ativo", true)` na resolução da unidade.
+2. Preferir a unidade já selecionada pelo cliente (`lojaSelecionadaId` do `ClienteContext`) quando ela pertencer à `empresa_id` do usuário; cair na primeira unidade ativa da empresa só como fallback.
+3. Manter as validações existentes (empresa do `profiles`, mensagens de erro, payload do pedido).
 
-A política restritiva `tenant_isolation_pedidos` exige:
-
-```text
-has_role(auth.uid(), 'super_admin') OR unidade_belongs_to_user_empresa(unidade_id)
-```
-
-Então o pedido do cliente precisa ser criado com uma `unidade_id` pertencente à mesma `empresa_id` do usuário autenticado em `profiles`. O erro da imagem indica que esse vínculo não está batendo no insert atual.
+Sem migrações, sem mudança de RLS, sem mexer em outras telas.
