@@ -209,6 +209,14 @@ export default function ConfigDestinoPagamento({ contas }: Props) {
                           <TableCell>
                             {forma.semBanco ? (
                               <span className="text-xs text-muted-foreground italic">Contas a Receber (automático)</span>
+                            ) : FORMA_POR_MAQUININHA.has(forma.value) ? (
+                              <a
+                                href="/financeiro/cartoes"
+                                className="text-xs inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10 text-primary hover:bg-primary/15"
+                              >
+                                <Plug className="h-3 w-3" />
+                                Definida por maquininha — gerenciar
+                              </a>
                             ) : (
                               <Select
                                 value={configs[forma.value] || "nenhuma"}
