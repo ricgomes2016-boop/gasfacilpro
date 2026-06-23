@@ -1084,9 +1084,17 @@ export default function Pedidos() {
                           <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} />
                         </TableCell>
                         <TableCell>
+                          <OrigemBadge origem={pedido.origem_pedido} />
+                        </TableCell>
+                        <TableCell>
                           <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs" onClick={() => editarPedido(pedido.id)}>
                             #{getNumExib(pedido)}
                           </Button>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {podeAlterarDataEntrega ?
+                        <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-8 w-[140px] text-xs" /> :
+                        pedido.data}
                         </TableCell>
                         <TableCell className="font-medium text-sm min-w-[200px] max-w-[260px] truncate" title={pedido.cliente}>{pedido.cliente}</TableCell>
                         <TableCell className="max-w-[180px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
@@ -1135,11 +1143,6 @@ export default function Pedidos() {
                         <TableCell className="font-medium text-sm">R$ {pedido.valor.toFixed(2)}</TableCell>
                         <TableCell>
                           <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
-                          {podeAlterarDataEntrega ?
-                        <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-8 w-[140px] text-xs" /> :
-                        pedido.data}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
