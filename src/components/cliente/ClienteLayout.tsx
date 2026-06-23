@@ -20,7 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import { LojaSelector } from "@/components/cliente/LojaSelector";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import logoImg from "@/assets/logo.png";
 import { SystemFooter } from "@/components/layout/SystemFooter";
@@ -49,8 +49,9 @@ const bottomNavItems = [
   { icon: ShoppingCart, label: "Carrinho", path: "/cliente/carrinho", showBadge: true },
   { icon: Gift, label: "Indicar", path: "/cliente/indicacao" },
   { icon: Wallet, label: "Carteira", path: "/cliente/carteira" },
-  { icon: User, label: "Perfil", path: "/cliente/perfil" },
+  { icon: Menu, label: "Menu", path: "__menu__" as const },
 ];
+
 
 export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: ClienteLayoutProps) {
   const location = useLocation();
@@ -98,11 +99,6 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
           </div>
 
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-primary-foreground bg-white/10 hover:bg-white/20 shrink-0 rounded-full">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
             <SheetContent side="right" className="w-80 p-0">
               <div className="bg-gradient-to-b from-primary via-primary to-primary/85 text-primary-foreground p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -149,6 +145,7 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
               </nav>
             </SheetContent>
           </Sheet>
+
         </div>
       </header>
 
@@ -183,16 +180,14 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
       <nav className="fixed bottom-0 left-0 right-0 backdrop-blur-md bg-background/85 border-t border-border z-50">
         <div className="flex justify-around items-center py-2">
           {bottomNavItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex flex-col items-center py-1 px-3 rounded-lg transition-colors relative",
-                  isActive ? "text-primary" : "text-muted-foreground"
-                )}
-              >
+            const isMenu = item.path === "__menu__";
+            const isActive = !isMenu && location.pathname === item.path;
+            const baseCls = cn(
+              "flex flex-col items-center py-1 px-3 rounded-lg transition-colors relative",
+              isActive ? "text-primary" : "text-muted-foreground"
+            );
+            const inner = (
+              <>
                 <div className="relative">
                   <item.icon className="h-5 w-5" />
                   {item.showBadge && cartItemsCount > 0 && (
@@ -204,9 +199,28 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
                   )}
                 </div>
                 <span className="text-xs mt-1">{item.label}</span>
+              </>
+            );
+            if (isMenu) {
+              return (
+                <button
+                  key="menu"
+                  type="button"
+                  onClick={() => setMenuOpen(true)}
+                  className={baseCls}
+                  aria-label="Abrir menu"
+                >
+                  {inner}
+                </button>
+              );
+            }
+            return (
+              <Link key={item.path} to={item.path} className={baseCls}>
+                {inner}
               </Link>
             );
           })}
+
         </div>
       </nav>
       <SystemFooter portalKey="cliente" />

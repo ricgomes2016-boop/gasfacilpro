@@ -308,8 +308,10 @@ export default function ClienteCheckout() {
       if (itensError) throw itensError;
 
       clearCart();
+      try { localStorage.setItem("last_pedido_id", pedido.id); } catch {}
       toast.success("Pedido realizado com sucesso! 🎉");
       navigate(`/cliente/rastreamento/${pedido.id}`);
+
     } catch (error: any) {
       console.error("Erro ao criar pedido:", error);
       const msg = error?.message || error?.details || "Tente novamente.";
