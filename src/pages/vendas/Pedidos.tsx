@@ -1064,15 +1064,16 @@ export default function Pedidos() {
                           checked={selecionados.size === pedidosPaginados.length && pedidosPaginados.length > 0}
                           onCheckedChange={toggleSelecionarTodos} />
                       </TableHead>
-                      <TableHead>Pedido</TableHead>
+                      <TableHead>Origem</TableHead>
+                      <TableHead>Nº Pedido</TableHead>
+                      <TableHead>Data</TableHead>
                       <TableHead className="min-w-[200px]">Cliente</TableHead>
                       <TableHead>Endereço</TableHead>
                       <TableHead>Produtos</TableHead>
                       <TableHead>Entregador</TableHead>
-                      <TableHead>Canal</TableHead>
+                      <TableHead>Canal de Venda</TableHead>
                       <TableHead>Valor</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Data</TableHead>
                       <TableHead className="w-12">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
