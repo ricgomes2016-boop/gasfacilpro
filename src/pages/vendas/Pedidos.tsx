@@ -56,6 +56,17 @@ import { toast as sonnerToast } from "sonner";
 import { getBrasiliaDate } from "@/lib/utils";
 import { format as fnsFormat } from "date-fns";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { getOrigemMeta, ORIGEM_PEDIDO_META, ORIGENS_PEDIDO, type OrigemPedido } from "@/lib/pedidos/origem";
+
+function OrigemBadge({ origem }: { origem?: string | null }) {
+  const meta = getOrigemMeta(origem);
+  return (
+    <Badge variant="outline" className={`text-[10px] gap-1 ${meta.color}`} title={meta.label}>
+      <span aria-hidden>{meta.icon}</span>
+      <span className="truncate">{meta.label}</span>
+    </Badge>
+  );
+}
 
 function getNumeroExibicao(p: { numero_sequencial?: number | null; id: string }) {
   return p.numero_sequencial != null ? String(p.numero_sequencial) : p.id.substring(0, 8).toUpperCase();
