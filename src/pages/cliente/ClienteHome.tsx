@@ -123,19 +123,15 @@ export default function ClienteHome() {
       if (!empresaId) return;
 
       const userPhone = (user as any)?.phone || (user.user_metadata as any)?.telefone || null;
-      const orFilters: string[] = [];
-      if (user.email) orFilters.push(`email.eq.${user.email}`);
-      if (userPhone) orFilters.push(`telefone.eq.${userPhone}`);
-      if (orFilters.length === 0) return;
+      const clienteId = await resolveClienteIdForUser({
+        userId: user.id,
+        empresaId,
+        email: user.email,
+        phone: userPhone,
+      });
 
-      const { data: clienteData } = await supabase
-        .from("clientes")
-        .select("id")
-        .eq("empresa_id", empresaId)
-        .or(orFilters.join(","))
-        .maybeSingle();
-
-      if (!clienteData) return;
+      if (!clienteId) return;
+      const clienteData = { id: clienteId };
 
       // Último pedido entregue (para "Pedir de novo")
       const { data } = await supabase
