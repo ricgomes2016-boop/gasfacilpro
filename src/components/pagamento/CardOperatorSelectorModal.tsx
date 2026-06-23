@@ -98,6 +98,7 @@ export function CardOperatorSelectorModal({
       taxa,
       prazo,
       valorLiquido,
+      conta_bancaria_id: selectedOp.conta_bancaria_id || null,
     });
     onClose();
   };
