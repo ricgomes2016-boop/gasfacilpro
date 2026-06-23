@@ -15,7 +15,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, ArrowRightLeft, Landmark, Send, Pencil, ChevronRight } from "lucide-react";
+import { Plus, ArrowRightLeft, Landmark, Send, Pencil, ChevronRight, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/contexts/UnidadeContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,6 +49,56 @@ export default function ContasBancarias() {
   const [form, setForm] = useState({ ...emptyForm });
   const [editForm, setEditForm] = useState<{ id: string } & typeof emptyForm>({ id: "", ...emptyForm });
   const [transferForm, setTransferForm] = useState({ conta_origem_id: "", conta_destino_id: "", valor: "", descricao: "" });
+  const [importandoAsaas, setImportandoAsaas] = useState(false);
+
+  const importarContaAsaas = async () => {
+    if (!unidadeAtual?.id) { toast.error("Selecione uma unidade primeiro"); return; }
+    setImportandoAsaas(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("asaas-api", {
+        body: { action: "get_account_info" },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Falha ao consultar Asaas");
+
+      const acc = data.account || {};
+      const saldo = Number(data.balance?.totalBalance ?? data.balance?.balance ?? 0);
+
+      const jaExiste = contas.find(c => c.banco?.toLowerCase() === "asaas" && c.unidade_id === unidadeAtual.id);
+      if (jaExiste) {
+        await supabase.from("contas_bancarias")
+          .update({ saldo_atual: saldo, chave_pix: acc.email || jaExiste.chave_pix })
+          .eq("id", jaExiste.id);
+        toast.success("Conta Asaas já existia — saldo sincronizado");
+      } else {
+        const { error: insErr } = await supabase.from("contas_bancarias").insert({
+          nome: `Asaas - ${unidadeAtual.nome}`,
+          banco: "Asaas",
+          tipo: "corrente",
+          agencia: acc.agency || null,
+          conta: acc.account || acc.accountDigit ? `${acc.account || ""}${acc.accountDigit ? "-" + acc.accountDigit : ""}` : null,
+          chave_pix: acc.email || null,
+          unidade_id: unidadeAtual.id,
+          saldo_atual: saldo,
+          saldo_inicial: saldo,
+        });
+        if (insErr) throw insErr;
+        toast.success("Conta Asaas criada e sincronizada");
+      }
+      queryClient.invalidateQueries({ queryKey: ["contas-bancarias"] });
+    } catch (e: any) {
+      const msg = String(e.message || e);
+      if (msg.includes("não configurada") || msg.includes("Asaas")) {
+        toast.error(msg, {
+          action: { label: "Configurar Asaas", onClick: () => navigate("/configuracoes/asaas") },
+        });
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setImportandoAsaas(false);
+    }
+  };
 
   const { data: contas = [], isLoading } = useQuery({
     queryKey: ["contas-bancarias", unidadeAtual?.id],
