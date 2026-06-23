@@ -29,6 +29,7 @@ export interface PedidoFormatado {
   observacoes?: string;
   forma_pagamento?: string;
   canal_venda?: string;
+  origem_pedido?: OrigemPedido;
   agendado?: boolean;
   data_agendamento?: string | null;
   data_entrega?: string | null;
