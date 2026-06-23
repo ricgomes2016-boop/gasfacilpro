@@ -22,16 +22,18 @@ import { useDeliveryNotifications } from "@/hooks/useDeliveryNotifications";
 import { supabase } from "@/integrations/supabase/client";
 
 const statusSteps = [
-  { key: "pendente", label: "Confirmado", icon: CheckCircle2 },
-  { key: "em_rota", label: "A caminho", icon: Truck },
-  { key: "entregue", label: "Entregue", icon: MapPin },
+  { key: "pendente", label: "Confirmado", desc: "Loja recebeu seu pedido", icon: CheckCircle2 },
+  { key: "preparando", label: "Em preparo", desc: "Separando seus itens", icon: Package },
+  { key: "em_rota", label: "A caminho", desc: "Entregador a caminho", icon: Truck },
+  { key: "entregue", label: "Entregue", desc: "Pedido finalizado", icon: MapPin },
 ];
 
-const statusProgress: Record<string, number> = {
-  pendente: 33,
-  em_rota: 66,
-  entregue: 100,
-  cancelado: 0,
+const statusOrder: Record<string, number> = {
+  pendente: 0,
+  preparando: 1,
+  em_rota: 2,
+  entregue: 3,
+  cancelado: -1,
 };
 
 interface PedidoData {
@@ -76,6 +78,10 @@ export default function ClienteRastreamento() {
 
       if (pedidoData) {
         setPedido(pedidoData as unknown as PedidoData);
+        // Inicializa imediatamente para evitar toast falso na 1ª carga
+        if (previousStatusRef.current === null) {
+          previousStatusRef.current = pedidoData.status;
+        }
 
         if (pedidoData.entregador_id) {
           const { data: entregadorData } = await supabase
