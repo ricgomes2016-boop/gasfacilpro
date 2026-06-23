@@ -29,6 +29,7 @@ const BalancoPatrimonial = lazy(() => import("@/pages/financeiro/BalancoPatrimon
 const EmailTransacional = lazy(() => import("@/pages/financeiro/EmailTransacional"));
 const ExportacaoContabil = lazy(() => import("@/pages/financeiro/ExportacaoContabil"));
 const FechamentoMensal = lazy(() => import("@/pages/financeiro/FechamentoMensal"));
+const FormasPagamento = lazy(() => import("@/pages/financeiro/FormasPagamento"));
 
 const FINANCE_ROLES: ("admin" | "gestor" | "financeiro")[] = ["admin", "gestor", "financeiro"];
 const CONTADOR_ROLES: ("admin" | "gestor" | "financeiro" | "contador")[] = ["admin", "gestor", "financeiro", "contador"];
@@ -65,4 +66,5 @@ export const financeiroRoutes: RouteConfig[] = [
   { path: "/financeiro/exportacao-contabil", component: ExportacaoContabil, roles: FINANCE_ROLES },
   { path: "/financeiro/balanco", component: BalancoPatrimonial, roles: FINANCE_ROLES },
   { path: "/financeiro/fechamento", component: FechamentoMensal, roles: FINANCE_ROLES },
+  { path: "/financeiro/formas-pagamento", component: FormasPagamento, roles: FINANCE_ROLES },
 ];
