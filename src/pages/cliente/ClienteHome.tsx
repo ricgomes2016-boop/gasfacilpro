@@ -154,17 +154,18 @@ export default function ClienteHome() {
     return matchesSearch && matchesCategory;
   });
 
-  const getQuantity = (productId: string) => quantities[productId] || 1;
+  const getQuantity = (productId: string) => quantities[productId] ?? 0;
 
   const setQuantity = (productId: string, qty: number) => {
-    if (qty < 1) qty = 1;
+    if (qty < 0) qty = 0;
     if (qty > 10) qty = 10;
     setQuantities(prev => ({ ...prev, [productId]: qty }));
   };
 
   const handleAddToCart = async (product: ProdutoDB) => {
     setAddingToCart(product.id);
-    const qty = getQuantity(product.id);
+    const current = getQuantity(product.id);
+    const qty = current === 0 ? 1 : current;
     addToCart({
       id: product.id,
       name: product.nome,
@@ -179,7 +180,7 @@ export default function ClienteHome() {
         onClick: () => navigate("/cliente/carrinho"),
       },
     });
-    setQuantities(prev => ({ ...prev, [product.id]: 1 }));
+    setQuantities(prev => ({ ...prev, [product.id]: 0 }));
     setTimeout(() => setAddingToCart(null), 600);
   };
 
