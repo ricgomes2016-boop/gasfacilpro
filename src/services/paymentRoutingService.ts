@@ -221,7 +221,7 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
         // Cartões e PIX Maquininha → contas_receber com operadora + taxa + prazo
         promises.push(
           (async () => {
-            const op = await getOperadoraConfig(unidadeId || null, pag.forma);
+            const op = await getOperadoraConfig(unidadeId || null, pag.forma, pag.operadora_id);
             const taxa = op ? op.taxa : 0;
             const prazo = op ? op.prazo : (pag.forma.includes("debito") ? 1 : 30);
             const valorTaxa = pag.valor * (taxa / 100);
@@ -229,6 +229,8 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
 
             const tipoLabel = pag.forma.includes("debito") || pag.forma === "debito"
               ? "Débito" : pag.forma === "pix_maquininha" ? "PIX Maq." : "Crédito";
+
+            const contaDestino = await resolveContaDestinoCartao(pag, op?.conta_bancaria_id || null);
 
             await insertContasReceber({
               cliente: op?.nome || clienteNome || "Operadora Cartão",
@@ -244,6 +246,7 @@ export async function rotearPagamentosVenda(params: RotearPagamentosParams): Pro
               valor_taxa: valorTaxa,
               valor_liquido: valorLiquido,
               cliente_id: clienteId || null,
+              conta_bancaria_destino_id: contaDestino,
             });
           })()
         );
