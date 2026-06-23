@@ -1,115 +1,51 @@
 ## Objetivo
 
-Permitir configurar integrações bancárias direto da página da conta (Pix/Boleto/Extrato/Conciliação), começando com **PagBank** e aproveitando a integração **Asaas** já existente no projeto.
+Hoje a tela da conta bancária tem um card "Boletos" — mas ele mostra **boletos a pagar (fornecedores)**. A intenção do usuário (referência Asaas) é diferente: ver **cobranças emitidas para clientes** e poder **gerar uma nova cobrança** (boleto ou Pix) direto da conta.
 
-Observação importante: verifiquei o banco e a empresa **Forte Gás** ainda **não tem chave Asaas configurada** nem contas bancárias cadastradas. O plano cobre os dois cenários: (a) se já existir chave Asaas para a unidade/empresa, criamos a conta já vinculada; (b) se não existir, abrimos o passo de configuração antes.
+Vamos adicionar um novo card rápido **"Cobranças"** ao lado dos atuais, visível apenas em contas com provedor integrável (Asaas, PagBank) — onde realmente conseguimos emitir.
 
-Também não consigo assistir o vídeo do YouTube — se quiser que eu incorpore algo de lá, me passe os pontos em texto.
+## Onde aparece
 
----
+- Card "Cobranças" no `QuickShortcuts` da conta bancária (mobile e desktop).
+- Aba `cobrancas` correspondente em `ContaBancariaDetalhe.tsx`.
+- Só aparece quando `getBankProvider(conta.banco)` ∈ {`asaas`, `pagbank`}. Em contas comuns / caixa o card não é renderizado.
+- O card atual "Boletos" (a pagar) continua igual — só renomearemos visualmente para **"Boletos a pagar"** para evitar confusão com Cobranças.
 
-## 1. Card "Configurações" nas contas bancárias
+## Tela "Cobranças" (novo `CobrancasPanel`)
 
-Arquivo: `src/components/financeiro/conta-detalhe/QuickShortcuts.tsx` + `src/pages/financeiro/ContaBancariaDetalhe.tsx`.
+Layout inspirado no print do Asaas:
 
-- Adicionar item `{ id: "config", label: "Configurações", icon: Settings }` em `ALL_ITEMS`.
-- Aparecer **apenas em contas com provedor integrável** (Asaas, PagBank, Itaú Pix, etc.). Critério: função utilitária `getBankProvider(banco)` que devolve `"asaas" | "pagbank" | "itau" | null`. Esconder o card quando `null` ou quando `tipo === "caixa_interno"`.
-- Nova `<TabsContent value="config">` que renderiza `<IntegracaoBancariaPanel conta={conta} provider={provider} />`.
+1. Header com botão primário **"Nova cobrança"** (abre dialog) + filtro por status (Todas / Pendentes / Pagas / Vencidas) e busca por cliente.
+2. KPIs compactos: total emitido no mês, total recebido, em aberto, vencido.
+3. Sub-abas leves (chips):
+   - **Todas as cobranças**
+   - **Avulsas** (cobranças únicas)
+   - **Parcelamentos** (mesma `parent_id` / `parcela_numero`)
+   - **Assinaturas** (vinculadas a `contratos_recorrentes`)
+4. Lista de cobranças (tabela desktop / cards mobile) com: cliente, vencimento, valor, status, forma (Boleto/Pix), ações (ver link, copiar linha digitável, copiar Pix copia-e-cola, cancelar).
 
-## 2. Painel de integração `IntegracaoBancariaPanel`
+Fonte de dados: tabela existente `boletos_emitidos` filtrada por `conta_bancaria_id = conta.id`. Para "Assinaturas" cruzar com `contratos_recorrentes` via `contrato_id` (já existente em `boletos_emitidos` quando aplicável).
 
-Novo: `src/components/financeiro/conta-detalhe/IntegracaoBancariaPanel.tsx`.
+## Geração de nova cobrança
 
-Conteúdo dinâmico por `provider`:
-- **Status da conexão** (badge verde/vermelho) com botão "Testar conexão".
-- **Toggle Sandbox / Produção**.
-- Campos de credenciais (mascarados, com botão "alterar").
-- Lista de **capacidades habilitadas**: Extrato, Saldo, Pix, Boleto, Maquininha (conforme provider).
-- Link "Como obter as credenciais" + URL da documentação oficial.
-- Botão "Sincronizar agora" (chama edge function correspondente).
+- Em conta **Asaas**: reutiliza o componente já existente `EmitirBoletoAsaasDialog` (apenas pré-seleciona a `conta_bancaria_id` atual).
+- Em conta **PagBank**: novo `EmitirCobrancaPagBankDialog` (mesma UX) que chama a edge function `pagbank-api` com `action: "create_boleto_charge"` ou `"create_pix_charge"` (já implementadas na etapa anterior). Insere o registro em `boletos_emitidos` com `provedor = 'pagbank'`.
 
-Persistência: linha em `integracoes_config` (`unidade_id`, `integracao_id='pagbank'|'asaas'|...`, `config` jsonb, `ativo`). Já existe RLS de admin/gestor.
+Ambos os dialogs compartilham os mesmos campos: cliente, valor, vencimento, descrição, tipo (Boleto/Pix/Boleto+Pix), juros/multa opcionais.
 
-## 3. Integração PagBank
+## Arquivos
 
-### Credenciais (secrets)
-Pedir via `add_secret`:
-- `PAGBANK_API_TOKEN_SANDBOX`
-- `PAGBANK_API_TOKEN_PROD`
+Novos:
+- `src/components/financeiro/conta-detalhe/CobrancasPanel.tsx`
+- `src/components/financeiro/EmitirCobrancaPagBankDialog.tsx`
 
-Por unidade, gravar em `integracoes_config.config`:
-```json
-{ "ambiente": "sandbox" | "producao", "email_conta": "...", "webhook_token": "..." }
-```
+Editados:
+- `src/components/financeiro/conta-detalhe/QuickShortcuts.tsx` — adicionar item `cobrancas` (ícone `Receipt` ou `FileText`) e renomear `boletos` → "Boletos a pagar".
+- `src/pages/financeiro/ContaBancariaDetalhe.tsx` — incluir `cobrancas` em `shortcuts` quando `provider` existir, adicionar `<TabsTrigger>` e `<TabsContent>` renderizando `CobrancasPanel`.
+- `src/components/financeiro/EmitirBoletoAsaasDialog.tsx` — aceitar prop opcional `contaBancariaId` para pré-seleção.
 
-### Edge function `pagbank-api` (`supabase/functions/pagbank-api/index.ts`)
-Ações suportadas:
-- `get_account` – saldo + dados da conta (`GET /accounts/{id}` ou `GET /balance`).
-- `list_transactions` – extrato no período → grava em `extrato_bancario`.
-- `list_orders` / `list_receivables` – recebíveis de maquininha → grava em `pagamentos_cartao` + `contas_receber` (D+1/D+30 como já fazemos para PagBank PlugPag).
-- `create_pix_charge` – `POST /orders` com `qr_codes` → devolve `qr_code` + `txid`, cria `contas_receber` com `forma_pagamento='pix'` e referência externa.
-- `create_boleto_charge` – `POST /orders` com `charges[].payment_method.type='BOLETO'` → cria `contas_receber` + `boletos_emitidos`.
-- `test_connection` – ping em `/public/payment-methods`.
+## Fora de escopo
 
-Base URL: `https://sandbox.api.pagseguro.com` ou `https://api.pagseguro.com`. Auth: `Authorization: Bearer ${token}`.
-
-### Webhook `pagbank-webhook`
-Endpoint público para receber notificações `CHARGE.PAID`, `ORDER.PAID`, atualizar `contas_receber.status='recebido'` e baixar saldo.
-
-### UI específica do PagBank
-Dentro de `IntegracaoBancariaPanel` quando `provider==='pagbank'`:
-- Campos: ambiente (toggle), e-mail da conta, token (digitado uma vez, salvo em secret).
-- Capacidades: Extrato, Saldo, Pix, Boleto, Conciliação de maquininha (link para `/financeiro/cartoes`).
-- Botões: Testar conexão · Sincronizar extrato (últimos 30 dias) · Importar recebíveis.
-
-## 4. Auto-criar conta bancária do Asaas
-
-Novo botão na lista de contas (`ContasBancarias.tsx`): **"+ Importar conta do Asaas"** (visível quando a unidade ativa tem `configuracoes_empresa.asaas_api_key` preenchida).
-
-Fluxo:
-1. Chama edge function `asaas-api` com `action='get_account_info'` (a função já existe; adicionar essa ação se faltar) → `GET /myAccount` e `/finance/balance`.
-2. Faz `insert` em `contas_bancarias` com:
-   - `nome = "Asaas - <nome unidade>"`
-   - `banco = "Asaas"` (entra na lista de `getBankProvider → 'asaas'`)
-   - `tipo = 'corrente'`
-   - `agencia/conta/chave_pix` do retorno
-   - `saldo_inicial = saldo_atual = balance.totalBalance`
-   - `unidade_id` da unidade ativa
-3. Grava `integracoes_config` com `integracao_id='asaas'`, `config={"vinculada_conta_id": <id>, "ambiente": sandbox?}`.
-4. Toast "Conta Asaas criada e sincronizada".
-
-Para Forte Gás especificamente: como a empresa **ainda não tem chave Asaas**, o botão direciona primeiro para `/configuracoes/asaas` para colar a chave (sandbox por padrão); ao salvar, oferece "Criar conta bancária agora".
-
-## 5. Detecção do provedor (`getBankProvider`)
-
-`src/lib/bancos/bankProviders.ts` (novo):
-
-```text
-Asaas              -> asaas
-PagBank/PagSeguro  -> pagbank
-Itau               -> itau (futuro)
-default            -> null (sem card Configurações)
-```
-
-## 6. Entregáveis
-
-Arquivos novos:
-- `src/components/financeiro/conta-detalhe/IntegracaoBancariaPanel.tsx`
-- `src/components/financeiro/conta-detalhe/providers/PagBankConfigForm.tsx`
-- `src/components/financeiro/conta-detalhe/providers/AsaasConfigForm.tsx`
-- `src/lib/bancos/bankProviders.ts`
-- `supabase/functions/pagbank-api/index.ts`
-- `supabase/functions/pagbank-webhook/index.ts`
-
-Alterações:
-- `QuickShortcuts.tsx` – item Configurações.
-- `ContaBancariaDetalhe.tsx` – TabsContent `config`.
-- `ContasBancarias.tsx` – botão "Importar conta do Asaas".
-- `supabase/functions/asaas-api/index.ts` – ação `get_account_info`.
-
-Secrets a solicitar quando o usuário confirmar: `PAGBANK_API_TOKEN_SANDBOX`, `PAGBANK_API_TOKEN_PROD`, `PAGBANK_WEBHOOK_TOKEN`.
-
-## 7. Fora do escopo desta entrega
-
-- Integração Itaú / BB / Sicoob (fica preparada via `bankProviders.ts`).
-- Conciliação automática de extrato PagBank com Contas a Receber existentes (próxima fase).
+- Webhook de baixa automática (já existe parcial para Asaas / PagBank).
+- Conciliação automática com `contas_receber` (mantém o vínculo atual).
+- Cobrança recorrente nova (assinaturas) — por enquanto só listamos as existentes; criar assinatura nova fica num passo futuro.
