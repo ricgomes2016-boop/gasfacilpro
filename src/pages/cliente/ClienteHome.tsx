@@ -292,6 +292,33 @@ export default function ClienteHome() {
           <div className="absolute -right-4 -bottom-6 w-20 h-20 bg-white/10 rounded-full" />
         </div>
 
+        {/* Pedido em andamento */}
+        {pedidoAtivo && (
+          <button
+            onClick={() => navigate(`/cliente/rastreamento/${pedidoAtivo.id}`)}
+            className="w-full text-left"
+          >
+            <Card className="border-primary bg-primary text-primary-foreground shadow-md">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 bg-primary-foreground/20 rounded-full flex items-center justify-center shrink-0">
+                      <Clock className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm">Pedido em andamento</p>
+                      <p className="text-xs opacity-90 truncate">
+                        {pedidoAtivo.status === "em_rota" ? "A caminho — toque para acompanhar" : "Aguardando confirmação da loja"}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0" />
+                </div>
+              </CardContent>
+            </Card>
+          </button>
+        )}
+
         {/* Repetir último pedido */}
         {ultimoPedido && (
           <button
