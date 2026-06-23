@@ -543,10 +543,10 @@ export default function ContasPagar() {
                 ) : (
                   <>
                     {/* Desktop table */}
-                    <div className="hidden sm:block">
-                      <Table className="border-separate border-spacing-y-2">
+                    <div className="hidden table-card-shell sm:block">
+                      <Table>
                         <TableHeader>
-                          <TableRow className="rounded-xl border-0 bg-muted/60 hover:bg-muted/60 [&_th]:h-11 [&_th]:border-0 [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-foreground">
+                          <TableRow className="rounded-xl border-0 bg-muted/75 hover:bg-muted/75 [&_th]:h-11 [&_th]:border-0 [&_th]:text-[11px] [&_th]:font-extrabold [&_th]:uppercase [&_th]:tracking-[0.02em] [&_th]:text-foreground">
                             <TableHead className="w-10 rounded-l-xl"><Checkbox checked={cp.todasPagaveisSelecionadas} onCheckedChange={cp.toggleAllPagamentoSelection} aria-label="Selecionar contas" /></TableHead><TableHead>Fornecedor</TableHead><TableHead>Descrição</TableHead>
                             <TableHead>Categoria</TableHead><TableHead>Vencimento</TableHead>
                             <TableHead>Valor</TableHead><TableHead>Status</TableHead>
@@ -619,16 +619,16 @@ export default function ContasPagar() {
                     </div>
 
                     {/* Mobile cards */}
-                    <div className="sm:hidden space-y-3">
+                    <div className="space-y-3 sm:hidden">
                       {visibleContas.map(conta => {
                         const { label, variant } = getStatus(conta);
                         return (
-                          <div key={conta.id} className="border rounded-lg p-3">
-                            <div className="flex items-start justify-between gap-2">
+                          <div key={conta.id} className="mobile-record-card">
+                            <div className="mobile-record-card-header">
                               <Checkbox checked={cp.selecionadasPagamentoIds.has(conta.id)} disabled={conta.status === "paga"} onCheckedChange={() => cp.togglePagamentoSelection(conta.id)} aria-label={`Selecionar ${conta.descricao}`} className="mt-1 shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{conta.descricao}</p>
-                                <p className="text-xs text-muted-foreground">{conta.fornecedor}</p>
+                                <p className="mobile-record-card-title line-clamp-2">{conta.descricao}</p>
+                                <p className="mobile-record-card-meta truncate">{conta.fornecedor}</p>
                               </div>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
@@ -640,14 +640,14 @@ export default function ContasPagar() {
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
-                            <div className="flex items-center justify-between mt-2">
-                              <div className="flex items-center gap-2">
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
                                 <Badge variant={variant} className="text-xs">{label}</Badge>
                                 {conta.categoria && <Badge variant="outline" className="text-xs">{conta.categoria}</Badge>}
-                              </div>
+                            </div>
+                            <div className="mobile-record-card-footer">
+                              <p className="text-xs text-muted-foreground">Venc: {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</p>
                               <span className="font-bold text-sm">R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-1">Venc: {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}</p>
                           </div>
                         );
                       })}

@@ -806,11 +806,11 @@ export default function ContasReceber() {
               return (
                 <div
                   key={conta.id}
-                  className="rounded-xl border bg-card p-3 shadow-sm transition hover:border-primary/40 hover:shadow-md data-[state=selected]:border-primary/50 data-[state=selected]:bg-primary/5"
+                  className="mobile-record-card transition hover:border-primary/40 hover:shadow-md data-[state=selected]:border-primary/50 data-[state=selected]:bg-primary/5"
                   data-state={selectedIds.has(conta.id) ? "selected" : undefined}
                   onClick={() => setDetalheConta(conta)}
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="mobile-record-card-header">
                     <div className="flex items-center gap-2 min-w-0">
                       <Checkbox
                         checked={selectedIds.has(conta.id)}
@@ -818,13 +818,13 @@ export default function ContasReceber() {
                         onCheckedChange={() => toggleSelect(conta.id)}
                       />
                       <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{conta.parceiro_nome || conta.cliente}</p>
+                        <p className="mobile-record-card-title line-clamp-2">{conta.parceiro_nome || conta.cliente}</p>
                         {conta.endereco_cliente && (
-                          <p className="text-[10px] text-muted-foreground truncate">
+                          <p className="mobile-record-card-meta truncate">
                             {conta.endereco_cliente}{conta.bairro_cliente ? ` — ${conta.bairro_cliente}` : ""}
                           </p>
                         )}
-                        <p className="text-xs text-muted-foreground truncate">{conta.descricao}</p>
+                        <p className="mobile-record-card-meta truncate">{conta.descricao}</p>
                         {conta.vale_numero && <p className="text-[10px] text-muted-foreground">Vale nº {conta.vale_numero}</p>}
                       </div>
                     </div>
@@ -861,8 +861,8 @@ export default function ContasReceber() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center gap-2 flex-wrap">
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Badge variant={displayStatus === "Recebida" ? "default" : displayStatus === "Vencida" ? "destructive" : "secondary"} className="text-[10px]">{displayStatus}</Badge>
                       {conta.forma_pagamento && <Badge variant="outline" className="text-[10px]">{conta.forma_pagamento}</Badge>}
                       {(() => {
@@ -874,7 +874,7 @@ export default function ContasReceber() {
                     </div>
                     <span className="font-bold text-sm">R$ {Number(conta.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                   </div>
-                  <div className="flex items-center justify-between mt-1 gap-2">
+                  <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/45 pt-3">
                     <p className="text-[10px] text-muted-foreground">
                       {conta.data_venda && <>Venda: {format(new Date(conta.data_venda), "dd/MM/yyyy")} · </>}
                       Venc: {format(new Date(conta.vencimento + "T12:00:00"), "dd/MM/yyyy")}
@@ -887,10 +887,10 @@ export default function ContasReceber() {
           </div>
 
           {/* Desktop table */}
-          <div className="hidden overflow-x-auto rounded-xl border bg-card md:block">
+          <div className="hidden table-card-shell md:block">
             <Table>
               <TableHeader className="sticky top-0 z-10">
-                <TableRow className="border-b bg-muted/40 hover:bg-muted/40 [&_th]:h-11 [&_th]:border-0 [&_th]:text-[11px] [&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wide [&_th]:text-muted-foreground">
+                <TableRow className="border-b bg-muted/75 hover:bg-muted/75 [&_th]:h-11 [&_th]:border-0 [&_th]:text-[11px] [&_th]:font-extrabold [&_th]:uppercase [&_th]:tracking-[0.02em] [&_th]:text-foreground">
                   <TableHead className="w-10">
                     <Checkbox
                       checked={filtered.length > 0 && selectedIds.size === filtered.length}

@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils";
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto">
-        <table ref={ref} className={cn("w-full caption-bottom border-separate border-spacing-y-2 text-[13px] leading-[1.35] sm:text-sm", className)} {...props} />
+    <div className="relative w-full overflow-auto rounded-2xl">
+        <table ref={ref} className={cn("saas-table w-full min-w-[720px] caption-bottom border-separate border-spacing-y-2 text-[13px] leading-[1.35] sm:text-sm", className)} {...props} />
     </div>
   ),
 );
@@ -34,7 +34,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
   ({ className, ...props }, ref) => (
     <tr
       ref={ref}
-      className={cn("group border-0 transition-all duration-200 data-[state=selected]:bg-muted hover:-translate-y-0.5", className)}
+      className={cn("group border-0 transition-colors duration-150 data-[state=selected]:bg-muted", className)}
       {...props}
     />
   ),
@@ -46,7 +46,7 @@ const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<
     <th
       ref={ref}
       className={cn(
-        "h-12 border-0 px-4 text-left align-middle text-xs font-bold uppercase leading-[1.25] tracking-wide text-muted-foreground first:rounded-l-2xl last:rounded-r-2xl [&:has([role=checkbox])]:pr-0",
+        "h-11 border-0 px-4 text-left align-middle text-[11px] font-extrabold uppercase leading-[1.2] tracking-[0.02em] text-foreground first:rounded-l-2xl last:rounded-r-2xl [&:has([role=checkbox])]:pr-0",
         "text-foreground",
         className,
       )}
@@ -58,7 +58,7 @@ TableHead.displayName = "TableHead";
 
 const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<HTMLTableCellElement>>(
   ({ className, ...props }, ref) => (
-    <td ref={ref} className={cn("border-y border-border/35 bg-card p-4 align-middle font-medium leading-[1.35] shadow-sm shadow-foreground/5 transition-colors first:rounded-l-2xl first:border-l last:rounded-r-2xl last:border-r group-hover:bg-muted/35 [&:has([role=checkbox])]:pr-0", className)} {...props} />
+    <td ref={ref} className={cn("border-y border-border/45 bg-card px-3 py-3 align-middle font-medium leading-[1.35] shadow-sm shadow-foreground/5 transition-colors first:rounded-l-2xl first:border-l last:rounded-r-2xl last:border-r group-hover:bg-muted/35 md:px-4 md:py-3.5 [&:has([role=checkbox])]:pr-0", className)} {...props} />
   ),
 );
 TableCell.displayName = "TableCell";
