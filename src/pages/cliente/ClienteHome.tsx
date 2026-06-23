@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCliente } from "@/contexts/ClienteContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveClienteIdForUser } from "@/lib/clienteAppLookup";
 import { Search, Plus, Minus, ShoppingCart, Flame, Droplets, Package, RotateCcw, Zap, Star, Clock, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -122,19 +123,15 @@ export default function ClienteHome() {
       if (!empresaId) return;
 
       const userPhone = (user as any)?.phone || (user.user_metadata as any)?.telefone || null;
-      const orFilters: string[] = [];
-      if (user.email) orFilters.push(`email.eq.${user.email}`);
-      if (userPhone) orFilters.push(`telefone.eq.${userPhone}`);
-      if (orFilters.length === 0) return;
+      const clienteId = await resolveClienteIdForUser({
+        userId: user.id,
+        empresaId,
+        email: user.email,
+        phone: userPhone,
+      });
 
-      const { data: clienteData } = await supabase
-        .from("clientes")
-        .select("id")
-        .eq("empresa_id", empresaId)
-        .or(orFilters.join(","))
-        .maybeSingle();
-
-      if (!clienteData) return;
+      if (!clienteId) return;
+      const clienteData = { id: clienteId };
 
       // Último pedido entregue (para "Pedir de novo")
       const { data } = await supabase
@@ -483,22 +480,22 @@ function ProductCard({ product, quantity, cartQty, onQuantityChange, onAddToCart
   return (
     <Card className={`overflow-hidden border-border/60 transition-all duration-200 active:scale-[0.985] ${isAdding ? "scale-[0.98] shadow-sm" : "hover:shadow-md hover:border-primary/30"}`}>
       <CardContent className="p-2">
-        <div className="flex gap-3 items-stretch">
+        <div className="flex gap-2 sm:gap-3 items-stretch">
           {/* Product Image */}
-          <div className="w-28 h-28 shrink-0 flex items-center justify-center rounded-xl overflow-hidden relative bg-gradient-to-br from-muted/60 via-muted/30 to-muted/10 ring-1 ring-border/40">
+          <div className="w-20 h-20 sm:w-28 sm:h-28 shrink-0 flex items-center justify-center rounded-xl overflow-hidden relative bg-gradient-to-br from-muted/60 via-muted/30 to-muted/10 ring-1 ring-border/40">
             {imgSrc ? (
               <img
                 src={imgSrc}
                 alt={product.nome}
-                className="w-full h-full object-contain p-2 drop-shadow-sm"
+                className="w-full h-full object-contain p-1.5 sm:p-2 drop-shadow-sm"
                 loading="lazy"
               />
             ) : (
-              <Icon className="h-12 w-12 text-primary/40" />
+              <Icon className="h-10 w-10 sm:h-12 sm:w-12 text-primary/40" />
             )}
             {isOutOfStock && (
               <div className="absolute inset-0 bg-black/45 flex items-center justify-center backdrop-blur-[1px]">
-                <span className="text-white text-xs font-bold">Indisponível</span>
+                <span className="text-white text-[10px] sm:text-xs font-bold">Indisponível</span>
               </div>
             )}
           </div>
@@ -507,36 +504,36 @@ function ProductCard({ product, quantity, cartQty, onQuantityChange, onAddToCart
           <div className="flex-1 py-1 pr-1 flex flex-col justify-between min-w-0">
             <div>
               <div className="flex items-start justify-between gap-1">
-                <h3 className="font-bold text-sm leading-tight">{product.nome}</h3>
+                <h3 className="font-bold text-sm leading-tight truncate">{product.nome}</h3>
                 {cartQty > 0 && (
                   <Badge className="bg-primary/10 text-primary border-0 shrink-0 text-[10px] px-1.5 whitespace-nowrap">
-                    {cartQty} no carrinho
+                    {cartQty}
                   </Badge>
                 )}
               </div>
               {product.descricao && (
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{product.descricao}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 sm:line-clamp-2">{product.descricao}</p>
               )}
             </div>
 
-            <div className="flex items-center justify-between mt-2 gap-2">
-              <span className="text-lg font-black text-primary tracking-tight">
+            <div className="flex items-center justify-between mt-2 gap-1.5">
+              <span className="text-base sm:text-lg font-black text-primary tracking-tight whitespace-nowrap">
                 R$ {product.preco.toFixed(2)}
               </span>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 sm:gap-1.5">
                 <div className={`flex items-center border rounded-lg overflow-hidden bg-background transition-opacity ${quantity === 0 ? "border-border/50 opacity-60" : "border-border"}`}>
                   <button
-                    className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
+                    className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
                     onClick={() => onQuantityChange(-1)}
                     disabled={quantity === 0 || isOutOfStock}
                     aria-label="Diminuir quantidade"
                   >
                     <Minus className="h-3 w-3" />
                   </button>
-                  <span className={`w-7 text-center text-sm font-bold ${quantity === 0 ? "text-muted-foreground" : ""}`}>{quantity}</span>
+                  <span className={`w-6 sm:w-7 text-center text-xs sm:text-sm font-bold ${quantity === 0 ? "text-muted-foreground" : ""}`}>{quantity}</span>
                   <button
-                    className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors disabled:opacity-40"
+                    className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors disabled:opacity-40"
                     onClick={() => onQuantityChange(1)}
                     disabled={isOutOfStock}
                     aria-label="Aumentar quantidade"
@@ -549,9 +546,15 @@ function ProductCard({ product, quantity, cartQty, onQuantityChange, onAddToCart
                   size="sm"
                   onClick={onAddToCart}
                   disabled={isOutOfStock || isAdding}
-                  className={`h-7 px-3 rounded-lg text-xs font-bold transition-all ${isAdding ? "bg-green-600 hover:bg-green-600" : ""}`}
+                  aria-label="Adicionar ao carrinho"
+                  className={`h-7 px-2 sm:px-3 rounded-lg text-xs font-bold transition-all ${isAdding ? "bg-green-600 hover:bg-green-600" : ""}`}
                 >
-                  {isAdding ? "✓" : <><ShoppingCart className="h-3 w-3 mr-1" />Add</>}
+                  {isAdding ? "✓" : (
+                    <>
+                      <ShoppingCart className="h-3 w-3 sm:mr-1" />
+                      <span className="hidden sm:inline">Add</span>
+                    </>
+                  )}
                 </Button>
               </div>
             </div>

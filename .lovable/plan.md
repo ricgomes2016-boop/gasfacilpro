@@ -1,56 +1,60 @@
-## Problemas identificados
+## Objetivo
+Resolver 4 problemas no app do cliente:
+1. Cards de produto cortados em telas pequenas (~384px).
+2. Pedidos finalizados não aparecem em "Meus Pedidos" nem abrem rastreamento.
+3. Pedido entra no ERP como "Cliente não identificado".
+4. Quando o endereço informado já existir no sistema, vincular ao cliente existente (e atualizar o telefone) em vez de criar um novo cadastro.
 
-**1. Pedido não aparece no histórico após finalizar**
-- `ClienteCheckout.tsx` insere o pedido com `cliente_id = null` quando o cliente ainda não existe na tabela `clientes` da empresa (login por telefone, sem cadastro prévio). O pedido fica "órfão".
-- `ClienteHistorico.tsx` busca o cliente **apenas por `email`** (sem `empresa_id`, sem telefone) e filtra pedidos por `cliente_id`. Se o usuário entrou por telefone ou o cliente nunca foi achado, retorna lista vazia mesmo havendo pedidos.
+---
 
-**2. Não há acompanhamento pós-checkout**
-- Após "Pedido realizado com sucesso", o app redireciona para `/cliente/historico`. Já existe `/cliente/rastreamento/:orderId`, mas o cliente não é levado para lá nem avisado em tempo real das mudanças de status.
+## 1) Responsividade mobile (`ClienteHome.tsx` – ProductCard)
+No print, a imagem do produto ocupa ~30% da largura, e o botão "Add" estoura para fora.
 
-## Plano
+Ajustes (somente UI, sem mexer na lógica):
+- Imagem: `w-28 h-28` → `w-20 h-20 sm:w-28 sm:h-28`.
+- Gap entre imagem e info: `gap-3` → `gap-2 sm:gap-3`.
+- Botão "Add": mostrar só ícone de carrinho no mobile (label "Add" escondido em `<sm`).
+- Stepper de quantidade: encolher para `w-6 h-6` no mobile e `w-7 h-7` em `sm`.
+- Padding do `CardContent` continua `p-2`, mas reduzir paddings internos para evitar overflow.
+- "Indisponível" overlay: já está OK, só verificar contraste.
 
-### A) Corrigir vínculo do pedido com o cliente (`ClienteCheckout.tsx`)
-- Antes de criar o pedido, garantir que existe um registro em `clientes` para `empresa_id` do usuário:
-  1. Buscar por `empresa_id` + (`email` OU `telefone`) — o que estiver disponível no `user`.
-  2. Se não existir, fazer `INSERT` mínimo: `empresa_id`, `nome` (de `user_metadata.nome` ou email/telefone), `email`, `telefone`, `tipo='varejo'`, `ativo=true`.
-  3. Usar o `id` retornado como `cliente_id` do pedido (nunca enviar `null`).
-- Manter resolução de `unidade_id` atual.
+Resultado esperado: três blocos (preço · stepper · botão) cabem na linha em 360–384px sem corte.
 
-### B) Corrigir leitura do histórico (`ClienteHistorico.tsx`)
-- Trocar a busca do cliente para: `empresa_id` (vindo de `profiles.empresa_id`) + `OR(email, telefone)`.
-- Se ainda não existir, mostrar estado vazio normalmente (sem quebrar).
-- Aplicar a mesma resolução em qualquer outro lugar que dependa disso (revisar `ClienteHome.tsx` e `ClienteCarteira.tsx` se usarem o mesmo padrão — apenas se necessário).
+## 2) Pedido não aparece no app + rastreamento (`ClienteCheckout.tsx`, `ClienteHistorico.tsx`, `ClienteHome.tsx`)
+Causa provável: o `cliente_id` gravado no pedido aponta para um registro que o app não consegue reler depois (mismatch de telefone/e-mail com a busca em `ClienteHistorico`/`ClienteHome`).
 
-### C) Acompanhamento do pedido após finalizar
+Correções:
+- No `ClienteCheckout`, depois de resolver/criar o cliente, **normalizar o telefone** (apenas dígitos, com DDI) e salvar com o mesmo formato usado nas buscas posteriores.
+- Persistir o `cliente_id` recém-criado em um cache local (`localStorage["app_cliente_id"]`) e usá-lo como atalho em `ClienteHistorico` e `ClienteHome` para evitar depender de matching por e-mail/telefone que pode divergir.
+- `ClienteHistorico` e `ClienteHome`: ao buscar cliente, tentar **(a)** cache local, **(b)** match por `empresa_id + telefone normalizado`, **(c)** match por `empresa_id + email`. Se nada bater, exibir estado vazio coerente.
+- Garantir o redirect para `/cliente/rastreamento/:pedidoId` após sucesso (já existe) e revalidar que a rota está montada no `clienteAppRoutes`.
 
-**C.1 Redirect pós-checkout**
-- Em `ClienteCheckout.tsx`, após sucesso, redirecionar para `/cliente/rastreamento/:pedidoId` em vez de `/cliente/historico`.
+## 3) "Cliente não identificado" no ERP
+O ERP só faz join `pedidos → clientes (id, nome, …)`. Se o cliente recém-criado pelo app não casa pela RLS, o join volta `null` e cai no fallback "Cliente não identificado".
 
-**C.2 Melhorar `ClienteRastreamento.tsx`**
-- Adicionar subscription Realtime no `pedidos` (filtrada por `id=eq.:orderId`) para atualizar status automaticamente.
-- Garantir que a timeline mostre os 4 estados: **Recebido → Confirmado → A caminho → Entregue** com horário em cada etapa.
-- Botão "Ver meus pedidos" para voltar ao histórico e "Pedir novamente" quando entregue/cancelado.
-- Mensagem clara enquanto status = `pendente`: "Aguardando confirmação da loja".
+Correções no fluxo de checkout:
+- Antes de inserir o pedido, garantir que o registro de cliente tenha **`nome` significativo**: se `user_metadata.nome` vier vazio, usar o nome digitado no cadastro do app (ou o telefone formatado) em vez de "Cliente App".
+- Salvar também no próprio pedido campos auxiliares já existentes (ex.: `observacoes`) com `Cliente: {nome} ({telefone})` para o ERP exibir mesmo sem join.
+- Confirmar via consulta que o cliente criado tem o mesmo `empresa_id` da unidade do pedido (já é o caso, mas adicionar log defensivo).
 
-**C.3 Card "Pedido em andamento" no `ClienteHome.tsx`**
-- Quando existir pedido do cliente com status `pendente` ou `em_rota`, exibir card destacado no topo da Home com status atual e botão **"Acompanhar"** que abre `/cliente/rastreamento/:id`.
-- Atualizar via Realtime para sumir quando entregue/cancelado.
+## 4) Match por endereço (auto-merge de cliente)
+Antes de criar um novo registro em `clientes`, procurar um cliente existente cujo endereço bata com o que o usuário está usando no checkout.
 
-### D) Validação
-- Após implementar, finalizar um pedido de teste no app Forte Gás e confirmar:
-  - Redirect leva ao rastreamento.
-  - Pedido aparece em "Minhas Compras" com status correto.
-  - Card de acompanhamento aparece na Home enquanto pendente.
+Lógica nova em `ClienteCheckout` (antes do bloco que cria cliente):
+1. Montar `enderecoCompleto` a partir do endereço selecionado/digitado.
+2. Buscar em `cliente_enderecos` por `empresa_id` + (`rua` + `numero` + `bairro`) com `ilike` case-insensitive.
+3. Se encontrar, pegar o `cliente_id` daquele endereço e:
+   - Atualizar o `telefone` desse cliente para o telefone do usuário logado (apenas se estiver vazio ou diferente).
+   - Vincular o `user_id` atual ao cliente (se houver coluna correspondente; senão, só usar o id).
+4. Caso contrário, manter o fluxo atual de criar um novo cliente.
 
-## Detalhes técnicos
+Observação: nada disso muda RLS ou schema — usa as policies existentes (`Staff can update clientes of their empresa`). O update do telefone só ocorre quando o `empresa_id` confere.
 
-- Tabela `clientes` **não tem `user_id`**, então o vínculo continua sendo `empresa_id + email/telefone`.
-- RLS de `pedidos` exige `unidade_id` e `cliente_id` corretos — por isso o upsert do cliente é obrigatório.
-- Realtime: usar `supabase.channel().on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pedidos', filter: 'id=eq.<orderId>' })`.
-- Nenhuma migração de banco é necessária.
+---
 
-## Arquivos a alterar
-- `src/pages/cliente/ClienteCheckout.tsx` — upsert do cliente + redirect para rastreamento.
-- `src/pages/cliente/ClienteHistorico.tsx` — busca de cliente por email/telefone + empresa_id.
-- `src/pages/cliente/ClienteRastreamento.tsx` — Realtime + timeline com 4 estados + textos.
-- `src/pages/cliente/ClienteHome.tsx` — card "Pedido em andamento" com Realtime.
+## Arquivos a editar
+- `src/pages/cliente/ClienteHome.tsx` — ProductCard responsivo + lookup do cliente com cache.
+- `src/pages/cliente/ClienteHistorico.tsx` — lookup do cliente com cache + telefone normalizado.
+- `src/pages/cliente/ClienteCheckout.tsx` — normalização de telefone, match por endereço, atualização do telefone do cliente existente, gravação do cache `app_cliente_id`, nome mais significativo.
+
+Sem migrações de banco e sem mexer em `App.tsx`/rotas.

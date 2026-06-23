@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCliente } from "@/contexts/ClienteContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizePhone, setCachedClienteId } from "@/lib/clienteAppLookup";
 import {
   CreditCard,
   Banknote,
@@ -137,49 +138,97 @@ export default function ClienteCheckout() {
         return;
       }
 
-      // cliente_id: buscar por e-mail/telefone na mesma empresa, ou criar
+      // cliente_id: prioridade
+      // (1) match por endereço já cadastrado na empresa → reaproveita o cliente
+      // (2) match por telefone (normalizado em dígitos)
+      // (3) match por email
+      // (4) cria novo registro com nome significativo
       let clienteId: string | null = null;
-      const userPhone = (user as any)?.phone || (user?.user_metadata as any)?.telefone || null;
+      const userPhoneRaw = (user as any)?.phone || (user?.user_metadata as any)?.telefone || null;
+      const userPhone = normalizePhone(userPhoneRaw);
       const userEmail = user?.email || null;
-      if (user) {
-        const orFilters: string[] = [];
-        if (userEmail) orFilters.push(`email.eq.${userEmail}`);
-        if (userPhone) orFilters.push(`telefone.eq.${userPhone}`);
-        if (orFilters.length > 0) {
-          const { data: clienteData } = await supabase
-            .from("clientes")
-            .select("id")
-            .eq("empresa_id", empresaId)
-            .or(orFilters.join(","))
-            .maybeSingle();
-          clienteId = clienteData?.id || null;
-        }
+      const userNome =
+        (user?.user_metadata as any)?.nome ||
+        (user?.user_metadata as any)?.full_name ||
+        null;
 
-        // Se ainda não existe, cria registro mínimo para vincular o pedido
-        if (!clienteId) {
-          const nomeBase =
-            (user.user_metadata as any)?.nome ||
-            (user.user_metadata as any)?.full_name ||
-            userEmail?.split("@")[0] ||
-            userPhone ||
-            "Cliente App";
-          const { data: novoCliente, error: novoClienteErr } = await (supabase as any)
-            .from("clientes")
-            .insert({
-              empresa_id: empresaId,
-              nome: nomeBase,
-              email: userEmail,
-              telefone: userPhone,
-              tipo: "varejo",
-              ativo: true,
-            })
-            .select("id")
-            .single();
-          if (novoClienteErr) {
-            console.error("Erro ao criar cliente:", novoClienteErr);
-          } else {
-            clienteId = novoCliente?.id || null;
+      // (1) Procura por endereço já cadastrado (mesma empresa)
+      const enderecoRua = (enderecoSelecionado?.rua || novoEndereco.rua || "").trim();
+      const enderecoNumero = (enderecoSelecionado?.numero || novoEndereco.numero || "").trim();
+      const enderecoBairro = (enderecoSelecionado?.bairro || novoEndereco.bairro || "").trim();
+
+      if (enderecoRua && enderecoNumero && enderecoBairro) {
+        const { data: enderecosMatch } = await (supabase as any)
+          .from("cliente_enderecos")
+          .select("cliente_id, rua, numero, bairro, clientes!inner(id, empresa_id, telefone)")
+          .ilike("rua", enderecoRua)
+          .eq("numero", enderecoNumero)
+          .ilike("bairro", enderecoBairro)
+          .eq("clientes.empresa_id", empresaId)
+          .limit(5);
+
+        const hit = (enderecosMatch || []).find((e: any) => e.cliente_id);
+        if (hit?.cliente_id) {
+          clienteId = hit.cliente_id;
+          // Atualiza telefone se estiver vazio ou diferente
+          const telefoneAtual = normalizePhone(hit?.clientes?.telefone);
+          if (userPhone && telefoneAtual !== userPhone) {
+            await (supabase as any)
+              .from("clientes")
+              .update({ telefone: userPhone })
+              .eq("id", clienteId);
           }
+        }
+      }
+
+      // (2) telefone
+      if (!clienteId && userPhone) {
+        const { data: porTel } = await (supabase as any)
+          .from("clientes")
+          .select("id, telefone")
+          .eq("empresa_id", empresaId)
+          .not("telefone", "is", null)
+          .limit(200);
+        const hit = (porTel || []).find(
+          (c: any) => normalizePhone(c.telefone) === userPhone
+        );
+        if (hit) clienteId = hit.id;
+      }
+
+      // (3) email
+      if (!clienteId && userEmail) {
+        const { data: porEmail } = await (supabase as any)
+          .from("clientes")
+          .select("id")
+          .eq("empresa_id", empresaId)
+          .eq("email", userEmail)
+          .maybeSingle();
+        if (porEmail?.id) clienteId = porEmail.id;
+      }
+
+      // (4) cria novo
+      if (!clienteId) {
+        const nomeBase =
+          userNome ||
+          (userEmail ? userEmail.split("@")[0] : null) ||
+          (userPhone ? `Cliente ${userPhone.slice(-4)}` : null) ||
+          "Cliente App";
+        const { data: novoCliente, error: novoClienteErr } = await (supabase as any)
+          .from("clientes")
+          .insert({
+            empresa_id: empresaId,
+            nome: nomeBase,
+            email: userEmail,
+            telefone: userPhone,
+            tipo: "varejo",
+            ativo: true,
+          })
+          .select("id")
+          .single();
+        if (novoClienteErr) {
+          console.error("Erro ao criar cliente:", novoClienteErr);
+        } else {
+          clienteId = novoCliente?.id || null;
         }
       }
 
@@ -188,6 +237,9 @@ export default function ClienteCheckout() {
         setIsSubmitting(false);
         return;
       }
+
+      // Cache local para que ClienteHome/Historico achem rapidamente
+      setCachedClienteId(clienteId);
 
       // Unidade: prefere a loja escolhida pelo cliente (se pertencer à empresa);
       // fallback: primeira unidade ativa da empresa (satisfaz tenant_isolation_pedidos)
@@ -231,7 +283,10 @@ export default function ClienteCheckout() {
           status: "pendente",
           canal_venda: "Aplicativo",
           origem_pedido: "app_cliente",
-          observacoes: changeFor ? `Troco para R$ ${changeFor}` : null,
+          observacoes: [
+            userNome || userEmail || userPhone ? `Cliente App: ${userNome || userEmail || userPhone}${userPhone ? ` (${userPhone})` : ""}` : null,
+            changeFor ? `Troco para R$ ${changeFor}` : null,
+          ].filter(Boolean).join(" — ") || null,
         })
         .select("id")
         .single();

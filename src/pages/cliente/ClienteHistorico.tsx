@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCliente } from "@/contexts/ClienteContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveClienteIdForUser } from "@/lib/clienteAppLookup";
 import { AvaliacaoEntregaDialog } from "@/components/cliente/AvaliacaoEntregaDialog";
 import { 
   History, 
@@ -81,25 +82,16 @@ export default function ClienteHistorico() {
           return;
         }
 
-        // Busca cliente por email/telefone dentro da empresa
+        // Busca cliente: cache → telefone (dígitos) → email
         const userPhone = (user as any)?.phone || (user.user_metadata as any)?.telefone || null;
-        const orFilters: string[] = [];
-        if (user.email) orFilters.push(`email.eq.${user.email}`);
-        if (userPhone) orFilters.push(`telefone.eq.${userPhone}`);
+        const clienteId = await resolveClienteIdForUser({
+          userId: user.id,
+          empresaId,
+          email: user.email,
+          phone: userPhone,
+        });
 
-        if (orFilters.length === 0) {
-          setPedidos([]);
-          return;
-        }
-
-        const { data: clienteData } = await supabase
-          .from("clientes")
-          .select("id")
-          .eq("empresa_id", empresaId)
-          .or(orFilters.join(","))
-          .maybeSingle();
-
-        if (!clienteData) {
+        if (!clienteId) {
           setPedidos([]);
           return;
         }
@@ -113,7 +105,7 @@ export default function ClienteHistorico() {
               produtos:produto_id (nome, image_url)
             )
           `)
-          .eq("cliente_id", clienteData.id)
+          .eq("cliente_id", clienteId)
           .order("created_at", { ascending: false })
           .limit(50);
 
