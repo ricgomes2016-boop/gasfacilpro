@@ -1,59 +1,115 @@
-## Portal da Operadora de Cartão — Layout estilo PagBank/Stone
+## Objetivo
 
-Reformular `OperadoraCartaoDetalhe.tsx` para que ao abrir uma operadora, o usuário veja uma **home da operadora** com cards de acesso rápido (estilo portal real), e cada card abra sua respectiva seção operacional.
+Permitir configurar integrações bancárias direto da página da conta (Pix/Boleto/Extrato/Conciliação), começando com **PagBank** e aproveitando a integração **Asaas** já existente no projeto.
 
-### 1. Home da operadora (nova aba "Início")
+Observação importante: verifiquei o banco e a empresa **Forte Gás** ainda **não tem chave Asaas configurada** nem contas bancárias cadastradas. O plano cobre os dois cenários: (a) se já existir chave Asaas para a unidade/empresa, criamos a conta já vinculada; (b) se não existir, abrimos o passo de configuração antes.
 
-Logo abaixo do header branded da operadora, grid de **6 cards de acesso rápido** (2 col mobile / 3 col tablet / 6 col desktop), cada um com ícone, título e métrica resumo:
+Também não consigo assistir o vídeo do YouTube — se quiser que eu incorpore algo de lá, me passe os pontos em texto.
 
-```text
-┌─────────┬─────────┬─────────┬─────────┬─────────┬─────────┐
-│ Vendas  │Recebíve.│  Taxas  │Relatório│Conferên.│Maquinin.│
-│ R$ X,XX │ R$ X,XX │ 2.99%   │   📊    │  ⚖️     │  2 ativ.│
-│  hoje   │ a receb │ débito  │         │         │         │
-└─────────┴─────────┴─────────┴─────────┴─────────┴─────────┘
+---
+
+## 1. Card "Configurações" nas contas bancárias
+
+Arquivo: `src/components/financeiro/conta-detalhe/QuickShortcuts.tsx` + `src/pages/financeiro/ContaBancariaDetalhe.tsx`.
+
+- Adicionar item `{ id: "config", label: "Configurações", icon: Settings }` em `ALL_ITEMS`.
+- Aparecer **apenas em contas com provedor integrável** (Asaas, PagBank, Itaú Pix, etc.). Critério: função utilitária `getBankProvider(banco)` que devolve `"asaas" | "pagbank" | "itau" | null`. Esconder o card quando `null` ou quando `tipo === "caixa_interno"`.
+- Nova `<TabsContent value="config">` que renderiza `<IntegracaoBancariaPanel conta={conta} provider={provider} />`.
+
+## 2. Painel de integração `IntegracaoBancariaPanel`
+
+Novo: `src/components/financeiro/conta-detalhe/IntegracaoBancariaPanel.tsx`.
+
+Conteúdo dinâmico por `provider`:
+- **Status da conexão** (badge verde/vermelho) com botão "Testar conexão".
+- **Toggle Sandbox / Produção**.
+- Campos de credenciais (mascarados, com botão "alterar").
+- Lista de **capacidades habilitadas**: Extrato, Saldo, Pix, Boleto, Maquininha (conforme provider).
+- Link "Como obter as credenciais" + URL da documentação oficial.
+- Botão "Sincronizar agora" (chama edge function correspondente).
+
+Persistência: linha em `integracoes_config` (`unidade_id`, `integracao_id='pagbank'|'asaas'|...`, `config` jsonb, `ativo`). Já existe RLS de admin/gestor.
+
+## 3. Integração PagBank
+
+### Credenciais (secrets)
+Pedir via `add_secret`:
+- `PAGBANK_API_TOKEN_SANDBOX`
+- `PAGBANK_API_TOKEN_PROD`
+
+Por unidade, gravar em `integracoes_config.config`:
+```json
+{ "ambiente": "sandbox" | "producao", "email_conta": "...", "webhook_token": "..." }
 ```
 
-Cards usam `operatorGradient` suave + hover lift. Cada card é um botão que muda a aba ativa do `Tabs`.
+### Edge function `pagbank-api` (`supabase/functions/pagbank-api/index.ts`)
+Ações suportadas:
+- `get_account` – saldo + dados da conta (`GET /accounts/{id}` ou `GET /balance`).
+- `list_transactions` – extrato no período → grava em `extrato_bancario`.
+- `list_orders` / `list_receivables` – recebíveis de maquininha → grava em `pagamentos_cartao` + `contas_receber` (D+1/D+30 como já fazemos para PagBank PlugPag).
+- `create_pix_charge` – `POST /orders` com `qr_codes` → devolve `qr_code` + `txid`, cria `contas_receber` com `forma_pagamento='pix'` e referência externa.
+- `create_boleto_charge` – `POST /orders` com `charges[].payment_method.type='BOLETO'` → cria `contas_receber` + `boletos_emitidos`.
+- `test_connection` – ping em `/public/payment-methods`.
 
-### 2. Abas reorganizadas
+Base URL: `https://sandbox.api.pagseguro.com` ou `https://api.pagseguro.com`. Auth: `Authorization: Bearer ${token}`.
 
-Substitui as 3 abas atuais (Recebíveis/Conferência/Relatório) por **7 abas**:
+### Webhook `pagbank-webhook`
+Endpoint público para receber notificações `CHARGE.PAID`, `ORDER.PAID`, atualizar `contas_receber.status='recebido'` e baixar saldo.
 
-- **Início** — grid de cards de acesso rápido + KPIs do mês (vendido, recebido, a receber, taxas pagas).
-- **Vendas** — *novo* `VendasOperadoraTab`. Tabela `pagamentos_cartao` filtrada por `operadora_id`, colunas: **Data | Descrição (pedido/cliente/bandeira/parcelas) | Valor da venda (`valor_bruto`) | Valor líquido (`valor_liquido`)**. Filtros por período, busca, export CSV, paginação client-side, ordem desc por `created_at`.
-- **Recebíveis** — *novo* `RecebiveisOperadoraTab` em 2 colunas:
-  - **Recebido** (`liquidado = true`) — tabela: Data liquidação | Descrição | Bruto | Taxa | Líquido | Conta destino.
-  - **A receber** (`liquidado = false`) — tabela: Previsão | Descrição | Bruto | Taxa | Líquido | Status. Totais no topo de cada coluna. Mantém `RecebiveisPipeline` como subview opcional.
-- **Taxas** — *novo* `TaxasOperadoraTab`. Exibe e permite editar as taxas (`taxa_debito`, `taxa_credito_vista`, `taxa_credito_parcelado`, `taxa_pix`) e prazos (`prazo_debito`, `prazo_credito`, `prazo_pix`) da operadora — formulário direto sem dialog.
-- **Relatórios** — *novo* `RelatoriosOperadoraTab` com 3 sub-relatórios em segmented control:
-  1. **O que vendi** — agregação por período (dia/semana/mês), gráfico + tabela, export.
-  2. **O que vou receber** — projeção por data de liquidação futura.
-  3. **Recebido** — histórico de liquidações por período.
-  Reaproveita `PagamentosCartaoRelatorio` filtrado por `operadoraId`.
-- **Conferência** — `ConferenciaCartao` existente + reforço do fluxo de import:
-  - Botão destaque "Importar relatório PDF" (PagBank/Stone/Cielo) usando edge function `parse-extrato-pdf`.
-  - Após import, view de **comparação lado a lado**: linhas do PDF × linhas de `pagamentos_cartao` no mesmo período, com status `conferido / divergente / faltante`. Ações de match manual e marcar como conferido.
-- **Maquininhas** — *novo* `MaquininhasOperadoraTab`. Lista `terminais_cartao` filtrada por `operadora_id`: serial, modelo, loja/unidade, status, última transação. CRUD básico.
+### UI específica do PagBank
+Dentro de `IntegracaoBancariaPanel` quando `provider==='pagbank'`:
+- Campos: ambiente (toggle), e-mail da conta, token (digitado uma vez, salvo em secret).
+- Capacidades: Extrato, Saldo, Pix, Boleto, Conciliação de maquininha (link para `/financeiro/cartoes`).
+- Botões: Testar conexão · Sincronizar extrato (últimos 30 dias) · Importar recebíveis.
 
-### 3. Detalhes técnicos
+## 4. Auto-criar conta bancária do Asaas
 
-- Tabs controladas (`useState` para `activeTab`) para que os quick cards naveguem entre seções.
-- Novos componentes em `src/components/financeiro/operadora-detalhe/`:
-  - `QuickAccessGrid.tsx`
-  - `VendasOperadoraTab.tsx`
-  - `RecebiveisOperadoraTab.tsx`
-  - `TaxasOperadoraTab.tsx`
-  - `RelatoriosOperadoraTab.tsx`
-  - `MaquininhasOperadoraTab.tsx`
-- Queries `react-query` por aba (lazy: só roda quando a aba ativa) com `keyQuery` incluindo `operadoraId` + filtro de período.
-- Ordenação default: **data desc** (mais recente no topo) em todas as tabelas, com toggle.
-- Sem alterações de schema. Sem alterações em RLS. Sem mexer em `App.tsx` nem rotas.
-- Mantém isolamento por unidade já existente em `pagamentos_cartao` (RLS).
-- Formatação de data via split de string `YYYY-MM-DD` para evitar shift de timezone (mesmo padrão aplicado no extrato bancário).
+Novo botão na lista de contas (`ContasBancarias.tsx`): **"+ Importar conta do Asaas"** (visível quando a unidade ativa tem `configuracoes_empresa.asaas_api_key` preenchida).
 
-### 4. Fora de escopo
+Fluxo:
+1. Chama edge function `asaas-api` com `action='get_account_info'` (a função já existe; adicionar essa ação se faltar) → `GET /myAccount` e `/finance/balance`.
+2. Faz `insert` em `contas_bancarias` com:
+   - `nome = "Asaas - <nome unidade>"`
+   - `banco = "Asaas"` (entra na lista de `getBankProvider → 'asaas'`)
+   - `tipo = 'corrente'`
+   - `agencia/conta/chave_pix` do retorno
+   - `saldo_inicial = saldo_atual = balance.totalBalance`
+   - `unidade_id` da unidade ativa
+3. Grava `integracoes_config` com `integracao_id='asaas'`, `config={"vinculada_conta_id": <id>, "ambiente": sandbox?}`.
+4. Toast "Conta Asaas criada e sincronizada".
 
-- Integração real-time com APIs PagBank/Stone/Cielo (mantém import manual via PDF).
-- Alteração em `pagamentos_cartao`, `terminais_cartao`, `conferencia_cartao` ou migrações de banco.
-- Mudanças no card da operadora em `GestaoCartoes.tsx`.
+Para Forte Gás especificamente: como a empresa **ainda não tem chave Asaas**, o botão direciona primeiro para `/configuracoes/asaas` para colar a chave (sandbox por padrão); ao salvar, oferece "Criar conta bancária agora".
+
+## 5. Detecção do provedor (`getBankProvider`)
+
+`src/lib/bancos/bankProviders.ts` (novo):
+
+```text
+Asaas              -> asaas
+PagBank/PagSeguro  -> pagbank
+Itau               -> itau (futuro)
+default            -> null (sem card Configurações)
+```
+
+## 6. Entregáveis
+
+Arquivos novos:
+- `src/components/financeiro/conta-detalhe/IntegracaoBancariaPanel.tsx`
+- `src/components/financeiro/conta-detalhe/providers/PagBankConfigForm.tsx`
+- `src/components/financeiro/conta-detalhe/providers/AsaasConfigForm.tsx`
+- `src/lib/bancos/bankProviders.ts`
+- `supabase/functions/pagbank-api/index.ts`
+- `supabase/functions/pagbank-webhook/index.ts`
+
+Alterações:
+- `QuickShortcuts.tsx` – item Configurações.
+- `ContaBancariaDetalhe.tsx` – TabsContent `config`.
+- `ContasBancarias.tsx` – botão "Importar conta do Asaas".
+- `supabase/functions/asaas-api/index.ts` – ação `get_account_info`.
+
+Secrets a solicitar quando o usuário confirmar: `PAGBANK_API_TOKEN_SANDBOX`, `PAGBANK_API_TOKEN_PROD`, `PAGBANK_WEBHOOK_TOKEN`.
+
+## 7. Fora do escopo desta entrega
+
+- Integração Itaú / BB / Sicoob (fica preparada via `bankProviders.ts`).
+- Conciliação automática de extrato PagBank com Contas a Receber existentes (próxima fase).
