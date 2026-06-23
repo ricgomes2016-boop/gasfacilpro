@@ -72,13 +72,13 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-gradient-to-b from-primary via-primary to-primary/85 text-primary-foreground shadow-lg shadow-primary/20 border-b border-white/10">
+      {/* Header — minimal premium */}
+      <header className="sticky top-0 z-50 bg-primary text-primary-foreground shadow-sm border-b border-primary/20">
         <div className="flex items-center justify-between gap-3 px-4 py-2.5">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="h-10 w-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center shrink-0 ring-1 ring-white/20">
+            <div className="h-9 w-9 rounded-xl bg-primary-foreground/10 flex items-center justify-center shrink-0">
               {empresaInfo?.logo_url ? (
-                <img src={empresaInfo.logo_url} alt={tituloPrincipal} className="h-7 w-7 object-contain rounded-full" />
+                <img src={empresaInfo.logo_url} alt={tituloPrincipal} className="h-7 w-7 object-contain rounded-lg" />
               ) : (
                 <img src={logoImg} alt={tituloPrincipal} className="h-6 w-6 object-contain" />
               )}
@@ -86,11 +86,11 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
             <div className="flex flex-col min-w-0 leading-tight">
               <span className="text-[10px] uppercase tracking-[0.14em] opacity-70 font-medium">Sua loja</span>
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="font-semibold text-base tracking-tight truncate drop-shadow-sm">
+                <span className="font-semibold text-base tracking-tight truncate">
                   {tituloPrincipal}
                 </span>
                 {hasMultipleLojas && (
-                  <div className="shrink-0 [&>*]:!text-primary-foreground [&_button]:!h-6 [&_button]:!px-1.5 [&_button]:!bg-white/10 [&_button]:!border-white/20">
+                  <div className="shrink-0 [&>*]:!text-primary-foreground [&_button]:!h-6 [&_button]:!px-1.5 [&_button]:!bg-primary-foreground/10 [&_button]:!border-primary-foreground/20">
                     <LojaSelector />
                   </div>
                 )}
@@ -176,29 +176,32 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
         </div>
       )}
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 backdrop-blur-md bg-background/85 border-t border-border z-50">
-        <div className="flex justify-around items-center py-2">
+      {/* Bottom Navigation — premium pill indicator */}
+      <nav className="fixed bottom-0 left-0 right-0 backdrop-blur-md bg-background/90 border-t border-border z-50 pb-[env(safe-area-inset-bottom)]">
+        <div className="flex justify-around items-center py-1.5">
           {bottomNavItems.map((item) => {
             const isMenu = item.path === "__menu__";
             const isActive = !isMenu && location.pathname === item.path;
             const baseCls = cn(
-              "flex flex-col items-center py-1 px-3 rounded-lg transition-colors relative",
-              isActive ? "text-primary" : "text-muted-foreground"
+              "flex flex-col items-center justify-center pt-1.5 pb-1 px-3 rounded-xl transition-all duration-200 relative min-w-[56px]",
+              isActive ? "text-primary" : "text-muted-foreground hover:text-foreground active:scale-95"
             );
             const inner = (
               <>
+                {isActive && (
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 h-1 w-8 rounded-full bg-primary animate-fade-in" />
+                )}
                 <div className="relative">
-                  <item.icon className="h-5 w-5" />
+                  <item.icon className={cn("h-5 w-5 transition-transform", isActive && "scale-110")} />
                   {item.showBadge && cartItemsCount > 0 && (
                     <Badge
-                      className="absolute -top-2 -right-2 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-destructive"
+                      className="absolute -top-2 -right-2 h-4 min-w-4 px-1 flex items-center justify-center text-[10px] bg-destructive animate-bounce"
                     >
                       {cartItemsCount}
                     </Badge>
                   )}
                 </div>
-                <span className="text-xs mt-1">{item.label}</span>
+                <span className={cn("text-[10px] mt-0.5 font-medium", isActive && "font-semibold")}>{item.label}</span>
               </>
             );
             if (isMenu) {
