@@ -82,16 +82,16 @@ export default function ClienteHistorico() {
           return;
         }
 
-        // Busca cliente: cache → telefone (dígitos) → email
+        // Busca TODOS os cliente_ids do usuário na empresa (cache + telefone + email)
         const userPhone = (user as any)?.phone || (user.user_metadata as any)?.telefone || null;
-        const clienteId = await resolveClienteIdForUser({
+        const clienteIds = await resolveAllClienteIdsForUser({
           userId: user.id,
           empresaId,
           email: user.email,
           phone: userPhone,
         });
 
-        if (!clienteId) {
+        if (clienteIds.length === 0) {
           setPedidos([]);
           return;
         }
@@ -105,9 +105,10 @@ export default function ClienteHistorico() {
               produtos:produto_id (nome, image_url)
             )
           `)
-          .eq("cliente_id", clienteId)
+          .in("cliente_id", clienteIds)
           .order("created_at", { ascending: false })
           .limit(50);
+
 
         if (!error && data) {
           setPedidos(data as unknown as PedidoDB[]);
