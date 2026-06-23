@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { QrCode, FileText, Receipt, ArrowRightLeft, FileSpreadsheet, LayoutDashboard, Settings } from "lucide-react";
+import { QrCode, FileText, Receipt, ArrowRightLeft, FileSpreadsheet, LayoutDashboard, Settings, HandCoins } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface QuickShortcutsProps {
@@ -12,7 +12,8 @@ interface QuickShortcutsProps {
 const ALL_ITEMS = [
   { id: "visao", label: "Visão Geral", icon: LayoutDashboard },
   { id: "pix", label: "PIX", icon: QrCode },
-  { id: "boletos", label: "Boletos", icon: FileText },
+  { id: "cobrancas", label: "Cobranças", icon: HandCoins },
+  { id: "boletos", label: "Boletos a pagar", icon: FileText },
   { id: "extrato", label: "Extrato", icon: Receipt },
   { id: "transferencia", label: "Transferência", icon: ArrowRightLeft },
   { id: "ofx", label: "OFX", icon: FileSpreadsheet },
