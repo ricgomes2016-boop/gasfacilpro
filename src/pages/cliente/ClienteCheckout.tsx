@@ -254,7 +254,7 @@ export default function ClienteCheckout() {
 
       clearCart();
       toast.success("Pedido realizado com sucesso! 🎉");
-      navigate("/cliente/historico");
+      navigate(`/cliente/rastreamento/${pedido.id}`);
     } catch (error: any) {
       console.error("Erro ao criar pedido:", error);
       const msg = error?.message || error?.details || "Tente novamente.";
