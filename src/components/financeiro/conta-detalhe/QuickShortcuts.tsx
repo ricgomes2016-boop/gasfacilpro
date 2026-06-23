@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { QrCode, FileText, Receipt, ArrowRightLeft, FileSpreadsheet, LayoutDashboard } from "lucide-react";
+import { QrCode, FileText, Receipt, ArrowRightLeft, FileSpreadsheet, LayoutDashboard, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface QuickShortcutsProps {
@@ -16,11 +16,12 @@ const ALL_ITEMS = [
   { id: "extrato", label: "Extrato", icon: Receipt },
   { id: "transferencia", label: "Transferência", icon: ArrowRightLeft },
   { id: "ofx", label: "OFX", icon: FileSpreadsheet },
+  { id: "config", label: "Configurações", icon: Settings },
 ];
 
 export default function QuickShortcuts({ activeTab, onChange, accentColor, items }: QuickShortcutsProps) {
   const visible = items ? ALL_ITEMS.filter(i => items.includes(i.id)) : ALL_ITEMS;
-  const cols = visible.length <= 2 ? "grid-cols-2" : visible.length <= 3 ? "grid-cols-3" : visible.length <= 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3 sm:grid-cols-6";
+  const cols = visible.length <= 2 ? "grid-cols-2" : visible.length <= 3 ? "grid-cols-3" : visible.length <= 4 ? "grid-cols-2 sm:grid-cols-4" : visible.length <= 6 ? "grid-cols-3 sm:grid-cols-6" : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-7";
   return (
     <div className={cn("grid gap-2", cols)}>
       {visible.map(({ id, label, icon: Icon }) => {

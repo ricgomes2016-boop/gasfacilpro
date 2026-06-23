@@ -29,6 +29,9 @@ import VisaoGeralPanel from "@/components/financeiro/conta-detalhe/VisaoGeralPan
 import PixPanel from "@/components/financeiro/conta-detalhe/PixPanel";
 import BoletosPanel from "@/components/financeiro/conta-detalhe/BoletosPanel";
 import OfxPanel from "@/components/financeiro/conta-detalhe/OfxPanel";
+import IntegracaoBancariaPanel from "@/components/financeiro/conta-detalhe/IntegracaoBancariaPanel";
+import { getBankProvider } from "@/lib/bancos/bankProviders";
+
 
 
 interface ContaBancaria {
@@ -252,6 +255,12 @@ export default function ContaBancariaDetalhe() {
         {/* Tabs principais */}
         {(() => {
           const isCaixa = conta.tipo === "caixa_interno";
+          const provider = isCaixa ? null : getBankProvider(conta.banco);
+          const shortcuts = isCaixa
+            ? ["visao", "extrato", "transferencia"]
+            : provider
+              ? ["visao", "pix", "boletos", "extrato", "transferencia", "ofx", "config"]
+              : ["visao", "pix", "boletos", "extrato", "transferencia", "ofx"];
           return (
         <Tabs value={aba} onValueChange={setAba} className="space-y-4">
           <TabsList className="bg-muted/60">
@@ -260,6 +269,7 @@ export default function ContaBancariaDetalhe() {
             {!isCaixa && <TabsTrigger value="pix">PIX</TabsTrigger>}
             <TabsTrigger value="transferencia">Transferência</TabsTrigger>
             {!isCaixa && <TabsTrigger value="ofx">OFX</TabsTrigger>}
+            {provider && <TabsTrigger value="config">Configurações</TabsTrigger>}
           </TabsList>
 
           {/* Atalhos rápidos */}
@@ -267,8 +277,9 @@ export default function ContaBancariaDetalhe() {
             activeTab={aba}
             onChange={setAba}
             accentColor={theme.primary}
-            items={isCaixa ? ["visao", "extrato", "transferencia"] : undefined}
+            items={shortcuts}
           />
+
 
           <TabsContent value="visao" className="mt-4">
             <VisaoGeralPanel contaId={conta.id} accentColor={theme.primary} isCaixa={isCaixa} saldoAtual={saldo} />
@@ -387,7 +398,20 @@ export default function ContaBancariaDetalhe() {
 
             </TabsContent>
           )}
+
+          {provider && (
+            <TabsContent value="config" className="mt-4">
+              <IntegracaoBancariaPanel
+                contaId={conta.id}
+                banco={conta.banco}
+                unidadeId={conta.unidade_id}
+                provider={provider}
+                accentColor={theme.primary}
+              />
+            </TabsContent>
+          )}
         </Tabs>
+
           );
         })()}
 

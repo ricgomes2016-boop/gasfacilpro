@@ -329,6 +329,23 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========== ACCOUNT INFO (para auto-criar conta bancária) ==========
+    if (action === 'get_account_info') {
+      const [account, balance] = await Promise.all([
+        asaasFetch('/myAccount', apiKey, sandbox).catch(() => null),
+        asaasFetch('/finance/balance', apiKey, sandbox).catch(() => ({ totalBalance: 0 })),
+      ]);
+      return new Response(JSON.stringify({
+        success: true,
+        account,
+        balance,
+        sandbox,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+
     return new Response(JSON.stringify({ error: `Ação "${action}" não reconhecida` }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
