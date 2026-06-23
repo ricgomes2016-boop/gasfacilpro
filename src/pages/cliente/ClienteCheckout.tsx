@@ -146,7 +146,7 @@ export default function ClienteCheckout() {
         unidadeId = unidadeData?.id || null;
       }
 
-      const { data: pedido, error: pedidoError } = await supabase
+      const { data: pedido, error: pedidoError } = await (supabase as any)
         .from("pedidos")
         .insert({
           cliente_id: clienteId,
@@ -162,6 +162,7 @@ export default function ClienteCheckout() {
         })
         .select("id")
         .single();
+
 
       if (pedidoError) throw pedidoError;
 
