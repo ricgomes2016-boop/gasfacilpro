@@ -322,27 +322,33 @@ export default function ClienteHome() {
           <div className="absolute -right-4 -bottom-6 w-20 h-20 bg-white/10 rounded-full" />
         </div>
 
-        {/* Pedido em andamento */}
+        {/* Pedido em andamento — hero card */}
         {pedidoAtivo && (
           <button
             onClick={() => navigate(`/cliente/rastreamento/${pedidoAtivo.id}`)}
-            className="w-full text-left"
+            className="w-full text-left animate-fade-in"
           >
-            <Card className="border-primary bg-primary text-primary-foreground shadow-md">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-9 h-9 bg-primary-foreground/20 rounded-full flex items-center justify-center shrink-0">
-                      <Clock className="h-4 w-4" />
+            <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all active:scale-[0.99]">
+              <div className="absolute -right-6 -bottom-6 w-28 h-28 bg-primary-foreground/10 rounded-full" />
+              <CardContent className="p-4 relative z-10">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-11 h-11 bg-primary-foreground/20 rounded-2xl flex items-center justify-center shrink-0">
+                      {pedidoAtivo.status === "em_rota" ? (
+                        <Truck className="h-5 w-5 animate-pulse" />
+                      ) : (
+                        <Clock className="h-5 w-5 animate-pulse" />
+                      )}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-sm">Pedido em andamento</p>
-                      <p className="text-xs opacity-90 truncate">
-                        {pedidoAtivo.status === "em_rota" ? "A caminho — toque para acompanhar" : "Aguardando confirmação da loja"}
+                      <p className="text-[10px] uppercase tracking-wider opacity-80 font-semibold">Pedido em andamento</p>
+                      <p className="font-bold text-base leading-tight truncate">
+                        {pedidoAtivo.status === "em_rota" ? "A caminho 🚀" : "Preparando seu pedido"}
                       </p>
+                      <p className="text-xs opacity-90 mt-0.5">Toque para acompanhar em tempo real</p>
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 shrink-0" />
+                  <ChevronRight className="h-5 w-5 shrink-0" />
                 </div>
               </CardContent>
             </Card>
