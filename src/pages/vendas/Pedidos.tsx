@@ -974,9 +974,12 @@ export default function Pedidos() {
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} className="shrink-0" />
                         <div className="min-w-0 flex-1">
-                          <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs truncate max-w-full" onClick={() => editarPedido(pedido.id)}>
-                            #{getNumExib(pedido)}
-                          </Button>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <OrigemBadge origem={pedido.origem_pedido} />
+                            <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs truncate max-w-full" onClick={() => editarPedido(pedido.id)}>
+                              #{getNumExib(pedido)}
+                            </Button>
+                          </div>
                           <p className="text-sm font-medium truncate">{pedido.cliente}</p>
                           {pedido.agendado && pedido.data_agendamento && (
                             <Badge variant="secondary" className="mt-1 text-[10px] gap-1 bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20">
