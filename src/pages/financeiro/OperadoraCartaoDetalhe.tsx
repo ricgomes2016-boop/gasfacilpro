@@ -195,6 +195,7 @@ export default function OperadoraCartaoDetalhe() {
           </div>
 
           <TabsContent value="inicio" className="space-y-4">
+            <ContaRecebimentoCard operadoraId={op.id} contaBancariaId={op.conta_bancaria_id} />
             <QuickAccessGrid theme={theme} metrics={metrics} onSelect={setTab} />
           </TabsContent>
 
