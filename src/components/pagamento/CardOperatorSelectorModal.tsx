@@ -22,6 +22,8 @@ interface Operadora {
   prazo_credito: number;
   taxa_pix: number | null;
   prazo_pix: number | null;
+  conta_bancaria_id: string | null;
+  conta_bancaria?: { id: string; nome: string; banco: string } | null;
 }
 
 interface CardOperatorSelectorModalProps {
@@ -30,7 +32,7 @@ interface CardOperatorSelectorModalProps {
   valor: number;
   tipoCartao: "debito" | "credito" | "pix_maquininha";
   unidadeId?: string;
-  onSelect: (operadora: { id: string; nome: string; taxa: number; prazo: number; valorLiquido: number }) => void;
+  onSelect: (operadora: { id: string; nome: string; taxa: number; prazo: number; valorLiquido: number; conta_bancaria_id?: string | null }) => void;
 }
 
 export function CardOperatorSelectorModal({
