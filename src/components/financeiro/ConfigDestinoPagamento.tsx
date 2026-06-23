@@ -130,7 +130,7 @@ export default function ConfigDestinoPagamento({ contas }: Props) {
     }
   };
 
-  const formasComBanco = FORMAS_PAGAMENTO.filter(f => !f.semBanco);
+  const formasComBanco = FORMAS_PAGAMENTO.filter(f => !f.semBanco && !FORMA_POR_MAQUININHA.has(f.value));
   const configuredCount = formasComBanco.filter(f => configs[f.value] && configs[f.value] !== "nenhuma").length;
 
   const renderContaOption = (c: ContaBancaria) => {
