@@ -133,6 +133,7 @@ export default function Pedidos() {
   const [pedidoView, setPedidoView] = useState<PedidoFormatado | null>(null);
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroEntregador, setFiltroEntregador] = useState<string>("todos");
+  const [filtroOrigem, setFiltroOrigem] = useState<string>("todos");
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [busca, setBusca] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
