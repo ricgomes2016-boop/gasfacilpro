@@ -45,11 +45,11 @@ interface PedidoDB {
   }[];
 }
 
-const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
-  pendente: { label: "Pendente", color: "bg-yellow-100 text-yellow-700", icon: Clock },
-  em_rota: { label: "Em Rota", color: "bg-blue-100 text-blue-700", icon: Truck },
-  entregue: { label: "Entregue", color: "bg-green-100 text-green-700", icon: CheckCircle2 },
-  cancelado: { label: "Cancelado", color: "bg-red-100 text-red-700", icon: Package },
+const statusConfig: Record<string, { label: string; badge: string; accent: string; icon: typeof Clock }> = {
+  pendente: { label: "Pendente", badge: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30", accent: "from-amber-500/10 to-transparent", icon: Clock },
+  em_rota: { label: "Em Rota", badge: "bg-primary/15 text-primary border-primary/30", accent: "from-primary/10 to-transparent", icon: Truck },
+  entregue: { label: "Entregue", badge: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30", accent: "from-emerald-500/10 to-transparent", icon: CheckCircle2 },
+  cancelado: { label: "Cancelado", badge: "bg-destructive/15 text-destructive border-destructive/30", accent: "from-destructive/10 to-transparent", icon: Package },
 };
 
 export default function ClienteHistorico() {
@@ -199,19 +199,20 @@ export default function ClienteHistorico() {
               const StatusIcon = status.icon;
               
               return (
-                <Card key={pedido.id}>
-                  <CardContent className="p-4">
+                <Card key={pedido.id} className={`relative overflow-hidden border-border/60 hover:shadow-md transition-shadow animate-fade-in`}>
+                  <div className={`absolute inset-x-0 top-0 h-20 bg-gradient-to-b ${status.accent} pointer-events-none`} />
+                  <CardContent className="p-4 relative">
                     <div className="flex items-center justify-between mb-3">
                       <div>
-                        <p className="text-sm text-muted-foreground">
-                          Pedido #{pedido.id.slice(-6).toUpperCase()}
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">
+                          #{pedido.id.slice(-6).toUpperCase()}
                         </p>
                         <p className="text-sm font-medium">
                           {format(new Date(pedido.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                         </p>
                       </div>
-                      <Badge className={status.color}>
-                        <StatusIcon className="h-3 w-3 mr-1" />
+                      <Badge variant="outline" className={`${status.badge} gap-1`}>
+                        <StatusIcon className="h-3 w-3" />
                         {status.label}
                       </Badge>
                     </div>
