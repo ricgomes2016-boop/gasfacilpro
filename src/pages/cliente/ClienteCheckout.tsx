@@ -283,7 +283,10 @@ export default function ClienteCheckout() {
           status: "pendente",
           canal_venda: "Aplicativo",
           origem_pedido: "app_cliente",
-          observacoes: changeFor ? `Troco para R$ ${changeFor}` : null,
+          observacoes: [
+            userNome || userEmail || userPhone ? `Cliente App: ${userNome || userEmail || userPhone}${userPhone ? ` (${userPhone})` : ""}` : null,
+            changeFor ? `Troco para R$ ${changeFor}` : null,
+          ].filter(Boolean).join(" — ") || null,
         })
         .select("id")
         .single();
