@@ -14,6 +14,10 @@ export interface PagamentoRoteamento {
   vale_gas_parceiro_nome?: string;
   vale_gas_numero?: number;
   vale_gas_codigo?: string;
+  // Cartão / PIX Maquininha — escolha do atendente/entregador
+  operadora_id?: string;
+  terminal_id?: string;
+  conta_bancaria_id?: string;
 }
 
 interface RotearPagamentosParams {
