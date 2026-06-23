@@ -68,14 +68,43 @@ export default function ClienteHistorico() {
       }
 
       try {
-        // Find cliente by email
+        // Resolve empresa do usuário (fonte de verdade para RLS)
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("empresa_id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        const empresaId = (profileData as any)?.empresa_id || null;
+
+        if (!empresaId) {
+          setPedidos([]);
+          return;
+        }
+
+        // Busca cliente por email/telefone dentro da empresa
+        const userPhone = (user as any)?.phone || (user.user_metadata as any)?.telefone || null;
+        const orFilters: string[] = [];
+        if (user.email) orFilters.push(`email.eq.${user.email}`);
+        if (userPhone) orFilters.push(`telefone.eq.${userPhone}`);
+
+        if (orFilters.length === 0) {
+          setPedidos([]);
+          return;
+        }
+
         const { data: clienteData } = await supabase
           .from("clientes")
           .select("id")
-          .eq("email", user.email || "")
+          .eq("empresa_id", empresaId)
+          .or(orFilters.join(","))
           .maybeSingle();
 
-        let query = supabase
+        if (!clienteData) {
+          setPedidos([]);
+          return;
+        }
+
+        const { data, error } = await supabase
           .from("pedidos")
           .select(`
             id, created_at, valor_total, status, forma_pagamento, endereco_entrega, entregador_id,
@@ -84,17 +113,9 @@ export default function ClienteHistorico() {
               produtos:produto_id (nome, image_url)
             )
           `)
+          .eq("cliente_id", clienteData.id)
           .order("created_at", { ascending: false })
           .limit(50);
-
-        if (!clienteData) {
-          setPedidos([]);
-          return;
-        }
-
-        query = query.eq("cliente_id", clienteData.id);
-
-        const { data, error } = await query;
 
         if (!error && data) {
           setPedidos(data as unknown as PedidoDB[]);
