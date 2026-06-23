@@ -1,75 +1,75 @@
+## Objetivo
 
-# Múltiplas contas de recebimento por maquininha
+Separar claramente **Origem do Pedido** (de onde o pedido entrou no sistema) de **Canal de Venda** (qual unidade/ponto comercial registrou a venda), padronizando a tabela em `Vendas / Pedidos`.
 
-## Como funciona hoje
+## Mudanças no banco
 
-- **Formas de Pagamento** (`config_destino_pagamento`) tem **1 conta bancária por forma**. Ex.: "Crédito" → 1 conta.
-- **Maquininhas** (`terminais_cartao`) já existem e são vinculadas a uma **Operadora** (`operadoras_cartao`), que carrega taxas e prazos.
-- No `paymentRoutingService.ts`, quando a venda é cartão/PIX maquininha, ele:
-  1. Pega a **primeira operadora ativa** da unidade (não respeita qual maquininha foi usada!).
-  2. Cria um `contas_receber` com a operadora, mas **sem conta bancária de destino**.
-- Resultado: hoje, se você tem PagBank e Itaú, o sistema não diferencia. A baixa cai sempre no mesmo lugar.
+Adicionar coluna `origem_pedido` em `pedidos` como enum fixo:
 
-## O problema do caso Forte Gás
+- `telefone_ia`
+- `erp`
+- `whatsapp`
+- `site`
+- `app_entregador`
+- `app_cliente`
+- `portal_parceiro`
+- `balcao_pdv`
+- `telefone`
+- `portaria`
+- `assistente_bia`
+- `autoatendimento`
 
-Atendente/entregador escolhe a maquininha na hora da venda (já existe esse fluxo em `CardOperatorSelectorModal` e `CardPaymentModal`). Mas essa escolha **não influencia** qual conta bancária recebe o dinheiro.
-
-## Proposta — vincular conta bancária à Maquininha/Operadora
-
-O vínculo conta bancária ↔ recebimento sobe um nível: deixa de ser na **Forma de Pagamento** e passa a ser na **Operadora/Maquininha**. Cada maquininha (PagBank, Itaú, Cielo…) aponta para a sua própria conta.
-
-### 1. Banco de dados
-- Adicionar coluna `conta_bancaria_id` em `operadoras_cartao` (FK → `contas_bancarias`).
-  - Padrão: 1 conta por operadora (cobre 95% dos casos).
-- Manter a possibilidade de **override por terminal** (`terminais_cartao.conta_bancaria_id`, opcional). Se preenchido, vence sobre a operadora. Útil se a mesma operadora tiver maquininhas em contas diferentes.
-
-### 2. Tela Operadoras / Maquininhas
-- Em **Gestão de Cartões → Operadora**: novo campo "Conta de recebimento" (Select com logo do banco e badge 🔌 quando integrada).
-- Em **Maquininhas da operadora** (`MaquininhasOperadoraTab`): campo opcional "Conta de recebimento (sobrescrever)".
-- Indicador visual quando a operadora ainda não tem conta vinculada (alerta amarelo "Recebíveis sem destino").
-
-### 3. Roteamento da venda (`paymentRoutingService.ts`)
-- Receber o `terminal_id` (ou `operadora_id`) escolhido na venda como parte do payload de cada pagamento de cartão/PIX maquininha.
-- `getOperadoraConfig` passa a buscar a **operadora do terminal selecionado**, não a "primeira ativa".
-- O `contas_receber` gerado recebe `conta_bancaria_destino_id` = terminal.conta ?? operadora.conta.
-- Quando o título é baixado (recebimento da operadora), a entrada bancária vai automaticamente para a conta certa.
-
-### 4. Tela Formas de Pagamento (ajuste fino)
-- Para Crédito/Débito/PIX Maquininha: a coluna "Conta vinculada" passa a mostrar **"Definida por maquininha"** (com link para a tela de Operadoras), em vez de um Select fixo.
-- Para Dinheiro / PIX direto / Boleto / Fiado / Cheque: continua como está (1 forma = 1 destino).
-
-### 5. Tela Conta Bancária — `FormasVinculadasCard`
-- Passa a listar também as **maquininhas que depositam nesta conta** (ex.: "Maquininha PagBank Loja 1 — Crédito/Débito/PIX Maq.").
-
-## Fluxo final (exemplo Forte Gás)
+**Migração automática dos pedidos antigos** com base no `canal_venda` atual:
 
 ```text
-Venda R$ 100 no Crédito
-   |
-   v
-Atendente escolhe maquininha
-   |-- "PagBank Loja"  -> Operadora PagBank -> Conta "PagBank"  -> CR liquidado em D+30 cai na conta PagBank
-   |-- "Itaú PinPad"   -> Operadora Itaú    -> Conta "Itaú PJ"  -> CR liquidado em D+30 cai na conta Itaú
+telefone_ia / "telefone"          → origem = telefone_ia
+whatsapp / WhatsApp                → origem = whatsapp
+site_ia                            → origem = site
+Aplicativo                         → origem = app_cliente
+Entregador                         → origem = app_entregador
+portaria / Portaria                → origem = portaria
+assistente                         → origem = assistente_bia
+Autoatendimento                    → origem = autoatendimento
+demais valores (Comercio, Mercado Correia, Prefeitura, Amigao, etc.) → origem = erp
 ```
 
-## Detalhes técnicos
+Quando o `canal_venda` mapear para uma Origem, esse `canal_venda` é **limpo** (vai para `NULL`) — assim o campo Canal passa a guardar somente canais reais cadastrados em `canais_venda`. Pedidos novos sem Origem informada recebem `erp` por padrão.
 
-**Migration:**
-```sql
-ALTER TABLE operadoras_cartao ADD COLUMN conta_bancaria_id uuid REFERENCES contas_bancarias(id);
-ALTER TABLE terminais_cartao  ADD COLUMN conta_bancaria_id uuid REFERENCES contas_bancarias(id);
-ALTER TABLE contas_receber    ADD COLUMN conta_bancaria_destino_id uuid REFERENCES contas_bancarias(id);
+## Mudanças na UI — `src/pages/vendas/Pedidos.tsx`
+
+Reordenar as colunas da tabela (desktop e cards mobile) exatamente para:
+
+```text
+Origem | Nº Pedido | Data | Cliente | Endereço | Produtos | Entregador | Canal de Venda | Valor | Status | Ações
 ```
-(sem alteração de RLS — herdam regras existentes)
 
-**Arquivos a editar:**
-- `src/services/paymentRoutingService.ts` — aceitar `terminal_id`/`operadora_id` no payload e resolver a conta de destino.
-- `src/components/vendas/PaymentSection.tsx` / `CardPaymentModal.tsx` / `CardOperatorSelectorModal.tsx` — passar o terminal escolhido adiante.
-- `src/pages/financeiro/OperadoraCartaoDetalhe.tsx` — campo "Conta de recebimento".
-- `src/components/financeiro/operadora-detalhe/MaquininhasOperadoraTab.tsx` — campo override por terminal.
-- `src/components/financeiro/ConfigDestinoPagamento.tsx` — exibir "Definida por maquininha" para formas de cartão.
-- `src/components/financeiro/conta-detalhe/FormasVinculadasCard.tsx` — listar maquininhas também.
+- **Origem**: badge com ícone (📞 Telefone IA, 💬 WhatsApp, 🌐 Site, 🛵 App Entregador, 📱 App Cliente, 🤝 Portal Parceiro, 🏪 Balcão/PDV, 🚪 Portaria, 🤖 Assistente Bia, 🖥️ ERP, etc.). Não editável inline (definida na criação).
+- **Canal de Venda**: continua editável via popover, mas o `CommandInput` passa a listar **somente** os canais cadastrados em `canais_venda` — sem opção "criar novo". A linha de fallback que aceitava texto livre é removida.
+- Filtros do topo: acrescentar filtro "Origem" (multi-select) ao lado do filtro de Canal.
+- Exportação CSV (`header` na linha 65): incluir "Origem" como primeira coluna.
 
-**Fora de escopo:**
-- Divisão proporcional de uma venda entre duas contas.
-- Roteamento de Contas a Pagar (continua 1 conta por categoria, separado).
+## Pontos de criação de pedido — gravar `origem_pedido`
+
+Ajustar cada fluxo para gravar a origem correta no insert:
+
+- `src/pages/vendas/NovaVenda.tsx` e `PDV.tsx` → `erp` ou `balcao_pdv` (PDV)
+- `src/pages/vendedor/VendedorNovaVenda.tsx` → `erp`
+- Fluxos do app entregador (`src/pages/entregador/*` que criam pedido) → `app_entregador`
+- Fluxos do app cliente (`src/pages/cliente/*` checkout) → `app_cliente`
+- Portal do parceiro (vendas de vale) → `portal_parceiro` quando aplicável
+- Edge functions/webhooks que criam pedidos via Bia/WhatsApp/Telefone IA → `whatsapp`, `telefone_ia`, `assistente_bia` (sem alterar lógica de canal_venda existente além de não duplicar a origem ali)
+
+## Tipos
+
+- `src/types/pedido.ts`: adicionar `origem_pedido?: OrigemPedido` com union type literal das 12 origens.
+- `src/hooks/usePedidos.ts`: incluir `origem_pedido` no select e no mapeamento.
+
+## Fora do escopo
+
+- Não alteramos `canais_venda` nem a tela de cadastro de canais.
+- Não mexemos no fluxo de pagamento/roteamento de contas.
+- Sem mudanças em relatórios além do CSV de pedidos.
+
+## Detalhe técnico
+
+A migração usa enum Postgres `public.origem_pedido_enum` e um `UPDATE ... CASE` único para preencher os pedidos existentes e limpar `canal_venda` nos casos mapeados. Trigger simples garante default `erp` quando o insert vier sem origem.
