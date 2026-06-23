@@ -1,12 +1,41 @@
--- Revoga leitura de colunas sensíveis para o role authenticated.
--- Service_role mantém acesso total (edge functions).
+-- Revoga leitura de colunas sensiveis para o role authenticated.
+-- A migration e defensiva porque alguns ambientes antigos nao possuem todas as colunas.
 
-REVOKE SELECT (asaas_api_key, asaas_webhook_token) ON public.configuracoes_empresa FROM authenticated;
-
-REVOKE SELECT (token, instancia_token, meta_access_token, meta_verify_token, security_token) ON public.integracoes_whatsapp FROM authenticated;
-
-REVOKE SELECT (microsoft_refresh_token) ON public.transp_outlook_config FROM authenticated;
-
-REVOKE SELECT (certificado_a1_senha, nfce_csc_token, provedor_nfe_token) ON public.unidades FROM authenticated;
-
-REVOKE SELECT (api_key, session_data) ON public.whatsapp_gateway_instances FROM authenticated;
+DO $$
+DECLARE
+  item record;
+BEGIN
+  FOR item IN
+    SELECT * FROM (VALUES
+      ('configuracoes_empresa', 'asaas_api_key'),
+      ('configuracoes_empresa', 'asaas_webhook_token'),
+      ('integracoes_whatsapp', 'token'),
+      ('integracoes_whatsapp', 'instancia_token'),
+      ('integracoes_whatsapp', 'meta_access_token'),
+      ('integracoes_whatsapp', 'meta_verify_token'),
+      ('integracoes_whatsapp', 'security_token'),
+      ('transp_outlook_config', 'microsoft_refresh_token'),
+      ('unidades', 'certificado_a1_senha'),
+      ('unidades', 'nfce_csc_token'),
+      ('unidades', 'provedor_nfe_token'),
+      ('whatsapp_gateway_instances', 'api_key'),
+      ('whatsapp_gateway_instances', 'session_data')
+    ) AS sensitive_columns(table_name, column_name)
+  LOOP
+    IF to_regclass(format('public.%I', item.table_name)) IS NOT NULL
+      AND EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = item.table_name
+          AND column_name = item.column_name
+      )
+    THEN
+      EXECUTE format(
+        'REVOKE SELECT (%I) ON public.%I FROM authenticated',
+        item.column_name,
+        item.table_name
+      );
+    END IF;
+  END LOOP;
+END $$;
