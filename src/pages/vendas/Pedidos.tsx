@@ -73,18 +73,19 @@ function getNumeroExibicao(p: { numero_sequencial?: number | null; id: string })
 }
 
 function exportarPedidosCSV(pedidos: PedidoFormatado[]) {
-  const header = ["Nº", "Data", "Cliente", "Endereço", "Produtos", "Valor (R$)", "Status", "Pagamento", "Entregador", "Canal"];
+  const header = ["Origem", "Nº", "Data", "Cliente", "Endereço", "Produtos", "Entregador", "Canal", "Valor (R$)", "Status", "Pagamento"];
   const rows = pedidos.map((p) => [
+  getOrigemMeta(p.origem_pedido).label,
   getNumeroExibicao(p),
   p.data,
   p.cliente,
   (p.endereco || "").replace(/,/g, " "),
   (p.produtos || "").replace(/,/g, " |"),
+  p.entregador || "",
+  p.canal_venda || "",
   p.valor.toFixed(2),
   p.status,
-  p.forma_pagamento || "",
-  p.entregador || "",
-  p.canal_venda || ""]
+  p.forma_pagamento || ""]
   );
   const csv = [header, ...rows].map((r) => r.map((v) => `"${v}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
