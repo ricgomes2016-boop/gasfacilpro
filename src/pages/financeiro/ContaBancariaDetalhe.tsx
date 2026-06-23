@@ -30,6 +30,7 @@ import PixPanel from "@/components/financeiro/conta-detalhe/PixPanel";
 import BoletosPanel from "@/components/financeiro/conta-detalhe/BoletosPanel";
 import OfxPanel from "@/components/financeiro/conta-detalhe/OfxPanel";
 import IntegracaoBancariaPanel from "@/components/financeiro/conta-detalhe/IntegracaoBancariaPanel";
+import CobrancasPanel from "@/components/financeiro/conta-detalhe/CobrancasPanel";
 import { getBankProvider } from "@/lib/bancos/bankProviders";
 
 
@@ -259,7 +260,7 @@ export default function ContaBancariaDetalhe() {
           const shortcuts = isCaixa
             ? ["visao", "extrato", "transferencia"]
             : provider
-              ? ["visao", "pix", "boletos", "extrato", "transferencia", "ofx", "config"]
+              ? ["visao", "cobrancas", "pix", "boletos", "extrato", "transferencia", "ofx", "config"]
               : ["visao", "pix", "boletos", "extrato", "transferencia", "ofx"];
           return (
         <Tabs value={aba} onValueChange={setAba} className="space-y-4">
@@ -267,6 +268,7 @@ export default function ContaBancariaDetalhe() {
             <TabsTrigger value="visao">Visão Geral</TabsTrigger>
             <TabsTrigger value="extrato">{isCaixa ? "Extrato de Movimentação" : "Extrato Bancário"}</TabsTrigger>
             {!isCaixa && <TabsTrigger value="pix">PIX</TabsTrigger>}
+            {provider && <TabsTrigger value="cobrancas">Cobranças</TabsTrigger>}
             <TabsTrigger value="transferencia">Transferência</TabsTrigger>
             {!isCaixa && <TabsTrigger value="ofx">OFX</TabsTrigger>}
             {provider && <TabsTrigger value="config">Configurações</TabsTrigger>}
