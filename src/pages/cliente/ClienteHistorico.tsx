@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCliente } from "@/contexts/ClienteContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { resolveClienteIdForUser } from "@/lib/clienteAppLookup";
+import { resolveAllClienteIdsForUser } from "@/lib/clienteAppLookup";
 import { AvaliacaoEntregaDialog } from "@/components/cliente/AvaliacaoEntregaDialog";
 import { 
   History, 
