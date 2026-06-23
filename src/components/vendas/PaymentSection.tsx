@@ -506,6 +506,7 @@ export function PaymentSection({ pagamentos, onChange, totalVenda, unidadeId, it
         unidadeId={unidadeId}
         onSelect={(op) => {
           setPendingOperadora({ id: op.id, nome: op.nome });
+          if (op.conta_bancaria_id) setPendingContaBancaria(op.conta_bancaria_id);
           setPendingCardInfo(`${op.nome} • Taxa ${op.taxa.toFixed(2)}% • D+${op.prazo} • Líq. R$ ${op.valorLiquido.toFixed(2)}`);
         }}
       />
