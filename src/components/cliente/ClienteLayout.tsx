@@ -99,11 +99,6 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
           </div>
 
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-primary-foreground bg-white/10 hover:bg-white/20 shrink-0 rounded-full">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
             <SheetContent side="right" className="w-80 p-0">
               <div className="bg-gradient-to-b from-primary via-primary to-primary/85 text-primary-foreground p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -150,6 +145,7 @@ export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: 
               </nav>
             </SheetContent>
           </Sheet>
+
         </div>
       </header>
 
