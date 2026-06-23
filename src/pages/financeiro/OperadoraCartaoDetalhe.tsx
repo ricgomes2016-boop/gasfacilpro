@@ -18,6 +18,7 @@ import { RecebiveisOperadoraTab } from "@/components/financeiro/operadora-detalh
 import { TaxasOperadoraTab } from "@/components/financeiro/operadora-detalhe/TaxasOperadoraTab";
 import { RelatoriosOperadoraTab } from "@/components/financeiro/operadora-detalhe/RelatoriosOperadoraTab";
 import { MaquininhasOperadoraTab } from "@/components/financeiro/operadora-detalhe/MaquininhasOperadoraTab";
+import { ContaRecebimentoCard } from "@/components/financeiro/operadora-detalhe/ContaRecebimentoCard";
 
 interface Operadora {
   id: string;
@@ -30,6 +31,7 @@ interface Operadora {
   prazo_debito: number;
   prazo_credito: number;
   prazo_pix: number | null;
+  conta_bancaria_id: string | null;
 }
 
 const fmt = (v: number) =>
