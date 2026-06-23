@@ -31,6 +31,7 @@ import BoletosPanel from "@/components/financeiro/conta-detalhe/BoletosPanel";
 import OfxPanel from "@/components/financeiro/conta-detalhe/OfxPanel";
 import IntegracaoBancariaPanel from "@/components/financeiro/conta-detalhe/IntegracaoBancariaPanel";
 import CobrancasPanel from "@/components/financeiro/conta-detalhe/CobrancasPanel";
+import FormasVinculadasCard from "@/components/financeiro/conta-detalhe/FormasVinculadasCard";
 import { getBankProvider } from "@/lib/bancos/bankProviders";
 
 
@@ -283,7 +284,8 @@ export default function ContaBancariaDetalhe() {
           />
 
 
-          <TabsContent value="visao" className="mt-4">
+          <TabsContent value="visao" className="mt-4 space-y-4">
+            <FormasVinculadasCard contaId={conta.id} accentColor={theme.primary} />
             <VisaoGeralPanel contaId={conta.id} accentColor={theme.primary} isCaixa={isCaixa} saldoAtual={saldo} />
           </TabsContent>
 
