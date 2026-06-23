@@ -106,7 +106,30 @@ export default function ClienteHome() {
     })();
   }, [produtos, empresaInfo?.id]);
 
-  const [pedidoAtivo, setPedidoAtivo] = useState<{ id: string; status: string } | null>(null);
+  const [pedidoAtivo, setPedidoAtivo] = useState<{ id: string; status: string } | null>(() => {
+    // Fallback otimista: usa último pedido salvo no checkout enquanto a query carrega
+    try {
+      const lastId = typeof window !== "undefined" ? localStorage.getItem("last_pedido_id") : null;
+      return lastId ? { id: lastId, status: "pendente" } : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const userFirstName = (() => {
+    const meta = (user?.user_metadata as any) || {};
+    const raw = meta.nome || meta.full_name || meta.name || (user?.email ? user.email.split("@")[0] : "");
+    if (!raw) return "";
+    return String(raw).split(" ")[0];
+  })();
+
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Bom dia";
+    if (h < 18) return "Boa tarde";
+    return "Boa noite";
+  })();
+
 
   // Fetch último pedido e pedido em andamento do cliente
   useEffect(() => {
