@@ -87,3 +87,58 @@ export async function resolveClienteIdForUser(params: {
 
   return null;
 }
+
+/**
+ * Retorna TODOS os cliente_id da empresa que casam com o usuário (cache + telefone + email).
+ * Útil quando o operador do ERP cadastrou o cliente em um registro paralelo (telefone com
+ * outra formatação, e-mail diferente, etc.) — evita que pedidos do ERP fiquem invisíveis
+ * no app.
+ */
+export async function resolveAllClienteIdsForUser(params: {
+  userId: string;
+  empresaId: string;
+  email?: string | null;
+  phone?: string | null;
+}): Promise<string[]> {
+  const { empresaId, email, phone } = params;
+  const ids = new Set<string>();
+
+  const cached = getCachedClienteId();
+  if (cached) ids.add(cached);
+
+  const phoneDigits = normalizePhone(phone);
+  if (phoneDigits) {
+    const { data } = await supabase
+      .from("clientes")
+      .select("id, telefone")
+      .eq("empresa_id", empresaId)
+      .not("telefone", "is", null)
+      .limit(500);
+    (data || []).forEach((c: any) => {
+      if (normalizePhone(c.telefone) === phoneDigits) ids.add(c.id);
+    });
+  }
+
+  if (email) {
+    const { data } = await supabase
+      .from("clientes")
+      .select("id")
+      .eq("empresa_id", empresaId)
+      .eq("email", email);
+    (data || []).forEach((c: any) => ids.add(c.id));
+  }
+
+  // Valida cache contra empresa atual
+  if (cached && ids.has(cached)) {
+    const { data } = await supabase
+      .from("clientes")
+      .select("id")
+      .eq("id", cached)
+      .eq("empresa_id", empresaId)
+      .maybeSingle();
+    if (!data) ids.delete(cached);
+  }
+
+  return Array.from(ids);
+}
+
