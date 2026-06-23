@@ -1,37 +1,28 @@
+## Plano para corrigir finalização de pedido no app do cliente
 
-## Problema
-Na tela inicial do app do cliente (`/cliente`), todos os cards de produto mostram quantidade `1` por padrão. Isso confunde o cliente, que pode achar que já tem 1 item selecionado/no carrinho.
+1. **Ajustar a origem da unidade no checkout**
+   - Hoje o checkout tenta achar a unidade pela empresa do registro em `clientes`, mas a RLS obrigatória `tenant_isolation_pedidos` valida a unidade contra a empresa do usuário logado.
+   - Vou alterar o fluxo para buscar a `empresa_id` do usuário autenticado em `profiles` e então selecionar uma unidade ativa dessa empresa.
 
-## Objetivo
-Quantidade inicial = `0`, com fluxo claro para adicionar ao carrinho sem ambiguidade.
+2. **Garantir vínculo correto com o cliente**
+   - Manter o `cliente_id` quando encontrado por e-mail/telefone, mas sem depender dele para descobrir a empresa.
+   - Se não houver unidade ativa válida, mostrar erro claro antes de tentar inserir o pedido.
 
-## Mudanças em `src/pages/cliente/ClienteHome.tsx`
+3. **Corrigir o payload do pedido**
+   - Inserir `unidade_id` sempre preenchido e compatível com a empresa do usuário.
+   - Manter `origem_pedido: "app_cliente"` e `canal_venda: "Aplicativo"`.
+   - Evitar enviar campos inexistentes ou que possam quebrar a política.
 
-### 1. Quantidade inicial 0
-- `getQuantity`: retornar `quantities[productId] ?? 0` (em vez de `|| 1`).
-- `setQuantity`: permitir mínimo `0` (em vez de forçar `1`).
-- Após adicionar ao carrinho: resetar para `0` (já reseta hoje, mas para `1` → mudar para `0`).
+4. **Validar o resultado**
+   - Conferir que a inserção passa pela RLS esperada e que o pedido pode ser criado com itens.
+   - Se necessário, ajustar apenas o `ClienteCheckout.tsx`; migração só será usada se a política estiver impedindo corretamente um caso que deveria ser permitido.
 
-### 2. UX do botão "Add"
-Comportamento dos controles no card:
-- Quando `quantity === 0`:
-  - Stepper `−  0  +` fica visualmente "apagado" (muted), com `−` desabilitado.
-  - Botão **"Add"** funciona como atalho: um toque adiciona **1 unidade** direto ao carrinho (sem precisar usar o `+` antes). Isso mantém o fluxo de 1 toque para o caso mais comum (1 botijão).
-- Quando `quantity >= 1`:
-  - Stepper habilitado normalmente, `+`/`−` ajustam (mínimo 0).
-  - Botão **"Add"** adiciona a quantidade escolhida ao carrinho e reseta para `0`.
+## Detalhe técnico
 
-Implementação: dentro de `handleAddToCart`, se `getQuantity(product.id) === 0`, usar `qty = 1` para o `addToCart` e para o toast.
+A política restritiva `tenant_isolation_pedidos` exige:
 
-### 3. Indicador "no carrinho"
-Quando `getCartQuantity(product.id) > 0`, exibir um badge pequeno no card (ex.: "2 no carrinho") para deixar claro o que já está reservado, separando do seletor de "quantos adicionar agora". Isso reforça que o `0` no stepper é "adicionar a mais", não "tenho 0 no carrinho".
+```text
+has_role(auth.uid(), 'super_admin') OR unidade_belongs_to_user_empresa(unidade_id)
+```
 
-### 4. Produtos indisponíveis
-Sem alteração de regra: stepper e Add permanecem desabilitados como já estão hoje.
-
-## Fora do escopo
-- Nenhuma mudança no carrinho (`/cliente/carrinho`), checkout, banco de dados ou regras de pedido.
-- Sem mudanças visuais além do badge "no carrinho" e do estado apagado do stepper em `0`.
-
-## Arquivos
-- `src/pages/cliente/ClienteHome.tsx` (único arquivo alterado).
+Então o pedido do cliente precisa ser criado com uma `unidade_id` pertencente à mesma `empresa_id` do usuário autenticado em `profiles`. O erro da imagem indica que esse vínculo não está batendo no insert atual.

@@ -120,30 +120,56 @@ export default function ClienteCheckout() {
     try {
       const enderecoCompleto = buildEnderecoString();
 
-      let clienteId: string | null = null;
+      // Empresa do usuário autenticado (fonte de verdade para RLS)
       let empresaId: string | null = null;
       if (user) {
-        const { data: clienteData } = await supabase
-          .from("clientes")
-          .select("id, empresa_id")
-          .eq("email", user.email || "")
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("empresa_id")
+          .eq("user_id", user.id)
           .maybeSingle();
-        clienteId = clienteData?.id || null;
-        empresaId = (clienteData as any)?.empresa_id || null;
+        empresaId = (profileData as any)?.empresa_id || null;
       }
 
-      // Resolve a unidade_id da empresa (primeira ativa) para satisfazer RLS de isolamento
-      let unidadeId: string | null = null;
-      if (empresaId) {
-        const { data: unidadeData } = await (supabase as any)
-          .from("unidades")
-          .select("id")
-          .eq("empresa_id", empresaId)
-          .eq("ativa", true)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle();
-        unidadeId = unidadeData?.id || null;
+      if (!empresaId) {
+        toast.error("Não foi possível identificar sua empresa. Faça login novamente.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // cliente_id (opcional) por e-mail/telefone na mesma empresa
+      let clienteId: string | null = null;
+      if (user) {
+        const orFilters: string[] = [];
+        if (user.email) orFilters.push(`email.eq.${user.email}`);
+        const phone = (user as any).phone;
+        if (phone) orFilters.push(`telefone.eq.${phone}`);
+        if (orFilters.length > 0) {
+          const { data: clienteData } = await supabase
+            .from("clientes")
+            .select("id")
+            .eq("empresa_id", empresaId)
+            .or(orFilters.join(","))
+            .maybeSingle();
+          clienteId = clienteData?.id || null;
+        }
+      }
+
+      // Unidade ativa da empresa do usuário (satisfaz tenant_isolation_pedidos)
+      const { data: unidadeData } = await (supabase as any)
+        .from("unidades")
+        .select("id")
+        .eq("empresa_id", empresaId)
+        .eq("ativa", true)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      const unidadeId: string | null = unidadeData?.id || null;
+
+      if (!unidadeId) {
+        toast.error("Nenhuma unidade ativa disponível para receber o pedido.");
+        setIsSubmitting(false);
+        return;
       }
 
       const { data: pedido, error: pedidoError } = await (supabase as any)
