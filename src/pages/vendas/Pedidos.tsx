@@ -565,15 +565,16 @@ export default function Pedidos() {
             : p.status === filtroStatus;
       const matchEntregador = filtroEntregador === "todos" || (
       filtroEntregador === "sem_entregador" ? !p.entregador : p.entregador === filtroEntregador);
+      const matchOrigem = filtroOrigem === "todos" || (p.origem_pedido || "erp") === filtroOrigem;
       const matchBusca = busca === "" ||
       p.cliente.toLowerCase().includes(buscaLower) ||
       p.endereco.toLowerCase().includes(buscaLower) ||
       p.id.toLowerCase().includes(buscaLower) ||
       (p.numero_sequencial != null && buscaDigits !== "" && String(p.numero_sequencial).includes(buscaDigits)) ||
       (p.entregador && p.entregador.toLowerCase().includes(buscaLower));
-      return matchStatus && matchEntregador && matchBusca;
+      return matchStatus && matchEntregador && matchOrigem && matchBusca;
     });
-  }, [pedidos, filtroStatus, filtroEntregador, busca]);
+  }, [pedidos, filtroStatus, filtroEntregador, filtroOrigem, busca]);
 
   const resumoProdutos = useMemo<ResumoProduto[]>(() => {
     const produtos = new Map<string, ResumoProduto>();
