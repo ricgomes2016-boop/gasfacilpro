@@ -154,17 +154,18 @@ export default function ClienteHome() {
     return matchesSearch && matchesCategory;
   });
 
-  const getQuantity = (productId: string) => quantities[productId] || 1;
+  const getQuantity = (productId: string) => quantities[productId] ?? 0;
 
   const setQuantity = (productId: string, qty: number) => {
-    if (qty < 1) qty = 1;
+    if (qty < 0) qty = 0;
     if (qty > 10) qty = 10;
     setQuantities(prev => ({ ...prev, [productId]: qty }));
   };
 
   const handleAddToCart = async (product: ProdutoDB) => {
     setAddingToCart(product.id);
-    const qty = getQuantity(product.id);
+    const current = getQuantity(product.id);
+    const qty = current === 0 ? 1 : current;
     addToCart({
       id: product.id,
       name: product.nome,
@@ -179,7 +180,7 @@ export default function ClienteHome() {
         onClick: () => navigate("/cliente/carrinho"),
       },
     });
-    setQuantities(prev => ({ ...prev, [product.id]: 1 }));
+    setQuantities(prev => ({ ...prev, [product.id]: 0 }));
     setTimeout(() => setAddingToCart(null), 600);
   };
 
@@ -429,8 +430,8 @@ function ProductCard({ product, quantity, cartQty, onQuantityChange, onAddToCart
               <div className="flex items-start justify-between gap-1">
                 <h3 className="font-bold text-sm leading-tight">{product.nome}</h3>
                 {cartQty > 0 && (
-                  <Badge className="bg-primary/10 text-primary border-0 shrink-0 text-xs px-1.5">
-                    {cartQty} ✓
+                  <Badge className="bg-primary/10 text-primary border-0 shrink-0 text-[10px] px-1.5 whitespace-nowrap">
+                    {cartQty} no carrinho
                   </Badge>
                 )}
               </div>
@@ -445,17 +446,21 @@ function ProductCard({ product, quantity, cartQty, onQuantityChange, onAddToCart
               </span>
 
               <div className="flex items-center gap-1.5">
-                <div className="flex items-center border border-border rounded-lg overflow-hidden bg-background">
+                <div className={`flex items-center border rounded-lg overflow-hidden bg-background transition-opacity ${quantity === 0 ? "border-border/50 opacity-60" : "border-border"}`}>
                   <button
-                    className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+                    className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
                     onClick={() => onQuantityChange(-1)}
+                    disabled={quantity === 0 || isOutOfStock}
+                    aria-label="Diminuir quantidade"
                   >
                     <Minus className="h-3 w-3" />
                   </button>
-                  <span className="w-7 text-center text-sm font-bold">{quantity}</span>
+                  <span className={`w-7 text-center text-sm font-bold ${quantity === 0 ? "text-muted-foreground" : ""}`}>{quantity}</span>
                   <button
-                    className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+                    className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors disabled:opacity-40"
                     onClick={() => onQuantityChange(1)}
+                    disabled={isOutOfStock}
+                    aria-label="Aumentar quantidade"
                   >
                     <Plus className="h-3 w-3" />
                   </button>
