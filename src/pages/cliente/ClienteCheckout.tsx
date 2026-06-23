@@ -135,7 +135,7 @@ export default function ClienteCheckout() {
       // Resolve a unidade_id da empresa (primeira ativa) para satisfazer RLS de isolamento
       let unidadeId: string | null = null;
       if (empresaId) {
-        const { data: unidadeData } = await supabase
+        const { data: unidadeData } = await (supabase as any)
           .from("unidades")
           .select("id")
           .eq("empresa_id", empresaId)
