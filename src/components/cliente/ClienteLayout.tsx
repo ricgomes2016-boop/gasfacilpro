@@ -49,8 +49,9 @@ const bottomNavItems = [
   { icon: ShoppingCart, label: "Carrinho", path: "/cliente/carrinho", showBadge: true },
   { icon: Gift, label: "Indicar", path: "/cliente/indicacao" },
   { icon: Wallet, label: "Carteira", path: "/cliente/carteira" },
-  { icon: User, label: "Perfil", path: "/cliente/perfil" },
+  { icon: Menu, label: "Menu", path: "__menu__" as const },
 ];
+
 
 export function ClienteLayout({ children, cartItemsCount: cartItemsCountProp }: ClienteLayoutProps) {
   const location = useLocation();
