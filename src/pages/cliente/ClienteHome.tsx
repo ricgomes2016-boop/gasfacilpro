@@ -105,19 +105,38 @@ export default function ClienteHome() {
     })();
   }, [produtos, empresaInfo?.id]);
 
-  // Fetch último pedido do cliente
+  const [pedidoAtivo, setPedidoAtivo] = useState<{ id: string; status: string } | null>(null);
+
+  // Fetch último pedido e pedido em andamento do cliente
   useEffect(() => {
-    const fetchUltimoPedido = async () => {
+    const fetchPedidos = async () => {
       if (!user) return;
+
+      // Resolve empresa
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("empresa_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const empresaId = (profileData as any)?.empresa_id;
+      if (!empresaId) return;
+
+      const userPhone = (user as any)?.phone || (user.user_metadata as any)?.telefone || null;
+      const orFilters: string[] = [];
+      if (user.email) orFilters.push(`email.eq.${user.email}`);
+      if (userPhone) orFilters.push(`telefone.eq.${userPhone}`);
+      if (orFilters.length === 0) return;
 
       const { data: clienteData } = await supabase
         .from("clientes")
         .select("id")
-        .eq("email", user.email || "")
+        .eq("empresa_id", empresaId)
+        .or(orFilters.join(","))
         .maybeSingle();
 
       if (!clienteData) return;
 
+      // Último pedido entregue (para "Pedir de novo")
       const { data } = await supabase
         .from("pedidos")
         .select(`
@@ -143,8 +162,41 @@ export default function ClienteHome() {
           })),
         });
       }
+
+      // Pedido em andamento
+      const { data: ativo } = await supabase
+        .from("pedidos")
+        .select("id, status")
+        .eq("cliente_id", clienteData.id)
+        .in("status", ["pendente", "em_rota"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (ativo) {
+        setPedidoAtivo({ id: ativo.id, status: ativo.status || "pendente" });
+
+        // Realtime: limpar quando concluir
+        const channel = supabase
+          .channel(`home-pedido-${ativo.id}`)
+          .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "pedidos", filter: `id=eq.${ativo.id}` },
+            (payload) => {
+              const novoStatus = (payload.new as any).status;
+              if (novoStatus === "entregue" || novoStatus === "cancelado") {
+                setPedidoAtivo(null);
+              } else {
+                setPedidoAtivo({ id: ativo.id, status: novoStatus });
+              }
+            }
+          )
+          .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+      }
     };
-    fetchUltimoPedido();
+    fetchPedidos();
   }, [user]);
 
   const filteredProducts = produtos.filter(product => {
