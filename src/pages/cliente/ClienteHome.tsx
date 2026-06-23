@@ -123,15 +123,14 @@ export default function ClienteHome() {
       if (!empresaId) return;
 
       const userPhone = (user as any)?.phone || (user.user_metadata as any)?.telefone || null;
-      const clienteId = await resolveClienteIdForUser({
+      const clienteIds = await resolveAllClienteIdsForUser({
         userId: user.id,
         empresaId,
         email: user.email,
         phone: userPhone,
       });
 
-      if (!clienteId) return;
-      const clienteData = { id: clienteId };
+      if (clienteIds.length === 0) return;
 
       // Último pedido entregue (para "Pedir de novo")
       const { data } = await supabase
@@ -140,7 +139,7 @@ export default function ClienteHome() {
           id, valor_total, created_at,
           pedido_itens (quantidade, preco_unitario, produto_id, produtos:produto_id (nome))
         `)
-        .eq("cliente_id", clienteData.id)
+        .in("cliente_id", clienteIds)
         .eq("status", "entregue")
         .order("created_at", { ascending: false })
         .limit(1)
@@ -164,7 +163,7 @@ export default function ClienteHome() {
       const { data: ativo } = await supabase
         .from("pedidos")
         .select("id, status")
-        .eq("cliente_id", clienteData.id)
+        .in("cliente_id", clienteIds)
         .in("status", ["pendente", "em_rota"])
         .order("created_at", { ascending: false })
         .limit(1)
@@ -192,6 +191,7 @@ export default function ClienteHome() {
 
         return () => { supabase.removeChannel(channel); };
       }
+
     };
     fetchPedidos();
   }, [user]);
