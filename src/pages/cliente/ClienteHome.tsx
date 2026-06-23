@@ -9,7 +9,7 @@ import { useCliente } from "@/contexts/ClienteContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveAllClienteIdsForUser } from "@/lib/clienteAppLookup";
-import { Search, Plus, Minus, ShoppingCart, Flame, Droplets, Package, RotateCcw, Zap, Star, Clock, ChevronRight } from "lucide-react";
+import { Search, Plus, Minus, ShoppingCart, Flame, Droplets, Package, RotateCcw, Zap, Star, Clock, ChevronRight, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
