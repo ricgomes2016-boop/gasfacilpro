@@ -3541,6 +3541,7 @@ export type Database = {
           boleto_url: string | null
           cliente: string
           cliente_id: string | null
+          conta_bancaria_destino_id: string | null
           created_at: string
           data_recebimento: string | null
           descricao: string
@@ -3575,6 +3576,7 @@ export type Database = {
           boleto_url?: string | null
           cliente: string
           cliente_id?: string | null
+          conta_bancaria_destino_id?: string | null
           created_at?: string
           data_recebimento?: string | null
           descricao: string
@@ -3609,6 +3611,7 @@ export type Database = {
           boleto_url?: string | null
           cliente?: string
           cliente_id?: string | null
+          conta_bancaria_destino_id?: string | null
           created_at?: string
           data_recebimento?: string | null
           descricao?: string
@@ -3643,6 +3646,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_receber_conta_bancaria_destino_id_fkey"
+            columns: ["conta_bancaria_destino_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
@@ -7636,6 +7646,7 @@ export type Database = {
         Row: {
           ativo: boolean
           bandeira: string | null
+          conta_bancaria_id: string | null
           created_at: string
           id: string
           nome: string
@@ -7652,6 +7663,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           bandeira?: string | null
+          conta_bancaria_id?: string | null
           created_at?: string
           id?: string
           nome: string
@@ -7668,6 +7680,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           bandeira?: string | null
+          conta_bancaria_id?: string | null
           created_at?: string
           id?: string
           nome?: string
@@ -7682,6 +7695,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "operadoras_cartao_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "operadoras_cartao_unidade_id_fkey"
             columns: ["unidade_id"]
@@ -9306,6 +9326,7 @@ export type Database = {
       }
       terminais_cartao: {
         Row: {
+          conta_bancaria_id: string | null
           created_at: string
           entregador_id: string | null
           id: string
@@ -9320,6 +9341,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          conta_bancaria_id?: string | null
           created_at?: string
           entregador_id?: string | null
           id?: string
@@ -9334,6 +9356,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          conta_bancaria_id?: string | null
           created_at?: string
           entregador_id?: string | null
           id?: string
@@ -9348,6 +9371,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "terminais_cartao_conta_bancaria_id_fkey"
+            columns: ["conta_bancaria_id"]
+            isOneToOne: false
+            referencedRelation: "contas_bancarias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "terminais_cartao_entregador_id_fkey"
             columns: ["entregador_id"]
