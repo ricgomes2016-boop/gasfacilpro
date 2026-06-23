@@ -315,6 +315,17 @@ export default function ContaBancariaDetalhe() {
             </TabsContent>
           )}
 
+          {provider && (
+            <TabsContent value="cobrancas" className="mt-4">
+              <CobrancasPanel
+                contaId={conta.id}
+                unidadeId={conta.unidade_id}
+                accentColor={theme.primary}
+                provider={provider}
+              />
+            </TabsContent>
+          )}
+
           <TabsContent value="transferencia" className="mt-4 space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card>
