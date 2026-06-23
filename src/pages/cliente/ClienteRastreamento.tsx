@@ -22,16 +22,18 @@ import { useDeliveryNotifications } from "@/hooks/useDeliveryNotifications";
 import { supabase } from "@/integrations/supabase/client";
 
 const statusSteps = [
-  { key: "pendente", label: "Confirmado", icon: CheckCircle2 },
-  { key: "em_rota", label: "A caminho", icon: Truck },
-  { key: "entregue", label: "Entregue", icon: MapPin },
+  { key: "pendente", label: "Confirmado", desc: "Loja recebeu seu pedido", icon: CheckCircle2 },
+  { key: "preparando", label: "Em preparo", desc: "Separando seus itens", icon: Package },
+  { key: "em_rota", label: "A caminho", desc: "Entregador a caminho", icon: Truck },
+  { key: "entregue", label: "Entregue", desc: "Pedido finalizado", icon: MapPin },
 ];
 
-const statusProgress: Record<string, number> = {
-  pendente: 33,
-  em_rota: 66,
-  entregue: 100,
-  cancelado: 0,
+const statusOrder: Record<string, number> = {
+  pendente: 0,
+  preparando: 1,
+  em_rota: 2,
+  entregue: 3,
+  cancelado: -1,
 };
 
 interface PedidoData {
@@ -76,6 +78,10 @@ export default function ClienteRastreamento() {
 
       if (pedidoData) {
         setPedido(pedidoData as unknown as PedidoData);
+        // Inicializa imediatamente para evitar toast falso na 1ª carga
+        if (previousStatusRef.current === null) {
+          previousStatusRef.current = pedidoData.status;
+        }
 
         if (pedidoData.entregador_id) {
           const { data: entregadorData } = await supabase
@@ -223,50 +229,72 @@ export default function ClienteRastreamento() {
           </Card>
         )}
 
-        {/* Status Info */}
-        <Card className="bg-primary text-primary-foreground">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Clock className="h-6 w-6" />
-                <div>
-                  <p className="text-sm opacity-90">Status do pedido</p>
-                  <p className="text-xl font-bold capitalize">
-                    {pedido.status === "em_rota" ? "A caminho" : pedido.status === "entregue" ? "Entregue" : "Pendente"}
+        {/* Status hero */}
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25 animate-fade-in">
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-primary-foreground/10 rounded-full" />
+          <CardContent className="p-5 relative z-10">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-12 h-12 bg-primary-foreground/20 rounded-2xl flex items-center justify-center shrink-0">
+                  {pedido.status === "em_rota" ? (
+                    <Truck className="h-6 w-6 animate-pulse" />
+                  ) : pedido.status === "entregue" ? (
+                    <CheckCircle2 className="h-6 w-6" />
+                  ) : (
+                    <Clock className="h-6 w-6 animate-pulse" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-wider opacity-80 font-semibold">Status do pedido</p>
+                  <p className="text-xl font-bold leading-tight">
+                    {pedido.status === "em_rota" ? "A caminho 🚀" : pedido.status === "entregue" ? "Entregue ✅" : "Confirmado"}
+                  </p>
+                  <p className="text-xs opacity-90 mt-0.5">
+                    {pedido.status === "em_rota" ? "Chegando em instantes" : pedido.status === "entregue" ? "Obrigado pela preferência!" : "Aguardando preparação"}
                   </p>
                 </div>
               </div>
-              <Badge variant="secondary" className="text-primary">
+              <Badge variant="secondary" className="text-primary shrink-0">
                 {pedido.status === "entregue" ? "Concluído" : "Em andamento"}
               </Badge>
             </div>
           </CardContent>
         </Card>
 
-        {/* Progress Steps */}
+        {/* Connected Stepper */}
         <Card>
           <CardContent className="p-4">
-            <Progress value={statusProgress[pedido.status] || 0} className="mb-4" />
-            <div className="flex justify-between">
-              {statusSteps.map((step, index) => {
-                const isActive = index <= currentStepIndex;
-                const isCurrent = index === currentStepIndex;
-                return (
-                  <div key={step.key} className="flex flex-col items-center gap-1">
-                    <div className={`
-                      p-2 rounded-full transition-colors
-                      ${isCurrent ? "bg-primary text-primary-foreground" : ""}
-                      ${isActive && !isCurrent ? "bg-primary/20 text-primary" : ""}
-                      ${!isActive ? "bg-muted text-muted-foreground" : ""}
-                    `}>
-                      <step.icon className="h-4 w-4" />
+            <div className="relative">
+              {/* Connecting line (background) */}
+              <div className="absolute top-5 left-5 right-5 h-0.5 bg-muted" />
+              {/* Connecting line (filled) */}
+              <div
+                className="absolute top-5 left-5 h-0.5 bg-primary transition-all duration-500"
+                style={{
+                  width: `calc((100% - 2.5rem) * ${Math.max(0, currentStepIndex) / (statusSteps.length - 1)})`,
+                }}
+              />
+              <div className="relative flex justify-between">
+                {statusSteps.map((step, index) => {
+                  const isActive = index <= currentStepIndex;
+                  const isCurrent = index === currentStepIndex;
+                  return (
+                    <div key={step.key} className="flex flex-col items-center gap-1.5 w-1/4">
+                      <div className={`
+                        w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 border-2
+                        ${isCurrent ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/40 scale-110" : ""}
+                        ${isActive && !isCurrent ? "bg-primary text-primary-foreground border-primary" : ""}
+                        ${!isActive ? "bg-background text-muted-foreground border-muted" : ""}
+                      `}>
+                        <step.icon className="h-4 w-4" />
+                      </div>
+                      <span className={`text-[11px] text-center leading-tight ${isActive ? "text-foreground font-semibold" : "text-muted-foreground"}`}>
+                        {step.label}
+                      </span>
                     </div>
-                    <span className={`text-xs text-center ${isActive ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                      {step.label}
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>

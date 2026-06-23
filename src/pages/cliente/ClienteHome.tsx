@@ -9,7 +9,7 @@ import { useCliente } from "@/contexts/ClienteContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveAllClienteIdsForUser } from "@/lib/clienteAppLookup";
-import { Search, Plus, Minus, ShoppingCart, Flame, Droplets, Package, RotateCcw, Zap, Star, Clock, ChevronRight } from "lucide-react";
+import { Search, Plus, Minus, ShoppingCart, Flame, Droplets, Package, RotateCcw, Zap, Star, Clock, ChevronRight, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -106,7 +106,30 @@ export default function ClienteHome() {
     })();
   }, [produtos, empresaInfo?.id]);
 
-  const [pedidoAtivo, setPedidoAtivo] = useState<{ id: string; status: string } | null>(null);
+  const [pedidoAtivo, setPedidoAtivo] = useState<{ id: string; status: string } | null>(() => {
+    // Fallback otimista: usa último pedido salvo no checkout enquanto a query carrega
+    try {
+      const lastId = typeof window !== "undefined" ? localStorage.getItem("last_pedido_id") : null;
+      return lastId ? { id: lastId, status: "pendente" } : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const userFirstName = (() => {
+    const meta = (user?.user_metadata as any) || {};
+    const raw = meta.nome || meta.full_name || meta.name || (user?.email ? user.email.split("@")[0] : "");
+    if (!raw) return "";
+    return String(raw).split(" ")[0];
+  })();
+
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Bom dia";
+    if (h < 18) return "Boa tarde";
+    return "Boa noite";
+  })();
+
 
   // Fetch último pedido e pedido em andamento do cliente
   useEffect(() => {
@@ -262,6 +285,16 @@ export default function ClienteHome() {
   return (
     <ClienteLayout cartItemsCount={cartItemsCount}>
       <div className="space-y-4 pb-24">
+        {/* Greeting */}
+        {userFirstName && (
+          <div className="flex items-center justify-between pt-1 animate-fade-in">
+            <div>
+              <p className="text-sm text-muted-foreground leading-tight">{greeting},</p>
+              <h2 className="text-xl font-bold tracking-tight truncate">{userFirstName} 👋</h2>
+            </div>
+          </div>
+        )}
+
         {/* Hero Banner */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/70 text-primary-foreground p-5">
           <div className="relative z-10">
@@ -289,27 +322,33 @@ export default function ClienteHome() {
           <div className="absolute -right-4 -bottom-6 w-20 h-20 bg-white/10 rounded-full" />
         </div>
 
-        {/* Pedido em andamento */}
+        {/* Pedido em andamento — hero card */}
         {pedidoAtivo && (
           <button
             onClick={() => navigate(`/cliente/rastreamento/${pedidoAtivo.id}`)}
-            className="w-full text-left"
+            className="w-full text-left animate-fade-in"
           >
-            <Card className="border-primary bg-primary text-primary-foreground shadow-md">
-              <CardContent className="p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-9 h-9 bg-primary-foreground/20 rounded-full flex items-center justify-center shrink-0">
-                      <Clock className="h-4 w-4" />
+            <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all active:scale-[0.99]">
+              <div className="absolute -right-6 -bottom-6 w-28 h-28 bg-primary-foreground/10 rounded-full" />
+              <CardContent className="p-4 relative z-10">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-11 h-11 bg-primary-foreground/20 rounded-2xl flex items-center justify-center shrink-0">
+                      {pedidoAtivo.status === "em_rota" ? (
+                        <Truck className="h-5 w-5 animate-pulse" />
+                      ) : (
+                        <Clock className="h-5 w-5 animate-pulse" />
+                      )}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-sm">Pedido em andamento</p>
-                      <p className="text-xs opacity-90 truncate">
-                        {pedidoAtivo.status === "em_rota" ? "A caminho — toque para acompanhar" : "Aguardando confirmação da loja"}
+                      <p className="text-[10px] uppercase tracking-wider opacity-80 font-semibold">Pedido em andamento</p>
+                      <p className="font-bold text-base leading-tight truncate">
+                        {pedidoAtivo.status === "em_rota" ? "A caminho 🚀" : "Preparando seu pedido"}
                       </p>
+                      <p className="text-xs opacity-90 mt-0.5">Toque para acompanhar em tempo real</p>
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 shrink-0" />
+                  <ChevronRight className="h-5 w-5 shrink-0" />
                 </div>
               </CardContent>
             </Card>
