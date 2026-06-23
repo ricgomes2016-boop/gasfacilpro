@@ -55,11 +55,11 @@ export function CardOperatorSelectorModal({
     setLoading(true);
     supabase
       .from("operadoras_cartao")
-      .select("*")
+      .select("*, conta_bancaria:contas_bancarias(id,nome,banco)")
       .eq("unidade_id", resolvedUnidadeId)
       .eq("ativo", true)
       .then(({ data }) => {
-        const items = (data || []) as Operadora[];
+        const items = (data || []) as any as Operadora[];
         setOperadoras(items);
         if (items.length === 1) setSelected(items[0].id);
         else setSelected(null);
