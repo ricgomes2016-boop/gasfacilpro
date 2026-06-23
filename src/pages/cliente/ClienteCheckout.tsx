@@ -150,7 +150,6 @@ export default function ClienteCheckout() {
         .from("pedidos")
         .insert({
           cliente_id: clienteId,
-          empresa_id: empresaId,
           unidade_id: unidadeId,
           endereco_entrega: enderecoCompleto,
           forma_pagamento: paymentMethods.find(p => p.id === paymentMethod)?.label || paymentMethod,
