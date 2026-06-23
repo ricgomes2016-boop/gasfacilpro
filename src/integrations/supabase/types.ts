@@ -8081,6 +8081,7 @@ export type Database = {
           numero_entrega: string | null
           numero_sequencial: number | null
           observacoes: string | null
+          origem_pedido: Database["public"]["Enums"]["origem_pedido_enum"]
           responsavel_acerto: string | null
           sla_cumprido: boolean | null
           sla_minutos: number | null
@@ -8125,6 +8126,7 @@ export type Database = {
           numero_entrega?: string | null
           numero_sequencial?: number | null
           observacoes?: string | null
+          origem_pedido?: Database["public"]["Enums"]["origem_pedido_enum"]
           responsavel_acerto?: string | null
           sla_cumprido?: boolean | null
           sla_minutos?: number | null
@@ -8169,6 +8171,7 @@ export type Database = {
           numero_entrega?: string | null
           numero_sequencial?: number | null
           observacoes?: string | null
+          origem_pedido?: Database["public"]["Enums"]["origem_pedido_enum"]
           responsavel_acerto?: string | null
           sla_cumprido?: boolean | null
           sla_minutos?: number | null
@@ -12344,6 +12347,19 @@ export type Database = {
         | "semi"
         | "terceiro"
         | "final"
+      origem_pedido_enum:
+        | "telefone_ia"
+        | "erp"
+        | "whatsapp"
+        | "site"
+        | "app_entregador"
+        | "app_cliente"
+        | "portal_parceiro"
+        | "balcao_pdv"
+        | "telefone"
+        | "portaria"
+        | "assistente_bia"
+        | "autoatendimento"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -12492,6 +12508,20 @@ export const Constants = {
         "semi",
         "terceiro",
         "final",
+      ],
+      origem_pedido_enum: [
+        "telefone_ia",
+        "erp",
+        "whatsapp",
+        "site",
+        "app_entregador",
+        "app_cliente",
+        "portal_parceiro",
+        "balcao_pdv",
+        "telefone",
+        "portaria",
+        "assistente_bia",
+        "autoatendimento",
       ],
     },
   },

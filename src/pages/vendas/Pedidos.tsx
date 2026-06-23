@@ -56,24 +56,36 @@ import { toast as sonnerToast } from "sonner";
 import { getBrasiliaDate } from "@/lib/utils";
 import { format as fnsFormat } from "date-fns";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { getOrigemMeta, ORIGEM_PEDIDO_META, ORIGENS_PEDIDO, type OrigemPedido } from "@/lib/pedidos/origem";
+
+function OrigemBadge({ origem }: { origem?: string | null }) {
+  const meta = getOrigemMeta(origem);
+  return (
+    <Badge variant="outline" className={`text-[10px] gap-1 ${meta.color}`} title={meta.label}>
+      <span aria-hidden>{meta.icon}</span>
+      <span className="truncate">{meta.label}</span>
+    </Badge>
+  );
+}
 
 function getNumeroExibicao(p: { numero_sequencial?: number | null; id: string }) {
   return p.numero_sequencial != null ? String(p.numero_sequencial) : p.id.substring(0, 8).toUpperCase();
 }
 
 function exportarPedidosCSV(pedidos: PedidoFormatado[]) {
-  const header = ["Nº", "Data", "Cliente", "Endereço", "Produtos", "Valor (R$)", "Status", "Pagamento", "Entregador", "Canal"];
+  const header = ["Origem", "Nº", "Data", "Cliente", "Endereço", "Produtos", "Entregador", "Canal", "Valor (R$)", "Status", "Pagamento"];
   const rows = pedidos.map((p) => [
+  getOrigemMeta(p.origem_pedido).label,
   getNumeroExibicao(p),
   p.data,
   p.cliente,
   (p.endereco || "").replace(/,/g, " "),
   (p.produtos || "").replace(/,/g, " |"),
+  p.entregador || "",
+  p.canal_venda || "",
   p.valor.toFixed(2),
   p.status,
-  p.forma_pagamento || "",
-  p.entregador || "",
-  p.canal_venda || ""]
+  p.forma_pagamento || ""]
   );
   const csv = [header, ...rows].map((r) => r.map((v) => `"${v}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -121,6 +133,7 @@ export default function Pedidos() {
   const [pedidoView, setPedidoView] = useState<PedidoFormatado | null>(null);
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroEntregador, setFiltroEntregador] = useState<string>("todos");
+  const [filtroOrigem, setFiltroOrigem] = useState<string>("todos");
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [busca, setBusca] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
@@ -288,7 +301,7 @@ export default function Pedidos() {
   }, [unidadeAtual?.id]);
 
   // Reset page when filters change
-  useEffect(() => {setPaginaAtual(1);}, [filtroStatus, filtroEntregador, busca, dataInicio, dataFim]);
+  useEffect(() => {setPaginaAtual(1);}, [filtroStatus, filtroEntregador, filtroOrigem, busca, dataInicio, dataFim]);
   // Quando filtrar agendados, ampliar a data para os próximos 90 dias
   useEffect(() => {
     if (filtroStatus === "agendado") {
@@ -552,15 +565,16 @@ export default function Pedidos() {
             : p.status === filtroStatus;
       const matchEntregador = filtroEntregador === "todos" || (
       filtroEntregador === "sem_entregador" ? !p.entregador : p.entregador === filtroEntregador);
+      const matchOrigem = filtroOrigem === "todos" || (p.origem_pedido || "erp") === filtroOrigem;
       const matchBusca = busca === "" ||
       p.cliente.toLowerCase().includes(buscaLower) ||
       p.endereco.toLowerCase().includes(buscaLower) ||
       p.id.toLowerCase().includes(buscaLower) ||
       (p.numero_sequencial != null && buscaDigits !== "" && String(p.numero_sequencial).includes(buscaDigits)) ||
       (p.entregador && p.entregador.toLowerCase().includes(buscaLower));
-      return matchStatus && matchEntregador && matchBusca;
+      return matchStatus && matchEntregador && matchOrigem && matchBusca;
     });
-  }, [pedidos, filtroStatus, filtroEntregador, busca]);
+  }, [pedidos, filtroStatus, filtroEntregador, filtroOrigem, busca]);
 
   const resumoProdutos = useMemo<ResumoProduto[]>(() => {
     const produtos = new Map<string, ResumoProduto>();
@@ -761,9 +775,23 @@ export default function Pedidos() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground block">Origem do pedido</label>
+                <Select value={filtroOrigem} onValueChange={setFiltroOrigem}>
+                  <SelectTrigger className="h-10 text-sm">
+                    <SelectValue placeholder="Origem" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas Origens</SelectItem>
+                    {ORIGENS_PEDIDO.map((o) => (
+                      <SelectItem key={o} value={o}>{ORIGEM_PEDIDO_META[o].icon} {ORIGEM_PEDIDO_META[o].label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <ResponsiveDialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => {setBusca("");setDataInicio(hoje);setDataFim(hoje);setFiltroStatus("todos");setFiltroEntregador("todos");}}>
+              <Button variant="outline" onClick={() => {setBusca("");setDataInicio(hoje);setDataFim(hoje);setFiltroStatus("todos");setFiltroEntregador("todos");setFiltroOrigem("todos");}}>
                 <RefreshCw className="h-3.5 w-3.5 mr-1" /> Limpar
               </Button>
               <Button onClick={() => setFiltrosAbertos(false)}>Aplicar</Button>
@@ -962,9 +990,12 @@ export default function Pedidos() {
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} className="shrink-0" />
                         <div className="min-w-0 flex-1">
-                          <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs truncate max-w-full" onClick={() => editarPedido(pedido.id)}>
-                            #{getNumExib(pedido)}
-                          </Button>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <OrigemBadge origem={pedido.origem_pedido} />
+                            <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs truncate max-w-full" onClick={() => editarPedido(pedido.id)}>
+                              #{getNumExib(pedido)}
+                            </Button>
+                          </div>
                           <p className="text-sm font-medium truncate">{pedido.cliente}</p>
                           {pedido.agendado && pedido.data_agendamento && (
                             <Badge variant="secondary" className="mt-1 text-[10px] gap-1 bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20">
@@ -1052,15 +1083,16 @@ export default function Pedidos() {
                           checked={selecionados.size === pedidosPaginados.length && pedidosPaginados.length > 0}
                           onCheckedChange={toggleSelecionarTodos} />
                       </TableHead>
-                      <TableHead>Pedido</TableHead>
+                      <TableHead>Origem</TableHead>
+                      <TableHead>Nº Pedido</TableHead>
+                      <TableHead>Data</TableHead>
                       <TableHead className="min-w-[200px]">Cliente</TableHead>
                       <TableHead>Endereço</TableHead>
                       <TableHead>Produtos</TableHead>
                       <TableHead>Entregador</TableHead>
-                      <TableHead>Canal</TableHead>
+                      <TableHead>Canal de Venda</TableHead>
                       <TableHead>Valor</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Data</TableHead>
                       <TableHead className="w-12">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1071,9 +1103,17 @@ export default function Pedidos() {
                           <Checkbox checked={selecionados.has(pedido.id)} onCheckedChange={() => toggleSelecionado(pedido.id)} />
                         </TableCell>
                         <TableCell>
+                          <OrigemBadge origem={pedido.origem_pedido} />
+                        </TableCell>
+                        <TableCell>
                           <Button variant="link" className="font-medium p-0 h-auto text-primary text-xs" onClick={() => editarPedido(pedido.id)}>
                             #{getNumExib(pedido)}
                           </Button>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {podeAlterarDataEntrega ?
+                        <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-8 w-[140px] text-xs" /> :
+                        pedido.data}
                         </TableCell>
                         <TableCell className="font-medium text-sm min-w-[200px] max-w-[260px] truncate" title={pedido.cliente}>{pedido.cliente}</TableCell>
                         <TableCell className="max-w-[180px] truncate text-muted-foreground text-xs" title={pedido.endereco}>{pedido.endereco}</TableCell>
@@ -1122,11 +1162,6 @@ export default function Pedidos() {
                         <TableCell className="font-medium text-sm">R$ {pedido.valor.toFixed(2)}</TableCell>
                         <TableCell>
                           <StatusDropdown status={pedido.status} onStatusChange={(s) => alterarStatusPedido(pedido.id, s)} disabled={isUpdating} />
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-xs">
-                          {podeAlterarDataEntrega ?
-                        <Input type="date" defaultValue={dataPedidoParaInput(pedido.data)} onChange={(e) => alterarDataEntrega(pedido, e.target.value)} className="h-8 w-[140px] text-xs" /> :
-                        pedido.data}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>

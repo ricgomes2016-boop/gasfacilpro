@@ -448,6 +448,7 @@ export default function EntregadorNovaVenda({ noLayout = false }: EntregadorNova
           valor_total: total,
           forma_pagamento: pagamentos.map(p => p.forma).filter((v, i, a) => a.indexOf(v) === i).join(", "),
           canal_venda: canalVenda,
+          origem_pedido: "app_entregador",
           observacoes: observacao || null,
           status: "entregue",
           data_entrega: getBrasiliaDateString(),
