@@ -398,7 +398,20 @@ export default function ContaBancariaDetalhe() {
 
             </TabsContent>
           )}
+
+          {provider && (
+            <TabsContent value="config" className="mt-4">
+              <IntegracaoBancariaPanel
+                contaId={conta.id}
+                banco={conta.banco}
+                unidadeId={conta.unidade_id}
+                provider={provider}
+                accentColor={theme.primary}
+              />
+            </TabsContent>
+          )}
         </Tabs>
+
           );
         })()}
 
