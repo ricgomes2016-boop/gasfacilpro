@@ -137,13 +137,14 @@ export default function ClienteCheckout() {
         return;
       }
 
-      // cliente_id (opcional) por e-mail/telefone na mesma empresa
+      // cliente_id: buscar por e-mail/telefone na mesma empresa, ou criar
       let clienteId: string | null = null;
+      const userPhone = (user as any)?.phone || (user?.user_metadata as any)?.telefone || null;
+      const userEmail = user?.email || null;
       if (user) {
         const orFilters: string[] = [];
-        if (user.email) orFilters.push(`email.eq.${user.email}`);
-        const phone = (user as any).phone;
-        if (phone) orFilters.push(`telefone.eq.${phone}`);
+        if (userEmail) orFilters.push(`email.eq.${userEmail}`);
+        if (userPhone) orFilters.push(`telefone.eq.${userPhone}`);
         if (orFilters.length > 0) {
           const { data: clienteData } = await supabase
             .from("clientes")
@@ -153,6 +154,39 @@ export default function ClienteCheckout() {
             .maybeSingle();
           clienteId = clienteData?.id || null;
         }
+
+        // Se ainda não existe, cria registro mínimo para vincular o pedido
+        if (!clienteId) {
+          const nomeBase =
+            (user.user_metadata as any)?.nome ||
+            (user.user_metadata as any)?.full_name ||
+            userEmail?.split("@")[0] ||
+            userPhone ||
+            "Cliente App";
+          const { data: novoCliente, error: novoClienteErr } = await (supabase as any)
+            .from("clientes")
+            .insert({
+              empresa_id: empresaId,
+              nome: nomeBase,
+              email: userEmail,
+              telefone: userPhone,
+              tipo: "varejo",
+              ativo: true,
+            })
+            .select("id")
+            .single();
+          if (novoClienteErr) {
+            console.error("Erro ao criar cliente:", novoClienteErr);
+          } else {
+            clienteId = novoCliente?.id || null;
+          }
+        }
+      }
+
+      if (!clienteId) {
+        toast.error("Não foi possível identificar seu cadastro de cliente.");
+        setIsSubmitting(false);
+        return;
       }
 
       // Unidade: prefere a loja escolhida pelo cliente (se pertencer à empresa);
@@ -220,7 +254,7 @@ export default function ClienteCheckout() {
 
       clearCart();
       toast.success("Pedido realizado com sucesso! 🎉");
-      navigate("/cliente/historico");
+      navigate(`/cliente/rastreamento/${pedido.id}`);
     } catch (error: any) {
       console.error("Erro ao criar pedido:", error);
       const msg = error?.message || error?.details || "Tente novamente.";

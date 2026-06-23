@@ -105,19 +105,38 @@ export default function ClienteHome() {
     })();
   }, [produtos, empresaInfo?.id]);
 
-  // Fetch último pedido do cliente
+  const [pedidoAtivo, setPedidoAtivo] = useState<{ id: string; status: string } | null>(null);
+
+  // Fetch último pedido e pedido em andamento do cliente
   useEffect(() => {
-    const fetchUltimoPedido = async () => {
+    const fetchPedidos = async () => {
       if (!user) return;
+
+      // Resolve empresa
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("empresa_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const empresaId = (profileData as any)?.empresa_id;
+      if (!empresaId) return;
+
+      const userPhone = (user as any)?.phone || (user.user_metadata as any)?.telefone || null;
+      const orFilters: string[] = [];
+      if (user.email) orFilters.push(`email.eq.${user.email}`);
+      if (userPhone) orFilters.push(`telefone.eq.${userPhone}`);
+      if (orFilters.length === 0) return;
 
       const { data: clienteData } = await supabase
         .from("clientes")
         .select("id")
-        .eq("email", user.email || "")
+        .eq("empresa_id", empresaId)
+        .or(orFilters.join(","))
         .maybeSingle();
 
       if (!clienteData) return;
 
+      // Último pedido entregue (para "Pedir de novo")
       const { data } = await supabase
         .from("pedidos")
         .select(`
@@ -143,8 +162,41 @@ export default function ClienteHome() {
           })),
         });
       }
+
+      // Pedido em andamento
+      const { data: ativo } = await supabase
+        .from("pedidos")
+        .select("id, status")
+        .eq("cliente_id", clienteData.id)
+        .in("status", ["pendente", "em_rota"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (ativo) {
+        setPedidoAtivo({ id: ativo.id, status: ativo.status || "pendente" });
+
+        // Realtime: limpar quando concluir
+        const channel = supabase
+          .channel(`home-pedido-${ativo.id}`)
+          .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "pedidos", filter: `id=eq.${ativo.id}` },
+            (payload) => {
+              const novoStatus = (payload.new as any).status;
+              if (novoStatus === "entregue" || novoStatus === "cancelado") {
+                setPedidoAtivo(null);
+              } else {
+                setPedidoAtivo({ id: ativo.id, status: novoStatus });
+              }
+            }
+          )
+          .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+      }
     };
-    fetchUltimoPedido();
+    fetchPedidos();
   }, [user]);
 
   const filteredProducts = produtos.filter(product => {
@@ -239,6 +291,33 @@ export default function ClienteHome() {
           <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full" />
           <div className="absolute -right-4 -bottom-6 w-20 h-20 bg-white/10 rounded-full" />
         </div>
+
+        {/* Pedido em andamento */}
+        {pedidoAtivo && (
+          <button
+            onClick={() => navigate(`/cliente/rastreamento/${pedidoAtivo.id}`)}
+            className="w-full text-left"
+          >
+            <Card className="border-primary bg-primary text-primary-foreground shadow-md">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 bg-primary-foreground/20 rounded-full flex items-center justify-center shrink-0">
+                      <Clock className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm">Pedido em andamento</p>
+                      <p className="text-xs opacity-90 truncate">
+                        {pedidoAtivo.status === "em_rota" ? "A caminho — toque para acompanhar" : "Aguardando confirmação da loja"}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0" />
+                </div>
+              </CardContent>
+            </Card>
+          </button>
+        )}
 
         {/* Repetir último pedido */}
         {ultimoPedido && (
