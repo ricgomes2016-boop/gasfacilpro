@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCliente } from "@/contexts/ClienteContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizePhone, setCachedClienteId } from "@/lib/clienteAppLookup";
 import {
   CreditCard,
   Banknote,
