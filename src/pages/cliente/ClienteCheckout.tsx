@@ -121,24 +121,42 @@ export default function ClienteCheckout() {
       const enderecoCompleto = buildEnderecoString();
 
       let clienteId: string | null = null;
+      let empresaId: string | null = null;
       if (user) {
         const { data: clienteData } = await supabase
           .from("clientes")
-          .select("id")
+          .select("id, empresa_id")
           .eq("email", user.email || "")
           .maybeSingle();
         clienteId = clienteData?.id || null;
+        empresaId = (clienteData as any)?.empresa_id || null;
+      }
+
+      // Resolve a unidade_id da empresa (primeira ativa) para satisfazer RLS de isolamento
+      let unidadeId: string | null = null;
+      if (empresaId) {
+        const { data: unidadeData } = await supabase
+          .from("unidades")
+          .select("id")
+          .eq("empresa_id", empresaId)
+          .eq("ativa", true)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        unidadeId = unidadeData?.id || null;
       }
 
       const { data: pedido, error: pedidoError } = await supabase
         .from("pedidos")
         .insert({
           cliente_id: clienteId,
+          empresa_id: empresaId,
+          unidade_id: unidadeId,
           endereco_entrega: enderecoCompleto,
           forma_pagamento: paymentMethods.find(p => p.id === paymentMethod)?.label || paymentMethod,
           valor_total: finalTotal,
           status: "pendente",
-          canal_venda: null,
+          canal_venda: "Aplicativo",
           origem_pedido: "app_cliente",
           observacoes: changeFor ? `Troco para R$ ${changeFor}` : null,
         })
@@ -163,9 +181,11 @@ export default function ClienteCheckout() {
       clearCart();
       toast.success("Pedido realizado com sucesso! 🎉");
       navigate("/cliente/historico");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao criar pedido:", error);
-      toast.error("Erro ao processar pedido. Tente novamente.");
+      const msg = error?.message || error?.details || "Tente novamente.";
+      toast.error(`Erro ao processar pedido: ${msg}`);
+
     } finally {
       setIsSubmitting(false);
     }
